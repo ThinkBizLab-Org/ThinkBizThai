@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+  "head_revision_or_patch_checksum": "post-CI status evidence candidate; commit pending",
+  "task_ids": ["post-ci-status-recording"],
+  "files_added": [
+    "evidence/WP-0A-A0-001/status-author.json",
+    "evidence/WP-0A-A0-001/status-reviewer-security.json",
+    "evidence/WP-0A-A0-001/status-tester.json",
+    "evidence/WP-0A-A0-001/status-integration.json",
+    "handoffs/WP-0A-A0-001-post-ci-status-handoff.json"
+  ],
+  "files_modified": ["work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "GitHub Actions run 33335381144 reports Bootstrap validation success for commit 3c8e02589fd5436e8688f3a17a142f3ba7cf5360.",
+    "The action-runtime Node 20 deprecation annotation is non-fatal for this run because GitHub forced the actions runtime to Node 24; it does not change the project Node 24.20.0/npm 11.19.0 contract."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Canonical status records preserve distinct Author, Reviewer/Security, Tester, and Integration roles and their sequential dispositions.",
+      "result": "pass: status records added; Integration remains in_review"
+    },
+    {
+      "criterion": "Remote CI result for the committed bootstrap candidate is recorded without treating it as RFC, G0, or merge approval.",
+      "result": "pass: CI success and non-fatal annotation recorded; approvals remain pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "GitHub Actions Bootstrap validation run 33335381144",
+      "exit_code": 0,
+      "result": "success; bootstrap job completed in 21 seconds"
+    },
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "14 tests passed; secret scan and all-work-package validation passed"
+    }
+  ],
+  "security_privacy_cost_impact": "Evidence-only change. No secret, customer data, provider integration, billable call, migration, or production configuration is added. The CI annotation is documented as a maintenance risk, not bypassed.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None beyond recording the passing Node 24.20.0/npm 11.19.0 project runtime result.",
+  "known_limitations": [
+    "This follow-on records CI for the prior commit; its own commit still requires standard review, test, push, and CI.",
+    "CI success does not resolve RFC-2026-001, OPEN-018, REP-00 P0 acceptance, branch protection, or G0."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-001 and OPEN-018 remain in review.",
+    "Product Owner plus A1-A6 representative review and a cross-vendor dry run are still required for REP-00 P0 acceptance.",
+    "Protected CI/branch-protection evidence and G0 external approval/evidence remain outstanding."
+  ],
+  "rollback_or_forward_fix": "Revert this evidence-only commit if the recorded result is incorrect; no persisted or external product state requires recovery.",
+  "recommended_next_work_packages": [
+    "Obtain the named REP-00 P0 reviewer/dry-run evidence and the authorized branch-protection evidence.",
+    "Do not start a Ready domain implementation package until its G0 authority and declared dependencies are satisfied."
+  ],
+  "reviewer_instructions": [
+    "Validate each status document against .agents/status.schema.json and its claimed independent role.",
+    "Verify the CI run URL, SHA, result, duration, and annotation disposition against GitHub before approving.",
+    "Preserve WP-0A-A0-001 as in_review; do not infer RFC, G0, or merge approval from CI success."
+  ]
+}

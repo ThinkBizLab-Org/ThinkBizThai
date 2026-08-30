@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root/q0_sentinel",
+  "status": "test_verified",
+  "base_revision": "3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+  "branch_or_worktree": "agent/root/WP-0A-A0-001-repository-bootstrap",
+  "started_at": "2026-08-30T21:07:23Z",
+  "updated_at": "2026-08-30T21:08:00Z",
+  "completed_task_ids": [
+    "WP-0A-A0-001-independent-test-verification",
+    "WP-0A-A0-001-staged-candidate-test-verification"
+  ],
+  "current_task_id": "WP-0A-A0-001-test-evidence-complete",
+  "files_changed": [
+    "evidence/WP-0A-A0-001/status-tester.json"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
+  "contracts_proposed_or_changed": [],
+  "tests_run": [
+    {
+      "candidate": "exact staged candidate committed as 3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+      "command": "PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm_config_offline=true npm ci --ignore-scripts",
+      "runtime": "Node.js v24.20.0; npm 11.19.0",
+      "result": "exit 0; audited 1 package; 0 vulnerabilities"
+    },
+    {
+      "candidate": "exact staged candidate committed as 3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+      "command": "PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm_config_offline=true npm run check",
+      "runtime": "Node.js v24.20.0; npm 11.19.0",
+      "result": "exit 0; toolchain guard, secret scan, work-package validation, and 14/14 tests passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "exit 0 before commit; staged diff whitespace clean and 41 staged paths reconciled exactly to the author handoff"
+    },
+    {
+      "command": "node scripts/verify-toolchain.mjs under system Node.js v26.7.0/npm 11.19.0",
+      "result": "expected negative control; exit 68 because the repository contract requires Node.js v24.20.0"
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation",
+      "url": "https://github.com/ThinkBizLab-Org/ThinkBizThai/actions/runs/33335381144",
+      "head_sha": "3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+      "result": "success; bootstrap job duration 21 seconds",
+      "nonfatal_annotation": "Node.js 20 is deprecated; actions/checkout@11d5960a326750d5838078e36cf38b85af677262 and actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 were forced to run on Node.js 24. This did not affect the project runtime: Node.js v24.20.0/npm 11.19.0 passed."
+    }
+  ],
+  "open_risks": [
+    "The GitHub Actions Node.js 20 deprecation annotation is nonfatal for this run because the pinned actions were forced onto Node.js 24; retain SHA-pinned-action maintenance as a release-engineering watch item.",
+    "The deterministic secret scanner covers documented common patterns only and does not replace secret-management controls or independent security review."
+  ],
+  "blockers": [
+    "This independent tester record does not grant integration_verified, RFC approval, merge approval, release approval, or G0 approval.",
+    "Integration Owner must reconcile the successful remote CI evidence and make any separate integration-gate decision.",
+    "RFC-2026-001 and OPEN-018 remain in review until their required independent integration and approval evidence is complete.",
+    "G0 remains Specification Baseline Complete / External Verification Pending: Product Owner plus A1-A6/cross-vendor protocol evidence, protected CI/branch protection, and the remaining external Meta, Stripe, legal/PDPA/accounting, Thai-SME usability, qualified skincare, and storage lifecycle/restore evidence are still required."
+  ],
+  "next_action": "Preserve this test evidence; the Integration Owner should evaluate the committed remote-CI result and keep the work package in_review until the independent integration and G0 requirements are satisfied."
+}

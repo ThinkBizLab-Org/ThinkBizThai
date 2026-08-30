@@ -88,6 +88,7 @@
       ".agents/role-profiles/",
       "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
       "handoffs/WP-0A-A0-001-author-handoff.json",
+      "handoffs/WP-0A-A0-001-post-ci-status-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
@@ -99,6 +100,10 @@
       "test-kits/role-separation.test.mjs",
       "test-kits/secret-scan.test.mjs",
       "test-kits/work-package-discovery.test.mjs",
+      "evidence/WP-0A-A0-001/status-author.json",
+      "evidence/WP-0A-A0-001/status-reviewer-security.json",
+      "evidence/WP-0A-A0-001/status-tester.json",
+      "evidence/WP-0A-A0-001/status-integration.json",
       "test-kits/first-integration-slice-fixture-plan.md"
     ],
     "contracts": []
