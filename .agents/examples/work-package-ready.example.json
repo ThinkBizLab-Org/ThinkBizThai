@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-EXAMPLE-001",
+  "title": "Example only; no implementation authority",
+  "gate": "G0",
+  "status": "ready",
+  "required_skill_profiles": {},
+  "role_assignments": {
+    "author_agent_run_id": "example-author-run",
+    "reviewer_agent_run_id": "example-reviewer-run",
+    "tester_agent_run_id": "example-tester-run",
+    "integration_owner_agent_run_id": "example-integrator-run"
+  },
+  "independence": { "no_self_approval": true },
+  "ownership": {},
+  "inputs": { "files": [], "fixtures": [] },
+  "outputs": { "files": [], "contracts": [] },
+  "acceptance_criteria": [],
+  "required_tests": [],
+  "deterministic_commands": { "setup": [], "verify": [], "package_evidence": [] },
+  "security_privacy": { "data_classification": "synthetic-only" }
+}

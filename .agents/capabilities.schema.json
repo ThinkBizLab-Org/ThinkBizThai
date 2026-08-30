@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ThinkBizThai Agent Capability Profile",
+  "type": "object",
+  "required": ["schema_version", "agent_run_id", "vendor", "model", "protocol_version", "capabilities"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "agent_run_id": { "type": "string", "minLength": 1 },
+    "vendor": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "protocol_version": { "const": "1.0.0" },
+    "capabilities": {
+      "type": "object",
+      "required": ["can_edit_files", "can_run_shell", "can_run_tests", "can_access_network", "can_access_external_secrets", "can_create_branch_or_worktree"],
+      "properties": {
+        "can_edit_files": { "type": "boolean" },
+        "can_run_shell": { "type": "boolean" },
+        "can_run_tests": { "type": "boolean" },
+        "can_access_network": { "type": "boolean" },
+        "can_use_browser": { "type": "boolean" },
+        "can_access_external_secrets": { "type": "boolean", "const": false },
+        "can_create_branch_or_worktree": { "type": "boolean" },
+        "supported_languages": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "limitations": { "type": "object" },
+    "accepted_work_package": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

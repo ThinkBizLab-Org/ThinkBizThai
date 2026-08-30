@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "status": "proposed-role-directory",
+  "roles": [
+    {
+      "role_id": "A0",
+      "display_name": "Atlas",
+      "scope": "Architecture, contracts, dependencies, and integration design",
+      "primary_skill_profiles": ["architecture-contracts", "integration-release"]
+    },
+    {
+      "role_id": "A1",
+      "display_name": "Bastion",
+      "scope": "Database, RLS, security, and privacy",
+      "primary_skill_profiles": ["postgres-rls-data", "security-privacy"]
+    },
+    {
+      "role_id": "A2",
+      "display_name": "Compass",
+      "scope": "Knowledge, research, evidence, and industry packs",
+      "primary_skill_profiles": ["industry-research"]
+    },
+    {
+      "role_id": "A3",
+      "display_name": "Forge",
+      "scope": "AI routing, content, and quality evaluation",
+      "primary_skill_profiles": ["ai-quality-evaluation"]
+    },
+    {
+      "role_id": "A4",
+      "display_name": "Vault",
+      "scope": "Assets, object storage, media processing, and rights",
+      "primary_skill_profiles": ["asset-media-pipeline"]
+    },
+    {
+      "role_id": "A5",
+      "display_name": "Loom",
+      "scope": "Thai mobile UX, approval, calendar, and presentation workflow",
+      "primary_skill_profiles": ["mobile-product-ux"]
+    },
+    {
+      "role_id": "A6",
+      "display_name": "Relay",
+      "scope": "Meta integration, publishing, billing, and operations",
+      "primary_skill_profiles": ["meta-publishing", "billing-cost-ops", "platform-jobs-events"]
+    },
+    {
+      "role_id": "Q0",
+      "display_name": "Sentinel",
+      "scope": "Independent QA, acceptance testing, fault testing, and evidence",
+      "primary_skill_profiles": ["independent-qa"]
+    },
+    {
+      "role_id": "R0",
+      "display_name": "Steward",
+      "scope": "Independent integration and release-gate verification",
+      "primary_skill_profiles": ["integration-release"]
+    }
+  ],
+  "assignment_rules": [
+    "A role ID and display name are not an agent_run_id.",
+    "Author, Reviewer, Tester, and Integration Owner must be distinct agent runs for every implementation package.",
+    "Use Q0 for independent testing and R0 for integration/release when their real assigned agent runs have the required capabilities.",
+    "For critical work, apply the cross-vendor preference and specialist review rules in the Decision Register."
+  ]
+}

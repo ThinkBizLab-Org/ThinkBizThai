@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "title": "Repository bootstrap and canonical agent protocol",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_review",
+  "required_skill_profiles": {
+    "author": ["architecture-contracts"],
+    "reviewer": ["integration-release"],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy", "product-ux"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/root",
+    "reviewer_agent_run_id": "/root/a1_bastion",
+    "tester_agent_run_id": "/root/q0_sentinel",
+    "integration_owner_agent_run_id": "/root/r0_steward",
+    "security_reviewer_agent_run_id": "/root/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true
+  },
+  "purpose": "Establish the vendor-neutral repository protocol required before G0 packages can become Ready.",
+  "scope": {
+    "include": [
+      "Canonical agent guide and thin Codex/Claude adapters",
+      "Machine-readable protocol schemas and directory structure",
+      "Repository consistency and synthetic-only secret-scan evidence",
+      "Approved bootstrap runtime, lockfile, Node-only protocol validator, and read-only CI workflow"
+    ],
+    "exclude": [
+      "Product/domain implementation, schema migrations, provider integrations, and credentials"
+    ]
+  },
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".github/**",
+      ".node-version",
+      ".agents/**",
+      "architecture/decisions/**",
+      "contract-catalog/**",
+      "evidence/**",
+      "handoffs/**",
+      "ownership/**",
+      "runbooks/**",
+      "package.json",
+      "package-lock.json",
+      "scripts/**",
+      "test-kits/**",
+      "work-packages/**"
+    ],
+    "read_only_paths": ["README.md", "docs/**"],
+    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*"],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": []
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/sprint-0a/sprint-0a-multi-agent-engineering-operating-model-th.md",
+      "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".agents/",
+      ".agents/role-profiles/",
+      "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+      "handoffs/WP-0A-A0-001-author-handoff.json",
+      ".node-version",
+      "ownership/README.md",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.yml",
+      "scripts/validate-work-package-role-separation.mjs",
+      "scripts/validate-work-packages.mjs",
+      "scripts/scan-repository-secrets.mjs",
+      "test-kits/role-separation.test.mjs",
+      "test-kits/secret-scan.test.mjs",
+      "test-kits/work-package-discovery.test.mjs",
+      "test-kits/first-integration-slice-fixture-plan.md"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "Canonical guide is the sole full agent-policy source and adapters only point to it.",
+    "Role profiles use stable role IDs and display names without pretending that an unassigned role is an agent run.",
+    "Package, status, handoff, and capability schemas declare protocol version 1.0.0.",
+    "The named Author, Reviewer, Tester, and Integration Owner IDs are non-empty and pairwise distinct before a package is Ready or later.",
+    "No production secret or customer data is introduced.",
+    "The package has real role assignments and may advance only through independent review, test, and integration evidence."
+  ],
+  "required_tests": [
+    "JSON syntax validation for all .agents schemas and JSON manifests",
+    "Node-only role-separation validator for every Ready-or-later JSON manifest",
+    "Node-only synthetic secret-pattern scan of repository candidate files",
+    "Pinned Node/npm version and npm clean-install verification",
+    "Link and protocol-version consistency check",
+    "Synthetic-only secret-pattern scan of newly added tracked files"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check", "node scripts/validate-work-packages.mjs", "node scripts/validate-work-package-role-separation.mjs <manifest.json>", "node scripts/scan-repository-secrets.mjs"],
+    "package_evidence": []
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert the bootstrap-only commit; no persisted data or external state is created.",
+  "open_blockers": [
+    "Cross-vendor protocol dry run is required for G0 evidence and cannot be represented by a placeholder.",
+    "Repository branch protection requires an authorized repository administrator."
+  ],
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+}
