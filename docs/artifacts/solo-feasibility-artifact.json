@@ -1,0 +1,3152 @@
+{
+  "surface": "report",
+  "manifest": {
+    "blocks": [
+      {
+        "body": "# แผนสร้าง AI Marketing OS สำหรับ SME ไทย",
+        "id": "b_title",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Executive Summary\n\n- **อย่าขายคำว่า PaaS ให้ SME โดยตรง.** หน้าบ้านควรเป็น Vertical SaaS ที่ใช้ภาษาง่ายว่า “ระบบการตลาดที่ช่วยเปลี่ยนคอนเทนต์และโฆษณาให้เป็นคนทัก นัดหมาย และยอดขาย” ส่วน PaaS เป็นโครงสร้างภายในสำหรับ connector, workflow, template และ agency/แฟรนไชส์.\n\n- **Content Quality และ Content Calendar เป็นแกนของ MVP.** ระบบต้องวางแผนตาม business goal/funnel stage, ตรวจคุณภาพ 7 มิติ, ทำ approval และนำผลจาก lead/ยอดขายกลับมาเรียนรู้; Meta + LINE เป็น connector แรกและ Daily Owner Brief สรุปทั้ง calendar gaps, quality flags และรายได้.\n\n- **ใช้ GoldenHome และสะโรรักษ์เป็น lighthouse pilots.** สองธุรกิจนี้ทดสอบได้ทั้ง funnel มูลค่าสูงแบบวัดพื้นที่–เสนอราคา–ปิดงาน และ funnel แบบประเมิน–นัดหมาย–ซื้อคอร์ส–กลับมาใช้ซ้ำ ก่อนเปิด beta 20 ราย.\n\n- **กรณีฐานแบบทีมต้องใช้งบประมาณราว 8.8 ล้านบาทใน 12 เดือน แต่สามารถเริ่มแบบ one-person เพื่อพิสูจน์ตลาดได้.** ที่แพ็กเกจ Growth 2,990 บาท ต้องมี 28 บัญชีเพื่อแตะรายได้ประจำ 1 ล้านบาทต่อปี; เป้าหมาย 1 ล้านบาทต่อเดือนต้อง 335 บัญชีและไม่เหมาะกับบริการแบบ high-touch. สำหรับการเริ่มคนเดียว ให้ขาย paid onboarding และจำกัด scope ก่อนลงทุนแบบทีมเต็มรูปแบบ.\n\n  **แผนฐานเดิม:** เป้าหมายเชิงบริหารสิ้นเดือนที่ 24 คือ 1,200 paying workspaces, blended ARPA 2,990 บาท/เดือน หรือ ARR ราว 43.1 ล้านบาท; ต้องผ่าน paid-pilot, activation และ retention gates ก่อนเร่ง acquisition.",
+        "id": "b_exec",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "cardIds": [
+          "card_smes",
+          "card_arr",
+          "card_budget"
+        ],
+        "id": "b_metrics",
+        "layout": "full",
+        "type": "metric-strip"
+      },
+      {
+        "body": "## ข้อสรุปเชิงกลยุทธ์: Vertical SaaS ด้านหน้า, PaaS ด้านหลัง\n\n**ผู้ใช้ SME ไม่ได้ต้องการ orchestration engine; เขาต้องการรู้ว่าวันนี้ควรโพสต์อะไร ต้องตอบใคร และงบใดกำลังเสียเงิน.** จึงควรตั้ง positioning เป็น AI Marketing OS for Thai SMEs และให้ PaaS เป็นชั้นรองรับนักพัฒนา/agency/แฟรนไชส์ในภายหลัง.\n\n### North Star\n\nใช้ **จำนวน Qualified Leads ที่ได้รับการติดตามภายใน SLA และเชื่อมถึง conversion** เป็น North Star ระยะแรก ไม่ใช้จำนวน content generated. Metric นี้เชื่อมงานคอนเทนต์ โฆษณา การตอบแชต และยอดขายเข้าด้วยกัน.\n\n### ขอบเขตลูกค้าเริ่มต้น\n\nเริ่มจากธุรกิจบริการที่มูลค่า lead สูง มีการนัดหมายหรือเสนอราคา และใช้ Facebook/Instagram + LINE อยู่แล้ว เช่น beauty/wellness, interior/home services, tutoring/education, automotive services และ professional services. หลีกเลี่ยง e-commerce เต็มรูปแบบใน MVP เพราะ inventory, marketplace attribution และ order reconciliation ทำให้ scope บาน.",
+        "id": "b_positioning",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## ตลาดใหญ่ แต่ Beachhead ต้องแคบและพิสูจน์ด้วย paid pilots\n\nสสว. รายงาน SME ไทยปี 2568 จำนวน 3.284 ล้านราย ขณะที่บริบทดิจิทัลปี 2025 ระบุผู้ใช้อินเทอร์เน็ต 65.4 ล้านคน, social media user identities 51.0 ล้าน และ LINE MAU 56 ล้าน. ตัวเลขเหล่านี้สนับสนุนแนวทาง mobile/social/LINE-first แต่ **ไม่พิสูจน์ว่า SME ทุกแห่งพร้อมจ่าย**.\n\nโมเดลด้านล่างจึงแยกเพดานบนออกจากตลาดที่คัดคุณสมบัติแล้ว: Qualified TAM 20% และ Beachhead SAM 7.5% เป็นสมมติฐาน ไม่ใช่ข้อมูลราชการ. ตัวแปรที่ต้องยืนยันเร็วที่สุดคือ willingness-to-pay และสัดส่วนธุรกิจที่มี funnel วัดผลได้.",
+        "id": "b_market",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_market_table",
+        "layout": "full",
+        "tableId": "table_market",
+        "type": "table"
+      },
+      {
+        "body": "## รายได้ปีที่ 2 ไวต่อทั้งจำนวนลูกค้าและการรักษาราคา\n\n**กรณีฐานให้ ARR 43.1 ล้านบาท แต่ช่วงความเป็นไปได้กว้าง 19.1–95.8 ล้านบาท.** Conservative case สะท้อนการขาย Starter เป็นหลัก; Upside ต้องทั้งเพิ่มลูกค้าและมี mix ของ Business/Agency สูงขึ้น. ดังนั้น pricing validation และ retention มีผลพอ ๆ กับยอดสมัครใหม่.\n\nการตีความ: ใช้ 1,200 accounts เป็นเป้าหมายทีม ไม่ใช่ forecast. หาก 90-day retention ต่ำกว่า 80% หรือ CAC payback เกิน 8 เดือน ให้ชะลอ acquisition และแก้ product/onboarding ก่อน.",
+        "id": "b_sensitivity",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "chartId": "chart_arr_scenarios",
+        "id": "b_arr_chart",
+        "layout": "full",
+        "type": "chart"
+      },
+      {
+        "body": "## เก็บแกนของเดโม แต่เปลี่ยน Output เป็นยอดขาย\n\nหน้าเดโมวางโครงถูกทาง: Brand Files, Always-On, Connectors และ AI Orchestration เชื่อม analytics, hooks, calendar, scheduling และ ads. สำหรับ SME ไทย ต้องเติม mini CRM, lead SLA, conversion capture และ human approval เพื่อให้ระบบตอบคำถาม “ได้เงินกลับมาเท่าไรและควรทำอะไรต่อ” ได้อย่างน่าเชื่อถือ.",
+        "id": "b_demo",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_demo_table",
+        "layout": "full",
+        "tableId": "table_demo_mapping",
+        "type": "table"
+      },
+      {
+        "body": "## MVP ต้องปิดวงจร Content → Lead → Sale\n\n**ลำดับพัฒนาควรเดินตาม dependency ไม่ใช่ความหวือหวาของ feature.** สร้าง tenant isolation และ Brand Brain ก่อน connector; ทำ connector และ approval ก่อน automation; ทำ lead pipeline ก่อนคำแนะนำเพิ่มงบ. การโพสต์อัตโนมัติและการเปลี่ยนงบต้องอยู่หลัง platform review และ audit trail.\n\n### Workflow หลักของผู้ใช้\n\n1. เชื่อม Meta, LINE และ Sheets/CSV.\n2. กรอก Brand Brain และล็อกข้อเท็จจริง/ข้อห้าม.\n3. ระบบสร้างแผนและ draft จากเป้าหมาย business—not จาก trend อย่างเดียว.\n4. คนตรวจและอนุมัติก่อนเผยแพร่.\n5. Lead จาก LINE/Messenger/Lead Ads เข้า inbox พร้อม owner และ SLA.\n6. ผู้ใช้บันทึกนัดหมาย ใบเสนอราคา หรือยอดขาย.\n7. Daily brief สรุปสิ่งที่เกิดขึ้นพร้อม evidence และ 3 action ที่ควรทำวันนี้.",
+        "id": "b_product",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_product_table",
+        "layout": "full",
+        "tableId": "table_product",
+        "type": "table"
+      },
+      {
+        "body": "## Content Quality Engine: คุณภาพต้องตรวจได้ก่อนโพสต์\n\n**Quality Score ไม่ใช่ให้ AI ชมงานตัวเอง.** ใช้สามชั้นร่วมกัน: deterministic rules (ข้อมูล/รูปแบบ/คำต้องห้าม), model evaluator ที่แยกจาก model ผู้เขียน และ human reviewer. ทุกคะแนนเก็บ rubric version, evidence และเหตุผล override เพื่อดูว่าสิ่งใดสัมพันธ์กับผลลัพธ์จริง.\n\n### Quality Gate\n\n- **80–100:** พร้อมส่งอนุมัติ หากไม่มี hard-fail.\n- **65–79:** ส่งกลับแก้เฉพาะมิติที่ต่ำ พร้อมข้อเสนอแนะเป็นรายการ.\n- **ต่ำกว่า 65:** เปลี่ยน brief/angle หรือ regenerate; ไม่ควรแก้คำทีละจุด.\n- **Hard-fail:** ข้อเท็จจริงผิด, claim ไม่มีหลักฐาน, offer หมดอายุ, PII/PDPA flag, asset/license ไม่พร้อม หรือคำต้องห้าม—หยุด workflow โดยไม่สนคะแนนรวม.\n\nหลังเผยแพร่ ให้เทียบ predicted quality กับ retention/engagement, qualified leads และ conversion เพื่อปรับน้ำหนัก rubric. ห้าม optimize ตามยอดวิวอย่างเดียวจนเสีย brand trust หรือดึง lead ผิดกลุ่ม.",
+        "id": "b_quality",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_quality_table",
+        "layout": "full",
+        "tableId": "table_quality",
+        "type": "table"
+      },
+      {
+        "body": "## Content Calendar OS: ศูนย์กลางวางแผน ผลิต อนุมัติ และเรียนรู้\n\n**Calendar ต้องตอบ 5 คำถามในหน้าเดียว:** ทำเพื่อเป้าหมายอะไร, สื่อสารกับใคร, อยู่ funnel stage ใด, ใครต้องทำต่อ และผลลัพธ์เป็นอย่างไร. รายการหนึ่งมี master content + channel variants เพื่อไม่ copy-paste ข้อความเดียวทุกแพลตฟอร์ม.\n\n### มุมมองที่ต้องมี\n\n- **Month/Week:** cadence, campaign window, วันสำคัญ และช่องว่างของแผน.\n- **Kanban/Pipeline:** workload ตั้งแต่ Idea ถึง Measured.\n- **Campaign:** รวม content, ads, offer และ conversion goal.\n- **Channel:** ตรวจรูปแบบและเวลาแยก Facebook, Instagram, TikTok, LINE และ Google.\n- **Branch/Brand:** ใช้ template กลาง แต่แก้ offer/ผู้อนุมัติ/สาขาได้.\n\n### Calendar Intelligence\n\nระบบเตือน pillar หรือ funnel stage ที่ขาด, campaign overlap, งานเสี่ยงเลย due date, offer กำลังหมดอายุ, asset ยังไม่พร้อม, content คล้ายกันเกินไป และ winner ที่ควร repurpose. การแนะนำ slot ใช้ business priority + capacity + performance—not “เวลายอดนิยม” อย่างเดียว.",
+        "id": "b_calendar",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_calendar_table",
+        "layout": "full",
+        "tableId": "table_calendar",
+        "type": "table"
+      },
+      {
+        "body": "## สถาปัตยกรรม: Modular Monolith ก่อน Microservices\n\n**เป้าหมาย 12 เดือนแรกคือ reliability และ speed-to-learning.** ใช้ tenant_id + Row Level Security ทุกตาราง, token vault แยกสิทธิ, object storage แยก prefix ต่อ tenant, append-only audit events และ webhook gateway ที่ตรวจ signature/idempotency. Deploy primary workloads ใน AWS Thailand region เมื่อบริการที่ต้องใช้รองรับ; การเปิดตัว region ap-southeast-7 พร้อม 3 Availability Zones ช่วยเรื่อง latency และ data-residency planning.\n\n### Event flow\n\nConnector รับ webhook/poll → verify และเก็บ raw evidence → normalize เป็น event schema → อัปเดต lead/content/campaign metrics → AI สร้าง recommendation พร้อม evidence → คนอนุมัติ → action connector → audit result. ทุกขั้นต้อง replay ได้และมี dead-letter queue.",
+        "id": "b_arch",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_arch_table",
+        "layout": "full",
+        "tableId": "table_architecture",
+        "type": "table"
+      },
+      {
+        "body": "## AI Layer ต้องมี Brand Truth และ Evaluation ไม่ใช่ Prompt ก้อนเดียว\n\n**จัดลำดับความจริง:** locked brand facts และ prohibited claims > catalog/offer ที่ยังมีผล > performance evidence > templates > ความรู้ทั่วไปของโมเดล. Brand Brain ทุกชิ้นมี version, effective date, source และผู้อนุมัติ.\n\n- ใช้โมเดลขนาดเล็กกับ classification, tagging, summarization และ routing; ใช้โมเดลคุณภาพสูงเฉพาะ creative generation/analysis ที่คุ้มค่า.\n- ตัด PII และข้อมูลสนทนาที่ไม่จำเป็นก่อนส่งเข้าโมเดล; แยก consent และ retention.\n- ทำ golden set อย่างน้อย 50 briefs ต่อ vertical วัด factual error, brand-match, approval rate, edit distance และเวลาที่ประหยัด.\n- กำหนด budget/token ต่อ workspace, cache ผลซ้ำ และมี fallback เมื่อ provider ล่ม.\n- งานเสี่ยง เช่น health/financial claims, public publishing และ ad-spend change ต้อง human-in-the-loop.",
+        "id": "b_ai",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Connector Strategy: Meta + LINE + Sheets ก่อน TikTok\n\nLINE ควรเป็นแกนของ lead workflow ในไทย: เอกสารทางการระบุว่า event ถูกส่งมาที่ webhook ของ bot server, ควรตรวจ signature และประมวลผลแบบ asynchronous. อีกข้อสำคัญคือ Messaging API channel ตั้ง webhook URL ได้เพียงหนึ่ง URL—จึงต้องออกแบบ **webhook router/fan-out** ที่ทำงานร่วมกับเครื่องมือเดิมของลูกค้า.\n\nTikTok Direct Post ต้องเผื่อ audit; client ที่ยังไม่ผ่าน audit โพสต์ได้ private viewing เท่านั้น. Google Business Profile ต้องยื่นขอ API access และมี prerequisites. อย่าให้ Roadmap หลักผูกกับ approval ที่ทีมควบคุมไม่ได้.",
+        "id": "b_integrations",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_integrations_table",
+        "layout": "full",
+        "tableId": "table_integrations",
+        "type": "table"
+      },
+      {
+        "body": "## PDPA และ Security ต้องเป็น Product Feature\n\n**บทบาทเริ่มต้น:** ลูกค้า SME เป็น Data Controller; แพลตฟอร์มเป็น Data Processor ตามคำสั่งลูกค้า. ต้องมี DPA, data inventory/ROPA, subprocessor list, retention schedule และกระบวนการรองรับ access/export/delete/object/withdraw consent.\n\n- แยกข้อความบริการ/ธุรกรรมออกจาก direct marketing และเก็บสถานะ consent/opt-out ที่ตรวจสอบย้อนหลังได้.\n- เก็บเท่าที่จำเป็น: ไม่คัดลอกบทสนทนาทั้งหมดหากใช้เพียง intent/stage; ธุรกิจ beauty/wellness หลีกเลี่ยงการเก็บข้อมูลสุขภาพหรือรูปใบหน้าเกินความจำเป็น.\n- Encrypt in transit/at rest, rotate OAuth tokens, use least privilege, tenant-scoped access, immutable audit logs และ incident runbook.\n- เตรียม breach triage และ notification workflow; ทบทวนการโอนข้อมูลข้ามประเทศและสัญญากับ model/API providers.\n- ก่อนเปิด beta ให้ทนายไทยตรวจ privacy notice, consent wording, DPA, direct-marketing flow และ cross-border clauses. รายงานนี้ไม่ใช่คำปรึกษากฎหมาย.",
+        "id": "b_pdpa",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Roadmap 12 เดือน: เรียนรู้เร็วและไม่ข้าม Gate\n\n**เป้าหมาย 6 เดือนแรกคือ 20 paying beta ที่ใช้ระบบต่อเนื่อง ไม่ใช่ feature parity กับ martech suite.** ยื่น Meta/TikTok/Google review เร็ว แต่พัฒน fallback ควบคู่เพื่อไม่ให้ approval delay หยุดการเรียนรู้.",
+        "id": "b_roadmap",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_roadmap_table",
+        "layout": "full",
+        "tableId": "table_roadmap",
+        "type": "table"
+      },
+      {
+        "body": "## ทีมและงบ: Core 5–6 คน พร้อมผู้เชี่ยวชาญแบบ Fractional\n\n**ทีมแกน:** Product/Founder, Tech Lead, Backend/Data engineer, Frontend/Product designer, AI/Analytics engineer และ Customer Success/Growth. เพิ่ม Partnerships/Sales เดือน 4–6 เมื่อ onboarding เริ่มทำซ้ำได้; ใช้ legal/security แบบ fractional ตั้งแต่เดือนแรก.\n\nงบฐาน 8.8 ล้านบาทเหมาะกับการทำ 12 เดือนแบบทีมมืออาชีพขนาดเล็ก. ถ้า founder ลงมือพัฒนาหลัก สามารถลด cash burn เข้ากรอบ lean 6.3 ล้านบาท; ถ้าจ้าง senior เต็มทีมและเร่ง partner acquisition ให้วางกรอบสูง 11.5 ล้านบาท.",
+        "id": "b_team_budget",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_budget_table",
+        "layout": "full",
+        "tableId": "table_budget",
+        "type": "table"
+      },
+      {
+        "body": "## Pricing ต้องคิดตาม Outcome และ Complexity\n\n**อย่าให้ใช้ฟรีแบบไม่จำกัด.** ใช้ paid pilot 1,990–2,990 บาท/เดือนพร้อม concierge onboarding เพื่อทดสอบ willingness-to-pay. แพ็กเกจต่างกันตามจำนวน workspace/สาขา, connector, automation, seats และ usage—not จำนวนคำสั่ง AI อย่างเดียว.\n\nเป้าหมาย unit economics หลัง beta: gross margin ≥70%, support delivery <1.5 ชั่วโมง/บัญชี/เดือน, CAC payback <8 เดือน และ LTV:CAC >3. Usage overage ควรโปร่งใสและไม่ลงโทษลูกค้าที่กำลังโต.",
+        "id": "b_pricing",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_pricing_table",
+        "layout": "full",
+        "tableId": "table_pricing",
+        "type": "table"
+      },
+      {
+        "id": "b_solo_feasibility",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## หลักล้านต่อปีมีโอกาสสูงกว่า—หลักล้านต่อเดือนต้องเปลี่ยน Operating Model\n\n**คำตอบคือทำได้ หากหมายถึงรายได้รวมอย่างน้อย 1 ล้านบาทต่อปีภายใน 12–24 เดือน.** ที่ Growth 2,990 บาท/เดือน ต้องมี 28 บัญชี; หรือขายแบบ Assisted MVP ให้ 20 บัญชี พร้อม onboarding 15,000 บาทต่อราย จะสร้างรายได้ปีแรกราว 1.02 ล้านบาท. จำนวนนี้คิดเป็นสัดส่วนต่ำกว่า 0.001% ของ SME ไทย 3.284 ล้านราย แต่โจทย์จริงไม่ใช่ขนาดตลาด—คือการหาลูกค้าที่พร้อมจ่ายและดูแลให้ต่ออายุ.\n\n**ถ้าหมายถึง 1 ล้านบาทต่อเดือน คำตอบคือเป็นไปได้เชิงคณิตศาสตร์ แต่ไม่ใช่ solo high-touch.** ต้องมี 335 Growth, 167 Business หรือ 68 Agency accounts. ระดับนี้ต้อง self-service onboarding, knowledge base, automated support, partner distribution และผู้รับเหมาช่วยงานเป็นช่วงๆ.\n\nงานวิจัย Stripe Atlas ปี 2026 สนับสนุนทิศทางนี้แต่ไม่ใช่คำรับประกัน: กลุ่ม solo ที่ผลงานสูงมีแนวโน้มเป็น AI-native, B2B และ recurring billing มากกว่า ขณะเดียวกันช่องว่างระหว่างค่ากลางกับ top performers กว้างมาก จึงควรยืนยันด้วยลูกค้าที่จ่ายเงินจริงก่อนลงทุนเต็มรูปแบบ."
+      },
+      {
+        "id": "b_solo_chart",
+        "type": "chart",
+        "chartId": "chart_solo_customers_required",
+        "layout": "full"
+      },
+      {
+        "id": "b_solo_economics",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## รายได้หลักล้านไม่เท่ากับกำไรหลักล้าน\n\n**28 Growth accounts ทำ ARR เกิน 1 ล้านบาท แต่หลังสมมติ gross margin 75% และต้นทุนคงที่ 300,000 บาท จะเหลือกำไรดำเนินงานประมาณ 453,000 บาทก่อนภาษีและก่อนค่าตอบแทนผู้ก่อตั้ง.** หากต้องการกำไรดำเนินงานใกล้ 1 ล้านบาท โมเดลตัวอย่างคือ 25 Growth + 15 Business รวม 40 บัญชี, MRR 164,600 บาท และ ARR ราว 1.98 ล้านบาท.\n\nคู่แข่งทั่วไปตั้งราคาต่ำมาก—Buffer เริ่ม 5 ดอลลาร์ต่อ channel/เดือน และ Metricool Starter เริ่ม 20 ดอลลาร์/เดือนสำหรับสูงสุด 5 brands. ดังนั้นแพ็กเกจ 2,990–5,990 บาทของคุณจะขายไม่ได้หากเป็นเพียง scheduler หรือ AI caption generator; ต้องชนะด้วย **research เฉพาะอุตสาหกรรม + Brand Brain + Quality Gate + Thai/LINE workflow + การวัดผลถึง lead และ sale**."
+      },
+      {
+        "id": "b_solo_operating_table",
+        "type": "table",
+        "tableId": "table_solo_operating_paths",
+        "layout": "full"
+      },
+      {
+        "id": "b_solo_rules",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## วิธีรักษาให้เป็น One-person Business จริง\n\n1. **เริ่มเป็น Productized Service ก่อน SaaS เต็มรูปแบบ.** ใช้ GoldenHome และสะโรรักษ์เป็นลูกค้าทดลอง แล้วขาย paid pilot 5 รายโดยยังใช้ automation หลังบ้านเท่าที่จำเป็น.\n2. **เก็บ Setup Fee 10,000–20,000 บาทในปีแรก.** ครอบคลุมการสร้าง Business Brain, import ข้อมูล, Industry Pack และอบรม; หลังจาก workflow นิ่งจึงลดหรือยกเลิก fee.\n3. **ไม่รับทำคอนเทนต์แทนลูกค้าแบบไม่จำกัด.** ขายระบบ suggestion, quality และ calendar; งานผลิตวิดีโอ/กราฟิกเป็น add-on ผ่าน partner.\n4. **ทุก feature ใหม่ต้องมีลูกค้าที่จ่ายอย่างน้อย 3 รายร้องขอ.** ห้ามทำ custom integration เพื่อรายเดียว เว้นแต่มี setup fee ครอบคลุมต้นทุนทั้งหมด.\n5. **กำหนด Capacity Gate:** onboarding ไม่เกิน 45 นาที, support เฉลี่ยไม่เกิน 15 นาทีต่อบัญชีต่อเดือน, gross margin ≥70%, monthly churn <4–5%. ถ้าหลุดเกณฑ์ ให้หยุดขายชั่วคราวและแก้ระบบก่อน.\n6. **นิยาม solo ว่าไม่มีพนักงานประจำ ไม่ใช่ทำทุกอย่างเอง.** ใช้ freelancer ด้านกฎหมาย, security, design หรือ integration เป็นครั้งคราวได้ โดยผู้ก่อตั้งยังเป็นเจ้าของธุรกิจคนเดียว.\n\n**เป้าหมายที่แนะนำ:** 5 paid pilots → 20 accounts และรายได้ปีแรก 1 ล้านบาท → 40 accounts และกำไรดำเนินงานใกล้ 1 ล้านบาท → จึงตัดสินใจว่าจะคง solo, ใช้ partner หรือสร้างทีม."
+      },
+      {
+        "body": "## Go-to-Market: Vertical Playbook + Partner Distribution\n\n**ช่วง 0–6 เดือนเป็น founder-led sales.** รับลูกค้าที่มี funnel ชัดและยอมให้วัด baseline; ขาย outcome package พร้อม onboarding ไม่ขาย software เปล่า.\n\n1. **Design partners 10 ราย:** 2 ธุรกิจของคุณ + beauty/wellness 3, home services 3, education/professional 2.\n2. **Paid beta 20 ราย:** ราคา 1,990–2,990 บาท/เดือน แลกกับ weekly feedback และการอนุญาตใช้ข้อมูล aggregated เป็น case study.\n3. **Vertical templates:** แพ็ก template สำหรับข้อความตอบ lead, stages, conversion events, KPI และ content playbook แยกอุตสาหกรรม.\n4. **Agency/franchise channel:** ให้ agency ใช้หลาย workspace, copy template และรับ recurring revenue share; นี่คือเหตุผลที่ต้องมี PaaS layer.\n5. **Proof-based content:** สื่อสารเวลาตอบ leadที่ลดลง, booking/quote rate และงานที่ประหยัด ไม่ใช้ข้อความ “AI ทำแทนทั้งหมด”.\n\n6. **Content Quality proof:** ทำ case study เปรียบเทียบ approval rate, จำนวนรอบแก้, on-time publishing และ qualified-lead yield ต่อ content—not เพียง reach.",
+        "id": "b_gtm",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Lighthouse Pilots ที่ควรเริ่มทันที\n\n### GoldenHome: High-ticket consultation funnel\n\nFacebook/IG content or ads → LINE/Messenger lead → qualified need/budget → นัดวัดพื้นที่ → ออกแบบ/เสนอราคา → ปิดงาน. วัด response time, qualified rate, appointment rate, quote rate, win rate, CAC และ attributed revenue. Daily brief ควรชี้ lead ที่รอเกิน SLA และ campaign ที่สร้างนัด—not เพียงยอดวิว.\n\n### สะโรรักษ์: Appointment and repeat funnel\n\nContent/ads → LINE → ประเมินผิว → นัดหมาย → show → ซื้อคอร์ส/สินค้า → กลับมาใช้ซ้ำ. วัด booking, show rate, first-purchase conversion และ repeat interval. หลีกเลี่ยงการเก็บข้อมูลผิว/สุขภาพหรือภาพก่อน–หลังเกินความจำเป็น และล็อกคำที่ห้ามใช้/claims ใน Brand Brain.\n\n### Pilot design\n\nเก็บ baseline 4 สัปดาห์ → เปิดใช้ 8 สัปดาห์ → review รายสัปดาห์ → เปรียบเทียบตาม channel/lead cohort พร้อม seasonality note. ถือว่าผ่านเมื่อเวลา planning ลด ≥50% และอย่างน้อยหนึ่ง business metric ดีขึ้นอย่างมีนัยสำคัญเชิงปฏิบัติ.\n\nสำหรับทั้งสอง pilot ให้ทำ Calendar ล่วงหน้า 4 สัปดาห์ แบ่ง content ตาม awareness/consideration/conversion/retention, ตั้ง pillar quota และเก็บ Quality Score ก่อนเผยแพร่ เพื่อทดสอบว่าคะแนนใดสัมพันธ์กับ qualified lead จริง.",
+        "id": "b_pilots",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## KPI ต้องบอกว่าจะเดินต่อ หยุด หรือแก้อะไร\n\n**ทุก phase มี Stop Rule.** หาก activation ต่ำ ให้แก้ onboarding; หาก retention ต่ำ ให้แก้ value loop; หาก margin ต่ำ ให้แก้ model routing/usage/pricing; หาก connector error สูง ให้หยุดเพิ่มช่องทาง. ห้ามใช้ยอดสมัครหรือจำนวน draft บังปัญหา retention.",
+        "id": "b_kpi",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_kpi_table",
+        "layout": "full",
+        "tableId": "table_kpis",
+        "type": "table"
+      },
+      {
+        "body": "## ความเสี่ยงหลักอยู่ที่ Distribution, Data Quality และ Platform Dependency\n\nFeature AI เลียนแบบได้เร็ว. Moat ที่สร้างยากกว่าคือ vertical data model, connector reliability, approval/audit workflow, aggregated benchmark ที่ได้รับอนุญาต และ distribution ผ่าน agency/franchise. Architecture ต้องทำให้ platform review delay หรือ connector outage ไม่หยุดบริการทั้งระบบ.",
+        "id": "b_risk",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "id": "b_risk_table",
+        "layout": "full",
+        "tableId": "table_risks",
+        "type": "table"
+      },
+      {
+        "body": "## แผนลงมือ 30 วันแรก\n\n1. สัมภาษณ์ 15 ราย โดยถาม workflow, ค่าเสียโอกาส, เครื่องมือเดิม และจำนวนเงินที่ยอมจ่าย—not ถามว่า “ชอบ feature ไหม”.\n2. เขียน metric dictionary และ funnel event schema สำหรับ GoldenHome กับสะโรรักษ์.\n3. ทำ concierge prototype: Brand Brain + Content Calendar + Lead Sheet + Daily LINE Brief โดยคนช่วยหลังบ้านก่อนเขียน connector เต็ม.\n4. ขอ paid commitment อย่างน้อย 5 รายและเก็บ payment จริง.\n5. เปิดงาน Meta app verification, TikTok audit planning และ Google API access ตั้งแต่ต้น.\n6. ร่าง DPA/privacy/retention พร้อม data map และ threat model.\n7. ตัดสินใจ Go/No-Go สิ้นวันที่ 30 จาก paid pilots, time-to-value และความสามารถเชื่อม funnel ไม่ใช่จำนวนคำชม.",
+        "id": "b_next",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Further Questions\n\n- จะเริ่มขายเองเฉพาะสอง vertical แรก หรือเปิด agency channel พร้อมกัน?\n- ลูกค้ามี CRM/POS/booking ใดอยู่แล้วบ้าง และระบบใดต้อง coexist กับ LINE webhook?\n- Conversion ที่ยอมให้พนักงานบันทึกด้วยมือมีขั้นใดบ้าง ก่อนต้องเชื่อมระบบบัญชี/POS?\n- ต้องการเก็บข้อมูลในไทยทั้งหมดหรือยอมรับ cross-border processing ภายใต้สัญญาและ safeguards?\n- ใครเป็นผู้อนุมัติ content, public publishing และ ad-budget recommendation ในแต่ละแพ็กเกจ?",
+        "id": "b_questions",
+        "layout": "full",
+        "type": "markdown"
+      },
+      {
+        "body": "## Caveats and Assumptions\n\n- จำนวน SME 3,283,650 รายเป็นข้อมูลสาธารณะของ สสว.; สัดส่วน Qualified TAM 20%, SAM 7.5%, ราคา,งบ และเป้าหมายลูกค้าเป็นสมมติฐานวางแผน.\n- ARR scenarios เป็น gross annualized subscription revenue ไม่หัก discount, VAT, churn, bad debt หรือ revenue share.\n- ตัวเลข social media identities ไม่ใช่จำนวนบุคคลไม่ซ้ำ และใช้เพื่ออธิบายบริบทดิจิทัลเท่านั้น.\n- ความสามารถ API, permission, rate limit และ review policy เปลี่ยนได้; ต้องยืนยันอีกครั้งก่อนเริ่มแต่ละ connector.\n- การวิเคราะห์คู่แข่งควรใช้ API/แหล่งข้อมูลที่อนุญาตหรือข้อมูลที่ผู้ใช้บันทึกเอง ไม่ควรออกแบบธุรกิจให้พึ่ง scraping ที่ขัดเงื่อนไขแพลตฟอร์ม.\n- ข้อเสนอ PDPA เป็นกรอบผลิตภัณฑ์ ไม่ใช่คำปรึกษากฎหมาย; ต้องให้ผู้เชี่ยวชาญกฎหมายไทยตรวจเอกสารและ flow ก่อน beta.",
+        "id": "b_caveats",
+        "layout": "full",
+        "type": "markdown"
+      }
+    ],
+    "cards": [
+      {
+        "dataset": "headline_sme",
+        "description": "จำนวน SME ไทยปี 2568 ใช้เป็นเพดานประชากร ไม่ใช่จำนวนลูกค้าที่ซื้อได้ทั้งหมด",
+        "id": "card_smes",
+        "metrics": [
+          {
+            "field": "total_smes",
+            "format": "compact",
+            "label": "SME ไทย ปี 2568"
+          }
+        ],
+        "sourceId": "src_ds_headline_sme"
+      },
+      {
+        "dataset": "headline_arr",
+        "description": "กรณีฐานสิ้นปีที่ 2: 1,200 workspaces ที่ blended ARPA 2,990 บาท/เดือน",
+        "id": "card_arr",
+        "metrics": [
+          {
+            "field": "base_arr_m_thb",
+            "format": "number",
+            "label": "ARR ปีที่ 2 (ลบ.)"
+          },
+          {
+            "field": "paying_workspaces",
+            "format": "compact",
+            "label": "Paying workspaces"
+          }
+        ],
+        "sourceId": "src_ds_headline_arr"
+      },
+      {
+        "dataset": "headline_budget",
+        "description": "งบประมาณฐานสำหรับทีมและการนำสินค้าออกตลาด 12 เดือน ไม่รวม VAT",
+        "id": "card_budget",
+        "metrics": [
+          {
+            "field": "base_budget_m_thb",
+            "format": "number",
+            "label": "งบ 12 เดือน (ลบ.)"
+          },
+          {
+            "field": "mvp_6m_low_m_thb",
+            "format": "number",
+            "label": "MVP 6 เดือนต่ำสุด (ลบ.)"
+          }
+        ],
+        "sourceId": "src_ds_headline_budget"
+      }
+    ],
+    "charts": [
+      {
+        "comparisonContext": {
+          "denominator": "paying workspaces × ARPA × 12",
+          "grain": "scenario",
+          "unit": "ล้านบาทต่อปี"
+        },
+        "dataset": "arr_scenarios",
+        "encodings": {
+          "tooltip": [
+            {
+              "field": "paying_workspaces",
+              "label": "Paying workspaces",
+              "type": "quantitative"
+            },
+            {
+              "field": "monthly_arpa_thb",
+              "format": "currency",
+              "label": "Monthly ARPA",
+              "type": "quantitative"
+            },
+            {
+              "field": "gross_margin_target",
+              "format": "percent",
+              "label": "GM target",
+              "type": "quantitative"
+            },
+            {
+              "field": "assumption",
+              "label": "สมมติฐาน",
+              "type": "text"
+            }
+          ],
+          "x": {
+            "field": "scenario",
+            "label": "สถานการณ์",
+            "type": "nominal"
+          },
+          "y": {
+            "aggregate": "none",
+            "field": "arr_m_thb",
+            "format": "number",
+            "label": "ARR",
+            "type": "quantitative",
+            "unit": "ล้านบาท/ปี"
+          }
+        },
+        "id": "chart_arr_scenarios",
+        "intent": "comparison",
+        "labels": {
+          "values": "all"
+        },
+        "layout": "full",
+        "palette": {
+          "kind": "sequential",
+          "name": "blue"
+        },
+        "question": "เป้าหมายรายได้ปีที่ 2 เปลี่ยนอย่างไรตามจำนวน paying workspaces และราคาเฉลี่ย",
+        "rationale": "Bar chart เหมาะกับการเปรียบเทียบสามสถานการณ์ที่เป็นหมวดหมู่",
+        "settings": {
+          "categoryLabelPolicy": "wrap",
+          "groupMode": "single",
+          "orientation": "vertical",
+          "showValues": true,
+          "sort": "custom"
+        },
+        "sourceId": "src_ds_arr_scenarios",
+        "subtitle": "หน่วย: ล้านบาทต่อปี; เปลี่ยนทั้งจำนวนบัญชีและ blended ARPA",
+        "surface": {
+          "showControls": false,
+          "surface": "card",
+          "viewMode": "both"
+        },
+        "title": "ARR สิ้นปีที่ 2 ภายใต้ 3 สถานการณ์",
+        "type": "bar",
+        "unit": "ล้านบาท/ปี",
+        "valueFormat": "number"
+      },
+      {
+        "id": "chart_solo_customers_required",
+        "title": "จำนวนลูกค้าที่ต้องมีเพื่อถึงรายได้หลักล้าน",
+        "subtitle": "เปรียบเทียบรายได้ 1 ล้านบาทต่อปีและ 1 ล้านบาทต่อเดือนตามราคาแพ็กเกจ",
+        "type": "bar",
+        "dataset": "solo_revenue_targets",
+        "intent": "comparison",
+        "question": "แต่ละราคาแพ็กเกจต้องมีลูกค้ากี่รายจึงจะถึงรายได้ 1 ล้านบาทต่อปีหรือเดือน",
+        "rationale": "Horizontal bar เหมาะกับการเทียบจำนวนลูกค้าหกเส้นทางที่มีชื่อยาวและขนาดต่างกันชัดเจน",
+        "encodings": {
+          "x": {
+            "field": "path",
+            "label": "เส้นทางรายได้",
+            "type": "nominal"
+          },
+          "y": {
+            "aggregate": "none",
+            "field": "required_customers",
+            "format": "number",
+            "label": "จำนวนลูกค้าที่ต้องมี",
+            "type": "quantitative",
+            "unit": "บัญชี"
+          },
+          "tooltip": [
+            {
+              "field": "monthly_price_thb",
+              "format": "currency",
+              "label": "ราคาต่อเดือน",
+              "type": "quantitative"
+            },
+            {
+              "field": "actual_mrr_thb",
+              "format": "currency",
+              "label": "MRR หลังปัดขึ้น",
+              "type": "quantitative"
+            },
+            {
+              "field": "actual_arr_thb",
+              "format": "currency",
+              "label": "ARR หลังปัดขึ้น",
+              "type": "quantitative"
+            },
+            {
+              "field": "solo_fit",
+              "label": "ความเหมาะสมกับ solo",
+              "type": "text"
+            }
+          ]
+        },
+        "labels": {
+          "values": "all"
+        },
+        "layout": "full",
+        "palette": {
+          "kind": "sequential",
+          "name": "blue"
+        },
+        "settings": {
+          "categoryLabelPolicy": "wrap",
+          "groupMode": "single",
+          "orientation": "horizontal",
+          "showValues": true,
+          "sort": "custom"
+        },
+        "comparisonContext": {
+          "denominator": "เป้าหมายรายได้ ÷ ราคาต่อช่วงเวลา แล้วปัดขึ้น",
+          "grain": "plan × target period",
+          "unit": "บัญชีลูกค้าที่ชำระเงิน"
+        },
+        "sourceId": "src_ds_solo_revenue_targets",
+        "surface": {
+          "showControls": false,
+          "surface": "card",
+          "viewMode": "both"
+        },
+        "unit": "บัญชี",
+        "valueFormat": "number"
+      }
+    ],
+    "description": "แผนธุรกิจ ผลิตภัณฑ์ สถาปัตยกรรม Roadmap งบประมาณ และ Go-to-Market โดยต่อยอดจาก Content Dashboard Demo เพิ่มการประเมินความเป็นไปได้ของโมเดล one-person business และเส้นทางรายได้หลักล้าน.",
+    "generatedAt": "2026-08-29T17:05:00.000Z",
+    "sources": [
+      {
+        "href": "https://tina-live-session.netlify.app/content_dashboard_demo",
+        "id": "src_demo",
+        "label": "Content Dashboard — Demo (หน้าอ้างอิงที่ผู้ใช้ให้)",
+        "query": {
+          "description": "ตรวจองค์ประกอบที่แสดงในหน้าเดโม ได้แก่ orchestration, brand files, always-on, connectors, analytics, competitor tracking, trend monitoring, hook vault, calendar, scheduling และ ads reporting",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "browser-observation"
+        }
+      },
+      {
+        "href": "https://smebigdata.sme.go.th/",
+        "id": "src_osmep",
+        "label": "สำนักงานส่งเสริมวิสาหกิจขนาดกลางและขนาดย่อม — SME Big Data / รายงานสถานการณ์ SME ปี 2568",
+        "query": {
+          "description": "จำนวน SME ไทยปี 2568 เท่ากับ 3,283,650 ราย ตามหน้า SME Big Data ของ สสว.",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "public-source",
+          "metric_definitions": [
+            "จำนวน SME = จำนวนวิสาหกิจขนาดกลางและขนาดย่อมที่ สสว. รายงานสำหรับปี 2568"
+          ]
+        }
+      },
+      {
+        "href": "https://datareportal.com/reports/digital-2025-thailand",
+        "id": "src_digital",
+        "label": "DataReportal — Digital 2025: Thailand",
+        "query": {
+          "description": "บริบทการใช้อินเทอร์เน็ต โซเชียลมีเดีย และ LINE ในประเทศไทยช่วงต้นปี 2025",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "public-source",
+          "metric_definitions": [
+            "ผู้ใช้อินเทอร์เน็ต 65.4 ล้านคน",
+            "social media user identities 51.0 ล้านบัญชี/อัตลักษณ์ ไม่จำเป็นต้องเท่ากับบุคคลไม่ซ้ำ",
+            "LINE monthly active users 56 ล้านคน"
+          ]
+        }
+      },
+      {
+        "id": "src_market_model",
+        "label": "โมเดล TAM / SAM / SOM สำหรับ AI Marketing OS ไทย",
+        "query": {
+          "description": "คำนวณจากจำนวน SME ที่ สสว. รายงานและสมมติฐานราคา/สัดส่วนตลาดที่ต้องทดสอบกับลูกค้าจริง",
+          "engine": "PostgreSQL-compatible planning model",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "filters": [
+            "ประเทศไทย",
+            "ฐานจำนวน SME ปี 2568",
+            "ราคาเฉลี่ยฐาน 2,990 บาทต่อ workspace ต่อเดือน",
+            "Qualified TAM 20% ของ SME ทั้งหมด (สมมติฐาน)",
+            "Beachhead SAM 7.5% ของ SME ทั้งหมด (สมมติฐาน)"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Annual revenue pool = จำนวนบัญชี × Monthly ARPA × 12",
+            "Theoretical TAM เป็นเพดานบน ไม่ใช่ยอดขายที่คาดว่าจะทำได้จริง",
+            "SOM ปีที่ 2 เป็นเป้าหมายเชิงบริหาร ไม่ใช่ค่าพยากรณ์"
+          ],
+          "sql": "WITH inputs AS (SELECT 3283650::numeric AS total_smes, 2990::numeric AS monthly_arpa, 0.20::numeric AS qualified_share, 0.075::numeric AS beachhead_share), stages AS (SELECT 'Theoretical TAM' AS stage, total_smes AS accounts, 1.0::numeric AS share_total FROM inputs UNION ALL SELECT 'Qualified TAM', total_smes * qualified_share, qualified_share FROM inputs UNION ALL SELECT 'Beachhead SAM', total_smes * beachhead_share, beachhead_share FROM inputs UNION ALL SELECT '24-month SOM (base)', 1200::numeric, 1200::numeric / total_smes FROM inputs) SELECT stage, ROUND(accounts) AS accounts, share_total, ROUND(accounts * monthly_arpa * 12) AS annual_revenue_thb FROM stages CROSS JOIN inputs;",
+          "tables_used": [
+            "OSMEP SME Big Data Dashboard (2025)",
+            "Planning assumptions dated 29 Aug 2026"
+          ]
+        }
+      },
+      {
+        "id": "src_plan",
+        "label": "สมมติฐานเชิงกลยุทธ์และแผนปฏิบัติการ ณ 29 ส.ค. 2026",
+        "query": {
+          "description": "สมมติฐานด้านผลิตภัณฑ์ ราคา ทีม งบ Roadmap และ KPI ซึ่งต้องยืนยันผ่าน design partners และ paid pilots",
+          "engine": "Planning model",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "filters": [
+            "ตลาดเริ่มต้น: SME ไทยแบบ lead-driven service",
+            "ช่วงเวลา Roadmap: 12 เดือน",
+            "เป้าหมาย SOM: สิ้นเดือนที่ 24"
+          ],
+          "language": "formula",
+          "metric_definitions": [
+            "Base blended ARPA = 2,990 บาท/เดือน",
+            "Base 12-month build budget = 8.8 ล้านบาท",
+            "Base 24-month paying workspaces = 1,200"
+          ],
+          "query": "ARR = paying_workspaces × monthly_ARPA × 12; gross_margin = (revenue - cloud - API - support delivery cost) / revenue; CAC_payback_months = CAC / monthly_gross_profit_per_account"
+        }
+      },
+      {
+        "id": "src_budget_model",
+        "label": "โมเดลงบประมาณสร้างและทำตลาด 12 เดือน",
+        "query": {
+          "description": "รวมงบทีมผลิตภัณฑ์และวิศวกรรม, cloud/AI/API, security/legal, GTM/onboarding และ contingency",
+          "engine": "Planning model",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "sql",
+          "metric_definitions": [
+            "หน่วย: ล้านบาท ไม่รวม VAT",
+            "Base case รวม 8.8 ล้านบาท",
+            "งบ 6 เดือนแรกควรสำรอง 4.0–5.5 ล้านบาท ขึ้นกับการใช้ founder-led development"
+          ],
+          "sql": "SELECT SUM(low_m_thb) AS low_m_thb, SUM(base_m_thb) AS base_m_thb, SUM(high_m_thb) AS high_m_thb FROM (VALUES ('Product & Engineering',4.2,5.2,6.4),('Cloud, AI & API',0.5,0.8,1.2),('Security, Legal & Compliance',0.3,0.5,0.8),('GTM, Onboarding & Partners',0.8,1.4,2.0),('Contingency',0.5,0.9,1.1)) AS budget(category,low_m_thb,base_m_thb,high_m_thb);"
+        }
+      },
+      {
+        "id": "src_api_matrix",
+        "label": "เอกสาร API อย่างเป็นทางการของ Meta, TikTok, LINE และ Google",
+        "query": {
+          "description": "สรุปความสามารถและ gate ที่กระทบลำดับพัฒนา connector",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "documentation-review",
+          "metric_definitions": [
+            "LINE Official Account ตั้ง webhook URL ได้หนึ่ง URL ต่อ Messaging API channel",
+            "TikTok client ที่ยังไม่ผ่าน audit โพสต์ได้แบบ private viewing เท่านั้น",
+            "Google Business Profile API ต้องยื่นขอ access และมีเงื่อนไขบัญชีธุรกิจ"
+          ],
+          "tables_used": [
+            "Meta Marketing API",
+            "Instagram Platform API",
+            "TikTok Content Posting API",
+            "LINE Messaging API webhook documentation",
+            "LINE guidance for multiple tools on one Official Account",
+            "Google Business Profile API prerequisites"
+          ]
+        }
+      },
+      {
+        "href": "https://developers.facebook.com/documentation/ads-commerce/marketing-api",
+        "id": "src_meta_ads",
+        "label": "Meta — Marketing API",
+        "query": {
+          "description": "Ads management and reporting endpoints",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://developers.facebook.com/documentation/instagram-platform/overview",
+        "id": "src_meta_ig",
+        "label": "Meta — Instagram Platform Overview",
+        "query": {
+          "description": "API access for Instagram professional accounts",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://developers.tiktok.com/doc/content-posting-api-reference-direct-post",
+        "id": "src_tiktok",
+        "label": "TikTok — Content Posting API Direct Post",
+        "query": {
+          "description": "Direct Post requirements; unaudited clients are limited to private viewing until audit",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://developers.line.biz/en/docs/messaging-api/receiving-messages/",
+        "id": "src_line_webhook",
+        "label": "LINE — Receive messages via webhook",
+        "query": {
+          "description": "LINE sends webhook events to the registered bot server; signatures should be verified and processing should be asynchronous",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://developers.line.biz/en/tips/2026/07/23/using-multiple-api-tools/",
+        "id": "src_line_multi",
+        "label": "LINE — Using multiple tools with one Official Account",
+        "query": {
+          "description": "One webhook URL per Messaging API channel and channel-level token/rate-limit considerations",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://developers.google.com/my-business/content/prereqs",
+        "id": "src_google",
+        "label": "Google — Business Profile API prerequisites",
+        "query": {
+          "description": "API access application and account prerequisites",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://aws.amazon.com/blogs/aws/announcing-the-new-aws-asia-pacific-thailand-region/",
+        "id": "src_aws",
+        "label": "AWS — Asia Pacific (Thailand) Region",
+        "query": {
+          "description": "AWS ap-southeast-7 is generally available with three Availability Zones",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-documentation"
+        }
+      },
+      {
+        "href": "https://www.ratchakitcha.soc.go.th/DATA/PDF/2562/A/069/T_0052.PDF",
+        "id": "src_pdpa",
+        "label": "ราชกิจจานุเบกษา — พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562",
+        "query": {
+          "description": "กฎหมายหลักสำหรับการเก็บ ใช้ เปิดเผย รักษา และรองรับสิทธิของเจ้าของข้อมูลส่วนบุคคลในประเทศไทย",
+          "executed_at": "2026-08-29T16:13:20.870Z",
+          "language": "official-law"
+        }
+      },
+      {
+        "id": "src_ds_architecture",
+        "label": "Reviewed planning dataset — architecture",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ architecture; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset architecture"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"layer\":\"Web & API\",\"layer_order\":1,\"mvp_choice\":\"TypeScript modular monolith\",\"reason\":\"ส่งเร็วและรักษา domain boundary ได้\",\"scale_trigger\":\"แยก service เมื่อทีม/โหลด/ownership บังคับจริง\"},{\"layer\":\"Primary data\",\"layer_order\":2,\"mvp_choice\":\"PostgreSQL + Row Level Security + pgvector\",\"reason\":\"transaction, tenant isolation และ Brand Brain ในระบบเดียว\",\"scale_trigger\":\"ย้าย analytical workload เมื่อ daily events >50M\"},{\"layer\":\"Object storage\",\"layer_order\":3,\"mvp_choice\":\"S3-compatible + KMS\",\"reason\":\"เก็บ asset, transcript, export และ immutable evidence\",\"scale_trigger\":\"เพิ่ม lifecycle/archive ตาม retention policy\"},{\"layer\":\"Webhook gateway\",\"layer_order\":4,\"mvp_choice\":\"Signature verification + idempotency + DLQ\",\"reason\":\"รองรับ LINE/Meta webhook โดยไม่ทำข้อมูลซ้ำ/หาย\",\"scale_trigger\":\"partition ตาม connector และ tenant\"},{\"layer\":\"Queue & scheduler\",\"layer_order\":5,\"mvp_choice\":\"SQS/EventBridge equivalent\",\"reason\":\"retry, backoff, scheduled sync และ daily brief\",\"scale_trigger\":\"เพิ่ม workflow engine เมื่อ flow ข้ามวัน/หลาย approval ซับซ้อน\"},{\"layer\":\"Analytics\",\"layer_order\":6,\"mvp_choice\":\"Normalized events + daily aggregates in Postgres\",\"reason\":\"ลดต้นทุนและหลีกเลี่ยง data warehouse ก่อน product-market fit\",\"scale_trigger\":\"ClickHouse/warehouse เมื่อ query concurrency หรือ volume สูง\"},{\"layer\":\"AI layer\",\"layer_order\":7,\"mvp_choice\":\"Model router + RAG + evaluation suite\",\"reason\":\"เลือกโมเดลตาม cost/quality และไม่ผูกผู้ขายรายเดียว\",\"scale_trigger\":\"เพิ่ม model gateway, cache และ budget policy ตาม usage\"},{\"layer\":\"Hosting & security\",\"layer_order\":8,\"mvp_choice\":\"AWS Thailand region where services support the need\",\"reason\":\"ลด latency และช่วยเรื่อง data residency\",\"scale_trigger\":\"multi-region เฉพาะเมื่อมี RTO/RPO และลูกค้า enterprise\"}]$rows$::jsonb) AS r(\"layer\" text, \"layer_order\" numeric, \"mvp_choice\" text, \"reason\" text, \"scale_trigger\" text);",
+          "tables_used": [
+            "report_snapshot.architecture"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_arr_scenarios",
+        "label": "Reviewed planning dataset — arr_scenarios",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ arr_scenarios; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset arr_scenarios"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"annual_arpa_thb\":23880,\"arr_m_thb\":19.104,\"assumption\":\"ขาย Starter เป็นหลัก\",\"cac_payback_target_months\":8,\"gross_margin_target\":0.68,\"monthly_arpa_thb\":1990,\"paying_workspaces\":800,\"scenario\":\"Conservative\",\"scenario_order\":1},{\"annual_arpa_thb\":35880,\"arr_m_thb\":43.056,\"assumption\":\"Growth เป็นแพ็กเกจหลัก\",\"cac_payback_target_months\":6,\"gross_margin_target\":0.72,\"monthly_arpa_thb\":2990,\"paying_workspaces\":1200,\"scenario\":\"Base\",\"scenario_order\":2},{\"annual_arpa_thb\":47880,\"arr_m_thb\":95.76,\"assumption\":\"Business/Agency mix สูงขึ้น\",\"cac_payback_target_months\":5,\"gross_margin_target\":0.75,\"monthly_arpa_thb\":3990,\"paying_workspaces\":2000,\"scenario\":\"Upside\",\"scenario_order\":3}]$rows$::jsonb) AS r(\"annual_arpa_thb\" numeric, \"arr_m_thb\" numeric, \"assumption\" text, \"cac_payback_target_months\" numeric, \"gross_margin_target\" numeric, \"monthly_arpa_thb\" numeric, \"paying_workspaces\" numeric, \"scenario\" text, \"scenario_order\" numeric);",
+          "tables_used": [
+            "report_snapshot.arr_scenarios"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_budget",
+        "label": "Reviewed planning dataset — budget",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ budget; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset budget"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_m_thb\":8.8,\"category\":\"รวมทั้งหมด\",\"high_m_thb\":11.5,\"low_m_thb\":6.3,\"purpose\":\"กรอบ 12 เดือน ไม่รวม VAT\"},{\"base_m_thb\":5.2,\"category\":\"Product & Engineering\",\"high_m_thb\":6.4,\"low_m_thb\":4.2,\"purpose\":\"5–6 core FTE หรือ founder-led mix\"},{\"base_m_thb\":1.4,\"category\":\"GTM, Onboarding & Partners\",\"high_m_thb\":2,\"low_m_thb\":0.8,\"purpose\":\"paid pilots, onboarding, agency/franchise partners\"},{\"base_m_thb\":0.9,\"category\":\"Contingency\",\"high_m_thb\":1.1,\"low_m_thb\":0.5,\"purpose\":\"20–25% ของความเสี่ยง connector/review/hiring\"},{\"base_m_thb\":0.8,\"category\":\"Cloud, AI & API\",\"high_m_thb\":1.2,\"low_m_thb\":0.5,\"purpose\":\"hosting, LLM, storage, observability, platform API\"},{\"base_m_thb\":0.5,\"category\":\"Security, Legal & Compliance\",\"high_m_thb\":0.8,\"low_m_thb\":0.3,\"purpose\":\"PDPA/DPA, security review, pentest, incident readiness\"}]$rows$::jsonb) AS r(\"base_m_thb\" numeric, \"category\" text, \"high_m_thb\" numeric, \"low_m_thb\" numeric, \"purpose\" text);",
+          "tables_used": [
+            "report_snapshot.budget"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_calendar_workflow",
+        "label": "Reviewed planning dataset — calendar_workflow",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ calendar_workflow; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset calendar_workflow"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"automated_checks\":\"duplicate idea / pillar balance\",\"exit_gate\":\"ข้อมูลครบสำหรับ brief\",\"primary_owner\":\"Owner / Marketer\",\"required_fields\":\"business goal, audience, funnel stage, content pillar\",\"state\":\"Idea\",\"state_order\":1},{\"automated_checks\":\"brand fact availability / campaign conflict\",\"exit_gate\":\"ผู้รับผิดชอบยืนยัน brief\",\"primary_owner\":\"Strategist / AI\",\"required_fields\":\"angle, hook direction, offer, CTA, channel, due date\",\"state\":\"Brief\",\"state_order\":2},{\"automated_checks\":\"Thai language / platform format / prohibited words\",\"exit_gate\":\"draft ครบทุก variant\",\"primary_owner\":\"Creator / AI\",\"required_fields\":\"script/copy, asset list, channel variants\",\"state\":\"Draft\",\"state_order\":3},{\"automated_checks\":\"7-dimension score + factual/claim gate\",\"exit_gate\":\"≥80 หรือมีเหตุผล override\",\"primary_owner\":\"Content Lead\",\"required_fields\":\"quality score, flags, suggested edits\",\"state\":\"Quality Review\",\"state_order\":4},{\"automated_checks\":\"offer still valid / required legal review\",\"exit_gate\":\"approved version locked\",\"primary_owner\":\"Brand Owner\",\"required_fields\":\"approver, decision, comments, version\",\"state\":\"Approval\",\"state_order\":5},{\"automated_checks\":\"token health / collision / asset readiness\",\"exit_gate\":\"publish job validated\",\"primary_owner\":\"Scheduler\",\"required_fields\":\"platform account, publish time, caption, asset\",\"state\":\"Scheduled\",\"state_order\":6},{\"automated_checks\":\"delivery confirmation / retry / failure alert\",\"exit_gate\":\"publish receipt stored\",\"primary_owner\":\"Connector\",\"required_fields\":\"platform post ID, URL, timestamp\",\"state\":\"Published\",\"state_order\":7},{\"automated_checks\":\"data freshness / attribution confidence\",\"exit_gate\":\"minimum measurement window reached\",\"primary_owner\":\"Analytics\",\"required_fields\":\"reach, engagement, leads, bookings, sales, window\",\"state\":\"Measured\",\"state_order\":8},{\"automated_checks\":\"winner detection / saturation / seasonal expiry\",\"exit_gate\":\"memory updated and next action chosen\",\"primary_owner\":\"Strategist\",\"required_fields\":\"learning, reusable angle, fatigue/expiry status\",\"state\":\"Learn / Repurpose / Retire\",\"state_order\":9}]$rows$::jsonb) AS r(\"automated_checks\" text, \"exit_gate\" text, \"primary_owner\" text, \"required_fields\" text, \"state\" text, \"state_order\" numeric);",
+          "tables_used": [
+            "report_snapshot.calendar_workflow"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_content_quality",
+        "label": "Reviewed planning dataset — content_quality",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ content_quality; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset content_quality"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"dimension\":\"Brand consistency\",\"dimension_order\":1,\"evidence\":\"rule checks + model evaluator + human\",\"fail_condition\":\"ใช้คำต้องห้ามหรือข้อเท็จจริงขัด Brand Truth\",\"scoring_method\":\"tone, vocabulary, visual/claim rules เทียบ Brand Brain\",\"weight_share\":0.2},{\"dimension\":\"Audience & intent fit\",\"dimension_order\":2,\"evidence\":\"brief fields + intent classifier\",\"fail_condition\":\"พูดกว้างจนไม่รู้ว่าทำเพื่อใคร/ขั้นใด\",\"scoring_method\":\"ตรง ICP, pain point, funnel stage และ business goal\",\"weight_share\":0.2},{\"dimension\":\"Hook & retention\",\"dimension_order\":3,\"evidence\":\"hook rubric + historical benchmark\",\"fail_condition\":\"เปิดเรื่องช้า, clickbait หรือสัญญาเกินจริง\",\"scoring_method\":\"ชัดใน 1–2 ประโยคแรกและสร้างเหตุผลให้อยู่ต่อ\",\"weight_share\":0.15},{\"dimension\":\"Value & specificity\",\"dimension_order\":4,\"evidence\":\"specificity checks + duplicate detection\",\"fail_condition\":\"ข้อความทั่วไปซ้ำกันหรือไม่มี takeaway\",\"scoring_method\":\"มีข้อมูล ตัวอย่าง ขั้นตอน หรือข้อสรุปที่ใช้ได้จริง\",\"weight_share\":0.15},{\"dimension\":\"CTA & offer alignment\",\"dimension_order\":5,\"evidence\":\"offer catalog + effective dates\",\"fail_condition\":\"CTA ผิดแพ็กเกจ/ราคา/ช่วงเวลา\",\"scoring_method\":\"CTA เหมาะ funnel stage และ offer ยังมีผล\",\"weight_share\":0.1},{\"dimension\":\"Platform fit\",\"dimension_order\":6,\"evidence\":\"platform rules + asset metadata\",\"fail_condition\":\"format โพสต์ไม่ได้หรืออ่านยากบนมือถือ\",\"scoring_method\":\"length, format, caption, aspect ratio และ channel conventions\",\"weight_share\":0.1},{\"dimension\":\"Facts, claims & safety\",\"dimension_order\":7,\"evidence\":\"locked facts + citation/claim checker + reviewer\",\"fail_condition\":\"unsupported claim, PII exposure หรือ compliance flag\",\"scoring_method\":\"ตรวจตัวเลข แหล่งอ้างอิง PDPA และ claim ที่เสี่ยง\",\"weight_share\":0.1}]$rows$::jsonb) AS r(\"dimension\" text, \"dimension_order\" numeric, \"evidence\" text, \"fail_condition\" text, \"scoring_method\" text, \"weight_share\" numeric);",
+          "tables_used": [
+            "report_snapshot.content_quality"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_demo_mapping",
+        "label": "Reviewed planning dataset — demo_mapping",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ demo_mapping; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset demo_mapping"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"change\":\"ล็อก tone, offer, ราคา,ข้อห้าม, CTA และผู้อนุมัติ; แยกแต่ละสาขา/แบรนด์\",\"demo_module\":\"Context Memory / Brand Files\",\"mvp\":\"ใช่\",\"priority\":1,\"thai_sme_version\":\"Brand Brain แบบมีเวอร์ชัน\"},{\"change\":\"วัด Content → Lead → นัดหมาย/ใบเสนอราคา → ยอดขาย ไม่หยุดที่วิว\",\"demo_module\":\"Analytics\",\"mvp\":\"ใช่\",\"priority\":2,\"thai_sme_version\":\"Content-to-Revenue Analytics\"},{\"change\":\"OAuth, webhook signature, retry, idempotency, token health และ data freshness\",\"demo_module\":\"Connectors\",\"mvp\":\"ใช่\",\"priority\":3,\"thai_sme_version\":\"Meta + LINE + Sheets Gateway\"},{\"change\":\"สรุป lead, CPL, นัดหมาย,ยอดขาย และ 3 สิ่งที่ควรทำวันนี้\",\"demo_module\":\"Always-On\",\"mvp\":\"ใช่\",\"priority\":4,\"thai_sme_version\":\"Daily Owner Brief ผ่าน LINE\"},{\"change\":\"คุม pillar/funnel mix, quality score, production status, approval, schedule และ performance feedback loop\",\"demo_module\":\"Hook / Calendar / Scheduler\",\"mvp\":\"ใช่\",\"priority\":5,\"thai_sme_version\":\"Content Quality Engine + Calendar OS\"},{\"change\":\"เสนอเพิ่ม/ลดงบพร้อมหลักฐาน แต่ไม่แก้งบอัตโนมัติใน MVP\",\"demo_module\":\"Ads recommendation\",\"mvp\":\"เฉพาะคำแนะนำ\",\"priority\":6,\"thai_sme_version\":\"Recommendation Guardrail\"},{\"change\":\"เริ่มจากลิงก์ที่ผู้ใช้บันทึกและ API ที่อนุญาต; ไม่พึ่ง scraping\",\"demo_module\":\"Competitor / Trends\",\"mvp\":\"ระยะ 2\",\"priority\":7,\"thai_sme_version\":\"Swipe File + Approved Sources\"}]$rows$::jsonb) AS r(\"change\" text, \"demo_module\" text, \"mvp\" text, \"priority\" numeric, \"thai_sme_version\" text);",
+          "tables_used": [
+            "report_snapshot.demo_mapping"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_headline_arr",
+        "label": "Reviewed planning dataset — headline_arr",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_arr; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset headline_arr"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_arr_m_thb\":43.056,\"monthly_arpa_thb\":2990,\"paying_workspaces\":1200}]$rows$::jsonb) AS r(\"base_arr_m_thb\" numeric, \"monthly_arpa_thb\" numeric, \"paying_workspaces\" numeric);",
+          "tables_used": [
+            "report_snapshot.headline_arr"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_headline_budget",
+        "label": "Reviewed planning dataset — headline_budget",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_budget; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset headline_budget"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_budget_m_thb\":8.8,\"mvp_6m_high_m_thb\":5.5,\"mvp_6m_low_m_thb\":4}]$rows$::jsonb) AS r(\"base_budget_m_thb\" numeric, \"mvp_6m_high_m_thb\" numeric, \"mvp_6m_low_m_thb\" numeric);",
+          "tables_used": [
+            "report_snapshot.headline_budget"
+          ]
+        }
+      },
+      {
+        "href": "https://smebigdata.sme.go.th/",
+        "id": "src_ds_headline_sme",
+        "label": "Reviewed planning dataset — headline_sme",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_sme; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset headline_sme"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"total_smes\":3283650}]$rows$::jsonb) AS r(\"total_smes\" numeric);",
+          "tables_used": [
+            "OSMEP SME Big Data Dashboard (2025)",
+            "report_snapshot.headline_sme"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_integrations",
+        "label": "Reviewed planning dataset — integrations",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ integrations; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset integrations"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"connector\":\"Meta Ads + Facebook Pages + Instagram Professional\",\"fallback\":\"CSV/Sheets import + draft export\",\"gating\":\"Business verification, permissions, App Review และ token lifecycle\",\"phase\":\"MVP\",\"phase_order\":1,\"supported_scope\":\"Insights, campaign metrics, page/IG content; publish เฉพาะ scope ที่ผ่าน review\"},{\"connector\":\"LINE Official Account\",\"fallback\":\"Webhook router ส่งต่อระบบเดิมด้วย adapter\",\"gating\":\"มี webhook URL เดียวต่อ channel; ต้อง verify signature และ fan-out ภายใน\",\"phase\":\"MVP\",\"phase_order\":2,\"supported_scope\":\"Webhook leads, replies/notifications, account linking\"},{\"connector\":\"Google Sheets\",\"fallback\":\"CSV upload template\",\"gating\":\"OAuth scopes และ schema mapping\",\"phase\":\"MVP\",\"phase_order\":3,\"supported_scope\":\"นำเข้า conversion, นัดหมาย, quote, revenue\"},{\"connector\":\"TikTok\",\"fallback\":\"Export package / share-to-app\",\"gating\":\"Unaudited client โพสต์ได้ private; ต้องผ่าน audit ก่อน public\",\"phase\":\"ระยะ 2\",\"phase_order\":4,\"supported_scope\":\"Draft/direct post และ Ads reporting แยก permission\"},{\"connector\":\"Google Business Profile\",\"fallback\":\"Manual weekly import / deep link\",\"gating\":\"ต้องขอ API access; โปรไฟล์ยืนยันและ active ตามเงื่อนไข\",\"phase\":\"ระยะ 2\",\"phase_order\":5,\"supported_scope\":\"Performance, reviews, posts, multi-location\"},{\"connector\":\"Drive / Notion / Asset sources\",\"fallback\":\"Upload ผ่าน Brand Brain\",\"gating\":\"Least-privilege OAuth และ file-level permission\",\"phase\":\"ระยะ 2\",\"phase_order\":6,\"supported_scope\":\"Brand documents, approved assets, offer catalog\"}]$rows$::jsonb) AS r(\"connector\" text, \"fallback\" text, \"gating\" text, \"phase\" text, \"phase_order\" numeric, \"supported_scope\" text);",
+          "tables_used": [
+            "report_snapshot.integrations"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_kpis",
+        "label": "Reviewed planning dataset — kpis",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ kpis; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset kpis"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"kpi_order\":1,\"measurement\":\"จ่ายเงินจริง ไม่ใช่ LOI อย่างเดียว\",\"metric\":\"Paid design partners\",\"stage\":\"Demand validation\",\"stop_rule\":\"ถ้า <3 ให้กลับไปแก้ ICP/offer ก่อนเพิ่มทีม\",\"target\":\"≥5 จาก 10 ราย\"},{\"kpi_order\":2,\"measurement\":\"workspace ที่สมัครทั้งหมด\",\"metric\":\"Connect Meta + LINE และได้ first brief\",\"stage\":\"Activation\",\"stop_rule\":\"ถ้า <50% หยุดเพิ่ม feature และแก้ onboarding\",\"target\":\"≥70% ภายใน 7 วัน\"},{\"kpi_order\":3,\"measurement\":\"ต่อ rubric version, vertical และ channel\",\"metric\":\"Approval / factual safety / on-time\",\"stage\":\"Content quality\",\"stop_rule\":\"ถ้า hard-fail หลุดเผยแพร่ ให้หยุด auto-publish และทำ incident review\",\"target\":\"approval ≥70%; factual error <2%; on-time ≥85%\"},{\"kpi_order\":4,\"measurement\":\"baseline 4 สัปดาห์เทียบหลังใช้\",\"metric\":\"เวลาวางแผน content\",\"stage\":\"Value\",\"stop_rule\":\"ถ้าลด <30% ให้ตัดขั้นตอนและปรับ Brand Brain\",\"target\":\"ลด ≥50%\"},{\"kpi_order\":5,\"measurement\":\"เทียบ cohort / seasonality\",\"metric\":\"Lead response / booking conversion\",\"stage\":\"Revenue impact\",\"stop_rule\":\"ถ้าไม่ดีขึ้น 8 สัปดาห์ ให้แก้ workflow ไม่อ้าง AI value\",\"target\":\"response time ลด ≥50% หรือ booking +15% relative\"},{\"kpi_order\":6,\"measurement\":\"เฉพาะ paying accounts\",\"metric\":\"90-day gross retention\",\"stage\":\"Retention\",\"stop_rule\":\"ถ้า <70% ชะลอ paid acquisition\",\"target\":\"≥80%\"},{\"kpi_order\":7,\"measurement\":\"รวม LLM, API, support delivery cost\",\"metric\":\"Gross margin / CAC payback\",\"stage\":\"Economics\",\"stop_rule\":\"ถ้า GM <60% ให้ปรับ usage/pricing ก่อน scale\",\"target\":\"GM ≥70%; payback <8 เดือน\"},{\"kpi_order\":8,\"measurement\":\"ต่อ connector ต่อ tenant\",\"metric\":\"Connector freshness\",\"stage\":\"Reliability\",\"stop_rule\":\"ถ้า error >1% หยุดเปิด connector ใหม่\",\"target\":\"≥99% sync สำเร็จตาม SLO\"}]$rows$::jsonb) AS r(\"kpi_order\" numeric, \"measurement\" text, \"metric\" text, \"stage\" text, \"stop_rule\" text, \"target\" text);",
+          "tables_used": [
+            "report_snapshot.kpis"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_market_size",
+        "label": "Reviewed planning dataset — market_size",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ market_size; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset market_size"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"accounts\":3283650,\"annual_revenue_thb\":117817362000,\"basis\":\"SME ทั้งหมด × ARPA ฐาน\",\"confidence\":\"ต่ำ — เพดานบน\",\"share_total\":1,\"stage\":\"Theoretical TAM\",\"stage_order\":1},{\"accounts\":656730,\"annual_revenue_thb\":23563472400,\"basis\":\"20% มีปัญหา/ความพร้อมดิจิทัล\",\"confidence\":\"ต่ำ–กลาง\",\"share_total\":0.2,\"stage\":\"Qualified TAM\",\"stage_order\":2},{\"accounts\":246274,\"annual_revenue_thb\":8836311120,\"basis\":\"7.5% เป็นธุรกิจบริการแบบ lead-driven\",\"confidence\":\"ต่ำ–กลาง\",\"share_total\":0.075,\"stage\":\"Beachhead SAM\",\"stage_order\":3},{\"accounts\":1200,\"annual_revenue_thb\":43056000,\"basis\":\"เป้าหมายทีมขายและพาร์ตเนอร์\",\"confidence\":\"เป้าหมายบริหาร\",\"share_total\":0.00036545,\"stage\":\"24-month SOM (base)\",\"stage_order\":4}]$rows$::jsonb) AS r(\"accounts\" numeric, \"annual_revenue_thb\" numeric, \"basis\" text, \"confidence\" text, \"share_total\" numeric, \"stage\" text, \"stage_order\" numeric);",
+          "tables_used": [
+            "OSMEP SME Big Data Dashboard (2025)",
+            "report_snapshot.market_size"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_pricing",
+        "label": "Reviewed planning dataset — pricing",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ pricing; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset pricing"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"best_for\":\"เจ้าของทำเอง 1 แบรนด์\",\"business_goal\":\"ลดเวลาและเริ่มใช้ง่าย\",\"included\":\"Brand Brain, Content Studio, Calendar, monthly report\",\"limit\":\"1 workspace, 2 channels, 1 seat\",\"monthly_price_thb\":1490,\"plan\":\"Starter\",\"sort_order\":1},{\"best_for\":\"SME ที่ยิงแอดและรับ lead\",\"business_goal\":\"แพ็กเกจหลัก / base ARPA\",\"included\":\"Meta + LINE, Lead Inbox, daily brief, attribution\",\"limit\":\"1 brand, 3 seats, 2 branches\",\"monthly_price_thb\":2990,\"plan\":\"Growth\",\"sort_order\":2},{\"best_for\":\"หลายสาขาหรือทีม marketing\",\"business_goal\":\"เพิ่ม ARPA และ retention\",\"included\":\"automation, 5 users, 3 branches, advanced approvals\",\"limit\":\"usage allowance + overage\",\"monthly_price_thb\":5990,\"plan\":\"Business\",\"sort_order\":3},{\"best_for\":\"agency หรือเจ้าของหลายแบรนด์\",\"business_goal\":\"ช่องทาง scale และ white-label\",\"included\":\"10 workspaces, templates, cross-account console, API\",\"limit\":\"เพิ่ม workspace แบบต่อหน่วย\",\"monthly_price_thb\":14900,\"plan\":\"Agency / Franchise\",\"sort_order\":4}]$rows$::jsonb) AS r(\"best_for\" text, \"business_goal\" text, \"included\" text, \"limit\" text, \"monthly_price_thb\" numeric, \"plan\" text, \"sort_order\" numeric);",
+          "tables_used": [
+            "report_snapshot.pricing"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_product_modules",
+        "label": "Reviewed planning dataset — product_modules",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ product_modules; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset product_modules"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"exit_criteria\":\"แยกข้อมูล tenant ผ่าน RLS; audit log ครบ\",\"module\":\"Tenant, Auth & Billing foundation\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–2\",\"phase_order\":1,\"user_outcome\":\"สร้าง workspace และกำหนดสิทธิทีม/สาขาได้\"},{\"exit_criteria\":\"ข้อเท็จจริง/ข้อห้ามมี version และผู้อนุมัติ\",\"module\":\"Brand Brain\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–2\",\"phase_order\":2,\"user_outcome\":\"AI เขียนโดยไม่ต้องบรีฟแบรนด์ใหม่ทุกครั้ง\"},{\"exit_criteria\":\"sync success ≥99%; token expiry alert\",\"module\":\"Meta + LINE connectors\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–3\",\"phase_order\":3,\"user_outcome\":\"ข้อมูลโพสต์ โฆษณา และข้อความลูกค้าไหลเข้า\"},{\"exit_criteria\":\"hard-fail = 0; factual error <2%; approval ≥70%\",\"module\":\"Content Strategy & Quality Engine\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 2–4\",\"phase_order\":4,\"user_outcome\":\"ทุกชิ้นตรงเป้าหมายแบรนด์และผ่าน quality gate\"},{\"exit_criteria\":\"งานตรงเวลา ≥85%; pillar/funnel coverage ครบ\",\"module\":\"Content Calendar OS\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 2–4\",\"phase_order\":5,\"user_outcome\":\"เห็นแผน ผลิต อนุมัติ โพสต์ และวัดผลในที่เดียว\"},{\"exit_criteria\":\"ทุก action มี approval/audit; fallback draft\",\"module\":\"Approval & Scheduler\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 3–4\",\"phase_order\":6,\"user_outcome\":\"ทีมทำงานร่วมกันและเผยแพร่ตามเวลา\"},{\"exit_criteria\":\"owner, SLA, stage, source และ value ครบ\",\"module\":\"Lead Inbox & Mini CRM\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 3–5\",\"phase_order\":7,\"user_outcome\":\"ไม่ตกหล่นคนทักและรู้สถานะ lead\"},{\"exit_criteria\":\"รองรับ manual/Sheets conversion; unknown bucket\",\"module\":\"Revenue Attribution\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 4–6\",\"phase_order\":8,\"user_outcome\":\"รู้ว่า content/campaign ใดสร้างนัดและยอดขาย\"},{\"exit_criteria\":\"ส่ง LINE ตามเวลา; link กลับหน้า evidence\",\"module\":\"Daily Owner Brief\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 4–6\",\"phase_order\":9,\"user_outcome\":\"เห็น calendar gaps, quality flags และ action ภายใน 3 นาที\"},{\"exit_criteria\":\"permission และ template inheritance ผ่าน QA\",\"module\":\"Agency / Franchise Console\",\"must_have\":\"ระยะ 2\",\"phase\":\"เดือน 7–9\",\"phase_order\":10,\"user_outcome\":\"ดูหลายสาขาและใช้ template ร่วมกัน\"},{\"exit_criteria\":\"ผ่าน platform review และ connector SLO\",\"module\":\"TikTok / Google Business / API\",\"must_have\":\"ระยะ 2\",\"phase\":\"เดือน 7–12\",\"phase_order\":11,\"user_outcome\":\"เพิ่มช่องทางและเปิด white-label ecosystem\"}]$rows$::jsonb) AS r(\"exit_criteria\" text, \"module\" text, \"must_have\" text, \"phase\" text, \"phase_order\" numeric, \"user_outcome\" text);",
+          "tables_used": [
+            "report_snapshot.product_modules"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_risks",
+        "label": "Reviewed planning dataset — risks",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ risks; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset risks"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"impact\":\"สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"ยื่น review ตั้งแต่เดือน 1; มี CSV/Sheets/draft fallback; feature flags\",\"owner\":\"Tech Lead + Product\",\"risk\":\"API permission/review ล่าช้า\",\"risk_score\":25},{\"impact\":\"สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"MVP ต้องมี lead pipeline และ revenue attribution; KPI ผูก booking/sale\",\"owner\":\"Product + CS\",\"risk\":\"สร้าง content ได้แต่ไม่เพิ่มยอดขาย\",\"risk_score\":20},{\"impact\":\"กลาง–สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"vertical template, concierge onboarding, first value <30 นาที\",\"owner\":\"Customer Success\",\"risk\":\"SME onboarding ยากและ churn สูง\",\"risk_score\":16},{\"impact\":\"สูง\",\"likelihood\":\"กลาง\",\"mitigation\":\"data freshness badge, unknown attribution bucket, evidence link, no auto-spend\",\"owner\":\"Data/Analytics\",\"risk\":\"ข้อมูลไม่ครบทำให้ ROAS/คำแนะนำผิด\",\"risk_score\":15},{\"impact\":\"สูง\",\"likelihood\":\"กลาง\",\"mitigation\":\"data minimization, DPA, retention, DSAR, encryption, legal review\",\"owner\":\"Security/Legal\",\"risk\":\"PDPA/ข้อมูลสนทนาและข้อมูลอ่อนไหว\",\"risk_score\":15},{\"impact\":\"กลาง\",\"likelihood\":\"กลาง\",\"mitigation\":\"model router, cache, budgets, eval set, version pinning\",\"owner\":\"AI Lead\",\"risk\":\"ต้นทุน LLM สูงและคุณภาพแกว่ง\",\"risk_score\":12},{\"impact\":\"กลาง\",\"likelihood\":\"สูง\",\"mitigation\":\"สร้าง moat จาก vertical data model, workflow, integrations, partner distribution\",\"owner\":\"Founder\",\"risk\":\"คู่แข่งลอก feature ได้ง่าย\",\"risk_score\":10},{\"impact\":\"สูง\",\"likelihood\":\"กลาง–สูง\",\"mitigation\":\"calibrate ด้วย human labels + lead/conversion outcomes; rubric versioning; ห้ามใช้คะแนนเดียวตัดสิน\",\"owner\":\"Content Lead + Data\",\"risk\":\"Quality Score ดูดีแต่ไม่สัมพันธ์กับผลลัพธ์\",\"risk_score\":18}]$rows$::jsonb) AS r(\"impact\" text, \"likelihood\" text, \"mitigation\" text, \"owner\" text, \"risk\" text, \"risk_score\" numeric);",
+          "tables_used": [
+            "report_snapshot.risks"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_roadmap",
+        "label": "Reviewed planning dataset — roadmap",
+        "query": {
+          "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ roadmap; generated from the report's explicit facts and planning assumptions",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T16:15:49.727Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Rows reproduce the bounded reviewed snapshot dataset roadmap"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"deliverables\":\"15 interviews, 10 design partners, funnel dictionary, PDPA data map\",\"exit_gate\":\"อย่างน้อย 5 รายยอมจ่าย pilot\",\"objective\":\"ยืนยันปัญหาและ metric definitions\",\"phase_order\":1,\"window\":\"สัปดาห์ 0–2\"},{\"deliverables\":\"Auth/RBAC/RLS, workspace, brand facts, approval roles, audit\",\"exit_gate\":\"onboarding test 5 แบรนด์เสร็จ <60 นาที\",\"objective\":\"วางฐาน multi-tenant และ Brand Brain\",\"phase_order\":2,\"window\":\"เดือน 1–2\"},{\"deliverables\":\"Meta read connector, LINE webhook gateway, Sheets import, health monitor\",\"exit_gate\":\"sync ≥99%; duplicate events <0.1%\",\"objective\":\"เชื่อมข้อมูลสำคัญ\",\"phase_order\":3,\"window\":\"เดือน 2–3\"},{\"deliverables\":\"7-dimension quality rubric, hard-fail gate, Month/Week/Kanban calendar, Thai playbooks, approval, draft publish\",\"exit_gate\":\"approval ≥70%; factual error <2%; on-time ≥85%; planning time ลด ≥50%\",\"objective\":\"ทำ Content Quality Engine และ Calendar ให้ใช้จริง\",\"phase_order\":4,\"window\":\"เดือน 3–4\"},{\"deliverables\":\"Lead inbox, SLA, stages, conversion import, daily LINE brief, billing\",\"exit_gate\":\"20 paying beta; 8 สัปดาห์มี usage ต่อเนื่อง\",\"objective\":\"ปิดวงจร Lead → Revenue\",\"phase_order\":5,\"window\":\"เดือน 4–6\"},{\"deliverables\":\"Beauty/wellness + home services playbooks, agency console, Google Business\",\"exit_gate\":\"75 accounts; activation ≥70%; monthly churn <5%\",\"objective\":\"ทำซ้ำได้ผ่าน vertical templates\",\"phase_order\":6,\"window\":\"เดือน 7–9\"},{\"deliverables\":\"TikTok after audit, partner API, franchise controls, cost optimization\",\"exit_gate\":\"200 accounts; GM ≥70%; CAC payback <8 เดือน\",\"objective\":\"ขยายช่องทางและ unit economics\",\"phase_order\":7,\"window\":\"เดือน 10–12\"}]$rows$::jsonb) AS r(\"deliverables\" text, \"exit_gate\" text, \"objective\" text, \"phase_order\" numeric, \"window\" text);",
+          "tables_used": [
+            "report_snapshot.roadmap"
+          ]
+        }
+      },
+      {
+        "id": "src_stripe_solo_2026",
+        "label": "Stripe Atlas — Solo founding is at an all-time high (28 May 2026)",
+        "href": "https://stripe.com/blog/top-solo-founder-traits",
+        "query": {
+          "description": "Stripe วิเคราะห์ solo-founded Atlas startups หลายพันรายที่ก่อตั้งในปี 2022–2023 และมีข้อมูลรายได้อย่างน้อยสองปี; พบว่า AI-native, B2B และ recurring billing ปรากฏมากกว่าในกลุ่มผลงานสูง",
+          "executed_at": "2026-08-29T17:05:00.000Z",
+          "language": "public-source",
+          "metric_definitions": [
+            "กลุ่มตัวอย่างจำกัดอยู่ที่บริษัทที่ก่อตั้งผ่าน Stripe Atlas และไม่ใช่อัตราความสำเร็จของธุรกิจไทย"
+          ]
+        }
+      },
+      {
+        "id": "src_buffer_pricing_2026",
+        "label": "Buffer Pricing — official pricing page",
+        "href": "https://buffer.com/pricing",
+        "query": {
+          "description": "ราคา Buffer ณ วันที่ตรวจสอบ: Essentials 5 ดอลลาร์/เดือนต่อ 1 channel และ Team 10 ดอลลาร์/เดือนต่อ 1 channel เมื่อชำระรายปี",
+          "executed_at": "2026-08-29T17:05:00.000Z",
+          "language": "public-source"
+        }
+      },
+      {
+        "id": "src_metricool_pricing_2026",
+        "label": "Metricool Pricing — official pricing page",
+        "href": "https://metricool.com/pricing/",
+        "query": {
+          "description": "ราคา Metricool ณ วันที่ตรวจสอบ: Starter เริ่ม 20 ดอลลาร์/เดือนสำหรับสูงสุด 5 brands และ Advanced เริ่ม 53 ดอลลาร์/เดือนสำหรับสูงสุด 15 brands ในตัวเลือก USD ที่แสดง",
+          "executed_at": "2026-08-29T17:05:00.000Z",
+          "language": "public-source"
+        }
+      },
+      {
+        "id": "src_ds_solo_revenue_targets",
+        "label": "Reviewed planning dataset — solo_revenue_targets",
+        "query": {
+          "description": "ชุดข้อมูลคำนวณแบบ bottom-up สำหรับ solo_revenue_targets; ราคาเป็นสมมติฐานจากแผนผลิตภัณฑ์และคำนวณจำนวนลูกค้าด้วยการปัดขึ้น",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T17:05:00.000Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026",
+            "ไม่รวม VAT และภาษีเงินได้"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "จำนวนลูกค้าที่ต้องมี = CEILING(เป้าหมายรายได้ ÷ ราคาต่อช่วงเวลา)",
+            "ARR จริง = จำนวนลูกค้าที่ปัดขึ้น × ราคาต่อเดือน × 12"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"path\":\"Growth — 1 ล้านบาท/ปี\",\"path_order\":11,\"plan\":\"Growth\",\"monthly_price_thb\":2990,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":28,\"actual_mrr_thb\":83720,\"actual_arr_thb\":1004640,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Business — 1 ล้านบาท/ปี\",\"path_order\":12,\"plan\":\"Business\",\"monthly_price_thb\":5990,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":14,\"actual_mrr_thb\":83860,\"actual_arr_thb\":1006320,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Agency — 1 ล้านบาท/ปี\",\"path_order\":13,\"plan\":\"Agency\",\"monthly_price_thb\":14900,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":6,\"actual_mrr_thb\":89400,\"actual_arr_thb\":1072800,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Growth — 1 ล้านบาท/เดือน\",\"path_order\":21,\"plan\":\"Growth\",\"monthly_price_thb\":2990,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":335,\"actual_mrr_thb\":1001650,\"actual_arr_thb\":12019800,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"},{\"path\":\"Business — 1 ล้านบาท/เดือน\",\"path_order\":22,\"plan\":\"Business\",\"monthly_price_thb\":5990,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":167,\"actual_mrr_thb\":1000330,\"actual_arr_thb\":12003960,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"},{\"path\":\"Agency — 1 ล้านบาท/เดือน\",\"path_order\":23,\"plan\":\"Agency\",\"monthly_price_thb\":14900,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":68,\"actual_mrr_thb\":1013200,\"actual_arr_thb\":12158400,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"}]$rows$::jsonb) AS r(\"actual_arr_thb\" numeric, \"actual_mrr_thb\" numeric, \"monthly_price_thb\" numeric, \"path\" text, \"path_order\" numeric, \"plan\" text, \"required_customers\" numeric, \"solo_fit\" text, \"target\" text, \"target_period\" text, \"target_value_thb\" numeric);",
+          "tables_used": [
+            "report_snapshot.solo_revenue_targets"
+          ]
+        }
+      },
+      {
+        "id": "src_ds_solo_operating_paths",
+        "label": "Reviewed planning dataset — solo_operating_paths",
+        "query": {
+          "description": "ชุดข้อมูลคำนวณแบบ bottom-up สำหรับ solo_operating_paths; ราคาเป็นสมมติฐานจากแผนผลิตภัณฑ์และคำนวณจำนวนลูกค้าด้วยการปัดขึ้น",
+          "engine": "PostgreSQL-compatible snapshot model",
+          "executed_at": "2026-08-29T17:05:00.000Z",
+          "filters": [
+            "Snapshot date 29 Aug 2026",
+            "ไม่รวม VAT และภาษีเงินได้"
+          ],
+          "language": "sql",
+          "metric_definitions": [
+            "Operating surplus estimate = first-year revenue × gross-margin assumption − fixed-cost assumption",
+            "ตัวเลขเป็นกำไรก่อนภาษีและก่อนกำหนดค่าตอบแทนผู้ก่อตั้ง",
+            "Support hours รวมเฉพาะ support ต่อบัญชี ไม่รวม sales, product development, compliance และ administration"
+          ],
+          "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"path_order\":1,\"path\":\"Recurring อย่างเดียว\",\"customer_model\":\"28 Growth × 2,990 บาท/เดือน\",\"paying_accounts\":28,\"setup_revenue_thb\":0,\"recurring_mrr_thb\":83720,\"recurring_arr_thb\":1004640,\"first_year_revenue_thb\":1004640,\"gross_margin_assumption\":0.75,\"fixed_cost_assumption_thb\":300000,\"estimated_operating_surplus_thb\":453480,\"support_minutes_per_account_month\":15,\"support_hours_month\":7,\"interpretation\":\"ถึงหลักล้านด้านรายได้ แต่ยังไม่ใช่กำไรหนึ่งล้าน\"},{\"path_order\":2,\"path\":\"Assisted MVP\",\"customer_model\":\"20 Growth × 2,990 บาท/เดือน + Setup 15,000 บาท/ราย\",\"paying_accounts\":20,\"setup_revenue_thb\":300000,\"recurring_mrr_thb\":59800,\"recurring_arr_thb\":717600,\"first_year_revenue_thb\":1017600,\"gross_margin_assumption\":0.7,\"fixed_cost_assumption_thb\":240000,\"estimated_operating_surplus_thb\":472320,\"support_minutes_per_account_month\":30,\"support_hours_month\":10,\"interpretation\":\"เหมาะกับปีแรกเพื่อสร้างเงินสดและเรียนรู้ แต่ต้องทำ onboarding ให้เป็น template\"},{\"path_order\":3,\"path\":\"กำไรดำเนินงานประมาณ 1 ล้านบาท\",\"customer_model\":\"25 Growth + 15 Business\",\"paying_accounts\":40,\"setup_revenue_thb\":0,\"recurring_mrr_thb\":164600,\"recurring_arr_thb\":1975200,\"first_year_revenue_thb\":1975200,\"gross_margin_assumption\":0.75,\"fixed_cost_assumption_thb\":420000,\"estimated_operating_surplus_thb\":1061400,\"support_minutes_per_account_month\":15,\"support_hours_month\":10,\"interpretation\":\"เป็นเป้าหมาย solo ที่แข็งแรงกว่า แต่ยังไม่รวมภาษีและค่าตอบแทนผู้ก่อตั้ง\"}]$rows$::jsonb) AS r(\"customer_model\" text, \"estimated_operating_surplus_thb\" numeric, \"first_year_revenue_thb\" numeric, \"fixed_cost_assumption_thb\" numeric, \"gross_margin_assumption\" numeric, \"interpretation\" text, \"path\" text, \"path_order\" numeric, \"paying_accounts\" numeric, \"recurring_arr_thb\" numeric, \"recurring_mrr_thb\" numeric, \"setup_revenue_thb\" numeric, \"support_hours_month\" numeric, \"support_minutes_per_account_month\" numeric);",
+          "tables_used": [
+            "report_snapshot.solo_operating_paths"
+          ]
+        }
+      }
+    ],
+    "surface": "report",
+    "tables": [
+      {
+        "columns": [
+          {
+            "field": "stage_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "stage",
+            "label": "ชั้นตลาด",
+            "type": "text"
+          },
+          {
+            "field": "accounts",
+            "format": "compact",
+            "label": "บัญชี"
+          },
+          {
+            "field": "share_total",
+            "format": "percent",
+            "label": "% ของ SME ทั้งหมด"
+          },
+          {
+            "field": "annual_revenue_thb",
+            "format": "currency",
+            "label": "รายได้ต่อปี"
+          },
+          {
+            "field": "basis",
+            "label": "ฐานคำนวณ",
+            "type": "text"
+          },
+          {
+            "field": "confidence",
+            "label": "ความเชื่อมั่น",
+            "type": "text"
+          }
+        ],
+        "dataset": "market_size",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "stage_order"
+        },
+        "density": "spacious",
+        "id": "table_market",
+        "layout": "full",
+        "sourceId": "src_ds_market_size",
+        "subtitle": "ฐาน SME ปี 2568 และ ARPA 2,990 บาท/เดือน; TAM/SAM เป็นสมมติฐานเพื่อทดสอบ",
+        "title": "ขอบเขตตลาดและรายได้ต่อปีกรณีฐาน"
+      },
+      {
+        "columns": [
+          {
+            "field": "priority",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "demo_module",
+            "label": "โมดูลในเดโม",
+            "type": "text"
+          },
+          {
+            "field": "thai_sme_version",
+            "label": "เวอร์ชัน SME ไทย",
+            "type": "text"
+          },
+          {
+            "field": "change",
+            "label": "สิ่งที่ต้องเปลี่ยน",
+            "type": "text"
+          },
+          {
+            "field": "mvp",
+            "label": "MVP",
+            "type": "text"
+          }
+        ],
+        "dataset": "demo_mapping",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "priority"
+        },
+        "density": "spacious",
+        "id": "table_demo_mapping",
+        "layout": "full",
+        "sourceId": "src_ds_demo_mapping",
+        "subtitle": "เก็บแกนเดิม แต่เปลี่ยน output จากยอดวิวเป็น lead, นัดหมาย และยอดขาย",
+        "title": "จากหน้าเดโมสู่ผลิตภัณฑ์ที่ SME ยอมจ่าย"
+      },
+      {
+        "columns": [
+          {
+            "field": "phase_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "module",
+            "label": "โมดูล",
+            "type": "text"
+          },
+          {
+            "field": "phase",
+            "label": "ช่วง",
+            "type": "text"
+          },
+          {
+            "field": "user_outcome",
+            "label": "ผลลัพธ์ผู้ใช้",
+            "type": "text"
+          },
+          {
+            "field": "exit_criteria",
+            "label": "Exit criteria",
+            "type": "text"
+          },
+          {
+            "field": "must_have",
+            "label": "สถานะ",
+            "type": "text"
+          }
+        ],
+        "dataset": "product_modules",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "phase_order"
+        },
+        "density": "dense",
+        "id": "table_product",
+        "layout": "full",
+        "sourceId": "src_ds_product_modules",
+        "subtitle": "เรียงตาม dependency; ทุกโมดูลต้องมี exit criteria ที่ตรวจได้",
+        "title": "Product modules และเกณฑ์จบงาน"
+      },
+      {
+        "columns": [
+          {
+            "field": "layer_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "layer",
+            "label": "ชั้นระบบ",
+            "type": "text"
+          },
+          {
+            "field": "mvp_choice",
+            "label": "MVP choice",
+            "type": "text"
+          },
+          {
+            "field": "reason",
+            "label": "เหตุผล",
+            "type": "text"
+          },
+          {
+            "field": "scale_trigger",
+            "label": "จุดที่ต้อง scale",
+            "type": "text"
+          }
+        ],
+        "dataset": "architecture",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "layer_order"
+        },
+        "density": "spacious",
+        "id": "table_architecture",
+        "layout": "full",
+        "sourceId": "src_ds_architecture",
+        "subtitle": "เริ่ม modular monolith และใช้ managed primitives เพื่อลดเวลาและความเสี่ยง",
+        "title": "สถาปัตยกรรม MVP และจุดที่ค่อยแยกเมื่อโต"
+      },
+      {
+        "columns": [
+          {
+            "field": "phase_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "connector",
+            "label": "Connector",
+            "type": "text"
+          },
+          {
+            "field": "phase",
+            "label": "ระยะ",
+            "type": "text"
+          },
+          {
+            "field": "supported_scope",
+            "label": "Scope",
+            "type": "text"
+          },
+          {
+            "field": "gating",
+            "label": "Gate/ข้อจำกัด",
+            "type": "text"
+          },
+          {
+            "field": "fallback",
+            "label": "Fallback",
+            "type": "text"
+          }
+        ],
+        "dataset": "integrations",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "phase_order"
+        },
+        "density": "spacious",
+        "id": "table_integrations",
+        "layout": "full",
+        "sourceId": "src_ds_integrations",
+        "subtitle": "MVP เน้น Meta + LINE + Sheets; ช่องทางที่ต้อง audit/access review อยู่ระยะ 2",
+        "title": "ลำดับ Connector และข้อจำกัดที่ต้องเผื่อ"
+      },
+      {
+        "columns": [
+          {
+            "field": "phase_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "window",
+            "label": "ช่วงเวลา",
+            "type": "text"
+          },
+          {
+            "field": "objective",
+            "label": "เป้าหมาย",
+            "type": "text"
+          },
+          {
+            "field": "deliverables",
+            "label": "สิ่งส่งมอบ",
+            "type": "text"
+          },
+          {
+            "field": "exit_gate",
+            "label": "Gate ก่อนเดินต่อ",
+            "type": "text"
+          }
+        ],
+        "dataset": "roadmap",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "phase_order"
+        },
+        "density": "spacious",
+        "id": "table_roadmap",
+        "layout": "full",
+        "sourceId": "src_ds_roadmap",
+        "subtitle": "ไม่ข้าม phase ถ้า exit gate ก่อนหน้ายังไม่ผ่าน",
+        "title": "Roadmap 12 เดือนพร้อม Decision Gate"
+      },
+      {
+        "columns": [
+          {
+            "field": "category",
+            "label": "หมวด",
+            "type": "text"
+          },
+          {
+            "field": "low_m_thb",
+            "format": "number",
+            "label": "Lean"
+          },
+          {
+            "field": "base_m_thb",
+            "format": "number",
+            "label": "Base"
+          },
+          {
+            "field": "high_m_thb",
+            "format": "number",
+            "label": "High"
+          },
+          {
+            "field": "purpose",
+            "label": "สิ่งที่ครอบคลุม",
+            "type": "text"
+          }
+        ],
+        "dataset": "budget",
+        "defaultSort": {
+          "direction": "desc",
+          "field": "base_m_thb"
+        },
+        "density": "spacious",
+        "id": "table_budget",
+        "layout": "full",
+        "sourceId": "src_ds_budget",
+        "subtitle": "หน่วย: ล้านบาท; กรณีฐาน 8.8 ล้านบาท และควรสำรอง runway 6 เดือนแรก 4.0–5.5 ล้านบาท",
+        "title": "งบประมาณ 12 เดือน"
+      },
+      {
+        "columns": [
+          {
+            "field": "sort_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "plan",
+            "label": "แพ็กเกจ",
+            "type": "text"
+          },
+          {
+            "field": "monthly_price_thb",
+            "format": "currency",
+            "label": "บาท/เดือน"
+          },
+          {
+            "field": "best_for",
+            "label": "เหมาะกับ",
+            "type": "text"
+          },
+          {
+            "field": "included",
+            "label": "แกนหลัก",
+            "type": "text"
+          },
+          {
+            "field": "limit",
+            "label": "ขอบเขต",
+            "type": "text"
+          },
+          {
+            "field": "business_goal",
+            "label": "บทบาททางธุรกิจ",
+            "type": "text"
+          }
+        ],
+        "dataset": "pricing",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "sort_order"
+        },
+        "density": "spacious",
+        "id": "table_pricing",
+        "layout": "full",
+        "sourceId": "src_ds_pricing",
+        "subtitle": "ราคาเป็นสมมติฐานสำหรับ paid pilot; Base ARPA ใช้ Growth 2,990 บาท/เดือน",
+        "title": "แพ็กเกจราคาเริ่มต้น"
+      },
+      {
+        "columns": [
+          {
+            "field": "kpi_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "stage",
+            "label": "ช่วง",
+            "type": "text"
+          },
+          {
+            "field": "metric",
+            "label": "Metric",
+            "type": "text"
+          },
+          {
+            "field": "target",
+            "label": "เป้าหมาย",
+            "type": "text"
+          },
+          {
+            "field": "measurement",
+            "label": "วิธีวัด",
+            "type": "text"
+          },
+          {
+            "field": "stop_rule",
+            "label": "Stop rule",
+            "type": "text"
+          }
+        ],
+        "dataset": "kpis",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "kpi_order"
+        },
+        "density": "spacious",
+        "id": "table_kpis",
+        "layout": "full",
+        "sourceId": "src_ds_kpis",
+        "subtitle": "วัด activation, business value, retention, economics และ reliability ไม่ใช้ยอด content เป็น North Star",
+        "title": "KPI และ Stop Rules"
+      },
+      {
+        "columns": [
+          {
+            "field": "risk_score",
+            "format": "number",
+            "label": "Score"
+          },
+          {
+            "field": "risk",
+            "label": "ความเสี่ยง",
+            "type": "text"
+          },
+          {
+            "field": "likelihood",
+            "label": "โอกาส",
+            "type": "text"
+          },
+          {
+            "field": "impact",
+            "label": "ผลกระทบ",
+            "type": "text"
+          },
+          {
+            "field": "mitigation",
+            "label": "การลดความเสี่ยง",
+            "type": "text"
+          },
+          {
+            "field": "owner",
+            "label": "เจ้าของ",
+            "type": "text"
+          }
+        ],
+        "dataset": "risks",
+        "defaultSort": {
+          "direction": "desc",
+          "field": "risk_score"
+        },
+        "density": "spacious",
+        "id": "table_risks",
+        "layout": "full",
+        "sourceId": "src_ds_risks",
+        "subtitle": "เรียงจาก risk score สูงไปต่ำ; score เป็นเครื่องมือจัดลำดับ ไม่ใช่ค่าพยากรณ์",
+        "title": "ความเสี่ยงที่ต้องบริหารตั้งแต่วันแรก"
+      },
+      {
+        "columns": [
+          {
+            "field": "dimension_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "dimension",
+            "label": "มิติคุณภาพ",
+            "type": "text"
+          },
+          {
+            "field": "weight_share",
+            "format": "percent",
+            "label": "น้ำหนัก"
+          },
+          {
+            "field": "scoring_method",
+            "label": "วิธีประเมิน",
+            "type": "text"
+          },
+          {
+            "field": "fail_condition",
+            "label": "Fail condition",
+            "type": "text"
+          },
+          {
+            "field": "evidence",
+            "label": "หลักฐาน",
+            "type": "text"
+          }
+        ],
+        "dataset": "content_quality",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "dimension_order"
+        },
+        "density": "spacious",
+        "id": "table_quality",
+        "layout": "full",
+        "sourceId": "src_ds_content_quality",
+        "subtitle": "คะแนนช่วยจัดลำดับงาน แต่ hard-fail ด้านข้อเท็จจริง/claims/PDPA ต้องหยุดเผยแพร่แม้คะแนนรวมสูง",
+        "title": "Content Quality Score 100 คะแนน"
+      },
+      {
+        "columns": [
+          {
+            "field": "state_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "state",
+            "label": "สถานะ",
+            "type": "text"
+          },
+          {
+            "field": "primary_owner",
+            "label": "เจ้าของหลัก",
+            "type": "text"
+          },
+          {
+            "field": "required_fields",
+            "label": "ข้อมูลที่ต้องมี",
+            "type": "text"
+          },
+          {
+            "field": "automated_checks",
+            "label": "ระบบตรวจ",
+            "type": "text"
+          },
+          {
+            "field": "exit_gate",
+            "label": "เงื่อนไขไปต่อ",
+            "type": "text"
+          }
+        ],
+        "dataset": "calendar_workflow",
+        "defaultSort": {
+          "direction": "asc",
+          "field": "state_order"
+        },
+        "density": "spacious",
+        "id": "table_calendar",
+        "layout": "full",
+        "sourceId": "src_ds_calendar_workflow",
+        "subtitle": "สถานะเดียวกันใช้ได้ทั้งมุมมอง Month, Week, Kanban, Campaign, Channel และ Branch",
+        "title": "Content Calendar Workflow"
+      },
+      {
+        "id": "table_solo_operating_paths",
+        "title": "เส้นทางรายได้และกำไรสำหรับ One-person Business",
+        "subtitle": "สมมติ GM 70–75% และต้นทุนคงที่ตามแต่ละช่วง; ไม่รวมภาษีและค่าตอบแทนผู้ก่อตั้ง",
+        "dataset": "solo_operating_paths",
+        "layout": "full",
+        "density": "spacious",
+        "sourceId": "src_ds_solo_operating_paths",
+        "defaultSort": {
+          "field": "path_order",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "path_order",
+            "format": "number",
+            "label": "ลำดับ"
+          },
+          {
+            "field": "path",
+            "label": "เป้าหมาย",
+            "type": "text"
+          },
+          {
+            "field": "customer_model",
+            "label": "โมเดลลูกค้า",
+            "type": "text"
+          },
+          {
+            "field": "paying_accounts",
+            "format": "number",
+            "label": "บัญชี"
+          },
+          {
+            "field": "first_year_revenue_thb",
+            "format": "currency",
+            "label": "รายได้ปีแรก"
+          },
+          {
+            "field": "estimated_operating_surplus_thb",
+            "format": "currency",
+            "label": "กำไรดำเนินงานโดยประมาณ"
+          },
+          {
+            "field": "support_hours_month",
+            "format": "number",
+            "label": "Support ชม./เดือน"
+          },
+          {
+            "field": "interpretation",
+            "label": "ความหมาย",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "title": "แผนสร้าง AI Marketing OS สำหรับ SME ไทย",
+    "version": 1
+  },
+  "snapshot": {
+    "datasets": {
+      "architecture": [
+        {
+          "layer": "Web & API",
+          "layer_order": 1,
+          "mvp_choice": "TypeScript modular monolith",
+          "reason": "ส่งเร็วและรักษา domain boundary ได้",
+          "scale_trigger": "แยก service เมื่อทีม/โหลด/ownership บังคับจริง"
+        },
+        {
+          "layer": "Primary data",
+          "layer_order": 2,
+          "mvp_choice": "PostgreSQL + Row Level Security + pgvector",
+          "reason": "transaction, tenant isolation และ Brand Brain ในระบบเดียว",
+          "scale_trigger": "ย้าย analytical workload เมื่อ daily events >50M"
+        },
+        {
+          "layer": "Object storage",
+          "layer_order": 3,
+          "mvp_choice": "S3-compatible + KMS",
+          "reason": "เก็บ asset, transcript, export และ immutable evidence",
+          "scale_trigger": "เพิ่ม lifecycle/archive ตาม retention policy"
+        },
+        {
+          "layer": "Webhook gateway",
+          "layer_order": 4,
+          "mvp_choice": "Signature verification + idempotency + DLQ",
+          "reason": "รองรับ LINE/Meta webhook โดยไม่ทำข้อมูลซ้ำ/หาย",
+          "scale_trigger": "partition ตาม connector และ tenant"
+        },
+        {
+          "layer": "Queue & scheduler",
+          "layer_order": 5,
+          "mvp_choice": "SQS/EventBridge equivalent",
+          "reason": "retry, backoff, scheduled sync และ daily brief",
+          "scale_trigger": "เพิ่ม workflow engine เมื่อ flow ข้ามวัน/หลาย approval ซับซ้อน"
+        },
+        {
+          "layer": "Analytics",
+          "layer_order": 6,
+          "mvp_choice": "Normalized events + daily aggregates in Postgres",
+          "reason": "ลดต้นทุนและหลีกเลี่ยง data warehouse ก่อน product-market fit",
+          "scale_trigger": "ClickHouse/warehouse เมื่อ query concurrency หรือ volume สูง"
+        },
+        {
+          "layer": "AI layer",
+          "layer_order": 7,
+          "mvp_choice": "Model router + RAG + evaluation suite",
+          "reason": "เลือกโมเดลตาม cost/quality และไม่ผูกผู้ขายรายเดียว",
+          "scale_trigger": "เพิ่ม model gateway, cache และ budget policy ตาม usage"
+        },
+        {
+          "layer": "Hosting & security",
+          "layer_order": 8,
+          "mvp_choice": "AWS Thailand region where services support the need",
+          "reason": "ลด latency และช่วยเรื่อง data residency",
+          "scale_trigger": "multi-region เฉพาะเมื่อมี RTO/RPO และลูกค้า enterprise"
+        }
+      ],
+      "arr_scenarios": [
+        {
+          "annual_arpa_thb": 23880,
+          "arr_m_thb": 19.104,
+          "assumption": "ขาย Starter เป็นหลัก",
+          "cac_payback_target_months": 8,
+          "gross_margin_target": 0.68,
+          "monthly_arpa_thb": 1990,
+          "paying_workspaces": 800,
+          "scenario": "Conservative",
+          "scenario_order": 1
+        },
+        {
+          "annual_arpa_thb": 35880,
+          "arr_m_thb": 43.056,
+          "assumption": "Growth เป็นแพ็กเกจหลัก",
+          "cac_payback_target_months": 6,
+          "gross_margin_target": 0.72,
+          "monthly_arpa_thb": 2990,
+          "paying_workspaces": 1200,
+          "scenario": "Base",
+          "scenario_order": 2
+        },
+        {
+          "annual_arpa_thb": 47880,
+          "arr_m_thb": 95.76,
+          "assumption": "Business/Agency mix สูงขึ้น",
+          "cac_payback_target_months": 5,
+          "gross_margin_target": 0.75,
+          "monthly_arpa_thb": 3990,
+          "paying_workspaces": 2000,
+          "scenario": "Upside",
+          "scenario_order": 3
+        }
+      ],
+      "budget": [
+        {
+          "base_m_thb": 8.8,
+          "category": "รวมทั้งหมด",
+          "high_m_thb": 11.5,
+          "low_m_thb": 6.3,
+          "purpose": "กรอบ 12 เดือน ไม่รวม VAT"
+        },
+        {
+          "base_m_thb": 5.2,
+          "category": "Product & Engineering",
+          "high_m_thb": 6.4,
+          "low_m_thb": 4.2,
+          "purpose": "5–6 core FTE หรือ founder-led mix"
+        },
+        {
+          "base_m_thb": 1.4,
+          "category": "GTM, Onboarding & Partners",
+          "high_m_thb": 2,
+          "low_m_thb": 0.8,
+          "purpose": "paid pilots, onboarding, agency/franchise partners"
+        },
+        {
+          "base_m_thb": 0.9,
+          "category": "Contingency",
+          "high_m_thb": 1.1,
+          "low_m_thb": 0.5,
+          "purpose": "20–25% ของความเสี่ยง connector/review/hiring"
+        },
+        {
+          "base_m_thb": 0.8,
+          "category": "Cloud, AI & API",
+          "high_m_thb": 1.2,
+          "low_m_thb": 0.5,
+          "purpose": "hosting, LLM, storage, observability, platform API"
+        },
+        {
+          "base_m_thb": 0.5,
+          "category": "Security, Legal & Compliance",
+          "high_m_thb": 0.8,
+          "low_m_thb": 0.3,
+          "purpose": "PDPA/DPA, security review, pentest, incident readiness"
+        }
+      ],
+      "calendar_workflow": [
+        {
+          "automated_checks": "duplicate idea / pillar balance",
+          "exit_gate": "ข้อมูลครบสำหรับ brief",
+          "primary_owner": "Owner / Marketer",
+          "required_fields": "business goal, audience, funnel stage, content pillar",
+          "state": "Idea",
+          "state_order": 1
+        },
+        {
+          "automated_checks": "brand fact availability / campaign conflict",
+          "exit_gate": "ผู้รับผิดชอบยืนยัน brief",
+          "primary_owner": "Strategist / AI",
+          "required_fields": "angle, hook direction, offer, CTA, channel, due date",
+          "state": "Brief",
+          "state_order": 2
+        },
+        {
+          "automated_checks": "Thai language / platform format / prohibited words",
+          "exit_gate": "draft ครบทุก variant",
+          "primary_owner": "Creator / AI",
+          "required_fields": "script/copy, asset list, channel variants",
+          "state": "Draft",
+          "state_order": 3
+        },
+        {
+          "automated_checks": "7-dimension score + factual/claim gate",
+          "exit_gate": "≥80 หรือมีเหตุผล override",
+          "primary_owner": "Content Lead",
+          "required_fields": "quality score, flags, suggested edits",
+          "state": "Quality Review",
+          "state_order": 4
+        },
+        {
+          "automated_checks": "offer still valid / required legal review",
+          "exit_gate": "approved version locked",
+          "primary_owner": "Brand Owner",
+          "required_fields": "approver, decision, comments, version",
+          "state": "Approval",
+          "state_order": 5
+        },
+        {
+          "automated_checks": "token health / collision / asset readiness",
+          "exit_gate": "publish job validated",
+          "primary_owner": "Scheduler",
+          "required_fields": "platform account, publish time, caption, asset",
+          "state": "Scheduled",
+          "state_order": 6
+        },
+        {
+          "automated_checks": "delivery confirmation / retry / failure alert",
+          "exit_gate": "publish receipt stored",
+          "primary_owner": "Connector",
+          "required_fields": "platform post ID, URL, timestamp",
+          "state": "Published",
+          "state_order": 7
+        },
+        {
+          "automated_checks": "data freshness / attribution confidence",
+          "exit_gate": "minimum measurement window reached",
+          "primary_owner": "Analytics",
+          "required_fields": "reach, engagement, leads, bookings, sales, window",
+          "state": "Measured",
+          "state_order": 8
+        },
+        {
+          "automated_checks": "winner detection / saturation / seasonal expiry",
+          "exit_gate": "memory updated and next action chosen",
+          "primary_owner": "Strategist",
+          "required_fields": "learning, reusable angle, fatigue/expiry status",
+          "state": "Learn / Repurpose / Retire",
+          "state_order": 9
+        }
+      ],
+      "content_quality": [
+        {
+          "dimension": "Brand consistency",
+          "dimension_order": 1,
+          "evidence": "rule checks + model evaluator + human",
+          "fail_condition": "ใช้คำต้องห้ามหรือข้อเท็จจริงขัด Brand Truth",
+          "scoring_method": "tone, vocabulary, visual/claim rules เทียบ Brand Brain",
+          "weight_share": 0.2
+        },
+        {
+          "dimension": "Audience & intent fit",
+          "dimension_order": 2,
+          "evidence": "brief fields + intent classifier",
+          "fail_condition": "พูดกว้างจนไม่รู้ว่าทำเพื่อใคร/ขั้นใด",
+          "scoring_method": "ตรง ICP, pain point, funnel stage และ business goal",
+          "weight_share": 0.2
+        },
+        {
+          "dimension": "Hook & retention",
+          "dimension_order": 3,
+          "evidence": "hook rubric + historical benchmark",
+          "fail_condition": "เปิดเรื่องช้า, clickbait หรือสัญญาเกินจริง",
+          "scoring_method": "ชัดใน 1–2 ประโยคแรกและสร้างเหตุผลให้อยู่ต่อ",
+          "weight_share": 0.15
+        },
+        {
+          "dimension": "Value & specificity",
+          "dimension_order": 4,
+          "evidence": "specificity checks + duplicate detection",
+          "fail_condition": "ข้อความทั่วไปซ้ำกันหรือไม่มี takeaway",
+          "scoring_method": "มีข้อมูล ตัวอย่าง ขั้นตอน หรือข้อสรุปที่ใช้ได้จริง",
+          "weight_share": 0.15
+        },
+        {
+          "dimension": "CTA & offer alignment",
+          "dimension_order": 5,
+          "evidence": "offer catalog + effective dates",
+          "fail_condition": "CTA ผิดแพ็กเกจ/ราคา/ช่วงเวลา",
+          "scoring_method": "CTA เหมาะ funnel stage และ offer ยังมีผล",
+          "weight_share": 0.1
+        },
+        {
+          "dimension": "Platform fit",
+          "dimension_order": 6,
+          "evidence": "platform rules + asset metadata",
+          "fail_condition": "format โพสต์ไม่ได้หรืออ่านยากบนมือถือ",
+          "scoring_method": "length, format, caption, aspect ratio และ channel conventions",
+          "weight_share": 0.1
+        },
+        {
+          "dimension": "Facts, claims & safety",
+          "dimension_order": 7,
+          "evidence": "locked facts + citation/claim checker + reviewer",
+          "fail_condition": "unsupported claim, PII exposure หรือ compliance flag",
+          "scoring_method": "ตรวจตัวเลข แหล่งอ้างอิง PDPA และ claim ที่เสี่ยง",
+          "weight_share": 0.1
+        }
+      ],
+      "demo_mapping": [
+        {
+          "change": "ล็อก tone, offer, ราคา,ข้อห้าม, CTA และผู้อนุมัติ; แยกแต่ละสาขา/แบรนด์",
+          "demo_module": "Context Memory / Brand Files",
+          "mvp": "ใช่",
+          "priority": 1,
+          "thai_sme_version": "Brand Brain แบบมีเวอร์ชัน"
+        },
+        {
+          "change": "วัด Content → Lead → นัดหมาย/ใบเสนอราคา → ยอดขาย ไม่หยุดที่วิว",
+          "demo_module": "Analytics",
+          "mvp": "ใช่",
+          "priority": 2,
+          "thai_sme_version": "Content-to-Revenue Analytics"
+        },
+        {
+          "change": "OAuth, webhook signature, retry, idempotency, token health และ data freshness",
+          "demo_module": "Connectors",
+          "mvp": "ใช่",
+          "priority": 3,
+          "thai_sme_version": "Meta + LINE + Sheets Gateway"
+        },
+        {
+          "change": "สรุป lead, CPL, นัดหมาย,ยอดขาย และ 3 สิ่งที่ควรทำวันนี้",
+          "demo_module": "Always-On",
+          "mvp": "ใช่",
+          "priority": 4,
+          "thai_sme_version": "Daily Owner Brief ผ่าน LINE"
+        },
+        {
+          "change": "คุม pillar/funnel mix, quality score, production status, approval, schedule และ performance feedback loop",
+          "demo_module": "Hook / Calendar / Scheduler",
+          "mvp": "ใช่",
+          "priority": 5,
+          "thai_sme_version": "Content Quality Engine + Calendar OS"
+        },
+        {
+          "change": "เสนอเพิ่ม/ลดงบพร้อมหลักฐาน แต่ไม่แก้งบอัตโนมัติใน MVP",
+          "demo_module": "Ads recommendation",
+          "mvp": "เฉพาะคำแนะนำ",
+          "priority": 6,
+          "thai_sme_version": "Recommendation Guardrail"
+        },
+        {
+          "change": "เริ่มจากลิงก์ที่ผู้ใช้บันทึกและ API ที่อนุญาต; ไม่พึ่ง scraping",
+          "demo_module": "Competitor / Trends",
+          "mvp": "ระยะ 2",
+          "priority": 7,
+          "thai_sme_version": "Swipe File + Approved Sources"
+        }
+      ],
+      "headline_arr": [
+        {
+          "base_arr_m_thb": 43.056,
+          "monthly_arpa_thb": 2990,
+          "paying_workspaces": 1200
+        }
+      ],
+      "headline_budget": [
+        {
+          "base_budget_m_thb": 8.8,
+          "mvp_6m_high_m_thb": 5.5,
+          "mvp_6m_low_m_thb": 4
+        }
+      ],
+      "headline_sme": [
+        {
+          "total_smes": 3283650
+        }
+      ],
+      "integrations": [
+        {
+          "connector": "Meta Ads + Facebook Pages + Instagram Professional",
+          "fallback": "CSV/Sheets import + draft export",
+          "gating": "Business verification, permissions, App Review และ token lifecycle",
+          "phase": "MVP",
+          "phase_order": 1,
+          "supported_scope": "Insights, campaign metrics, page/IG content; publish เฉพาะ scope ที่ผ่าน review"
+        },
+        {
+          "connector": "LINE Official Account",
+          "fallback": "Webhook router ส่งต่อระบบเดิมด้วย adapter",
+          "gating": "มี webhook URL เดียวต่อ channel; ต้อง verify signature และ fan-out ภายใน",
+          "phase": "MVP",
+          "phase_order": 2,
+          "supported_scope": "Webhook leads, replies/notifications, account linking"
+        },
+        {
+          "connector": "Google Sheets",
+          "fallback": "CSV upload template",
+          "gating": "OAuth scopes และ schema mapping",
+          "phase": "MVP",
+          "phase_order": 3,
+          "supported_scope": "นำเข้า conversion, นัดหมาย, quote, revenue"
+        },
+        {
+          "connector": "TikTok",
+          "fallback": "Export package / share-to-app",
+          "gating": "Unaudited client โพสต์ได้ private; ต้องผ่าน audit ก่อน public",
+          "phase": "ระยะ 2",
+          "phase_order": 4,
+          "supported_scope": "Draft/direct post และ Ads reporting แยก permission"
+        },
+        {
+          "connector": "Google Business Profile",
+          "fallback": "Manual weekly import / deep link",
+          "gating": "ต้องขอ API access; โปรไฟล์ยืนยันและ active ตามเงื่อนไข",
+          "phase": "ระยะ 2",
+          "phase_order": 5,
+          "supported_scope": "Performance, reviews, posts, multi-location"
+        },
+        {
+          "connector": "Drive / Notion / Asset sources",
+          "fallback": "Upload ผ่าน Brand Brain",
+          "gating": "Least-privilege OAuth และ file-level permission",
+          "phase": "ระยะ 2",
+          "phase_order": 6,
+          "supported_scope": "Brand documents, approved assets, offer catalog"
+        }
+      ],
+      "kpis": [
+        {
+          "kpi_order": 1,
+          "measurement": "จ่ายเงินจริง ไม่ใช่ LOI อย่างเดียว",
+          "metric": "Paid design partners",
+          "stage": "Demand validation",
+          "stop_rule": "ถ้า <3 ให้กลับไปแก้ ICP/offer ก่อนเพิ่มทีม",
+          "target": "≥5 จาก 10 ราย"
+        },
+        {
+          "kpi_order": 2,
+          "measurement": "workspace ที่สมัครทั้งหมด",
+          "metric": "Connect Meta + LINE และได้ first brief",
+          "stage": "Activation",
+          "stop_rule": "ถ้า <50% หยุดเพิ่ม feature และแก้ onboarding",
+          "target": "≥70% ภายใน 7 วัน"
+        },
+        {
+          "kpi_order": 3,
+          "measurement": "ต่อ rubric version, vertical และ channel",
+          "metric": "Approval / factual safety / on-time",
+          "stage": "Content quality",
+          "stop_rule": "ถ้า hard-fail หลุดเผยแพร่ ให้หยุด auto-publish และทำ incident review",
+          "target": "approval ≥70%; factual error <2%; on-time ≥85%"
+        },
+        {
+          "kpi_order": 4,
+          "measurement": "baseline 4 สัปดาห์เทียบหลังใช้",
+          "metric": "เวลาวางแผน content",
+          "stage": "Value",
+          "stop_rule": "ถ้าลด <30% ให้ตัดขั้นตอนและปรับ Brand Brain",
+          "target": "ลด ≥50%"
+        },
+        {
+          "kpi_order": 5,
+          "measurement": "เทียบ cohort / seasonality",
+          "metric": "Lead response / booking conversion",
+          "stage": "Revenue impact",
+          "stop_rule": "ถ้าไม่ดีขึ้น 8 สัปดาห์ ให้แก้ workflow ไม่อ้าง AI value",
+          "target": "response time ลด ≥50% หรือ booking +15% relative"
+        },
+        {
+          "kpi_order": 6,
+          "measurement": "เฉพาะ paying accounts",
+          "metric": "90-day gross retention",
+          "stage": "Retention",
+          "stop_rule": "ถ้า <70% ชะลอ paid acquisition",
+          "target": "≥80%"
+        },
+        {
+          "kpi_order": 7,
+          "measurement": "รวม LLM, API, support delivery cost",
+          "metric": "Gross margin / CAC payback",
+          "stage": "Economics",
+          "stop_rule": "ถ้า GM <60% ให้ปรับ usage/pricing ก่อน scale",
+          "target": "GM ≥70%; payback <8 เดือน"
+        },
+        {
+          "kpi_order": 8,
+          "measurement": "ต่อ connector ต่อ tenant",
+          "metric": "Connector freshness",
+          "stage": "Reliability",
+          "stop_rule": "ถ้า error >1% หยุดเปิด connector ใหม่",
+          "target": "≥99% sync สำเร็จตาม SLO"
+        }
+      ],
+      "market_size": [
+        {
+          "accounts": 3283650,
+          "annual_revenue_thb": 117817362000,
+          "basis": "SME ทั้งหมด × ARPA ฐาน",
+          "confidence": "ต่ำ — เพดานบน",
+          "share_total": 1,
+          "stage": "Theoretical TAM",
+          "stage_order": 1
+        },
+        {
+          "accounts": 656730,
+          "annual_revenue_thb": 23563472400,
+          "basis": "20% มีปัญหา/ความพร้อมดิจิทัล",
+          "confidence": "ต่ำ–กลาง",
+          "share_total": 0.2,
+          "stage": "Qualified TAM",
+          "stage_order": 2
+        },
+        {
+          "accounts": 246274,
+          "annual_revenue_thb": 8836311120,
+          "basis": "7.5% เป็นธุรกิจบริการแบบ lead-driven",
+          "confidence": "ต่ำ–กลาง",
+          "share_total": 0.075,
+          "stage": "Beachhead SAM",
+          "stage_order": 3
+        },
+        {
+          "accounts": 1200,
+          "annual_revenue_thb": 43056000,
+          "basis": "เป้าหมายทีมขายและพาร์ตเนอร์",
+          "confidence": "เป้าหมายบริหาร",
+          "share_total": 0.00036545,
+          "stage": "24-month SOM (base)",
+          "stage_order": 4
+        }
+      ],
+      "pricing": [
+        {
+          "best_for": "เจ้าของทำเอง 1 แบรนด์",
+          "business_goal": "ลดเวลาและเริ่มใช้ง่าย",
+          "included": "Brand Brain, Content Studio, Calendar, monthly report",
+          "limit": "1 workspace, 2 channels, 1 seat",
+          "monthly_price_thb": 1490,
+          "plan": "Starter",
+          "sort_order": 1
+        },
+        {
+          "best_for": "SME ที่ยิงแอดและรับ lead",
+          "business_goal": "แพ็กเกจหลัก / base ARPA",
+          "included": "Meta + LINE, Lead Inbox, daily brief, attribution",
+          "limit": "1 brand, 3 seats, 2 branches",
+          "monthly_price_thb": 2990,
+          "plan": "Growth",
+          "sort_order": 2
+        },
+        {
+          "best_for": "หลายสาขาหรือทีม marketing",
+          "business_goal": "เพิ่ม ARPA และ retention",
+          "included": "automation, 5 users, 3 branches, advanced approvals",
+          "limit": "usage allowance + overage",
+          "monthly_price_thb": 5990,
+          "plan": "Business",
+          "sort_order": 3
+        },
+        {
+          "best_for": "agency หรือเจ้าของหลายแบรนด์",
+          "business_goal": "ช่องทาง scale และ white-label",
+          "included": "10 workspaces, templates, cross-account console, API",
+          "limit": "เพิ่ม workspace แบบต่อหน่วย",
+          "monthly_price_thb": 14900,
+          "plan": "Agency / Franchise",
+          "sort_order": 4
+        }
+      ],
+      "product_modules": [
+        {
+          "exit_criteria": "แยกข้อมูล tenant ผ่าน RLS; audit log ครบ",
+          "module": "Tenant, Auth & Billing foundation",
+          "must_have": "ใช่",
+          "phase": "เดือน 1–2",
+          "phase_order": 1,
+          "user_outcome": "สร้าง workspace และกำหนดสิทธิทีม/สาขาได้"
+        },
+        {
+          "exit_criteria": "ข้อเท็จจริง/ข้อห้ามมี version และผู้อนุมัติ",
+          "module": "Brand Brain",
+          "must_have": "ใช่",
+          "phase": "เดือน 1–2",
+          "phase_order": 2,
+          "user_outcome": "AI เขียนโดยไม่ต้องบรีฟแบรนด์ใหม่ทุกครั้ง"
+        },
+        {
+          "exit_criteria": "sync success ≥99%; token expiry alert",
+          "module": "Meta + LINE connectors",
+          "must_have": "ใช่",
+          "phase": "เดือน 1–3",
+          "phase_order": 3,
+          "user_outcome": "ข้อมูลโพสต์ โฆษณา และข้อความลูกค้าไหลเข้า"
+        },
+        {
+          "exit_criteria": "hard-fail = 0; factual error <2%; approval ≥70%",
+          "module": "Content Strategy & Quality Engine",
+          "must_have": "ใช่",
+          "phase": "เดือน 2–4",
+          "phase_order": 4,
+          "user_outcome": "ทุกชิ้นตรงเป้าหมายแบรนด์และผ่าน quality gate"
+        },
+        {
+          "exit_criteria": "งานตรงเวลา ≥85%; pillar/funnel coverage ครบ",
+          "module": "Content Calendar OS",
+          "must_have": "ใช่",
+          "phase": "เดือน 2–4",
+          "phase_order": 5,
+          "user_outcome": "เห็นแผน ผลิต อนุมัติ โพสต์ และวัดผลในที่เดียว"
+        },
+        {
+          "exit_criteria": "ทุก action มี approval/audit; fallback draft",
+          "module": "Approval & Scheduler",
+          "must_have": "ใช่",
+          "phase": "เดือน 3–4",
+          "phase_order": 6,
+          "user_outcome": "ทีมทำงานร่วมกันและเผยแพร่ตามเวลา"
+        },
+        {
+          "exit_criteria": "owner, SLA, stage, source และ value ครบ",
+          "module": "Lead Inbox & Mini CRM",
+          "must_have": "ใช่",
+          "phase": "เดือน 3–5",
+          "phase_order": 7,
+          "user_outcome": "ไม่ตกหล่นคนทักและรู้สถานะ lead"
+        },
+        {
+          "exit_criteria": "รองรับ manual/Sheets conversion; unknown bucket",
+          "module": "Revenue Attribution",
+          "must_have": "ใช่",
+          "phase": "เดือน 4–6",
+          "phase_order": 8,
+          "user_outcome": "รู้ว่า content/campaign ใดสร้างนัดและยอดขาย"
+        },
+        {
+          "exit_criteria": "ส่ง LINE ตามเวลา; link กลับหน้า evidence",
+          "module": "Daily Owner Brief",
+          "must_have": "ใช่",
+          "phase": "เดือน 4–6",
+          "phase_order": 9,
+          "user_outcome": "เห็น calendar gaps, quality flags และ action ภายใน 3 นาที"
+        },
+        {
+          "exit_criteria": "permission และ template inheritance ผ่าน QA",
+          "module": "Agency / Franchise Console",
+          "must_have": "ระยะ 2",
+          "phase": "เดือน 7–9",
+          "phase_order": 10,
+          "user_outcome": "ดูหลายสาขาและใช้ template ร่วมกัน"
+        },
+        {
+          "exit_criteria": "ผ่าน platform review และ connector SLO",
+          "module": "TikTok / Google Business / API",
+          "must_have": "ระยะ 2",
+          "phase": "เดือน 7–12",
+          "phase_order": 11,
+          "user_outcome": "เพิ่มช่องทางและเปิด white-label ecosystem"
+        }
+      ],
+      "risks": [
+        {
+          "impact": "สูง",
+          "likelihood": "สูง",
+          "mitigation": "ยื่น review ตั้งแต่เดือน 1; มี CSV/Sheets/draft fallback; feature flags",
+          "owner": "Tech Lead + Product",
+          "risk": "API permission/review ล่าช้า",
+          "risk_score": 25
+        },
+        {
+          "impact": "สูง",
+          "likelihood": "สูง",
+          "mitigation": "MVP ต้องมี lead pipeline และ revenue attribution; KPI ผูก booking/sale",
+          "owner": "Product + CS",
+          "risk": "สร้าง content ได้แต่ไม่เพิ่มยอดขาย",
+          "risk_score": 20
+        },
+        {
+          "impact": "กลาง–สูง",
+          "likelihood": "สูง",
+          "mitigation": "vertical template, concierge onboarding, first value <30 นาที",
+          "owner": "Customer Success",
+          "risk": "SME onboarding ยากและ churn สูง",
+          "risk_score": 16
+        },
+        {
+          "impact": "สูง",
+          "likelihood": "กลาง",
+          "mitigation": "data freshness badge, unknown attribution bucket, evidence link, no auto-spend",
+          "owner": "Data/Analytics",
+          "risk": "ข้อมูลไม่ครบทำให้ ROAS/คำแนะนำผิด",
+          "risk_score": 15
+        },
+        {
+          "impact": "สูง",
+          "likelihood": "กลาง",
+          "mitigation": "data minimization, DPA, retention, DSAR, encryption, legal review",
+          "owner": "Security/Legal",
+          "risk": "PDPA/ข้อมูลสนทนาและข้อมูลอ่อนไหว",
+          "risk_score": 15
+        },
+        {
+          "impact": "กลาง",
+          "likelihood": "กลาง",
+          "mitigation": "model router, cache, budgets, eval set, version pinning",
+          "owner": "AI Lead",
+          "risk": "ต้นทุน LLM สูงและคุณภาพแกว่ง",
+          "risk_score": 12
+        },
+        {
+          "impact": "กลาง",
+          "likelihood": "สูง",
+          "mitigation": "สร้าง moat จาก vertical data model, workflow, integrations, partner distribution",
+          "owner": "Founder",
+          "risk": "คู่แข่งลอก feature ได้ง่าย",
+          "risk_score": 10
+        },
+        {
+          "impact": "สูง",
+          "likelihood": "กลาง–สูง",
+          "mitigation": "calibrate ด้วย human labels + lead/conversion outcomes; rubric versioning; ห้ามใช้คะแนนเดียวตัดสิน",
+          "owner": "Content Lead + Data",
+          "risk": "Quality Score ดูดีแต่ไม่สัมพันธ์กับผลลัพธ์",
+          "risk_score": 18
+        }
+      ],
+      "roadmap": [
+        {
+          "deliverables": "15 interviews, 10 design partners, funnel dictionary, PDPA data map",
+          "exit_gate": "อย่างน้อย 5 รายยอมจ่าย pilot",
+          "objective": "ยืนยันปัญหาและ metric definitions",
+          "phase_order": 1,
+          "window": "สัปดาห์ 0–2"
+        },
+        {
+          "deliverables": "Auth/RBAC/RLS, workspace, brand facts, approval roles, audit",
+          "exit_gate": "onboarding test 5 แบรนด์เสร็จ <60 นาที",
+          "objective": "วางฐาน multi-tenant และ Brand Brain",
+          "phase_order": 2,
+          "window": "เดือน 1–2"
+        },
+        {
+          "deliverables": "Meta read connector, LINE webhook gateway, Sheets import, health monitor",
+          "exit_gate": "sync ≥99%; duplicate events <0.1%",
+          "objective": "เชื่อมข้อมูลสำคัญ",
+          "phase_order": 3,
+          "window": "เดือน 2–3"
+        },
+        {
+          "deliverables": "7-dimension quality rubric, hard-fail gate, Month/Week/Kanban calendar, Thai playbooks, approval, draft publish",
+          "exit_gate": "approval ≥70%; factual error <2%; on-time ≥85%; planning time ลด ≥50%",
+          "objective": "ทำ Content Quality Engine และ Calendar ให้ใช้จริง",
+          "phase_order": 4,
+          "window": "เดือน 3–4"
+        },
+        {
+          "deliverables": "Lead inbox, SLA, stages, conversion import, daily LINE brief, billing",
+          "exit_gate": "20 paying beta; 8 สัปดาห์มี usage ต่อเนื่อง",
+          "objective": "ปิดวงจร Lead → Revenue",
+          "phase_order": 5,
+          "window": "เดือน 4–6"
+        },
+        {
+          "deliverables": "Beauty/wellness + home services playbooks, agency console, Google Business",
+          "exit_gate": "75 accounts; activation ≥70%; monthly churn <5%",
+          "objective": "ทำซ้ำได้ผ่าน vertical templates",
+          "phase_order": 6,
+          "window": "เดือน 7–9"
+        },
+        {
+          "deliverables": "TikTok after audit, partner API, franchise controls, cost optimization",
+          "exit_gate": "200 accounts; GM ≥70%; CAC payback <8 เดือน",
+          "objective": "ขยายช่องทางและ unit economics",
+          "phase_order": 7,
+          "window": "เดือน 10–12"
+        }
+      ],
+      "solo_revenue_targets": [
+        {
+          "path": "Growth — 1 ล้านบาท/ปี",
+          "path_order": 11,
+          "plan": "Growth",
+          "monthly_price_thb": 2990,
+          "target": "1 ล้านบาท/ปี",
+          "target_period": "ต่อปี",
+          "target_value_thb": 1000000,
+          "required_customers": 28,
+          "actual_mrr_thb": 83720,
+          "actual_arr_thb": 1004640,
+          "solo_fit": "เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน"
+        },
+        {
+          "path": "Business — 1 ล้านบาท/ปี",
+          "path_order": 12,
+          "plan": "Business",
+          "monthly_price_thb": 5990,
+          "target": "1 ล้านบาท/ปี",
+          "target_period": "ต่อปี",
+          "target_value_thb": 1000000,
+          "required_customers": 14,
+          "actual_mrr_thb": 83860,
+          "actual_arr_thb": 1006320,
+          "solo_fit": "เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน"
+        },
+        {
+          "path": "Agency — 1 ล้านบาท/ปี",
+          "path_order": 13,
+          "plan": "Agency",
+          "monthly_price_thb": 14900,
+          "target": "1 ล้านบาท/ปี",
+          "target_period": "ต่อปี",
+          "target_value_thb": 1000000,
+          "required_customers": 6,
+          "actual_mrr_thb": 89400,
+          "actual_arr_thb": 1072800,
+          "solo_fit": "เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน"
+        },
+        {
+          "path": "Growth — 1 ล้านบาท/เดือน",
+          "path_order": 21,
+          "plan": "Growth",
+          "monthly_price_thb": 2990,
+          "target": "1 ล้านบาท/เดือน",
+          "target_period": "ต่อเดือน",
+          "target_value_thb": 1000000,
+          "required_customers": 335,
+          "actual_mrr_thb": 1001650,
+          "actual_arr_thb": 12019800,
+          "solo_fit": "ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน"
+        },
+        {
+          "path": "Business — 1 ล้านบาท/เดือน",
+          "path_order": 22,
+          "plan": "Business",
+          "monthly_price_thb": 5990,
+          "target": "1 ล้านบาท/เดือน",
+          "target_period": "ต่อเดือน",
+          "target_value_thb": 1000000,
+          "required_customers": 167,
+          "actual_mrr_thb": 1000330,
+          "actual_arr_thb": 12003960,
+          "solo_fit": "ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน"
+        },
+        {
+          "path": "Agency — 1 ล้านบาท/เดือน",
+          "path_order": 23,
+          "plan": "Agency",
+          "monthly_price_thb": 14900,
+          "target": "1 ล้านบาท/เดือน",
+          "target_period": "ต่อเดือน",
+          "target_value_thb": 1000000,
+          "required_customers": 68,
+          "actual_mrr_thb": 1013200,
+          "actual_arr_thb": 12158400,
+          "solo_fit": "ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน"
+        }
+      ],
+      "solo_operating_paths": [
+        {
+          "path_order": 1,
+          "path": "Recurring อย่างเดียว",
+          "customer_model": "28 Growth × 2,990 บาท/เดือน",
+          "paying_accounts": 28,
+          "setup_revenue_thb": 0,
+          "recurring_mrr_thb": 83720,
+          "recurring_arr_thb": 1004640,
+          "first_year_revenue_thb": 1004640,
+          "gross_margin_assumption": 0.75,
+          "fixed_cost_assumption_thb": 300000,
+          "estimated_operating_surplus_thb": 453480,
+          "support_minutes_per_account_month": 15,
+          "support_hours_month": 7,
+          "interpretation": "ถึงหลักล้านด้านรายได้ แต่ยังไม่ใช่กำไรหนึ่งล้าน"
+        },
+        {
+          "path_order": 2,
+          "path": "Assisted MVP",
+          "customer_model": "20 Growth × 2,990 บาท/เดือน + Setup 15,000 บาท/ราย",
+          "paying_accounts": 20,
+          "setup_revenue_thb": 300000,
+          "recurring_mrr_thb": 59800,
+          "recurring_arr_thb": 717600,
+          "first_year_revenue_thb": 1017600,
+          "gross_margin_assumption": 0.7,
+          "fixed_cost_assumption_thb": 240000,
+          "estimated_operating_surplus_thb": 472320,
+          "support_minutes_per_account_month": 30,
+          "support_hours_month": 10,
+          "interpretation": "เหมาะกับปีแรกเพื่อสร้างเงินสดและเรียนรู้ แต่ต้องทำ onboarding ให้เป็น template"
+        },
+        {
+          "path_order": 3,
+          "path": "กำไรดำเนินงานประมาณ 1 ล้านบาท",
+          "customer_model": "25 Growth + 15 Business",
+          "paying_accounts": 40,
+          "setup_revenue_thb": 0,
+          "recurring_mrr_thb": 164600,
+          "recurring_arr_thb": 1975200,
+          "first_year_revenue_thb": 1975200,
+          "gross_margin_assumption": 0.75,
+          "fixed_cost_assumption_thb": 420000,
+          "estimated_operating_surplus_thb": 1061400,
+          "support_minutes_per_account_month": 15,
+          "support_hours_month": 10,
+          "interpretation": "เป็นเป้าหมาย solo ที่แข็งแรงกว่า แต่ยังไม่รวมภาษีและค่าตอบแทนผู้ก่อตั้ง"
+        }
+      ]
+    },
+    "generatedAt": "2026-08-29T17:05:00.000Z",
+    "status": "ready",
+    "version": 1
+  },
+  "sources": [
+    {
+      "href": "https://tina-live-session.netlify.app/content_dashboard_demo",
+      "id": "src_demo",
+      "label": "Content Dashboard — Demo (หน้าอ้างอิงที่ผู้ใช้ให้)",
+      "query": {
+        "description": "ตรวจองค์ประกอบที่แสดงในหน้าเดโม ได้แก่ orchestration, brand files, always-on, connectors, analytics, competitor tracking, trend monitoring, hook vault, calendar, scheduling และ ads reporting",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "browser-observation"
+      }
+    },
+    {
+      "href": "https://smebigdata.sme.go.th/",
+      "id": "src_osmep",
+      "label": "สำนักงานส่งเสริมวิสาหกิจขนาดกลางและขนาดย่อม — SME Big Data / รายงานสถานการณ์ SME ปี 2568",
+      "query": {
+        "description": "จำนวน SME ไทยปี 2568 เท่ากับ 3,283,650 ราย ตามหน้า SME Big Data ของ สสว.",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "public-source",
+        "metric_definitions": [
+          "จำนวน SME = จำนวนวิสาหกิจขนาดกลางและขนาดย่อมที่ สสว. รายงานสำหรับปี 2568"
+        ]
+      }
+    },
+    {
+      "href": "https://datareportal.com/reports/digital-2025-thailand",
+      "id": "src_digital",
+      "label": "DataReportal — Digital 2025: Thailand",
+      "query": {
+        "description": "บริบทการใช้อินเทอร์เน็ต โซเชียลมีเดีย และ LINE ในประเทศไทยช่วงต้นปี 2025",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "public-source",
+        "metric_definitions": [
+          "ผู้ใช้อินเทอร์เน็ต 65.4 ล้านคน",
+          "social media user identities 51.0 ล้านบัญชี/อัตลักษณ์ ไม่จำเป็นต้องเท่ากับบุคคลไม่ซ้ำ",
+          "LINE monthly active users 56 ล้านคน"
+        ]
+      }
+    },
+    {
+      "id": "src_market_model",
+      "label": "โมเดล TAM / SAM / SOM สำหรับ AI Marketing OS ไทย",
+      "query": {
+        "description": "คำนวณจากจำนวน SME ที่ สสว. รายงานและสมมติฐานราคา/สัดส่วนตลาดที่ต้องทดสอบกับลูกค้าจริง",
+        "engine": "PostgreSQL-compatible planning model",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "filters": [
+          "ประเทศไทย",
+          "ฐานจำนวน SME ปี 2568",
+          "ราคาเฉลี่ยฐาน 2,990 บาทต่อ workspace ต่อเดือน",
+          "Qualified TAM 20% ของ SME ทั้งหมด (สมมติฐาน)",
+          "Beachhead SAM 7.5% ของ SME ทั้งหมด (สมมติฐาน)"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Annual revenue pool = จำนวนบัญชี × Monthly ARPA × 12",
+          "Theoretical TAM เป็นเพดานบน ไม่ใช่ยอดขายที่คาดว่าจะทำได้จริง",
+          "SOM ปีที่ 2 เป็นเป้าหมายเชิงบริหาร ไม่ใช่ค่าพยากรณ์"
+        ],
+        "sql": "WITH inputs AS (SELECT 3283650::numeric AS total_smes, 2990::numeric AS monthly_arpa, 0.20::numeric AS qualified_share, 0.075::numeric AS beachhead_share), stages AS (SELECT 'Theoretical TAM' AS stage, total_smes AS accounts, 1.0::numeric AS share_total FROM inputs UNION ALL SELECT 'Qualified TAM', total_smes * qualified_share, qualified_share FROM inputs UNION ALL SELECT 'Beachhead SAM', total_smes * beachhead_share, beachhead_share FROM inputs UNION ALL SELECT '24-month SOM (base)', 1200::numeric, 1200::numeric / total_smes FROM inputs) SELECT stage, ROUND(accounts) AS accounts, share_total, ROUND(accounts * monthly_arpa * 12) AS annual_revenue_thb FROM stages CROSS JOIN inputs;",
+        "tables_used": [
+          "OSMEP SME Big Data Dashboard (2025)",
+          "Planning assumptions dated 29 Aug 2026"
+        ]
+      }
+    },
+    {
+      "id": "src_plan",
+      "label": "สมมติฐานเชิงกลยุทธ์และแผนปฏิบัติการ ณ 29 ส.ค. 2026",
+      "query": {
+        "description": "สมมติฐานด้านผลิตภัณฑ์ ราคา ทีม งบ Roadmap และ KPI ซึ่งต้องยืนยันผ่าน design partners และ paid pilots",
+        "engine": "Planning model",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "filters": [
+          "ตลาดเริ่มต้น: SME ไทยแบบ lead-driven service",
+          "ช่วงเวลา Roadmap: 12 เดือน",
+          "เป้าหมาย SOM: สิ้นเดือนที่ 24"
+        ],
+        "language": "formula",
+        "metric_definitions": [
+          "Base blended ARPA = 2,990 บาท/เดือน",
+          "Base 12-month build budget = 8.8 ล้านบาท",
+          "Base 24-month paying workspaces = 1,200"
+        ],
+        "query": "ARR = paying_workspaces × monthly_ARPA × 12; gross_margin = (revenue - cloud - API - support delivery cost) / revenue; CAC_payback_months = CAC / monthly_gross_profit_per_account"
+      }
+    },
+    {
+      "id": "src_budget_model",
+      "label": "โมเดลงบประมาณสร้างและทำตลาด 12 เดือน",
+      "query": {
+        "description": "รวมงบทีมผลิตภัณฑ์และวิศวกรรม, cloud/AI/API, security/legal, GTM/onboarding และ contingency",
+        "engine": "Planning model",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "sql",
+        "metric_definitions": [
+          "หน่วย: ล้านบาท ไม่รวม VAT",
+          "Base case รวม 8.8 ล้านบาท",
+          "งบ 6 เดือนแรกควรสำรอง 4.0–5.5 ล้านบาท ขึ้นกับการใช้ founder-led development"
+        ],
+        "sql": "SELECT SUM(low_m_thb) AS low_m_thb, SUM(base_m_thb) AS base_m_thb, SUM(high_m_thb) AS high_m_thb FROM (VALUES ('Product & Engineering',4.2,5.2,6.4),('Cloud, AI & API',0.5,0.8,1.2),('Security, Legal & Compliance',0.3,0.5,0.8),('GTM, Onboarding & Partners',0.8,1.4,2.0),('Contingency',0.5,0.9,1.1)) AS budget(category,low_m_thb,base_m_thb,high_m_thb);"
+      }
+    },
+    {
+      "id": "src_api_matrix",
+      "label": "เอกสาร API อย่างเป็นทางการของ Meta, TikTok, LINE และ Google",
+      "query": {
+        "description": "สรุปความสามารถและ gate ที่กระทบลำดับพัฒนา connector",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "documentation-review",
+        "metric_definitions": [
+          "LINE Official Account ตั้ง webhook URL ได้หนึ่ง URL ต่อ Messaging API channel",
+          "TikTok client ที่ยังไม่ผ่าน audit โพสต์ได้แบบ private viewing เท่านั้น",
+          "Google Business Profile API ต้องยื่นขอ access และมีเงื่อนไขบัญชีธุรกิจ"
+        ],
+        "tables_used": [
+          "Meta Marketing API",
+          "Instagram Platform API",
+          "TikTok Content Posting API",
+          "LINE Messaging API webhook documentation",
+          "LINE guidance for multiple tools on one Official Account",
+          "Google Business Profile API prerequisites"
+        ]
+      }
+    },
+    {
+      "href": "https://developers.facebook.com/documentation/ads-commerce/marketing-api",
+      "id": "src_meta_ads",
+      "label": "Meta — Marketing API",
+      "query": {
+        "description": "Ads management and reporting endpoints",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://developers.facebook.com/documentation/instagram-platform/overview",
+      "id": "src_meta_ig",
+      "label": "Meta — Instagram Platform Overview",
+      "query": {
+        "description": "API access for Instagram professional accounts",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://developers.tiktok.com/doc/content-posting-api-reference-direct-post",
+      "id": "src_tiktok",
+      "label": "TikTok — Content Posting API Direct Post",
+      "query": {
+        "description": "Direct Post requirements; unaudited clients are limited to private viewing until audit",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://developers.line.biz/en/docs/messaging-api/receiving-messages/",
+      "id": "src_line_webhook",
+      "label": "LINE — Receive messages via webhook",
+      "query": {
+        "description": "LINE sends webhook events to the registered bot server; signatures should be verified and processing should be asynchronous",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://developers.line.biz/en/tips/2026/07/23/using-multiple-api-tools/",
+      "id": "src_line_multi",
+      "label": "LINE — Using multiple tools with one Official Account",
+      "query": {
+        "description": "One webhook URL per Messaging API channel and channel-level token/rate-limit considerations",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://developers.google.com/my-business/content/prereqs",
+      "id": "src_google",
+      "label": "Google — Business Profile API prerequisites",
+      "query": {
+        "description": "API access application and account prerequisites",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://aws.amazon.com/blogs/aws/announcing-the-new-aws-asia-pacific-thailand-region/",
+      "id": "src_aws",
+      "label": "AWS — Asia Pacific (Thailand) Region",
+      "query": {
+        "description": "AWS ap-southeast-7 is generally available with three Availability Zones",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-documentation"
+      }
+    },
+    {
+      "href": "https://www.ratchakitcha.soc.go.th/DATA/PDF/2562/A/069/T_0052.PDF",
+      "id": "src_pdpa",
+      "label": "ราชกิจจานุเบกษา — พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562",
+      "query": {
+        "description": "กฎหมายหลักสำหรับการเก็บ ใช้ เปิดเผย รักษา และรองรับสิทธิของเจ้าของข้อมูลส่วนบุคคลในประเทศไทย",
+        "executed_at": "2026-08-29T16:13:20.870Z",
+        "language": "official-law"
+      }
+    },
+    {
+      "id": "src_ds_architecture",
+      "label": "Reviewed planning dataset — architecture",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ architecture; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset architecture"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"layer\":\"Web & API\",\"layer_order\":1,\"mvp_choice\":\"TypeScript modular monolith\",\"reason\":\"ส่งเร็วและรักษา domain boundary ได้\",\"scale_trigger\":\"แยก service เมื่อทีม/โหลด/ownership บังคับจริง\"},{\"layer\":\"Primary data\",\"layer_order\":2,\"mvp_choice\":\"PostgreSQL + Row Level Security + pgvector\",\"reason\":\"transaction, tenant isolation และ Brand Brain ในระบบเดียว\",\"scale_trigger\":\"ย้าย analytical workload เมื่อ daily events >50M\"},{\"layer\":\"Object storage\",\"layer_order\":3,\"mvp_choice\":\"S3-compatible + KMS\",\"reason\":\"เก็บ asset, transcript, export และ immutable evidence\",\"scale_trigger\":\"เพิ่ม lifecycle/archive ตาม retention policy\"},{\"layer\":\"Webhook gateway\",\"layer_order\":4,\"mvp_choice\":\"Signature verification + idempotency + DLQ\",\"reason\":\"รองรับ LINE/Meta webhook โดยไม่ทำข้อมูลซ้ำ/หาย\",\"scale_trigger\":\"partition ตาม connector และ tenant\"},{\"layer\":\"Queue & scheduler\",\"layer_order\":5,\"mvp_choice\":\"SQS/EventBridge equivalent\",\"reason\":\"retry, backoff, scheduled sync และ daily brief\",\"scale_trigger\":\"เพิ่ม workflow engine เมื่อ flow ข้ามวัน/หลาย approval ซับซ้อน\"},{\"layer\":\"Analytics\",\"layer_order\":6,\"mvp_choice\":\"Normalized events + daily aggregates in Postgres\",\"reason\":\"ลดต้นทุนและหลีกเลี่ยง data warehouse ก่อน product-market fit\",\"scale_trigger\":\"ClickHouse/warehouse เมื่อ query concurrency หรือ volume สูง\"},{\"layer\":\"AI layer\",\"layer_order\":7,\"mvp_choice\":\"Model router + RAG + evaluation suite\",\"reason\":\"เลือกโมเดลตาม cost/quality และไม่ผูกผู้ขายรายเดียว\",\"scale_trigger\":\"เพิ่ม model gateway, cache และ budget policy ตาม usage\"},{\"layer\":\"Hosting & security\",\"layer_order\":8,\"mvp_choice\":\"AWS Thailand region where services support the need\",\"reason\":\"ลด latency และช่วยเรื่อง data residency\",\"scale_trigger\":\"multi-region เฉพาะเมื่อมี RTO/RPO และลูกค้า enterprise\"}]$rows$::jsonb) AS r(\"layer\" text, \"layer_order\" numeric, \"mvp_choice\" text, \"reason\" text, \"scale_trigger\" text);",
+        "tables_used": [
+          "report_snapshot.architecture"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_arr_scenarios",
+      "label": "Reviewed planning dataset — arr_scenarios",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ arr_scenarios; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset arr_scenarios"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"annual_arpa_thb\":23880,\"arr_m_thb\":19.104,\"assumption\":\"ขาย Starter เป็นหลัก\",\"cac_payback_target_months\":8,\"gross_margin_target\":0.68,\"monthly_arpa_thb\":1990,\"paying_workspaces\":800,\"scenario\":\"Conservative\",\"scenario_order\":1},{\"annual_arpa_thb\":35880,\"arr_m_thb\":43.056,\"assumption\":\"Growth เป็นแพ็กเกจหลัก\",\"cac_payback_target_months\":6,\"gross_margin_target\":0.72,\"monthly_arpa_thb\":2990,\"paying_workspaces\":1200,\"scenario\":\"Base\",\"scenario_order\":2},{\"annual_arpa_thb\":47880,\"arr_m_thb\":95.76,\"assumption\":\"Business/Agency mix สูงขึ้น\",\"cac_payback_target_months\":5,\"gross_margin_target\":0.75,\"monthly_arpa_thb\":3990,\"paying_workspaces\":2000,\"scenario\":\"Upside\",\"scenario_order\":3}]$rows$::jsonb) AS r(\"annual_arpa_thb\" numeric, \"arr_m_thb\" numeric, \"assumption\" text, \"cac_payback_target_months\" numeric, \"gross_margin_target\" numeric, \"monthly_arpa_thb\" numeric, \"paying_workspaces\" numeric, \"scenario\" text, \"scenario_order\" numeric);",
+        "tables_used": [
+          "report_snapshot.arr_scenarios"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_budget",
+      "label": "Reviewed planning dataset — budget",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ budget; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset budget"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_m_thb\":8.8,\"category\":\"รวมทั้งหมด\",\"high_m_thb\":11.5,\"low_m_thb\":6.3,\"purpose\":\"กรอบ 12 เดือน ไม่รวม VAT\"},{\"base_m_thb\":5.2,\"category\":\"Product & Engineering\",\"high_m_thb\":6.4,\"low_m_thb\":4.2,\"purpose\":\"5–6 core FTE หรือ founder-led mix\"},{\"base_m_thb\":1.4,\"category\":\"GTM, Onboarding & Partners\",\"high_m_thb\":2,\"low_m_thb\":0.8,\"purpose\":\"paid pilots, onboarding, agency/franchise partners\"},{\"base_m_thb\":0.9,\"category\":\"Contingency\",\"high_m_thb\":1.1,\"low_m_thb\":0.5,\"purpose\":\"20–25% ของความเสี่ยง connector/review/hiring\"},{\"base_m_thb\":0.8,\"category\":\"Cloud, AI & API\",\"high_m_thb\":1.2,\"low_m_thb\":0.5,\"purpose\":\"hosting, LLM, storage, observability, platform API\"},{\"base_m_thb\":0.5,\"category\":\"Security, Legal & Compliance\",\"high_m_thb\":0.8,\"low_m_thb\":0.3,\"purpose\":\"PDPA/DPA, security review, pentest, incident readiness\"}]$rows$::jsonb) AS r(\"base_m_thb\" numeric, \"category\" text, \"high_m_thb\" numeric, \"low_m_thb\" numeric, \"purpose\" text);",
+        "tables_used": [
+          "report_snapshot.budget"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_calendar_workflow",
+      "label": "Reviewed planning dataset — calendar_workflow",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ calendar_workflow; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset calendar_workflow"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"automated_checks\":\"duplicate idea / pillar balance\",\"exit_gate\":\"ข้อมูลครบสำหรับ brief\",\"primary_owner\":\"Owner / Marketer\",\"required_fields\":\"business goal, audience, funnel stage, content pillar\",\"state\":\"Idea\",\"state_order\":1},{\"automated_checks\":\"brand fact availability / campaign conflict\",\"exit_gate\":\"ผู้รับผิดชอบยืนยัน brief\",\"primary_owner\":\"Strategist / AI\",\"required_fields\":\"angle, hook direction, offer, CTA, channel, due date\",\"state\":\"Brief\",\"state_order\":2},{\"automated_checks\":\"Thai language / platform format / prohibited words\",\"exit_gate\":\"draft ครบทุก variant\",\"primary_owner\":\"Creator / AI\",\"required_fields\":\"script/copy, asset list, channel variants\",\"state\":\"Draft\",\"state_order\":3},{\"automated_checks\":\"7-dimension score + factual/claim gate\",\"exit_gate\":\"≥80 หรือมีเหตุผล override\",\"primary_owner\":\"Content Lead\",\"required_fields\":\"quality score, flags, suggested edits\",\"state\":\"Quality Review\",\"state_order\":4},{\"automated_checks\":\"offer still valid / required legal review\",\"exit_gate\":\"approved version locked\",\"primary_owner\":\"Brand Owner\",\"required_fields\":\"approver, decision, comments, version\",\"state\":\"Approval\",\"state_order\":5},{\"automated_checks\":\"token health / collision / asset readiness\",\"exit_gate\":\"publish job validated\",\"primary_owner\":\"Scheduler\",\"required_fields\":\"platform account, publish time, caption, asset\",\"state\":\"Scheduled\",\"state_order\":6},{\"automated_checks\":\"delivery confirmation / retry / failure alert\",\"exit_gate\":\"publish receipt stored\",\"primary_owner\":\"Connector\",\"required_fields\":\"platform post ID, URL, timestamp\",\"state\":\"Published\",\"state_order\":7},{\"automated_checks\":\"data freshness / attribution confidence\",\"exit_gate\":\"minimum measurement window reached\",\"primary_owner\":\"Analytics\",\"required_fields\":\"reach, engagement, leads, bookings, sales, window\",\"state\":\"Measured\",\"state_order\":8},{\"automated_checks\":\"winner detection / saturation / seasonal expiry\",\"exit_gate\":\"memory updated and next action chosen\",\"primary_owner\":\"Strategist\",\"required_fields\":\"learning, reusable angle, fatigue/expiry status\",\"state\":\"Learn / Repurpose / Retire\",\"state_order\":9}]$rows$::jsonb) AS r(\"automated_checks\" text, \"exit_gate\" text, \"primary_owner\" text, \"required_fields\" text, \"state\" text, \"state_order\" numeric);",
+        "tables_used": [
+          "report_snapshot.calendar_workflow"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_content_quality",
+      "label": "Reviewed planning dataset — content_quality",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ content_quality; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset content_quality"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"dimension\":\"Brand consistency\",\"dimension_order\":1,\"evidence\":\"rule checks + model evaluator + human\",\"fail_condition\":\"ใช้คำต้องห้ามหรือข้อเท็จจริงขัด Brand Truth\",\"scoring_method\":\"tone, vocabulary, visual/claim rules เทียบ Brand Brain\",\"weight_share\":0.2},{\"dimension\":\"Audience & intent fit\",\"dimension_order\":2,\"evidence\":\"brief fields + intent classifier\",\"fail_condition\":\"พูดกว้างจนไม่รู้ว่าทำเพื่อใคร/ขั้นใด\",\"scoring_method\":\"ตรง ICP, pain point, funnel stage และ business goal\",\"weight_share\":0.2},{\"dimension\":\"Hook & retention\",\"dimension_order\":3,\"evidence\":\"hook rubric + historical benchmark\",\"fail_condition\":\"เปิดเรื่องช้า, clickbait หรือสัญญาเกินจริง\",\"scoring_method\":\"ชัดใน 1–2 ประโยคแรกและสร้างเหตุผลให้อยู่ต่อ\",\"weight_share\":0.15},{\"dimension\":\"Value & specificity\",\"dimension_order\":4,\"evidence\":\"specificity checks + duplicate detection\",\"fail_condition\":\"ข้อความทั่วไปซ้ำกันหรือไม่มี takeaway\",\"scoring_method\":\"มีข้อมูล ตัวอย่าง ขั้นตอน หรือข้อสรุปที่ใช้ได้จริง\",\"weight_share\":0.15},{\"dimension\":\"CTA & offer alignment\",\"dimension_order\":5,\"evidence\":\"offer catalog + effective dates\",\"fail_condition\":\"CTA ผิดแพ็กเกจ/ราคา/ช่วงเวลา\",\"scoring_method\":\"CTA เหมาะ funnel stage และ offer ยังมีผล\",\"weight_share\":0.1},{\"dimension\":\"Platform fit\",\"dimension_order\":6,\"evidence\":\"platform rules + asset metadata\",\"fail_condition\":\"format โพสต์ไม่ได้หรืออ่านยากบนมือถือ\",\"scoring_method\":\"length, format, caption, aspect ratio และ channel conventions\",\"weight_share\":0.1},{\"dimension\":\"Facts, claims & safety\",\"dimension_order\":7,\"evidence\":\"locked facts + citation/claim checker + reviewer\",\"fail_condition\":\"unsupported claim, PII exposure หรือ compliance flag\",\"scoring_method\":\"ตรวจตัวเลข แหล่งอ้างอิง PDPA และ claim ที่เสี่ยง\",\"weight_share\":0.1}]$rows$::jsonb) AS r(\"dimension\" text, \"dimension_order\" numeric, \"evidence\" text, \"fail_condition\" text, \"scoring_method\" text, \"weight_share\" numeric);",
+        "tables_used": [
+          "report_snapshot.content_quality"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_demo_mapping",
+      "label": "Reviewed planning dataset — demo_mapping",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ demo_mapping; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset demo_mapping"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"change\":\"ล็อก tone, offer, ราคา,ข้อห้าม, CTA และผู้อนุมัติ; แยกแต่ละสาขา/แบรนด์\",\"demo_module\":\"Context Memory / Brand Files\",\"mvp\":\"ใช่\",\"priority\":1,\"thai_sme_version\":\"Brand Brain แบบมีเวอร์ชัน\"},{\"change\":\"วัด Content → Lead → นัดหมาย/ใบเสนอราคา → ยอดขาย ไม่หยุดที่วิว\",\"demo_module\":\"Analytics\",\"mvp\":\"ใช่\",\"priority\":2,\"thai_sme_version\":\"Content-to-Revenue Analytics\"},{\"change\":\"OAuth, webhook signature, retry, idempotency, token health และ data freshness\",\"demo_module\":\"Connectors\",\"mvp\":\"ใช่\",\"priority\":3,\"thai_sme_version\":\"Meta + LINE + Sheets Gateway\"},{\"change\":\"สรุป lead, CPL, นัดหมาย,ยอดขาย และ 3 สิ่งที่ควรทำวันนี้\",\"demo_module\":\"Always-On\",\"mvp\":\"ใช่\",\"priority\":4,\"thai_sme_version\":\"Daily Owner Brief ผ่าน LINE\"},{\"change\":\"คุม pillar/funnel mix, quality score, production status, approval, schedule และ performance feedback loop\",\"demo_module\":\"Hook / Calendar / Scheduler\",\"mvp\":\"ใช่\",\"priority\":5,\"thai_sme_version\":\"Content Quality Engine + Calendar OS\"},{\"change\":\"เสนอเพิ่ม/ลดงบพร้อมหลักฐาน แต่ไม่แก้งบอัตโนมัติใน MVP\",\"demo_module\":\"Ads recommendation\",\"mvp\":\"เฉพาะคำแนะนำ\",\"priority\":6,\"thai_sme_version\":\"Recommendation Guardrail\"},{\"change\":\"เริ่มจากลิงก์ที่ผู้ใช้บันทึกและ API ที่อนุญาต; ไม่พึ่ง scraping\",\"demo_module\":\"Competitor / Trends\",\"mvp\":\"ระยะ 2\",\"priority\":7,\"thai_sme_version\":\"Swipe File + Approved Sources\"}]$rows$::jsonb) AS r(\"change\" text, \"demo_module\" text, \"mvp\" text, \"priority\" numeric, \"thai_sme_version\" text);",
+        "tables_used": [
+          "report_snapshot.demo_mapping"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_headline_arr",
+      "label": "Reviewed planning dataset — headline_arr",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_arr; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset headline_arr"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_arr_m_thb\":43.056,\"monthly_arpa_thb\":2990,\"paying_workspaces\":1200}]$rows$::jsonb) AS r(\"base_arr_m_thb\" numeric, \"monthly_arpa_thb\" numeric, \"paying_workspaces\" numeric);",
+        "tables_used": [
+          "report_snapshot.headline_arr"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_headline_budget",
+      "label": "Reviewed planning dataset — headline_budget",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_budget; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset headline_budget"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"base_budget_m_thb\":8.8,\"mvp_6m_high_m_thb\":5.5,\"mvp_6m_low_m_thb\":4}]$rows$::jsonb) AS r(\"base_budget_m_thb\" numeric, \"mvp_6m_high_m_thb\" numeric, \"mvp_6m_low_m_thb\" numeric);",
+        "tables_used": [
+          "report_snapshot.headline_budget"
+        ]
+      }
+    },
+    {
+      "href": "https://smebigdata.sme.go.th/",
+      "id": "src_ds_headline_sme",
+      "label": "Reviewed planning dataset — headline_sme",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ headline_sme; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset headline_sme"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"total_smes\":3283650}]$rows$::jsonb) AS r(\"total_smes\" numeric);",
+        "tables_used": [
+          "OSMEP SME Big Data Dashboard (2025)",
+          "report_snapshot.headline_sme"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_integrations",
+      "label": "Reviewed planning dataset — integrations",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ integrations; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset integrations"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"connector\":\"Meta Ads + Facebook Pages + Instagram Professional\",\"fallback\":\"CSV/Sheets import + draft export\",\"gating\":\"Business verification, permissions, App Review และ token lifecycle\",\"phase\":\"MVP\",\"phase_order\":1,\"supported_scope\":\"Insights, campaign metrics, page/IG content; publish เฉพาะ scope ที่ผ่าน review\"},{\"connector\":\"LINE Official Account\",\"fallback\":\"Webhook router ส่งต่อระบบเดิมด้วย adapter\",\"gating\":\"มี webhook URL เดียวต่อ channel; ต้อง verify signature และ fan-out ภายใน\",\"phase\":\"MVP\",\"phase_order\":2,\"supported_scope\":\"Webhook leads, replies/notifications, account linking\"},{\"connector\":\"Google Sheets\",\"fallback\":\"CSV upload template\",\"gating\":\"OAuth scopes และ schema mapping\",\"phase\":\"MVP\",\"phase_order\":3,\"supported_scope\":\"นำเข้า conversion, นัดหมาย, quote, revenue\"},{\"connector\":\"TikTok\",\"fallback\":\"Export package / share-to-app\",\"gating\":\"Unaudited client โพสต์ได้ private; ต้องผ่าน audit ก่อน public\",\"phase\":\"ระยะ 2\",\"phase_order\":4,\"supported_scope\":\"Draft/direct post และ Ads reporting แยก permission\"},{\"connector\":\"Google Business Profile\",\"fallback\":\"Manual weekly import / deep link\",\"gating\":\"ต้องขอ API access; โปรไฟล์ยืนยันและ active ตามเงื่อนไข\",\"phase\":\"ระยะ 2\",\"phase_order\":5,\"supported_scope\":\"Performance, reviews, posts, multi-location\"},{\"connector\":\"Drive / Notion / Asset sources\",\"fallback\":\"Upload ผ่าน Brand Brain\",\"gating\":\"Least-privilege OAuth และ file-level permission\",\"phase\":\"ระยะ 2\",\"phase_order\":6,\"supported_scope\":\"Brand documents, approved assets, offer catalog\"}]$rows$::jsonb) AS r(\"connector\" text, \"fallback\" text, \"gating\" text, \"phase\" text, \"phase_order\" numeric, \"supported_scope\" text);",
+        "tables_used": [
+          "report_snapshot.integrations"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_kpis",
+      "label": "Reviewed planning dataset — kpis",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ kpis; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset kpis"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"kpi_order\":1,\"measurement\":\"จ่ายเงินจริง ไม่ใช่ LOI อย่างเดียว\",\"metric\":\"Paid design partners\",\"stage\":\"Demand validation\",\"stop_rule\":\"ถ้า <3 ให้กลับไปแก้ ICP/offer ก่อนเพิ่มทีม\",\"target\":\"≥5 จาก 10 ราย\"},{\"kpi_order\":2,\"measurement\":\"workspace ที่สมัครทั้งหมด\",\"metric\":\"Connect Meta + LINE และได้ first brief\",\"stage\":\"Activation\",\"stop_rule\":\"ถ้า <50% หยุดเพิ่ม feature และแก้ onboarding\",\"target\":\"≥70% ภายใน 7 วัน\"},{\"kpi_order\":3,\"measurement\":\"ต่อ rubric version, vertical และ channel\",\"metric\":\"Approval / factual safety / on-time\",\"stage\":\"Content quality\",\"stop_rule\":\"ถ้า hard-fail หลุดเผยแพร่ ให้หยุด auto-publish และทำ incident review\",\"target\":\"approval ≥70%; factual error <2%; on-time ≥85%\"},{\"kpi_order\":4,\"measurement\":\"baseline 4 สัปดาห์เทียบหลังใช้\",\"metric\":\"เวลาวางแผน content\",\"stage\":\"Value\",\"stop_rule\":\"ถ้าลด <30% ให้ตัดขั้นตอนและปรับ Brand Brain\",\"target\":\"ลด ≥50%\"},{\"kpi_order\":5,\"measurement\":\"เทียบ cohort / seasonality\",\"metric\":\"Lead response / booking conversion\",\"stage\":\"Revenue impact\",\"stop_rule\":\"ถ้าไม่ดีขึ้น 8 สัปดาห์ ให้แก้ workflow ไม่อ้าง AI value\",\"target\":\"response time ลด ≥50% หรือ booking +15% relative\"},{\"kpi_order\":6,\"measurement\":\"เฉพาะ paying accounts\",\"metric\":\"90-day gross retention\",\"stage\":\"Retention\",\"stop_rule\":\"ถ้า <70% ชะลอ paid acquisition\",\"target\":\"≥80%\"},{\"kpi_order\":7,\"measurement\":\"รวม LLM, API, support delivery cost\",\"metric\":\"Gross margin / CAC payback\",\"stage\":\"Economics\",\"stop_rule\":\"ถ้า GM <60% ให้ปรับ usage/pricing ก่อน scale\",\"target\":\"GM ≥70%; payback <8 เดือน\"},{\"kpi_order\":8,\"measurement\":\"ต่อ connector ต่อ tenant\",\"metric\":\"Connector freshness\",\"stage\":\"Reliability\",\"stop_rule\":\"ถ้า error >1% หยุดเปิด connector ใหม่\",\"target\":\"≥99% sync สำเร็จตาม SLO\"}]$rows$::jsonb) AS r(\"kpi_order\" numeric, \"measurement\" text, \"metric\" text, \"stage\" text, \"stop_rule\" text, \"target\" text);",
+        "tables_used": [
+          "report_snapshot.kpis"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_market_size",
+      "label": "Reviewed planning dataset — market_size",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ market_size; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset market_size"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"accounts\":3283650,\"annual_revenue_thb\":117817362000,\"basis\":\"SME ทั้งหมด × ARPA ฐาน\",\"confidence\":\"ต่ำ — เพดานบน\",\"share_total\":1,\"stage\":\"Theoretical TAM\",\"stage_order\":1},{\"accounts\":656730,\"annual_revenue_thb\":23563472400,\"basis\":\"20% มีปัญหา/ความพร้อมดิจิทัล\",\"confidence\":\"ต่ำ–กลาง\",\"share_total\":0.2,\"stage\":\"Qualified TAM\",\"stage_order\":2},{\"accounts\":246274,\"annual_revenue_thb\":8836311120,\"basis\":\"7.5% เป็นธุรกิจบริการแบบ lead-driven\",\"confidence\":\"ต่ำ–กลาง\",\"share_total\":0.075,\"stage\":\"Beachhead SAM\",\"stage_order\":3},{\"accounts\":1200,\"annual_revenue_thb\":43056000,\"basis\":\"เป้าหมายทีมขายและพาร์ตเนอร์\",\"confidence\":\"เป้าหมายบริหาร\",\"share_total\":0.00036545,\"stage\":\"24-month SOM (base)\",\"stage_order\":4}]$rows$::jsonb) AS r(\"accounts\" numeric, \"annual_revenue_thb\" numeric, \"basis\" text, \"confidence\" text, \"share_total\" numeric, \"stage\" text, \"stage_order\" numeric);",
+        "tables_used": [
+          "OSMEP SME Big Data Dashboard (2025)",
+          "report_snapshot.market_size"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_pricing",
+      "label": "Reviewed planning dataset — pricing",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ pricing; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset pricing"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"best_for\":\"เจ้าของทำเอง 1 แบรนด์\",\"business_goal\":\"ลดเวลาและเริ่มใช้ง่าย\",\"included\":\"Brand Brain, Content Studio, Calendar, monthly report\",\"limit\":\"1 workspace, 2 channels, 1 seat\",\"monthly_price_thb\":1490,\"plan\":\"Starter\",\"sort_order\":1},{\"best_for\":\"SME ที่ยิงแอดและรับ lead\",\"business_goal\":\"แพ็กเกจหลัก / base ARPA\",\"included\":\"Meta + LINE, Lead Inbox, daily brief, attribution\",\"limit\":\"1 brand, 3 seats, 2 branches\",\"monthly_price_thb\":2990,\"plan\":\"Growth\",\"sort_order\":2},{\"best_for\":\"หลายสาขาหรือทีม marketing\",\"business_goal\":\"เพิ่ม ARPA และ retention\",\"included\":\"automation, 5 users, 3 branches, advanced approvals\",\"limit\":\"usage allowance + overage\",\"monthly_price_thb\":5990,\"plan\":\"Business\",\"sort_order\":3},{\"best_for\":\"agency หรือเจ้าของหลายแบรนด์\",\"business_goal\":\"ช่องทาง scale และ white-label\",\"included\":\"10 workspaces, templates, cross-account console, API\",\"limit\":\"เพิ่ม workspace แบบต่อหน่วย\",\"monthly_price_thb\":14900,\"plan\":\"Agency / Franchise\",\"sort_order\":4}]$rows$::jsonb) AS r(\"best_for\" text, \"business_goal\" text, \"included\" text, \"limit\" text, \"monthly_price_thb\" numeric, \"plan\" text, \"sort_order\" numeric);",
+        "tables_used": [
+          "report_snapshot.pricing"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_product_modules",
+      "label": "Reviewed planning dataset — product_modules",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ product_modules; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset product_modules"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"exit_criteria\":\"แยกข้อมูล tenant ผ่าน RLS; audit log ครบ\",\"module\":\"Tenant, Auth & Billing foundation\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–2\",\"phase_order\":1,\"user_outcome\":\"สร้าง workspace และกำหนดสิทธิทีม/สาขาได้\"},{\"exit_criteria\":\"ข้อเท็จจริง/ข้อห้ามมี version และผู้อนุมัติ\",\"module\":\"Brand Brain\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–2\",\"phase_order\":2,\"user_outcome\":\"AI เขียนโดยไม่ต้องบรีฟแบรนด์ใหม่ทุกครั้ง\"},{\"exit_criteria\":\"sync success ≥99%; token expiry alert\",\"module\":\"Meta + LINE connectors\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 1–3\",\"phase_order\":3,\"user_outcome\":\"ข้อมูลโพสต์ โฆษณา และข้อความลูกค้าไหลเข้า\"},{\"exit_criteria\":\"hard-fail = 0; factual error <2%; approval ≥70%\",\"module\":\"Content Strategy & Quality Engine\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 2–4\",\"phase_order\":4,\"user_outcome\":\"ทุกชิ้นตรงเป้าหมายแบรนด์และผ่าน quality gate\"},{\"exit_criteria\":\"งานตรงเวลา ≥85%; pillar/funnel coverage ครบ\",\"module\":\"Content Calendar OS\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 2–4\",\"phase_order\":5,\"user_outcome\":\"เห็นแผน ผลิต อนุมัติ โพสต์ และวัดผลในที่เดียว\"},{\"exit_criteria\":\"ทุก action มี approval/audit; fallback draft\",\"module\":\"Approval & Scheduler\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 3–4\",\"phase_order\":6,\"user_outcome\":\"ทีมทำงานร่วมกันและเผยแพร่ตามเวลา\"},{\"exit_criteria\":\"owner, SLA, stage, source และ value ครบ\",\"module\":\"Lead Inbox & Mini CRM\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 3–5\",\"phase_order\":7,\"user_outcome\":\"ไม่ตกหล่นคนทักและรู้สถานะ lead\"},{\"exit_criteria\":\"รองรับ manual/Sheets conversion; unknown bucket\",\"module\":\"Revenue Attribution\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 4–6\",\"phase_order\":8,\"user_outcome\":\"รู้ว่า content/campaign ใดสร้างนัดและยอดขาย\"},{\"exit_criteria\":\"ส่ง LINE ตามเวลา; link กลับหน้า evidence\",\"module\":\"Daily Owner Brief\",\"must_have\":\"ใช่\",\"phase\":\"เดือน 4–6\",\"phase_order\":9,\"user_outcome\":\"เห็น calendar gaps, quality flags และ action ภายใน 3 นาที\"},{\"exit_criteria\":\"permission และ template inheritance ผ่าน QA\",\"module\":\"Agency / Franchise Console\",\"must_have\":\"ระยะ 2\",\"phase\":\"เดือน 7–9\",\"phase_order\":10,\"user_outcome\":\"ดูหลายสาขาและใช้ template ร่วมกัน\"},{\"exit_criteria\":\"ผ่าน platform review และ connector SLO\",\"module\":\"TikTok / Google Business / API\",\"must_have\":\"ระยะ 2\",\"phase\":\"เดือน 7–12\",\"phase_order\":11,\"user_outcome\":\"เพิ่มช่องทางและเปิด white-label ecosystem\"}]$rows$::jsonb) AS r(\"exit_criteria\" text, \"module\" text, \"must_have\" text, \"phase\" text, \"phase_order\" numeric, \"user_outcome\" text);",
+        "tables_used": [
+          "report_snapshot.product_modules"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_risks",
+      "label": "Reviewed planning dataset — risks",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ risks; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset risks"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"impact\":\"สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"ยื่น review ตั้งแต่เดือน 1; มี CSV/Sheets/draft fallback; feature flags\",\"owner\":\"Tech Lead + Product\",\"risk\":\"API permission/review ล่าช้า\",\"risk_score\":25},{\"impact\":\"สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"MVP ต้องมี lead pipeline และ revenue attribution; KPI ผูก booking/sale\",\"owner\":\"Product + CS\",\"risk\":\"สร้าง content ได้แต่ไม่เพิ่มยอดขาย\",\"risk_score\":20},{\"impact\":\"กลาง–สูง\",\"likelihood\":\"สูง\",\"mitigation\":\"vertical template, concierge onboarding, first value <30 นาที\",\"owner\":\"Customer Success\",\"risk\":\"SME onboarding ยากและ churn สูง\",\"risk_score\":16},{\"impact\":\"สูง\",\"likelihood\":\"กลาง\",\"mitigation\":\"data freshness badge, unknown attribution bucket, evidence link, no auto-spend\",\"owner\":\"Data/Analytics\",\"risk\":\"ข้อมูลไม่ครบทำให้ ROAS/คำแนะนำผิด\",\"risk_score\":15},{\"impact\":\"สูง\",\"likelihood\":\"กลาง\",\"mitigation\":\"data minimization, DPA, retention, DSAR, encryption, legal review\",\"owner\":\"Security/Legal\",\"risk\":\"PDPA/ข้อมูลสนทนาและข้อมูลอ่อนไหว\",\"risk_score\":15},{\"impact\":\"กลาง\",\"likelihood\":\"กลาง\",\"mitigation\":\"model router, cache, budgets, eval set, version pinning\",\"owner\":\"AI Lead\",\"risk\":\"ต้นทุน LLM สูงและคุณภาพแกว่ง\",\"risk_score\":12},{\"impact\":\"กลาง\",\"likelihood\":\"สูง\",\"mitigation\":\"สร้าง moat จาก vertical data model, workflow, integrations, partner distribution\",\"owner\":\"Founder\",\"risk\":\"คู่แข่งลอก feature ได้ง่าย\",\"risk_score\":10},{\"impact\":\"สูง\",\"likelihood\":\"กลาง–สูง\",\"mitigation\":\"calibrate ด้วย human labels + lead/conversion outcomes; rubric versioning; ห้ามใช้คะแนนเดียวตัดสิน\",\"owner\":\"Content Lead + Data\",\"risk\":\"Quality Score ดูดีแต่ไม่สัมพันธ์กับผลลัพธ์\",\"risk_score\":18}]$rows$::jsonb) AS r(\"impact\" text, \"likelihood\" text, \"mitigation\" text, \"owner\" text, \"risk\" text, \"risk_score\" numeric);",
+        "tables_used": [
+          "report_snapshot.risks"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_roadmap",
+      "label": "Reviewed planning dataset — roadmap",
+      "query": {
+        "description": "ชุดข้อมูลที่ตรวจแล้วสำหรับ roadmap; generated from the report's explicit facts and planning assumptions",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T16:15:49.727Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Rows reproduce the bounded reviewed snapshot dataset roadmap"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"deliverables\":\"15 interviews, 10 design partners, funnel dictionary, PDPA data map\",\"exit_gate\":\"อย่างน้อย 5 รายยอมจ่าย pilot\",\"objective\":\"ยืนยันปัญหาและ metric definitions\",\"phase_order\":1,\"window\":\"สัปดาห์ 0–2\"},{\"deliverables\":\"Auth/RBAC/RLS, workspace, brand facts, approval roles, audit\",\"exit_gate\":\"onboarding test 5 แบรนด์เสร็จ <60 นาที\",\"objective\":\"วางฐาน multi-tenant และ Brand Brain\",\"phase_order\":2,\"window\":\"เดือน 1–2\"},{\"deliverables\":\"Meta read connector, LINE webhook gateway, Sheets import, health monitor\",\"exit_gate\":\"sync ≥99%; duplicate events <0.1%\",\"objective\":\"เชื่อมข้อมูลสำคัญ\",\"phase_order\":3,\"window\":\"เดือน 2–3\"},{\"deliverables\":\"7-dimension quality rubric, hard-fail gate, Month/Week/Kanban calendar, Thai playbooks, approval, draft publish\",\"exit_gate\":\"approval ≥70%; factual error <2%; on-time ≥85%; planning time ลด ≥50%\",\"objective\":\"ทำ Content Quality Engine และ Calendar ให้ใช้จริง\",\"phase_order\":4,\"window\":\"เดือน 3–4\"},{\"deliverables\":\"Lead inbox, SLA, stages, conversion import, daily LINE brief, billing\",\"exit_gate\":\"20 paying beta; 8 สัปดาห์มี usage ต่อเนื่อง\",\"objective\":\"ปิดวงจร Lead → Revenue\",\"phase_order\":5,\"window\":\"เดือน 4–6\"},{\"deliverables\":\"Beauty/wellness + home services playbooks, agency console, Google Business\",\"exit_gate\":\"75 accounts; activation ≥70%; monthly churn <5%\",\"objective\":\"ทำซ้ำได้ผ่าน vertical templates\",\"phase_order\":6,\"window\":\"เดือน 7–9\"},{\"deliverables\":\"TikTok after audit, partner API, franchise controls, cost optimization\",\"exit_gate\":\"200 accounts; GM ≥70%; CAC payback <8 เดือน\",\"objective\":\"ขยายช่องทางและ unit economics\",\"phase_order\":7,\"window\":\"เดือน 10–12\"}]$rows$::jsonb) AS r(\"deliverables\" text, \"exit_gate\" text, \"objective\" text, \"phase_order\" numeric, \"window\" text);",
+        "tables_used": [
+          "report_snapshot.roadmap"
+        ]
+      }
+    },
+    {
+      "id": "src_stripe_solo_2026",
+      "label": "Stripe Atlas — Solo founding is at an all-time high (28 May 2026)",
+      "href": "https://stripe.com/blog/top-solo-founder-traits",
+      "query": {
+        "description": "Stripe วิเคราะห์ solo-founded Atlas startups หลายพันรายที่ก่อตั้งในปี 2022–2023 และมีข้อมูลรายได้อย่างน้อยสองปี; พบว่า AI-native, B2B และ recurring billing ปรากฏมากกว่าในกลุ่มผลงานสูง",
+        "executed_at": "2026-08-29T17:05:00.000Z",
+        "language": "public-source",
+        "metric_definitions": [
+          "กลุ่มตัวอย่างจำกัดอยู่ที่บริษัทที่ก่อตั้งผ่าน Stripe Atlas และไม่ใช่อัตราความสำเร็จของธุรกิจไทย"
+        ]
+      }
+    },
+    {
+      "id": "src_buffer_pricing_2026",
+      "label": "Buffer Pricing — official pricing page",
+      "href": "https://buffer.com/pricing",
+      "query": {
+        "description": "ราคา Buffer ณ วันที่ตรวจสอบ: Essentials 5 ดอลลาร์/เดือนต่อ 1 channel และ Team 10 ดอลลาร์/เดือนต่อ 1 channel เมื่อชำระรายปี",
+        "executed_at": "2026-08-29T17:05:00.000Z",
+        "language": "public-source"
+      }
+    },
+    {
+      "id": "src_metricool_pricing_2026",
+      "label": "Metricool Pricing — official pricing page",
+      "href": "https://metricool.com/pricing/",
+      "query": {
+        "description": "ราคา Metricool ณ วันที่ตรวจสอบ: Starter เริ่ม 20 ดอลลาร์/เดือนสำหรับสูงสุด 5 brands และ Advanced เริ่ม 53 ดอลลาร์/เดือนสำหรับสูงสุด 15 brands ในตัวเลือก USD ที่แสดง",
+        "executed_at": "2026-08-29T17:05:00.000Z",
+        "language": "public-source"
+      }
+    },
+    {
+      "id": "src_ds_solo_revenue_targets",
+      "label": "Reviewed planning dataset — solo_revenue_targets",
+      "query": {
+        "description": "ชุดข้อมูลคำนวณแบบ bottom-up สำหรับ solo_revenue_targets; ราคาเป็นสมมติฐานจากแผนผลิตภัณฑ์และคำนวณจำนวนลูกค้าด้วยการปัดขึ้น",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T17:05:00.000Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026",
+          "ไม่รวม VAT และภาษีเงินได้"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "จำนวนลูกค้าที่ต้องมี = CEILING(เป้าหมายรายได้ ÷ ราคาต่อช่วงเวลา)",
+          "ARR จริง = จำนวนลูกค้าที่ปัดขึ้น × ราคาต่อเดือน × 12"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"path\":\"Growth — 1 ล้านบาท/ปี\",\"path_order\":11,\"plan\":\"Growth\",\"monthly_price_thb\":2990,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":28,\"actual_mrr_thb\":83720,\"actual_arr_thb\":1004640,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Business — 1 ล้านบาท/ปี\",\"path_order\":12,\"plan\":\"Business\",\"monthly_price_thb\":5990,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":14,\"actual_mrr_thb\":83860,\"actual_arr_thb\":1006320,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Agency — 1 ล้านบาท/ปี\",\"path_order\":13,\"plan\":\"Agency\",\"monthly_price_thb\":14900,\"target\":\"1 ล้านบาท/ปี\",\"target_period\":\"ต่อปี\",\"target_value_thb\":1000000,\"required_customers\":6,\"actual_mrr_thb\":89400,\"actual_arr_thb\":1072800,\"solo_fit\":\"เป็นไปได้หาก onboarding และ support เป็นมาตรฐาน\"},{\"path\":\"Growth — 1 ล้านบาท/เดือน\",\"path_order\":21,\"plan\":\"Growth\",\"monthly_price_thb\":2990,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":335,\"actual_mrr_thb\":1001650,\"actual_arr_thb\":12019800,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"},{\"path\":\"Business — 1 ล้านบาท/เดือน\",\"path_order\":22,\"plan\":\"Business\",\"monthly_price_thb\":5990,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":167,\"actual_mrr_thb\":1000330,\"actual_arr_thb\":12003960,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"},{\"path\":\"Agency — 1 ล้านบาท/เดือน\",\"path_order\":23,\"plan\":\"Agency\",\"monthly_price_thb\":14900,\"target\":\"1 ล้านบาท/เดือน\",\"target_period\":\"ต่อเดือน\",\"target_value_thb\":1000000,\"required_customers\":68,\"actual_mrr_thb\":1013200,\"actual_arr_thb\":12158400,\"solo_fit\":\"ต้อง self-serve, partner channel หรือมีผู้รับเหมาช่วยงาน\"}]$rows$::jsonb) AS r(\"actual_arr_thb\" numeric, \"actual_mrr_thb\" numeric, \"monthly_price_thb\" numeric, \"path\" text, \"path_order\" numeric, \"plan\" text, \"required_customers\" numeric, \"solo_fit\" text, \"target\" text, \"target_period\" text, \"target_value_thb\" numeric);",
+        "tables_used": [
+          "report_snapshot.solo_revenue_targets"
+        ]
+      }
+    },
+    {
+      "id": "src_ds_solo_operating_paths",
+      "label": "Reviewed planning dataset — solo_operating_paths",
+      "query": {
+        "description": "ชุดข้อมูลคำนวณแบบ bottom-up สำหรับ solo_operating_paths; ราคาเป็นสมมติฐานจากแผนผลิตภัณฑ์และคำนวณจำนวนลูกค้าด้วยการปัดขึ้น",
+        "engine": "PostgreSQL-compatible snapshot model",
+        "executed_at": "2026-08-29T17:05:00.000Z",
+        "filters": [
+          "Snapshot date 29 Aug 2026",
+          "ไม่รวม VAT และภาษีเงินได้"
+        ],
+        "language": "sql",
+        "metric_definitions": [
+          "Operating surplus estimate = first-year revenue × gross-margin assumption − fixed-cost assumption",
+          "ตัวเลขเป็นกำไรก่อนภาษีและก่อนกำหนดค่าตอบแทนผู้ก่อตั้ง",
+          "Support hours รวมเฉพาะ support ต่อบัญชี ไม่รวม sales, product development, compliance และ administration"
+        ],
+        "sql": "SELECT * FROM jsonb_to_recordset($rows$[{\"path_order\":1,\"path\":\"Recurring อย่างเดียว\",\"customer_model\":\"28 Growth × 2,990 บาท/เดือน\",\"paying_accounts\":28,\"setup_revenue_thb\":0,\"recurring_mrr_thb\":83720,\"recurring_arr_thb\":1004640,\"first_year_revenue_thb\":1004640,\"gross_margin_assumption\":0.75,\"fixed_cost_assumption_thb\":300000,\"estimated_operating_surplus_thb\":453480,\"support_minutes_per_account_month\":15,\"support_hours_month\":7,\"interpretation\":\"ถึงหลักล้านด้านรายได้ แต่ยังไม่ใช่กำไรหนึ่งล้าน\"},{\"path_order\":2,\"path\":\"Assisted MVP\",\"customer_model\":\"20 Growth × 2,990 บาท/เดือน + Setup 15,000 บาท/ราย\",\"paying_accounts\":20,\"setup_revenue_thb\":300000,\"recurring_mrr_thb\":59800,\"recurring_arr_thb\":717600,\"first_year_revenue_thb\":1017600,\"gross_margin_assumption\":0.7,\"fixed_cost_assumption_thb\":240000,\"estimated_operating_surplus_thb\":472320,\"support_minutes_per_account_month\":30,\"support_hours_month\":10,\"interpretation\":\"เหมาะกับปีแรกเพื่อสร้างเงินสดและเรียนรู้ แต่ต้องทำ onboarding ให้เป็น template\"},{\"path_order\":3,\"path\":\"กำไรดำเนินงานประมาณ 1 ล้านบาท\",\"customer_model\":\"25 Growth + 15 Business\",\"paying_accounts\":40,\"setup_revenue_thb\":0,\"recurring_mrr_thb\":164600,\"recurring_arr_thb\":1975200,\"first_year_revenue_thb\":1975200,\"gross_margin_assumption\":0.75,\"fixed_cost_assumption_thb\":420000,\"estimated_operating_surplus_thb\":1061400,\"support_minutes_per_account_month\":15,\"support_hours_month\":10,\"interpretation\":\"เป็นเป้าหมาย solo ที่แข็งแรงกว่า แต่ยังไม่รวมภาษีและค่าตอบแทนผู้ก่อตั้ง\"}]$rows$::jsonb) AS r(\"customer_model\" text, \"estimated_operating_surplus_thb\" numeric, \"first_year_revenue_thb\" numeric, \"fixed_cost_assumption_thb\" numeric, \"gross_margin_assumption\" numeric, \"interpretation\" text, \"path\" text, \"path_order\" numeric, \"paying_accounts\" numeric, \"recurring_arr_thb\" numeric, \"recurring_mrr_thb\" numeric, \"setup_revenue_thb\" numeric, \"support_hours_month\" numeric, \"support_minutes_per_account_month\" numeric);",
+        "tables_used": [
+          "report_snapshot.solo_operating_paths"
+        ]
+      }
+    }
+  ]
+}
