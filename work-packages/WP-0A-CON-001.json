@@ -5,7 +5,7 @@
   "title": "CON-00 Canonical shared contracts and fixture catalog",
   "gate": "G0",
   "priority": "P0",
-  "status": "ready",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": ["architecture-contracts"],
     "reviewer": ["architecture-contracts"],
@@ -56,12 +56,41 @@
     "files": [
       "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
       "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md",
-      "docs/plans/ai-content-os-execution-master-plan-th.md"
+      "docs/plans/ai-content-os-execution-master-plan-th.md",
+      "docs/plans/module-contracts-events-jobs-workstream-th.md"
     ],
     "fixtures": []
   },
   "outputs": {
-    "files": [".agents/capability-profiles/c0-contract-reviewer.json", "evidence/capability-benchmarks/c0-contract-reviewer.md", "evidence/WP-0A-CON-001/role-routing-preparation.md", "work-packages/WP-0A-CON-001.json", "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json", "handoffs/WP-0A-CON-001-role-routing-preparation-handoff.json"],
+    "files": [
+      ".agents/capability-profiles/c0-contract-reviewer.json",
+      "evidence/capability-benchmarks/c0-contract-reviewer.md",
+      "evidence/WP-0A-CON-001/role-routing-preparation.md",
+      "work-packages/WP-0A-CON-001.json",
+      "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json",
+      "handoffs/WP-0A-CON-001-role-routing-preparation-handoff.json",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/examples/valid.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/examples/invalid-missing-workspace.json",
+      "contract-catalog/shared-kernel/ctr-err-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/examples/valid-validation-error.json",
+      "contract-catalog/shared-kernel/ctr-err-001/examples/valid-retryable-error.json",
+      "contract-catalog/shared-kernel/ctr-err-001/examples/invalid-unsafe-detail.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/examples/valid.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/examples/invalid-missing-tenant.json",
+      "contract-catalog/shared-kernel/ctr-evt-001/examples/invalid-unsafe-payload.json",
+      "contract-catalog/shared-kernel/ctr-job-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-job-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-job-001/examples/valid.json",
+      "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-max-attempts.json",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
+      "handoffs/WP-0A-CON-001-author-catalog-handoff.json"
+    ],
     "contracts": []
   },
   "acceptance_criteria": [
@@ -79,7 +108,7 @@
   "deterministic_commands": {
     "setup": [],
     "verify": ["npm run check"],
-    "package_evidence": []
+    "package_evidence": ["node --test test-kits/contracts/*.test.mjs"]
   },
   "security_privacy": {
     "data_classification": "synthetic-only",
