@@ -5,7 +5,7 @@
   "title": "CON-00 Canonical shared contracts and fixture catalog",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "ready",
   "required_skill_profiles": {
     "author": ["architecture-contracts"],
     "reviewer": ["architecture-contracts"],
@@ -14,11 +14,11 @@
     "conditional_reviewers": ["security-privacy", "product-ux"]
   },
   "role_assignments": {
-    "author_agent_run_id": null,
-    "reviewer_agent_run_id": null,
-    "tester_agent_run_id": null,
-    "integration_owner_agent_run_id": null,
-    "security_reviewer_agent_run_id": null,
+    "author_agent_run_id": "/root",
+    "reviewer_agent_run_id": "/root/c0_contract_reviewer",
+    "tester_agent_run_id": "/root/q0_sentinel",
+    "integration_owner_agent_run_id": "/root/r0_steward",
+    "security_reviewer_agent_run_id": "/root/a1_bastion",
     "product_reviewer_agent_run_id": null
   },
   "independence": {
@@ -88,9 +88,9 @@
   },
   "rollback_or_forward_fix": "Revert the contract-catalog/fixture-only commit or make a reviewed forward correction; no persisted or external state is created.",
   "open_blockers": [
-    "WP-0A-A0-001 remains in_review and must retain its documented G0 boundaries.",
-    "The current A0 bootstrap manifest owns broad contract-catalog/test-kits paths; exact ownership must be narrowed and reviewed before this package is Ready.",
-    "Author, Reviewer, Tester and Integration Owner must be assigned to real capability-declared runs before this package changes from backlog to Ready.",
+    "WP-0A-A0-001 is integration_verified, but G0 remains Specification Baseline Complete / External Verification Pending; CON-00 is restricted to its reversible catalog/fixture scope.",
+    "Product/UX review is not assigned because this package must not introduce user-facing behavior; assign an independent Product/UX reviewer before any such scope change.",
+    "The named roles may not advance status beyond their documented independent gate authority, and no contract may advance from Candidate/Draft to Frozen without the source-defined owner approval.",
     "Contract freeze-level advancement requires the owners and approvals stated in the Sprint 0A baseline."
   ],
   "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]

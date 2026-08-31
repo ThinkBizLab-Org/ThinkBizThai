@@ -15,9 +15,9 @@
     "supported_languages": ["javascript", "json", "markdown"]
   },
   "limitations": {
-    "declaration_origin": "Observed and stated in evidence/capability-benchmarks/c0-contract-reviewer.md on 2026-08-31; transcribed by A0 for repository routing.",
-    "benchmark_outcome": "Conditionally suitable for independent architecture-contracts review only; pinned Node 24 runtime was unavailable in that run.",
-    "unavailable_tools": ["external credentials", "Production credentials", "cross-vendor execution", "Product Owner authority", "Security/Privacy approval", "Integration approval"],
+    "declaration_origin": "Self-declared by /root/c0_contract_reviewer on 2026-08-31 for WP-0A-CON-001 backlog routing; benchmark evidence is evidence/capability-benchmarks/c0-contract-reviewer.md.",
+    "benchmark_outcome": "Conditionally suitable for independent architecture-contracts review after a distinct-author assignment; no implementation package has been accepted.",
+    "unavailable_tools": ["external secrets", "Production credentials", "provider credentials", "cross-vendor execution", "Product Owner authority", "Security/Privacy approval", "Product/UX approval", "Tester authority", "Integration authority", "standing package approval authority"],
     "evidence": ["evidence/capability-benchmarks/c0-contract-reviewer.md"]
   },
   "accepted_work_package": null
