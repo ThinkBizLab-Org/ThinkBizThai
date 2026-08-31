@@ -5,8 +5,13 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "dcafcf8",
-  "head_revision_or_patch_checksum": "pending-commit",
-  "task_ids": ["A0-002-T1-rfc", "A0-002-T2-test-glob", "A0-002-T3-ownership-transfer", "A0-002-T4-author-evidence"],
+  "head_revision_or_patch_checksum": "1873ade",
+  "task_ids": [
+    "A0-002-T1-rfc",
+    "A0-002-T2-test-glob",
+    "A0-002-T3-ownership-transfer",
+    "A0-002-T4-author-evidence"
+  ],
   "files_added": [
     "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
     "work-packages/WP-0A-A0-002.json",
@@ -20,7 +25,11 @@
     "work-packages/WP-0A-CON-001.json"
   ],
   "files_deleted": [],
-  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025"],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
@@ -29,21 +38,74 @@
     "The quoted glob is expanded by the Node test runner rather than the invoking shell, so the command behaves identically under sh, zsh, and the GitHub Actions runner."
   ],
   "acceptance_results": [
-    {"criterion": "npm run check executes test-kits/contracts and reports 32 passing tests", "result": "pass", "evidence": "npm run check exit 0, tests 32 / pass 32 / fail 0 on node v24.20.0 / npm 11.19.0"},
-    {"criterion": "ownership validator exits 0 with no cross-package overlap", "result": "pass", "evidence": "node scripts/validate-work-package-ownership.mjs work-packages exit 0"},
-    {"criterion": "amended packages' declared outputs remain covered", "result": "pass", "evidence": "ownership validator enforces output coverage and exits 0 after the amendment"},
-    {"criterion": "cross-package amendments limited to RFC-2026-003 removals", "result": "pass", "evidence": "ownership.authorized_cross_package_amendments in work-packages/WP-0A-A0-002.json; git diff shows only writable_paths/outputs removals"},
-    {"criterion": "no contract, other-package status, provider, schema, credential, or gate change", "result": "pass", "evidence": "git diff limited to the declared files; contract-catalog/ and .github/ untouched"},
-    {"criterion": "Author does not review, security-review, test-verify, or integrate", "result": "pending", "evidence": "reviewer, tester, security, and integration role assignments are null; independent runs required"}
+    {
+      "criterion": "npm run check executes test-kits/contracts and reports 32 passing tests",
+      "result": "pass",
+      "evidence": "npm run check exit 0, tests 32 / pass 32 / fail 0 on node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "criterion": "ownership validator exits 0 with no cross-package overlap",
+      "result": "pass",
+      "evidence": "node scripts/validate-work-package-ownership.mjs work-packages exit 0"
+    },
+    {
+      "criterion": "amended packages' declared outputs remain covered",
+      "result": "pass",
+      "evidence": "ownership validator enforces output coverage and exits 0 after the amendment"
+    },
+    {
+      "criterion": "cross-package amendments limited to RFC-2026-003 removals",
+      "result": "pass",
+      "evidence": "ownership.authorized_cross_package_amendments in work-packages/WP-0A-A0-002.json; git diff shows only writable_paths/outputs removals"
+    },
+    {
+      "criterion": "no contract, other-package status, provider, schema, credential, or gate change",
+      "result": "pass",
+      "evidence": "git diff limited to the declared files; contract-catalog/ and .github/ untouched"
+    },
+    {
+      "criterion": "Author does not review, security-review, test-verify, or integrate",
+      "result": "pending",
+      "evidence": "reviewer, tester, security, and integration role assignments are null; independent runs required"
+    }
   ],
   "tests": [
-    {"command": "npm run check", "exit_code": 0, "result": "tests 32 / pass 32 / fail 0", "toolchain": "node v24.20.0 / npm 11.19.0"},
-    {"command": "node --test 'test-kits/**/*.test.mjs'", "exit_code": 0, "result": "tests 32 / pass 32 / fail 0"},
-    {"command": "node --test test-kits/contracts/*.test.mjs", "exit_code": 0, "result": "tests 6 / pass 6 / fail 0"},
-    {"command": "node scripts/validate-work-package-ownership.mjs work-packages", "exit_code": 0, "result": "no output"},
-    {"command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json", "exit_code": 0, "result": "no output"},
-    {"command": "node scripts/validate-capability-profiles.mjs", "exit_code": 0, "result": "no output"},
-    {"command": "node scripts/scan-repository-secrets.mjs", "exit_code": 0, "result": "no output"}
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "tests 32 / pass 32 / fail 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node --test 'test-kits/**/*.test.mjs'",
+      "exit_code": 0,
+      "result": "tests 32 / pass 32 / fail 0"
+    },
+    {
+      "command": "node --test test-kits/contracts/*.test.mjs",
+      "exit_code": 0,
+      "result": "tests 6 / pass 6 / fail 0"
+    },
+    {
+      "command": "node scripts/validate-work-package-ownership.mjs work-packages",
+      "exit_code": 0,
+      "result": "no output"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json",
+      "exit_code": 0,
+      "result": "no output"
+    },
+    {
+      "command": "node scripts/validate-capability-profiles.mjs",
+      "exit_code": 0,
+      "result": "no output"
+    },
+    {
+      "command": "node scripts/scan-repository-secrets.mjs",
+      "exit_code": 0,
+      "result": "no output"
+    }
   ],
   "security_privacy_cost_impact": "None. No secret, credential, customer data, provider call, or network access is introduced. The change is Node-only repository tooling and documentation. Its security effect is positive: six contract tests that guard tenant-isolation and unsafe-payload negative cases now execute in CI instead of silently not running.",
   "migration_and_data_impact": "None. No schema, migration, migration reservation, or persisted data is created or altered.",
@@ -61,9 +123,9 @@
   ],
   "rollback_or_forward_fix": "Revert this branch through a reviewed revert PR. Reverting restores the previous test:bootstrap glob and the previous WP-0A-A0-001 and WP-0A-CON-001 ownership declarations exactly. No persisted data, provider state, credential, migration, or customer-data effect exists, so no recovery procedure is required.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-002 — materialize CTR-API-001, CTR-PAG-001, CTR-IDM-001 schemas and synthetic fixtures (unblocked by the CON-001 ownership narrowing)",
-    "WP-0A-CON-003 — materialize CTR-MOD-001 and CTR-FLG-001",
-    "WP-0A-CON-004 — materialize CTR-SEC-001, CTR-AUD-001, CTR-OBS-001"
+    "WP-0A-CON-002 \u2014 materialize CTR-API-001, CTR-PAG-001, CTR-IDM-001 schemas and synthetic fixtures (unblocked by the CON-001 ownership narrowing)",
+    "WP-0A-CON-003 \u2014 materialize CTR-MOD-001 and CTR-FLG-001",
+    "WP-0A-CON-004 \u2014 materialize CTR-SEC-001, CTR-AUD-001, CTR-OBS-001"
   ],
   "reviewer_instructions": [
     "Confirm on pinned Node 24.20.0 / npm 11.19.0 that npm run check reports 32 tests, and that reverting only the package.json line returns it to 26.",
@@ -71,5 +133,6 @@
     "Rule on whether the RFC-2026-003 amendment path is sufficient authority for amending another package's manifest, or whether each owning package must re-open to accept its amendment.",
     "Rule on whether WP-0A-CON-001 review, test, and integration evidence must be re-executed against the corrected 32-test command.",
     "Confirm no contract status, freeze level, provider, schema, credential, or gate state changed."
-  ]
+  ],
+  "superseded_by": "evidence/WP-0A-A0-002/author-remediation.md - this handoff describes commit 1873ade only; the independent-role conditions raised against it were remediated in a follow-up Author commit on the same branch."
 }

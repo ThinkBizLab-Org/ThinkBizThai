@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/claude/q0_sentinel",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": true,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": ["javascript", "json", "markdown", "typescript"]
+  },
+  "limitations": {
+    "declaration_origin": "Self-declared by /claude/q0_sentinel on 2026-08-31 while accepting WP-0A-A0-002 for independent test verification. This run is an Anthropic Claude Code session and is distinct from the Author run /claude/a0_atlas, from the Anthropic declaration cc-a0-atlas.json, and from every /root/* OpenAI Codex run declared in this directory, including the separate /root/q0_sentinel declaration.",
+    "benchmark_outcome": "No external or independent QA capability benchmark exists for this run. Nothing in this declaration is a benchmark, an external approval, or a cross-vendor dry run; it is a self-declaration only.",
+    "role_authority": "This run holds NO Author, Reviewer, Security/Privacy reviewer, Integration Owner, Product Owner, Product/UX, merge, or Gate G0 authority for WP-0A-A0-002 or any other package. It is declared as independent Tester only, and it must not author, review, security-review, integrate, approve, merge, or advance any package or gate. Its output is independent local test evidence and nothing more.",
+    "unavailable_tools": ["external secrets", "production credentials", "provider credentials", "Author authority", "Reviewer approval authority", "Security/Privacy approval authority", "Product/UX approval authority", "Integration authority", "Product Owner authority", "merge authorization", "Gate G0 approval authority", "native branch-protection administration", "remote CI administration"],
+    "network_note": "The session harness can reach the network and exposes browser tooling, so both booleans are declared true rather than understated. This run used neither: all WP-0A-A0-002 test verification was performed with repository-declared, Node-only local commands on the pinned toolchain, with no network access, no browser use, no credentials, and no global tools.",
+    "verification_scope": "Provides independent local test evidence only. Remote CI runs, provider state, and any external system must be independently verified from their own authoritative systems; this run did not and cannot verify them.",
+    "evidence": ["evidence/WP-0A-A0-002/test-verdict.md"]
+  },
+  "accepted_work_package": "WP-0A-A0-002"
+}

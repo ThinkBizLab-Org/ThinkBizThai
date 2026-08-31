@@ -33,8 +33,24 @@ Observed on pinned Node `v24.20.0` / npm `11.19.0`:
 
 A regression in the shared-kernel contract catalog would therefore pass CI and
 pass every `npm run check` citation in the WP-0A-CON-001 review, test, and
-integration evidence. Those citations were accurate about the command they ran;
-they were not evidence of contract-test coverage.
+integration evidence.
+
+**The gap was in the CI gate, not in role coverage.** Independent review of the
+WP-0A-CON-001 evidence establishes that all four independent roles — reviewer,
+security, tester, and integration — each separately ran
+`node --test test-kits/contracts/*.test.mjs` at `f28fb8e` and each recorded
+`6/6` passing. Their conclusions therefore stand and WP-0A-CON-001's
+`integration_verified` status is not invalidated by this defect. What is stale is
+a number, not a judgement: five artifacts cite "26 tests" for a command that has
+since changed. Independent security review further confirmed that no regression
+was realized during the window — `git diff f28fb8e HEAD -- contract-catalog/
+test-kits/contracts/` is empty, so not one byte of the reviewed artifacts
+drifted while the CI gate was blind.
+
+The remedy is correspondingly bounded: a `npm run check` re-execution addendum
+recorded by the WP-0A-CON-001 Integration Owner `/root/r0_steward`, superseding
+the `26/26` citation with the current count. No re-review, re-test, or re-
+integration of WP-0A-CON-001 is required.
 
 ### D2 — Package writable globs capture future outputs
 
@@ -62,15 +78,55 @@ write.
    this forward fix. WP-0A-A0-001 remains `integration_verified` for the scope it
    delivered; its manifest is amended only to drop `package.json` from
    `writable_paths` and `outputs.files`.
-3. **Narrow WP-0A-CON-001 ownership** from `contract-catalog/shared-kernel/**`
-   and `test-kits/contracts/**` to the exact paths that package delivered:
-   `contract-catalog/shared-kernel/index.json`, the four Candidate contract
-   directories, and
+3. **Narrow WP-0A-CON-001 ownership.** Remove **three** writable globs —
+   `contract-catalog/shared-kernel/**`, `test-kits/contracts/**`, and the unused
+   `fixtures/contracts/**` (no `fixtures/` directory exists in the repository and
+   no WP-0A-CON-001 output lives under it) — replacing them with the exact paths
+   that package delivered: `contract-catalog/shared-kernel/index.json`, the four
+   Candidate contract directories, and
    `test-kits/contracts/shared-kernel-contract-catalog.test.mjs`.
    Its declared outputs are unchanged and remain covered.
-4. **No status, contract, or gate movement.** No contract advances from
+4. **Add a coverage floor.** `scripts/verify-test-coverage-floor.mjs` runs inside
+   `npm run check` and fails the run when the declared `test:bootstrap` pattern
+   would match no file, would miss a discovered test file, would leave fewer than
+   eight test files, or would confine the suite to a single directory. See
+   "Why the glob fix alone is not sufficient" below.
+5. **No status, contract, or gate movement.** No contract advances from
    Draft/Candidate. No package status changes. Gate G0 remains
    Specification Baseline Complete / External Verification Pending.
+
+### Which amendments are forced and which are anticipatory
+
+The two amendments do not carry the same necessity, and the Product Owner should
+dispose of them with that difference in view:
+
+| Amendment | Necessity | Evidence |
+|---|---|---|
+| WP-0A-A0-001 drops `package.json` from `writable_paths` and `outputs.files` | **Forced today.** Without it the repository does not validate at all. | `validate-work-package-ownership.mjs` exits `70` (`WP-0A-A0-001 writable path overlaps WP-0A-A0-002 output: package.json`) while both hold it. Independently reproduced by the Tester against a reconstructed pre-amendment manifest set. |
+| WP-0A-CON-001 drops its three broad globs | **Anticipatory.** The repository validates with them restored. | The globs bite only once a follow-on package declares outputs under those paths; the Reviewer confirmed this with a synthetic WP-0A-CON-002. They foreclose a collision that every planned shared-kernel contract package would otherwise hit. |
+
+## Why the glob fix alone is not sufficient
+
+`node --test` exits `0` reporting `tests 0` when its pattern matches nothing.
+The corrected command therefore still reproduces the exact silent-green failure
+class this RFC exists to close, under any condition that stops the pattern from
+expanding: a relocation or rename of `test-kits/`, an accidental re-edit of the
+line, or a `script-shell` that does not strip the single quotes (Windows
+`cmd.exe` is the obvious case). Independent review and independent testing each
+found this separately.
+
+Decision 4 closes it. Verified by deliberate regression on the pinned toolchain:
+
+| Injected regression | `npm run check` before the guard | `npm run check` with the guard |
+|---|---|---|
+| `test:bootstrap` reverted to `node --test 'test-kits/*.test.mjs'` | exit `0`, 26 tests, contract tests silently skipped | exit `76`, naming `test-kits/contracts/shared-kernel-contract-catalog.test.mjs` as the file that would never run |
+| `test:bootstrap` pattern left unquoted | exit `0` under `sh` with only 6 of 40 tests | exit `74` |
+| `test-kits/` emptied or moved | exit `0`, `tests 0` | exit `75` |
+
+The quoting is load-bearing and was verified, not assumed: `npm config get
+script-shell` is `null`, so npm uses `/bin/sh`, which has no `globstar`. Unquoted
+under `/bin/sh` the pattern degrades to `test-kits/*/*.test.mjs` and runs 6 tests
+instead of 40 while still exiting `0`.
 
 ## Why this is a manifest amendment and not a rewrite
 
@@ -90,7 +146,9 @@ Gate G0 approval, native branch protection, and any merge authorization.
 
 ## Verification
 
-- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — must report 32 tests.
+- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — must report 40 tests.
+- `node scripts/verify-test-coverage-floor.mjs` — exit `0`; and exit `74`/`75`/`76`/`77`
+  against the injected regressions tabulated above.
 - `node scripts/validate-work-package-ownership.mjs work-packages` — exit `0`.
 - `node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json` — exit `0`.
 - `node scripts/validate-capability-profiles.mjs` — exit `0`.
