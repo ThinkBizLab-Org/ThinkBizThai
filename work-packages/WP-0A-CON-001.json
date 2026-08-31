@@ -46,7 +46,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "writable_paths": ["contract-catalog/shared-kernel/**", "fixtures/contracts/**", "test-kits/contracts/**", ".agents/capability-profiles/c0-contract-reviewer.json", "work-packages/WP-0A-CON-001.json", "evidence/WP-0A-CON-001/**", "evidence/capability-benchmarks/c0-contract-reviewer.md", "handoffs/WP-0A-CON-001-*.json"],
+    "writable_paths": ["contract-catalog/shared-kernel/index.json", "contract-catalog/shared-kernel/ctr-ten-001/**", "contract-catalog/shared-kernel/ctr-err-001/**", "contract-catalog/shared-kernel/ctr-evt-001/**", "contract-catalog/shared-kernel/ctr-job-001/**", "test-kits/contracts/shared-kernel-contract-catalog.test.mjs", ".agents/capability-profiles/c0-contract-reviewer.json", "work-packages/WP-0A-CON-001.json", "evidence/WP-0A-CON-001/**", "evidence/capability-benchmarks/c0-contract-reviewer.md", "handoffs/WP-0A-CON-001-*.json"],
     "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "architecture/decisions/**", "contract-catalog/README.md"],
     "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**"],
     "module_ids": ["MOD-000"],

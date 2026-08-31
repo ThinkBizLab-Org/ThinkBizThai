@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-002",
+  "title": "Contract-test CI coverage and ownership boundary transfer",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": ["architecture-contracts"],
+    "reviewer": ["architecture-contracts"],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": null,
+    "tester_agent_run_id": null,
+    "integration_owner_agent_run_id": null,
+    "security_reviewer_agent_run_id": null,
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true
+  },
+  "accountable_owners": ["A0"],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-003 before the manual merge described in RFC-2026-002"
+  ],
+  "purpose": "Correct two committed bootstrap defects recorded in RFC-2026-003: npm run check never executes the shared-kernel contract tests, and committed package writable globs capture the declared outputs of every planned follow-on contract package. Both fixes are reversible, synthetic-only, and change no contract, status, provider, schema, or gate.",
+  "scope": {
+    "include": [
+      "RFC-2026-003 decision record for the test-glob fix and the ownership boundary transfer",
+      "package.json test:bootstrap glob correction so npm run check executes test-kits/**/*.test.mjs",
+      "Anthropic capability declarations for the distinct Claude Code role runs used by this package",
+      "Author, independent Reviewer, Security, Tester, and Integration Owner evidence and handoffs for this package"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, other package status advancement, production schema, migrations, provider SDKs, credentials, customer data, network calls, native branch protection, merge authorization, and Gate G0 approval"
+    ]
+  },
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025"],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": ["WP-0A-A0-001", "WP-0A-CON-001"],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "package.json",
+      "work-packages/WP-0A-A0-002.json",
+      ".agents/capability-profiles/cc-*.json",
+      "evidence/WP-0A-A0-002/**",
+      "handoffs/WP-0A-A0-002-*.json"
+    ],
+    "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "AGENTS.md", "CLAUDE.md", "contract-catalog/**", "test-kits/**", "scripts/**", ".github/**"],
+    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**", "package-lock.json"],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "work-packages/WP-0A-A0-001.json — remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
+      "work-packages/WP-0A-CON-001.json — replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
+    ]
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+      "architecture/decisions/RFC-2026-002-manual-merge-control.md",
+      "work-packages/WP-0A-A0-001.json",
+      "work-packages/WP-0A-CON-001.json",
+      "scripts/validate-work-package-ownership.mjs"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "package.json",
+      "work-packages/WP-0A-A0-002.json",
+      ".agents/capability-profiles/cc-a0-atlas.json",
+      "evidence/WP-0A-A0-002/author-self-check.md",
+      "handoffs/WP-0A-A0-002-author-handoff.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "npm run check executes every test-kits suite including test-kits/contracts and reports 32 passing tests on pinned Node 24.20.0 / npm 11.19.0.",
+    "node scripts/validate-work-package-ownership.mjs work-packages exits 0 with no cross-package writable/output overlap.",
+    "WP-0A-A0-001 and WP-0A-CON-001 declared outputs remain fully covered by their remaining writable_paths after the amendment.",
+    "The two cross-package manifest amendments are limited to the exact removals authorized by RFC-2026-003 and are declared in authorized_cross_package_amendments.",
+    "No contract status, package status other than this package, provider, schema, credential, or gate state changes.",
+    "The Author does not review, security-review, test-verify, or integrate this package."
+  ],
+  "required_tests": [
+    "npm run check on the pinned toolchain, asserting contract tests are included",
+    "Ownership validator across all work-package manifests",
+    "Role-separation validator for this manifest",
+    "Capability-profile validator for all declared role runs",
+    "Synthetic-only repository secret scan",
+    "Negative check that the previous glob missed test-kits/contracts and the corrected glob does not"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check"],
+    "package_evidence": [
+      "node scripts/validate-work-package-ownership.mjs work-packages",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json",
+      "node scripts/validate-capability-profiles.mjs",
+      "node scripts/scan-repository-secrets.mjs"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert the RFC, package.json, manifest, capability-profile, evidence, and handoff changes through a reviewed revert PR. Reverting restores the previous test glob and the previous ownership boundaries exactly; no persisted data, provider state, credential, migration, or customer-data effect exists.",
+  "open_blockers": [
+    "RFC-2026-003 is Proposed and requires independent Reviewer, Security, Tester, and Integration Owner evidence plus Product Owner disposition before the RFC-2026-002 manual merge.",
+    "Role assignments beyond Author are null until each independent run records its own capability declaration; the package must not advance past backlog before then.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
+    "The WP-0A-CON-001 review, test, and integration evidence cited npm run check while contract tests were excluded; the Integration Owner must record whether that evidence needs re-execution against the corrected command."
+  ],
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+}
