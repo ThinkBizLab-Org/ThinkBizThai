@@ -2,11 +2,21 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  GUARD_SCRIPT,
+  MIN_DECLARED_TESTS,
+  MIN_TEST_FILES,
+  RUNNER_SCRIPT,
+  TEST_PATTERN,
+  TEST_ROOT,
+} from './test-suite-contract.mjs';
+
 // A green `npm run check` must never mean "executed nothing".
 // `node --test <pattern>` exits 0 with `tests 0` when the pattern matches no file,
 // so a rename, relocation, or a shell that does not strip the quotes would report
 // success having run no test at all. This guard fails the run instead.
-const DEFAULT_FLOOR = 8;
+const DEFAULT_FLOOR = MIN_TEST_FILES;
+const DECLARED_TEST_FLOOR = MIN_DECLARED_TESTS;
 
 export class CoverageFloorError extends Error {
   constructor(code, message) {
@@ -21,12 +31,21 @@ export function globToRegExp(pattern) {
     const character = pattern[index];
     if (character === '*') {
       if (pattern[index + 1] === '*') {
-        // `**/` spans zero or more directory segments; a bare `**` spans any suffix.
-        if (pattern[index + 2] === '/') {
+        // `**` spans directory segments ONLY when it is a whole segment (`**/` or a
+        // trailing `**`). Inside a segment -- `test-kits/**.test.mjs` -- node's glob
+        // treats it as a single-segment `*`. Expanding it to `.*` here made the guard
+        // accept a pattern under which the runner silently skipped the contract tests:
+        // the same defect class this guard exists to catch. Independent testing found it.
+        const atSegmentStart = index === 0 || pattern[index - 1] === '/';
+        const next = pattern[index + 2];
+        if (atSegmentStart && next === '/') {
           expression += '(?:[^/]+/)*';
           index += 2;
-        } else {
+        } else if (atSegmentStart && next === undefined) {
           expression += '.*';
+          index += 1;
+        } else {
+          expression += '[^/]*';
           index += 1;
         }
       } else {
@@ -39,12 +58,37 @@ export function globToRegExp(pattern) {
   return new RegExp(`${expression}$`);
 }
 
-export function extractTestPattern(testScript) {
-  const match = /--test\s+'([^']+)'/.exec(testScript ?? '');
-  if (!match) {
-    throw new CoverageFloorError(74, `test:bootstrap must invoke node --test with a single-quoted pattern; found: ${String(testScript)}`);
+// Verifying `test:bootstrap` in isolation is not enough: independent review showed that
+// dropping `&& npm run test:bootstrap` from `check` leaves `npm run check` exiting 0 with
+// zero tests while this guard stays silent. The wiring is therefore checked too.
+export function assertPackageScripts(scripts) {
+  const bootstrap = scripts?.['test:bootstrap'];
+  if (bootstrap !== RUNNER_SCRIPT) {
+    throw new CoverageFloorError(74, `test:bootstrap must be exactly \`${RUNNER_SCRIPT}\` so that no wrapper, chained operator, or extra flag can neutralise the runner; found: ${String(bootstrap)}`);
   }
-  return match[1];
+  if (scripts?.['verify:coverage-floor'] !== GUARD_SCRIPT) {
+    throw new CoverageFloorError(74, `verify:coverage-floor must be exactly \`${GUARD_SCRIPT}\`; found: ${String(scripts?.['verify:coverage-floor'])}`);
+  }
+  const check = scripts?.check;
+  if (typeof check !== 'string') {
+    throw new CoverageFloorError(74, 'package.json must declare a check script');
+  }
+  const missing = ['npm run verify:coverage-floor', 'npm run test:bootstrap'].filter((step) => !check.includes(step));
+  if (missing.length > 0) {
+    throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')}; a guard that is not wired into check protects nothing. Found: ${check}`);
+  }
+  const guardAt = check.indexOf('npm run verify:coverage-floor');
+  const runnerAt = check.indexOf('npm run test:bootstrap');
+  if (guardAt > runnerAt) {
+    throw new CoverageFloorError(81, 'check must run verify:coverage-floor before test:bootstrap so a broken declaration fails fast.');
+  }
+  return TEST_PATTERN;
+}
+
+// A floor on files alone is gameable: eight files declaring no test at all satisfy it
+// while the runner executes nothing. Count declared `test(...)` calls too.
+export function countDeclaredTests(source) {
+  return (source.match(/^\s*(?:await\s+)?test\s*\(/gm) ?? []).length;
 }
 
 export async function discoverTestFiles(directory, root = directory) {
@@ -72,12 +116,37 @@ export function assertCoverage(pattern, files, floor = DEFAULT_FLOOR) {
   }
 }
 
-export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = 'test-kits', floor = DEFAULT_FLOOR) {
+export async function assertDeclaredTests(files, floor = DECLARED_TEST_FLOOR) {
+  let total = 0;
+  const empty = [];
+  for (const file of files) {
+    const declared = countDeclaredTests(await readFile(file, 'utf8'));
+    if (declared === 0) empty.push(file);
+    total += declared;
+  }
+  if (empty.length > 0) {
+    throw new CoverageFloorError(78, `discovered test file(s) declare no test at all: ${empty.join(', ')}. A file that is counted but declares nothing hides an empty suite behind the file floor.`);
+  }
+  if (total < floor) {
+    throw new CoverageFloorError(78, `expected at least ${floor} declared tests across test-kits/, found ${total}.`);
+  }
+  return total;
+}
+
+export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
-  const pattern = extractTestPattern(manifest.scripts?.['test:bootstrap']);
-  const files = await discoverTestFiles(testDirectory);
+  const pattern = assertPackageScripts(manifest.scripts);
+  let files;
+  try {
+    files = await discoverTestFiles(testDirectory);
+  } catch (error) {
+    // A missing or relocated test root must fail as this guard's own error, not as an
+    // unhandled ENOENT whose non-numeric `code` bypasses the numeric exit path below.
+    throw new CoverageFloorError(79, `cannot read the test root '${testDirectory}': ${error.message}. A relocated or deleted test root must fail the run, not silently execute nothing.`);
+  }
   assertCoverage(pattern, files, floor);
-  return { pattern, files };
+  const declared = await assertDeclaredTests(files);
+  return { pattern, files, declared };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -85,6 +154,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     await verifyTestCoverageFloor();
   } catch (error) {
     console.error(error.message);
-    process.exit(error.code ?? 65);
+    process.exit(Number.isInteger(error.code) ? error.code : 65);
   }
 }

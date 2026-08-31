@@ -86,11 +86,22 @@ write.
    Candidate contract directories, and
    `test-kits/contracts/shared-kernel-contract-catalog.test.mjs`.
    Its declared outputs are unchanged and remain covered.
-4. **Add a coverage floor.** `scripts/verify-test-coverage-floor.mjs` runs inside
-   `npm run check` and fails the run when the declared `test:bootstrap` pattern
-   would match no file, would miss a discovered test file, would leave fewer than
-   eight test files, or would confine the suite to a single directory. See
-   "Why the glob fix alone is not sufficient" below.
+4. **Take the shell out of the loop and assert execution.** The test pattern
+   moves into `scripts/test-suite-contract.mjs` and is handed to node's test
+   runner as an **argv string by `scripts/run-test-suite.mjs`**, so it never
+   reaches a shell: shell quoting, `globstar` support, and `script-shell` can no
+   longer change what runs. Two independent layers then guarantee that a green
+   run executed the suite:
+   - **Before the run**, `scripts/verify-test-coverage-floor.mjs` pins
+     `test:bootstrap` to exactly the runner command, verifies that `check`
+     actually invokes both the guard and the runner in that order, and checks
+     discovery against the declared pattern, the file floor, the directory floor,
+     and a declared-test floor.
+   - **After the run**, `scripts/run-test-suite.mjs` reads the executed-test count
+     the runner itself reported and fails when it is below the floor, closing the
+     case where `node --test` exits `0` reporting `tests 0`.
+
+   See "Why the glob fix alone is not sufficient" below.
 5. **No status, contract, or gate movement.** No contract advances from
    Draft/Candidate. No package status changes. Gate G0 remains
    Specification Baseline Complete / External Verification Pending.
@@ -121,7 +132,12 @@ Decision 4 closes it. Verified by deliberate regression on the pinned toolchain:
 |---|---|---|
 | `test:bootstrap` reverted to `node --test 'test-kits/*.test.mjs'` | exit `0`, 26 tests, contract tests silently skipped | exit `76`, naming `test-kits/contracts/shared-kernel-contract-catalog.test.mjs` as the file that would never run |
 | `test:bootstrap` pattern left unquoted | exit `0` under `sh` with only 6 of 40 tests | exit `74` |
-| `test-kits/` emptied or moved | exit `0`, `tests 0` | exit `75` |
+| `test-kits/` emptied below the file floor | exit `0`, `tests 0` | exit `75` |
+| a pattern matching no discovered file | exit `0`, `tests 0` | exit `76` |
+| `test:bootstrap` wrapped so the runner never executes (`: node --test ...`, `... || true`) | exit `0`, `tests 0` | exit `74` |
+| a bare `**` inside a segment (`test-kits/**.test.mjs`) | exit `0`, 34 of 40 tests | exit `76` |
+| discovered files declaring no test at all | exit `0`, `tests 0` | exit `78` |
+| `test-kits/` renamed or deleted | exit `0`, `tests 0` | exit `79` |
 
 The quoting is load-bearing and was verified, not assumed: `npm config get
 script-shell` is `null`, so npm uses `/bin/sh`, which has no `globstar`. Unquoted
@@ -146,9 +162,10 @@ Gate G0 approval, native branch protection, and any merge authorization.
 
 ## Verification
 
-- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — must report 40 tests.
-- `node scripts/verify-test-coverage-floor.mjs` — exit `0`; and exit `74`/`75`/`76`/`77`
+- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — must report 46 tests.
+- `node scripts/verify-test-coverage-floor.mjs` — exit `0`; and exit `74`/`75`/`76`/`77`/`78`/`79`/`81`
   against the injected regressions tabulated above.
+- `node scripts/run-test-suite.mjs` — exit `0`; exit `80` when the executed count is below the floor.
 - `node scripts/validate-work-package-ownership.mjs work-packages` — exit `0`.
 - `node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json` — exit `0`.
 - `node scripts/validate-capability-profiles.mjs` — exit `0`.

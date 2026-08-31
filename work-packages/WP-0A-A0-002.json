@@ -29,7 +29,8 @@
     "tester_agent_run_id": "/claude/q0_sentinel",
     "integration_owner_agent_run_id": "/claude/r0_steward",
     "security_reviewer_agent_run_id": "/claude/a1_bastion",
-    "product_reviewer_agent_run_id": null
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
   },
   "independence": {
     "no_self_approval": true,
@@ -51,7 +52,7 @@
       "package.json test:bootstrap glob correction so npm run check executes test-kits/**/*.test.mjs",
       "Anthropic capability declarations for the distinct Claude Code role runs used by this package",
       "Author, independent Reviewer, Security, Tester, and Integration Owner evidence and handoffs for this package",
-      "A coverage floor (scripts/verify-test-coverage-floor.mjs) that fails npm run check when the declared test pattern would match nothing, would miss a discovered test file, or would confine the suite to one directory - closing the silent-green class that the glob fix alone only mitigates"
+      "A two-layer guarantee that a green npm run check cannot mean 'executed nothing': the test pattern is handed to node as an argv string and never reaches a shell, scripts/verify-test-coverage-floor.mjs pins the runner command and verifies check actually invokes it, and scripts/run-test-suite.mjs asserts the executed-test count the runner itself reported after the run"
     ],
     "exclude": [
       "Contract freeze-level advancement, other package status advancement, production schema, migrations, provider SDKs, credentials, customer data, network calls, native branch protection, merge authorization, and Gate G0 approval"
@@ -76,6 +77,8 @@
       "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
       "package.json",
       "scripts/verify-test-coverage-floor.mjs",
+      "scripts/run-test-suite.mjs",
+      "scripts/test-suite-contract.mjs",
       "test-kits/test-coverage-floor.test.mjs",
       "work-packages/WP-0A-A0-002.json",
       ".agents/capability-profiles/cc-a0-atlas.json",
@@ -129,6 +132,8 @@
       "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
       "package.json",
       "scripts/verify-test-coverage-floor.mjs",
+      "scripts/run-test-suite.mjs",
+      "scripts/test-suite-contract.mjs",
       "test-kits/test-coverage-floor.test.mjs",
       "work-packages/WP-0A-A0-002.json",
       ".agents/capability-profiles/cc-a0-atlas.json",
@@ -142,19 +147,22 @@
       "evidence/WP-0A-A0-002/review-security.md",
       "evidence/WP-0A-A0-002/test-verdict.md",
       "evidence/WP-0A-A0-002/integration-verdict.md",
+      "evidence/WP-0A-A0-002/test-verdict-remediation.md",
+      "evidence/WP-0A-A0-002/review-contract-remediation.md",
+      "evidence/WP-0A-A0-002/author-remediation-2.md",
       "handoffs/WP-0A-A0-002-author-handoff.json",
       "handoffs/WP-0A-A0-002-integration-handoff.json"
     ],
     "contracts": []
   },
   "acceptance_criteria": [
-    "npm run check executes every test-kits suite including test-kits/contracts and reports 40 passing tests on pinned Node 24.20.0 / npm 11.19.0.",
+    "npm run check executes every test-kits suite including test-kits/contracts and reports 46 passing tests on pinned Node 24.20.0 / npm 11.19.0.",
     "node scripts/validate-work-package-ownership.mjs work-packages exits 0 with no cross-package writable/output overlap.",
     "WP-0A-A0-001 and WP-0A-CON-001 declared outputs remain fully covered by their remaining writable_paths after the amendment.",
     "The two cross-package manifest amendments are limited to the exact removals authorized by RFC-2026-003 and are declared in authorized_cross_package_amendments.",
     "No contract status, package status other than this package, provider, schema, credential, or gate state changes.",
     "The Author does not review, security-review, test-verify, or integrate this package.",
-    "npm run check fails, rather than passing with a reduced or zero test count, when the test:bootstrap pattern is reverted to the superseded glob, left unquoted, or made to match nothing.",
+    "npm run check fails closed under every demonstrated neutralisation: a wrapper around the runner, an unquoted or extra-flag command, the superseded glob, a bare '**' inside a segment, a shell that does not strip quotes, check no longer invoking the runner or the guard, the guard running after the runner, the guard itself neutered, a relocated test root, files declaring no test, and a run that executes fewer tests than the floor.",
     "Each amended manifest records the amendment in-file with the authorizing decision record and a pending acknowledgement from its Integration Owner."
   ],
   "required_tests": [
@@ -164,7 +172,7 @@
     "Capability-profile validator for all declared role runs",
     "Synthetic-only repository secret scan",
     "Negative check that the previous glob missed test-kits/contracts and the corrected glob does not",
-    "Coverage-floor guard: rejects the superseded glob (76), an unquoted pattern (74), an empty suite (75), and a single-directory suite (77)"
+    "Coverage-floor guard and post-run executed-count floor: reject a neutralising wrapper (74), a check script that drops or reorders the guard and the runner (81), the superseded glob and a bare '**' inside a segment (74/76), an empty or below-floor suite (75), a single-directory suite (77), files declaring no test (78), a relocated test root (79), and a run whose reported executed count is below the floor (80)"
   ],
   "deterministic_commands": {
     "setup": [],
