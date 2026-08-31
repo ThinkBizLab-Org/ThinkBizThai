@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MIN_EXECUTED_TESTS, TEST_PATTERN } from './test-suite-contract.mjs';
+import { MIN_EXECUTED_TESTS, REQUIRED_TEST_NAMES, TEST_PATTERN } from './test-suite-contract.mjs';
 
 // `node --test` exits 0 while reporting `tests 0` whenever its pattern matches nothing,
 // so a passing exit code alone cannot distinguish "everything passed" from "nothing ran".
@@ -10,9 +10,36 @@ import { MIN_EXECUTED_TESTS, TEST_PATTERN } from './test-suite-contract.mjs';
 // A test can print `ℹ tests 9999` to stdout, and that line lands in the same stream this
 // floor audits. Independent integration verification demonstrated it. The runner emits its
 // real summary last, so take the LAST match, never the first.
-export function parseExecutedTests(output) {
-  const matches = [...output.matchAll(/^(?:ℹ|#) tests (\d+)$/gm)];
+function lastCount(output, label) {
+  const matches = [...output.matchAll(new RegExp(`^(?:ℹ|#) ${label} (\\d+)$`, 'gm'))];
   return matches.length > 0 ? Number(matches.at(-1)[1]) : null;
+}
+
+// `ℹ tests N` is pass + fail + skipped + todo. Independent review, security review and
+// independent testing each separately replaced the whole suite with `{ skip: true }`
+// placeholders whose bodies throw, and every floor reported PASSED on `tests N` while
+// `pass` was 0. The floor is asserted on `pass`, and a skipped or todo test fails the run.
+export function parseExecutedTests(output) {
+  return lastCount(output, 'pass');
+}
+
+export function parseSummary(output) {
+  return {
+    tests: lastCount(output, 'tests'),
+    pass: lastCount(output, 'pass'),
+    fail: lastCount(output, 'fail'),
+    skipped: lastCount(output, 'skipped'),
+    todo: lastCount(output, 'todo'),
+  };
+}
+
+export function assertNothingSkipped({ skipped, todo }) {
+  if (skipped === null || todo === null) {
+    throw new Error('could not read skipped/todo counts from the test runner output; refusing to report success');
+  }
+  if (skipped > 0 || todo > 0) {
+    throw new Error(`test runner reported ${skipped} skipped and ${todo} todo tests. A skipped test is counted by \`tests N\` while executing nothing, which is the defect class this repository's guards exist to prevent. Skips must be removed, not tolerated.`);
+  }
 }
 
 export function assertExecuted(executed, floor = MIN_EXECUTED_TESTS) {
@@ -20,24 +47,41 @@ export function assertExecuted(executed, floor = MIN_EXECUTED_TESTS) {
     throw new Error('could not read an executed-test count from the test runner output; refusing to report success');
   }
   if (executed < floor) {
-    throw new Error(`test runner executed ${executed} tests, below the required floor of ${floor}. A green run that executed nothing or less than the suite is the defect this floor exists to prevent.`);
+    throw new Error(`test runner PASSED ${executed} tests, below the required floor of ${floor}. A green run that executed nothing or less than the suite is the defect this floor exists to prevent.`);
+  }
+}
+
+// Identity, not quantity: these named tests must have actually run.
+export function assertRequiredTests(output, required = REQUIRED_TEST_NAMES) {
+  const missing = required.filter((name) => !output.includes(name));
+  if (missing.length > 0) {
+    const error = new Error(`the test runner output does not contain ${missing.length} required test name(s):\n  ${missing.join('\n  ')}\nCounting cannot tell six real tests from six trivial ones, so the suites that carry this repository's guarantees are pinned by name.`);
+    error.code = 84;
+    throw error;
   }
 }
 
 async function main() {
   const child = spawn(process.execPath, ['--test', TEST_PATTERN], { stdio: ['inherit', 'pipe', 'inherit'] });
   let output = '';
+  // Decode before concatenating. Buffer concatenation lets a chunk boundary inside the
+  // summary's 3-byte `ℹ` corrupt it, which hands the parser an earlier forged match --
+  // demonstrated by independent security review.
+  child.stdout.setEncoding('utf8');
   child.stdout.on('data', (chunk) => {
     output += chunk;
     process.stdout.write(chunk);
   });
   const code = await new Promise((resolveExit) => child.on('close', resolveExit));
   if (code !== 0) process.exit(code ?? 1);
+  const summary = parseSummary(output);
   try {
-    assertExecuted(parseExecutedTests(output));
+    assertNothingSkipped(summary);
+    assertExecuted(summary.pass);
+    assertRequiredTests(output);
   } catch (error) {
     console.error(error.message);
-    process.exit(80);
+    process.exit(error.code ?? 80);
   }
 }
 

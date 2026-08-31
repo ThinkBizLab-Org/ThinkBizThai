@@ -4,15 +4,16 @@ import test from 'node:test';
 import {
   assertCoverage,
   assertDeclaredTests,
+  assertGuardedScriptDigests,
+  stripNonCode,
   assertPackageScripts,
   countDeclaredTests,
   discoverTestFiles,
   globToRegExp,
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
-import { assertExecuted, parseExecutedTests } from '../scripts/run-test-suite.mjs';
-import { MIN_DECLARED_TESTS_BY_DIRECTORY } from '../scripts/test-suite-contract.mjs';
-import { GUARD_SCRIPT, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
+import { assertExecuted, assertNothingSkipped, assertRequiredTests, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
+import { GUARD_SCRIPT, GUARDED_SCRIPT_DIGESTS, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, REQUIRED_TEST_NAMES, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
 const files = [
@@ -106,9 +107,9 @@ test('a check script that drops the runner or the guard is rejected', () => {
 // quote-stripping hazard is designed out. The executed count is asserted after the run.
 test('a run that executed nothing is rejected even when the runner exits zero', () => {
   assert.equal(parseExecutedTests('ℹ tests 44\nℹ pass 44'), 44);
-  assert.equal(parseExecutedTests('# tests 12'), 12);
+  assert.equal(parseExecutedTests('# tests 12\n# pass 12'), 12);
   assert.equal(parseExecutedTests('no summary here'), null);
-  assert.throws(() => assertExecuted(parseExecutedTests('ℹ tests 0')), /executed 0 tests/);
+  assert.throws(() => assertExecuted(parseExecutedTests('ℹ tests 6\nℹ pass 0')), /PASSED 0 tests/);
   assert.throws(() => assertExecuted(null), /could not read an executed-test count/);
   assert.throws(() => assertExecuted(39, 40), /below the required floor/);
   assert.doesNotThrow(() => assertExecuted(44, 40));
@@ -167,7 +168,58 @@ test('swapping a protected suite for a placeholder is rejected even when the tot
 
 // A test can print a summary line into the very stream the post-run floor audits.
 test('a forged summary earlier in the stream cannot raise the executed count', () => {
-  assert.equal(parseExecutedTests('ℹ tests 9999\nℹ ok\nℹ tests 46'), 46);
-  assert.equal(parseExecutedTests('# tests 9999\n# tests 3'), 3);
-  assert.throws(() => assertExecuted(parseExecutedTests('ℹ tests 9999\nℹ tests 0')), /executed 0 tests/);
+  assert.equal(parseExecutedTests('ℹ pass 9999\nℹ ok\nℹ pass 46'), 46);
+  assert.equal(parseExecutedTests('# pass 9999\n# pass 3'), 3);
+  assert.throws(() => assertExecuted(parseExecutedTests('ℹ pass 9999\nℹ pass 0')), /PASSED 0 tests/);
+});
+
+// Independent review, security review and independent testing each separately replaced the
+// suite with `{ skip: true }` placeholders whose bodies throw. Every count-based floor
+// reported PASSED because `ℹ tests N` counts skipped tests. The floor now reads `pass`.
+test('a suite skipped into silence is rejected, not counted as executed', () => {
+  const skipped = 'ℹ tests 48\nℹ pass 0\nℹ fail 0\nℹ skipped 48\nℹ todo 0';
+  assert.deepEqual(parseSummary(skipped), { tests: 48, pass: 0, fail: 0, skipped: 48, todo: 0 });
+  assert.equal(parseExecutedTests(skipped), 0);
+  assert.throws(() => assertNothingSkipped(parseSummary(skipped)), /48 skipped/);
+  assert.throws(() => assertExecuted(parseExecutedTests(skipped)), /PASSED 0 tests/);
+  assert.throws(() => assertNothingSkipped(parseSummary('ℹ pass 5\nℹ skipped 0\nℹ todo 2')), /2 todo/);
+  assert.throws(() => assertNothingSkipped(parseSummary('nothing')), /could not read skipped\/todo/);
+  assert.doesNotThrow(() => assertNothingSkipped(parseSummary('ℹ pass 5\nℹ skipped 0\nℹ todo 0')));
+});
+
+// Counting cannot tell six real tests from six trivial ones, so the load-bearing suites
+// are pinned by name against the runner's own output.
+test('gutting a protected suite is caught by name even when every count still clears', () => {
+  const full = REQUIRED_TEST_NAMES.join('\n');
+  assert.doesNotThrow(() => assertRequiredTests(full));
+  const gutted = REQUIRED_TEST_NAMES.slice(1).join('\n');
+  assert.throws(() => assertRequiredTests(gutted), (error) => error.code === 84 && error.message.includes(REQUIRED_TEST_NAMES[0]));
+  assert.throws(() => assertRequiredTests('ok 1 - x\nok 2 - y'), (error) => error.code === 84);
+  assert.ok(REQUIRED_TEST_NAMES.length >= 10);
+});
+
+// A build script is editable by anyone who can edit the build script. This does not close
+// that; it makes the edit loud enough to be reviewed.
+test('editing a guarded script without updating its digest fails the run', async () => {
+  await assert.doesNotReject(() => assertGuardedScriptDigests());
+  await assert.rejects(
+    () => assertGuardedScriptDigests({ 'scripts/run-test-suite.mjs': 'deadbeef'.repeat(8) }),
+    (error) => error.code === 86 && /run-test-suite\.mjs/.test(error.message),
+  );
+  assert.ok(Object.keys(GUARDED_SCRIPT_DIGESTS).length >= 2);
+});
+
+// Padding a suite with `test(` inside comments or template literals cleared the floor.
+test('declaration counting ignores comments, template literals and strings', () => {
+  const padded = ['/* test("a", () => {}); */', 'const t = `test(`;', 'test("real", () => {});', '// test("c")'].join('\n');
+  assert.equal(countDeclaredTests(padded), 1);
+  assert.equal(stripNonCode('/* x */ const a = 1;').includes('x'), false);
+  assert.equal(countDeclaredTests('test("a", () => {});\nawait test("b", () => {});'), 2);
+});
+
+// The directory floor was pinned in its own commit while the executed floor was not:
+// lowering MIN_EXECUTED_TESTS from 40 to 1 passed the entire check.
+test('the executed-test floor and the directory floor are both pinned', () => {
+  assert.ok(MIN_EXECUTED_TESTS >= 40, `MIN_EXECUTED_TESTS must not be lowered below 40, found ${MIN_EXECUTED_TESTS}`);
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
 });

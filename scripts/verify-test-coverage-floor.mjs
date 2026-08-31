@@ -5,12 +5,15 @@ import { fileURLToPath } from 'node:url';
 import {
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
+  GUARDED_SCRIPT_DIGESTS,
   MIN_DECLARED_TESTS_BY_DIRECTORY,
+  MIN_TEST_DIRECTORIES,
   MIN_TEST_FILES,
   RUNNER_SCRIPT,
   TEST_PATTERN,
   TEST_ROOT,
 } from './test-suite-contract.mjs';
+import { createHash } from 'node:crypto';
 
 // A green `npm run check` must never mean "executed nothing".
 // `node --test <pattern>` exits 0 with `tests 0` when the pattern matches no file,
@@ -88,14 +91,32 @@ export function assertPackageScripts(scripts) {
 
 // A floor on files alone is gameable: eight files declaring no test at all satisfy it
 // while the runner executes nothing. Count declared `test(...)` calls too.
+// A raw line-anchored regex counted `test(` inside block comments, line comments and
+// template literals -- independent review and independent testing each padded a suite that
+// way and cleared the floor. Strip those regions before counting.
+export function stripNonCode(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, '')
+    .replace(/`(?:\\[\s\S]|[^\\`])*`/g, (match) => match.replace(/[^\n]/g, ' '))
+    .replace(/'(?:\\.|[^\\'\n])*'/g, "''")
+    .replace(/"(?:\\.|[^\\"\n])*"/g, '""');
+}
+
 export function countDeclaredTests(source) {
-  return (source.match(/^\s*(?:await\s+)?test\s*\(/gm) ?? []).length;
+  return (stripNonCode(source).match(/^\s*(?:await\s+)?test\s*\(/gm) ?? []).length;
 }
 
 export async function discoverTestFiles(directory, root = directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(entries.map(async (entry) => {
     const entryPath = join(directory, entry.name);
+    // `isFile()` is false for a symlink, but `node --test` follows and EXECUTES one.
+    // Independent security review placed a symlinked payload resolving outside the test
+    // root: it ran, and the guard reported clean. A test root must contain no symlink.
+    if (entry.isSymbolicLink()) {
+      throw new CoverageFloorError(85, `symbolic link inside the test root: ${entryPath}. node --test follows and executes it while file-type discovery does not see it, so a symlink can run code the guard never inspected.`);
+    }
     if (entry.isDirectory()) return discoverTestFiles(entryPath, root);
     return entry.isFile() && entry.name.endsWith('.test.mjs') ? [entryPath] : [];
   }));
@@ -112,8 +133,8 @@ export function assertCoverage(pattern, files, floor = DEFAULT_FLOOR) {
     throw new CoverageFloorError(76, `test:bootstrap pattern '${pattern}' does not match ${unmatched.length} discovered test file(s): ${unmatched.join(', ')}. These would silently never run.`);
   }
   const directories = new Set(files.map((file) => file.split('/').slice(0, -1).join('/')));
-  if (directories.size < 2) {
-    throw new CoverageFloorError(77, `expected test files in at least two directories under test-kits/, found only: ${[...directories].join(', ')}. A pattern that stops descending into subdirectories is the WP-0A-A0-002 defect class.`);
+  if (directories.size < MIN_TEST_DIRECTORIES) {
+    throw new CoverageFloorError(77, `expected test files in at least ${MIN_TEST_DIRECTORIES} directories under test-kits/, found only: ${[...directories].join(', ')}. A pattern that stops descending into subdirectories is the WP-0A-A0-002 defect class.`);
   }
 }
 
@@ -148,13 +169,32 @@ export async function assertDeclaredTests(files, floor = DECLARED_TEST_FLOOR, by
   return total;
 }
 
+// The guard pins the command string; nothing pins the BEHAVIOUR of the file that command
+// runs. Independent review gutted main() to `return`, kept the exports, and npm run check
+// exited 0 having executed nothing. That cannot be eliminated from inside a script the same
+// commit can edit -- so this does not claim to close it. It makes the edit loud: changing a
+// guarded script fails the run until its digest here is deliberately updated, which is a
+// reviewable diff rather than a silent one.
+export async function assertGuardedScriptDigests(digests = GUARDED_SCRIPT_DIGESTS) {
+  const drifted = [];
+  for (const [file, expected] of Object.entries(digests)) {
+    const actual = createHash('sha256').update(await readFile(file, 'utf8')).digest('hex');
+    if (actual !== expected) drifted.push(`${file}\n    expected sha256 ${expected}\n    actual   sha256 ${actual}`);
+  }
+  if (drifted.length > 0) {
+    throw new CoverageFloorError(86, `guarded script(s) changed without updating GUARDED_SCRIPT_DIGESTS in scripts/test-suite-contract.mjs:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the test-integrity scripts explicit and reviewable.`);
+  }
+}
+
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
   const pattern = assertPackageScripts(manifest.scripts);
+  await assertGuardedScriptDigests();
   let files;
   try {
     files = await discoverTestFiles(testDirectory);
   } catch (error) {
+    if (error instanceof CoverageFloorError) throw error;
     // A missing or relocated test root must fail as this guard's own error, not as an
     // unhandled ENOENT whose non-numeric `code` bypasses the numeric exit path below.
     throw new CoverageFloorError(79, `cannot read the test root '${testDirectory}': ${error.message}. A relocated or deleted test root must fail the run, not silently execute nothing.`);
