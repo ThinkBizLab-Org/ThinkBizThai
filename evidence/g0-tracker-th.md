@@ -38,10 +38,10 @@ Tracker นี้ทำหน้าที่เป็น index ของหล�
 | Acceptance requirement | Current state | Evidence / blocker |
 |---|---|---|
 | Canonical protocol bootstrap และ deterministic CI | `complete for committed bootstrap` | Commit `3c8e025`, `899c2bb`; [Draft PR #1](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/1); CI passes at runs `33335381144` and `33335718109` |
-| A1–A6 representative review | `partial` | A1 review/security evidence exists; A2 asks for capability-routing remediation; A3/A4/A6 approve within narrow scope; A5 requests a real Product/UX approval assignment. These reviews are not PO approval. |
+| A1–A6 representative review | `partial` | A1 review/security evidence exists; A3/A4/A6 approve within narrow scope; [A5 independent Product/UX bootstrap review](WP-0A-A0-001/review-product-ux-A5-assigned.md) is now assigned and approved. A2 capability-routing remediation and cross-vendor evidence remain open. These reviews are not PO approval. |
 | Capability declaration routing | `partial` | See `.agents/capability-profiles/`; declarations are conservative and not a cross-vendor benchmark. A2/A3/A4 capability declarations remain unrecorded by their own runs. |
 | Cross-vendor manifest-to-handoff dry run | `open` | All recorded reviews are same-vendor environment. A distinct vendor execution (for example, Claude) with real run evidence is required; do not simulate it. |
-| Product Owner approval | `complete for Sprint 0A baseline` | Product Owner baseline approval is recorded at `evidence/WP-0A-A0-001/product-owner-baseline-approval.md`; `product_reviewer_agent_run_id` remains `null`, so a distinct Product/UX review assignment is still open and A5 cannot substitute for a Product Owner. |
+| Product Owner approval | `complete for Sprint 0A baseline` | Product Owner baseline approval is recorded at `evidence/WP-0A-A0-001/product-owner-baseline-approval.md`; the distinct A5 Product/UX review is recorded at `evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md`. The two approvals remain distinct. |
 | Protected branch / required CI | `manual_fallback_in_review; G0 blocker remains` | RFC-2026-002 proposes branch + Draft PR, green CI, independent evidence, owner merge, and reviewed revert only; follow the provisional process for any proposed merge while its required evidence is completed. GitHub Actions runs are available, but this is not native enforcement; GitHub API still requires a supported plan for protected branches on this private repository. |
 
 ## Known non-blocking maintenance annotation

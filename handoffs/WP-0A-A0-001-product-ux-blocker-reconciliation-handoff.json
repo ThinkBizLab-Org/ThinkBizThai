@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "fe346f9be2e62b88c98185981372825b294b4ac5",
+  "head_revision_or_patch_checksum": "Reconcile Product Owner/A5 approval evidence and remaining A0 blockers; commit pending",
+  "task_ids": ["a0-product-ux-blocker-reconciliation"],
+  "files_added": ["handoffs/WP-0A-A0-001-product-ux-blocker-reconciliation-handoff.json"],
+  "files_modified": ["evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["Product Owner approval and independent A5 Product/UX review are distinct completed bootstrap evidence items.", "Cross-vendor evidence and native protected CI remain unresolved; the manual RFC is procedural only."],
+  "acceptance_results": [
+    {
+      "criterion": "A0/G0 tracker statements match committed Product Owner and A5 evidence without overstating G0 or RFC status.",
+      "result": "pass by source-linked reconciliation; independent review pending"
+    },
+    {
+      "criterion": "Only already-resolved Product Owner/Product-UX blockers are removed; current external blockers remain explicit.",
+      "result": "pass by manifest/tracker inspection; independent review pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed before final independent review"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean before final independent review"
+    }
+  ],
+  "security_privacy_cost_impact": "Tracker/manifest/handoff metadata only. No secret, customer data, provider credential, schema, external call, billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, contract, database, provider, or production change. A0 remains in_review and Gate G0 remains pending.",
+  "known_limitations": ["The A5 review is bootstrap-only and cannot substitute for later Thai-SME usability evidence.", "Manual merge control does not satisfy protected CI."],
+  "open_risks_or_blockers": ["A real cross-vendor protocol dry run remains required.", "The recorded GitHub API response requires GitHub Pro or a public repository before native branch protection is available; legal/provider/usability/storage and other source-listed G0 evidence remain open."],
+  "rollback_or_forward_fix": "Revert this metadata-only commit or issue a reviewed forward correction; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["Obtain a genuine cross-vendor protocol report and independently record it.", "Do not set CON-00 Ready or start provider/schema/customer-data work until source-defined dependencies and gates are satisfied."],
+  "reviewer_instructions": ["Verify every completed claim has the linked Product Owner or A5 evidence and their authority remains distinct.", "Verify current GitHub plan/protection and cross-vendor facts are not hidden or relabeled as complete.", "Confirm no work-package/G0/RFC status advancement is implied."]
+}

@@ -141,6 +141,7 @@
       "handoffs/WP-0A-A0-001-product-owner-baseline-approval-handoff.json",
       "handoffs/WP-0A-A0-001-manual-merge-control-handoff.json",
       "handoffs/WP-0A-A0-001-product-ux-assignment-handoff.json",
+      "handoffs/WP-0A-A0-001-product-ux-blocker-reconciliation-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
@@ -210,8 +211,7 @@
   "rollback_or_forward_fix": "Revert the bootstrap-only commit; no persisted data or external state is created.",
   "open_blockers": [
     "Cross-vendor protocol dry run is required for G0 evidence and cannot be represented by a placeholder.",
-    "Repository branch protection requires an authorized repository administrator.",
-    "Product Owner approval and a real Product/UX approval assignment are required; an A5 representative dry run is not a substitute.",
+    "Native repository branch protection remains unavailable: the recorded GitHub API response requires GitHub Pro or a public repository; RFC-2026-002 is procedural only.",
     "Capability declarations and benchmark references must map real agent runs to required skill profiles before later packages become Ready."
   ],
   "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
