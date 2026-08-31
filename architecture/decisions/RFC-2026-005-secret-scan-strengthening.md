@@ -288,3 +288,68 @@ to disable the step.
 - This RFC does not approve Gate G0, does not authorize a merge, and does not
   substitute for the independent Reviewer, Tester, Security, or Integration Owner
   evidence RFC-2026-002 requires.
+
+
+---
+
+## Independent security review, and what an uncorrelated corpus measured
+
+The 12/12 and 17/17 figures recorded above were real but **sample-correlated**: both
+decoy sets were derived from the same two earlier probes, so they measured whether
+the known-past failures were fixed, not whether the scanner is good.
+
+Independent security review built **56 decoys deliberately outside those families**
+and measured **19 detected / 37 missed**:
+
+| Group | Detected |
+|---|---|
+| Cloud and platform vendors (GCP, Firebase, Twilio, SendGrid, Mailgun, Shopify, Cloudflare, DigitalOcean, Vault, GitLab, Atlassian, K8s) | 4 / 19 |
+| **Meta and Stripe — this project's own G0 blockers** | **3 / 8** |
+| Private-key header variants | 7 / 9 |
+| Credential-carrying file formats (`.npmrc`, `.netrc`, `.pgpass`, docker auths, K8s `stringData`) | 1 / 8 |
+| Encoding and layout evasion | 4 / 12 |
+
+That is the honest number, and it is recorded in place of the flattering one.
+
+### Fixed in response
+
+A bare Meta page or system-user token (`EAA…`) and a Stripe restricted key (`rk_…`)
+both passed. Those are the two credentials most likely to reach *this* repository,
+since Meta and Stripe are its named G0 blockers. Added, with GCP service-account
+private keys, Twilio SID+token pairs, SendGrid, Cloudflare tokens, `.npmrc`
+`_authToken`, `.netrc` passwords, Kubernetes service-account tokens and Vault
+tokens.
+
+Two rule-shape defects were also found and fixed: `secret-named-assignment` could
+not match a **glued** uppercase identifier such as `PGPASSWORD`, because the
+optional prefix group had to end in `_`; and the `PGP ` alternative in the
+private-key rule was **dead**, since a real armoured block reads
+`PGP PRIVATE KEY BLOCK`.
+
+### Confirmed sound by that review
+
+Fail-closed holds across twenty cases, including dangling symlinks, symlinks
+outside the tree, character devices, unix sockets and hard links — the original
+fail-open read is gone. The Thai national-ID mod-11 checksum is correct **in both
+directions**, verified over 20,000 valid and 180,000 invalid numbers. The PII
+exemption cannot be exploited by a sibling path (`evidence-of-nothing/`,
+`evidenceX/`, `docs/evidence/`, `../evidence/` are all non-exempt) and no credential
+rule is relaxed by it. False positives: **0 of 18** legitimate-content cases fired.
+
+### Recorded, not fixed
+
+- **A Thai juristic-person tax ID has the identical 13-digit mod-11 form** and is
+  reported as `thai-national-id`. Roughly 9.45% of arbitrary 13-digit runs will
+  fire. This is a false-positive class the earlier analysis omitted.
+- `node_modules/` and `.git/` are skipped entirely, so a **vendored** `node_modules`
+  at any depth is invisible to the scan.
+- A declared-binary extension holding a non-ASCII-encoded credential is silently
+  clean.
+- **Git history is still unscanned.**
+
+### The limitation that does not go away
+
+A pattern scanner cannot prove absence of secrets. 19/56 against an uncorrelated
+corpus is a more honest number than 12/12 against a correlated one, and it is still
+a measurement of one reviewer's imagination, not of coverage. Every number in this
+RFC is a regression test against failures somebody thought to look for.

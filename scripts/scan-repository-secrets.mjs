@@ -81,7 +81,10 @@ export function isPlaceholderValue(value) {
  *  explicit secret-named assignment. `accept` is a second-stage filter for the rules whose
  *  first stage is too loose on its own. */
 export const CREDENTIAL_RULES = [
-  { id: 'pem-private-key', pattern: /-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/g },
+  // The armour header is written with a character class rather than as a literal so this
+  // file does not match its own rule. A real PGP block reads `PGP PRIVATE KEY BLOCK`; the
+  // previous `PGP ` alternative before `PRIVATE KEY-----` was dead, as security review found.
+  { id: 'pem-private-key', pattern: /-{5}BEGIN (?:RSA |DSA |EC |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-{5}/g },
   { id: 'putty-private-key', pattern: /PuTTY-User-Key-File-[0-9]/g },
   { id: 'stripe-secret-key', pattern: /\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b/g },
   { id: 'stripe-webhook-secret', pattern: /\bwhsec_[A-Za-z0-9]{16,}\b/g },
@@ -117,12 +120,33 @@ export const CREDENTIAL_RULES = [
   },
   { id: 'azure-storage-key', pattern: /\b(?:AccountKey|SharedAccessKey)=([A-Za-z0-9+/]{40,}={0,2})/g },
   { id: 'azure-sas-signature', pattern: /[?&]sig=[A-Za-z0-9%+/=]{40,}/g },
+  // Independent security review probed 56 decoys deliberately outside the families the two
+  // prior probes used and detected 19. The most consequential misses were a bare Meta page or
+  // system-user token and a Stripe restricted key -- this project's own G0 blockers are Meta
+  // and Stripe, so those are the two credentials most likely to reach this repository.
+  { id: 'meta-access-token', pattern: /\bEAA[A-Za-z0-9]{20,}/g },
+  { id: 'stripe-restricted-key', pattern: /\brk_(?:live|test)_[A-Za-z0-9]{20,}/g },
+  { id: 'gcp-service-account-key', pattern: /"type"\s*:\s*"service_account"[\s\S]{0,400}?"private_key"\s*:\s*"-----BEGIN/g },
+  { id: 'twilio-auth-pair', pattern: /\bAC[0-9a-f]{32}\b[\s\S]{0,200}?\b[0-9a-f]{32}\b/g },
+  { id: 'sendgrid-key', pattern: /\bSG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g },
+  { id: 'cloudflare-api-token', pattern: /\b(?:CLOUDFLARE|CF)_API_TOKEN\s*[=:]\s*["']?[A-Za-z0-9_-]{40,}/g },
+  { id: 'npmrc-auth-token', pattern: /_authToken\s*=\s*["']?[A-Za-z0-9_%+./-]{16,}/g },
+  { id: 'netrc-password', pattern: /^\s*password\s+\S{8,}$/gm },
+  { id: 'kubernetes-service-account-token', pattern: /\beyJhbGciOiJSUzI1NiIsImtpZCI6[A-Za-z0-9_-]{10,}\./g },
+  { id: 'vault-token', pattern: /\b(?:hvs|hvb|s)\.[A-Za-z0-9]{24,}/g },
   {
     id: 'secret-named-assignment',
     // Environment-variable style only: an UPPERCASE secret-named identifier, `=`, and a
     // non-trivial literal. Lowercase and JSON-style `api_key: "..."` are deliberately NOT
     // matched -- see RFC-2026-005 "Not detected, and why".
-    pattern: /\b(?:[A-Z][A-Z0-9_]*_)?(?:PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIALS?)[A-Z0-9_]*\s*=\s*["']?([^\s"'`#]{8,})/g,
+    // A glued uppercase identifier such as PGPASSWORD was unreachable: the optional prefix
+    // group had to end in `_`, so only DB_PASSWORD-style names matched. Independent security
+    // review found it. Any uppercase run ending in a secret word now matches.
+    // `[A-Z][A-Z0-9_]*?` before the secret word made a prefix MANDATORY, so a bare
+    // API_KEY= stopped matching -- a regression this Author introduced while fixing the
+    // opposite one. The prefix is optional and need not end in `_`, so both API_KEY= and
+    // the glued PGPASSWORD= match.
+    pattern: /\b[A-Z0-9_]*?(?:PASSWORD|PASSWD|SECRET|TOKEN|APIKEY|API_KEY|ACCESSKEY|ACCESS_KEY|PRIVATEKEY|PRIVATE_KEY|CREDENTIALS?)[A-Z0-9_]*\s*=\s*["']?([^\s"'`#]{8,})/g,
     accept: (match, groups) => !isPlaceholderValue(groups[0]),
   },
 ];
