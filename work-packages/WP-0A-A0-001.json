@@ -82,6 +82,7 @@
       "scripts/validate-capability-profiles.mjs",
       "scripts/validate-work-package-role-separation.mjs",
       "scripts/validate-work-packages.mjs",
+      "scripts/validate-work-package-ownership.mjs",
       "scripts/verify-toolchain.mjs",
       "test-kits/capability-profile.test.mjs",
       "test-kits/first-integration-slice-fixture-plan.md",
@@ -90,6 +91,7 @@
       "test-kits/secret-scan.test.mjs",
       "test-kits/toolchain-contract.test.mjs",
       "test-kits/work-package-discovery.test.mjs",
+      "test-kits/work-package-ownership.test.mjs",
       "work-packages/WP-0A-A0-001.json"
     ],
     "read_only_paths": ["README.md", "docs/**"],
@@ -182,6 +184,7 @@
     "JSON syntax validation for all .agents schemas and JSON manifests",
     "Node-only role-separation validator for every Ready-or-later JSON manifest",
     "Node-only capability-profile validator that requires declarations for every Ready-or-later role run",
+    "Node-only ownership validator that requires exact declared outputs, writable-path coverage, and no cross-package output collision",
     "Node-only synthetic secret-pattern scan of repository candidate files",
     "Pinned Node/npm version and npm clean-install verification",
     "Link and protocol-version consistency check",

@@ -12,6 +12,6 @@
     "check": "node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap",
     "scan:secrets": "node scripts/scan-repository-secrets.mjs",
     "test:bootstrap": "node --test test-kits/*.test.mjs",
-    "validate:protocol": "node scripts/validate-work-packages.mjs && node scripts/validate-capability-profiles.mjs"
+    "validate:protocol": "node scripts/validate-work-packages.mjs && node scripts/validate-capability-profiles.mjs && node scripts/validate-work-package-ownership.mjs"
   }
 }
