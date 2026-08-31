@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-002",
+  "title": "Shared-kernel envelope contracts and catalog reference integrity",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": ["architecture-contracts"],
+    "reviewer": ["architecture-contracts"],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback - it is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
+  },
+  "accountable_owners": ["A0"],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-004 before the manual merge described in RFC-2026-002"
+  ],
+  "purpose": "Close defect D3 - two committed catalog $refs that resolve to a path which does not exist, on the two Candidate envelopes that carry every domain event and background job - behind a standing CI guard, and materialize three Draft shared-kernel contracts from the Sprint 0A baseline without inventing contract semantics or advancing any freeze level.",
+  "scope": {
+    "include": [
+      "A standing catalog reference-integrity guard: every external $ref resolves on disk, no $ref escapes the catalog, every manifest-declared file exists, every fixture on disk is declared",
+      "Correction of the two broken tenant_context $refs in CTR-EVT-001 and CTR-JOB-001, recorded in-file",
+      "CTR-API-001, CTR-PAG-001 and CTR-IDM-001 schema, manifest and synthetic valid/invalid fixtures",
+      "Deterministic acceptance and negative-case tests for all three new contracts"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, contract-catalog/shared-kernel/index.json, production schema, migrations, RLS implementation, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
+    ]
+  },
+  "decisions_consumed": ["DEC-010", "DEC-011", "DEC-021", "DEC-022", "DEC-023", "DEC-025"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001"],
+  "contracts_produced": ["CTR-API-001, CTR-PAG-001, CTR-IDM-001 materialized at Draft only; no freeze-level advancement"],
+  "dependencies": {
+    "required_work_packages": ["WP-0A-A0-001", "WP-0A-CON-001", "WP-0A-A0-002"],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
+      "contract-catalog/shared-kernel/ctr-api-001/**",
+      "contract-catalog/shared-kernel/ctr-pag-001/**",
+      "contract-catalog/shared-kernel/ctr-idm-001/**",
+      "test-kits/contracts/catalog-reference-integrity.test.mjs",
+      "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
+      "work-packages/WP-0A-CON-002.json",
+      "evidence/WP-0A-CON-002/**",
+      "handoffs/WP-0A-CON-002-*.json"
+    ],
+    "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "AGENTS.md", "CLAUDE.md", "contract-catalog/README.md", "contract-catalog/shared-kernel/index.json", "package.json", "package-lock.json", ".github/**"],
+    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**"],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "contract-catalog/shared-kernel/ctr-evt-001/schema.json - correct tenant_context $ref from ../../ctr-ten-001/schema.json to ../ctr-ten-001/schema.json and record x-amended-by (RFC-2026-004 decision 2). Corrective, not anticipatory: the reference is broken today.",
+      "contract-catalog/shared-kernel/ctr-job-001/schema.json - same correction and record (RFC-2026-004 decision 2)."
+    ]
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/plans/module-contracts-events-jobs-workstream-th.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
+      "contract-catalog/shared-kernel/ctr-api-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-api-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/valid-success.json",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/valid-error.json",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/valid-accepted.json",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-success-with-error.json",
+      "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-public-status-ref.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-first-page-request.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-next-page-request.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-page-result.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-last-page-result.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-decodable-offset-cursor.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-unstable-sort-without-tiebreaker.json",
+      "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-page-size-over-max.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-in-progress.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-completed-replay.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-failed.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-scope-missing-workspace.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-payload-hash-format.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-completed-without-result-ref.json",
+      "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-public-result-ref.json",
+      "test-kits/contracts/catalog-reference-integrity.test.mjs",
+      "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
+      "work-packages/WP-0A-CON-002.json",
+      "evidence/WP-0A-CON-002/author-self-check.md",
+      "handoffs/WP-0A-CON-002-author-handoff.json"
+    ],
+    "contracts": ["CTR-API-001 (Draft)", "CTR-PAG-001 (Draft)", "CTR-IDM-001 (Draft)"]
+  },
+  "acceptance_criteria": [
+    "The reference-integrity guard fails on the pre-fix tree naming both offending files and the paths they resolve to, and passes after the correction. The guard was written before the fix.",
+    "Every external $ref in every catalog schema resolves to a file that exists, and no $ref escapes contract-catalog/.",
+    "Every cataloged entry cites its baseline Contract ID, owner, version, status and source references without inventing contract semantics.",
+    "All fixtures are synthetic, with at least two valid and two negative cases per contract; every valid fixture is accepted and every negative fixture is rejected.",
+    "No valid fixture carries a public URL in status_ref, deep_link_ref, result_ref or input_ref.",
+    "The index still reports 4 Candidate and 10 Draft after materialization: materializing a Draft contract does not promote it.",
+    "The cross-package correction is limited to the two $ref string literals plus an x-amended-by record, and changes no field, semantics, version or freeze level.",
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 and the executed-test floor is met."
+  ],
+  "required_tests": [
+    "Catalog $ref resolvability against disk, and no $ref escaping the catalog",
+    "Manifest-declared schema and fixtures exist; every fixture on disk is declared",
+    "Draft status preserved for all three new contracts and in the index",
+    "Valid/invalid fixture acceptance for CTR-API-001, CTR-PAG-001 and CTR-IDM-001",
+    "Negative cases: success payload carried together with an error, decodable offset cursor, sort without a tiebreaker, idempotency scope missing workspace, payload-hash format, completed without result_ref, public reference leakage",
+    "Repository protocol, ownership, role-separation, capability and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check"],
+    "package_evidence": [
+      "node --test test-kits/contracts/catalog-reference-integrity.test.mjs",
+      "node --test test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-CON-002.json"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores the two broken $refs exactly and removes the three Draft contract directories and both new test files. No persisted data, provider state, credential, migration or customer-data effect exists.",
+  "open_blockers": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "The cross-package correction to two WP-0A-CON-001 outputs requires an acknowledgement countersigned by that package's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session. Both schemas record acknowledgement_status: pending.",
+    "This package depends on WP-0A-A0-002, which is itself unmerged and whose RFC-2026-003 is Proposed. Without it the ownership validator rejects this package's paths and CI does not execute the contract tests at all.",
+    "CTR-API-001 auth rules, OpenAPI generation (API-006) and optimistic-concurrency preconditions (API-004) are declared out of scope and remain open before freeze; the cursor encoding and signing algorithm for CTR-PAG-001 and the idempotency store, lock strategy and retention window for CTR-IDM-001 are likewise deliberately unspecified.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+}
