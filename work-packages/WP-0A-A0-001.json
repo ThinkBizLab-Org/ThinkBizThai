@@ -19,7 +19,7 @@
     "tester_agent_run_id": "/root/q0_sentinel",
     "integration_owner_agent_run_id": "/root/r0_steward",
     "security_reviewer_agent_run_id": "/root/a1_bastion",
-    "product_reviewer_agent_run_id": null
+    "product_reviewer_agent_run_id": "/root/a5_loom"
   },
   "independence": {
     "no_self_approval": true,
@@ -140,6 +140,7 @@
       "handoffs/WP-0A-A0-001-ownership-boundary-handoff.json",
       "handoffs/WP-0A-A0-001-product-owner-baseline-approval-handoff.json",
       "handoffs/WP-0A-A0-001-manual-merge-control-handoff.json",
+      "handoffs/WP-0A-A0-001-product-ux-assignment-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
@@ -159,6 +160,7 @@
       "test-kits/work-package-discovery.test.mjs",
       "evidence/WP-0A-A0-001/author-self-check.md",
       "evidence/WP-0A-A0-001/product-owner-baseline-approval.md",
+      "evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md",
       "evidence/WP-0A-A0-001/review-security-verdict.md",
       "evidence/WP-0A-A0-001/test-verdict.md",
       "handoffs/WP-0A-A0-001-integration-verdict.md",

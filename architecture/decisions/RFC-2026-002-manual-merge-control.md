@@ -49,6 +49,11 @@ This RFC requires independent technical review, security review, tester replay,
 Integration Owner verification, and CI before it may be treated as an integrated
 repository procedure.
 
+Bootstrap-only Product/UX evidence is recorded in
+`evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md`. It resolves the
+conditional Product/UX routing ambiguity for that bootstrap scope only; it does
+not approve this RFC, a merge, Gate G0, or later user-facing implementation.
+
 ## Explicit limitations
 
 Manual control is procedural, not technical enforcement. It cannot satisfy the

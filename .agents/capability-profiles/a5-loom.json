@@ -23,7 +23,7 @@
     "does_not_have_product_owner_authority": true,
     "does_not_have_external_test_accounts_or_secrets": true,
     "does_not_claim_cross_vendor_or_G0_approval": true,
-    "current_assignment": "Read-only/dry-run review of WP-0A-A0-001; no work package accepted for implementation."
+    "current_assignment": "Assigned independent Product/UX reviewer for WP-0A-A0-001; no implementation package accepted."
   },
   "accepted_work_package": null
 }

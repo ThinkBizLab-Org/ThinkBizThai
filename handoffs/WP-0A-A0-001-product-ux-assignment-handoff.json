@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "ae82f2fbd1b236685c6eab68ac8345f8a471ac01",
+  "head_revision_or_patch_checksum": "A5 Product/UX reviewer assignment and verdict linkage; commit pending",
+  "task_ids": ["a0-product-ux-reviewer-assignment"],
+  "files_added": ["evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md", "handoffs/WP-0A-A0-001-product-ux-assignment-handoff.json"],
+  "files_modified": [".agents/capability-profiles/a5-loom.json", "architecture/decisions/RFC-2026-002-manual-merge-control.md", "handoffs/WP-0A-A0-001-manual-merge-control-handoff.json", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["A5 is assigned only as an independent Product/UX reviewer and cannot replace Product Owner approval.", "The A5 verdict is recorded in evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md and is limited to bootstrap-only scope."],
+  "acceptance_results": [
+    {
+      "criterion": "WP-0A-A0-001 names a real capability-declared Product/UX reviewer distinct from its Author.",
+      "result": "pass by manifest/profile assignment and A5 independent bootstrap-only approval"
+    },
+    {
+      "criterion": "The manual merge control has a linked, bounded Product/UX verdict without claiming Product Owner/G0 approval.",
+      "result": "pass by linked A5 verdict; independent Security/QA/Integration review pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed before final independent review"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean before final independent review"
+    }
+  ],
+  "security_privacy_cost_impact": "Role metadata and review evidence only. No secret, customer data, provider credential, schema, external call, billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, contract, database, provider, or production change. A0 remains in_review and G0 remains pending.",
+  "known_limitations": ["A5 cannot act as Product Owner or provide usability evidence for later UI work.", "Cross-vendor and native protected-branch G0 evidence remain unresolved."],
+  "open_risks_or_blockers": ["The RFC remains in review and manual controls do not satisfy native protected CI/G0.", "Cross-vendor and remaining source-listed G0 evidence remain unresolved."],
+  "rollback_or_forward_fix": "Revert this metadata-only change or issue a reviewed forward correction; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["Record the A5 verdict, then independently review/test/integrate the assignment change.", "Do not start CON-00 or alter G0 from this reviewer assignment."],
+  "reviewer_instructions": ["Verify A5's exact run ID/profile and independence from the Author.", "Verify the verdict remains bounded to Product/UX governance and does not substitute for Product Owner/G0 approval.", "Confirm current package status remains in_review and no external/provider action is introduced."]
+}
