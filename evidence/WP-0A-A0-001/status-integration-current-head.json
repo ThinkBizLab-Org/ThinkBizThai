@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root/r0_steward",
+  "status": "integration_verified",
+  "base_revision": "d1e754f728eabc0772f7288d9d08968aaa3d6b07",
+  "branch_or_worktree": "agent/root/WP-0A-A0-001-repository-bootstrap",
+  "started_at": "2026-08-31T07:31:25Z",
+  "updated_at": "2026-08-31T07:31:25Z",
+  "completed_task_ids": [
+    "REP-00-current-head-integration-reconciliation",
+    "REP-00-current-head-canonical-check",
+    "REP-00-current-head-remote-ci-reconciliation"
+  ],
+  "current_task_id": "REP-00-integration-verified-subject-d1e754f",
+  "files_changed": [
+    "handoffs/WP-0A-A0-001-integration-current-head.md",
+    "evidence/WP-0A-A0-001/status-integration-current-head.json",
+    "work-packages/WP-0A-A0-001.json"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
+  "contracts_proposed_or_changed": [],
+  "tests_run": [
+    {
+      "command": "zsh -lc 'cd /Users/bank/ThinkBizThai && npm run check'",
+      "exit_code": 0,
+      "result": "Pinned Node v24.20.0/npm 11.19.0; 26 tests passed."
+    },
+    {
+      "command": "git show --check d1e754f728eabc0772f7288d9d08968aaa3d6b07",
+      "exit_code": 0,
+      "result": "Exact subject revision is whitespace-clean."
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation run 33367537907",
+      "exit_code": 0,
+      "result": "Success for d1e754f728eabc0772f7288d9d08968aaa3d6b07; bootstrap job duration 15 seconds.",
+      "run_url": "https://github.com/ThinkBizLab-Org/ThinkBizThai/actions/runs/33367537907"
+    }
+  ],
+  "open_risks": [
+    "The status/evidence commit itself requires its own fresh CI before any proposed merge under RFC-2026-002.",
+    "The GitHub Actions pinned-action Node 20 deprecation annotation remains a non-fatal release-engineering maintenance item."
+  ],
+  "blockers": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; the manifest's native branch-protection, capability, and other external G0 blockers remain open.",
+    "This record does not grant merge, production, provider, credential, legal/PDPA/accounting, or release authority."
+  ],
+  "next_action": "Keep the Draft PR unmerged. Obtain fresh green CI for the status/evidence commit and follow RFC-2026-002 for any later Product Owner merge decision; continue the source-defined G0 evidence work."
+}
