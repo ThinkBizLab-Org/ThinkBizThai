@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/root/a1_bastion",
+  "vendor": "OpenAI",
+  "model": "runtime model identifier not exposed",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": false,
+    "can_use_browser": true,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": false,
+    "supported_languages": ["javascript", "json", "markdown"]
+  },
+  "limitations": {
+    "declaration_origin": "Declared by /root/a1_bastion on 2026-08-31; transcribed by A0 because that run could not write .agents.",
+    "scope": "Repository-local security and protocol review only.",
+    "unavailable_tools": ["external network", "browser control", "Git index/worktree management", "external secrets", "Production credentials"],
+    "approval_limit": "Does not provide Product Owner, legal, tax, accounting, external-provider, protected-branch, RFC, or G0 approval."
+  },
+  "accepted_work_package": null
+}

@@ -86,9 +86,11 @@
       "CLAUDE.md",
       ".agents/",
       ".agents/role-profiles/",
+      ".agents/capability-profiles/",
       "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
       "handoffs/WP-0A-A0-001-author-handoff.json",
       "handoffs/WP-0A-A0-001-post-ci-status-handoff.json",
+      "handoffs/WP-0A-A0-001-representative-dry-run-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
@@ -104,6 +106,12 @@
       "evidence/WP-0A-A0-001/status-reviewer-security.json",
       "evidence/WP-0A-A0-001/status-tester.json",
       "evidence/WP-0A-A0-001/status-integration.json",
+      "evidence/WP-0A-A0-001/role-review-A2-compass.md",
+      "evidence/WP-0A-A0-001/role-review-A3-forge.md",
+      "evidence/WP-0A-A0-001/role-review-A4-vault.md",
+      "evidence/WP-0A-A0-001/role-review-A5-loom.md",
+      "evidence/WP-0A-A0-001/role-review-A6-relay.md",
+      "evidence/g0-tracker-th.md",
       "test-kits/first-integration-slice-fixture-plan.md"
     ],
     "contracts": []
@@ -137,7 +145,9 @@
   "rollback_or_forward_fix": "Revert the bootstrap-only commit; no persisted data or external state is created.",
   "open_blockers": [
     "Cross-vendor protocol dry run is required for G0 evidence and cannot be represented by a placeholder.",
-    "Repository branch protection requires an authorized repository administrator."
+    "Repository branch protection requires an authorized repository administrator.",
+    "Product Owner approval and a real Product/UX approval assignment are required; an A5 representative dry run is not a substitute.",
+    "Capability declarations and benchmark references must map real agent runs to required skill profiles before later packages become Ready."
   ],
   "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
 }

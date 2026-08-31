@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/root/q0_sentinel",
+  "vendor": "OpenAI",
+  "model": "Codex (GPT-5)",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": false,
+    "supported_languages": ["JSON", "Markdown", "JavaScript", "Shell"]
+  },
+  "limitations": {
+    "declaration_origin": "Declared by /root/q0_sentinel on 2026-08-31; transcribed by A0 because that run could not write .agents.",
+    "network_access": "Limited to approved tools; direct terminal access to the GitHub API was unavailable during this run.",
+    "external_secrets": "No access to external secrets, credentials, or production configuration.",
+    "release_authority": "Cannot approve RFCs, G0, merge, release, branch protection, legal, PDPA, tax, accounting, or production credentials.",
+    "verification_scope": "Can provide independent local test evidence only; remote CI and provider evidence must be independently verified from their authoritative systems.",
+    "role_independence": "Must remain distinct from the Author, Reviewer, and Integration Owner for any work package it tests."
+  },
+  "accepted_work_package": null
+}

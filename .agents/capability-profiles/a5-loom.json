@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "agent_run_id": "/root/a5_loom",
+  "vendor": "OpenAI",
+  "model": "GPT-5 (exact runtime variant not exposed)",
+  "protocol_version": "1.0.0",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": [
+      "markdown",
+      "json",
+      "thai"
+    ]
+  },
+  "limitations": {
+    "review_scope": "Thai mobile UX, accessibility, approval/calendar/notification presentation, and product-UX evidence routing",
+    "does_not_have_product_owner_authority": true,
+    "does_not_have_external_test_accounts_or_secrets": true,
+    "does_not_claim_cross_vendor_or_G0_approval": true,
+    "current_assignment": "Read-only/dry-run review of WP-0A-A0-001; no work package accepted for implementation."
+  },
+  "accepted_work_package": null
+}

@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "899c2bbd1eeaa80a775e8aff49da579d43face45",
+  "head_revision_or_patch_checksum": "representative-review and capability-evidence candidate; commit pending",
+  "task_ids": ["representative-role-dry-run", "capability-declaration-remediation", "g0-tracker-index"],
+  "files_added": [
+    ".agents/capability-profiles/README.md",
+    ".agents/capability-profiles/a0-atlas.json",
+    ".agents/capability-profiles/a1-bastion.json",
+    ".agents/capability-profiles/a5-loom.json",
+    ".agents/capability-profiles/a6-relay.json",
+    ".agents/capability-profiles/q0-sentinel.json",
+    ".agents/capability-profiles/r0-steward.json",
+    "evidence/WP-0A-A0-001/role-review-A2-compass.md",
+    "evidence/WP-0A-A0-001/role-review-A3-forge.md",
+    "evidence/WP-0A-A0-001/role-review-A4-vault.md",
+    "evidence/WP-0A-A0-001/role-review-A5-loom.md",
+    "evidence/WP-0A-A0-001/role-review-A6-relay.md",
+    "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-representative-dry-run-handoff.json"
+  ],
+  "files_modified": ["work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-008", "DEC-016", "DEC-017", "DEC-019", "DEC-020", "DEC-021", "DEC-023", "DEC-025"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "The representative reviews are repository-local, credential-free dry runs and are not substitutes for Product Owner or external-expert approval.",
+    "All available capability declarations state OpenAI as vendor; role-review evidence does not establish a different vendor, so no cross-vendor evidence exists.",
+    "A1 and Q0 capability declarations were transcribed only from values those runs explicitly supplied because their filesystem scope could not write .agents."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "A1-A6 representative concerns are reviewed against REP-00 bootstrap scope.",
+      "result": "partial: A1 evidence pre-exists; A2-A6 reviews added. A2 requests capability-routing remediation and A5 requests real Product/UX assignment."
+    },
+    {
+      "criterion": "Real capability declarations can be used for routing future work.",
+      "result": "partial: declarations exist for A0, A1, A5, A6, Q0, and R0; they are conservative declarations, not a complete cross-vendor or skill-benchmark record. A2-A4 declarations remain unrecorded."
+    },
+    {
+      "criterion": "A G0 tracker indexes current evidence and external decisions without replacing source-of-truth plans.",
+      "result": "pass: evidence/g0-tracker-th.md references the readiness report and retains all open external blockers."
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "14 tests passed; deterministic scan and manifest validation passed"
+    },
+    {
+      "command": "Node capability-profile invariant check",
+      "exit_code": 0,
+      "result": "all present profile JSON files contain required fields, protocol 1.0.0, and can_access_external_secrets=false"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean"
+    }
+  ],
+  "security_privacy_cost_impact": "Evidence-only. No provider credential, customer data, production configuration, billing operation, publish operation, migration, or object-storage operation is added. Capability declarations explicitly deny external-secret access.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No application or API compatibility change. The tracker describes existing gate state only.",
+  "known_limitations": [
+    "The current environment contains only one evidenced agent vendor; this cannot satisfy the cross-vendor dry-run requirement.",
+    "A2, A3, and A4 did not produce their own machine-readable capability declarations; their representative reviews are advisory evidence, not routing-benchmark proof.",
+    "No Product Owner or assigned Product/UX approval is recorded; the manifest remains in_review."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-001 and OPEN-018 remain in review.",
+    "Product Owner decision, actual second-vendor dry run, and protected branch/required-CI evidence remain required for REP-00 P0 acceptance.",
+    "All external G0 items recorded in evidence/g0-tracker-th.md remain open, including Meta, Stripe, legal/PDPA/accounting, usability, skincare, and storage lifecycle evidence."
+  ],
+  "rollback_or_forward_fix": "Revert this evidence-only commit if any declaration or review provenance is incorrect. Do not delete or alter the source-of-truth Sprint 0A documents; issue a reviewed forward correction for any inaccurate tracker entry.",
+  "recommended_next_work_packages": [
+    "Run an actual second-vendor manifest-to-handoff dry run and record its capability declaration and evidence.",
+    "Obtain Product Owner and administrator evidence before advancing REP-00 or assigning a domain package to ready.",
+    "Keep external-provider work credential-free until its named test-account package and expert approvals are available."
+  ],
+  "reviewer_instructions": [
+    "Check that each capability declaration is tied to a real run and does not overstate tools, secrets access, vendor diversity, or approval authority.",
+    "Check that the G0 tracker is an index of existing source-of-truth requirements, not a replacement plan or approval record.",
+    "Confirm that the manifest remains in_review and that all incomplete P0/G0 requirements are explicit."
+  ]
+}
