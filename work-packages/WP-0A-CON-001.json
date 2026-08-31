@@ -5,7 +5,7 @@
   "title": "CON-00 Canonical shared contracts and fixture catalog",
   "gate": "G0",
   "priority": "P0",
-  "status": "in_review",
+  "status": "integration_verified",
   "required_skill_profiles": {
     "author": ["architecture-contracts"],
     "reviewer": ["architecture-contracts"],
@@ -89,7 +89,12 @@
       "contract-catalog/shared-kernel/ctr-job-001/examples/valid.json",
       "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-max-attempts.json",
       "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
-      "handoffs/WP-0A-CON-001-author-catalog-handoff.json"
+      "handoffs/WP-0A-CON-001-author-catalog-handoff.json",
+      "evidence/WP-0A-CON-001/review-contract-f28fb8e.md",
+      "evidence/WP-0A-CON-001/review-security-f28fb8e.md",
+      "evidence/WP-0A-CON-001/test-f28fb8e.md",
+      "evidence/WP-0A-CON-001/integration-f28fb8e.md",
+      "evidence/WP-0A-CON-001/status-integration-f28fb8e.json"
     ],
     "contracts": []
   },

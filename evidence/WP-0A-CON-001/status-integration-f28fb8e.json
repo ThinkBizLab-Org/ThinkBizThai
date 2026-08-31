@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-001",
+  "agent_run_id": "/root/r0_steward",
+  "status": "integration_verified",
+  "base_revision": "f28fb8e32d007e2e4efc4c212ddcddc8766b2fac",
+  "branch_or_worktree": "agent/root/WP-0A-CON-001-contract-catalog",
+  "started_at": "2026-08-31T13:05:20Z",
+  "updated_at": "2026-08-31T13:05:20Z",
+  "completed_task_ids": [
+    "CON-00-exact-subject-integration-reconciliation",
+    "CON-00-exact-subject-canonical-check",
+    "CON-00-exact-subject-contract-suite",
+    "CON-00-exact-subject-remote-ci-reconciliation"
+  ],
+  "current_task_id": "CON-00-integration-verified-subject-f28fb8e",
+  "files_changed": [
+    "evidence/WP-0A-CON-001/review-contract-f28fb8e.md",
+    "evidence/WP-0A-CON-001/review-security-f28fb8e.md",
+    "evidence/WP-0A-CON-001/test-f28fb8e.md",
+    "evidence/WP-0A-CON-001/integration-f28fb8e.md",
+    "evidence/WP-0A-CON-001/status-integration-f28fb8e.json",
+    "work-packages/WP-0A-CON-001.json"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
+  "contracts_proposed_or_changed": [],
+  "tests_run": [
+    {
+      "command": "zsh -lc 'cd /Users/bank/ThinkBizThai && npm run check'",
+      "exit_code": 0,
+      "result": "Pinned Node v24.20.0/npm 11.19.0; 26 tests passed."
+    },
+    {
+      "command": "zsh -lc 'cd /Users/bank/ThinkBizThai && node --test test-kits/contracts/*.test.mjs'",
+      "exit_code": 0,
+      "result": "6 catalog/fixture contract tests passed."
+    },
+    {
+      "command": "git show --check f28fb8e32d007e2e4efc4c212ddcddc8766b2fac",
+      "exit_code": 0,
+      "result": "Exact subject revision is whitespace-clean."
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation run 33394758212",
+      "exit_code": 0,
+      "result": "Success for f28fb8e32d007e2e4efc4c212ddcddc8766b2fac; bootstrap job duration 15 seconds.",
+      "run_url": "https://github.com/ThinkBizLab-Org/ThinkBizThai/actions/runs/33394758212"
+    }
+  ],
+  "open_risks": [
+    "The status/evidence commit requires fresh exact-head CI before any later proposed merge under RFC-2026-002.",
+    "The GitHub Actions pinned-action Node 20 deprecation annotation remains a non-fatal release-engineering maintenance item."
+  ],
+  "blockers": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; the manifest's G0 blockers remain open.",
+    "This record does not grant contract-freeze, merge, production, provider, credential, legal/PDPA/accounting, Product Owner, or release authority."
+  ],
+  "next_action": "Keep Draft PR #2 unmerged. Obtain fresh green CI for this status/evidence commit and follow RFC-2026-002 for any later Product Owner merge decision; continue the source-defined G0 evidence work."
+}
