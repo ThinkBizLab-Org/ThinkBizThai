@@ -77,14 +77,31 @@ export function assertPackageScripts(scripts) {
   if (typeof check !== 'string') {
     throw new CoverageFloorError(74, 'package.json must declare a check script');
   }
-  const missing = ['npm run verify:coverage-floor', 'npm run test:bootstrap'].filter((step) => !check.includes(step));
-  if (missing.length > 0) {
-    throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')}; a guard that is not wired into check protects nothing. Found: ${check}`);
+  // `String.includes` plus an index comparison is not enough. Independent testing changed
+  // one character -- `&& npm run test:bootstrap` to `|| npm run test:bootstrap` -- and both
+  // checks still passed while `||` short-circuited, so `npm run check` exited 0 having run
+  // no test, with every protected file and the manifest byte-identical. `# &&` and
+  // `&& echo` do the same. The chain is therefore parsed structurally.
+  const steps = check.split('&&').map((step) => step.trim());
+  if (steps.some((step) => step.length === 0)) {
+    throw new CoverageFloorError(81, `check contains an empty step; every step must be a real command joined by &&. Found: ${check}`);
   }
-  const guardAt = check.indexOf('npm run verify:coverage-floor');
-  const runnerAt = check.indexOf('npm run test:bootstrap');
-  if (guardAt > runnerAt) {
+  for (const forbidden of ['||', ';', '|', '#', '&']) {
+    // `&` is checked after splitting on `&&`, so any surviving `&` is a background operator.
+    if (steps.some((step) => step.includes(forbidden))) {
+      throw new CoverageFloorError(81, `check must be a plain && chain: '${forbidden}' would let a step be skipped, backgrounded, or commented out while this guard still saw the text. Found: ${check}`);
+    }
+  }
+  const required = ['npm run verify:coverage-floor', 'npm run test:bootstrap'];
+  const missing = required.filter((step) => !steps.includes(step));
+  if (missing.length > 0) {
+    throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')} as its own && step; a guard that is not wired into check protects nothing. Found: ${check}`);
+  }
+  if (steps.indexOf('npm run verify:coverage-floor') > steps.indexOf('npm run test:bootstrap')) {
     throw new CoverageFloorError(81, 'check must run verify:coverage-floor before test:bootstrap so a broken declaration fails fast.');
+  }
+  if (steps.at(-1) !== 'npm run test:bootstrap') {
+    throw new CoverageFloorError(81, `check must END with npm run test:bootstrap so nothing can follow and mask its exit code. Found: ${check}`);
   }
   return TEST_PATTERN;
 }

@@ -132,3 +132,101 @@ checking. Round 7's probing was run entirely in sandbox copies outside the repos
   `scripts/verify-toolchain.mjs` and the other validators are still undigested is
   accepted and left for the Integration Owner to scope; the guard now covers the
   test-integrity surface, not the whole toolchain.
+
+---
+
+# Round 7 testing — one character, and a class the digest cannot reach
+
+`/claude/q0_sentinel` returned `test_failed` against `c631c07` on a finding the
+Author had not looked for.
+
+## The finding
+
+`package.json` was not in the integrity manifest, and `assertPackageScripts`
+validated the `check` chain with `String.includes` plus an index comparison.
+Changing one character — `&& npm run test:bootstrap` to
+`|| npm run test:bootstrap` — satisfied both checks, `||` short-circuited, and
+**`npm run check` exited `0` having executed zero tests**, with all twelve
+protected files and the manifest byte-identical. `# &&` and `&& echo` did the
+same. Because `.github/workflows/ci.yml` runs `npm run check` as its only
+validation step, that one character also turns CI green.
+
+This was **not** the disclosed unclosable digest class — it needed no digest
+edit — and it was the same manifest-byte-identical class the Author had declared
+closed one round earlier. Second time the Author has over-claimed a closure.
+
+## Fixed
+
+The chain is now parsed structurally rather than substring-matched: split on
+`&&`, reject any empty step, reject `||`, `;`, `|`, `#`, or a surviving `&`
+inside a step, require both `npm run verify:coverage-floor` and
+`npm run test:bootstrap` to be their own steps in that order, and require the
+chain to **end** with the runner so nothing can follow and mask its exit code.
+
+Verified in a sandbox copy outside the repository:
+
+| Injected `check` | Exit |
+|---|---|
+| `&&` → `\|\|` before the runner | **1** — `check must be a plain && chain` |
+| runner commented out with `#` | **2** |
+| `&& echo ok` appended after the runner | **81** — `check must END with npm run test:bootstrap` |
+| `;` instead of `&&` | **1** |
+| runner piped to `true` | **81** |
+| unmodified | `0`, 56/56 |
+
+The manifest also grew from 13 files to **22**, now covering `package.json`,
+`.github/workflows/ci.yml`, `.node-version`, and every validator script — the
+whole surface that decides whether the suite runs, not only the suites.
+
+## One variant is NOT fixed, and cannot be fixed here
+
+A **trailing `&`** — `... && npm run test:bootstrap &` — backgrounds the entire
+chain. The shell returns `0` immediately, so `npm run check` exits `0` no matter
+what any step later concludes. Measured both ways:
+
+| | Exit |
+|---|---|
+| trailing `&`, digest **not** updated | **0** |
+| trailing `&`, digest updated | **0** |
+
+The guard detects the violation and prints it; its exit code is simply discarded,
+because the process exit status was decided before it ran. **The integrity digest
+does not help here at all** — this is a different class from the digest class, and
+a stronger one: no control inside the scripts that `check` invokes can constrain
+the exit status of the command that invokes them.
+
+The fix belongs to the caller: `.github/workflows/ci.yml` should run
+`node scripts/verify-test-coverage-floor.mjs` as its own workflow step instead of
+relying on `npm run check` alone. That file is owned by WP-0A-A0-001 and is
+read-only to this package, so it is **referred to the Integration Owner under the
+RFC path rather than changed here**. `ci.yml` is now digested, so the omission is
+at least visible. Recorded as `open_blockers[2]`.
+
+## Confirmed honest
+
+The Tester was asked to verify, not assume, the two rows the Author says still
+pass. It confirmed them — six trivial tests, six bodyless tests, and gutting the
+runner's `main()` all still exit `0` when the digest is updated — and confirmed
+the Author did **not** overstate elsewhere: `{ skip: true }` with the digest
+updated still fails `80`, and `console.log` of names still fails `78`.
+
+It also confirmed the round-7 controls hold: no TOCTOU in the post-run re-walk
+(all four variants failed closed), no file that `node --test` executes which
+discovery misses (discovery is a strict superset, and the asymmetry runs the safe
+way), and `assertNoEscapingPath` survived sibling-prefix, symlinked-checkout,
+case-variant and hard-link attacks.
+
+## Accepted, inside the disclosed class
+
+The declared-vs-executed reconciliation (`88`) can be defeated by **exact
+compensation**: five `test(` lines inside a never-called function (counted, never
+executed) plus one lexical `for (const n of [...six...]) test(n, ...)` (counted
+once, executes six) cancel to declared 6 = executed 6. It compares two integers,
+not two identities. Every *unbalanced* variant failed closed with a distinct code
+(`82`, `88`, `78`, `1`). This attack requires editing a digested test file, so it
+sits inside the disclosed digest class; the reconciliation's error text
+nonetheless over-promises and is recorded here as approximate rather than exact.
+
+One scanner miscount also remains: a nested template literal containing a
+backtick inside `${...}` invents a phantom declaration — 18 of 19 adversarial
+inputs correct.

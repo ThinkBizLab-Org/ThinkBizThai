@@ -87,8 +87,35 @@ test('any wrapper that could neutralise the runner is rejected', () => {
   }
 });
 
-// Independent review showed the guard protected nothing if `check` simply stopped
-// invoking it, or stopped invoking the runner.
+// Independent testing changed one character -- `&&` to `||` before the runner -- and the
+// substring check still passed while `||` short-circuited: npm run check exited 0 having
+// executed no test, with every protected file byte-identical. The chain is parsed now.
+test('a check script that could skip, comment out, or mask a step is rejected', () => {
+  const base = 'node scripts/verify-toolchain.mjs && npm run validate:protocol && npm run verify:coverage-floor';
+  for (const check of [
+    `${base} || npm run test:bootstrap`,
+    `${base} ; npm run test:bootstrap`,
+    `${base} && # npm run test:bootstrap`,
+    `${base} && npm run test:bootstrap | true`,
+    `${base} && npm run test:bootstrap &`,
+    `${base} && npm run test:bootstrap && echo masked`,
+    `${base} &&  && npm run test:bootstrap`,
+  ]) {
+    assert.throws(() => assertPackageScripts(okScripts({ check })), (error) => error.code === 81, `expected rejection: ${check}`);
+  }
+  assert.doesNotThrow(() => assertPackageScripts(okScripts({ check: `${base} && npm run test:bootstrap` })));
+});
+
+// Everything that decides whether the suite runs must be digested, not only the suites.
+test('the manifest covers the whole decision surface, not just the test files', async () => {
+  const manifest = JSON.parse(await readFile(INTEGRITY_MANIFEST, 'utf8'));
+  for (const required of ['package.json', '.github/workflows/ci.yml', 'scripts/verify-toolchain.mjs', 'scripts/test-suite-contract.mjs']) {
+    assert.ok(required in manifest.files, `${required} decides whether the suite runs and must be digested`);
+  }
+  assert.ok(Object.keys(manifest.files).length >= 20);
+  assert.match(manifest.note, /no self-anchor/i);
+});
+
 test('a check script that drops the runner or the guard is rejected', () => {
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'node scripts/verify-toolchain.mjs && npm run verify:coverage-floor' })),
