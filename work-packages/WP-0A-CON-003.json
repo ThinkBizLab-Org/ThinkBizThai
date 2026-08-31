@@ -84,7 +84,8 @@
       "contract-catalog/shared-kernel/ctr-flg-001/**",
       "work-packages/WP-0A-CON-003.json",
       "evidence/WP-0A-CON-003/**",
-      "handoffs/WP-0A-CON-003-*.json"
+      "handoffs/WP-0A-CON-003-*.json",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs"
     ],
     "read_only_paths": [
       "README.md",
@@ -97,7 +98,6 @@
       "package.json",
       "package-lock.json",
       ".github/**",
-      "test-kits/**",
       "scripts/**"
     ],
     "forbidden_paths": [
@@ -111,7 +111,10 @@
     "module_ids": [
       "MOD-000"
     ],
-    "migration_reservations": []
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "test-kits/integrity-manifest.json \u2014 add this package's new test file and recompute digests. The WP-0A-A0-002 guard REQUIRES every discovered test file to be digested (exit 87), so any package adding a suite must touch that file. This is a structural coupling created by that guard, not a discretionary edit: the alternative is that the package cannot ship a test at all. It changes no digest policy and no other package's entry."
+    ]
   },
   "inputs": {
     "files": [
@@ -124,26 +127,42 @@
   "outputs": {
     "files": [
       "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-business-overrides-kill-switch.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-default-deny-allows.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-kill-switch-allows.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-missing-required-reason-key.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-over-100.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-without-bucket.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-reason-key-free-text.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-scopes-out-of-order.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-owner.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-write-disabled-without-history.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-default-deny.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-explicit-allow.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-kill-switch-preserves-history.json",
       "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-percentage-bucket.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-temporary-with-expiry.json",
       "contract-catalog/shared-kernel/ctr-flg-001/manifest.json",
       "contract-catalog/shared-kernel/ctr-flg-001/schema.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-blocked-without-missing.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-data-policy.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-required-permissions.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-unknown-reason.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-permissioned-without-declarations.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-ready-without-activation.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-secret-handle-shape.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-semver.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-unknown-classification.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json",
       "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-ready.json",
       "contract-catalog/shared-kernel/ctr-mod-001/manifest.json",
       "contract-catalog/shared-kernel/ctr-mod-001/schema.json",
-      "work-packages/WP-0A-CON-003.json",
-      "evidence/WP-0A-CON-003/author-self-check.md"
+      "evidence/WP-0A-CON-003/author-self-check.md",
+      "evidence/WP-0A-CON-003/review-contract.md",
+      "evidence/WP-0A-CON-003/review-security.md",
+      "evidence/WP-0A-CON-003/test-verdict.md",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs",
+      "work-packages/WP-0A-CON-003.json"
     ],
     "contracts": [
       "CTR-MOD-001 (Draft)",
@@ -151,14 +170,16 @@
     ]
   },
   "acceptance_criteria": [
-    "Every fixture is validated against its own shipped schema.json by the WP-0A-CON-002 subset validator, not by a hand-written predicate.",
+    "Every fixture is validated against its own shipped schema.json by the subset validator, and every protected constraint is killed by at least one declared fixture \u2014 a constraint no fixture can kill is documentation.",
     "Every rule in both schemas carries an x-source naming the baseline task it comes from; no rule is present without one.",
     "MR-004 deny-by-default is expressed in the contract: a module cannot be `ready` unless activation readiness explicitly succeeded, and a `blocked` module must record what was missing.",
     "FP-002 is expressed in the contract: a kill switch is a platform-scope deny, and disabling write preserves historical read.",
     "A secret handle is an opaque reference; no literal credential appears in any fixture.",
     "Both manifests declare in untestable_by_fixture the properties a single document cannot demonstrate, rather than reading as if they were materialized.",
     "The index still reports 4 Candidate and 10 Draft: materializing a Draft contract does not promote it.",
-    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero."
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
+    "Every rule states whether it is sourced verbatim from a named task or is a declared inference, and every citation names the correct document section.",
+    "Each obligation has its own counterexample: a fixture that violates two rules at once tests neither independently."
   ],
   "required_tests": [
     "Schema conformance for both contracts via the subset validator",
@@ -186,10 +207,13 @@
   "rollback_or_forward_fix": "Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
   "open_blockers": [
     "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
-    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
-    "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across MULTIPLE manifests; a single-document fixture cannot demonstrate either. Declared in untestable_by_fixture and NOT claimed as materialized.",
-    "FP-003 stable allocation and FP-002 deterministic precedence are evaluator properties over repeated inputs, not properties of one decision document. Declared in untestable_by_fixture.",
+    "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
+    "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
+    "Not one of the nine catalog contracts has a fixture that kills its root required list \u2014 every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "The ENFORCEMENT half of FP-002 \u2014 that a narrower scope cannot override a live platform kill switch \u2014 cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
+    "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
     "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
+    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],

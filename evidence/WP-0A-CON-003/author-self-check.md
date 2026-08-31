@@ -112,3 +112,96 @@ accepts it`. The fixture was restored and the suite returned to 70/70.
 - The `x-source` annotations are prose. A reviewer must check that each one
   actually says what the cited task says; the validator only guarantees that
   `x-` keywords constrain nothing.
+
+---
+
+# Correction round — schema-first stopped the drift, it did not make the rules tested
+
+All three independent runs reported on `2649401`: Reviewer `changes_requested`,
+Tester `test_verified_with_conditions`, Security `security_approved_with_conditions`.
+
+**Correction first: this document previously reported `npm run check` as 70/70.
+The tree at `2649401` is 85/85.** The number was written before rebasing onto the
+real base and never re-verified. Both the Reviewer and Security caught it
+independently. It is corrected here rather than overwritten.
+
+## The finding that matters most
+
+Independent testing mutation-tested the catalog — delete a constraint, re-run every
+declared fixture, see whether any verdict flips — and found **84 of 92 constraint
+sites in CTR-MOD-001 and 65 of 77 in CTR-FLG-001 exercised by no fixture at all**.
+Five schema-weakening deletions passed green at 85/85, including deleting the
+**PT-010 `secret_handles` credential pattern**.
+
+So the claim this package was built on — "written schema-first, passed conformance
+on the first run" — was true and nearly worthless. Writing rules into the schema
+stopped them drifting into test predicates, which was the CON-002 defect. It did
+nothing whatsoever to make them **tested**. A constraint no fixture can kill is
+documentation with a colon in it.
+
+Closed by `test-kits/contracts/schema-mutation-coverage.test.mjs`, which deletes
+each protected constraint and requires a declared fixture to change verdict. It
+reproduced the reported gaps exactly on first run — five unkilled sites — and six
+counterexample fixtures were added to close them. Verified by re-deleting the
+`secret_handles` pattern: the suite now fails naming the file.
+
+Running the root-`required` check catalog-wide found something broader: **not one
+of the nine contracts has a fixture that kills its root `required` list** — every
+negative fixture fails for some other reason first. Seven of those contracts belong
+to other packages, so the check is scoped to the two this package owns and the
+catalog-wide finding is recorded as an open blocker and escalated.
+
+## Reviewer findings, all accepted
+
+| Finding | Correction |
+|---|---|
+| `module_id` and `owner_role` cite "§5.1 module registry" — **§5.1 is Contract Freeze Levels; the registry is §4.2** | Verified against the source and corrected in both the schema and `source_references` |
+| `lifecycle` overstates: MR-005 names four **hooks**, the schema ships six **state labels** that appear nowhere in the workstream doc; "MR-004 … with a reason" — MR-004 says nothing about a reason | Both now declared inferences, with the reason requirement re-sourced to MR-006 |
+| `readiness.missing` **drops `scope`** (which MR-004 names) and **adds `dependency`** (which it does not) | `scope` restored, `dependency` removed; `permission` and `health` declared as inferences from MR-004's Inputs |
+| `tenant-data` classification — **zero hits across `docs/`** | Declared as this contract's own term |
+| The semver pattern rejects `1.0.0-rc.1`, a **valid** semver, narrower than MR-001 and §5.5 | Full semver including prerelease and build metadata |
+| `module_id` accepts `MOD-999` while the annotation claims MOD-000..MOD-140 | Pattern now matches the claim |
+| `reason_key`: the inference was declared but over-reached — **CTR-ERR-001's `message_key` has no pattern at all** | Annotation corrected to say the shape is inferred, not supplied |
+| `policy_key` and `decided_at` carry **no `x-source`**, so the package's own acceptance criterion was unmet | Both now carry one |
+| `evaluated_scopes` claims to fix precedence **order** but fixed membership only, and `untestable_by_fixture` disclaimed a property that **is** expressible | Now an in-order prefix enum; the manifest distinguishes the expressible order half from the inexpressible enforcement half |
+
+## Rules that looked enforced and were not
+
+- **`"missing": []` on a blocked module was accepted** — the `then` required the key
+  but set no `minItems`, while the `x-rule` read as closed. Found independently by
+  the Reviewer and the Tester. Fixed.
+- **`default_deny` and `explicit_deny` with `effect: allow` were accepted** — only
+  `kill_switch` was linked to an effect. All five rule values are now linked.
+- **A reversed `evaluated_scopes`, and a platform kill switch claiming platform was
+  never evaluated, were accepted.** Fixed by the prefix enum.
+
+## Security findings
+
+- **`secret_handles` is shape theatre, and the two controls compose into nothing.**
+  Security probed four handle-shaped payloads against both the schema and the
+  repository secret scanner: **the only one the scanner catches is the one the
+  schema already rejects; everything the schema admits is invisible to the
+  scanner.** That intersection is the sharpest result of the session. It is recorded
+  as an open blocker and has been relayed to the run authoring CTR-SEC-001.
+- **CTR-MOD-001 (owner A0) fixed the syntax of a contract chartered to CTR-SEC-001
+  (owner A0+A1) with no RFC.** Recorded as an ownership conflict requiring A1, who
+  is not in this session. Not resolved here.
+- **Self-declared `permissioned-data` accepted with only two of the four
+  declarations `CONTRIBUTING_AGENTS.md` mandates**, and with `tenant_scoped: false`.
+  Now requires classification, consent, retention, redaction and tenant scoping.
+- `lifecycle.readiness.reason` was unconstrained free text on the MR-006
+  support-visible path. Now a stable key, citing CTR-ERR-001 as precedent.
+
+## Corrections the Author made to the reviews
+
+Two claims were wrong and were sent back to their own runs rather than edited here:
+
+- Security stated that `npm run check` role-separation-checks only
+  `WP-0A-A0-001.json`. Measured: breaking role separation in CON-003 gives exit
+  **67**. That run re-verified independently, withdrew the finding, and recorded how
+  it reached it.
+- The Tester stated that both `&&`→`||` and a trailing `&` fail open. Measured:
+  `||` exits **1**; only the trailing `&` exits `0`, which is the disclosed
+  unclosable case.
+
+`npm run check`: 85 → **87**, skipped 0, todo 0.
