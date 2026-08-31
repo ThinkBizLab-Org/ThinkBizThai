@@ -264,3 +264,80 @@ first package to state it rather than inherit it silently.
   so it has not been rebased onto whatever the live branch now contains. A stacked
   branch that has not been rebased does not see its own integration; that is the
   failure WP-0A-CON-002 hit at exit 87.
+
+---
+
+## Independent review, and the correction that had to be un-un-made
+
+`/claude/c0_contract_reviewer` returned `changes_requested`. It verified all 28
+cited task ids resolve to real rows and found **no invented id and no §5.1
+citation** — the CON-003 defect does not recur. Six citations were wrong, and one
+of them mattered more than the rest.
+
+**M3 — the same error CTR-MOD-001 had already corrected, in the same catalog.**
+CTR-OBS-001 wrote "MR-004 makes activation deny-by-default **with a reason**".
+MR-004 says nothing about a reason. CTR-MOD-001 states this explicitly two
+directories away: *"MR-004 does not mention a reason; requiring one is inferred
+from MR-006."* Writing the uncorrected form again un-makes that correction and
+leaves two contracts in one catalog disagreeing about what a cited task says.
+Corrected, and the annotation now points at CTR-MOD-001's record so the next
+author finds the reasoning rather than repeating the mistake.
+
+**M6 — `correlation.trace_id` had no `x-source` at all**, while its four siblings
+had one. That falsifies this package's headline claim that no rule ships without a
+source. It is now a declared inference: the register names "propagation" and OB-001
+requires one trace across retry, worker and adapter, but **neither names a
+`trace_id` field**.
+
+**M1** — `dependencies.status` cited an alert row as distinguishing a degraded
+provider from an unavailable one. The row reads "degraded provider, queue delay,
+one format unavailable" and draws no such distinction; `healthy` appears in no
+source at all. Now a declared inference. **M2** — "readiness" is in the register
+row's *name* column, not among its freeze artifacts. **M4** — SEC-009 requires
+actor and correlation, not a reason. **M5** — the legal note speaks to legal, tax
+and incident-notification periods, not retention periods.
+
+## Mutation coverage: the number the fixtures did not move
+
+The reviewer ran its own mutation probe over every constraint site:
+
+| Contract | Sites | Killed | Coverage |
+|---|---:|---:|---:|
+| CTR-SEC-001 | 81 | 13 | **16.0 %** |
+| CTR-AUD-001 | 67 | 13 | **19.4 %** |
+| CTR-OBS-001 | 89 | 14 | **15.7 %** |
+
+The same 10–16 % band CON-003 sat in **before** fixtures were added for it. The 31
+fixtures this package shipped did not move it, and this document's claim that
+coverage was "proven by mutation" was wrong in a specific way worth naming: it
+mutated three **fixtures**, not constraints. The acceptance criterion as written was
+met; the prose over-generalised from it.
+
+The sites it named as defended by nothing are now defended:
+
+- **Five of six `redaction` const-true surfaces** — while `freeze_boundary` said the
+  contract "materializes exactly" that PT-010/SEC-012 requirement. One
+  counterexample per surface, six in all.
+- **SEC-009's six action categories** — the package's best citation, tested by
+  nothing.
+- **The whole `dependencies` subtree**, so M1's enum was tested by nothing.
+
+Protected sites in `schema-mutation-coverage.test.mjs`: 7 → **16**.
+
+## The two judgements
+
+**Adopting CTR-MOD-001's handle pattern: correct call, wrong framing.** The
+reviewer agreed a second syntax would break composition, but pointed out there is
+no live ownership *dispute* — CTR-MOD-001 already concedes in-schema that
+CTR-SEC-001 is the chartered owner. Re-describing a conceded placeholder as an
+unresolved conflict is what keeps it authoritative in the wrong file for another
+cycle. The open items are ratification and an issuance format, and they are named
+as such.
+
+**Declaring the weakness rather than faking strength: honest engineering.** No
+shape rule separates a reference from its referent, and a tighter pattern would
+look stronger with identical zero coverage. The reviewer's sharpest line is the
+one worth keeping: *"the category doesn't launder; the omission does"* — the
+contract was scrupulous about the control it labels weak and silent about the
+redaction constants it presents as strong. That silence is what the six new
+fixtures close.
