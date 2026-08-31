@@ -6,6 +6,8 @@ import {
   assertCoverage,
   assertDeclaredTests,
   assertIntegrityManifest,
+  assertEveryTestFileProtected,
+  assertNoEscapingPath,
   stripNonCode,
   assertPackageScripts,
   countDeclaredTests,
@@ -13,7 +15,7 @@ import {
   globToRegExp,
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
-import { assertExecuted, assertNothingSkipped, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
+import { assertDeclarationsMatchExecution, assertExecuted, assertNothingSkipped, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
 import { GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
@@ -212,10 +214,28 @@ test('the manifest protects the guards, the contract, and the suites they defend
 
 // A build script is editable by anyone who can edit the build script. This does not close
 // that; it makes the edit loud enough to be reviewed.
-test('the declaration count matches what the runner actually executes', async () => {
-  const { files: discovered, declared } = await verifyTestCoverageFloor();
-  assert.equal(declared, 54, `stripNonCode must not lose or invent declarations; counted ${declared}, runner executes 54`);
+// The literal 54 here was brittle -- it broke on any legitimate added test and blamed the
+// scanner. The real reconciliation happens in the runner, where both numbers exist.
+test('every discovered test file is digested, and none resolves outside the repository', async () => {
+  const { files: discovered } = await verifyTestCoverageFloor();
   assert.ok(discovered.length >= 9);
+  await assert.doesNotReject(() => assertEveryTestFileProtected(discovered));
+  await assert.rejects(
+    () => assertEveryTestFileProtected([...discovered, 'test-kits/not-in-manifest.test.mjs']),
+    (error) => error.code === 87 && /not-in-manifest/.test(error.message),
+  );
+  await assert.doesNotReject(() => assertNoEscapingPath(discovered));
+});
+
+test('a declaration the runner never executes is rejected', async () => {
+  await assert.rejects(() => assertDeclarationsMatchExecution(1), (error) => error.code === 88 && /declares \d+ tests but the runner executed 1/.test(error.message));
+});
+
+// The scanner had no regex-literal state, so `/[/*]/` opened a phantom block comment to EOF.
+test('a regex literal is not mistaken for a comment or a declaration', () => {
+  assert.equal(countDeclaredTests("const r = /[/*]/;\ntest('a', () => {});\ntest('b', () => {});"), 2);
+  assert.equal(countDeclaredTests("const r = /'\"`/;\ntest('a', () => {});"), 1);
+  assert.equal(countDeclaredTests("const a = 4 / 2; /* test('x', () => {}); */\ntest('b', () => {});"), 1);
 });
 
 // Padding a suite with `test(` inside comments or template literals cleared the floor.

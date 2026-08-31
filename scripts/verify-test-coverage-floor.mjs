@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, realpath } from 'node:fs/promises';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -96,6 +96,11 @@ export function assertPackageScripts(scripts) {
 // testing also drove it the other way, manufacturing phantom declarations from a template
 // literal. A single left-to-right scan that tracks what it is inside is the only correct
 // way to do this without a parser.
+function regexCanStartHere(before) {
+  const previous = before.replace(/\s+$/, '').slice(-1);
+  return previous === '' || '(,=:[!&|?{};+-*%~^<>'.includes(previous);
+}
+
 export function stripNonCode(source) {
   let out = '';
   let i = 0;
@@ -112,6 +117,25 @@ export function stripNonCode(source) {
     if (two === '//') {
       const end = source.indexOf('\n', i);
       const stop = end === -1 ? source.length : end;
+      out += keepNewlines(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    // A regex literal may contain quotes, slashes and `/*`. Without tracking it, `/[/*]/`
+    // opened a phantom block comment running to end of file. Distinguish it from division
+    // by the last significant character before it.
+    if (source[i] === '/' && regexCanStartHere(out)) {
+      let j = i + 1;
+      let inClass = false;
+      while (j < source.length) {
+        if (source[j] === '\\') { j += 2; continue; }
+        if (source[j] === '\n') break;
+        if (source[j] === '[') inClass = true;
+        else if (source[j] === ']') inClass = false;
+        else if (source[j] === '/' && !inClass) break;
+        j += 1;
+      }
+      const stop = Math.min(j + 1, source.length);
       out += keepNewlines(source.slice(i, stop));
       i = stop;
       continue;
@@ -156,6 +180,18 @@ export async function discoverTestFiles(directory, root = directory) {
     return entry.isFile() && entry.name.endsWith('.test.mjs') ? [entryPath] : [];
   }));
   return nested.flat().sort();
+}
+
+// A discovered file whose real path lies outside the repository executes code the guard
+// never inspected. Independent testing reached /tmp this way during a green npm run check.
+export async function assertNoEscapingPath(files, root = process.cwd()) {
+  const realRoot = await realpath(root);
+  for (const file of files) {
+    const actual = await realpath(file);
+    if (!actual.startsWith(`${realRoot}/`)) {
+      throw new CoverageFloorError(85, `test file '${file}' resolves to '${actual}', outside the repository root. node --test would execute it while the guard inspected a path that is not the code that runs.`);
+    }
+  }
 }
 
 export function assertCoverage(pattern, files, floor = DEFAULT_FLOOR) {
@@ -236,6 +272,18 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
   return entries.length;
 }
 
+// Independent review gutted the four test files the manifest did not name, with the manifest
+// byte-identical -- exit 0, 54/54 green. That is NOT the unclosable digest-updating class,
+// so it is closed: the protected set must cover every file the runner will execute.
+export async function assertEveryTestFileProtected(files, manifestPath = INTEGRITY_MANIFEST) {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const protectedFiles = new Set(Object.keys(manifest.files ?? {}));
+  const unprotected = files.filter((file) => !protectedFiles.has(file));
+  if (unprotected.length > 0) {
+    throw new CoverageFloorError(87, `discovered test file(s) are not digested in ${manifestPath}: ${unprotected.join(', ')}. An unprotected suite can be gutted with the manifest byte-identical.`);
+  }
+}
+
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
   const pattern = assertPackageScripts(manifest.scripts);
@@ -250,6 +298,8 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
     throw new CoverageFloorError(79, `cannot read the test root '${testDirectory}': ${error.message}. A relocated or deleted test root must fail the run, not silently execute nothing.`);
   }
   assertCoverage(pattern, files, floor);
+  await assertEveryTestFileProtected(files);
+  await assertNoEscapingPath(files);
   const declared = await assertDeclaredTests(files);
   return { pattern, files, declared };
 }

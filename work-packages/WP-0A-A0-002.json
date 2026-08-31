@@ -87,7 +87,8 @@
       ".agents/capability-profiles/cc-a1-bastion.json",
       ".agents/capability-profiles/cc-r0-steward.json",
       "evidence/WP-0A-A0-002/**",
-      "handoffs/WP-0A-A0-002-*.json"
+      "handoffs/WP-0A-A0-002-*.json",
+      "test-kits/integrity-manifest.json"
     ],
     "read_only_paths": [
       "README.md",
@@ -151,12 +152,20 @@
       "evidence/WP-0A-A0-002/review-contract-remediation.md",
       "evidence/WP-0A-A0-002/author-remediation-2.md",
       "handoffs/WP-0A-A0-002-author-handoff.json",
-      "handoffs/WP-0A-A0-002-integration-handoff.json"
+      "handoffs/WP-0A-A0-002-integration-handoff.json",
+      "test-kits/integrity-manifest.json",
+      "evidence/WP-0A-A0-002/author-remediation-4.md",
+      "evidence/WP-0A-A0-002/review-contract-round7.md",
+      "evidence/WP-0A-A0-002/test-verdict-round6.md",
+      "evidence/WP-0A-A0-002/review-contract-head.md",
+      "evidence/WP-0A-A0-002/review-security-head.md",
+      "evidence/WP-0A-A0-002/test-verdict-head.md",
+      "evidence/WP-0A-A0-002/author-remediation-3.md"
     ],
     "contracts": []
   },
   "acceptance_criteria": [
-    "npm run check executes every test-kits suite including test-kits/contracts and reports 46 passing tests on pinned Node 24.20.0 / npm 11.19.0.",
+    "npm run check executes every test-kits suite including test-kits/contracts, reports 56 passing tests with skipped and todo both zero on pinned Node 24.20.0 / npm 11.19.0, and the declaration count reconciles exactly with the executed count.",
     "node scripts/validate-work-package-ownership.mjs work-packages exits 0 with no cross-package writable/output overlap.",
     "WP-0A-A0-001 and WP-0A-CON-001 declared outputs remain fully covered by their remaining writable_paths after the amendment.",
     "The two cross-package manifest amendments are limited to the exact removals authorized by RFC-2026-003 and are declared in authorized_cross_package_amendments.",
@@ -195,6 +204,7 @@
   "rollback_or_forward_fix": "Revert the RFC, package.json, manifest, capability-profile, evidence, and handoff changes through a reviewed revert PR. Reverting restores the previous test glob and the previous ownership boundaries exactly; no persisted data, provider state, credential, migration, or customer-data effect exists.",
   "open_blockers": [
     "RFC-2026-003 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge. Until approved it does not hold rank-1 authority, so the cross-package amendments are staged, not authorized.",
+    "The test-integrity guard is a TRIPWIRE, NOT A CONTROL, and has no self-anchor. A change that edits a guarded file and its digest in test-kits/integrity-manifest.json together passes. Independent review confirmed by construction that no in-repository control can close this: any verifier inside the mutable set can be replaced by an accept-always verifier. The anchor is human review of the diff under RFC-2026-002 and protected CI, which remains an open Gate G0 requirement blocked on an external constraint. Everything OUTSIDE that class -- an unprotected suite, phantom declarations, an escaping path -- is closed.",
     "Independent review ruled the RFC/Integration-Owner path sufficient to amend another package's manifest without re-opening the owning package, contingent on an amendment acknowledgement countersigned by WP-0A-A0-001's and WP-0A-CON-001's Integration Owner /root/r0_steward. That run is an OpenAI Codex run and was not available in this session; both manifests record acknowledgement_status: pending.",
     "A bounded npm run check re-execution addendum for WP-0A-CON-001, recorded by /root/r0_steward, must supersede the stale 26/26 citation in five WP-0A-CON-001 artifacts. No re-review, re-test, or re-integration of that package is required: all four of its independent roles separately ran the contract tests at f28fb8e and recorded 6/6, and the reviewed artifacts are byte-identical since.",
     "Independent security review demonstrated that scripts/scan-repository-secrets.mjs is materially weak - it detected none of twelve realistic synthetic credential decoys, fails open on an unreadable file, and never inspects git history. A clean scan is therefore not evidence of secret coverage. This is pre-existing and out of this package's scope; it must be closed before any package handles permissioned data or a real credential.",
