@@ -8,14 +8,14 @@
   "status": "in_review",
   "required_skill_profiles": {
     "author": ["architecture-contracts"],
-    "reviewer": ["integration-release"],
+    "reviewer": ["architecture-contracts"],
     "tester": ["independent-qa"],
     "integration_owner": ["integration-release"],
     "conditional_reviewers": ["security-privacy", "product-ux"]
   },
   "role_assignments": {
     "author_agent_run_id": "/root",
-    "reviewer_agent_run_id": "/root/a1_bastion",
+    "reviewer_agent_run_id": "/root/c0_contract_reviewer",
     "tester_agent_run_id": "/root/q0_sentinel",
     "integration_owner_agent_run_id": "/root/r0_steward",
     "security_reviewer_agent_run_id": "/root/a1_bastion",
@@ -222,5 +222,5 @@
     "Native repository branch protection remains unavailable: the recorded GitHub API response requires GitHub Pro or a public repository; RFC-2026-002 is procedural only.",
     "Capability declarations and benchmark references must map real agent runs to required skill profiles before later packages become Ready."
   ],
-  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "product_approved", "test_verified", "integration_verified"]
 }
