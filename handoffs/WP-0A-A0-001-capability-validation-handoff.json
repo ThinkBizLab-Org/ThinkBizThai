@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "e83e35203bbe89dc70d446e797a8096659e217d3",
+  "head_revision_or_patch_checksum": "capability-profile validator candidate; commit pending",
+  "task_ids": ["capability-declaration-validation"],
+  "files_added": [
+    "scripts/validate-capability-profiles.mjs",
+    "test-kits/capability-profile.test.mjs",
+    "handoffs/WP-0A-A0-001-capability-validation-handoff.json"
+  ],
+  "files_modified": ["package.json", "work-packages/WP-0A-A0-001.json", "evidence/g0-tracker-th.md"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-ERR-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["Capability declarations are conservative self-declarations and may establish routing presence only; a declaration is not an independently proven skill benchmark or cross-vendor evidence."],
+  "acceptance_results": [
+    {
+      "criterion": "Every non-null Ready-or-later manifest role run, including security and product reviewers, has a machine-readable capability declaration.",
+      "result": "pass: validator rejects synthetic Ready manifests whose primary or conditional reviewer runs lack declarations; current in-review manifest passes"
+    },
+    {
+      "criterion": "No capability declaration may permit external-secret access.",
+      "result": "pass: validator rejects a synthetic declaration with can_access_external_secrets=true"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "18 tests passed; includes four capability-profile tests"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean"
+    }
+  ],
+  "security_privacy_cost_impact": "Local deterministic validation only. It strengthens the default denial of external-secret access in capability declarations and introduces no credential, provider, customer data, production configuration, or network call.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "Existing Ready-or-later manifests must now have matching capability declaration files. This is an intentional protocol guard; it does not validate or select a provider/model/domain implementation.",
+  "known_limitations": ["The validator establishes only that a conservative declaration exists. It does not prove the declared skill profile, Product Owner approval, external capability, cross-vendor diversity, or G0 passage."],
+  "open_risks_or_blockers": ["The Product Owner, genuine cross-vendor dry run, skill-benchmark evidence, protected-CI resolution, and all other G0 tracker items remain open."],
+  "rollback_or_forward_fix": "Revert this bootstrap-only validator commit if it blocks an unintended manifest, or add an accurate capability declaration after independent review. Do not weaken the external-secret denial or bypass validation.",
+  "recommended_next_work_packages": ["Record independently verifiable skill-benchmark references and genuine second-vendor dry-run evidence before relying on capability declarations for G0.", "Do not advance domain packages to ready without their declared dependencies and external approvals."],
+  "reviewer_instructions": ["Exercise valid, external-secret-enabled, duplicate-run, and missing primary/conditional reviewer declaration cases.", "Confirm the tracker keeps capability benchmarking and cross-vendor evidence marked partial/open, not complete."]
+}

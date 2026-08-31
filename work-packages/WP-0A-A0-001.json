@@ -92,15 +92,18 @@
       "handoffs/WP-0A-A0-001-post-ci-status-handoff.json",
       "handoffs/WP-0A-A0-001-representative-dry-run-handoff.json",
       "handoffs/WP-0A-A0-001-branch-protection-evidence-handoff.json",
+      "handoffs/WP-0A-A0-001-capability-validation-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.yml",
       "scripts/validate-work-package-role-separation.mjs",
+      "scripts/validate-capability-profiles.mjs",
       "scripts/validate-work-packages.mjs",
       "scripts/scan-repository-secrets.mjs",
       "test-kits/role-separation.test.mjs",
+      "test-kits/capability-profile.test.mjs",
       "test-kits/secret-scan.test.mjs",
       "test-kits/work-package-discovery.test.mjs",
       "evidence/WP-0A-A0-001/status-author.json",
@@ -128,6 +131,7 @@
   "required_tests": [
     "JSON syntax validation for all .agents schemas and JSON manifests",
     "Node-only role-separation validator for every Ready-or-later JSON manifest",
+    "Node-only capability-profile validator that requires declarations for every Ready-or-later role run",
     "Node-only synthetic secret-pattern scan of repository candidate files",
     "Pinned Node/npm version and npm clean-install verification",
     "Link and protocol-version consistency check",
@@ -135,7 +139,7 @@
   ],
   "deterministic_commands": {
     "setup": [],
-    "verify": ["npm run check", "node scripts/validate-work-packages.mjs", "node scripts/validate-work-package-role-separation.mjs <manifest.json>", "node scripts/scan-repository-secrets.mjs"],
+    "verify": ["npm run check", "node scripts/validate-work-packages.mjs", "node scripts/validate-capability-profiles.mjs", "node scripts/validate-work-package-role-separation.mjs <manifest.json>", "node scripts/scan-repository-secrets.mjs"],
     "package_evidence": []
   },
   "security_privacy": {
