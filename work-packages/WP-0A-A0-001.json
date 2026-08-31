@@ -91,6 +91,7 @@
       "handoffs/WP-0A-A0-001-author-handoff.json",
       "handoffs/WP-0A-A0-001-post-ci-status-handoff.json",
       "handoffs/WP-0A-A0-001-representative-dry-run-handoff.json",
+      "handoffs/WP-0A-A0-001-branch-protection-evidence-handoff.json",
       ".node-version",
       "ownership/README.md",
       "package.json",
