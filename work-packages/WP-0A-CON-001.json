@@ -61,7 +61,7 @@
     "fixtures": []
   },
   "outputs": {
-    "files": [".agents/capability-profiles/c0-contract-reviewer.json", "evidence/capability-benchmarks/c0-contract-reviewer.md", "work-packages/WP-0A-CON-001.json", "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json"],
+    "files": [".agents/capability-profiles/c0-contract-reviewer.json", "evidence/capability-benchmarks/c0-contract-reviewer.md", "evidence/WP-0A-CON-001/role-routing-preparation.md", "work-packages/WP-0A-CON-001.json", "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json", "handoffs/WP-0A-CON-001-role-routing-preparation-handoff.json"],
     "contracts": []
   },
   "acceptance_criteria": [

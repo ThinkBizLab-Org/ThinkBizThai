@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-001",
+  "agent_run_id": "/root",
+  "final_status": "backlog",
+  "base_revision": "37e075fb7d655f7983ebbc326f32622511514dd9",
+  "head_revision_or_patch_checksum": "CON-00 role-routing preparation evidence; commit pending",
+  "task_ids": ["con-00-role-routing-preparation"],
+  "files_added": ["evidence/WP-0A-CON-001/role-routing-preparation.md", "handoffs/WP-0A-CON-001-role-routing-preparation-handoff.json"],
+  "files_modified": ["work-packages/WP-0A-CON-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["This record routes candidate agent runs only; no role is assigned in the manifest and CON-00 remains backlog.", "All candidate roles are same-vendor evidence and do not satisfy cross-vendor or Product Owner G0 requirements."],
+  "acceptance_results": [
+    {
+      "criterion": "Candidate roles map to real, capability-declared agent run IDs with documented scope and limitations.",
+      "result": "pass for preparation only; final assignment and independent package evidence remain pending"
+    },
+    {
+      "criterion": "No backlog/Ready/G0/contract-freeze status is advanced by role-routing preparation.",
+      "result": "pass"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed; ownership/capability/protocol/secret controls passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean"
+    }
+  ],
+  "security_privacy_cost_impact": "Repository metadata only. No secret, customer data, tenant data path, schema, provider, external call, billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None. Candidate/Draft contract status and source-defined ownership remain unchanged.",
+  "known_limitations": ["C0 did not run the pinned Node 24 suite in its benchmark session.", "A5 is not a Product Owner and can be assigned only for user-facing semantics.", "No cross-vendor candidate is available in this routing record."],
+  "open_risks_or_blockers": ["WP-0A-A0-001 is in_review and its G0 external blockers remain unresolved.", "Product Owner approval, protected CI/branch evidence, cross-vendor review, and other source-listed G0 evidence cannot be inferred from these candidates."],
+  "rollback_or_forward_fix": "Revert this metadata-only commit or issue a reviewed forward correction; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["After REP-00/G0 dependency conditions are resolved, review a distinct-role assignment update for CON-00 before implementation.", "Do not begin DB-00, JOB-00, UX-00, BILL-00, provider, schema, or customer-data work from this routing record."],
+  "reviewer_instructions": ["Verify every candidate ID exists in a capability profile and the wording does not turn conditional suitability into assignment or approval.", "Verify Product/UX and Security are treated as conditional, independent reviews and do not substitute for Product Owner/G0 authority.", "Confirm manifest status and role assignments remain backlog/null."]
+}
