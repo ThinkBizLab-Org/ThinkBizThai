@@ -18,6 +18,11 @@ const roleKeys = [
   'tester_agent_run_id',
   'integration_owner_agent_run_id',
 ];
+const approvalRoleKeys = [
+  ...roleKeys,
+  'security_reviewer_agent_run_id',
+  'product_reviewer_agent_run_id',
+];
 
 export class ManifestValidationError extends Error {
   constructor(code, message) {
@@ -36,6 +41,19 @@ export function validateManifest(manifest) {
     const validIds = roleIds.every((value) => typeof value === 'string' && value.length > 0);
     if (!validIds || new Set(roleIds).size !== roleIds.length) {
       throw new ManifestValidationError(67, 'Ready-or-later work packages require four distinct non-empty role agent_run_ids.');
+    }
+
+    const assignedApprovalIds = approvalRoleKeys
+      .map((key) => manifest.role_assignments?.[key])
+      .filter((value) => value !== null && value !== undefined);
+    const validApprovalIds = assignedApprovalIds.every(
+      (value) => typeof value === 'string' && value.length > 0,
+    );
+    if (!validApprovalIds || new Set(assignedApprovalIds).size !== assignedApprovalIds.length) {
+      throw new ManifestValidationError(
+        67,
+        'Ready-or-later work packages require every assigned approval role agent_run_id to be non-empty and distinct.',
+      );
     }
   }
 }

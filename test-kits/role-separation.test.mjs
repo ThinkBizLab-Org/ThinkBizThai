@@ -21,12 +21,40 @@ test('accepts a Ready manifest with four distinct named role IDs', () => {
   assert.equal(validate(readyExample).status, 0);
 });
 
+test('accepts null optional approval roles and a non-approval agent reference', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'thinkbizthai-role-test-'));
+  try {
+    const manifest = JSON.parse(await readFile(readyExample, 'utf8'));
+    manifest.role_assignments.security_reviewer_agent_run_id = null;
+    manifest.role_assignments.product_reviewer_agent_run_id = null;
+    manifest.role_assignments.observer_agent_run_id = manifest.role_assignments.author_agent_run_id;
+    const validManifest = join(directory, 'optional-and-observer-roles.json');
+    await writeFile(validManifest, `${JSON.stringify(manifest)}\n`);
+    assert.equal(validate(validManifest).status, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('rejects a Ready manifest with duplicate named role IDs', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'thinkbizthai-role-test-'));
   try {
     const manifest = JSON.parse(await readFile(readyExample, 'utf8'));
     manifest.role_assignments.tester_agent_run_id = manifest.role_assignments.author_agent_run_id;
     const invalidManifest = join(directory, 'duplicate-role.json');
+    await writeFile(invalidManifest, `${JSON.stringify(manifest)}\n`);
+    assert.equal(validate(invalidManifest).status, 67);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('rejects a Ready manifest with a conditional approval role assigned to the reviewer run', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'thinkbizthai-role-test-'));
+  try {
+    const manifest = JSON.parse(await readFile(readyExample, 'utf8'));
+    manifest.role_assignments.security_reviewer_agent_run_id = manifest.role_assignments.reviewer_agent_run_id;
+    const invalidManifest = join(directory, 'duplicate-conditional-role.json');
     await writeFile(invalidManifest, `${JSON.stringify(manifest)}\n`);
     assert.equal(validate(invalidManifest).status, 67);
   } finally {
