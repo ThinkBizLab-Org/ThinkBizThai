@@ -249,7 +249,7 @@ is a contract-owner decision recorded as an open blocker, not settled here.
 
 ## Verification
 
-- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — exit `0`, 91 tests,
+- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — exit `0`, 93 tests,
   `skipped 0` / `todo 0`.
 - The standing guard must **fail** on the pre-fix schema naming the accepted
   forms, and pass after. Both runs recorded in

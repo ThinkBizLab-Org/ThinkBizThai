@@ -254,7 +254,7 @@ Run from the package root on `v24.20.0` / `11.19.0`.
 | `node scripts/validate-work-package-ownership.mjs work-packages` | `0` | |
 | `node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-CON-005.json` | `0` | |
 | `node scripts/verify-test-coverage-floor.mjs` | `0` | |
-| **`npm run check` (final)** | **`0`** | **91 tests, 91 pass, 0 fail, skipped 0 / todo 0** |
+| **`npm run check` (final)** | **`0`** | **93 tests, 93 pass, 0 fail, skipped 0 / todo 0** |
 
 85 → 91 is the six tests the new guard adds. No existing test was removed,
 renamed, or skipped.
@@ -390,3 +390,60 @@ rather than presented as routine.
     evidence about reference safety in either direction.
 12. **No commit, no push, no merge authorization.** Gate G0 remains Specification
     Baseline Complete / External Verification Pending.
+
+---
+
+## Independent verification, and the corrections it forced
+
+`/claude/q0_sentinel` **DISCHARGED the structural proof of content-neutrality** —
+the precondition the Candidate-amendment authority rests on. It reconstructed the
+pre-amendment schema from sources independent of this Author (WP-0A-A0-002's
+security review, written for a different package before CON-005 existed and
+quoting the assertion verbatim; and `ctr-evt-001/schema.json`, which still carries
+the CON-002 `x-amended-by` record in its original single-object shape) and
+re-derived every figure: **60 → 67 leaf paths, 53 identical, 7 removed, 14 added,
+0 modified in place.** Removed and added lists match line for line.
+
+It also **confirmed the headline finding by execution**: rebuilding the
+pre-amendment CON-001 test and running it against the fixed schema throws
+`TypeError: Cannot read properties of undefined (reading 'pattern')`. No correct
+fix could have passed CI while that assertion stood.
+
+Its own hostile probe was wider than this Author's: 15 forms × 2 fields gave
+28 accepted before and 4 after, matching exactly; a further 17 forms × 2 gave
+**34/34 accepted before**.
+
+### Corrections
+
+| | |
+|---|---|
+| `npm run check` was reported as **91**; it is **93** | Corrected in this file and in RFC-2026-006's verification section |
+| The integrity manifest was reported as **27** entries with 25 matching; it has **28** with 26 matching | Corrected |
+| The two negative lookaheads are **provably redundant** — 400,000-string fuzz showed zero divergence from a lookahead-free equivalent, since the body grammar already forbids a leading slash, an empty segment and a `..` segment | Removed from all five reference patterns across CTR-JOB-001, CTR-API-001 and CTR-IDM-001. This closes CON-002 review finding **R8** (RE2 portability), which had no recorded disposition anywhere, at zero cost. Re-verified: all 18 hostile forms still rejected on both fields |
+| `isPrivateRef` in `shared-kernel-envelope-contracts.test.mjs` still used `!/^https?:\/\//` — this Author claimed to have closed that class and closed it in **one of two files** | Closed in WP-0A-A0-003, which owns that file in the current stack |
+
+### The trap this package exists to expose, sprung again on this package
+
+Removing the lookaheads broke `shared-kernel-contract-catalog.test.mjs` — because
+the replacement assertion this package wrote **still asserted the literal pattern
+text**, merely swapping a deny-list literal for an allow-list literal.
+
+That is the same defect the package's headline finding is about, reproduced in the
+fix for it. An assertion on pattern *characters* makes any future correction fail
+CI, whichever direction it points. Both fields now assert **behaviour** — twelve
+hostile forms rejected, one internal reference accepted — so a portability change,
+a scheme addition or a tightening can land without editing a test that has no
+opinion about them.
+
+### Not closed
+
+- **No `maxLength` on any `_ref` field catalog-wide**: an 8192-character allow-listed
+  reference is still accepted. Adding one is unsourced without an owner decision.
+- **`ctr-evt-001.metadata.schema_ref`** is `{type, minLength: 1}` and accepts
+  **16 of 16** hostile forms — the same class, strictly worse. Its own fixture value
+  is `CTR-EVT-001@1.0.0`, which the catalog reference pattern does not match, so the
+  remedy is a **different** constraint, not a copy of this one. The escalation must
+  say so or it will be mis-implemented.
+- The neutrality proof is a reconstruction, not a `git show` of the parent commit;
+  the frozen root has no `.git`. An Integration Owner with repository access should
+  confirm the parent bytes — a cheap confirmation, not a re-derivation.

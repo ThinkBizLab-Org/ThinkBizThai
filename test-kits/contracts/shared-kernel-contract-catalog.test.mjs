@@ -117,10 +117,19 @@ test('Candidate safety constraints reject unsafe detail, payload, and public job
   // `.not.pattern === '^https?://'`, so the contract was REQUIRED BY TEST to keep the
   // deny-list independent security review proved bypassable. They now pin the allow-listed
   // scheme with a constrained body, and assert the deny-list is gone rather than present.
+  // An earlier version of this suite asserted the literal pattern TEXT, and that is precisely
+  // what made the deny-list defect mandatory: no correct fix could pass CI. Replacing the
+  // deny-list with a literal allow-list assertion reproduced the same trap, and it sprang the
+  // moment the pattern was made RE2-portable. Assert the BEHAVIOUR the baseline requires.
   for (const field of ['input_ref', 'result_ref']) {
     assert.equal(jobSchema.properties[field].not, undefined, `${field} must not carry a deny-list`);
-    assert.equal(jobSchema.properties[field].pattern,
-      '^(job|status|result|app|asset|content):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$');
+    const pattern = new RegExp(jobSchema.properties[field].pattern, 'u');
+    for (const hostile of ['https://h/x', 'HTTPS://h/x', '//h/x', 'ftp://h/x', 'data:text/plain,a',
+      'file:///etc/passwd', 'javascript:alert(1)', '../../../etc/passwd', 'result:../../x',
+      'status:/proc/self/environ', 'content://h/x', 'job:']) {
+      assert.equal(pattern.test(hostile), false, `${field} must reject ${hostile}`);
+    }
+    assert.equal(pattern.test('asset:input/synthetic-0202'), true, `${field} must accept an internal reference`);
     assert.match(jobSchema.properties[field]['x-reference-rule'], /Allow-listed scheme AND constrained body/);
   }
 });
