@@ -24,7 +24,7 @@ Tracker นี้ทำหน้าที่เป็น index ของหล�
 | G0 requirement from readiness report | Current state | Owner / required reviewer | Evidence / exact next evidence |
 |---|---|---|---|
 | Product Owner อนุมัติ DEC-01..16 | `complete for Sprint 0A baseline` | Product Owner | [Product Owner baseline approval](WP-0A-A0-001/product-owner-baseline-approval.md) บันทึกคำยืนยันของ Product Owner เมื่อ 2026-08-31; ไม่ใช่การอนุมัติ G0, production credential, legal/PDPA/accounting หรือ provider readiness |
-| Canonical guide, thin Codex/Claude adapters, protected CI | `manual_fallback_in_review; G0 blocker remains` | [RFC-2026-002 manual merge control](../architecture/decisions/RFC-2026-002-manual-merge-control.md) and [Product Owner RFC approval](WP-0A-A0-001/rfc-002-product-owner-approval.md) record the owner-directed branch/PR/CI/evidence process while the repository stays private with no paid GitHub plan. The RFC stays `In review` until its exact-revision independent review, tester, integration, and CI evidence is complete; it is not integrated/native protected CI and the protected-CI G0 requirement remains unresolved. GitHub branch protection still requires a supported plan for this private repository; do not change visibility or billing automatically. |
+| Canonical guide, thin Codex/Claude adapters, protected CI | `manual_fallback_approved_provisional; G0 blocker remains` | [RFC-2026-002 manual merge control](../architecture/decisions/RFC-2026-002-manual-merge-control.md), [Product Owner RFC approval](WP-0A-A0-001/rfc-002-product-owner-approval.md), and [exact-commit verification](WP-0A-A0-001/rfc-002-exact-commit-verification.md) record the owner-directed branch/PR/CI/evidence process while the repository stays private with no paid GitHub plan. This is an approved provisional procedure only, not integrated/native protected CI; every merge still needs fresh exact-head evidence and the protected-CI G0 requirement remains unresolved. GitHub branch protection still requires a supported plan for this private repository; do not change visibility or billing automatically. |
 | Capability benchmark และ agent IDs ทุก Ready package | `partial` | A0 + role owners | `.agents/capability-profiles/` มี declaration สำหรับ role run ปัจจุบัน และ CI validator ปฏิเสธ Ready-or-later manifest ที่อ้าง run โดยไม่มี declaration หรืออนุญาต external secret; ยังต้องมี benchmark/reference ที่ตรวจทักษะและ vendor diversity ก่อนใช้เป็น G0 evidence |
 | Meta app/pages/IG permissions ทดสอบด้วย credentials จริง | `open` | A6 + Security + Product | ต้องใช้ test app/accounts, redacted capability matrix และ external operation evidence; ห้ามเก็บ credentials ใน repository |
 | Stripe Thailand sandbox, products/prices, signed webhook และ Portal | `open` | A6 + Finance + Security | ต้องมี Stripe sandbox evidence: raw-body signature verification, duplicate/replay/out-of-order tests และ entitlement จาก verified webhook เท่านั้น |
@@ -37,12 +37,12 @@ Tracker นี้ทำหน้าที่เป็น index ของหล�
 
 | Acceptance requirement | Current state | Evidence / blocker |
 |---|---|---|
-| Canonical protocol bootstrap และ deterministic CI | `complete for committed bootstrap` | Commit `3c8e025`, `899c2bb`; [Draft PR #1](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/1); CI passes at runs `33335381144` and `33335718109` |
+| Canonical protocol bootstrap และ deterministic CI | `complete for committed bootstrap` | Commit `3c8e025`, `899c2bb`; Draft PR #1 (URL available only to an authorized operator); CI passes at runs `33335381144` and `33335718109` |
 | A1–A6 representative review | `partial` | A1 review/security evidence exists; A3/A4/A6 approve within narrow scope; [A5 independent Product/UX bootstrap review](WP-0A-A0-001/review-product-ux-A5-assigned.md) is now assigned and approved. A2 capability-routing remediation and cross-vendor evidence remain open. These reviews are not PO approval. |
 | Capability declaration routing | `partial` | See `.agents/capability-profiles/`; declarations are conservative and not a cross-vendor benchmark. A2/A3/A4 capability declarations remain unrecorded by their own runs. |
 | Cross-vendor manifest-to-handoff dry run | `open` | All recorded reviews are same-vendor environment. A distinct vendor execution (for example, Claude) with real run evidence is required; do not simulate it. |
 | Product Owner approval | `complete for Sprint 0A baseline` | Product Owner baseline approval is recorded at `evidence/WP-0A-A0-001/product-owner-baseline-approval.md`; the distinct A5 Product/UX review is recorded at `evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md`. The two approvals remain distinct. |
-| Protected branch / required CI | `manual_fallback_in_review; G0 blocker remains` | RFC-2026-002 proposes branch + Draft PR, green CI, independent evidence, owner merge, and reviewed revert only; follow the provisional process for any proposed merge while its required evidence is completed. GitHub Actions runs are available, but this is not native enforcement; GitHub API still requires a supported plan for protected branches on this private repository. |
+| Protected branch / required CI | `manual_fallback_approved_provisional; G0 blocker remains` | RFC-2026-002 requires branch + Draft PR, green CI, independent evidence, owner merge, and reviewed revert only. Follow it for each proposed merge with fresh exact-head evidence; GitHub Actions runs are available, but this is not native enforcement and GitHub API still requires a supported plan for protected branches on this private repository. |
 
 ## Known non-blocking maintenance annotation
 
@@ -54,7 +54,7 @@ a bypass, an approval, or proof that protected CI is configured.
 
 ## Safe next sequence
 
-1. Follow the provisional RFC-2026-002 process for any proposed merge while its required review/test/integration/CI evidence completes; obtain native branch-protection evidence only when a supported plan/authorized configuration becomes available.
+1. Follow the approved provisional RFC-2026-002 process for every proposed merge with fresh exact-head review/test/integration/CI evidence; obtain native branch-protection evidence only when a supported plan/authorized configuration becomes available.
 2. Run a genuine second-vendor protocol dry run and preserve its independent
    agent-run/capability evidence.
 3. Assign agents only to packages whose capability declarations, dependencies and

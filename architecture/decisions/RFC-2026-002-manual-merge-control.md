@@ -1,6 +1,6 @@
 # RFC-2026-002 — Temporary manual merge control
 
-Status: In review — temporary procedure authorized by Product Owner
+Status: Approved — provisional manual control; native protection/G0 not satisfied
 Decision needed by: G0 protected-CI evidence
 Owner: A0 Architecture/Integration + Product Owner
 Decision evidence: Product Owner directed that repository control be written as a manual rule instead of paying for a GitHub plan; repository remains private.
@@ -45,9 +45,12 @@ For each manual merge, record in the relevant handoff:
   and integration evidence; and
 - rollback/revert path plus unresolved risks.
 
-This RFC requires independent technical review, security review, tester replay,
-Integration Owner verification, and CI before it may be treated as an integrated
-repository procedure.
+The approval evidence for the initial procedure is recorded in
+`evidence/WP-0A-A0-001/rfc-002-exact-commit-verification.md`. It covers the
+Product Owner approval, independent technical/security review, tester replay,
+Integration Owner verification, and green CI for the exact bootstrap commit.
+Every future manual merge still requires the per-merge evidence in this RFC;
+this decision record is not blanket merge approval.
 
 Bootstrap-only Product/UX evidence is recorded in
 `evidence/WP-0A-A0-001/review-product-ux-A5-assigned.md`. It resolves the
