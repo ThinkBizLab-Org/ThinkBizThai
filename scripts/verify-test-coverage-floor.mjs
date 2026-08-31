@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
+  MIN_DECLARED_TESTS_BY_DIRECTORY,
   MIN_TEST_FILES,
   RUNNER_SCRIPT,
   TEST_PATTERN,
@@ -116,19 +117,33 @@ export function assertCoverage(pattern, files, floor = DEFAULT_FLOOR) {
   }
 }
 
-export async function assertDeclaredTests(files, floor = DECLARED_TEST_FLOOR) {
+export async function assertDeclaredTests(files, floor = DECLARED_TEST_FLOOR, byDirectory = MIN_DECLARED_TESTS_BY_DIRECTORY) {
   let total = 0;
   const empty = [];
+  const perDirectory = new Map();
   for (const file of files) {
     const declared = countDeclaredTests(await readFile(file, 'utf8'));
     if (declared === 0) empty.push(file);
     total += declared;
+    const directory = file.split('/').slice(0, -1).join('/');
+    perDirectory.set(directory, (perDirectory.get(directory) ?? 0) + declared);
   }
   if (empty.length > 0) {
     throw new CoverageFloorError(78, `discovered test file(s) declare no test at all: ${empty.join(', ')}. A file that is counted but declares nothing hides an empty suite behind the file floor.`);
   }
   if (total < floor) {
     throw new CoverageFloorError(78, `expected at least ${floor} declared tests across test-kits/, found ${total}.`);
+  }
+  // A global aggregate lets any one suite be swapped for a placeholder while the total
+  // still clears the floor. Integration verification did exactly that to the contract
+  // suite and every check stayed green, so each protected directory carries its own floor.
+  for (const [directory, minimum] of Object.entries(byDirectory)) {
+    const declared = directory === TEST_ROOT
+      ? total
+      : [...perDirectory].filter(([key]) => key === directory).reduce((sum, [, value]) => sum + value, 0);
+    if (declared < minimum) {
+      throw new CoverageFloorError(82, `directory '${directory}' declares ${declared} tests, below its floor of ${minimum}. A per-directory floor exists because a global total lets the suite it protects be replaced by a placeholder.`);
+    }
   }
   return total;
 }

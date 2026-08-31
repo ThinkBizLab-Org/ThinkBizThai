@@ -7,9 +7,12 @@ import { MIN_EXECUTED_TESTS, TEST_PATTERN } from './test-suite-contract.mjs';
 // `node --test` exits 0 while reporting `tests 0` whenever its pattern matches nothing,
 // so a passing exit code alone cannot distinguish "everything passed" from "nothing ran".
 // This runner asserts the count the runner itself reported, after the run.
+// A test can print `ℹ tests 9999` to stdout, and that line lands in the same stream this
+// floor audits. Independent integration verification demonstrated it. The runner emits its
+// real summary last, so take the LAST match, never the first.
 export function parseExecutedTests(output) {
-  const match = /^ℹ tests (\d+)$/m.exec(output) ?? /^# tests (\d+)$/m.exec(output);
-  return match ? Number(match[1]) : null;
+  const matches = [...output.matchAll(/^(?:ℹ|#) tests (\d+)$/gm)];
+  return matches.length > 0 ? Number(matches.at(-1)[1]) : null;
 }
 
 export function assertExecuted(executed, floor = MIN_EXECUTED_TESTS) {

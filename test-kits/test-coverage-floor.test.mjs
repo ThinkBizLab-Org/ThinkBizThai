@@ -11,6 +11,7 @@ import {
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
 import { assertExecuted, parseExecutedTests } from '../scripts/run-test-suite.mjs';
+import { MIN_DECLARED_TESTS_BY_DIRECTORY } from '../scripts/test-suite-contract.mjs';
 import { GUARD_SCRIPT, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
@@ -145,4 +146,28 @@ test('discovery walks nested directories on disk', async () => {
   const discovered = await discoverTestFiles('test-kits');
   assert.ok(discovered.some((file) => file.startsWith('test-kits/contracts/')));
   assert.ok(discovered.every((file) => file.endsWith('.test.mjs')));
+});
+
+// Integration verification replaced the six-test contract suite -- the suite this
+// repository's guards exist to protect -- with one placeholder. The global total still
+// cleared its floor and every check stayed green. Floors are now per directory too.
+test('swapping a protected suite for a placeholder is rejected even when the total still clears', async () => {
+  // The real contract suite is present, so the floor it carries is met.
+  await assert.doesNotReject(() => assertDeclaredTests(files, 8, { 'test-kits/contracts': 6 }));
+  // Drop it, as integration verification did: the global total still clears its floor...
+  const withoutContracts = files.filter((file) => !file.startsWith('test-kits/contracts/'));
+  await assert.doesNotReject(() => assertDeclaredTests(withoutContracts, 8, {}));
+  // ...but the directory floor catches what the aggregate cannot see.
+  await assert.rejects(
+    () => assertDeclaredTests(withoutContracts, 8, { 'test-kits/contracts': 6 }),
+    (error) => error.code === 82 && /test-kits\/contracts' declares 0 tests/.test(error.message),
+  );
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
+});
+
+// A test can print a summary line into the very stream the post-run floor audits.
+test('a forged summary earlier in the stream cannot raise the executed count', () => {
+  assert.equal(parseExecutedTests('ℹ tests 9999\nℹ ok\nℹ tests 46'), 46);
+  assert.equal(parseExecutedTests('# tests 9999\n# tests 3'), 3);
+  assert.throws(() => assertExecuted(parseExecutedTests('ℹ tests 9999\nℹ tests 0')), /executed 0 tests/);
 });

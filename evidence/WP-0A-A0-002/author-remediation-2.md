@@ -226,3 +226,110 @@ can see, and the test suite is the backstop for anything that disables the guard
 - RFC-2026-003 is still `Proposed`; Product Owner disposition outstanding.
 - `/root/r0_steward` countersignature and the WP-0A-CON-001 addendum outstanding.
 - Security C1 (weak secret scanner) outstanding and out of scope.
+
+---
+
+# Round 4 — integration verification returned `integration_blocked`
+
+Reviewed commit: `4e1d6e5`. Integration Owner run `/claude/r0_steward`.
+The verdict is correct and is accepted in full.
+
+## I1 / I2 — the head commit had no independent evidence. Author's fault.
+
+| Commit | Author | Reviewer | Security | Tester |
+|---|---|---|---|---|
+| `1873ade` | yes | yes | yes | yes |
+| `9403484` | yes | yes | — | yes |
+| `4e1d6e5` (head) | yes | **none** | **none** | **none** |
+
+`4e1d6e5` is not documentation: it adds two new scripts including one that spawns a
+child process, rewrites 97 lines of the guard, and changes `package.json`. The
+Reviewer had written in `review-contract-remediation.md` §11a that if that
+then-uncommitted delta were committed it would need its own Reviewer disposition.
+**The Author committed it anyway and moved on to the next package.** The Security
+reviewer is scoped to `1873ade` and has therefore never reviewed any of the three
+scripts — at `1873ade` none of them existed.
+
+This is a separation-of-duties failure created by the Author, not a gap in the
+protocol. It cannot be closed by the Author. A fresh Reviewer, Security, and
+Tester pass at the new head is required.
+
+## I3 — the floors were global aggregates. Fixed.
+
+The Integration Owner replaced the six-test contract suite — the exact suite this
+repository's guards exist to protect — with a single placeholder. `npm run check`
+exited `0` at 41/41 and every guard stayed green. A global total cannot see one
+suite being hollowed out.
+
+`MIN_DECLARED_TESTS_BY_DIRECTORY` now carries a per-directory floor
+(`test-kits` 30, `test-kits/contracts` 6), enforced as exit `82`. Re-running the
+Integration Owner's own attack:
+
+```
+directory 'test-kits/contracts' declares 1 tests, below its floor of 6
+npm run check exit=82
+```
+
+## I4 — the post-run floor audited a stream the audited code can write into. Fixed.
+
+`parseExecutedTests` took the **first** regex match while the runner emits its real
+summary **last**, so a test printing `ℹ tests 9999` to stdout defeated the floor.
+Independently confirmed before fixing: a two-test file printing that line produced
+two summary lines in the stream, and the first was the forged one. Routing the
+reporter to a separate destination file does **not** help — test stdout is captured
+there too. The fix is to take the last match.
+
+```
+parseExecutedTests('ℹ tests 9999\nℹ ok\nℹ tests 46')  ->  46
+parseExecutedTests('ℹ tests 9999\nℹ tests 0')          ->  0, throws
+```
+
+Two tests added. `npm run check`: 46 → 48.
+
+## I5 — the Author corrupted the branch layout mid-verification. Fixed.
+
+While `/claude/r0_steward` was writing its deliverables, the Author created and
+switched to the WP-0A-CON-002 branch in the same working tree. Commit `106f91c`
+swept up the Integration Owner's untracked `cc-r0-steward.json`, so a file declared
+in **this** package's `outputs.files` was committed onto a **different** package's
+branch and was absent from its own.
+
+The three artifacts were recovered and restored to this branch:
+`.agents/capability-profiles/cc-r0-steward.json`,
+`evidence/WP-0A-A0-002/integration-verdict.md`, and
+`handoffs/WP-0A-A0-002-integration-handoff.json`, together with the Integration
+Owner's `backlog` → `in_review` status edit.
+
+The cause was the Author starting the next package while an independent run was
+still working in the tree. The rule taken from it: **do not switch branches while
+an independent run holds the working tree.** The Integration Owner's related note
+also stands — WP-0A-CON-002 now consumes the RFC-2026-003 narrowing, so that
+amendment is load-bearing rather than anticipatory, and reverting RFC-2026-003 is
+no longer self-contained.
+
+## Status
+
+`/claude/r0_steward` set `backlog` → `in_review`, having proved by experiment that
+the capability validator early-returns `0` at `backlog` but exits `68` naming
+`/claude/r0_steward` at `ready` or later — so its own declaration is what clears
+the gate. `review_approved`, `test_verified`, and `integration_verified` are all
+unsupported at this head and were not set.
+
+## Countersignature
+
+`/claude/r0_steward` (Anthropic) correctly declined to supply the
+`/root/r0_steward` (OpenAI) countersignature for the WP-0A-A0-001 and
+WP-0A-CON-001 amendments: it does not own those packages and supplying it would
+be impersonation. It did supply the measurement the WP-0A-CON-001 addendum needs —
+the correct count is **46**, not 26. It also recommends vendor-qualified run ids,
+since two `r0_steward`s differing by one path segment are separated only by prose
+in one manifest field and by no machine check.
+
+## Open, and not closable by the Author
+
+- **I1 / I2** — no independent Reviewer, Security, or Tester evidence at head.
+  A fresh pass at the new head is required before `review_approved`.
+- **No PR/CI evidence at the new head** yet (RFC-2026-002 §2).
+- RFC-2026-003 remains `Proposed`; `/root/r0_steward` countersignature and the
+  WP-0A-CON-001 addendum remain outstanding; Security C1 (weak secret scanner)
+  remains open and out of scope.
