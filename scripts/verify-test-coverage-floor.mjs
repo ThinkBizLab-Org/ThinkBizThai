@@ -22,6 +22,11 @@ import { createHash } from 'node:crypto';
 const DEFAULT_FLOOR = MIN_TEST_FILES;
 const DECLARED_TEST_FLOOR = MIN_DECLARED_TESTS;
 
+function isRepositoryRelativePath(path) {
+  if (typeof path !== 'string' || path.length === 0 || path.startsWith('/') || path.includes('\\') || path.includes('\u0000')) return false;
+  return path.split('/').every((segment) => segment.length > 0 && segment !== '.' && segment !== '..');
+}
+
 export class CoverageFloorError extends Error {
   constructor(code, message) {
     super(message);
@@ -274,14 +279,22 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
   }
   const drifted = [];
   for (const [file, expected] of entries) {
+    // A manifest key is a path this guard will read. Constrain it, or the manifest becomes
+    // an arbitrary-file-read primitive whose mismatch message prints that file's real
+    // digest into build logs -- a fingerprint oracle. Independent security review found both.
+    if (!isRepositoryRelativePath(file) || !/^[0-9a-f]{64}$/.test(String(expected))) {
+      throw new CoverageFloorError(86, `integrity manifest entry is not a repository-relative path with a sha256 digest: ${file}`);
+    }
     let actual;
     try {
-      actual = createHash('sha256').update(await readFile(file, 'utf8')).digest('hex');
+      // Hash bytes, not decoded text: 'utf8' maps distinct binaries onto the same string.
+      actual = createHash('sha256').update(await readFile(file)).digest('hex');
     } catch (error) {
-      drifted.push(`${file}\n    MISSING (${error.code ?? error.message})`);
+      drifted.push(`${file} — MISSING`);
       continue;
     }
-    if (actual !== expected) drifted.push(`${file}\n    expected sha256 ${expected}\n    actual   sha256 ${actual}`);
+    // Report drift without printing the observed digest.
+    if (actual !== expected) drifted.push(`${file} — content does not match its recorded digest`);
   }
   if (drifted.length > 0) {
     throw new CoverageFloorError(86, `protected file(s) changed without updating ${manifestPath}:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the guards or the suites they protect explicit and reviewable. A commit that updates both still passes; the anchor is human review of the diff and protected CI, which remains an open Gate G0 requirement.`);

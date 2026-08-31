@@ -34,6 +34,52 @@ zsh -lc 'cd /Users/bank/ThinkBizThai && npm run check'
 Credential-shaped scratch fixtures used for the C1 re-probe were deleted after use and
 were never written inside the repository.
 
+### Mandatory self-scan of this document
+
+```
+node scripts/scan-repository-secrets.mjs <scratch copy of this file>   EXIT=0
+node scripts/scan-repository-secrets.mjs evidence/WP-0A-A0-002/        EXIT=0
+```
+
+My previous evidence file tripped the scanner by quoting a literal credential pattern. This
+one does not: every credential format discussed in item 7 is described in prose or assembled
+from split fragments at probe time, and no matching literal appears anywhere in this document.
+
+### Working-tree state at the time of writing — read this before acting on the verdict
+
+**Every ruling in this document is pinned to the assigned head `c631c07`**, which was `HEAD`
+for the whole of my probing. While I was writing up, the Author produced a further round of
+work in the live tree — first as uncommitted modifications to
+`scripts/verify-test-coverage-floor.mjs`, `test-kits/integrity-manifest.json`, and
+`test-kits/test-coverage-floor.test.mjs`, then committed as:
+
+```
+d16c382  fix(protocol): parse the check chain, and name a class the digest cannot reach
+c631c07  fix(protocol): close what is closable, and correct a false evidence claim   <- REVIEWED HERE
+```
+
+That commit also swept up an in-progress copy of this evidence file. **I did not author,
+modify, or touch any file in `d16c382`.** My only write to this repository is
+`evidence/WP-0A-A0-002/review-security-round7.md`.
+
+**`d16c382` has not been security-reviewed.** It is past my assigned head and needs its own
+pass before merge.
+
+I checked whether that uncommitted work overlaps my findings. It does not: it restructures
+`assertPackageScripts` to parse the `check` chain structurally (a different reviewer's
+short-circuit finding) and expands the manifest to digest all of `scripts/`. Verified still
+present at the time of writing:
+
+- `assertDeclarationsMatchExecution` unchanged — S1 and S1b stand.
+- No path constraint on manifest keys — S2 stands.
+- `createHash('sha256').update(await readFile(file, 'utf8'))` unchanged — S3 stands.
+- `process.exit(error.code ?? 80)` unchanged — S4 stands.
+- `countDeclaredTests` unchanged — S5 stands.
+
+The manifest expansion does resolve the (non-finding) observation in item 4 that the other
+validators were undigested. Because that work is uncommitted and outside my assigned head, it
+is noted, not reviewed; it needs its own security pass before merge.
+
 ---
 
 ## Item 1 — Retest of my own two prior defeats

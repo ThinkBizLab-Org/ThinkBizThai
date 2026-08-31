@@ -3,7 +3,13 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MIN_EXECUTED_TESTS, TEST_PATTERN } from './test-suite-contract.mjs';
-import { countDeclaredTests, discoverTestFiles } from './verify-test-coverage-floor.mjs';
+import {
+  assertEveryTestFileProtected,
+  assertIntegrityManifest,
+  assertNoEscapingPath,
+  countDeclaredTests,
+  discoverTestFiles,
+} from './verify-test-coverage-floor.mjs';
 import { readFile } from 'node:fs/promises';
 
 // `node --test` exits 0 while reporting `tests 0` whenever its pattern matches nothing,
@@ -59,6 +65,14 @@ export function assertExecuted(executed, floor = MIN_EXECUTED_TESTS) {
 // numbers real, so compare them to each other instead of to a constant.
 export async function assertDeclarationsMatchExecution(pass) {
   const files = await discoverTestFiles('test-kits');
+  // Independent security review rewrote a test file 150 ms into the run -- after node had
+  // read its module body, so only this post-run count changed -- then restored the digested
+  // bytes afterwards. The run went green with six assertions never executed and the tree
+  // ended byte-identical to its digests. The pre-run checks cannot see that; these can,
+  // because at this moment the file is still gutted.
+  await assertIntegrityManifest();
+  await assertEveryTestFileProtected(files);
+  await assertNoEscapingPath(files);
   let declared = 0;
   for (const file of files) declared += countDeclaredTests(await readFile(file, 'utf8'));
   if (declared !== pass) {
@@ -89,7 +103,7 @@ async function main() {
     await assertDeclarationsMatchExecution(summary.pass);
   } catch (error) {
     console.error(error.message);
-    process.exit(error.code ?? 80);
+    process.exit(Number.isInteger(error.code) ? error.code : 80);
   }
 }
 
