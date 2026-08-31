@@ -9,6 +9,14 @@ const candidateIds = ['CTR-TEN-001', 'CTR-ERR-001', 'CTR-EVT-001', 'CTR-JOB-001'
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.length > 0;
 const isDateTime = (value) => isNonEmptyString(value) && !Number.isNaN(Date.parse(value));
+// WP-0A-CON-005 / RFC-2026-006. This predicate previously read `!/^https?:\/\//`, the same
+// deny-list the CTR-JOB-001 schema shipped, and it accepted every bypass that schema did:
+// HTTPS://, //host, ftp:, data:, file:, javascript: and ../../../etc/passwd. Keeping it that
+// way would have made a fixture named `invalid-` pass this hand-written predicate while the
+// shipped schema rejected it -- the predicate/schema divergence the conformance suite exists
+// to close. It now mirrors the shipped constraint exactly.
+const REFERENCE_PATTERN = /^(job|status|result|app|asset|content):(?!\/)(?!.*\.\.)[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$/u;
+const isPrivateReference = (value) => isNonEmptyString(value) && REFERENCE_PATTERN.test(value);
 const hasTenantContext = (value) => value && isNonEmptyString(value.workspace_id)
   && value.actor && ['user', 'system_actor'].includes(value.actor.kind) && isNonEmptyString(value.actor.id)
   && isNonEmptyString(value.request_id) && isNonEmptyString(value.correlation_id)
@@ -39,8 +47,9 @@ function validatesCandidateFixture(contractId, fixture) {
       && Number.isInteger(fixture.attempt) && fixture.attempt >= 0
       && Number.isInteger(fixture.max_attempts) && fixture.max_attempts >= 1
       && Number.isInteger(fixture.timeout_seconds) && fixture.timeout_seconds >= 1
-      && isNonEmptyString(fixture.dedupe_key) && isNonEmptyString(fixture.input_ref)
-      && !/^https?:\/\//.test(fixture.input_ref) && Number.isInteger(fixture.progress_percent)
+      && isNonEmptyString(fixture.dedupe_key) && isPrivateReference(fixture.input_ref)
+      && (!('result_ref' in fixture) || isPrivateReference(fixture.result_ref))
+      && Number.isInteger(fixture.progress_percent)
       && fixture.progress_percent >= 0 && fixture.progress_percent <= 100 && isNonEmptyString(fixture.progress_stage));
   }
   throw new Error(`Unsupported Candidate contract: ${contractId}`);
@@ -104,8 +113,16 @@ test('Candidate safety constraints reject unsafe detail, payload, and public job
   assert.equal(eventSchema.properties.payload.maxProperties, 0);
   assert.equal(eventSchema.properties.metadata.additionalProperties, false);
   assert.ok(Object.keys(eventUnsafe.payload).length > 0);
-  assert.equal(jobSchema.properties.input_ref.not.pattern, '^https?://');
-  assert.equal(jobSchema.properties.result_ref.not.pattern, '^https?://');
+  // WP-0A-CON-005 / RFC-2026-006. These two assertions previously pinned
+  // `.not.pattern === '^https?://'`, so the contract was REQUIRED BY TEST to keep the
+  // deny-list independent security review proved bypassable. They now pin the allow-listed
+  // scheme with a constrained body, and assert the deny-list is gone rather than present.
+  for (const field of ['input_ref', 'result_ref']) {
+    assert.equal(jobSchema.properties[field].not, undefined, `${field} must not carry a deny-list`);
+    assert.equal(jobSchema.properties[field].pattern,
+      '^(job|status|result|app|asset|content):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$');
+    assert.match(jobSchema.properties[field]['x-reference-rule'], /Allow-listed scheme AND constrained body/);
+  }
 });
 
 test('Candidate fixture validator rejects missing Event and Job required fields', async () => {
