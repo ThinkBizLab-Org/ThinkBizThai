@@ -57,3 +57,23 @@ Use the schemas in `.agents/` for capability profiles, work packages, status upd
 Run only repository-declared deterministic commands. RFC-2026-001 is the in-review bootstrap tooling decision: Node.js `24.20.0` with bundled npm `11.19.0`, locked by `.node-version`, `package.json`, and `package-lock.json`. It is authorized for local validation only and cannot be treated as approved or merged until independent review, security review, test, integration, and CI evidence complete. `npm run check` enforces this exact toolchain before tests; do not substitute a system Node version, add another package manager, or introduce dependencies without a new approved RFC. Node-only validators and secret scan accept no network, credentials, or global tools. Record all commands and output in the handoff.
 
 Before any commit or push, the Author must provide a clean diff and self-test evidence; an independent Reviewer and Tester must complete their respective checks. The Integration Owner verifies the final state and CI before merging. Pushing branch-protection settings or production configuration requires authorized repository/operations ownership and must not be inferred from this guide.
+
+## Temporary manual merge control
+
+While native GitHub branch protection is unavailable, follow
+[`RFC-2026-002`](architecture/decisions/RFC-2026-002-manual-merge-control.md) for
+every proposed merge into `main`:
+
+- Never push directly to `main`, force-push it, or delete it. Use a branch and
+  Draft PR.
+- Before the Product Owner merges, the head commit must have a green required
+  CI run and linked Author, independent Reviewer, independent Tester,
+  Security/Privacy (when required), and Integration Owner evidence.
+- The Author never approves, test-verifies, integrates, or authorizes their own
+  work. A manual merge cannot waive an unresolved stop-the-line risk.
+- Record the PR URL, head SHA, CI run, evidence links, and rollback plan in the
+  handoff. Roll back with a reviewed revert commit/PR, never a force-push.
+
+This is a temporary, owner-directed process control; it is not native branch
+protection, does not satisfy the protected-CI G0 requirement, and does not grant
+an exception to any gate, security rule, or production change control.

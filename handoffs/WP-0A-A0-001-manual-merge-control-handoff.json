@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "ec4884f97298ceead30d6de84c3b0fd82a2467c9",
+  "head_revision_or_patch_checksum": "Temporary owner-directed manual merge control RFC and canonical guide rule; commit pending",
+  "task_ids": ["g0-manual-merge-control-record"],
+  "files_added": ["architecture/decisions/RFC-2026-002-manual-merge-control.md", "handoffs/WP-0A-A0-001-manual-merge-control-handoff.json"],
+  "files_modified": ["CONTRIBUTING_AGENTS.md", "evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The repository remains private and no paid GitHub plan or visibility change is authorized by this record.", "Manual process control is not native branch protection and cannot close the protected-CI G0 requirement."],
+  "acceptance_results": [
+    {
+      "criterion": "Every merge into main has a source-linked, manual branch/PR/CI/evidence/revert procedure while native protection is unavailable.",
+      "result": "pass by RFC and canonical-guide rule; independent review pending"
+    },
+    {
+      "criterion": "The fallback does not misrepresent procedural control as protected CI/G0 approval or weaken security/production rules.",
+      "result": "pass by explicit RFC/tracker limitations; independent review pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed before final independent review"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean before final independent review"
+    }
+  ],
+  "security_privacy_cost_impact": "Repository procedure and RFC only. It forbids force/direct pushes and does not add a secret, customer data, provider credential, schema, external call, billing action, or publish action.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, contract, database, provider, or production change. The G0 protected-CI requirement remains open.",
+  "known_limitations": ["Manual controls are not technically enforced by GitHub and can be violated by an authorized user.", "The RFC remains in review until independent review, test, integration, and CI evidence is complete."],
+  "open_risks_or_blockers": ["Native protected-branch evidence remains unavailable without a supported GitHub plan or future authorized configuration.", "Product/UX assignment, cross-vendor evidence and other G0 external requirements remain open."],
+  "rollback_or_forward_fix": "Revert via the same manual PR control or issue a reviewed forward RFC; never force-push main.",
+  "recommended_next_work_packages": ["Use this procedure for the current Draft PR and obtain independent cross-vendor protocol evidence.", "Do not use this RFC to advance G0 or a package to Ready without its independent role/dependency evidence."],
+  "reviewer_instructions": ["Verify the rule is operationally actionable and preserves no-direct-push, evidence, independence, and revert requirements.", "Verify all documents clearly say manual control is not native protected CI/G0 satisfaction.", "Confirm no billing, visibility, secret, provider, or production action is introduced."]
+}
