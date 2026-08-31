@@ -21,31 +21,21 @@ export const MIN_EXECUTED_TESTS = 40;
 export const RUNNER_SCRIPT = 'node scripts/run-test-suite.mjs';
 export const GUARD_SCRIPT = 'node scripts/verify-test-coverage-floor.mjs';
 
-// Counting cannot distinguish six real tests from six trivial ones -- independent testing
-// replaced the whole contract suite with `test("x", () => {})` padding and every count-based
-// floor stayed green. So the floor stops asking "how many" and asks "is the thing that must
-// be checked still being checked": these test names must appear in the runner's own output.
-// Renaming one is a deliberate, reviewable edit to this list; deleting the suite is not.
-export const REQUIRED_TEST_NAMES = [
-  'shared-kernel catalog preserves baseline IDs, versions, and freeze levels',
-  'Candidate fixture validator accepts valid fixtures and rejects every declared negative fixture',
-  'Candidate safety constraints reject unsafe detail, payload, and public job references',
-  'negative fixtures demonstrate required tenant and job isolation metadata',
-  'rejects a Ready manifest with duplicate named role IDs',
-  'rejects a writable path that captures another package output',
-  'rejects a synthetic private-key pattern',
-  'any wrapper that could neutralise the runner is rejected',
-  'a check script that drops the runner or the guard is rejected',
-  'a run that executed nothing is rejected even when the runner exits zero',
-];
-
-// Mitigation, NOT closure. The guard pins the command string; nothing pins the behaviour of
-// the file that command runs. Independent review gutted main() to `return`, kept the
-// exports, and npm run check exited 0 having executed nothing. That cannot be eliminated
-// from inside a script the same commit can edit. What it can do is make the edit loud: a
-// change to a guarded script fails the run until its digest here is deliberately updated,
-// which is a reviewable diff rather than a silent one.
-export const GUARDED_SCRIPT_DIGESTS = {
-  'scripts/run-test-suite.mjs': 'f22dd71e84baa540868908ecd01e98fb39d8744495d69f35691789e011620d93',
-  'scripts/verify-test-coverage-floor.mjs': '523eb5867dde40d12fd530d7a983daa5e2c620288a8ee502225ca8b9cc5c7d84',
-};
+// Counting cannot distinguish six real tests from six trivial ones. An earlier attempt
+// pinned required test NAMES and checked them against the runner's output; independent
+// testing defeated it twice -- a bodyless `test('<required name>');` is counted as a pass,
+// and a bare `console.log` of the ten names satisfied the check with no test named any of
+// them. Anything the running tests can emit, the running tests can forge.
+//
+// So the pin moved off the runtime stream and onto a static property the tests cannot
+// influence: the CONTENT of the files themselves, recorded in test-kits/integrity-manifest.json.
+// Gutting a protected suite changes its digest and fails the run.
+//
+// THIS IS A TRIPWIRE, NOT A SECURITY BOUNDARY, AND IT HAS NO SELF-ANCHOR.
+// A commit that edits a protected file and its digest together passes. That cannot be
+// fixed from inside a repository where one commit can change everything: every control
+// built here lives in the same trust domain as the thing it guards. The real anchor is
+// outside -- human review of the diff (RFC-2026-002) and protected CI, which is still an
+// open Gate G0 requirement. The manifest's value is that tampering must appear as a
+// deliberate, reviewable line in a diff instead of a silent behaviour change.
+export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';

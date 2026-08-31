@@ -1,0 +1,13 @@
+{
+  "note": "Content digests of the files that enforce test integrity and the suites they protect. A tripwire with no self-anchor: a commit updating a file and its digest together passes. The anchor is human review of the diff (RFC-2026-002) and protected CI, an open Gate G0 requirement.",
+  "files": {
+    "scripts/run-test-suite.mjs": "a0089d139e028450717233821927290c2eab655a546b5589b829450c92cf1fee",
+    "scripts/test-suite-contract.mjs": "dc28bcf13f101af8143b41a8166b375f5eb3f7f6a109ca04edc90b683f272526",
+    "scripts/verify-test-coverage-floor.mjs": "6ce25c3fe4b3865cee75f2225aa229aea769a057da7f845567ce8ee04c8f10a3",
+    "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "65a4c793e4dcfcc464ea77fd4e832c9f9272a08a13b050cc44e3bf4dff4039bc",
+    "test-kits/role-separation.test.mjs": "e00a8c05ee43e01652b83fff1d1ac82039921f2db4149b48427a24e42aa3c756",
+    "test-kits/secret-scan.test.mjs": "6076381c0c482b5fb91b5a43c182804faa9543d42d4285e819d97d8cf2915eee",
+    "test-kits/test-coverage-floor.test.mjs": "17e69b95cc1569270915aca1969f5c945d346d2db5a7f90bde0655c7de693cbe",
+    "test-kits/work-package-ownership.test.mjs": "c1eea047454336305326c086036799871121f1af1a70143fcc1b5154242e3594"
+  }
+}

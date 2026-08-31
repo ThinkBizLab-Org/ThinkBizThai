@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
   assertCoverage,
   assertDeclaredTests,
-  assertGuardedScriptDigests,
+  assertIntegrityManifest,
   stripNonCode,
   assertPackageScripts,
   countDeclaredTests,
@@ -12,8 +13,8 @@ import {
   globToRegExp,
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
-import { assertExecuted, assertNothingSkipped, assertRequiredTests, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
-import { GUARD_SCRIPT, GUARDED_SCRIPT_DIGESTS, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, REQUIRED_TEST_NAMES, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
+import { assertExecuted, assertNothingSkipped, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
+import { GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
 const files = [
@@ -187,26 +188,34 @@ test('a suite skipped into silence is rejected, not counted as executed', () => 
   assert.doesNotThrow(() => assertNothingSkipped(parseSummary('ℹ pass 5\nℹ skipped 0\nℹ todo 0')));
 });
 
-// Counting cannot tell six real tests from six trivial ones, so the load-bearing suites
-// are pinned by name against the runner's own output.
-test('gutting a protected suite is caught by name even when every count still clears', () => {
-  const full = REQUIRED_TEST_NAMES.join('\n');
-  assert.doesNotThrow(() => assertRequiredTests(full));
-  const gutted = REQUIRED_TEST_NAMES.slice(1).join('\n');
-  assert.throws(() => assertRequiredTests(gutted), (error) => error.code === 84 && error.message.includes(REQUIRED_TEST_NAMES[0]));
-  assert.throws(() => assertRequiredTests('ok 1 - x\nok 2 - y'), (error) => error.code === 84);
-  assert.ok(REQUIRED_TEST_NAMES.length >= 10);
+// Name pinning was defeated twice: a bodyless `test('<required name>');` counts as a pass,
+// and a bare console.log of the names satisfied a substring check with no test so named.
+// The pin is now on file CONTENT, which the running tests cannot influence.
+test('gutting a protected file is caught by its content digest', async () => {
+  const protectedCount = await assertIntegrityManifest();
+  assert.ok(protectedCount >= 8, `expected at least 8 protected files, found ${protectedCount}`);
+  await assert.rejects(() => assertIntegrityManifest('test-kits/no-such-manifest.json'), (error) => error.code === 86);
+});
+
+test('the manifest protects the guards, the contract, and the suites they defend', async () => {
+  const manifest = JSON.parse(await readFile(INTEGRITY_MANIFEST, 'utf8'));
+  for (const required of [
+    'scripts/run-test-suite.mjs',
+    'scripts/verify-test-coverage-floor.mjs',
+    'scripts/test-suite-contract.mjs',
+    'test-kits/contracts/shared-kernel-contract-catalog.test.mjs',
+  ]) {
+    assert.ok(required in manifest.files, `${required} must be digested; the file holding the floors and digests was previously unprotected`);
+  }
+  assert.match(manifest.note, /tripwire|no self-anchor/i);
 });
 
 // A build script is editable by anyone who can edit the build script. This does not close
 // that; it makes the edit loud enough to be reviewed.
-test('editing a guarded script without updating its digest fails the run', async () => {
-  await assert.doesNotReject(() => assertGuardedScriptDigests());
-  await assert.rejects(
-    () => assertGuardedScriptDigests({ 'scripts/run-test-suite.mjs': 'deadbeef'.repeat(8) }),
-    (error) => error.code === 86 && /run-test-suite\.mjs/.test(error.message),
-  );
-  assert.ok(Object.keys(GUARDED_SCRIPT_DIGESTS).length >= 2);
+test('the declaration count matches what the runner actually executes', async () => {
+  const { files: discovered, declared } = await verifyTestCoverageFloor();
+  assert.equal(declared, 54, `stripNonCode must not lose or invent declarations; counted ${declared}, runner executes 54`);
+  assert.ok(discovered.length >= 9);
 });
 
 // Padding a suite with `test(` inside comments or template literals cleared the floor.

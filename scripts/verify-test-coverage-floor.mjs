@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
-  GUARDED_SCRIPT_DIGESTS,
+  INTEGRITY_MANIFEST,
   MIN_DECLARED_TESTS_BY_DIRECTORY,
   MIN_TEST_DIRECTORIES,
   MIN_TEST_FILES,
@@ -89,18 +89,53 @@ export function assertPackageScripts(scripts) {
   return TEST_PATTERN;
 }
 
-// A floor on files alone is gameable: eight files declaring no test at all satisfy it
-// while the runner executes nothing. Count declared `test(...)` calls too.
-// A raw line-anchored regex counted `test(` inside block comments, line comments and
-// template literals -- independent review and independent testing each padded a suite that
-// way and cleared the floor. Strip those regions before counting.
+// Counting declarations requires knowing which text is code. Chained regex replacements
+// cannot: stripping block comments first made the `/*` inside a glob string such as
+// 'test-kits/*.test.mjs' open a phantom comment that closed on the `*/` inside a later
+// 'test-kits/**/*.test.mjs', erasing 11 real declarations from the count. Independent
+// testing also drove it the other way, manufacturing phantom declarations from a template
+// literal. A single left-to-right scan that tracks what it is inside is the only correct
+// way to do this without a parser.
 export function stripNonCode(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '))
-    .replace(/\/\/[^\n]*/g, '')
-    .replace(/`(?:\\[\s\S]|[^\\`])*`/g, (match) => match.replace(/[^\n]/g, ' '))
-    .replace(/'(?:\\.|[^\\'\n])*'/g, "''")
-    .replace(/"(?:\\.|[^\\"\n])*"/g, '""');
+  let out = '';
+  let i = 0;
+  const keepNewlines = (text) => text.replace(/[^\n]/g, ' ');
+  while (i < source.length) {
+    const two = source.slice(i, i + 2);
+    if (two === '/*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      out += keepNewlines(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    if (two === '//') {
+      const end = source.indexOf('\n', i);
+      const stop = end === -1 ? source.length : end;
+      out += keepNewlines(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    const quote = source[i];
+    if (quote === '"' || quote === "'" || quote === '`') {
+      let j = i + 1;
+      while (j < source.length) {
+        if (source[j] === '\\') { j += 2; continue; }
+        if (source[j] === quote) break;
+        // A template literal may nest arbitrary code in ${...}; treat the whole literal as
+        // non-code so nothing inside it can be counted as a declaration.
+        if (quote !== '`' && source[j] === '\n') break;
+        j += 1;
+      }
+      const stop = Math.min(j + 1, source.length);
+      out += keepNewlines(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    out += source[i];
+    i += 1;
+  }
+  return out;
 }
 
 export function countDeclaredTests(source) {
@@ -169,27 +204,42 @@ export async function assertDeclaredTests(files, floor = DECLARED_TEST_FLOOR, by
   return total;
 }
 
-// The guard pins the command string; nothing pins the BEHAVIOUR of the file that command
-// runs. Independent review gutted main() to `return`, kept the exports, and npm run check
-// exited 0 having executed nothing. That cannot be eliminated from inside a script the same
-// commit can edit -- so this does not claim to close it. It makes the edit loud: changing a
-// guarded script fails the run until its digest here is deliberately updated, which is a
-// reviewable diff rather than a silent one.
-export async function assertGuardedScriptDigests(digests = GUARDED_SCRIPT_DIGESTS) {
+// Every protected file is digested in one manifest, including the scripts that do the
+// checking and the contract that declares the floors. The manifest itself is the single
+// unanchored artifact and is declared as such: nothing inside this repository can verify
+// it, only a human reading the diff or a protected CI configuration can.
+export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST) {
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  } catch (error) {
+    throw new CoverageFloorError(86, `cannot read the integrity manifest '${manifestPath}': ${error.message}. Without it nothing pins the files that do the checking.`);
+  }
+  const entries = Object.entries(manifest.files ?? {});
+  if (entries.length === 0) {
+    throw new CoverageFloorError(86, `integrity manifest '${manifestPath}' protects no file.`);
+  }
   const drifted = [];
-  for (const [file, expected] of Object.entries(digests)) {
-    const actual = createHash('sha256').update(await readFile(file, 'utf8')).digest('hex');
+  for (const [file, expected] of entries) {
+    let actual;
+    try {
+      actual = createHash('sha256').update(await readFile(file, 'utf8')).digest('hex');
+    } catch (error) {
+      drifted.push(`${file}\n    MISSING (${error.code ?? error.message})`);
+      continue;
+    }
     if (actual !== expected) drifted.push(`${file}\n    expected sha256 ${expected}\n    actual   sha256 ${actual}`);
   }
   if (drifted.length > 0) {
-    throw new CoverageFloorError(86, `guarded script(s) changed without updating GUARDED_SCRIPT_DIGESTS in scripts/test-suite-contract.mjs:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the test-integrity scripts explicit and reviewable.`);
+    throw new CoverageFloorError(86, `protected file(s) changed without updating ${manifestPath}:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the guards or the suites they protect explicit and reviewable. A commit that updates both still passes; the anchor is human review of the diff and protected CI, which remains an open Gate G0 requirement.`);
   }
+  return entries.length;
 }
 
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
   const pattern = assertPackageScripts(manifest.scripts);
-  await assertGuardedScriptDigests();
+  await assertIntegrityManifest();
   let files;
   try {
     files = await discoverTestFiles(testDirectory);
