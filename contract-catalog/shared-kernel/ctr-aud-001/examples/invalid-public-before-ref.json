@@ -1,0 +1,21 @@
+{
+  "audit_id": "aud_synthetic_0008",
+  "occurred_at": "2026-08-31T15:30:00Z",
+  "actor": { "kind": "user", "id": "user_synthetic_0008" },
+  "action": { "category": "role", "name": "workspace_member.role.changed" },
+  "tenant_context": {
+    "workspace_id": "ws_synthetic_0008",
+    "actor": { "kind": "user", "id": "user_synthetic_0008" },
+    "request_id": "req_synthetic_0008",
+    "correlation_id": "corr_synthetic_0008",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_0008",
+  "outcome": "succeeded",
+  "reason_key": "audit.role.changed_by_workspace_owner",
+  "change": { "before_ref": "https://public.example.invalid/roles/before" },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true },
+  "retention": { "policy_ref": "retention.audit.security_action" },
+  "details": {}
+}

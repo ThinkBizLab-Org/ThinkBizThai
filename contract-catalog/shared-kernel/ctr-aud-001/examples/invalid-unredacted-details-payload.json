@@ -1,0 +1,20 @@
+{
+  "audit_id": "aud_synthetic_0007",
+  "occurred_at": "2026-08-31T15:20:00Z",
+  "actor": { "kind": "system_actor", "id": "worker_synthetic_0007" },
+  "action": { "category": "credential", "name": "secret.handle.resolved" },
+  "tenant_context": {
+    "workspace_id": "ws_synthetic_0007",
+    "actor": { "kind": "system_actor", "id": "worker_synthetic_0007" },
+    "request_id": "req_synthetic_0007",
+    "correlation_id": "corr_synthetic_0007",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_0007",
+  "outcome": "succeeded",
+  "reason_key": "audit.credential.resolved_for_capability",
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true },
+  "retention": { "policy_ref": "retention.audit.security_action" },
+  "details": { "resolved_credential": "SYNTHETIC-PLACEHOLDER-NOT-A-CREDENTIAL" }
+}

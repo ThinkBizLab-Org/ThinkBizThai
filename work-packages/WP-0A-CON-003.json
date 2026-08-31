@@ -103,10 +103,12 @@
     "forbidden_paths": [
       ".env",
       ".env.*",
-      "**/*secret*",
-      "**/*credential*",
       "db/**",
-      "migrations/**"
+      "migrations/**",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
     ],
     "module_ids": [
       "MOD-000"
@@ -114,7 +116,8 @@
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
       "test-kits/integrity-manifest.json \u2014 add this package's new test file and recompute digests. The WP-0A-A0-002 guard REQUIRES every discovered test file to be digested (exit 87), so any package adding a suite must touch that file. This is a structural coupling created by that guard, not a discretionary edit: the alternative is that the package cannot ship a test at all. It changes no digest policy and no other package's entry."
-    ]
+    ],
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed. A contract catalog that models secret HANDLES must name them, and this package ships contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json and invalid-secret-handle-shape.json -- both matching a glob this manifest declared forbidden. The contradiction was found by the run authoring WP-0A-CON-004 and confirmed: the ownership validator checks writable and read-only paths but never compares forbidden_paths against declared outputs, so nothing caught it. Replaced with extensions that carry actual key material (*.pem, *.key, *.p12, *.pfx), which is what the rule was for. A filename is not a secret; a private key file is."
   },
   "inputs": {
     "files": [

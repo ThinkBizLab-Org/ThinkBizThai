@@ -1,0 +1,28 @@
+{
+  "audit_id": "aud_synthetic_0010",
+  "occurred_at": "2026-08-31T15:50:00Z",
+  "actor": { "kind": "user", "id": "user_synthetic_0010" },
+  "action": { "category": "publish", "name": "publish.meta_page.requested" },
+  "tenant_context": {
+    "workspace_id": "ws_synthetic_0010",
+    "actor": { "kind": "user", "id": "user_synthetic_0010" },
+    "request_id": "req_synthetic_0010",
+    "correlation_id": "corr_synthetic_0010",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_0010",
+  "outcome": "succeeded",
+  "reason_key": "audit.publish.completed",
+  "error": {
+    "code": "PUBLISH_PERMISSION_DENIED",
+    "message_key": "error.publish.permission_denied",
+    "category": "permission",
+    "retryable": false,
+    "correlation_id": "corr_synthetic_0010",
+    "details": {}
+  },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true },
+  "retention": { "policy_ref": "retention.audit.security_action" },
+  "details": {}
+}

@@ -1,0 +1,20 @@
+{
+  "audit_id": "aud_synthetic_0009",
+  "occurred_at": "2026-08-31T15:40:00Z",
+  "actor": { "kind": "user", "id": "user_synthetic_0009" },
+  "action": { "category": "billing", "name": "subscription.plan.changed" },
+  "tenant_context": {
+    "workspace_id": "ws_synthetic_0009",
+    "actor": { "kind": "user", "id": "user_synthetic_0009" },
+    "request_id": "req_synthetic_0009",
+    "correlation_id": "corr_synthetic_0009",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_0009",
+  "outcome": "succeeded",
+  "reason_key": "Owner asked us to downgrade the plan after the pilot",
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true },
+  "retention": { "policy_ref": "retention.audit.billing_action" },
+  "details": {}
+}

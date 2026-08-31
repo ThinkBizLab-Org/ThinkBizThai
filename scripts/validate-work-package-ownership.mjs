@@ -55,9 +55,16 @@ export function validateManifestOwnership(manifests) {
       }
     }
 
+    // A package declared **/*secret* forbidden and then shipped a file matching it. The
+    // validator compared outputs against writable and read-only paths but never against
+    // forbidden_paths, so a manifest could contradict its own rule and stay green.
+    const forbiddenPaths = ownership.forbidden_paths ?? [];
     for (const output of outputFiles) {
       if (!isRepositoryRelativePath(output, { allowGlobs: false })) {
         throw new OwnershipValidationError(67, `work package ${label} output must be an exact file path: ${String(output)}`);
+      }
+      if (matchesAny(output, forbiddenPaths)) {
+        throw new OwnershipValidationError(72, `work package ${label} declares an output its own forbidden_paths forbid: ${output}`);
       }
       if (!matchesAny(output, writablePaths)) {
         throw new OwnershipValidationError(68, `work package ${label} output is outside writable_paths: ${output}`);

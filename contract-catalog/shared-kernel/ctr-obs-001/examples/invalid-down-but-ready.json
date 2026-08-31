@@ -1,0 +1,12 @@
+{
+  "correlation": { "correlation_id": "corr_synthetic_0008" },
+  "module": { "module_key": "media-processing", "implementation_version": "0.9.2" },
+  "environment": "staging",
+  "liveness": { "status": "down", "depends_on_external_provider": false },
+  "readiness": {
+    "ready": true,
+    "capabilities": [ { "capability_key": "media.image.thumbnail", "ready": true } ]
+  },
+  "sli_tags": { "module_key": "media-processing", "environment": "staging" },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true }
+}

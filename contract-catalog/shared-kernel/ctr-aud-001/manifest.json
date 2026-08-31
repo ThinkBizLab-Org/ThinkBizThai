@@ -1,0 +1,44 @@
+{
+  "contract_id": "CTR-AUD-001",
+  "version": "1.0.0",
+  "status": "Draft",
+  "owner": "A0+A6",
+  "schema": "schema.json",
+  "fixtures": [
+    "examples/valid-credential-revoked.json",
+    "examples/valid-publish-denied.json",
+    "examples/valid-business-profile-deleted.json",
+    "examples/invalid-delete-without-before-ref.json",
+    "examples/invalid-denied-without-error.json",
+    "examples/invalid-unredacted-details-payload.json",
+    "examples/invalid-public-before-ref.json",
+    "examples/invalid-free-text-reason.json",
+    "examples/invalid-succeeded-with-error.json",
+    "examples/accepted-gap-break-glass-without-time-bound.json"
+  ],
+  "source_references": [
+    "Decision Register 5.2 CTR-AUD-001",
+    "Decision Register DEC-023 security minimum: audit",
+    "Contracts/Events/Jobs Workstream L OB-005",
+    "Contracts/Events/Jobs Workstream L OB-002",
+    "Contracts/Events/Jobs Workstream 3.1",
+    "Contracts/Events/Jobs Workstream 3.2",
+    "Contracts/Events/Jobs Workstream A CM-004",
+    "Meta/Security/Ops Workstream SEC-009",
+    "Meta/Security/Ops Workstream SEC-007",
+    "Meta/Security/Ops Workstream SEC-016",
+    "Meta/Security/Ops Workstream OBS-001",
+    "Meta/Security/Ops Workstream PDPA-006",
+    "Meta/Security/Ops Workstream PDPA-008"
+  ],
+  "composes": [
+    "CTR-TEN-001",
+    "CTR-ERR-001"
+  ],
+  "freeze_boundary": "Draft only. Materializes exactly: the OB-005 requirement that an audit event carries actor, scope, action, reason and a before/after REFERENCE with secret and content redaction; the SEC-009 requirement that a role, credential, publish, delete, billing or support action names its actor and correlation, which is why those six are the action categories; the OB-002 requirement that PII is redacted and that failures speak the stable CTR-ERR-001 taxonomy; and the SEC-009 plus PDPA-006 requirement that the record names the retention policy governing it. NOT inferred and open before freeze: the retention DURATION (PDPA-006 is undelivered and the baseline requires Thai legal confirmation before production); the audit STORE, its append-only or immutability mechanism, and any tamper evidence; the alert routing OB-002 attaches to this taxonomy; the admin and support query view model (MR-006); and a platform-scope action belonging to no workspace, which this contract does not model because it requires a full CTR-TEN-001 tenant context on every record. Human-readable fields are stable keys, never free text, on the CM-004 and CTR-ERR-001 precedent, because this record sits on a support-visible and log-visible path that OBS-001 forbids carrying full content.",
+  "untestable_by_fixture": "SEC-016 requires break-glass support access to be least-privilege, TIME-BOUND, audited and revocable, and SEC-009 requires audit COMPLETENESS -- that every role, credential, publish, delete, billing and support action produces a record. Neither is a property of one document: completeness is a property of a producer over every action it performs, and time-bounding is a property of an access grant over its lifetime. A fixture can only show that a record which exists has the right shape, never that the record was written when it should have been. Both need a producer-side harness before freeze and are NOT claimed as materialized.",
+  "untestable_by_schema": "Three rules stated here that JSON Schema cannot express. (1) IMMUTABILITY: an audit record is worthless if it can be edited afterwards, and no keyword in this subset can bind a record to its predecessors; there is no hash chain or signature field because no source specifies one -- see the accepted gap. (2) REFERENCE RESOLUTION: `change.before_ref` and `change.after_ref` are constrained in shape only; nothing checks that they resolve, that they resolve to the audited subject, or that what they resolve to is itself redacted. (3) CROSS-FIELD CONSISTENCY: nothing checks that `correlation_id` equals `tenant_context.correlation_id`, nor that `action.name` belongs to `action.category`, because this validator cannot compare one property's value with another's.",
+  "accepted_gaps": {
+    "examples/accepted-gap-break-glass-without-time-bound.json": "SEC-016 in the Meta/Security/Ops baseline requires admin and support break-glass access to be least privilege, time-bound, audited, revoke-tested and to reveal no secret. This contract records that break-glass access was granted, by whom, in what scope and for what reason, but it accepts the record with nothing showing the grant was bounded in time, because SEC-016 is an undelivered Phase 1E task that has not defined the expiry, the approver or the revocation field, and this author must not invent a security field on a security boundary. The consequence is that a reader of this audit trail can see that break-glass happened and cannot see that it ended. The A1 security owner delivering SEC-016 must specify those fields and this schema must then require them for the support category before freeze."
+  }
+}
