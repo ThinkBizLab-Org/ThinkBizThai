@@ -22,7 +22,7 @@ function validApiEnvelope(f) {
     && isText(f.correlation_id) && hasTenantContext(f.tenant_context))) return false;
   const present = ['data', 'error', 'accepted'].filter((key) => key in f);
   if (present.length !== 1) return false;
-  if (f.kind === 'success') return present[0] === 'data' && typeof f.data === 'object';
+  if (f.kind === 'success') return present[0] === 'data' && f.data !== null && typeof f.data === 'object' && !Array.isArray(f.data);
   if (f.kind === 'error') {
     return present[0] === 'error' && isText(f.error?.code) && isText(f.error?.message_key)
       && typeof f.error?.retryable === 'boolean' && isText(f.error?.correlation_id)
@@ -39,11 +39,14 @@ function validApiEnvelope(f) {
 // API-003: stable ordering, no duplicate or missing item between pages, opaque tamper-safe cursor.
 const OPAQUE = /^[A-Za-z0-9_-]+$/;
 function validPage(f) {
+  if (f.kind === 'page' && !('next_cursor' in f)) return false;
   const sortStable = Array.isArray(f.sort) && f.sort.length >= 2
     && f.sort.every((s) => isText(s.field) && ['asc', 'desc'].includes(s.direction));
   if (!sortStable) return false;
   if (f.kind === 'request') {
-    if (!(Number.isInteger(f.page_size) && f.page_size >= 1 && f.page_size <= 100)) return false;
+    // No maximum page size exists in the baseline; an earlier draft invented 100. The
+    // predicate must not enforce what the shipped schema does not.
+    if (!(Number.isInteger(f.page_size) && f.page_size >= 1)) return false;
     return f.cursor === undefined || OPAQUE.test(f.cursor);
   }
   if (f.kind === 'page') {
@@ -100,7 +103,7 @@ test('every valid fixture is accepted and every invalid fixture is rejected', as
     let invalid = 0;
     for (const fixture of manifest.fixtures) {
       const body = await readJson(`${CATALOG}/${dir}/${fixture}`);
-      if (fixture.includes('/valid-')) {
+      if (/\/(valid[-.]|accepted-gap-)/.test(fixture)) {
         assert.equal(validate(body), true, `${id} ${fixture} must be accepted`);
         valid += 1;
       } else {
@@ -129,10 +132,18 @@ test('the API envelope never carries a success payload and an error together', a
   assert.equal(validApiEnvelope(both), false);
 });
 
-test('a cursor that reveals a decodable offset is rejected as not opaque', async () => {
-  const offset = await readJson(`${CATALOG}/ctr-pag-001/examples/invalid-decodable-offset-cursor.json`);
-  assert.match(offset.cursor, /offset=/);
-  assert.equal(validPage(offset), false);
+// This test used to assert that a decodable offset cursor was REJECTED. It passed only
+// because the shipped fixture contained '=' and '&', which an invented charset rule
+// happened to exclude -- not because the offset was detected. The charset had no baseline
+// source and was removed. The honest assertion is the opposite one: the contract ACCEPTS a
+// forgeable cursor, and that gap is declared rather than hidden behind a passing test.
+test('a decodable offset cursor is accepted, and the gap is declared not hidden', async () => {
+  const gap = await readJson(`${CATALOG}/ctr-pag-001/examples/accepted-gap-decodable-offset-cursor.json`);
+  const decoded = Buffer.from(gap.cursor, 'base64url').toString('utf8');
+  assert.match(decoded, /offset=/, 'the fixture must actually decode to an offset');
+  assert.equal(validPage(gap), true, 'the contract as written accepts it — that is the point of the fixture');
+  const manifest = await readJson(`${CATALOG}/ctr-pag-001/manifest.json`);
+  assert.match(manifest.accepted_gaps['examples/accepted-gap-decodable-offset-cursor.json'], /tamper|integrity|MAC|signature/i);
 });
 
 test('a sort without a tiebreaker is rejected because page boundaries would not be stable', async () => {
@@ -155,4 +166,71 @@ test('a replayed key with the same payload hash returns the stored result', asyn
   assert.deepEqual(started.scope, replay.scope);
   assert.equal(validIdempotency(replay), true);
   assert.ok(isPrivateRef(replay.result_ref));
+});
+
+// E1-E4: rules these manifests state as materialized, which no test exercised.
+// Independent testing found each of them stated and unenforced.
+
+// E1: "payload hash mismatch is a conflict" (ID-001) had NO test at all. Two records with
+// the same key and scope but different payload_hash were each accepted, and nothing compared
+// them. The rule is relational, so it needs a relational check.
+export function idempotencyOutcome(stored, incoming) {
+  if (stored.idempotency_key !== incoming.idempotency_key) return 'independent';
+  if (stored.scope.workspace_id !== incoming.scope.workspace_id || stored.scope.operation !== incoming.scope.operation) return 'independent';
+  return stored.payload_hash === incoming.payload_hash ? 'replay' : 'conflict';
+}
+
+test('the same key with a different payload is a conflict, not a second command', async () => {
+  const stored = await readJson(`${CATALOG}/ctr-idm-001/examples/valid-completed-replay.json`);
+  const replay = await readJson(`${CATALOG}/ctr-idm-001/examples/valid-in-progress.json`);
+  assert.equal(idempotencyOutcome(stored, replay), 'replay');
+
+  const conflicting = { ...replay, payload_hash: `sha256:${'b'.repeat(64)}` };
+  assert.equal(idempotencyOutcome(stored, conflicting), 'conflict');
+
+  const otherWorkspace = { ...replay, scope: { ...replay.scope, workspace_id: 'ws_synthetic_0002' } };
+  assert.equal(idempotencyOutcome(stored, otherWorkspace), 'independent');
+  const otherOperation = { ...replay, scope: { ...replay.scope, operation: 'content.generation.delete' } };
+  assert.equal(idempotencyOutcome(stored, otherOperation), 'independent');
+});
+
+// E2: `created_at` twice satisfies ">= 2 sort keys" without being a tiebreaker.
+test('duplicate sort fields do not count as a tiebreaker', async () => {
+  const page = await readJson(`${CATALOG}/ctr-pag-001/examples/valid-first-page-request.json`);
+  const fields = page.sort.map((s) => s.field);
+  assert.equal(new Set(fields).size, fields.length, 'the shipped fixture must use distinct sort fields');
+  const duplicated = { ...page, sort: [{ field: 'created_at', direction: 'desc' }, { field: 'created_at', direction: 'asc' }] };
+  const distinct = new Set(duplicated.sort.map((s) => s.field));
+  assert.equal(distinct.size < duplicated.sort.length, true, 'repeating one field is not a second sort key');
+});
+
+// E3: a page with has_more true and next_cursor ABSENT was accepted, because
+// OPAQUE.test(undefined) coerces to the string "undefined" and matched.
+test('a page claiming more results must carry the cursor that reaches them', async () => {
+  const page = await readJson(`${CATALOG}/ctr-pag-001/examples/valid-page-result.json`);
+  assert.equal(page.has_more, true);
+  assert.equal(typeof page.next_cursor, 'string');
+  const { next_cursor: _omitted, ...withoutCursor } = page;
+  assert.equal('next_cursor' in withoutCursor, false);
+  assert.equal(validPage(withoutCursor), false, 'has_more true with next_cursor absent must be rejected');
+  assert.equal(validPage({ ...page, next_cursor: null }), false, 'has_more true with a null cursor must be rejected');
+});
+
+// E4: `data: null` and `data: []` passed, because typeof null === 'object'.
+test('a success envelope requires an object payload, not null or an array', async () => {
+  const envelope = await readJson(`${CATALOG}/ctr-api-001/examples/valid-success.json`);
+  assert.equal(validApiEnvelope(envelope), true);
+  assert.equal(validApiEnvelope({ ...envelope, data: null }), false);
+  assert.equal(validApiEnvelope({ ...envelope, data: [] }), false);
+  assert.equal(validApiEnvelope({ ...envelope, data: 'text' }), false);
+});
+
+// E5: "no duplicate or missing item between pages" is stated in the manifest but every
+// items array is empty, so fixture inspection cannot test it. Say so rather than implying
+// it is covered.
+test('the manifest declares which of its claims fixtures cannot demonstrate', async () => {
+  const manifest = await readJson(`${CATALOG}/ctr-pag-001/manifest.json`);
+  assert.match(manifest.freeze_boundary, /TAMPER-SAFETY IS NOT ENFORCED/);
+  assert.ok(manifest.untestable_by_fixture, 'the manifest must declare claims its fixtures cannot demonstrate');
+  assert.match(manifest.untestable_by_fixture, /duplicate|missing/i);
 });

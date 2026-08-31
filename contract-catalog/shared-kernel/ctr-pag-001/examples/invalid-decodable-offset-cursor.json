@@ -1,1 +1,0 @@
-{"kind":"request","page_size":20,"cursor":"offset=40&limit=20","sort":[{"field":"created_at","direction":"desc"},{"field":"id","direction":"desc"}]}
