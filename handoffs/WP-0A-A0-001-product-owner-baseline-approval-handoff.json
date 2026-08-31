@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "d4bede0a3bb492ffcc951351d02fee6844a85627",
+  "head_revision_or_patch_checksum": "Product Owner Sprint 0A baseline approval evidence; commit pending",
+  "task_ids": ["g0-product-owner-baseline-approval-record"],
+  "files_added": ["evidence/WP-0A-A0-001/product-owner-baseline-approval.md", "handoffs/WP-0A-A0-001-product-owner-baseline-approval-handoff.json"],
+  "files_modified": ["evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The owner statement is approved only for the Sprint 0A baseline scope recorded in the evidence file.", "G0, Product/UX role assignment, cross-vendor evidence, branch protection, provider verification and expert approvals remain unresolved unless separately evidenced."],
+  "acceptance_results": [
+    {
+      "criterion": "A Product Owner baseline approval record is present and attributable without importing secrets or customer data.",
+      "result": "pass"
+    },
+    {
+      "criterion": "The approval cannot be read as G0, production, provider, legal, contract-freeze, or Ready-package approval.",
+      "result": "pass by explicit evidence limits and tracker status"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed; final independent review pending"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean; final independent review pending"
+    }
+  ],
+  "security_privacy_cost_impact": "Approval metadata only. No secret, customer data, provider credential, schema, external call, billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, database, provider, or contract semantic change. Candidate/Draft and G0 boundaries remain unchanged.",
+  "known_limitations": ["The Product Owner statement does not fill product_reviewer_agent_run_id or replace independent Product/UX review.", "This is same-conversation owner evidence and not cross-vendor/repository-administrator/provider/expert evidence."],
+  "open_risks_or_blockers": ["Protected-branch evidence, Product/UX reviewer assignment, cross-vendor dry run, Meta, Stripe, legal/PDPA/accounting, usability, skincare and storage evidence remain open per the G0 tracker."],
+  "rollback_or_forward_fix": "Revert this metadata-only commit or record a reviewed superseding owner decision; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["Record branch-protection evidence and the distinct Product/UX review assignment, then obtain an actual cross-vendor dry run.", "Do not make CON-00 Ready or begin provider/schema/customer-data work from this approval alone."],
+  "reviewer_instructions": ["Verify the recorded statement matches the Product Owner's exact approval and preserves all explicit limits.", "Verify the tracker marks only baseline Product Owner approval complete and leaves G0/other external evidence unresolved.", "Confirm no status or role assignment is advanced."]
+}
