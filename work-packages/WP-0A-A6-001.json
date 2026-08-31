@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A6-001",
+  "title": "Product KPI catalog dispatch backlog — G0-003",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": ["billing-cost-ops"],
+    "reviewer": [],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": null,
+    "reviewer_agent_run_id": null,
+    "tester_agent_run_id": null,
+    "integration_owner_agent_run_id": null,
+    "security_reviewer_agent_run_id": null,
+    "product_reviewer_agent_run_id": null,
+    "finance_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true
+  },
+  "accountable_owners": ["A0", "A6"],
+  "required_human_authorities": [
+    "Product Owner review for G0-003 metric formula, source, owner and any target",
+    "Accountant and Privacy/Legal review before any applicable later A6 commercial or retention conclusion"
+  ],
+  "purpose": "Record the source-defined G0-003 dispatch backlog within the A6 production-readiness lane. The first safe slice is a synthetic metric dictionary that keeps every KPI target pending Product Owner approval; later A6 deliverables require separately recorded expert decisions and routing.",
+  "scope": {
+    "include": [
+      "G0-003 metric name, business purpose, formula, unit, denominator, owner, future source and synthetic edge cases",
+      "The source-defined A0+A6 ownership and Product review route for G0-003",
+      "Explicit routing of later A6 risk, retention, secret, billing, incident, restore and release work without accepting that later scope"
+    ],
+    "exclude": [
+      "KPI target approval, vanity targets, customer data, event instrumentation, database schema, migrations, provider calls, Stripe or Meta credentials, production configuration, legal/tax/accounting conclusions and Gate G0 approval"
+    ]
+  },
+  "decisions_consumed": ["OPEN-016"],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [],
+    "approved_fixtures": [],
+    "later_a6_scope_requires": ["DEC-020", "DEC-023", "DEC-024", "OPEN-001", "OPEN-002", "OPEN-003", "OPEN-010", "OPEN-014", "OPEN-019", "OPEN-020", "shared contract candidates"]
+  },
+  "ownership": {
+    "writable_paths": ["work-packages/WP-0A-A6-001.json", "evidence/WP-0A-A6-001/**", "handoffs/WP-0A-A6-001-*.json"],
+    "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "architecture/decisions/**", ".agents/capability-profiles/**"],
+    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**", ".github/**", "package.json", "package-lock.json"],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": []
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md",
+      "docs/plans/ai-content-os-master-plan-and-backlog-th.md",
+      "docs/plans/ai-content-os-execution-master-plan-th.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": ["work-packages/WP-0A-A6-001.json"],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "The backlog packet preserves the source-defined WP-0A-A6-001 scope and maps G0-003 to a synthetic-only first slice.",
+    "No role is assigned or package status advanced until a real capability declaration and distinct author, reviewer, tester and integration IDs are independently verified.",
+    "Every KPI target remains pending Product Owner approval; no instrumentation, schema, provider or customer-data change is authorized."
+  ],
+  "required_tests": [
+    "Work-package JSON, role-separation and ownership validators",
+    "Repository canonical check before any dispatch commit"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check"],
+    "package_evidence": ["node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A6-001.json", "node scripts/validate-work-package-ownership.mjs work-packages"]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert the dispatch-manifest-only commit or issue a reviewed correction. This backlog record creates no production, provider, schema or customer-data state.",
+  "open_blockers": [
+    "A6 has not yet supplied an independently reviewed capability benchmark for billing-cost-ops; it must not be assigned as Author from its current declaration.",
+    "OPEN-016 requires Product Owner review for every metric formula, source, owner and any target before G0-003 can close; targets remain pending.",
+    "Product Owner is the G0-003 reviewer. Accountant, Privacy/Legal and Security authorities are mandatory for applicable later A6 subscopes and cannot be represented by an agent skill-profile placeholder.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "product_approved", "test_verified", "integration_verified"]
+}
