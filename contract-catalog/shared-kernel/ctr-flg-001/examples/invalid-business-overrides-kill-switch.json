@@ -1,0 +1,1 @@
+{"policy_key":"content.generation","effect":"deny","decided_at":"2026-08-31T10:00:00Z","decision_source":{"scope":"business","rule":"kill_switch"},"reason_key":"policy.business.kill_switch","evaluated_scopes":["platform","plan","workspace"]}

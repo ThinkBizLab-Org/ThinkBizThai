@@ -1,0 +1,203 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-003",
+  "title": "Module manifest and feature policy contracts",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback. It is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-004 before the manual merge described in RFC-2026-002"
+  ],
+  "purpose": "Materialize CTR-MOD-001 and CTR-FLG-001 from the Sprint 0A baseline as schema plus synthetic fixtures, taking every rule from a named workstream task and declaring in-schema which task each rule comes from. These are the two contracts the composition root and the policy router depend on, so their deny-by-default and precedence rules are materialized rather than described.",
+  "scope": {
+    "include": [
+      "CTR-MOD-001 schema, manifest and synthetic fixtures: MR-001 rejection rules, MR-004 deny-by-default activation, MR-005 lifecycle states",
+      "CTR-FLG-001 schema, manifest and synthetic fixtures: FP-001 reason and source, FP-002 precedence and kill switch, FP-003 allocation, FP-005 expiry and owner",
+      "An x-source annotation on every rule naming the baseline task it comes from",
+      "An untestable_by_fixture declaration on both manifests for the properties a single document cannot demonstrate"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, contract-catalog/shared-kernel/index.json, the registry resolution algorithm, the dependency resolver, the bucket allocation algorithm, the circuit-state machine, admin APIs, production schema, migrations, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-022",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001"
+  ],
+  "contracts_produced": [
+    "CTR-MOD-001 and CTR-FLG-001 materialized at Draft only; no freeze-level advancement"
+  ],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-001",
+      "WP-0A-CON-001",
+      "WP-0A-A0-002",
+      "WP-0A-CON-002"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "contract-catalog/shared-kernel/ctr-mod-001/**",
+      "contract-catalog/shared-kernel/ctr-flg-001/**",
+      "work-packages/WP-0A-CON-003.json",
+      "evidence/WP-0A-CON-003/**",
+      "handoffs/WP-0A-CON-003-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/README.md",
+      "contract-catalog/shared-kernel/index.json",
+      "package.json",
+      "package-lock.json",
+      ".github/**",
+      "test-kits/**",
+      "scripts/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "**/*secret*",
+      "**/*credential*",
+      "db/**",
+      "migrations/**"
+    ],
+    "module_ids": [
+      "MOD-000"
+    ],
+    "migration_reservations": []
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/plans/module-contracts-events-jobs-workstream-th.md",
+      "contract-catalog/shared-kernel/index.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-business-overrides-kill-switch.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-kill-switch-allows.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-without-bucket.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-write-disabled-without-history.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-default-deny.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-explicit-allow.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-kill-switch-preserves-history.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-percentage-bucket.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-flg-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-blocked-without-missing.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-data-policy.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-ready-without-activation.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-semver.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-ready.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/schema.json",
+      "work-packages/WP-0A-CON-003.json",
+      "evidence/WP-0A-CON-003/author-self-check.md"
+    ],
+    "contracts": [
+      "CTR-MOD-001 (Draft)",
+      "CTR-FLG-001 (Draft)"
+    ]
+  },
+  "acceptance_criteria": [
+    "Every fixture is validated against its own shipped schema.json by the WP-0A-CON-002 subset validator, not by a hand-written predicate.",
+    "Every rule in both schemas carries an x-source naming the baseline task it comes from; no rule is present without one.",
+    "MR-004 deny-by-default is expressed in the contract: a module cannot be `ready` unless activation readiness explicitly succeeded, and a `blocked` module must record what was missing.",
+    "FP-002 is expressed in the contract: a kill switch is a platform-scope deny, and disabling write preserves historical read.",
+    "A secret handle is an opaque reference; no literal credential appears in any fixture.",
+    "Both manifests declare in untestable_by_fixture the properties a single document cannot demonstrate, rather than reading as if they were materialized.",
+    "The index still reports 4 Candidate and 10 Draft: materializing a Draft contract does not promote it.",
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero."
+  ],
+  "required_tests": [
+    "Schema conformance for both contracts via the subset validator",
+    "Deny-by-default: ready without activation, and blocked without a missing list, are both rejected",
+    "Kill switch: an allowing kill switch and a business-scope kill switch are both rejected",
+    "Write disabled without historical read is rejected",
+    "A percentage decision without its allocation, and a temporary flag without expiry and owner, are rejected",
+    "Reference and secret-handle shape checks; repository protocol, ownership, role-separation and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "open_blockers": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
+    "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across MULTIPLE manifests; a single-document fixture cannot demonstrate either. Declared in untestable_by_fixture and NOT claimed as materialized.",
+    "FP-003 stable allocation and FP-002 deterministic precedence are evaluator properties over repeated inputs, not properties of one decision document. Declared in untestable_by_fixture.",
+    "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
