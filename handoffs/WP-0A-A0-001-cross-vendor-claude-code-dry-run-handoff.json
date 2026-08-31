@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "bb11ccbdd7d7f0896d744483630beefddcdb2b8f",
+  "head_revision_or_patch_checksum": "External Claude Code cross-vendor protocol evidence record; commit pending",
+  "task_ids": ["g0-cross-vendor-protocol-dry-run-record"],
+  "files_added": ["evidence/WP-0A-A0-001/cross-vendor-claude-code-dry-run.md", "handoffs/WP-0A-A0-001-cross-vendor-claude-code-dry-run-handoff.json"],
+  "files_modified": ["evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The external Claude Code report is accurate only for its stated run ID, workspace observation, base revision, and command results.", "Its reported findings are external observations that require independent repository verification and do not themselves approve a protocol or source-document change."],
+  "acceptance_results": [
+    {
+      "criterion": "A genuine distinct-vendor participant can read the real manifest and declared inputs, return protocol-shaped evidence, and preserve the package/G0 authority boundaries.",
+      "result": "partial pass: Claude Code read the repository and reported a schema-shaped capability/handoff response; it did not become a package role or approve anything"
+    },
+    {
+      "criterion": "A distinct-vendor participant reproduces the declared verification command on the pinned runtime.",
+      "result": "blocked-environment: npm run check exited 68 under Node v26.7.0, not the required v24.20.0; no substitute or bypass was used"
+    }
+  ],
+  "tests": [
+    {
+      "command": "External Claude Code: git rev-parse HEAD; git status --short; git diff --check",
+      "exit_code": 0,
+      "result": "Base revision matched, working tree was clean, and whitespace check was clean"
+    },
+    {
+      "command": "External Claude Code: npm run check",
+      "exit_code": 68,
+      "result": "Blocked at exact toolchain guard: expected Node v24.20.0, received v26.7.0; downstream checks did not run"
+    }
+  ],
+  "security_privacy_cost_impact": "External read-only protocol run and repository evidence record only. No secret, customer data, credential, provider action, production action, schema, billing, publish, or object-storage operation was introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, database, provider, contract, CI, or protocol semantic change. The external observations are recorded for disposition only.",
+  "known_limitations": ["The external participant could not run the pinned toolchain, so this is not external test-pass evidence.", "The dry run covers manifest/input reading and handoff shape only; it does not complete the full manifest-to-worktree-to-evidence-to-handoff sequence.", "The external capability declaration is evidence metadata only and is not registered as a Ready-package role profile."],
+  "open_risks_or_blockers": ["The cross-vendor G0 item remains partial/blocked-environment until a distinct-vendor run can execute the declared suite on Node v24.20.0.", "Native protected-branch evidence and all other G0 external requirements remain open.", "External findings about toolchain onboarding, output completeness, role validation, and source-document drift require independent disposition before implementation."],
+  "rollback_or_forward_fix": "Revert this evidence-only record if its provenance is incorrect. Resolve any verified finding through the normal owned RFC/review/test/integration path; never use this evidence to bypass a gate.",
+  "recommended_next_work_packages": ["Independently verify and disposition the external findings without altering the protocol by inference.", "Provide an authorized, deterministic Node 24.20.0 Claude Code environment for a new read-only replay before treating G0-023 as complete.", "Keep domain packages in backlog until their source-defined dependencies, roles, contracts, and external approvals qualify them as Ready."],
+  "reviewer_instructions": ["Verify the reported Claude Code provenance, exact base revision, command exit codes, and absence of repository changes.", "Confirm tracker wording is partial/blocked-environment and does not claim G0, approval, native protection, or test passage.", "Treat listed findings as unaccepted observations requiring independent verification and proper RFC/ownership routing."]
+}
