@@ -21,8 +21,17 @@ async function contracts() {
   for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     const base = join(CATALOG, entry.name);
     try {
-      found.push({ dir: entry.name, base, schema: await readJson(join(base, 'schema.json')), manifest: await readJson(join(base, 'manifest.json')) });
-    } catch { /* a directory without both files is covered by the reference-integrity suite */ }
+      const manifest = await readJson(join(base, 'manifest.json'));
+      // Independent review shipped a manifest naming a schema other than schema.json: this
+      // loop skipped the directory, and an `invalid-` fixture its schema accepted went green.
+      if (manifest.schema !== 'schema.json') {
+        throw new Error(`${entry.name}: manifest.schema must be exactly "schema.json"; a differently named schema escapes conformance entirely. Found: ${manifest.schema}`);
+      }
+      found.push({ dir: entry.name, base, schema: await readJson(join(base, 'schema.json')), manifest });
+    } catch (error) {
+      if (error instanceof SyntaxError || /must be exactly/.test(error.message)) throw error;
+      /* a directory with neither file is covered by the reference-integrity suite */
+    }
   }
   return found;
 }
@@ -67,6 +76,10 @@ test('a fixture the contract knowingly accepts is declared as a gap, with a reas
     for (const gap of gaps) {
       const reason = manifest.accepted_gaps?.[gap];
       assert.ok(typeof reason === 'string' && reason.length > 80, `${dir}/${gap} must state in accepted_gaps why the contract accepts it`);
+      // A length check alone passed 81 literal 'x' characters. The reason must name what is
+      // unspecified and who must decide, which is the whole point of recording a gap.
+      assert.match(reason, /baseline|owner|specified|contract owner|before freeze/i, `${dir}/${gap} reason must say what is unresolved and who resolves it`);
+      assert.ok(new Set(reason.toLowerCase().replace(/[^a-z ]/g, '').split(/\s+/)).size >= 20, `${dir}/${gap} reason must be a real explanation, not padding`);
     }
     for (const declared of Object.keys(manifest.accepted_gaps ?? {})) {
       assert.ok((manifest.fixtures ?? []).includes(declared), `${dir} declares a gap for a fixture it does not list: ${declared}`);
@@ -74,14 +87,29 @@ test('a fixture the contract knowingly accepts is declared as a gap, with a reas
   }
 });
 
-test('an extra property carrying a secret is rejected wherever additionalProperties is false', async () => {
+// The previous version skipped any contract that did not declare additionalProperties: false,
+// so DELETING that line from ctr-ten-001 made the guard skip it and re-opened the leak at
+// exit 0. A contract must declare it, and the guard must not be opt-out.
+test('every catalog schema closes its root against undeclared properties', async () => {
+  for (const { dir, schema } of await contracts()) {
+    assert.equal(schema.additionalProperties, false,
+      `${dir} must declare additionalProperties: false at its root; without it an extra key carrying a secret is accepted and the leak guard silently skips this contract`);
+  }
+});
+
+test('an extra property carrying a secret is rejected at every declared object level', async () => {
   for (const { dir, base, schema, manifest } of await contracts()) {
-    if (schema.additionalProperties !== false) continue;
     const resolve = await refResolver(base, schema);
     const clean = (manifest.fixtures ?? []).find((f) => /(^|\/)valid[-.]/.test(f));
     if (!clean) continue;
-    const body = { ...(await readJson(join(base, clean))), leaked_api_key: 'synthetic' };
-    assert.ok(validate(schema, body, { resolve }).length > 0, `${dir} accepts an undeclared extra property`);
+    const original = await readJson(join(base, clean));
+    assert.ok(validate(schema, { ...original, leaked_api_key: 'synthetic' }, { resolve }).length > 0, `${dir} accepts an undeclared extra property at the root`);
+    // The earlier version mutated only the root, so a nested container stayed unprobed.
+    for (const [name, sub] of Object.entries(schema.properties ?? {})) {
+      if (sub.additionalProperties !== false || typeof original[name] !== 'object' || original[name] === null || Array.isArray(original[name])) continue;
+      const nested = { ...original, [name]: { ...original[name], leaked_api_key: 'synthetic' } };
+      assert.ok(validate(schema, nested, { resolve }).length > 0, `${dir} accepts an undeclared extra property inside ${name}`);
+    }
   }
 });
 

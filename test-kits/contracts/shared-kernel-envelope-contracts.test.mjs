@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+import { validate as schemaValidate } from './json-schema-subset.mjs';
+
 // CTR-API-001, CTR-PAG-001, CTR-IDM-001 materialized from the Sprint 0A baseline.
 // Semantics come only from Decision Register 5.2 and Contracts/Events/Jobs Workstream
 // sections D and G; nothing here invents contract meaning, and all three stay Draft.
@@ -36,23 +38,31 @@ function validApiEnvelope(f) {
   return false;
 }
 
-// API-003: stable ordering, no duplicate or missing item between pages, opaque tamper-safe cursor.
-const OPAQUE = /^[A-Za-z0-9_-]+$/;
+// API-003: stable ordering, no duplicate or missing item between pages, opaque cursor.
+// This predicate previously carried its own charset and hash-format rules, which had been
+// REMOVED from the schemas as unsourced. The two then disagreed in silence -- schema accepted
+// blake3: and a dot-separated token, predicate rejected them -- which is the defect class this
+// package was rejected for, reproduced inside the fix for it. The predicate now checks only
+// the relational rules a JSON Schema cannot express; every shape rule lives in the schema and
+// is enforced by the conformance suite.
+const isCursor = (value) => isText(value);
 function validPage(f) {
   if (f.kind === 'page' && !('next_cursor' in f)) return false;
+  const fields = Array.isArray(f.sort) ? f.sort.map((s) => s.field) : [];
   const sortStable = Array.isArray(f.sort) && f.sort.length >= 2
+    && new Set(fields).size === fields.length
     && f.sort.every((s) => isText(s.field) && ['asc', 'desc'].includes(s.direction));
   if (!sortStable) return false;
   if (f.kind === 'request') {
     // No maximum page size exists in the baseline; an earlier draft invented 100. The
     // predicate must not enforce what the shipped schema does not.
     if (!(Number.isInteger(f.page_size) && f.page_size >= 1)) return false;
-    return f.cursor === undefined || OPAQUE.test(f.cursor);
+    return f.cursor === undefined || isCursor(f.cursor);
   }
   if (f.kind === 'page') {
     if (!(Array.isArray(f.items) && typeof f.has_more === 'boolean')) return false;
     if (f.next_cursor === null) return f.has_more === false;
-    return OPAQUE.test(f.next_cursor) && f.has_more === true;
+    return isCursor(f.next_cursor) && f.has_more === true;
   }
   return false;
 }
@@ -61,7 +71,7 @@ function validPage(f) {
 // API-002: same key with the same payload returns the same result.
 function validIdempotency(f) {
   if (!(isText(f.idempotency_key) && isText(f.scope?.workspace_id) && isText(f.scope?.operation)
-    && /^sha256:[0-9a-f]{64}$/.test(f.payload_hash ?? '') && isText(f.created_at))) return false;
+    && isText(f.payload_hash) && isText(f.created_at))) return false;
   if (f.state === 'in_progress') return !('result_ref' in f) && !('error' in f) && !('completed_at' in f);
   if (f.state === 'completed') return isText(f.completed_at) && isPrivateRef(f.result_ref) && !('error' in f);
   if (f.state === 'failed') return isText(f.completed_at) && isText(f.error?.code) && !('result_ref' in f);
@@ -73,6 +83,24 @@ const CONTRACTS = [
   { id: 'CTR-PAG-001', dir: 'ctr-pag-001', validate: validPage },
   { id: 'CTR-IDM-001', dir: 'ctr-idm-001', validate: validIdempotency },
 ];
+
+// One contract, one description. The predicate below covers only what a JSON Schema cannot
+// express -- relational rules across fields -- and defers every shape rule to the schema.
+// Keeping a second copy of a shape rule here is what let the schema and the predicate
+// disagree in silence, and it is what this package was rejected for.
+async function schemaFor(dir) {
+  const schema = await readJson(`${CATALOG}/${dir}/schema.json`);
+  const refs = {};
+  for (const value of Object.values(schema.properties ?? {})) {
+    if (value.$ref) refs[value.$ref] = await readJson(`${CATALOG}/${dir}/${value.$ref}`.replace(/[^/]+\/\.\.\//g, ''));
+  }
+  return { schema, resolve: (ref) => refs[ref] ?? null };
+}
+
+async function conforms(dir, body) {
+  const { schema, resolve } = await schemaFor(dir);
+  return schemaValidate(schema, body, { resolve }).length === 0;
+}
 
 test('each new contract stays Draft and cites its baseline source', async () => {
   for (const { id, dir } of CONTRACTS) {
@@ -103,11 +131,12 @@ test('every valid fixture is accepted and every invalid fixture is rejected', as
     let invalid = 0;
     for (const fixture of manifest.fixtures) {
       const body = await readJson(`${CATALOG}/${dir}/${fixture}`);
+      const accepted = (await conforms(dir, body)) && validate(body);
       if (/\/(valid[-.]|accepted-gap-)/.test(fixture)) {
-        assert.equal(validate(body), true, `${id} ${fixture} must be accepted`);
+        assert.equal(accepted, true, `${id} ${fixture} must be accepted`);
         valid += 1;
       } else {
-        assert.equal(validate(body), false, `${id} ${fixture} must be rejected`);
+        assert.equal(accepted, false, `${id} ${fixture} must be rejected`);
         invalid += 1;
       }
     }
@@ -195,13 +224,22 @@ test('the same key with a different payload is a conflict, not a second command'
 });
 
 // E2: `created_at` twice satisfies ">= 2 sort keys" without being a tiebreaker.
+// The previous version of this test built a duplicated sort array and then asserted
+// `new Set(fields).size < fields.length` — it never called the validator or the schema, so it
+// could not fail for ANY change to the contract. Independent testing found it and showed a
+// fixture with created_at twice passing green. It now exercises the contract.
 test('duplicate sort fields do not count as a tiebreaker', async () => {
   const page = await readJson(`${CATALOG}/ctr-pag-001/examples/valid-first-page-request.json`);
-  const fields = page.sort.map((s) => s.field);
-  assert.equal(new Set(fields).size, fields.length, 'the shipped fixture must use distinct sort fields');
+  assert.equal(validPage(page), true);
   const duplicated = { ...page, sort: [{ field: 'created_at', direction: 'desc' }, { field: 'created_at', direction: 'asc' }] };
-  const distinct = new Set(duplicated.sort.map((s) => s.field));
-  assert.equal(distinct.size < duplicated.sort.length, true, 'repeating one field is not a second sort key');
+  assert.equal(validPage(duplicated), false, 'repeating one field must be rejected by the predicate');
+  // JSON Schema cannot express distinct-by-property, so the schema must SAY it cannot,
+  // rather than appearing to enforce it. That declaration is itself asserted here.
+  const schema = await readJson(`${CATALOG}/ctr-pag-001/schema.json`);
+  assert.match(schema.properties.sort['x-distinct-fields-rule'], /CANNOT express/);
+  const manifest = await readJson(`${CATALOG}/ctr-pag-001/manifest.json`);
+  assert.match(manifest.untestable_by_schema, /distinct sort/i);
+  assert.equal(schemaValidate(schema, page).length, 0, 'the shipped fixture must still satisfy the schema');
 });
 
 // E3: a page with has_more true and next_cursor ABSENT was accepted, because
@@ -233,4 +271,25 @@ test('the manifest declares which of its claims fixtures cannot demonstrate', as
   assert.match(manifest.freeze_boundary, /TAMPER-SAFETY IS NOT ENFORCED/);
   assert.ok(manifest.untestable_by_fixture, 'the manifest must declare claims its fixtures cannot demonstrate');
   assert.match(manifest.untestable_by_fixture, /duplicate|missing/i);
+});
+
+// The predicate and the schema are two descriptions of one contract, and this package was
+// rejected because they silently disagreed. Prove agreement on every shipped fixture instead
+// of trusting it.
+test('the predicate and the shipped schema agree on every fixture', async () => {
+  for (const { id, dir, validate: predicate } of CONTRACTS) {
+    const manifest = await readJson(`${CATALOG}/${dir}/manifest.json`);
+    for (const fixture of manifest.fixtures) {
+      const body = await readJson(`${CATALOG}/${dir}/${fixture}`);
+      const bySchema = await conforms(dir, body);
+      const byPredicate = predicate(body);
+      // The dangerous direction is the predicate REJECTING what the schema accepts: that is
+      // a rule enforced in a test which the contract does not state, and it is exactly how
+      // the removed sha256 pin and cursor charset kept gating CI after being deleted from
+      // the schemas. The reverse is harmless -- the combined gate still rejects.
+      if (!byPredicate && bySchema) {
+        assert.fail(`${id} ${fixture}: the predicate rejects what the shipped schema accepts — a rule is being enforced in a test that the contract does not state`);
+      }
+    }
+  }
 });

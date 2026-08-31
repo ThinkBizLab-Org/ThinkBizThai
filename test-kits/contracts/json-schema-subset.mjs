@@ -58,7 +58,12 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
   if ('$ref' in schema) {
     const target = resolve(schema.$ref);
     if (!target) return [`${path}: unresolvable $ref '${schema.$ref}'`];
-    return validate(target, value, { resolve, path });
+    errors.push(...validate(target, value, { resolve, path }));
+    // Siblings of $ref are evaluated too, per 2020-12. Dropping them silently discarded
+    // every constraint written next to a reference.
+    const { $ref: _ignored, ...siblings } = schema;
+    if (Object.keys(siblings).length > 0) errors.push(...validate(siblings, value, { resolve, path }));
+    return errors;
   }
   if ('type' in schema && !matchesType(value, schema.type)) {
     fail(`expected type ${JSON.stringify(schema.type)}, got ${typeOf(value)}`);
@@ -71,7 +76,12 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
     if ('minLength' in schema && value.length < schema.minLength) fail(`shorter than minLength ${schema.minLength}`);
     if ('maxLength' in schema && value.length > schema.maxLength) fail(`longer than maxLength ${schema.maxLength}`);
     if ('pattern' in schema && !new RegExp(schema.pattern, 'u').test(value)) fail(`does not match pattern ${schema.pattern}`);
-    if (schema.format === 'date-time' && Number.isNaN(Date.parse(value))) fail('is not a valid date-time');
+    // Date.parse('2026') succeeds, so this accepted a bare year. Require a real RFC 3339
+    // timestamp, then confirm it is a real instant.
+    if (schema.format === 'date-time'
+      && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(value) || Number.isNaN(Date.parse(value)))) {
+      fail('is not an RFC 3339 date-time');
+    }
   }
   if (typeOf(value) === 'number' || typeOf(value) === 'integer') {
     if ('minimum' in schema && value < schema.minimum) fail(`below minimum ${schema.minimum}`);
@@ -91,15 +101,27 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
     if ('maxProperties' in schema && keys.length > schema.maxProperties) fail(`has ${keys.length} properties, more than maxProperties ${schema.maxProperties}`);
     if ('minProperties' in schema && keys.length < schema.minProperties) fail(`has ${keys.length} properties, fewer than minProperties ${schema.minProperties}`);
     for (const name of schema.required ?? []) {
-      if (!(name in value)) fail(`missing required property '${name}'`);
+      // `in` walks the prototype chain, so `constructor` or `toString` satisfied `required`.
+      if (!Object.hasOwn(value, name)) fail(`missing required property '${name}'`);
     }
     for (const [name, sub] of Object.entries(schema.properties ?? {})) {
-      if (name in value) errors.push(...validate(sub, value[name], { resolve, path: `${path}.${name}` }));
+      if (Object.hasOwn(value, name)) errors.push(...validate(sub, value[name], { resolve, path: `${path}.${name}` }));
     }
-    if (schema.additionalProperties === false) {
+    // `additionalProperties` was enforced only when it was exactly `false`. Independent
+    // testing declared `{type:"string",maxLength:64}`, passed the keyword gate, and had it
+    // enforce nothing -- the defect class this file exists to prevent, relocated into this
+    // file. Both forms are handled, and any other form is rejected rather than ignored.
+    if ('additionalProperties' in schema) {
       const declared = new Set(Object.keys(schema.properties ?? {}));
-      for (const name of keys) {
-        if (!declared.has(name)) fail(`additional property '${name}' is not permitted`);
+      const extra = keys.filter((name) => !declared.has(name));
+      if (schema.additionalProperties === false) {
+        for (const name of extra) fail(`additional property '${name}' is not permitted`);
+      } else if (schema.additionalProperties === true) {
+        // explicitly open
+      } else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+        for (const name of extra) errors.push(...validate(schema.additionalProperties, value[name], { resolve, path: `${path}.${name}` }));
+      } else {
+        fail(`additionalProperties must be a boolean or a schema, got ${typeOf(schema.additionalProperties)}`);
       }
     }
   }

@@ -70,21 +70,49 @@ test('every external $ref in the catalog resolves to a FILE that exists', async 
   assert.deepEqual(bad, [], `catalog $ref problems:\n  ${bad.join('\n  ')}`);
 });
 
-test('a $ref resolves to the contract it claims, not merely to some file that exists', async () => {
+// Keying this on the PROPERTY NAME let review defeat it three ways: nest the $ref one level
+// deeper (allOf[0]), rename the property, or drop a decoy schema.v2.json carrying a forged
+// $id. Identity is bound to LOCATION instead. Every external $ref anywhere must point at the
+// canonical schema.json of a catalog contract directory, and that file's $id must match the
+// directory it lives in — so a decoy is unreachable and a forged $id contradicts its path.
+test('every $ref points at a canonical contract schema whose $id matches its directory', async () => {
   const wrong = [];
   for (const file of await catalogJsonFiles()) {
     for (const { path, ref } of collectRefs(JSON.parse(await readFile(file, 'utf8')))) {
-      const property = path.split('.').at(-1);
-      const expected = EXPECTED_REF_TARGET[property];
-      if (!expected) continue;
       const target = normalize(join(dirname(file), ref));
+      if (basename(target) !== 'schema.json') {
+        wrong.push(`${file} ${path}.$ref -> ${ref} — a $ref may only target a contract's canonical schema.json, never another file`);
+        continue;
+      }
+      const owningDirectory = basename(dirname(target));
       const targetSchema = await readFile(target, 'utf8').then(JSON.parse).catch(() => null);
-      if (targetSchema?.$id !== expected) {
-        wrong.push(`${file} ${path}.$ref -> ${ref} resolves to $id ${JSON.stringify(targetSchema?.$id)}, expected ${expected}`);
+      if (typeof targetSchema?.$id !== 'string') { wrong.push(`${file} ${path}.$ref -> ${ref} — target declares no $id`); continue; }
+      if (targetSchema.$id.toLowerCase() !== owningDirectory) {
+        wrong.push(`${file} ${path}.$ref -> ${ref} — target declares $id ${targetSchema.$id} but lives in ${owningDirectory}; an $id must match its directory or it can be forged`);
+      }
+      const expected = EXPECTED_REF_TARGET[path.split('.').at(-1)];
+      if (expected && targetSchema.$id !== expected) {
+        wrong.push(`${file} ${path}.$ref -> ${ref} resolves to ${targetSchema.$id}, expected ${expected}`);
       }
     }
   }
-  assert.deepEqual(wrong, [], `$ref(s) pointing at the wrong contract:\n  ${wrong.join('\n  ')}`);
+  assert.deepEqual(wrong, [], `$ref identity problems:\n  ${wrong.join('\n  ')}`);
+});
+
+// A decoy schema is only unreachable if nothing else can be a schema. Every JSON file in a
+// contract directory must be a declared fixture, the manifest, or the canonical schema.
+test('a contract directory contains no undeclared schema-like file', async () => {
+  const stray = [];
+  for (const directory of await contractDirectories()) {
+    const manifest = await readFile(join(CATALOG, directory, 'manifest.json'), 'utf8').then(JSON.parse).catch(() => null);
+    if (!manifest) continue;
+    const declared = new Set(['manifest.json', 'schema.json', ...(manifest.fixtures ?? [])]);
+    for (const file of await catalogJsonFiles(join(CATALOG, directory))) {
+      const relative = file.slice(join(CATALOG, directory).length + 1);
+      if (!declared.has(relative)) stray.push(`${file} — not declared by its manifest; an undeclared schema-like file can be used as a permissive decoy $ref target`);
+    }
+  }
+  assert.deepEqual(stray, [], `undeclared file(s) in a contract directory:\n  ${stray.join('\n  ')}`);
 });
 
 test('a $ref never escapes the contract catalog', async () => {

@@ -191,3 +191,60 @@ to `offset=40&limit=20`, and an unbounded `page_size`. The contract **accepts** 
 earlier `invalid-` naming was doubly wrong — the rules had no baseline source, and the old
 test passed only because the fixture happened to contain `=` and `&`, never because an
 offset was detected. Each carries a required `accepted_gaps` explanation.
+
+---
+
+## Second correction round — the R7 defect reproduced inside the fix for R7
+
+All three runs rejected the first rework. The Reviewer's sentence is the finding:
+**"That is the original R7 defect reproduced inside the section written to correct
+R7."** It is correct.
+
+`^sha256:[0-9a-f]{64}$` and the cursor charset `^[A-Za-z0-9_-]+$` were removed from
+the **schemas** and this document said "REMOVED" — while both kept running in the
+**acceptance predicate that gates CI**. Measured: the schema accepts `blake3:…` and
+`sha512:…`; the predicate rejected them. Two descriptions of one contract,
+disagreeing in silence. That is the defect this package exists to close, committed
+inside the correction for it.
+
+Fixed structurally rather than by deleting two more lines: the predicate now
+**defers every shape rule to the schema** and keeps only the relational rules a
+JSON Schema cannot express, and a test asserts per fixture that the predicate never
+rejects what the schema accepts. That guard was **vacuous** at first — no fixture
+used a non-sha256 algorithm, so reintroducing the pin changed no observable
+outcome, which is precisely how the pin survived deletion the first time. A witness
+fixture (`valid-alternate-hash-algorithm.json`, `blake3:`) now makes it bite:
+reintroducing the pin gives exit `1` with *"the predicate rejects what the shipped
+schema accepts — a rule is being enforced in a test that the contract does not
+state"*.
+
+### The other blocking findings, all reproduced then closed
+
+| Finding | Was | Now |
+|---|---|---|
+| Security S1 — a decoy `ctr-ten-001/schema.v2.json` carrying a forged `$id`, with `tenant_context` repointed at it: CI green while tenant context on every domain event dropped to "is an object" | exit 0 | exit **1** — a `$ref` may only target a contract's canonical `schema.json`, and no undeclared schema-like file may exist in a contract directory |
+| Reviewer — nest the `$ref` under `allOf`, or rename the property, to skip a check keyed by property name | exit 0 | exit **1** — identity is bound to **location**: `$id` must match its own directory |
+| Reviewer N4 — a manifest naming a schema other than `schema.json` escaped conformance entirely, shipping an `invalid-` fixture its schema accepted | exit 0 | exit **1** |
+| Tester/Reviewer N2 — deleting `additionalProperties: false` from `CTR-TEN-001` made the leak guard **skip** that contract | exit 0 | exit **1** — every schema must declare it and the guard is no longer opt-out |
+| Reviewer — laundering a real schema-only rule by renaming its counterexample `accepted-gap-` and padding an 81-character reason | exit 0 | exit **1** — a reason must name what is unresolved and who resolves it, and contain ≥20 distinct words |
+| Security S3 — `result:../../../etc/passwd`, `status:/proc/self/environ`, `content://attacker.example.invalid/exfil` | accepted | rejected: the body is constrained, not just the scheme |
+| Tester — `additionalProperties` in object form passed the keyword gate and enforced nothing | exit 0 | enforced; any other form is rejected rather than ignored |
+| Tester/Reviewer — `$ref` siblings silently dropped; `format: date-time` accepted `"2026"`; `required` satisfied via the prototype chain | live | all three closed |
+| Tester N3 — the duplicate-sort test asserted `1 < 2` and never touched the contract | could not fail | exercises the predicate, and the schema declares that JSON Schema **cannot** express distinct-by-property rather than faking it |
+
+### What the acceptance criteria said that was not true
+
+Criterion 5 claimed reference fields "reject … traversal forms". They did not.
+Corrected in the manifest rather than quietly re-scoped.
+
+### Escalated, not fixed here
+
+- `CTR-JOB-001.input_ref` / `.result_ref` still carry the bypassable deny-list.
+  That contract is **Candidate** and outside this package's writable paths.
+- A JWT in `tenant_context.actor.id` passes everything — a string in a declared
+  slot, and the secret scanner has no pattern for it. `CTR-TEN-001` is owned by
+  WP-0A-CON-001.
+- The validator implements only `format: date-time`; any other `format` value
+  passes the gate and constrains nothing. No schema uses one today.
+
+`npm run check`: **73/73**, skipped 0, todo 0.
