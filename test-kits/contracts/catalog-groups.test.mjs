@@ -242,3 +242,54 @@ test('no path under the catalog is a symbolic link', async () => {
   await walk(CATALOG);
   assert.deepEqual(found, [], `symbolic link(s) under the catalog, invisible to every contract suite:\n  ${found.join('\n  ')}`);
 });
+
+test('no file under the catalog is undeclared, whatever its extension', async () => {
+  // Two guards each assuming the other covered this. `catalog-reference-integrity.test.mjs`
+  // iterates contract DIRECTORIES and only `.json`; this file iterated directories only. A file
+  // sitting at the group root was in neither's domain, and `.md` was in nobody's.
+  //
+  // Independent review fifteen placed four, all at exit 0, 214/214:
+  //   contract-catalog/shared-kernel/catalog-policy.json   "normative_rules" applying to every contract
+  //   contract-catalog/shared-kernel/CATALOG-RULES.md      group rules "taking precedence over a contract's schema"
+  //   contract-catalog/shared-kernel/ctr-sec-001/RULES.md  a rules file inside a contract directory
+  //
+  // A rule does not become harmless by being written in a file no parser reads; a human reads it,
+  // and a human is who a contract catalog is for.
+  const allowedAtRoot = ['README.md'];
+  const allowedInGroup = ['index.json', 'README.md'];
+  const allowedInContract = ['manifest.json', 'schema.json'];
+  const undeclared = [];
+
+  for (const entry of await readdir(CATALOG, { withFileTypes: true })) {
+    if (entry.isFile() && !allowedAtRoot.includes(entry.name)) {
+      undeclared.push(`${join(CATALOG, entry.name)} — a file at the catalog root`);
+    }
+    if (!entry.isDirectory()) continue;
+    const group = join(CATALOG, entry.name);
+    for (const child of await readdir(group, { withFileTypes: true })) {
+      if (child.isFile() && !allowedInGroup.includes(child.name)) {
+        undeclared.push(`${join(group, child.name)} — a file at a group root`);
+      }
+      if (!child.isDirectory()) continue;
+      const contract = join(group, child.name);
+      const manifest = await readFile(join(contract, 'manifest.json'), 'utf8')
+        .then(JSON.parse).catch(() => ({}));
+      const declaredFixtures = new Set((manifest.fixtures ?? []).map((f) => f.replace(/^\.\//, '')));
+      for (const file of await readdir(contract, { withFileTypes: true })) {
+        if (file.isDirectory()) {
+          if (file.name !== 'examples') undeclared.push(`${join(contract, file.name)} — a directory no suite reads`);
+          continue;
+        }
+        if (!allowedInContract.includes(file.name)) {
+          undeclared.push(`${join(contract, file.name)} — not a manifest, a schema, or a declared fixture`);
+        }
+      }
+      for (const fixture of await readdir(join(contract, 'examples')).catch(() => [])) {
+        if (!declaredFixtures.has(`examples/${fixture}`) && !declaredFixtures.has(fixture)) {
+          undeclared.push(`${join(contract, 'examples', fixture)} — a fixture the manifest does not declare`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(undeclared, [], `undeclared file(s) under the catalog:\n  ${undeclared.join('\n  ')}`);
+});

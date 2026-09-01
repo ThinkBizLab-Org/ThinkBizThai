@@ -426,21 +426,34 @@ test('an accepted gap cannot be rewritten into a reassurance', async () => {
 // The cost is real and accepted: fixing a typo in a comment is now a ratchet edit. The count is
 // pinned beside the digest so that a deletion and an addition cannot cancel out.
 const ANNOTATION_DIGESTS = {
-  'ctr-api-001': { count: 9, digest: '662201b96e80c075' },
-  'ctr-aud-001': { count: 19, digest: '6daab03dc08641b2' },
-  'ctr-err-001': { count: 0, digest: 'e3b0c44298fc1c14' },
-  'ctr-evt-001': { count: 11, digest: '818113783c586667' },
-  'ctr-flg-001': { count: 18, digest: '4f5dda0b0a5b702e' },
-  'ctr-idm-001': { count: 7, digest: 'ed9f006fcdbc3c51' },
-  'ctr-job-001': { count: 7, digest: 'af33074002e76565' },
-  'ctr-mod-001': { count: 19, digest: '6e0e0bb71001f06a' },
-  'ctr-ntf-001': { count: 14, digest: 'cceb312c80ae2928' },
-  'ctr-obs-001': { count: 15, digest: '987536e1e3321d9c' },
-  'ctr-pag-001': { count: 7, digest: '1dc416b21e34feaf' },
-  'ctr-sec-001': { count: 18, digest: 'e7d999caa4a66e07' },
-  'ctr-ten-001': { count: 0, digest: 'e3b0c44298fc1c14' },
-  'ctr-usg-001': { count: 13, digest: 'd99508d1d87bd0f8' },
+  'ctr-api-001': { count: 10, digest: 'bbe5e0cc5f6c5bbb' },
+  'ctr-aud-001': { count: 21, digest: 'cda1c649c80193df' },
+  'ctr-err-001': { count: 1, digest: '591ca9e7afafdece' },
+  'ctr-evt-001': { count: 12, digest: '1d3766091e62de86' },
+  'ctr-flg-001': { count: 19, digest: '627b839672f67d8b' },
+  'ctr-idm-001': { count: 8, digest: '651b5e5ef2e84103' },
+  'ctr-job-001': { count: 8, digest: 'b374d6bd002c3ad4' },
+  'ctr-mod-001': { count: 20, digest: '29985bb8dcd4186c' },
+  'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
+  'ctr-obs-001': { count: 17, digest: '6fab8296a9beea53' },
+  'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
+  'ctr-sec-001': { count: 20, digest: '0b41f85d2bebb6d1' },
+  'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
+  'ctr-usg-001': { count: 14, digest: '27de62d8f2b49d1d' },
 };
+
+// `description` and `title` belong here for the same reason `x-` keys do, and independent review
+// fifteen showed it by rewriting CTR-SEC-001's `description` -- "It never carries credential
+// material, and this schema declares no property that could hold any" -- into "A handle MAY carry
+// credential material inline in its handle body ... consumers MUST accept such a handle", and
+// adding to CTR-API-001 a top-level description exempting internal callers from tenant isolation.
+// **exit 0, 214/214.**
+//
+// `description` is the STANDARD documentation channel: it is what a code generator, an OpenAPI
+// render and a reviewer read first, and it is strictly more visible than an `x-` extension. The
+// mutation walk skips it as METADATA -- correctly, since it constrains no instance -- which is
+// exactly why nothing else was watching it.
+const NARRATIVE_KEYS = ['description', 'title'];
 
 function annotationsOf(node, path = '') {
   const found = {};
@@ -450,7 +463,7 @@ function annotationsOf(node, path = '') {
   }
   if (node === null || typeof node !== 'object') return found;
   for (const [key, value] of Object.entries(node)) {
-    if (key.startsWith('x-')) found[`${path}.${key}`] = value;
+    if (key.startsWith('x-') || NARRATIVE_KEYS.includes(key)) found[`${path}.${key}`] = value;
     else Object.assign(found, annotationsOf(value, `${path}.${key}`));
   }
   return found;
@@ -658,6 +671,18 @@ test('the catalog index header and every entry name and version are pinned', asy
 // exceed 20."]` to CTR-PAG-001 and deleted its `composes` list, at exit 0. A manifest is read by
 // humans deciding whether a contract is ready to freeze; an invented normative field there is a
 // rule with no schema behind it and no ratchet over it.
+
+const COMPOSES = {
+  'ctr-api-001': ["CTR-TEN-001", "CTR-ERR-001"],
+  'ctr-aud-001': ["CTR-TEN-001", "CTR-ERR-001"],
+  'ctr-idm-001': ["CTR-ERR-001"],
+  'ctr-ntf-001': ["CTR-TEN-001"],
+  'ctr-obs-001': [],
+  'ctr-pag-001': ["CTR-API-001"],
+  'ctr-sec-001': [],
+  'ctr-usg-001': ["CTR-TEN-001"],
+};
+
 const MANIFEST_KEYS = [
   'accepted_gaps', 'agreement_witnesses', 'composes', 'contract_id', 'fixtures', 'freeze_boundary',
   'owner', 'schema', 'source_references', 'status', 'trust_boundary', 'untestable_by_fixture',
@@ -676,9 +701,52 @@ test('a contract manifest carries no field nobody declared', async () => {
     }
     // `composes` is how a contract says which others it builds on; losing it silently detaches a
     // contract from the graph the reference-integrity suite walks.
-    if (Array.isArray(CATALOG_REGISTRY[dir]?.composes) && !Array.isArray(manifest.composes)) {
-      wrong.push(`${dir} dropped its composes list`);
+    //
+    // The first version of this check read `CATALOG_REGISTRY[dir]?.composes` -- and no entry in
+    // CATALOG_REGISTRY declares `composes`, so it was `false && ...` for all fourteen contracts
+    // and could never fire. Independent review fifteen deleted `composes` from ctr-pag-001 at
+    // exit 0, and correctly called out this package's own evidence, which claimed "a composes
+    // list cannot vanish". **It could.** The lists are pinned here now, by content.
+    const expected = COMPOSES[dir];
+    if (expected !== undefined) {
+      const found = manifest.composes;
+      if (!Array.isArray(found)) wrong.push(`${dir} dropped its composes list`);
+      else if (JSON.stringify(found) !== JSON.stringify(expected)) {
+        wrong.push(`${dir} composes ${JSON.stringify(found)}, pinned at ${JSON.stringify(expected)}`);
+      }
+    } else if (Array.isArray(manifest.composes)) {
+      wrong.push(`${dir} gained a composes list nobody pinned: ${JSON.stringify(manifest.composes)}`);
     }
   }
   assert.deepEqual(wrong, [], `manifest field(s) outside the declared set:\n  ${wrong.join('\n  ')}`);
+});
+
+// Independent review fifteen, MEDIUM 5: the manifest key-set ratchet went to contract manifests
+// and not to the index -- the one file RFC-2026-010 and every gate decision actually read. It
+// added `"normative_rules": ["Every contract listed is approved for freeze; owner sign-off is
+// recorded as satisfied.", "An internal service caller is exempt from workspace scoping."]` and
+// `"freeze_approved": true` on the CTR-SEC-001 entry, at exit 0.
+const INDEX_KEYS = ['catalog_version', 'contracts', 'freeze_boundary', 'source'];
+const INDEX_ENTRY_KEYS = ['consumers', 'id', 'name', 'owner', 'required_before_freeze', 'status', 'version'];
+
+test('the catalog index carries no field nobody declared', async () => {
+  const index = await readJson(join(CATALOG, 'index.json'));
+  const wrong = [];
+  for (const key of Object.keys(index)) {
+    if (!INDEX_KEYS.includes(key)) {
+      wrong.push(`the index declares "${key}", which no suite reads and no schema constrains — `
+        + `${JSON.stringify(JSON.stringify(index[key]).slice(0, 100))}`);
+    }
+  }
+  for (const key of INDEX_KEYS) {
+    if (index[key] === undefined) wrong.push(`the index lost "${key}"`);
+  }
+  for (const entry of index.contracts ?? []) {
+    for (const key of Object.keys(entry)) {
+      if (!INDEX_ENTRY_KEYS.includes(key)) {
+        wrong.push(`${entry.id ?? '<unknown>'} declares "${key}" in the index — ${JSON.stringify(entry[key])}`);
+      }
+    }
+  }
+  assert.deepEqual(wrong, [], `catalog index field(s) outside the declared set:\n  ${wrong.join('\n  ')}`);
 });

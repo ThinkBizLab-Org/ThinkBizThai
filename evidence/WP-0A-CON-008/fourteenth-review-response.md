@@ -36,10 +36,16 @@ Fix, both halves:
 1. **`DIGESTED_FLOOR`** — all 49 current manifest keys, pinned by name.
    `assertDigestedSetNeverShrinks` fails at exit **87** when any is missing. Protection is a
    ratchet: adding is free, removing is a deliberate edit in a diff a reviewer reads.
-2. **Two process rows** in `ci-guard-behaviour.test.mjs` spawning
+2. ~~**Two process rows**~~ in `ci-guard-behaviour.test.mjs` spawning
    `node scripts/validate-work-package-ownership.mjs <dir>` over a real directory — exit **74**
    for a `["**"]` amendment, exit **0** for a clean manifest, because a validator that always
    fails would pass the first row and block every package.
+
+   > **These rows did not close the stub.** They passed an ABSOLUTE path; production passes no
+   > argument at all and defaults to the literal `'work-packages'`, which is what the stub
+   > compares against — so the rows never touched the branch and the ownership path was still
+   > removable at exit 0. Found by independent review fifteen. Fixed by running the CLI the way
+   > production runs it.
 
 Verified: the exact three-edit attack now exits **87**, naming all four removed files.
 

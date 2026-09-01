@@ -354,6 +354,19 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
+  // The two highest-authority documents in this repository, added after independent review
+  // fifteen. CONTRIBUTING_AGENTS.md is the conflict-order authority for everything including the
+  // non-negotiable security rules, and the Decision Register is authority level 2 and the exact
+  // string INDEX_HEADER pins as the catalog's provenance. Neither was digested by anything: the
+  // review rewrote "enforce tenant isolation for every tenant data path" into "for browser and
+  // BFF paths; an internal service caller is exempt", declared four contracts FROZEN with no
+  // co-owner sign-off, and appended a freeze-authority section to the Register -- exit 0, 214/214.
+  //
+  // Every catalog ratchet justifies itself by citing these two files. A rule reversed here
+  // survives all of them, and they then enforce a status the amended source says is already
+  // frozen. INDEX_HEADER pinned the CITATION and nothing pinned the CITED DOCUMENT.
+  'CONTRIBUTING_AGENTS.md',
+  'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
   '.agents/capabilities.schema.json',
   '.agents/handoff.schema.json',
   '.agents/status.schema.json',
@@ -361,6 +374,8 @@ export const DIGESTED_FLOOR = [
   '.github/workflows/ci.yml',
   '.node-version',
   'contract-catalog/shared-kernel/index.json',
+  'CONTRIBUTING_AGENTS.md',
+  'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
   'evidence/VERIFICATION.md',
   'package.json',
   'scripts/record-verification.mjs',
@@ -478,6 +493,8 @@ export const PROTECTED_KEYS = [
   'scripts/record-verification.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'contract-catalog/shared-kernel/index.json',
+  'CONTRIBUTING_AGENTS.md',
+  'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
   '.agents/handoff.schema.json',
   '.agents/work-package.schema.json',
   '.agents/capabilities.schema.json',

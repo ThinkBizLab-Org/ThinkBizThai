@@ -205,8 +205,17 @@ test('validate-work-package-ownership rejects a blanket amendment when run over 
     },
     outputs: { files: ['owned.txt'] },
   }));
+  // Invoked THE WAY PRODUCTION INVOKES IT: no argv[2], from the repository root, so the default
+  // `'work-packages'` is what the guard sees.
+  //
+  // Independent review fifteen caught the first version of this test passing an ABSOLUTE path,
+  // while `npm run validate:protocol` passes the literal `'work-packages'`. Review fourteen's
+  // stub -- `if (directory === 'work-packages') return;` -- compares against that literal, so
+  // these rows never touched the branch and the whole ownership path was still removable at
+  // exit 0. A process row that runs the guard with an argument production never uses is a unit
+  // test wearing a process row's clothes.
   const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
-  const { code, out } = run(guard, [packages]);
+  const { code, out } = run(guard, [], { cwd: root });
   assert.equal(code, 74, `a blanket amendment must be rejected by the CLI, got ${code}: ${out}`);
   assert.match(out, /names no path at all/);
 });
@@ -227,8 +236,28 @@ test('validate-work-package-ownership accepts a manifest that declares only what
     outputs: { files: ['owned.txt'] },
   }));
   const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
-  const { code, out } = run(guard, [packages]);
+  const { code, out } = run(guard, [], { cwd: root });
   assert.equal(code, 0, out);
+});
+
+test('validate-work-package-ownership rejects an output outside its writable paths', async () => {
+  // The other rule this validator carries, and the one review fifteen used to show the stub was
+  // still live: an output a package does not own.
+  const root = await mkdtemp(join(tmpdir(), 'ownership-cli-outside-'));
+  spawnSync('mkdir', ['-p', join(root, 'work-packages')]);
+  await writeFile(join(root, 'work-packages/WP-T-001.json'), JSON.stringify({
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths: [], rationale: 'none' },
+    },
+    outputs: { files: ['owned.txt', 'scripts/verify-test-coverage-floor.mjs'] },
+  }));
+  const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
+  const { code, out } = run(guard, [], { cwd: root });
+  assert.equal(code, 68, `an output outside writable_paths must be rejected, got ${code}: ${out}`);
+  assert.match(out, /outside writable_paths/);
 });
 
 // Review fourteen's HIGH 1 was a stubbed guard. Asking the generalised question afterwards --
