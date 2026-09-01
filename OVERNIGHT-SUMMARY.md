@@ -3,7 +3,7 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 30**. Thirteen Draft PRs, **#1 through #13**,
+Updated continuously. Last wave: **wave 37**. Thirteen Draft PRs, **#1 through #13**,
 all CI green at their true heads.
 
 **Nine independent verification runs** were dispatched against this work. Every one of
@@ -18,7 +18,7 @@ out in "What independent verification kept finding" below.
 | # | Decision | Why it is yours |
 |---|---|---|
 | 1 | **Dispose RFC-2026-003 through -010** | All eight are `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
-| 2 | **Merge PRs #1 → #13 in order. Drilled: it works.** | The whole stack was merged into a scratch copy of the real `main`, in PR order, with `npm run check` after every step. **No conflict at any step; green at all thirteen; 26 → 156 tests.** Evidence: `evidence/WP-0A-CON-008/merge-order-drill.md`. **Merge the whole stack** — stopping partway leaves seven manifests reading `backlog` while their work is on `main`, because the status corrections arrive last. |
+| 2 | **Merge PRs #1 → #13 in order. Drilled: it works.** | The whole stack was merged into a scratch copy of the real `main`, in PR order, with `npm run check` after every step. **Green at all thirteen; 26 → 171 tests.** Two *generated* files collide on any sequence merge — `test-kits/integrity-manifest.json` and `evidence/VERIFICATION.md` — and the resolution is to regenerate rather than merge them: `npm run record:verification`, then rebuild the digests. **A conflict in any other file is a real disagreement — stop.** Evidence: `evidence/WP-0A-CON-008/merge-order-drill.md`. **Merge the whole stack** — stopping partway leaves seven manifests reading `backlog` while their work is on `main`, because the status corrections arrive last. |
 | 2b | **Dispose RFC-2026-010** | Nine contracts are ready to leave `Draft`. `Draft` permits *exploratory spikes only*, so every consumer package waiting to build a fake or a consumer test is blocked by a status, not by missing work. Five are A0's to propose; four need **A1** or **A6**; `CTR-NTF-001` is A5's and was deliberately not assessed. |
 | 3 | **`/root/r0_steward` countersignatures** | My Integration Owner correctly refused to sign for a run it is not: different vendor, and not the owner of the amended packages. |
 | 4 | **A1 must ratify the secret-handle syntax** | `CTR-MOD-001` (owner A0) fixed syntax chartered to `CTR-SEC-001` (owner A0+A1). Recorded, not resolved. |

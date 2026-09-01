@@ -90,3 +90,29 @@ new base and collides again. Previous heads are kept as `con007-prev` and
 
 **This is the argument for running the drill and not trusting the badges.** A stacked
 set of pull requests is not verified by its pull requests.
+
+## What the Product Owner will actually hit, and exactly what to do
+
+Rebuilding the branches did **not** remove the conflict, and it cannot: merging
+`#1..#11` produces a manifest that is the merged accumulation, while `#12`'s branch
+carries its own. Two files collide on any sequence merge, by construction:
+
+| file | why it always collides |
+|---|---|
+| `test-kits/integrity-manifest.json` | every package adds digests to it |
+| `evidence/VERIFICATION.md` | it holds one test count, and every package changes the count |
+
+**Neither can be merged textually and neither needs to be — both are generated.** On a
+conflict in either, take any side and rebuild:
+
+```bash
+npm run record:verification          # rewrites evidence/VERIFICATION.md
+npm run check                        # fails until the digests match; regenerate them
+```
+
+The drill now does exactly that, and **only** for those two paths: a conflict in any
+other file still stops it. With that resolution the full sequence completes —
+**thirteen merges, green at every step, 26 → 171 tests.**
+
+If a conflict appears in any file that is *not* one of those two, stop. That is a real
+disagreement between two packages and not a bookkeeping artifact.
