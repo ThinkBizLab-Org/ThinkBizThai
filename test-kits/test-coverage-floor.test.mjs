@@ -338,3 +338,24 @@ test('a step named in the chain cannot run something else', () => {
   // And the real commands still pass, so the pin is a pin and not a ban.
   assert.doesNotThrow(() => assertPackageScripts(okScripts()));
 });
+
+test('the clean-run reporter separates a failing count from a failing test', async () => {
+  // `npm run check` printed `pass 225, fail 0` and exited 88 -- a count the runner could not
+  // reconcile, not a failing test. I verified two commits by grepping the summary lines and
+  // shipped both red. This asserts the reporter says the thing I got wrong, out loud.
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile('scripts/verify-clean-run.mjs', 'utf8');
+  assert.match(source, /result\.status/, 'the reporter must read the process status, not the output');
+  assert.match(source, /every test passed and the run still failed/,
+    'the exit-88 shape needs saying in words, because the numbers look clean');
+
+  const scripts = JSON.parse(await readFile('package.json', 'utf8')).scripts;
+  assert.equal(scripts.verify, 'node scripts/verify-clean-run.mjs');
+  // `verify` must not be a STEP of `check`: it runs check as a child, and a chain containing it
+  // would recurse. Compared step by step, not by substring -- the first version of this line used
+  // `check.includes('npm run verify')` and matched `npm run verify:coverage-floor`, failing the
+  // moment it was written. Substring-instead-of-structure is the same habit that produced the
+  // exit-88 report this whole test exists because of.
+  const steps = scripts.check.split('&&').map((step) => step.trim());
+  assert.ok(!steps.includes('npm run verify'), 'verify wraps check; check must not invoke verify');
+});

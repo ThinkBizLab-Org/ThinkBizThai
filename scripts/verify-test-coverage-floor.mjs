@@ -354,6 +354,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
+  'scripts/verify-clean-run.mjs',
   // The two highest-authority documents in this repository, added after independent review
   // fifteen. CONTRIBUTING_AGENTS.md is the conflict-order authority for everything including the
   // non-negotiable security rules, and the Decision Register is authority level 2 and the exact
@@ -380,6 +381,7 @@ export const DIGESTED_FLOOR = [
   'package.json',
   'scripts/record-verification.mjs',
   'scripts/refresh-author-handoff.mjs',
+  'scripts/verify-clean-run.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'scripts/run-test-suite.mjs',
   'scripts/scan-repository-secrets.mjs',
@@ -490,6 +492,7 @@ export const PROTECTED_KEYS = [
   'scripts/verify-branch-scope.mjs',
   'scripts/verify-branch-identity.mjs',
   'scripts/refresh-author-handoff.mjs',
+  'scripts/verify-clean-run.mjs',
   'scripts/record-verification.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'contract-catalog/shared-kernel/index.json',

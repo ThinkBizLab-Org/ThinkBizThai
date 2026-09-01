@@ -18,6 +18,7 @@
     "record:verification": "node scripts/record-verification.mjs",
     "refresh:handoff": "node scripts/refresh-author-handoff.mjs",
     "check:handoff": "node scripts/refresh-author-handoff.mjs --check",
-    "check:scope": "node scripts/verify-branch-scope.mjs"
+    "check:scope": "node scripts/verify-branch-scope.mjs",
+    "verify": "node scripts/verify-clean-run.mjs"
   }
 }

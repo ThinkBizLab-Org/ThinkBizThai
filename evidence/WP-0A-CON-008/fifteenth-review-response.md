@@ -148,3 +148,30 @@ narrower and harder to get wrong:
 
 CI caught it on the next push. It is recorded here rather than amended away, because the pattern —
 verifying with a substring instead of a status — has now cost this package three separate defects.
+
+### What was added so the mistake is not available next time
+
+`npm run verify` (`scripts/verify-clean-run.mjs`) runs the check as a **child process** and reports
+its **status**, so the fact I kept getting wrong is one a command produces rather than one I read
+out of a stream:
+
+```
+clean: exit 0 — tests 226, pass 226, fail 0, skipped 0, todo 0
+```
+
+and on the exact shape that fooled me:
+
+```
+NOT clean: exit 88 — tests 227, pass 227, fail 0, skipped 0, todo 0
+  the suite declares 226 tests but the runner executed 227. …
+  Note: every test passed and the run still failed. The failure is not a failing test.
+```
+
+That last line exists because `pass 227, fail 0` is what I read and believed. The numbers look
+clean; the run is not.
+
+**And the test guarding it failed on its own first line.** I wrote
+`assert.ok(!scripts.check.includes('npm run verify'))` to stop `check` recursing into `verify` — and
+`check` contains `npm run verify:coverage-floor`, so the substring matched and the assertion failed
+the moment it was written. **Substring instead of structure, in the test written to fix a defect
+caused by substring instead of status.** Compared step by step now.

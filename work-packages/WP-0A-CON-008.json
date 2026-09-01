@@ -103,7 +103,8 @@
       "test-kits/branch-identity.test.mjs",
       "scripts/refresh-author-handoff.mjs",
       "test-kits/ci-guard-behaviour.test.mjs",
-      "test-kits/protocol-schema-conformance.test.mjs"
+      "test-kits/protocol-schema-conformance.test.mjs",
+      "scripts/verify-clean-run.mjs"
     ],
     "read_only_paths": [
       "README.md",
