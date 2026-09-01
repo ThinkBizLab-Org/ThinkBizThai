@@ -66,3 +66,27 @@ So: **merge the whole stack, or expect to fix statuses by hand.**
 - It does not review the content. Every merge being clean says the files do not
   collide, not that the result is correct.
 - `main` is untouched and no branch was pushed.
+
+## The drill found a conflict thirteen green pull requests could not
+
+Re-run after the branch-scope guard moved to `WP-0A-A0-004` and the stack was rewritten
+below it, the drill stopped at **#12 with a merge conflict on
+`test-kits/integrity-manifest.json`**.
+
+Every pull request was `MERGEABLE` and every one was green. That is not a
+contradiction: **GitHub tests each head against its own base, never the sequence.**
+`WP-0A-CON-007` had stopped containing `WP-0A-A0-005`, both had edited the manifest
+independently, and nothing in thirteen green checks could see it.
+
+The manifest conflicts by construction — every package adds digests to the same file —
+so this will recur on any restack. What makes it findable is running the merge, and
+what makes it fixable is that the file is generated: rebuild it from disk rather than
+resolve it.
+
+Both branches were rebuilt as a single commit on their true current base, which is the
+only resolution that has worked here; rebasing replays commits already present in the
+new base and collides again. Previous heads are kept as `con007-prev` and
+`con008-prev2` until the stack merges.
+
+**This is the argument for running the drill and not trusting the badges.** A stacked
+set of pull requests is not verified by its pull requests.
