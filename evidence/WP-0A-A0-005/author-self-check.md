@@ -350,3 +350,61 @@ Replaced by the whole-run rule, which is a property rather than a number.
 **And the first draft of the new test put a Luhn-valid card into this file.** The
 repository's own scanner reported it, which is the control working on its author.
 Rebuilt with `synthCard` like every other case here.
+
+## The missed representations, measured one at a time
+
+Independent security review reported **18 of 46 realistic representations missed** and
+said fixing them was a wave of work rather than a line. It was, because twice a
+widening of this rule shipped without its price being read and both times it broke the
+build on ordinary documents.
+
+So each candidate separator was measured in both directions before any decision —
+what it detects, and what it costs across ten shapes of numeric documentation, 3000
+trials each.
+
+### Accepted: four representations, no measurable cost
+
+| separator | gains | cost |
+|---|---|---|
+| `\|` | a markdown table row, inline pipe separators | no shape worsened |
+| `=` before a newline | the quoted-printable soft break a pasted email carries | no shape worsened |
+| U+200D zero-width joiner | a joiner between groups | +0.5% on one shape |
+
+The zero-width joiner has no business between digits at all, which is why half a
+percent on one shape is worth it.
+
+### Refused: four representations, each costing about a quarter of a common document
+
+| separator | gains | cost, measured |
+|---|---|---|
+| `.` | dot-separated groups | 0.0% → **24.1%** on semantic versions and dotted build ids |
+| `,` | comma-separated groups | 0.0% → **24.2%** on a CSV of numeric metrics |
+| `/` | slash-separated groups | 0.0% → **24.8%** on file paths with numeric segments |
+| `_` | underscore-separated groups | 24.2% → **26.4%** on numeric tables |
+
+`v1.02.003 build.4111.1111.1111.1111` is a version string.
+`/var/log/4111/1111/1111/1111.log` is a path. A CSV of four numbers per row is the
+single most common numeric document there is. Each of these would have bought one
+representation and made a quarter of those documents fail the build.
+
+**The refusals are pinned as tests**, so adding one later is a deliberate act with a
+number to argue against rather than a rediscovery. The measurements are in the
+scanner's own comment beside the separator class.
+
+## Where the rule stands
+
+Detected: nine issuer families at their real lengths; unbroken, 4-4-4-4, Amex 4-6-5,
+Diners 4-6-4, 13-digit 4-4-5, column-aligned; every wrap position on two lines
+including quoted-email, markdown and comment continuations; thirteen Unicode
+separators; fullwidth, Thai, Arabic-Indic and mixed-script digits; PAN followed by
+expiry and CVV; markdown table rows; quoted-printable breaks.
+
+Still missed, and now with a reason attached rather than an omission: the four refused
+separators above, a card written one group per line down three or more lines (refused
+— it is indistinguishable from a bullet list, which cost 15% of them), and a card
+wrapped ungrouped across three narrow lines (same rule).
+
+False positives on ordinary documents: **0.00%** on bullet lists, JSDoc blocks,
+aligned id columns, markdown pipe tables, CSV metrics, version strings, file paths,
+latency tables and timestamp lines. **23.7%** on eight rows of four 4-digit amounts,
+which is the irreducible arithmetic of `4-4-4-4` being how a card is written.

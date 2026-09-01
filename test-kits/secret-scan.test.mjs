@@ -692,3 +692,36 @@ test('does not join two rows of a table into a card', () => {
   assert.deepEqual(scanText(`card ${g.join(' ')}`, { relativePath: 'evidence/WP-X/ticket.md' }),
     ['payment-card-number'], 'a card on one line is still a card');
 });
+
+// Independent security review reported 18 of 46 realistic representations missed. Each
+// candidate separator was measured in BOTH directions before being added -- what it detects,
+// and what it costs on ordinary numeric documents -- because twice a widening here shipped
+// without its price being read and both times it broke the build on documentation.
+test('reports a card written with the separators that cost nothing to accept', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const shapes = {
+    'a markdown table row': `| ${g.join(' | ')} |`,
+    'inline pipe separators': g.join('|'),
+    'a quoted-printable soft break, as a pasted email carries': `${pan.slice(0, 10)}=\n${pan.slice(10)}`,
+    'a zero-width joiner between groups': g.join('\u200d'),
+  };
+  for (const [shape, text] of Object.entries(shapes)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], shape);
+  }
+});
+
+// The refusals, pinned so that adding one later is a deliberate act with a number to argue
+// against. Each buys exactly one representation and pays about a quarter of a document shape
+// this repository is full of; the measurements are in the scanner's own comment.
+test('does not report the document shapes four refused separators would have caught', () => {
+  const documents = {
+    'a semantic version with a dotted build id': 'v1.02.003 build.4111.1111.1111.1111',
+    'a CSV row of numeric metrics': '4111,1111,1111,1111',
+    'a file path with numeric segments': '/var/log/4111/1111/1111/1111.log',
+    'an identifier with underscores': 'run_4111_1111_1111_1111',
+  };
+  for (const [shape, text] of Object.entries(documents)) {
+    assert.deepEqual(scanText(text, { relativePath: 'docs/runbook.md' }), [], shape);
+  }
+});

@@ -394,7 +394,26 @@ export const PII_RULES = [
     // already listed, the soft hyphen and zero-width space a justified or HTML-rendered
     // statement carries, and the minus, fullwidth hyphen and ideographic space a CJK or Thai
     // IME produces. Each was demonstrated missing.
-    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D-]+|\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
+    //
+    // `|` covers a markdown table row and an inline pipe. `=` before a newline is the
+    // quoted-printable soft break a pasted email carries. U+200D is a zero-width joiner, which
+    // has no business between digits at all.
+    //
+    // FOUR further separators were measured and REFUSED, because each buys one representation
+    // and pays about a quarter of a common document shape. The numbers, 3000 trials each:
+    //
+    //   `.`  gains dot-separated groups, costs 0.0% -> 24.1% on semantic versions and dotted
+    //        build ids -- `v1.02.003 build.4111.1111.1111.1111` is a version string
+    //   `,`  gains comma-separated groups, costs 0.0% -> 24.2% on a CSV of numeric metrics,
+    //        which is the single most common numeric document there is
+    //   `/`  gains slash-separated groups, costs 0.0% -> 24.8% on file paths with numeric
+    //        segments, e.g. /var/log/4111/1111/1111/1111.log
+    //   `_`  gains underscore-separated groups, costs 24.2% -> 26.4% on numeric tables
+    //
+    // Twice before, a widening here shipped without its price being read, and both times it
+    // broke the build on ordinary documents. These four are refused with the measurement
+    // attached so the refusal can be argued with rather than rediscovered.
+    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D\u200D|-]+|=?\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
     accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a
