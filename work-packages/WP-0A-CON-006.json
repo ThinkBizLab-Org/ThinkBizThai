@@ -220,6 +220,7 @@
       "evidence/WP-0A-CON-006/author-self-check.md",
       "evidence/WP-0A-CON-006/review-contract-head.md",
       "evidence/WP-0A-CON-006/review-contract.md",
+      "evidence/WP-0A-CON-006/test-verdict-generated-fixtures.md",
       "evidence/WP-0A-CON-006/test-verdict.md",
       "work-packages/WP-0A-CON-006.json"
     ],
@@ -236,7 +237,8 @@
     "All 14 shared-kernel contracts are now materialized; the index still reports 4 Candidate and 10 Draft, so materializing a Draft does not promote it.",
     "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
     "Every contract in the catalog reaches a per-contract mutation-coverage floor of 30%, computed rather than enumerated, so a contract added later by someone who never reads the guard is still measured.",
-    "The mutation-coverage metric counts assertion keywords only, so a schema cannot raise its score by deleting a rule or by adding a property that constrains nothing."
+    "The mutation-coverage metric counts assertion keywords only, so a schema cannot raise its score by deleting a rule or by adding a property that constrains nothing.",
+    "The coverage guard cannot be improved by deleting a rule: each contract declares both a floor on its constraint-site count and a ceiling on its unkilled sites, so removing a constraint lowers a number that must be edited deliberately."
   ],
   "required_tests": [
     "Schema conformance for both contracts via the subset validator",
@@ -271,7 +273,9 @@
     "This package depends on five unmerged packages and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor and that npm run check can be neutered by its own script.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
-    "The 30% mutation-coverage floor is a floor, not a target. The catalog sits at 42.4% and the weakest contract at 32.4%; a constraint below the floor is still a constraint no fixture exercises. Raising the floor is cheap and should be done as coverage rises."
+    "The 30% mutation-coverage floor is a floor, not a target. The catalog sits at 42.4% and the weakest contract at 32.4%; a constraint below the floor is still a constraint no fixture exercises. Raising the floor is cheap and should be done as coverage rises.",
+    "Roughly 71% of the 441 generated counterexamples are MECHANICAL -- they violate a rule with a sentinel value (`zz not matching pattern`) rather than with a value a producer could plausibly emit. Independent testing measured it and the judgement is accepted: the 66 enum, pattern and format fixtures are the weakest, because those keywords are exactly where a contract encodes a specific hazard and a sentinel erases it. They are load-bearing -- each one is a real witness that kills exactly one site -- but they are not documentation, and 82% coverage should not be read as 82% of the catalog's hazards being illustrated.",
+    "Conditional constraint sites -- the allOf/if/then business rules -- sit at 57.6% against 88.8% for plain leaf assertions. The generator's naming scheme drops allOf/then/index segments, so 52 names would have collided and it SKIPPED those sites rather than misnaming them. That is why every generated name is correct and also why the conditional half stays uncovered. The naming scheme is the ceiling on this metric."
   ],
   "review_and_test_gates": [
     "author_complete",

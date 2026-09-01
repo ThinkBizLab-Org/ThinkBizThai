@@ -265,3 +265,73 @@ Superseded prose also removed: `scope.include`, an acceptance criterion and a
 required test still described the `domain_result_rolled_back` const that was deleted
 a wave earlier, and `list_price` still shipped inside a fixture after leaving the
 enum.
+
+---
+
+## The generated fixtures, judged
+
+This Author raised the suspicion in the brief rather than waiting for it to be
+found: 397 machine-generated counterexamples moved the figure from 19.3% to 82.3%,
+which is the same shape as the thing this package had just been caught doing —
+replacing a gameable metric with material that satisfies it.
+
+Independent testing measured it exhaustively rather than by sample.
+
+### What held
+
+**Isolation is the strongest result.** Of all 537 invalid fixtures, **531 kill
+exactly one site, 6 kill none, and zero kill two or more.** Cross-checked by error
+count: 533 produce one schema error. The two genuinely double-faulted fixtures are
+both **hand-written and pre-existing**. None of the 441 generated ones is
+double-faulted — which matters because double-faulting is precisely what broke the
+previous round.
+
+The 82.4% figure **reproduces independently** — the reviewer reimplemented the
+metric — so it is not inflated. And the generation displaced nothing: only 3 sites
+are covered by both a generated and a hand-written fixture, and **81 remain covered
+solely by hand-written witnesses**, because the generator skipped every site already
+killed.
+
+### What did not
+
+**~71% of the generated fixtures are mechanical**, and the judgement is accepted
+without argument. They violate a rule with a sentinel (`"zz not matching pattern"`)
+rather than with a value a producer could plausibly emit. The 66 `enum`, `pattern`
+and `format` ones are the weakest, because those keywords are exactly where a
+contract encodes a **specific hazard** and a sentinel erases it. The reviewer's
+comparison is the right one: hand-written
+`handle: "plaintext:this-is-not-a-registry-reference"` against generated
+`"zz not matching pattern"` for the same rule.
+
+They are load-bearing — each is a real witness that kills exactly one site — but
+**82% coverage must not be read as 82% of the catalog's hazards being illustrated.**
+Recorded as an open blocker.
+
+**Conditional sites sit at 57.6% against 88.8% for leaf assertions.** The generator's
+naming drops `allOf`/`then`/index segments, so 52 names would have collided and it
+**skipped** those sites rather than misnaming them. That is why all 441 names are
+correct and also why the business rules — the `if`/`then` half — stay the least
+covered. The naming scheme is the ceiling on this metric, not a cosmetic issue.
+
+### The ratio still rewarded deleting rules
+
+The reviewer deleted six real but untested rules from `ctr-mod-001` and the score
+**rose** 72.4% → 77.8%, catalog 82.4% → 83.1%, CI green. *A rule nothing tests is
+still a rule you are rewarded for deleting.*
+
+A ceiling on unkilled sites does not fix that either — deleting an untested rule
+lowers that count too. What deletion **cannot** do is preserve the total. So each
+contract now declares a **floor on its constraint-site count** alongside the
+unkilled ceiling. Verified: the same deletion now exits `1` with
+`ctr-mod-001 — 83 constraint sites, below its declared floor of 87`. A rule can
+still leave the catalog, but only by lowering a number someone edits deliberately,
+in a diff a reviewer reads.
+
+### Also closed
+
+A contract directory carrying a `schema.json` and **no** `manifest.json` was
+silently exempt from both the floor and conformance — the quietest way to remove a
+contract from every check at once. It now fails.
+
+`WP-0A-A0-004` was still `status: backlog` while its workflow step and RFC were
+already in the tree. Corrected.

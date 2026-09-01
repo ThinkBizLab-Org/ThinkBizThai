@@ -109,6 +109,21 @@ const verdicts = (schema, bodies, resolve) =>
 // counterexamples later the catalog is at 82.1% and the weakest contract at 72.4%, so a 70%
 // floor leaves roughly two sites of headroom on the weakest and fails anything that regresses.
 const COVERAGE_FLOOR = 0.70;
+// A RATIO always rewards shrinking its denominator. Independent testing deleted six real but
+// untested rules from ctr-mod-001 and the score ROSE 72.4% -> 77.8% with CI green, because a
+// rule nothing tests is a rule you are rewarded for removing.
+//
+// A ceiling on UNKILLED sites alone does not fix it either: deleting an untested rule lowers
+// that count too. What deletion cannot do is preserve the TOTAL. So each contract declares a
+// floor on its constraint-site count, and a rule can only leave the catalog by lowering a
+// number someone has to edit deliberately, in a diff a reviewer reads.
+const SITE_FLOOR = { 'ctr-api-001': 38, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 42,
+  'ctr-flg-001': 74, 'ctr-idm-001': 36, 'ctr-job-001': 40, 'ctr-mod-001': 87, 'ctr-ntf-001': 39,
+  'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76, 'ctr-ten-001': 23, 'ctr-usg-001': 37 };
+
+const UNKILLED_CEILING = { 'ctr-api-001': 12, 'ctr-aud-001': 14, 'ctr-err-001': 4, 'ctr-evt-001': 4,
+  'ctr-flg-001': 22, 'ctr-idm-001': 6, 'ctr-job-001': 6, 'ctr-mod-001': 26, 'ctr-ntf-001': 11,
+  'ctr-obs-001': 12, 'ctr-pag-001': 12, 'ctr-sec-001': 16, 'ctr-ten-001': 2, 'ctr-usg-001': 4 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
@@ -151,7 +166,15 @@ test('every contract reaches the mutation-coverage floor', async () => {
   const weak = [];
   for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     let data;
-    try { data = await fixturesOf(entry.name); } catch { continue; }
+    try {
+      data = await fixturesOf(entry.name);
+    } catch (error) {
+      // A directory holding a schema but no manifest was silently exempt from the floor AND
+      // from conformance -- the quietest way to remove a contract from every check at once.
+      const hasSchema = await readFile(join(CATALOG, entry.name, 'schema.json'), 'utf8').then(() => true, () => false);
+      if (hasSchema) weak.push(`${entry.name} — carries a schema.json but no readable manifest.json, so it is exempt from this floor and from conformance. A contract cannot opt out by omission.`);
+      continue;
+    }
     const { schema, bodies, resolve } = data;
     const baseline = verdicts(schema, bodies, resolve);
     const sites = constraintSites(schema);
@@ -163,6 +186,19 @@ test('every contract reaches the mutation-coverage floor', async () => {
     const ratio = sites.length === 0 ? 1 : killed / sites.length;
     if (ratio < COVERAGE_FLOOR) {
       weak.push(`${entry.name} — ${killed}/${sites.length} constraint sites killed by a fixture (${(ratio * 100).toFixed(1)}%), below the ${(COVERAGE_FLOOR * 100).toFixed(0)}% floor`);
+    }
+    const siteFloor = SITE_FLOOR[entry.name];
+    if (siteFloor === undefined) {
+      weak.push(`${entry.name} — no entry in SITE_FLOOR. A new contract must declare how many constraints it carries, or a later commit can delete rules and raise its score.`);
+    } else if (sites.length < siteFloor) {
+      weak.push(`${entry.name} — ${sites.length} constraint sites, below its declared floor of ${siteFloor}. A rule was removed; that is a deliberate act and must be a deliberate edit here, not a silent score improvement.`);
+    }
+    const unkilled = sites.length - killed;
+    const ceiling = UNKILLED_CEILING[entry.name];
+    if (ceiling === undefined) {
+      weak.push(`${entry.name} — no entry in UNKILLED_CEILING. A new contract must declare how many untested constraints it ships, so the number cannot drift upward unnoticed.`);
+    } else if (unkilled > ceiling) {
+      weak.push(`${entry.name} — ${unkilled} constraint sites killed by no fixture, above its ceiling of ${ceiling}. Deleting a rule does not improve this number; only writing a fixture does.`);
     }
   }
   assert.deepEqual(weak, [], `contract(s) below the mutation-coverage floor:\n  ${weak.join('\n  ')}`);
