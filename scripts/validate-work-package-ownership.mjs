@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PROTECTED_KEYS } from './verify-test-coverage-floor.mjs';
 
 export class OwnershipValidationError extends Error {
   constructor(code, message) {
@@ -52,7 +53,21 @@ function namesSomething(pattern) {
   return pattern.split('/').some((segment) => segment.length > 0 && !segment.includes('*'));
 }
 
-export function validateManifestOwnership(manifests) {
+// How many repository files one amendment pattern may cover before it stops being a record of
+// what a package touched and becomes a blanket permission.
+//
+// Independent review thirteen closed the `["**"]` case; probing the fix immediately afterwards
+// showed `contract-catalog/**` and `scripts/**` still passed -- one literal segment, an entire
+// tree. And the probe found one already in the repository, declared and unnoticed:
+// `WP-0A-CON-007` amended `contract-catalog/shared-kernel/**`, which covers **705 files, the
+// whole catalog**, when the package actually touched thirteen contract directories.
+//
+// The threshold is chosen from the tree rather than from taste: every legitimate amendment glob
+// declared today covers between 1 and 70 files, and the only one above that covered everything.
+// A pattern over the cap is not forbidden work -- it is a request to say which files.
+export const AMENDMENT_BREADTH_CAP = 128;
+
+export function validateManifestOwnership(manifests, repositoryFiles = null) {
   for (const manifest of manifests) {
     const ownership = manifest.ownership ?? {};
     const writablePaths = ownership.writable_paths;
@@ -108,6 +123,25 @@ export function validateManifestOwnership(manifests) {
           + 'An amendment records what a package touched outside its own scope; a pattern matching everything records nothing '
           + 'and silences the branch-scope guard entirely.');
       }
+      // Breadth in FILES is not the only breadth that matters. `scripts/**` covers only fifteen
+      // files and would pass the cap -- and those fifteen are every guard in this repository.
+      // A glob must never stand in for a protected file: those are named, or not amended.
+      if (pattern.includes('*')) {
+        const shielded = PROTECTED_KEYS.filter((key) => globToRegExp(pattern).test(key));
+        if (shielded.length > 0) {
+          throw new OwnershipValidationError(74, `work package ${label} amends ${JSON.stringify(pattern)}, which covers `
+            + `${shielded.length} protected file(s) — ${shielded.slice(0, 3).join(', ')}${shielded.length > 3 ? ', …' : ''}. `
+            + 'A guard, a protocol schema or a registry is amended by name or not at all; a glob over one is a permission, not a record.');
+        }
+      }
+      if (repositoryFiles && pattern.includes('*')) {
+        const covered = repositoryFiles.filter((file) => globToRegExp(pattern).test(file)).length;
+        if (covered > AMENDMENT_BREADTH_CAP) {
+          throw new OwnershipValidationError(74, `work package ${label} amends ${JSON.stringify(pattern)}, which covers ${covered} files. `
+            + `An amendment records what a package TOUCHED; above ${AMENDMENT_BREADTH_CAP} files it is a blanket permission over `
+            + 'a tree the package does not own. Name the directories or files instead.');
+        }
+      }
     }
     // An amendment is a claim ABOUT ANOTHER PACKAGE'S FILES, so it has to say why. The field
     // already carried a rationale by convention; nothing required it.
@@ -151,7 +185,24 @@ export async function validateWorkPackageOwnership(directory) {
       throw new OwnershipValidationError(65, `${manifestFile}: invalid JSON: ${error.message}`);
     }
   }));
-  validateManifestOwnership(manifests);
+  validateManifestOwnership(manifests, await repositoryFileList());
+}
+
+// The tree as it stands, so an amendment pattern's breadth is measured rather than guessed.
+// `.git` is skipped for the obvious reason; `node_modules` because this repository has no
+// dependencies and an amendment can never legitimately reach into one.
+async function repositoryFileList(root = '.') {
+  const files = [];
+  const walk = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.name === '.git' || entry.name === 'node_modules') continue;
+      const path = `${directory === '.' ? '' : `${directory}/`}${entry.name}`;
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.isFile()) files.push(path);
+    }
+  };
+  await walk(root);
+  return files;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -105,11 +105,23 @@
       "paths": [
         ".github/workflows/ci.yml",
         "OVERNIGHT-SUMMARY.md",
-        "contract-catalog/shared-kernel/**",
+        "contract-catalog/shared-kernel/ctr-api-001/**",
         "contract-catalog/shared-kernel/ctr-api-001/schema.json",
+        "contract-catalog/shared-kernel/ctr-aud-001/**",
+        "contract-catalog/shared-kernel/ctr-err-001/**",
+        "contract-catalog/shared-kernel/ctr-evt-001/**",
         "contract-catalog/shared-kernel/ctr-evt-001/schema.json",
+        "contract-catalog/shared-kernel/ctr-flg-001/**",
+        "contract-catalog/shared-kernel/ctr-idm-001/**",
         "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
+        "contract-catalog/shared-kernel/ctr-job-001/**",
         "contract-catalog/shared-kernel/ctr-job-001/schema.json",
+        "contract-catalog/shared-kernel/ctr-mod-001/**",
+        "contract-catalog/shared-kernel/ctr-obs-001/**",
+        "contract-catalog/shared-kernel/ctr-pag-001/**",
+        "contract-catalog/shared-kernel/ctr-sec-001/**",
+        "contract-catalog/shared-kernel/ctr-ten-001/**",
+        "contract-catalog/shared-kernel/ctr-usg-001/**",
         "evidence/VERIFICATION.md",
         "test-kits/contracts/schema-mutation-coverage.test.mjs",
         "test-kits/integrity-manifest.json",
@@ -123,7 +135,7 @@
         "work-packages/WP-0A-CON-005.json",
         "work-packages/WP-0A-CON-006.json"
       ],
-      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 98 undeclared paths on this branch. This package began as reference bounds on four contracts and grew, across nine rounds of independent review, into the corrections those rounds demanded: fixtures closing constraint sites across every contract in the shared kernel, and the mutation-coverage suite itself, which is WP-0A-CON-003's file. Each change was made here because the finding arrived against this head; moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once. The catalog contracts belong to WP-0A-CON-001 through WP-0A-CON-006 and the mutation suite to WP-0A-CON-003; this package claims none of them. The integrity manifest and the verification record are generated and belong to WP-0A-A0-002. Five work-package manifests carry amendment records pointing back here. OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The size of this list is itself the finding: it was invisible until a guard counted it, and it says this package outgrew its charter. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package.",
+      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 98 undeclared paths on this branch. This package began as reference bounds on four contracts and grew, across nine rounds of independent review, into the corrections those rounds demanded: fixtures closing constraint sites across every contract in the shared kernel, and the mutation-coverage suite itself, which is WP-0A-CON-003's file. Each change was made here because the finding arrived against this head; moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once. The catalog contracts belong to WP-0A-CON-001 through WP-0A-CON-006 and the mutation suite to WP-0A-CON-003; this package claims none of them. The integrity manifest and the verification record are generated and belong to WP-0A-A0-002. Five work-package manifests carry amendment records pointing back here. OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The size of this list is itself the finding: it was invisible until a guard counted it, and it says this package outgrew its charter. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. The single entry contract-catalog/shared-kernel/** is replaced by the thirteen contract directories this package actually changed, computed from git diff over its own range. The blanket form covered 705 files -- the entire catalog, including ctr-ntf-001, which belongs to A5 and which this package never touched. It named a permission rather than recording work, and nothing had noticed.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json",
         "work-packages/WP-0A-CON-003.json"

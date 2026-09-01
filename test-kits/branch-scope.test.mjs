@@ -92,3 +92,61 @@ test('an amendment list cannot be a pattern that names nothing', async () => {
   assert.doesNotThrow(() => validateManifestOwnership(manifest(['evidence/WP-0A-CON-007/**'])));
   assert.doesNotThrow(() => validateManifestOwnership(manifest([])), 'an empty amendment list needs no rationale');
 });
+
+test('an amendment cannot be a blanket permission over a tree', async () => {
+  // `namesSomething` closed `["**"]`. Probing that fix immediately afterwards showed
+  // `contract-catalog/**` and `scripts/**` still passed: one literal segment, an entire tree.
+  //
+  // And the probe found one already declared and unnoticed — WP-0A-CON-007 amended
+  // `contract-catalog/shared-kernel/**`, covering **705 files, the whole catalog**, including
+  // ctr-ntf-001 which belongs to A5 and which that package never touched. It named a permission
+  // rather than recording work. Replaced with the thirteen contract directories its own git range
+  // shows it changed.
+  const { validateManifestOwnership, AMENDMENT_BREADTH_CAP, OwnershipValidationError } =
+    await import('../scripts/validate-work-package-ownership.mjs');
+  const tree = [];
+  for (let i = 0; i < 400; i += 1) tree.push(`contract-catalog/shared-kernel/ctr-${i}/schema.json`);
+  for (let i = 0; i < 20; i += 1) tree.push(`evidence/WP-0A-CON-007/note-${i}.md`);
+  const manifest = (paths) => ([{
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths, rationale: 'a reason long enough to be a reason and not a placeholder word' },
+    },
+    outputs: { files: ['owned.txt'] },
+  }]);
+
+  // Breadth in files, measured against a tree with no protected file in it so the two rules are
+  // observed separately.
+  assert.throws(() => validateManifestOwnership(manifest(['evidence/**']), [
+    ...Array.from({ length: 400 }, (unused, i) => `evidence/WP-X/note-${i}.md`),
+  ]),
+  (error) => error instanceof OwnershipValidationError && error.code === 74 && /covers 400 files/.test(error.message),
+  'a whole-tree amendment must be rejected even though it names a literal segment');
+  assert.throws(() => validateManifestOwnership(manifest(['contract-catalog/shared-kernel/**']), tree), { code: 74 });
+
+  // Breadth in PROTECTION, which the file cap does not measure: `scripts/**` covers fifteen
+  // files and would pass the cap — and those fifteen are every guard in this repository.
+  assert.throws(() => validateManifestOwnership(manifest(['scripts/**']), tree),
+    (error) => error instanceof OwnershipValidationError && error.code === 74 && /protected file/.test(error.message),
+    'a glob over a guard is a permission, not a record');
+  assert.throws(() => validateManifestOwnership(manifest(['.agents/**']), tree), { code: 74 });
+  assert.throws(() => validateManifestOwnership(manifest(['contract-catalog/**']), tree), { code: 74 });
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['scripts/verify-branch-scope.mjs']), tree),
+    'naming the protected file is exactly what the rule asks for');
+
+  // Bounded ones still pass, which is what makes the cap a cap rather than a ban.
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['evidence/WP-0A-CON-007/**']), tree));
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['contract-catalog/shared-kernel/ctr-1/**']), tree));
+  assert.ok(AMENDMENT_BREADTH_CAP >= 64 && AMENDMENT_BREADTH_CAP <= 256,
+    'the cap is pinned so that widening it is a deliberate edit, not a quiet one');
+
+  // Without a file list the FILE-COUNT check cannot run, and the pure form stays pure — the real
+  // validator always supplies the tree. The protected-file rule needs no tree and still applies,
+  // which is the more important half: it does not depend on being called the right way.
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['evidence/**'])),
+    'breadth in files is measured only where the tree is known');
+  assert.throws(() => validateManifestOwnership(manifest(['scripts/**'])), { code: 74 },
+    'the protected-file rule must not depend on the caller supplying a file list');
+});

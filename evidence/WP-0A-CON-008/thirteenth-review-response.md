@@ -140,3 +140,44 @@ scripts digested, 28 caveat digests.
 ## Verification
 
 `npm run check` — **205/205, fail 0, skipped 0, todo 0, exit 0**.
+
+---
+
+## Probing HIGH 2's own fix, immediately after committing it
+
+`namesSomething` closed `["**"]`. Ten minutes later, probing it with the patterns a reviewer
+would try next:
+
+| pattern | before | after |
+| --- | --- | --- |
+| `**`, `*`, `*/*`, `**/*` | rejected | rejected |
+| `contract-catalog/**` | **passed** | rejected |
+| `scripts/**` | **passed** | rejected |
+| `test-kits/**` | **passed** | rejected |
+
+One literal segment was enough. Two rules now, because file count and protection are different
+kinds of breadth:
+
+1. **A glob may cover at most 128 repository files.** The threshold comes from the tree, not from
+   taste: every legitimate amendment glob declared today covers between 1 and 70 files, and the
+   only one above that covered everything.
+2. **A glob may never cover a `PROTECTED_KEYS` file.** `scripts/**` covers *fifteen* files — under
+   the cap — and those fifteen are every guard in the repository. A guard, a protocol schema or a
+   registry is amended **by name** or not at all.
+
+Rule 2 needs no file list, so it holds however the validator is called. Rule 1 needs the tree and
+is measured where the tree is known.
+
+**Both found a declaration already in the repository that nobody had noticed:**
+
+- `WP-0A-CON-007` amended `contract-catalog/shared-kernel/**` — **705 files, the entire catalog**,
+  including `ctr-ntf-001`, which belongs to A5 and which that package never touched. Replaced with
+  the thirteen contract directories its own `git diff` range shows it changed.
+- `WP-0A-CON-008` amended `.agents/**` — four protected protocol schemas, **and the package had
+  changed none of them.** A pure over-claim; removed entirely.
+
+Neither was planted. Both were live, declared, and green.
+
+## Verification
+
+`npm run check` — **206/206, fail 0, skipped 0, todo 0, exit 0**.
