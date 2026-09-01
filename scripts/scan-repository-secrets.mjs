@@ -130,8 +130,27 @@ function luhnHolds(digits) {
  *  here. No card number, valid or otherwise, is written literally in this file: a rule that
  *  cannot be stated without tripping itself would have to exempt its own source, and a
  *  scanner blind to one file is a scanner with a place to hide things. */
+// A digit is not always U+0030..U+0039. Independent security review found the rule blind to
+// FULLWIDTH digits and to THAI digits -- on a Thai-market product, in a rule whose own comment
+// claims to cover what a Thai IME produces. It had widened the SEPARATORS for that scenario and
+// never the DIGITS, so a bare sixteen-digit fullwidth card number, the plainest representation
+// there is, was invisible.
+const DIGIT_RANGES = [[0x0030, '0'], [0xff10, '0'], [0x0e50, '0'], [0x0660, '0'], [0x06f0, '0']];
+export function foldDigits(value) {
+  let out = '';
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    const range = DIGIT_RANGES.find(([base]) => code >= base && code <= base + 9);
+    if (range) out += String(code - range[0]);
+  }
+  return out;
+}
+
 export function isPaymentCardNumber(value) {
-  const digits = value.replace(/[^0-9]/g, '');
+  // `foldDigits` rather than a strip: this is exported and called directly by the tests, so it
+  // must handle a non-ASCII number on its own. The scanner folds the run before it gets here,
+  // which makes the call redundant on that path and correct on this one.
+  const digits = foldDigits(value);
   if (!/^[0-9]{13,19}$/.test(digits)) return false;
   if (!ISSUER_RANGES.some(([prefix, lengths]) => prefix.test(digits) && lengths.includes(digits.length))) return false;
   return luhnHolds(digits);
@@ -177,6 +196,9 @@ export function containsPaymentCardNumber(run) {
   // The cost is stated rather than hidden: a card written one group per line down three or more
   // lines is no longer detected. That case is speculative; breaking CI on ordinary documents is
   // not, and a rule that fails on documentation is a rule someone deletes.
+  // Fold non-ASCII digits before any of this: the grouping analysis counts digits, and a
+  // fullwidth or Thai numeral is a digit.
+  run = [...run].map((c) => foldDigits(c) || c).join('');
   const lines = run.split('\n');
   if (lines.length >= 3 && lines.every((line) => (line.match(/[0-9]+/g) ?? []).length === 1)) return false;
 
@@ -337,7 +359,7 @@ export const PII_RULES = [
     // already listed, the soft hyphen and zero-width space a justified or HTML-rendered
     // statement carries, and the minus, fullwidth hyphen and ideographic space a CJK or Thai
     // IME produces. Each was demonstrated missing.
-    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D-]+|\r?\n[ \t>|#*/-]*)?[0-9])+(?![0-9])/g,
+    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D-]+|\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
     accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a

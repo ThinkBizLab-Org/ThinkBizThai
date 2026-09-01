@@ -281,3 +281,26 @@ documentation is a rule someone deletes.
   worse and were already: **68.9%** for eight rows of space-separated 4-digit amounts,
   **48.9%** for an aligned numeric id column. Four groups of four is the card layout;
   this is the irreducible cost, and the honest number is the table one, not mine.
+
+## Non-ASCII digits are now detected
+
+A digit is not always U+0030..U+0039. The rule was blind to **fullwidth** (U+FF10–19)
+and **Thai** (U+0E50–59) digits, on a Thai-market product, in a rule whose own comment
+claims to cover what a Thai IME produces — it had widened the *separators* for that
+scenario and never the *digits*. A bare sixteen-digit fullwidth card number, the
+plainest representation there is, was invisible.
+
+Folded at the run boundary, so the grouping analysis counts them as digits: fullwidth,
+Thai, Arabic-Indic and Eastern Arabic-Indic, including a number written half in ASCII
+and half in Thai. Seven cases, all now reported and all tests.
+
+False-positive rates are unchanged — 0.000% / 3.5% / 0.000% / 3.5% / 10.0% / 3.1%
+across the six shapes measured — because a benign ASCII table contains no fullwidth
+digits to fold.
+
+**One mutation did not bite and that was worth following up.** Restoring the ASCII
+strip inside `isPaymentCardNumber` failed nothing, because the scanner folds the run
+before calling it. The fold there is redundant *on that path* and correct on the one
+the exported function is called on directly by tests, so it stays with that reason
+written down. The fold that does the work — at the run boundary — fails a test when
+removed.

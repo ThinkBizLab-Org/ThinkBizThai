@@ -640,3 +640,26 @@ test('reports a card grouped with the separators real documents and IMEs produce
       ['payment-card-number'], `grouped with ${name}`);
   }
 });
+
+// A digit is not always U+0030..U+0039. Independent security review found the rule blind to
+// fullwidth and Thai digits -- on a Thai-market product, in a rule whose own comment claims to
+// cover what a Thai IME produces. The separators had been widened for that scenario and the
+// digits never were, so a bare sixteen-digit fullwidth card number -- the plainest
+// representation there is -- was invisible.
+test('reports a card written in digits that are not ASCII', () => {
+  const pan = synthCard('401288888888188');
+  const transcribe = (base) => [...pan].map((d) => String.fromCodePoint(base + Number(d))).join('');
+  const scripts = {
+    'fullwidth digits, bare': transcribe(0xff10),
+    'fullwidth digits, grouped in fours': transcribe(0xff10).match(/.{4}/g).join(' '),
+    'Thai digits, bare': transcribe(0x0e50),
+    'Thai digits grouped with an ideographic space': transcribe(0x0e50).match(/.{4}/g).join('\u3000'),
+    'Arabic-Indic digits': transcribe(0x0660),
+    'Eastern Arabic-Indic digits': transcribe(0x06f0),
+    'ASCII and Thai mixed in one number': pan.slice(0, 8) + transcribe(0x0e50).slice(8),
+  };
+  for (const [script, value] of Object.entries(scripts)) {
+    assert.deepEqual(scanText(`card ${value}`, { relativePath: 'evidence/WP-X/note.md' }),
+      ['payment-card-number'], script);
+  }
+});
