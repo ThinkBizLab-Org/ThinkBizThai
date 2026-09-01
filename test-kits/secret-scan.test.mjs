@@ -581,3 +581,44 @@ test('does not report a row of numbers that merely concatenates into a card', ()
       `${row} is a table of measurements, not a card`);
   }
 });
+
+// Independent security review found the continuation set covered quoted email and markdown
+// tables but not the comment leaders this repository is actually written in -- YAML, shell, JS
+// and JSDoc. This scanner's own source is a ` * ` block. A card wrapped inside one went
+// unreported while the same file with `# ` rewritten to `> ` was reported; only the leader
+// differed.
+test('reports a card wrapped inside the comment styles this repository is written in', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const cases = {
+    'YAML or shell comment': `# card ${g[0]} ${g[1]} ${g[2]}\n#   ${g[3]}`,
+    'JS line comment': `// card ${g[0]} ${g[1]} ${g[2]}\n//  ${g[3]}`,
+    'JSDoc block': ` * card ${g[0]} ${g[1]} ${g[2]}\n *  ${g[3]}`,
+  };
+  for (const [style, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], style);
+  }
+});
+
+// Each of these was demonstrated missing while a neighbouring code point in the same family
+// was already covered -- U+2011 was listed and U+2010, the actual typographic hyphen, was not.
+test('reports a card grouped with the separators real documents and IMEs produce', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const separators = {
+    'U+2010 hyphen': '\u2010',
+    'U+2012 figure dash, defined for use between digits': '\u2012',
+    'U+2003 em space': '\u2003',
+    'U+2002 en space': '\u2002',
+    'U+200A hair space': '\u200a',
+    'U+00AD soft hyphen, from justified text': '\u00ad',
+    'U+200B zero-width space, from rendered HTML': '\u200b',
+    'U+2212 minus': '\u2212',
+    'U+FF0D fullwidth hyphen, from a CJK IME': '\uff0d',
+    'U+3000 ideographic space': '\u3000',
+  };
+  for (const [name, separator] of Object.entries(separators)) {
+    assert.deepEqual(scanText(`card ${g.join(separator)}`, { relativePath: 'fixtures/order.json' }),
+      ['payment-card-number'], `grouped with ${name}`);
+  }
+});

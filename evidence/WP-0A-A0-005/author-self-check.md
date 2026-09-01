@@ -220,3 +220,29 @@ the single-reading behaviour.
 $ npm run check
 ℹ tests 133   pass 133   fail 0   skipped 0   todo 0
 ```
+
+## The continuation set covered other people's documents, not this repository's
+
+Independent security review wrapped a Luhn-valid Visa inside a `#`-commented YAML
+block and inside a ` * ` JSDoc block. Neither was reported. The same file with `# `
+rewritten to `> ` **was** reported — only the leader differed.
+
+`>` and `|` are how a quoted email and a markdown table continue a line. `#`, `//` and
+` * ` are how **this repository** continues one, and this scanner's own source is a
+` * ` block.
+
+Ten separator code points were also missing, each beside a neighbour that was already
+covered: **U+2010**, the actual typographic hyphen, while U+2011/2013/2014 were
+listed; **U+2012 FIGURE DASH**, which Unicode defines specifically for use *between
+digits*; the em, en and hair spaces beside U+2007/U+2009; the soft hyphen and
+zero-width space a justified or HTML-rendered statement carries; and the minus,
+fullwidth hyphen and ideographic space a CJK or Thai IME produces.
+
+All thirteen are now tests. False-positive rates are unchanged — 0.000% for rows of
+five 3-digit and eight 2-digit integers, 3.4% and 3.6% for four 4-digit and two
+8-digit ones, 10.1% for 16-digit ids beginning with 4 — so the widening cost nothing.
+
+```
+$ npm run check
+ℹ tests 135   pass 135   fail 0   skipped 0   todo 0
+```

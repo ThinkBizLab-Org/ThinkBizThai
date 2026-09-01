@@ -311,7 +311,19 @@ export const PII_RULES = [
     // pasted with, including a line break, because a wrapped log line or a quoted email is a
     // real artifact shape and a non-breaking space is what a paste from a rendered statement
     // carries. `accept` then does the real work over the windows inside the run.
-    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2007\u2009\u202F\u2011\u2013\u2014-]+|\r?\n[ \t>|]*)?[0-9])+(?![0-9])/g,
+    //
+    // The continuation set covers `#`, `//` and ` * ` as well as `>` and `|`. Independent
+    // security review pointed out that the first version handled quoted email and markdown
+    // tables but not the comment leaders THIS repository is written in -- YAML, shell, JS and
+    // JSDoc -- and this scanner's own source is a ` * ` block. A card wrapped inside one was
+    // not reported; the same file with `# ` rewritten to `> ` was.
+    //
+    // The separator set covers U+2010 HYPHEN (the actual typographic hyphen), U+2012 FIGURE
+    // DASH (defined by Unicode for use BETWEEN DIGITS), the em/en/hair spaces beside the ones
+    // already listed, the soft hyphen and zero-width space a justified or HTML-rendered
+    // statement carries, and the minus, fullwidth hyphen and ideographic space a CJK or Thai
+    // IME produces. Each was demonstrated missing.
+    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D-]+|\r?\n[ \t>|#*/-]*)?[0-9])+(?![0-9])/g,
     accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a
