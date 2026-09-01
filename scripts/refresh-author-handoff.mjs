@@ -30,6 +30,17 @@ const WRITTEN_AFTERWARDS = [
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 
+// A handoff cannot cite the commit that CONTAINS it -- that revision does not exist until the
+// commit is made. So the range is compared against the branch as it stood BEFORE the current
+// commit, which is the last parent of HEAD: `HEAD^` for an ordinary commit, and for the merge
+// commit `actions/checkout` builds on a pull request, the branch head itself. Without this the
+// check is red for exactly as long as it takes to write the follow-up commit, every time, and a
+// guard that is normally red is a guard people learn to ignore.
+export function branchTipBefore(head = 'HEAD') {
+  const parents = git('rev-list', '--parents', '-1', head).split(' ');
+  return parents.length > 1 ? parents[parents.length - 1] : head;
+}
+
 export function classify(paths) {
   const substantive = paths.filter((path) => !WRITTEN_AFTERWARDS.some((pattern) => pattern.test(path)));
   return { substantive, incidental: paths.filter((path) => !substantive.includes(path)) };
@@ -62,9 +73,10 @@ async function main(argv) {
   const handoff = JSON.parse(await readFile(path, 'utf8'));
   const base = handoff.base_revision;
   const head = git('rev-parse', 'HEAD');
+  const comparedAgainst = branchTipBefore();
 
-  const trailing = classify(changedIn(handoff.head_revision_or_patch_checksum, head).added
-    .concat(changedIn(handoff.head_revision_or_patch_checksum, head).modified));
+  const since = changedIn(handoff.head_revision_or_patch_checksum, comparedAgainst);
+  const trailing = classify([...since.added, ...since.modified]);
   if (trailing.substantive.length === 0) {
     process.stdout.write(`${path} describes the branch: nothing substantive after its cited head\n`);
     return 0;

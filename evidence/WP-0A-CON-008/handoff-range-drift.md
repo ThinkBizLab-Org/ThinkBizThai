@@ -38,6 +38,23 @@ exit 1
 `npm run refresh:handoff` → `653f699..950ab8d — 41 added, 28 modified, 0 deleted`.
 `npm run check` — **187/187, fail 0, skipped 0, todo 0, exit 0**.
 
+## The first version of this guard was red by construction
+
+Committing the fix made the tree fail immediately: the handoff cited `950ab8d`, and the commit
+carrying the guard changed five substantive paths after it. A handoff **cannot cite the commit
+that contains it** — that revision does not exist until the commit is made — so comparing
+against `HEAD` leaves the check red for exactly as long as it takes to write a follow-up commit,
+every single time. A guard that is normally red is a guard people learn to ignore.
+
+The comparison is against `branchTipBefore()`: the **last parent of HEAD**. For an ordinary
+commit that is `HEAD^`; for the merge commit `actions/checkout` builds on a pull request it is
+the branch head itself, so CI compares the same thing a developer does. Verified on both shapes
+— `branchTipBefore('HEAD')` → `950ab8d`, and against the `-s ours` merge `3f4c095` → `6ecf07f`,
+its second parent.
+
+Drift of more than one commit still fails: rolling the cited head back to `ae5864d` reports 24
+substantive paths.
+
 ## Known limitation
 
 The check runs against the **current branch only**. The other nine handoffs describe branches
