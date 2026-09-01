@@ -372,3 +372,94 @@ test('every credential rule is exercised by at least one decoy', () => {
   const uncovered = CREDENTIAL_RULES.map((rule) => rule.id).filter((id) => !covered.has(id));
   assert.deepEqual(uncovered, [], `credential rule(s) with no decoy — a rule nothing tests can be deleted silently:\n  ${uncovered.join('\n  ')}`);
 });
+
+// Built at runtime, never written down. A test that states a valid card number puts one in
+// the repository, and the rule under test would report the file that tests it -- so the suite
+// would have to exempt itself, which is the one thing a scanner must never do.
+function synthCard(leadingDigits) {
+  let sum = 0;
+  let double = true;
+  for (let index = leadingDigits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(leadingDigits[index]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    double = !double;
+  }
+  return leadingDigits + String((10 - (sum % 10)) % 10);
+}
+
+test('detects a Luhn-valid card number for each issuer family this rule claims', () => {
+  // 15 digits + a check digit, 12 + check, 14 + check: the lengths each issuer actually uses.
+  const families = {
+    visa16: synthCard('401288888888188'),
+    visa13: synthCard('401288888188'),
+    mastercard: synthCard('555555555555444'),
+    mastercard2: synthCard('222100000000000'),
+    amex: synthCard('37828224631000'),
+    discover: synthCard('601111111111111'),
+    jcb: synthCard('353011133330000'),
+    // 19 is a real card length and was accepted by the rule with nothing testing it, which
+    // a per-branch mutation of the length checks surfaced.
+    visa19: synthCard('401288888888188123'),
+    discover19: synthCard('601111111111111123'),
+  };
+  for (const [family, number] of Object.entries(families)) {
+    assert.deepEqual(scanText(`pan: ${number}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number'],
+      `${family} (${number.length} digits) must be reported`);
+  }
+});
+
+test('detects a card number written with the separators a human would type', () => {
+  const number = synthCard('401288888888188');
+  const spaced = `${number.slice(0, 4)} ${number.slice(4, 8)} ${number.slice(8, 12)} ${number.slice(12)}`;
+  const hyphenated = spaced.replaceAll(' ', '-');
+  assert.deepEqual(scanText(`card ${spaced}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number']);
+  assert.deepEqual(scanText(`card ${hyphenated}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number']);
+});
+
+test('reports a card number in prose, on the same footing as a national identity number', () => {
+  const number = synthCard('401288888888188');
+  assert.deepEqual(scanText(`The customer paid with ${number} last Tuesday.`, { relativePath: 'docs/runbook.md' }),
+    ['payment-card-number']);
+  assert.deepEqual(scanText(`pan ${number}`, { relativePath: 'evidence/WP-0A-A0-005/note.md' }), ['payment-card-number']);
+});
+
+test('reports a published provider test card rather than exempting it', () => {
+  // The number a payment provider publishes for sandbox use. It is reported deliberately:
+  // at rest nothing distinguishes it from a live number, and Gate G0 authorizes no
+  // integration that would need one in the tree.
+  const testCard = synthCard('424242424242424');
+  assert.deepEqual(scanText(`card: ${testCard}`, { relativePath: 'fixtures/checkout.json' }), ['payment-card-number']);
+});
+
+test('does not report digit runs that only look like cards', () => {
+  const quiet = [
+    // Luhn-invalid: a correlation id, a counter, a truncated hash of digits.
+    '4012888888881882'.slice(0, 15) + '9',
+    // Luhn-VALID but no issuer prefix: roughly one arbitrary run in ten passes Luhn, and a
+    // rule that fires on those reports noise until someone switches it off.
+    synthCard('999999999999999'),
+    synthCard('700000000000000'),
+    // A repeated-digit filler. No such run is both Luhn-valid and issuer-prefixed at any
+    // card length -- checked exhaustively over all ten digits and all four lengths -- so
+    // this rule needs no separate filler guard, and one was removed after it turned out
+    // deleting it failed no test.
+    '4444444444444444',
+    // Too short and too long for any issuer this rule claims.
+    synthCard('40128888'),
+    synthCard('40128888888818812345'),
+  ];
+  for (const value of quiet) {
+    assert.deepEqual(scanText(`value: ${value}`, { relativePath: 'fixtures/order.json' }), [],
+      `${value} must not be reported`);
+  }
+});
+
+test('does not slice a card-shaped window out of a longer digit run', () => {
+  const number = synthCard('401288888888188');
+  assert.deepEqual(scanText(`id: 77${number}77`, { relativePath: 'fixtures/order.json' }), [],
+    'a 20-digit run must not yield a card from its middle');
+});

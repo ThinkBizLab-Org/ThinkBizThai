@@ -68,6 +68,45 @@ export function isThaiNationalId(value) {
   return (11 - (sum % 11)) % 10 === Number(digits[12]);
 }
 
+/** A primary account number is customer PII, and CONTRIBUTING_AGENTS.md forbids customer PII
+ *  repository-wide with no carve-out. Detecting one needs BOTH tests, never either alone.
+ *
+ *  Luhn alone is far too weak: one in ten arbitrary digit runs of the right length passes it,
+ *  so a rule built on Luhn reports correlation ids, hash prefixes and timestamps until someone
+ *  turns it off. An issuer prefix alone is weaker still -- every 16-digit run starting with 4
+ *  would be a card. Together they are strict enough to run unattended.
+ *
+ *  Deliberately NOT exempted: the published provider test cards. At rest a scanner cannot tell
+ *  a test number from a live one, Gate G0 permits no provider integration that would need one,
+ *  and an allowlist of "safe" card numbers is the shape a real leak hides in. When a payment
+ *  sandbox is authorized, the exemption belongs in a reviewed decision with a named owner, not
+ *  here. No card number, valid or otherwise, is written literally in this file: a rule that
+ *  cannot be stated without tripping itself would have to exempt its own source, and a
+ *  scanner blind to one file is a scanner with a place to hide things. */
+export function isPaymentCardNumber(value) {
+  const digits = value.replace(/[ -]/g, '');
+  if (!/^[0-9]{13,19}$/.test(digits)) return false;
+  const issuer =
+    (/^4/.test(digits) && (digits.length === 13 || digits.length === 16 || digits.length === 19)) ||
+    (/^(5[1-5]|2[2-7])/.test(digits) && digits.length === 16) ||
+    (/^3[47]/.test(digits) && digits.length === 15) ||
+    (/^(6011|64[4-9]|65)/.test(digits) && (digits.length === 16 || digits.length === 19)) ||
+    (/^35(2[89]|[3-8][0-9])/.test(digits) && digits.length === 16);
+  if (!issuer) return false;
+  let sum = 0;
+  let double = false;
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(digits[index]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
 /** A value that is a template reference or a documented stand-in is not a leaked secret.
  *  Anchored end to end on purpose: a real credential that merely CONTAINS the word
  *  "synthetic" must still be reported. */
@@ -158,6 +197,17 @@ export const CREDENTIAL_RULES = [
 
 /** Privacy rules. `proseExempt` marks the single rule relaxed under PII_PROSE_PREFIXES. */
 export const PII_RULES = [
+  {
+    id: 'payment-card-number',
+    // Separators are allowed INSIDE the run but the run is bounded by non-digits on both
+    // sides, so a longer number does not yield a card-shaped window from its middle.
+    pattern: /(?<![0-9])[0-9](?:[ -]?[0-9]){12,18}(?![0-9])/g,
+    accept: (match) => isPaymentCardNumber(match),
+    // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
+    // is the same disclosure as one written into code, and the rule that already treats a
+    // Thai national identity number that way must treat this one the same or it enforces
+    // CONTRIBUTING_AGENTS.md selectively.
+  },
   {
     id: 'thai-national-id',
     pattern: /\b[0-9](?:-?[0-9]){12}\b/g,
