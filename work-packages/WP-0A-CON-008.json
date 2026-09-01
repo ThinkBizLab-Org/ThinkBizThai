@@ -56,7 +56,8 @@
       "A machine-written verification record, and the runner-side check that a stale record fails the build",
       "A branch-scope guard: what a branch CHANGED, checked against what its package declares",
       "A pinned catalog registry: every contract's freeze level, owner and freeze requirements, and the index that must agree with them",
-      "Conformance and truthfulness checks over every author handoff"
+      "Conformance and truthfulness checks over every author handoff",
+      "A command that rebuilds the integrity manifest, which four documents already told someone to do without one existing"
     ],
     "exclude": [
       "Any change to a contract status, in a manifest, in the catalog index or in the Decision Register",
@@ -93,7 +94,9 @@
       "test-kits/verification-record.test.mjs",
       "evidence/VERIFICATION.md",
       "test-kits/contracts/catalog-registry.test.mjs",
-      "test-kits/handoff-conformance.test.mjs"
+      "test-kits/handoff-conformance.test.mjs",
+      "scripts/regenerate-integrity-manifest.mjs",
+      "test-kits/integrity-manifest-rebuild.test.mjs"
     ],
     "read_only_paths": [
       "README.md",
@@ -166,7 +169,9 @@
       "evidence/WP-0A-CON-008/merge-order-drill.md",
       "evidence/WP-0A-CON-008/sixth-review-response.md",
       "test-kits/contracts/catalog-registry.test.mjs",
-      "test-kits/handoff-conformance.test.mjs"
+      "test-kits/handoff-conformance.test.mjs",
+      "scripts/regenerate-integrity-manifest.mjs",
+      "test-kits/integrity-manifest-rebuild.test.mjs"
     ],
     "contracts": []
   },

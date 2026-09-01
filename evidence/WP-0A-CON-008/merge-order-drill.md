@@ -106,9 +106,16 @@ carries its own. Two files collide on any sequence merge, by construction:
 conflict in either, take any side and rebuild:
 
 ```bash
-npm run record:verification          # rewrites evidence/VERIFICATION.md
-npm run check                        # fails until the digests match; regenerate them
+git checkout --theirs test-kits/integrity-manifest.json evidence/VERIFICATION.md
+npm run regenerate:manifest          # rebuilds every digest from the tree
+npm run record:verification          # rewrites evidence/VERIFICATION.md from a live run
+npm run regenerate:manifest          # the record just changed, so digest it again
+npm run check                        # exit 0
 ```
+
+`npm run regenerate:manifest` prints every file that entered or left the manifest. **Read
+those lines before committing** — a file appearing or disappearing there is a change to
+what is protected, not a formatting update.
 
 The drill now does exactly that, and **only** for those two paths: a conflict in any
 other file still stops it. With that resolution the full sequence completes —
