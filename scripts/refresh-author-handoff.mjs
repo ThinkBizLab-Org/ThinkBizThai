@@ -36,6 +36,24 @@ const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 // commit `actions/checkout` builds on a pull request, the branch head itself. Without this the
 // check is red for exactly as long as it takes to write the follow-up commit, every time, and a
 // guard that is normally red is a guard people learn to ignore.
+// Between `refresh:handoff` and the commit that carries it, the cited head IS `HEAD`, which is
+// AHEAD of the comparison point -- and `git diff a..b` on a reversed range reports the reverse
+// diff, so the check used to fail with a list of paths that had not drifted at all. A guard must
+// never report a wrong reason: that is how a real finding gets dismissed as noise.
+export function driftBetween(cited, target) {
+  if (cited === target) return { state: 'clean', paths: [] };
+  try { execFileSync('git', ['merge-base', '--is-ancestor', cited, target], { stdio: 'ignore' }); }
+  catch {
+    // Not an ancestor. Either the handoff was just refreshed and its commit is still unwritten
+    // (cited is HEAD), or it names a revision on no path to here, which is a different defect.
+    const head = git('rev-parse', 'HEAD');
+    if (cited === head) return { state: 'awaiting-commit', paths: [] };
+    return { state: 'unrelated', paths: [] };
+  }
+  const since = changedIn(cited, target);
+  return { state: 'drifted', paths: classify([...since.added, ...since.modified]).substantive };
+}
+
 export function branchTipBefore(head = 'HEAD') {
   const parents = git('rev-list', '--parents', '-1', head).split(' ');
   return parents.length > 1 ? parents[parents.length - 1] : head;
@@ -75,8 +93,13 @@ async function main(argv) {
   const head = git('rev-parse', 'HEAD');
   const comparedAgainst = branchTipBefore();
 
-  const since = changedIn(handoff.head_revision_or_patch_checksum, comparedAgainst);
-  const trailing = classify([...since.added, ...since.modified]);
+  const drift = driftBetween(handoff.head_revision_or_patch_checksum, comparedAgainst);
+  if (drift.state === 'unrelated') {
+    process.stderr.write(`${path} cites ${handoff.head_revision_or_patch_checksum.slice(0, 7)}, `
+      + 'which is on no path to this branch.\n');
+    return DRIFTED;
+  }
+  const trailing = { substantive: drift.paths };
   if (trailing.substantive.length === 0) {
     process.stdout.write(`${path} describes the branch: nothing substantive after its cited head\n`);
     return 0;

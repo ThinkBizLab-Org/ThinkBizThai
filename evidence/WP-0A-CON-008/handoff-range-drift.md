@@ -55,6 +55,20 @@ its second parent.
 Drift of more than one commit still fails: rolling the cited head back to `ae5864d` reports 24
 substantive paths.
 
+## And the second version reported a wrong reason
+
+Fixing the red-by-construction problem exposed the next one. Between `npm run refresh:handoff`
+and the commit that carries it, the cited head **is** `HEAD` — ahead of the comparison point.
+`git diff a..b` on a reversed range reports the reverse diff, so the check failed with a list of
+paths that had not drifted at all.
+
+A guard that reports a wrong reason is worse than one that stays silent: it is how a real finding
+gets dismissed as noise. `driftBetween` now distinguishes four states — `clean`,
+`awaiting-commit` (refreshed, commit not yet written), `drifted` (real, with the paths), and
+`unrelated` (a revision on no path to this branch, a different defect entirely) — and never
+diffs a range backwards. `a range is never compared backwards` asserts all three reachable
+states directly.
+
 ## Known limitation
 
 The check runs against the **current branch only**. The other nine handoffs describe branches

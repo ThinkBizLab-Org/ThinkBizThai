@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { validate } from './contracts/json-schema-subset.mjs';
-import { branchTipBefore, changedIn, classify } from '../scripts/refresh-author-handoff.mjs';
+import { branchTipBefore, changedIn, classify, driftBetween } from '../scripts/refresh-author-handoff.mjs';
 import { claimantsOf, reportFor } from '../scripts/verify-branch-identity.mjs';
 
 const run = promisify(execFile);
@@ -196,10 +196,28 @@ test('the handoff for this branch describes this branch', async () => {
   // Compared against the branch as it stood BEFORE this commit: a handoff cannot cite the
   // revision that contains it. `branchTipBefore` is HEAD^ for an ordinary commit and the branch
   // head for the merge commit CI checks out on a pull request.
-  const since = changedIn(handoff.head_revision_or_patch_checksum, branchTipBefore());
-  const { substantive } = classify([...since.added, ...since.modified]);
+  const drift = driftBetween(handoff.head_revision_or_patch_checksum, branchTipBefore());
+  assert.notEqual(drift.state, 'unrelated',
+    `${resolved.message}'s handoff cites a revision on no path to this branch`);
+  const substantive = drift.paths;
   assert.deepEqual(substantive, [],
     `${resolved.message}'s handoff cites head ${handoff.head_revision_or_patch_checksum.slice(0, 7)}, `
     + `after which ${substantive.length} substantive path(s) changed:\n  ${substantive.join('\n  ')}\n`
     + 'The range is true and does not describe the branch. Run `npm run refresh:handoff`.');
+});
+
+test('a range is never compared backwards', async () => {
+  // Between `refresh:handoff` and the commit that carries it, the cited head is HEAD -- ahead of
+  // the comparison point. `git diff a..b` on a reversed range reports the REVERSE diff, so the
+  // first version of this guard failed with a list of paths that had not drifted at all. A guard
+  // that reports a wrong reason is how a real finding gets dismissed as noise.
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const parent = branchTipBefore();
+  assert.equal(driftBetween(head, head).state, 'clean');
+  if (parent !== head) {
+    assert.equal(driftBetween(head, parent).state, 'awaiting-commit',
+      'a handoff refreshed but not yet committed is not drift');
+    assert.deepEqual(driftBetween(head, parent).paths, [],
+      'a reversed range must report no paths, not the reverse diff');
+  }
 });
