@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-004",
+  "title": "CI invokes the test-integrity guard as its own step",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-003 before the manual merge described in RFC-2026-002"
+  ],
+  "purpose": "Move one guard outside the blast radius of the script it guards. .github/workflows/ci.yml runs a single validation step, npm run check, and every guard in this repository is invoked by that one command from a string inside package.json. A one-character edit to that string turns CI green while executing no test at all, and no control inside the scripts can notice, because the code that would reject it does not run.",
+  "scope": {
+    "include": [
+      "RFC-2026-007 recording the decision and the ownership transfer",
+      "One workflow step invoking node scripts/verify-test-coverage-floor.mjs before npm run check",
+      "Transfer of .github/workflows/ci.yml from WP-0A-A0-001, recorded in that manifest"
+    ],
+    "exclude": [
+      "Native branch protection, Gate G0 approval, any change to what the guard checks, production configuration, and any merge authorization"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-001",
+      "WP-0A-CON-001"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+      ".github/workflows/ci.yml",
+      "work-packages/WP-0A-A0-004.json",
+      "evidence/WP-0A-A0-004/**",
+      "handoffs/WP-0A-A0-004-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "module_ids": [
+      "MOD-000"
+    ],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "work-packages/WP-0A-A0-001.json \u2014 remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
+      "test-kits/integrity-manifest.json \u2014 recompute digests; ci.yml is already digested there."
+    ]
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+      "architecture/decisions/RFC-2026-002-manual-merge-control.md",
+      "work-packages/WP-0A-A0-001.json",
+      "work-packages/WP-0A-CON-001.json",
+      "scripts/validate-work-package-ownership.mjs"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+      ".github/workflows/ci.yml",
+      "work-packages/WP-0A-A0-004.json",
+      "evidence/WP-0A-A0-004/author-self-check.md"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "The workflow invokes node scripts/verify-test-coverage-floor.mjs as its own step, before npm run check, so a package.json edit cannot skip it.",
+    "The guard step precedes the composite step, so a failure is attributed to the guard rather than buried in a chain.",
+    "WP-0A-A0-001 retains every other declared output; only ci.yml moves, and the amendment is recorded in its ownership.amended_by.",
+    "npm run check still passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo zero.",
+    "The ownership validator accepts the transfer with no cross-package overlap."
+  ],
+  "required_tests": [
+    "Ownership validator across all manifests after the transfer",
+    "node scripts/verify-test-coverage-floor.mjs standing alone, exit 0",
+    "Repository protocol, role-separation, capability and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/verify-test-coverage-floor.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. One workflow step and one path moved between two manifests; no persisted data, provider state, credential, migration or customer-data effect.",
+  "open_blockers": [
+    "RFC-2026-007 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This does NOT make the guard unbypassable. Someone who can edit ci.yml can delete the step. It moves the bypass from a place no control can see into a place a reviewer reads, and no further.",
+    "It does not close the digest class: a commit editing a guarded file AND its digest still passes. Independent review established that as a fixed-point property.",
+    "It does not satisfy the Gate G0 protected-CI requirement, which needs native branch protection and remains blocked on an external constraint recorded in evidence/g0-tracker-th.md.",
+    "The ci.yml transfer requires an acknowledgement countersigned by WP-0A-A0-001's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
