@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,6 +8,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { validate } from './contracts/json-schema-subset.mjs';
+import { changedIn, classify } from '../scripts/refresh-author-handoff.mjs';
+import { claimantsOf, reportFor } from '../scripts/verify-branch-identity.mjs';
 
 const run = promisify(execFile);
 
@@ -171,4 +174,30 @@ test('a handoff records a revision range that can be checked, or says it cannot'
     }
   }
   assert.deepEqual(bad, [], `handoff(s) whose revision range cannot be checked:\n  ${bad.join('\n  ')}`);
+});
+
+// A handoff can cite a range that is entirely true and still describe none of the branch. The
+// revision-resolving checks above prove a handoff cannot INVENT history; neither of them can
+// tell that the cited range stopped four commits ago. This branch's own handoff cited
+// 653f699..ae5864d -- accurate, and blind to every guard added after it, including the two
+// checks directly above this one.
+//
+// The range is regenerated from history by `npm run refresh:handoff`, for the same reason the
+// test count is: nobody should maintain by hand a fact the repository already knows.
+test('the handoff for this branch describes this branch', async () => {
+  const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim();
+  const resolved = reportFor(branch, await claimantsOf(branch));
+  if (resolved.code !== 0) {
+    // A detached HEAD or a branch no package claims is the branch-identity guard's business,
+    // not this one. Skipping here would hide it; that guard reports it in CI.
+    return;
+  }
+  const handoff = JSON.parse(await readFile(`handoffs/${resolved.message}-author-handoff.json`, 'utf8'));
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const since = changedIn(handoff.head_revision_or_patch_checksum, head);
+  const { substantive } = classify([...since.added, ...since.modified]);
+  assert.deepEqual(substantive, [],
+    `${resolved.message}'s handoff cites head ${handoff.head_revision_or_patch_checksum.slice(0, 7)}, `
+    + `after which ${substantive.length} substantive path(s) changed:\n  ${substantive.join('\n  ')}\n`
+    + 'The range is true and does not describe the branch. Run `npm run refresh:handoff`.');
 });

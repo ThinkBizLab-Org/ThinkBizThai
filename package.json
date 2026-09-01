@@ -15,6 +15,8 @@
     "test:bootstrap": "node scripts/run-test-suite.mjs",
     "validate:protocol": "node scripts/validate-work-packages.mjs && node scripts/validate-capability-profiles.mjs && node scripts/validate-work-package-ownership.mjs",
     "verify:coverage-floor": "node scripts/verify-test-coverage-floor.mjs",
-    "record:verification": "node scripts/record-verification.mjs"
+    "record:verification": "node scripts/record-verification.mjs",
+    "refresh:handoff": "node scripts/refresh-author-handoff.mjs",
+    "check:handoff": "node scripts/refresh-author-handoff.mjs --check"
   }
 }

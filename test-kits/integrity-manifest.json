@@ -8,9 +8,10 @@
     ".github/workflows/ci.yml": "b74e7d534ebb0c632e1a951570c3f8a4fc123de6e383bc1a884246bae4ac9247",
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
     "contract-catalog/shared-kernel/index.json": "505f7a597970716d07a9a9a806908c7918d92293aac6d7b22e7acf77505a1262",
-    "evidence/VERIFICATION.md": "24ac05733ce34a83236aa98d9b795bce795ce6dcf51fd506c92a2ff31b830f21",
-    "package.json": "d074094c6899c16914b8e430f11dd4bc739f7c072cf878cf691e0cd3da3d8a9b",
+    "evidence/VERIFICATION.md": "791c3ac965a3a6a399ea930b38985a4fa3c5a4d1338c7a0d90dc9514fb0477e0",
+    "package.json": "31e6f5492647e3e92f72ab621d540ad457164cea69bfe47d69e793eb9b162a81",
     "scripts/record-verification.mjs": "2d28640eff009c029c4f3b1021f196bc72f27953a4f3228fc1529ebd91c6a64c",
+    "scripts/refresh-author-handoff.mjs": "cb9105ef6d706f34b1d6d5119d7d305d1e82434497189fa496f4a5866fd6c4d2",
     "scripts/regenerate-integrity-manifest.mjs": "32b2d82f9a26ef1bbe06626db774b8433e57b9075b6ac982ce1e20d3546d7cbd",
     "scripts/run-test-suite.mjs": "ddf9c6be65fc128e7b9d19f36ca0a0a209baa256fb88aa9844c0ca67694f10d9",
     "scripts/scan-repository-secrets.mjs": "1668150c4b37093ab1322060fbc0e2a010b521afbe578f930c8c2f1846e7150e",
@@ -22,7 +23,7 @@
     "scripts/validate-work-packages.mjs": "f7ed640515a72295a28aeac2b3c26907fa88b30e1f4ab4e95f8cc084f1f094df",
     "scripts/verify-branch-identity.mjs": "3002b43616b2986b898a9a5babba590c351d3551ae652c33ac4ea1b185f4b8fe",
     "scripts/verify-branch-scope.mjs": "b567df29f99d0af25efda7edee287dfd87e5ef2d1dc5c5da2476d12ee343f336",
-    "scripts/verify-test-coverage-floor.mjs": "19dabf14646a61bc8c145eb9a0b4e61d0c7b02ba1e0bf958c7bc13537a04a78e",
+    "scripts/verify-test-coverage-floor.mjs": "e20da93e7b99575df7d0d6760ea7231cd3ae95f3eb7f45825e6f81394d0ac0ba",
     "scripts/verify-toolchain.mjs": "3ee3fb3492df132acb50a6cdbebccddea02d07ef7f800d8d5da55cf3befba633",
     "test-kits/branch-identity.test.mjs": "d7dc2d93a345bfff6c5829e0ec9c9ace237a2fe888fdd5d635650fc2a4252a1c",
     "test-kits/branch-scope.test.mjs": "88655072aae66a77d8bee687fe83320f09033312e1091c10814d69cfd268d3b0",
@@ -37,7 +38,7 @@
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "5006e8a7e026c6ee7a8f45d44a5c4ca3da9ca504a452a885511e0df1104a153a",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "e78143e298c9cb6f52758909d833ccc1f7993803e3fc7c8c820dcbc1d92ae1bd",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
-    "test-kits/handoff-conformance.test.mjs": "03316b55b399f622db0736302fabc58edbc862264436caec0145f1ad9228457f",
+    "test-kits/handoff-conformance.test.mjs": "0847383fd1731c4fd5165f4f2afa41f2f9af6fb51b92431ff40adcf99272cc4b",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
     "test-kits/repository-json.test.mjs": "d90a495fb278539495246948b6947b8ed722731960c4c6a048eb9b7dd576591f",
     "test-kits/role-separation.test.mjs": "e00a8c05ee43e01652b83fff1d1ac82039921f2db4149b48427a24e42aa3c756",
@@ -47,7 +48,7 @@
     "test-kits/verification-record.test.mjs": "b4bfae315b847ca26ac4d1020e1b27400965a13ee6e2f8bf3fdd154981470ff2",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
     "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
-    "work-packages/WP-0A-CON-008.json": "f2c62a1c7a4ddd44bd85152f659fce9f066f70483b25caf31effc1c6a64780dd"
+    "work-packages/WP-0A-CON-008.json": "2ab464b9fd40a909d22ef17b4ab815a3d1de472eec14b562c7890c4cdc2da3ef"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }

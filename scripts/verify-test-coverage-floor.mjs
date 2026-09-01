@@ -381,6 +381,7 @@ export const PROTECTED_KEYS = [
   'scripts/scan-repository-secrets.mjs',
   'scripts/verify-branch-scope.mjs',
   'scripts/verify-branch-identity.mjs',
+  'scripts/refresh-author-handoff.mjs',
   'scripts/record-verification.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'contract-catalog/shared-kernel/index.json',
