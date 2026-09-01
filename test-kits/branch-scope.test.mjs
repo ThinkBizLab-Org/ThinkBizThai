@@ -25,6 +25,14 @@ test('a glob matches within one segment, and `**` spans directories only as a wh
   assert.ok(globToRegExp('handoffs/WP-0A-*-author-handoff.json').test('handoffs/WP-0A-CON-008-author-handoff.json'));
   assert.ok(!globToRegExp('handoffs/WP-0A-*-author-handoff.json').test('handoffs/nested/WP-0A-X-author-handoff.json'));
   assert.ok(!globToRegExp('scripts/*.mjs').test('scripts/nested/thing.mjs'));
+
+  // A mid-path `**/` keeps the boundary it sits on. Independent review found it compiling to
+  // `.*` with the slash dropped, so `evidence/**/notes.md` matched `evidence/XYZnotes.md` --
+  // which a shell globstar does not. Latent, because no manifest uses the form today, and
+  // fixed rather than left because the next one will.
+  assert.ok(globToRegExp('evidence/**/notes.md').test('evidence/notes.md'));
+  assert.ok(globToRegExp('evidence/**/notes.md').test('evidence/deep/notes.md'));
+  assert.ok(!globToRegExp('evidence/**/notes.md').test('evidence/XYZnotes.md'));
 });
 
 test('a path that is neither owned nor recorded as an amendment is reported', () => {

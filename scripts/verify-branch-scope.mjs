@@ -26,7 +26,15 @@ export function globToRegExp(glob) {
       if (glob[i + 1] === '*') {
         // `**` spans directories only as a whole segment, matching what a shell glob does.
         const wholeSegment = (i === 0 || glob[i - 1] === '/') && (glob[i + 2] === '/' || i + 2 === glob.length);
-        if (wholeSegment) { out += '.*'; i += 1; if (glob[i + 1] === '/') i += 1; continue; }
+        if (wholeSegment) {
+          // A trailing `**` matches everything below. A mid-path `**/` must keep the boundary it
+          // sits on: `evidence/**/notes.md` is not allowed to match `evidence/XYZnotes.md`, which
+          // is what dropping the slash produced.
+          if (i + 2 === glob.length) { out += '.*'; i += 1; continue; }
+          out += '(?:.*/)?';
+          i += 2;
+          continue;
+        }
         out += '[^/]*'; i += 1; continue;
       }
       out += '[^/]*';
@@ -56,7 +64,13 @@ async function main() {
     process.exit(2);
   }
   const manifest = JSON.parse(await readFile(`work-packages/${packageId}.json`, 'utf8'));
-  const diff = (await run('git', ['diff', '--name-only', `${base}..HEAD`])).stdout.trim();
+  // `--no-renames`. Git's rename detection prints only the DESTINATION of an R100, so a branch
+  // that moves another package's file out from under it reports one declared path and nothing
+  // else. Independent review demonstrated it: `git mv` on another contract's schema.json into
+  // this package's evidence directory reported "all 1 changed path(s) are declared", exit 0.
+  // That is the first failure this guard was written for -- a rebase silently relocating a file
+  // -- reappearing through the tool's own default.
+  const diff = (await run('git', ['diff', '--no-renames', '--name-only', `${base}..HEAD`])).stdout.trim();
   const changed = diff ? diff.split('\n') : [];
   const stray = undeclared(changed, declaredPaths(manifest));
   if (stray.length > 0) {

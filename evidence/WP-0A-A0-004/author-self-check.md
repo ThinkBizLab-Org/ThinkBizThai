@@ -131,3 +131,18 @@ introduces it**, which is the most useful thing it could have done.
 It runs on `pull_request` only. A push to `main` carries no base to diff against, so
 this is a pull-request control, not a branch-protection one — and protected CI is still
 an open Gate G0 item that needs a paid GitHub plan.
+
+## Two defects in the guard itself, both found by independent review
+
+**`git diff` hides a rename.** Git prints only the *destination* of an `R100`, so a
+branch that moves another package's file out from under it reported one declared path
+and exit 0. The reviewer demonstrated it: `git mv` on another contract's `schema.json`
+into this package's evidence directory produced *"all 1 changed path(s) are declared"*.
+
+That is **the first failure this guard was written for** — a rebase silently relocating
+a file — walking back in through the tool's own default. `--no-renames`.
+
+**A mid-path `**/` lost its boundary.** `evidence/**/notes.md` compiled to
+`^evidence/.*notes\.md$`, which matches `evidence/XYZnotes.md`; a shell globstar does
+not. Latent, because no manifest uses that form today, and fixed rather than left
+because the next one will.
