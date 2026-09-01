@@ -663,3 +663,32 @@ test('reports a card written in digits that are not ASCII', () => {
       ['payment-card-number'], script);
   }
 });
+
+// A run that crosses a line break carrying far more digits than a card is a TABLE, and a window
+// spanning two of its rows joins two different numbers at a row boundary. Independent security
+// review measured eight rows of four 4-digit amounts reporting at 64% and an aligned numeric id
+// column at 45% -- on the benchmark and evidence files this repository is made of, on a rule
+// with no prose exemption, so each one fails the whole build.
+//
+// The card in this test is built at run time, as everywhere else in this file: writing a
+// Luhn-valid number into the source would put a card in the repository, and the scanner would
+// report its own test. That is not hypothetical -- the first draft of this test did exactly
+// that and `npm run scan:secrets` caught it.
+test('does not join two rows of a table into a card', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+
+  // A table whose rows carry no card, but whose ROWS CONCATENATE into one: the tail of row 1
+  // plus the head of row 2 is the card. Reading rows independently is what stops this.
+  const split = `9999 ${g[0]} ${g[1]}\n${g[2]} ${g[3]} 8888`;
+  assert.deepEqual(scanText(split, { relativePath: 'evidence/WP-X/benchmark.md' }), [],
+    'a window must not join the end of one row to the start of the next');
+
+  // An aligned two-column table with nothing card-like in it.
+  const clean = ['  1111  2222', '  3333  4444', '  5555  6666', '  7777  8888'].join('\n');
+  assert.deepEqual(scanText(clean, { relativePath: 'evidence/WP-X/benchmark.md' }), [], 'aligned id column');
+
+  // And the control: the same card on ONE line is still reported.
+  assert.deepEqual(scanText(`card ${g.join(' ')}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+    ['payment-card-number'], 'a card on one line is still a card');
+});

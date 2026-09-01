@@ -214,22 +214,56 @@ export function containsPaymentCardNumber(run) {
   if (current) { groups.push(current); wrapped.push(pendingWrap); }
   if (groups.length === 0) return false;
 
-  // One reading per subset of wrap boundaries: merge it, or treat it as a separator. Capped
-  // because the count doubles per wrap and no real card is written across nine lines.
-  const wrapAt = wrapped.map((w, i) => (w && i > 0 ? i : -1)).filter((i) => i >= 0).slice(0, 8);
-  for (let choice = 0; choice < (1 << wrapAt.length); choice += 1) {
-    const merge = new Set(wrapAt.filter((_, bit) => (choice >> bit) & 1));
-    const reading = [];
+  // A card is 13 to 19 digits, and a wrapped one carries a little context at most. A run that
+  // crosses a line break carrying FAR more digits than that is not one number split over lines
+  // -- it is a table, and a window spanning two of its rows is two different numbers joined at
+  // a row boundary.
+  //
+  // Independent security review measured this: eight rows of four 4-digit amounts reported at
+  // 64%, an aligned numeric id column at 45%, on the kind of benchmark and evidence file this
+  // repository is made of. Most of that came from cross-row windows, and none of those windows
+  // is a card. Within a single line the arithmetic is irreducible -- four groups of four IS the
+  // card layout -- but across rows there is a real signal and it was not being used.
+  // A card that the medium wrapped is the WHOLE run: the line ran out of width in the middle
+  // of one number and the rest continues below. Anything that spans a line break while being
+  // only PART of the run is two different numbers meeting at a row boundary.
+  //
+  // Independent security review measured what the absence of that rule cost: eight rows of four
+  // 4-digit amounts reported at 64%, an aligned numeric id column at 45%, on the benchmark and
+  // evidence files this repository is made of, on a rule with no prose exemption. Every one of
+  // those findings came from a window joining the tail of one row to the head of the next, and
+  // not one of them was a card.
+  //
+  // Within a single line the arithmetic stays irreducible -- four groups of four IS how a card
+  // is written -- so a row that is itself card-shaped is still reported. That is the cost of
+  // the format, not of this rule.
+  const spansLines = wrapped.some((w, index) => w && index > 0);
+  if (spansLines) {
+    // Reading 1: each line on its own. No window can cross a boundary.
+    let line = [];
+    for (let index = 0; index < groups.length; index += 1) {
+      if (index > 0 && wrapped[index]) {
+        if (scanReading(line)) return true;
+        line = [];
+      }
+      line.push(groups[index]);
+    }
+    if (scanReading(line)) return true;
+
+    // Reading 2: the whole run is one wrapped number. Only a window covering ALL of it counts.
+    const merged = [];
     groups.forEach((group, index) => {
-      if (index > 0 && merge.has(index)) reading[reading.length - 1] += group;
-      else reading.push(group);
+      if (index > 0 && wrapped[index]) merged[merged.length - 1] += group;
+      else merged.push(group);
     });
-    if (scanReading(reading)) return true;
+    return scanReading(merged, { wholeRunOnly: true }) || scanReading(groups, { wholeRunOnly: true });
   }
+
+  return scanReading(groups);
   return false;
 }
 
-function scanReading(groups) {
+function scanReading(groups, { wholeRunOnly = false } = {}) {
   const sizes = groups.map((group) => group.length);
   const digits = groups.join('');
   const starts = [];
@@ -242,6 +276,7 @@ function scanReading(groups) {
       const to = from + length;
       // A card does not start or stop in the middle of a written group.
       if (!ends.has(to)) continue;
+      if (wholeRunOnly && (from !== 0 || to !== digits.length)) continue;
       const covered = sizes.slice(index, ends.get(to) + 1);
       if (!groupingIsCardLike(covered)) continue;
       if (isPaymentCardNumber(digits.slice(from, to))) return true;

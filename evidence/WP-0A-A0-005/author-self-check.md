@@ -304,3 +304,49 @@ before calling it. The fold there is redundant *on that path* and correct on the
 the exported function is called on directly by tests, so it stays with that reason
 written down. The fold that does the work — at the run boundary — fails a test when
 removed.
+
+## The rule was not usable on the documents this repository is made of
+
+Independent security review measured the false-positive rate on ordinary numeric
+documentation and it was **64% for eight rows of four 4-digit amounts** and **45% for
+an aligned numeric id column**. This rule has no prose exemption and any finding fails
+the whole build, so those are benchmark and evidence files failing CI at will. A rule
+that fires on half of all numeric tables is a rule someone deletes, and that outcome
+is worse than any single missed representation.
+
+Almost all of it came from **windows joining the tail of one row to the head of the
+next**, and not one of those windows was a card.
+
+The principle that fixes it: **a card the medium wrapped is the WHOLE run.** The line
+ran out of width in the middle of one number and the rest continues below. Anything
+that spans a line break while being only *part* of the run is two different numbers
+meeting at a row boundary. So a multi-line run is read twice — each line on its own,
+and the whole run as one wrapped number, where only a window covering all of it counts.
+
+| shape | before | after |
+|---|---|---|
+| eight rows of four 4-digit amounts | 64.15% | **24.43%** |
+| aligned numeric id column | 45.10% | **0.00%** |
+| markdown bullet list of 4-digit ids | 0.00% | 0.00% |
+| JSDoc block of 4-digit numbers | 0.00% | 0.00% |
+| metrics table, 3–4 digit latencies | 0.00% | 0.00% |
+| ISO timestamps and durations | 0.00% | 0.00% |
+| one row of four 4-digit integers | 3.50% | 3.52% |
+
+Every card representation still reports — all thirteen wrap and separator cases, all
+nine issuer families, all seven non-ASCII digit cases.
+
+**What is left is arithmetic, not a defect.** A single row of four 4-digit numbers is
+written exactly the way a card is written, and one such row in twenty-nine passes both
+Luhn and an issuer prefix. Eight rows give eight chances, hence 24%. No rule that
+detects `4-4-4-4` can avoid this, and a rule that avoids it does not detect cards in
+tables. The honest number is 24%, and it is stated rather than averaged away.
+
+**A first attempt used a digit-count threshold** — a multi-line run carrying more
+digits than a card plus context is a table. It cut the id column to zero and left the
+eight-row table at 64%, because the groups from every row were still one sequence.
+Replaced by the whole-run rule, which is a property rather than a number.
+
+**And the first draft of the new test put a Luhn-valid card into this file.** The
+repository's own scanner reported it, which is the control working on its author.
+Rebuilt with `synthCard` like every other case here.
