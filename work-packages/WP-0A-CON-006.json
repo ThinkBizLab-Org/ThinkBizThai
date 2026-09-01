@@ -121,7 +121,9 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree."
+      "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree.",
+      "contract-catalog/shared-kernel/ctr-evt-001/** and ctr-job-001/** \u2014 ADD negative fixtures only, and declare them in each manifest. No schema, version, status or freeze-level change. Both sat below the new per-contract mutation-coverage floor at 26.6% and 25.0%, with only three fixtures each, so constraints the Sprint 0A baseline states in sections 3.2 and 3.3 were exercised by nothing. Adding a counterexample cannot weaken a contract; it can only make an existing rule observable.",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs \u2014 validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice."
     ]
   },
   "inputs": {
@@ -172,7 +174,8 @@
     "Money and quantity are decimal STRINGS, never numbers: Decision Register 4.2 MOD-130 forbids floating-point money.",
     "A notification deep link requires a permission check as a const, and a delivery failure records that it did not roll back the domain result as a const -- both expressed in the contract rather than in prose.",
     "All 14 shared-kernel contracts are now materialized; the index still reports 4 Candidate and 10 Draft, so materializing a Draft does not promote it.",
-    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero."
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
+    "Every contract in the catalog reaches a per-contract mutation-coverage floor of 30%, computed rather than enumerated, so a contract added later by someone who never reads the guard is still measured."
   ],
   "required_tests": [
     "Schema conformance for both contracts via the subset validator",
@@ -206,7 +209,8 @@
     "That a cost figure is arithmetically correct for its quantity is declared in untestable_by_schema. Only OB-008 can check it.",
     "This package depends on five unmerged packages and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor and that npm run check can be neutered by its own script.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
+    "The 30% mutation-coverage floor is a floor, not a target. The catalog sits at 42.4% and the weakest contract at 32.4%; a constraint below the floor is still a constraint no fixture exercises. Raising the floor is cheap and should be done as coverage rises."
   ],
   "review_and_test_gates": [
     "author_complete",

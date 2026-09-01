@@ -94,6 +94,57 @@ async function fixturesOf(dir) {
 const verdicts = (schema, bodies, resolve) =>
   bodies.map(({ body }) => validate(schema, body, { resolve }).length === 0).join(',');
 
+// A hand-maintained list of protected sites has a failure mode this Author demonstrated:
+// WP-0A-CON-006 shipped two contracts and added neither to the list, and independent testing
+// measured one of them at 7.0% -- the lowest of the session -- precisely because the guard
+// built for that defect was never extended to it. A list you must remember to extend is a
+// list you will forget to extend.
+//
+// So the floor is computed per contract instead of enumerated. Every contract must reach it,
+// including one added tomorrow by someone who never reads this file.
+const COVERAGE_FLOOR = 0.30;
+
+// `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
+// verdict, so counting them as constraints would drag every ratio down and make the floor
+// measure documentation rather than enforcement.
+const METADATA = new Set(['$schema', '$id', 'title', 'description']);
+
+function constraintSites(node, path = []) {
+  const structural = new Set(['properties', 'allOf', 'anyOf', 'oneOf', 'items', 'then', 'else', 'if', 'not']);
+  let found = [];
+  if (node && typeof node === 'object' && !Array.isArray(node)) {
+    for (const [key, value] of Object.entries(node)) {
+      if (!key.startsWith('x-') && !structural.has(key) && !METADATA.has(key)) found.push([...path, key]);
+      found = found.concat(constraintSites(value, [...path, key]));
+    }
+  } else if (Array.isArray(node)) {
+    node.forEach((value, index) => { found = found.concat(constraintSites(value, [...path, index])); });
+  }
+  return found;
+}
+
+test('every contract reaches the mutation-coverage floor', async () => {
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  const weak = [];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let data;
+    try { data = await fixturesOf(entry.name); } catch { continue; }
+    const { schema, bodies, resolve } = data;
+    const baseline = verdicts(schema, bodies, resolve);
+    const sites = constraintSites(schema);
+    let killed = 0;
+    for (const site of sites) {
+      const mutated = without(schema, site);
+      if (mutated && verdicts(mutated, bodies, resolve) !== baseline) killed += 1;
+    }
+    const ratio = sites.length === 0 ? 1 : killed / sites.length;
+    if (ratio < COVERAGE_FLOOR) {
+      weak.push(`${entry.name} — ${killed}/${sites.length} constraint sites killed by a fixture (${(ratio * 100).toFixed(1)}%), below the ${(COVERAGE_FLOOR * 100).toFixed(0)}% floor`);
+    }
+  }
+  assert.deepEqual(weak, [], `contract(s) below the mutation-coverage floor:\n  ${weak.join('\n  ')}`);
+});
+
 test('deleting a protected constraint changes at least one fixture verdict', async () => {
   const unkilled = [];
   for (const [dir, path] of PROTECTED) {

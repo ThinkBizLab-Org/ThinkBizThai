@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { validate as schemaValidate } from './json-schema-subset.mjs';
+
 const root = new URL('../..', import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), 'utf8'));
 const candidateIds = ['CTR-TEN-001', 'CTR-ERR-001', 'CTR-EVT-001', 'CTR-JOB-001'];
@@ -86,7 +88,18 @@ test('Candidate fixture validator accepts valid fixtures and rejects every decla
     const manifest = await readJson(`contract-catalog/shared-kernel/${directory}/manifest.json`);
     for (const fixturePath of manifest.fixtures) {
       const fixture = await readJson(`contract-catalog/shared-kernel/${directory}/${fixturePath}`);
-      assert.equal(validatesCandidateFixture(id, fixture), !fixturePath.includes('/invalid-'), `${id} ${fixturePath}`);
+      // The hand-written predicate below does not implement additionalProperties, so an
+      // undeclared extra property carrying a secret passed it. That is the schema/predicate
+      // divergence this catalog has been rejected for twice. The combined verdict is the
+      // conjunction: a fixture must satisfy BOTH its shipped schema and the predicate.
+      const schema = await readJson(`contract-catalog/shared-kernel/${directory}/schema.json`);
+      const refs = {};
+      for (const value of Object.values(schema.properties ?? {})) {
+        if (value.$ref) refs[value.$ref] = await readJson(`contract-catalog/shared-kernel/${directory}/${value.$ref}`.replace(/[^/]+\/\.\.\//g, ''));
+      }
+      const accepted = schemaValidate(schema, fixture, { resolve: (r) => refs[r] ?? null }).length === 0
+        && validatesCandidateFixture(id, fixture);
+      assert.equal(accepted, !fixturePath.includes('/invalid-'), `${id} ${fixturePath}`);
     }
   }
 });
