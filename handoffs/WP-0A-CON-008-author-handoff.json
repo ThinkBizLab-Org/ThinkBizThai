@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "653f699d69f749912e9fdd6e389e5497766cf129",
-  "head_revision_or_patch_checksum": "74cb382fd6f2cd51ba93b94d1bc8138a4107542c",
+  "head_revision_or_patch_checksum": "f9f789ae3e229f87acd0adbf850a0d35991f9bbb",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
@@ -19,6 +19,7 @@
     "evidence/VERIFICATION.md",
     "evidence/WP-0A-CON-008/author-self-check.md",
     "evidence/WP-0A-CON-008/branch-scope.md",
+    "evidence/WP-0A-CON-008/ci-caught-what-local-did-not.md",
     "evidence/WP-0A-CON-008/eighth-review-response.md",
     "evidence/WP-0A-CON-008/eleventh-review-response-part2.md",
     "evidence/WP-0A-CON-008/handoff-range-drift.md",

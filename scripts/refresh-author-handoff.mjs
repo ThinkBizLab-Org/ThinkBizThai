@@ -9,6 +9,11 @@
 // So the range is regenerated from history rather than typed, for the same reason the test
 // count is: nobody should be maintaining by hand a fact the repository already knows.
 //
+// The rewrite is UNCONDITIONAL. The first version returned early when nothing substantive had
+// drifted -- and so never advanced the citation, which meant the very next commit drifted again.
+// Independent review twelve found the branch tip red because of exactly that: `refresh:handoff`
+// reported "describes the branch" and wrote nothing, three commits in a row.
+//
 // Usage: refresh-author-handoff.mjs [--check]
 //   default   rewrite the handoff for the package that owns the current branch
 //   --check   report drift and exit 91 without writing anything
@@ -100,7 +105,7 @@ async function main(argv) {
     return DRIFTED;
   }
   const trailing = { substantive: drift.paths };
-  if (trailing.substantive.length === 0) {
+  if (checkOnly && trailing.substantive.length === 0) {
     process.stdout.write(`${path} describes the branch: nothing substantive after its cited head\n`);
     return 0;
   }

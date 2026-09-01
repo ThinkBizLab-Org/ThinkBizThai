@@ -11,7 +11,7 @@ export const MIN_DECLARED_TESTS = 30;
 // the contract suite -- the suite this repository's guards exist to protect -- and every
 // check stayed green. Floors are therefore per directory as well as global.
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
-  'test-kits': 30,
+  'test-kits': 31,
   'test-kits/contracts': 7,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`

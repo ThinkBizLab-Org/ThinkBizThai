@@ -44,9 +44,12 @@ The review deleted seven entries — the branch-scope guard, all four protocol s
 catalog index and the secret scanner, 43 down to 36 — then replaced the guard's enforcement
 path with `const stray = []`. The check exited 0.
 
-Fix — `PROTECTED_KEYS` in `scripts/verify-test-coverage-floor.mjs`, fifteen files whose ABSENCE
+Fix — `PROTECTED_KEYS` in `scripts/verify-test-coverage-floor.mjs`, seventeen files whose ABSENCE
 from the manifest is itself the defect: every guard, every schema deciding what a package may
-claim, every registry a gate decision rests on. Named, not counted, for the same reason the
+claim, every registry a gate decision rests on. (This document said "fifteen" until review twelve
+counted them by executing `PROTECTED_KEYS.length`. The list has grown twice since it was written;
+a number in prose beside a list in code is a fact maintained by hand, which is the defect this
+whole document is about.) Named, not counted, for the same reason the
 untested-constraint ratchet is named: a count can be paid for by deleting something else.
 
 After: **exit 1**, listing each missing path by name.
@@ -112,7 +115,15 @@ because silently skipping a manifest that will not parse is how a claimant disap
 branch becomes unclaimed, which is the same shape as the bypass being replaced.
 
 CI now runs `package_id="$(node scripts/verify-branch-identity.mjs "$HEAD_REF")" || exit $?`.
-There is no path through that step that reaches exit 0 without a resolved package.
+
+> **This sentence was wrong and independent review twelve disproved it by execution.** It read:
+> *"There is no path through that step that reaches exit 0 without a resolved package."* There
+> was one: replace `main()` with a no-op. Both `verify-branch-identity.mjs` and
+> `verify-branch-scope.mjs` run **only** in CI, their unit tests imported only the pure helpers,
+> and `main()` was executed by nothing — so a stub passed at exit 0, 187/187, with an honest
+> digest, because a digest pins bytes and the bytes of a stub are exactly what they claim to be.
+> Closed by `test-kits/ci-guard-behaviour.test.mjs`, which spawns both as processes. See
+> `evidence/WP-0A-CON-008/twelfth-review-response.md`.
 
 `test-kits/branch-identity.test.mjs` covers all four failure modes plus the rename attack
 (`WP-BROAD-alpha` must not resolve to `WP-BROAD`) and asserts the real manifests resolve to
@@ -160,6 +171,11 @@ handoff has no reason to look. Now checked both ways.
 Measured cost, first run: it reported `WP-0A-A0-001` for adding `contract-catalog/README.md` —
 a prose file with no compatibility surface. Narrowed to contract **artifacts**: the index, each
 contract's `manifest.json` and `schema.json`, and fixtures. A README is not a contract.
+
+> **The fixture half of that clause matched nothing.** It tested for `/fixtures/`, and every
+> fixture in this repository lives in `examples/` — review twelve counted 0 of 705 catalog JSON
+> files matching, so a package could delete every negative fixture and report no compatibility
+> impact. Corrected in the twelfth-review response.
 
 `scan-repository-secrets.mjs:263` — unreachable `return false;` after a `return`. Deleted.
 

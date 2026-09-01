@@ -101,7 +101,8 @@
       "test-kits/contracts/catalog-groups.test.mjs",
       "scripts/verify-branch-identity.mjs",
       "test-kits/branch-identity.test.mjs",
-      "scripts/refresh-author-handoff.mjs"
+      "scripts/refresh-author-handoff.mjs",
+      "test-kits/ci-guard-behaviour.test.mjs"
     ],
     "read_only_paths": [
       "README.md",
