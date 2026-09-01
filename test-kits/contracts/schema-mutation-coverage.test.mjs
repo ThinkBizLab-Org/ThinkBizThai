@@ -257,41 +257,59 @@ test('every contract this package owns carries a fixture that kills its root req
 // same instance location by a schema that applies unconditionally, so no single-fault
 // deletion can change any verdict. Anything else is a gap and must be named below.
 const CONDITIONAL = new Set(['allOf', 'anyOf', 'oneOf', 'if', 'then', 'else', 'not']);
+// Keywords whose meaning depends on their siblings, so an equal value elsewhere is not the
+// same obligation and proves nothing.
+const SIBLING_DEPENDENT = new Set(['additionalProperties', 'minProperties', 'maxProperties']);
 
 // Every schema node that constrains the SAME instance location as `path`, gathered on the
 // way down. An `allOf` branch and a `then` do not descend into the instance; they add
 // another obligation at the level they sit on. `if` and `not` are traversed but never
 // counted -- an `if` states a condition, not an obligation, and `not` inverts one.
 function scopesAlong(schema, path) {
-  let scopes = [schema];
+  // TWO things are tracked, and conflating them is what made the first version unsound.
+  //
+  // `cursor` walks the ACTUAL path to the site. `evidence` holds nodes that constrain the same
+  // instance location and apply whenever the site's branch applies.
+  //
+  // Descending through `properties`/`items` moves every evidence node in step: they all
+  // describe the same instance location, so they all descend into the same child.
+  //
+  // Stepping into `then`, `else` or an `allOf` branch does NOT. It selects one obligation out
+  // of many at the current level, so only the cursor moves and only the cursor is added.
+  // Independent review and independent testing each defeated a version that mapped these
+  // steps over the whole evidence list: a sibling `allOf` branch guarded by a DIFFERENT `if`
+  // was admitted as proof, and independent testing used exactly that to ship an untested
+  // business rule -- a percentage bucket that did not allocate the subject still returning
+  // allow -- past this suite with the whole check green.
+  let cursor = schema;
+  let evidence = [schema];
   for (let index = 0; index < path.length - 1; index += 1) {
     const key = path[index];
-    if (key === 'properties') {
+    if (key === 'properties' || key === 'items') {
       const name = path[index + 1];
-      index += 1;
-      scopes = scopes.map((node) => node?.properties?.[name]).filter(Boolean);
-    } else if (key === 'items') {
-      scopes = scopes.map((node) => node?.items).filter(Boolean);
+      const step = key === 'properties' ? (node) => node?.properties?.[name] : (node) => node?.items;
+      if (key === 'properties') index += 1;
+      evidence = evidence.map(step).filter(Boolean);
+      cursor = step(cursor);
     } else if (key === 'allOf' || key === 'anyOf' || key === 'oneOf') {
       const branch = path[index + 1];
       index += 1;
-      scopes = scopes.flatMap((node) => {
-        const target = node?.[key]?.[branch];
-        return target ? [node, target] : [node];
-      });
-    } else if (key === 'then' || key === 'else' || key === 'if') {
-      // An `if` sits at the instance level of its parent; it does not descend into the
-      // instance. The obligations its ancestors impose still bind every instance that
-      // reaches it, and those ancestors are what prove an `if` guard redundant.
-      scopes = scopes.flatMap((node) => (node?.[key] ? [node, node[key]] : [node]));
-    } else if (key === 'not') {
-      scopes = scopes.flatMap((node) => (node?.not ? [node.not] : []));
+      cursor = cursor?.[key]?.[branch];
+      // An `anyOf`/`oneOf` branch is an alternative, not a conjunct: that one of them holds
+      // says nothing about this one, so such a branch is walked and never cited.
+      if (cursor && key === 'allOf') evidence = [...evidence, cursor];
+    } else if (key === 'then' || key === 'else') {
+      cursor = cursor?.[key];
+      if (cursor) evidence = [...evidence, cursor];
+    } else if (key === 'if') {
+      // An `if` states a condition, not an obligation. Walked, never cited.
+      cursor = cursor?.if;
     } else {
       return null;
     }
-    if (scopes.length === 0) return null;
+    if (!cursor) return null;
   }
-  return scopes;
+  return evidence;
 }
 
 // `not` inverts the meaning of everything under it: deleting a constraint inside a `not`
@@ -306,30 +324,99 @@ function provablyRedundant(schema, path) {
   // The node the site lives on is not evidence that the site is redundant. Without this the
   // proof reads a constraint as its own justification and excuses every gap it is given.
   const owner = path.slice(0, -1).reduce((node, key) => node?.[key], schema);
-  const conditions = new Set();
-  const collectConditions = (node) => {
-    if (!node || typeof node !== 'object') return;
-    if (Array.isArray(node)) { node.forEach(collectConditions); return; }
-    if (node.if) conditions.add(node.if);
-    Object.values(node).forEach(collectConditions);
-  };
-  collectConditions(schema);
-  const elsewhere = scopes.filter((node) => node !== undefined && node !== owner && !conditions.has(node));
+  const elsewhere = scopes.filter((node) => node !== undefined && node !== owner);
   if (keyword === 'required') {
     const demanded = new Set(elsewhere.flatMap((node) => (Array.isArray(node.required) ? node.required : [])));
     return Array.isArray(site) && site.every((key) => demanded.has(key));
   }
+  // `additionalProperties: false` is not a self-contained assertion. It means "no key beyond
+  // THIS node's `properties`", so two nodes can carry a byte-identical value and forbid
+  // different key sets -- independent review distinguished exactly that with {kind:'P',b:'x'}.
+  // Every schema in this catalog carries root `additionalProperties: false`, so a future
+  // contract writing "in this state, only these fields may appear" -- the leakage-path rule
+  // class this whole test exists to cover -- would have been silently excused.
+  if (SIBLING_DEPENDENT.has(keyword)) return false;
   const same = JSON.stringify(site);
   return elsewhere.some((node) => node[keyword] !== undefined && JSON.stringify(node[keyword]) === same);
 }
 
-// Conditional sites that no fixture kills and no proof excuses. CTR-NTF-001 belongs to A5:
-// its two gaps are reported to its owner, not closed here, because proposing a change to
-// another role's contract is reserved to that role.
+// Conditional sites this proof cannot account for. Listing one is a statement that the site
+// is untested, so the list is the thing a reviewer should read first.
+//
+// Both entries are CORRECTIONS to an earlier claim. They were reported as gaps belonging to
+// A5, and independent review and independent testing separately showed they are not gaps at
+// all: each guard is `required: ["delivery"]`, and each matching `then` constrains only
+// inside `properties.delivery`, which is vacuous when `delivery` is absent. No instance can
+// distinguish the schema from the schema without the guard -- independent testing put 150000
+// targeted instances against each and found none. They are unkillable for a reason this
+// proof does not model (a vacuous consequent, not a duplicated obligation), so they stay
+// listed rather than silently excused, and the earlier escalation to A5 is withdrawn.
 const UNPROVEN_CONDITIONAL_GAPS = [
   'ctr-ntf-001 allOf.2.if.required',
   'ctr-ntf-001 allOf.3.if.required',
 ];
+
+// The proof decides whether an untested rule is reported or excused, so its soundness is the
+// whole guarantee. These are the counterexamples independent review and independent testing
+// each used to defeat an earlier version of it; every one is a schema where deleting the site
+// DOES change a real instance's verdict, so excusing it would hide a testable rule.
+const PROOF_MUST_NOT_EXCUSE = [
+  {
+    why: 'a sibling allOf branch, guarded by a different `if`, is not evidence about this one',
+    schema: {
+      type: 'object', required: ['kind'],
+      properties: { kind: { enum: ['P', 'Q'] }, a: { type: 'string' } },
+      if: { properties: { kind: { const: 'P' } }, required: ['kind'] }, then: { required: ['a'] },
+      allOf: [{ if: { properties: { kind: { const: 'Q' } }, required: ['kind'] }, then: { required: ['a'] } }],
+    },
+    site: ['allOf', 0, 'then', 'required'],
+    distinguishedBy: { kind: 'Q' },
+  },
+  {
+    why: '`additionalProperties: false` means "nothing beyond THIS node\'s properties", so an equal value elsewhere forbids a different key set',
+    schema: {
+      type: 'object', required: ['kind'],
+      properties: { kind: { enum: ['P', 'Q'] }, a: { type: 'string' }, b: { type: 'string' } },
+      additionalProperties: false,
+      allOf: [{
+        if: { properties: { kind: { const: 'P' } }, required: ['kind'] },
+        then: { properties: { kind: {}, a: {} }, additionalProperties: false },
+      }],
+    },
+    site: ['allOf', 0, 'then', 'additionalProperties'],
+    distinguishedBy: { kind: 'P', b: 'x' },
+  },
+  {
+    why: 'a rule nested under `then.allOf[i].then` must not be excused by an unrelated branch that happens to carry the same value',
+    schema: {
+      type: 'object', required: ['kind', 'effect'],
+      properties: { kind: { enum: ['P', 'Q'] }, effect: { enum: ['allow', 'deny'] } },
+      allOf: [
+        { if: { properties: { kind: { const: 'P' } }, required: ['kind'] }, then: { properties: { effect: { const: 'deny' } } } },
+        { if: { properties: { kind: { const: 'Q' } }, required: ['kind'] },
+          then: { allOf: [{}, { if: {}, then: { properties: { effect: { const: 'deny' } } } }] } },
+      ],
+    },
+    site: ['allOf', 1, 'then', 'allOf', 1, 'then', 'properties', 'effect', 'const'],
+    distinguishedBy: { kind: 'Q', effect: 'allow' },
+  },
+];
+
+test('the redundancy proof excuses nothing a real instance can distinguish', () => {
+  const wrong = [];
+  for (const { why, schema, site, distinguishedBy } of PROOF_MUST_NOT_EXCUSE) {
+    const full = { $schema: 'https://json-schema.org/draft/2020-12/schema', ...schema };
+    const mutated = without(full, site);
+    assert.ok(mutated, `${site.join('.')} does not exist — this counterexample is stale`);
+    // The case only means anything while the instance really does tell the two apart.
+    const before = validate(full, distinguishedBy, { resolve: () => null }).length === 0;
+    const after = validate(mutated, distinguishedBy, { resolve: () => null }).length === 0;
+    assert.notEqual(before, after,
+      `${site.join('.')}: ${JSON.stringify(distinguishedBy)} no longer distinguishes the two schemas — the counterexample needs rebuilding, not deleting`);
+    if (provablyRedundant(full, site)) wrong.push(`${site.join('.')} — ${why}`);
+  }
+  assert.deepEqual(wrong, [], `the proof excused a site a real instance distinguishes:\n  ${wrong.join('\n  ')}`);
+});
 
 test('every conditional constraint is killed by a fixture or proved unkillable', async () => {
   const entries = await readdir(CATALOG, { withFileTypes: true });
