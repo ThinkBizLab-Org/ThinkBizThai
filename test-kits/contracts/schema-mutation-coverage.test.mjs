@@ -43,6 +43,20 @@ const PROTECTED = [
   ['ctr-sec-001', ['properties', 'redaction', 'properties', 'error_trace_safe', 'const']],
   ['ctr-aud-001', ['properties', 'action', 'properties', 'category', 'enum']],
   ['ctr-obs-001', ['properties', 'dependencies', 'items', 'properties', 'status', 'enum']],
+  // Independent testing measured CTR-USG-001 at 7.0% -- the lowest of the session -- and
+  // CTR-NTF-001 at 24.5%, and found neither contract had a single entry here. The guard
+  // built for exactly this defect had not been extended to the packages that followed it.
+  // These are the sites it named as carrying a guarantee and killed by nothing.
+  ['ctr-usg-001', ['properties', 'cost', 'properties', 'amount', 'pattern']],
+  ['ctr-usg-001', ['properties', 'quantity', 'properties', 'amount', 'pattern']],
+  ['ctr-usg-001', ['properties', 'cost', 'properties', 'currency', 'enum']],
+  ['ctr-usg-001', ['required']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'required']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'properties', 'requires_permission', 'const']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'properties', 'target_ref', 'pattern']],
+  ['ctr-ntf-001', ['properties', 'delivery', 'properties', 'state', 'enum']],
+  ['ctr-ntf-001', ['properties', 'locale', 'enum']],
+  ['ctr-ntf-001', ['required']],
 ];
 
 function without(schema, path) {
