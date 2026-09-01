@@ -155,3 +155,22 @@ collided by construction on the previous run (`test-kits/integrity-manifest.json
 `evidence/VERIFICATION.md`). The regenerate-not-merge procedure below still stands, because
 whether those two collide depends on which packages a given sequence touches; this run simply
 did not produce the overlap. **A conflict in any other file remains a real disagreement — stop.**
+
+## Re-run at wave 44, after review twelve's eight fixes
+
+Fresh clone reset to `origin/main` (`ff55332`), thirteen merges in PR order, `npm run check`
+after each: **26 → 198**, `skipped 0` and `todo 0` at every step, no conflict in any file,
+exit 0.
+
+Two further facts checked at the same time, because a drill that only proves the sequence still
+says nothing about the shape:
+
+**The chain is intact.** `git merge-base --is-ancestor` for all twelve consecutive pairs: every
+branch contains the one below it. This is checked every wave now — it was broken once, silently,
+and three pull requests were green against their own bases while missing the CI step they were
+supposed to be running.
+
+**The pull requests are stacked, not parallel.** Each targets the branch below it
+(`#13 → #12 → … → #3 → #2 → main`, with `#1` and `#2` on `main`). GitHub retargets each one to
+`main` as the branch below it merges, so **merging them in numeric order through the UI is all
+that is required** — there is no rebase step for the Product Owner to perform.
