@@ -121,9 +121,12 @@ const SITE_FLOOR = { 'ctr-api-001': 38, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'c
   'ctr-flg-001': 74, 'ctr-idm-001': 36, 'ctr-job-001': 40, 'ctr-mod-001': 87, 'ctr-ntf-001': 39,
   'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76, 'ctr-ten-001': 23, 'ctr-usg-001': 37 };
 
-const UNKILLED_CEILING = { 'ctr-api-001': 12, 'ctr-aud-001': 14, 'ctr-err-001': 4, 'ctr-evt-001': 4,
-  'ctr-flg-001': 22, 'ctr-idm-001': 6, 'ctr-job-001': 6, 'ctr-mod-001': 26, 'ctr-ntf-001': 11,
-  'ctr-obs-001': 12, 'ctr-pag-001': 12, 'ctr-sec-001': 16, 'ctr-ten-001': 2, 'ctr-usg-001': 4 };
+// Held at the measured actual, not at a round number above it. Slack in this ceiling is
+// room for coverage to regress without anything failing, so every fixture that closes a
+// site tightens it in the same commit.
+const UNKILLED_CEILING = { 'ctr-api-001': 6, 'ctr-aud-001': 12, 'ctr-err-001': 2, 'ctr-evt-001': 2,
+  'ctr-flg-001': 15, 'ctr-idm-001': 4, 'ctr-job-001': 4, 'ctr-mod-001': 21, 'ctr-ntf-001': 9,
+  'ctr-obs-001': 10, 'ctr-pag-001': 10, 'ctr-sec-001': 13, 'ctr-ten-001': 1, 'ctr-usg-001': 2 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
@@ -239,4 +242,113 @@ test('every contract this package owns carries a fixture that kills its root req
     }
   }
   assert.deepEqual(weak, [], `contract(s) whose required list nothing tests:\n  ${weak.join('\n  ')}`);
+});
+
+// A ratio hides which HALF is untested. Measured per keyword class, the conditional rules --
+// the `if`/`then` business logic -- sat 30 points below the leaf constraints, and those are
+// exactly the failure, deny and leakage paths: an error envelope that also carries a result,
+// a permissioned-data module that is not tenant scoped, a managed secret rotated by a
+// workspace. The catalog had valid fixtures for the happy path of every contract and for the
+// failure path of almost none.
+//
+// Raising the ratio is not the goal; a ratio can be raised by deleting rules. This test
+// admits no ratio. Every conditional site is either killed by a fixture or PROVED
+// unkillable, and the proof is structural: the same obligation is already imposed at the
+// same instance location by a schema that applies unconditionally, so no single-fault
+// deletion can change any verdict. Anything else is a gap and must be named below.
+const CONDITIONAL = new Set(['allOf', 'anyOf', 'oneOf', 'if', 'then', 'else', 'not']);
+
+// Every schema node that constrains the SAME instance location as `path`, gathered on the
+// way down. An `allOf` branch and a `then` do not descend into the instance; they add
+// another obligation at the level they sit on. `if` and `not` are traversed but never
+// counted -- an `if` states a condition, not an obligation, and `not` inverts one.
+function scopesAlong(schema, path) {
+  let scopes = [schema];
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const key = path[index];
+    if (key === 'properties') {
+      const name = path[index + 1];
+      index += 1;
+      scopes = scopes.map((node) => node?.properties?.[name]).filter(Boolean);
+    } else if (key === 'items') {
+      scopes = scopes.map((node) => node?.items).filter(Boolean);
+    } else if (key === 'allOf' || key === 'anyOf' || key === 'oneOf') {
+      const branch = path[index + 1];
+      index += 1;
+      scopes = scopes.flatMap((node) => {
+        const target = node?.[key]?.[branch];
+        return target ? [node, target] : [node];
+      });
+    } else if (key === 'then' || key === 'else' || key === 'if') {
+      // An `if` sits at the instance level of its parent; it does not descend into the
+      // instance. The obligations its ancestors impose still bind every instance that
+      // reaches it, and those ancestors are what prove an `if` guard redundant.
+      scopes = scopes.flatMap((node) => (node?.[key] ? [node, node[key]] : [node]));
+    } else if (key === 'not') {
+      scopes = scopes.flatMap((node) => (node?.not ? [node.not] : []));
+    } else {
+      return null;
+    }
+    if (scopes.length === 0) return null;
+  }
+  return scopes;
+}
+
+// `not` inverts the meaning of everything under it: deleting a constraint inside a `not`
+// makes the schema STRICTER, not weaker, so the redundancy argument does not hold there and
+// this refuses to make it.
+function provablyRedundant(schema, path) {
+  if (path.includes('not')) return false;
+  const keyword = path.at(-1);
+  const scopes = scopesAlong(schema, path);
+  if (!scopes) return false;
+  const site = path.reduce((node, key) => node?.[key], schema);
+  // The node the site lives on is not evidence that the site is redundant. Without this the
+  // proof reads a constraint as its own justification and excuses every gap it is given.
+  const owner = path.slice(0, -1).reduce((node, key) => node?.[key], schema);
+  const conditions = new Set();
+  const collectConditions = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(collectConditions); return; }
+    if (node.if) conditions.add(node.if);
+    Object.values(node).forEach(collectConditions);
+  };
+  collectConditions(schema);
+  const elsewhere = scopes.filter((node) => node !== undefined && node !== owner && !conditions.has(node));
+  if (keyword === 'required') {
+    const demanded = new Set(elsewhere.flatMap((node) => (Array.isArray(node.required) ? node.required : [])));
+    return Array.isArray(site) && site.every((key) => demanded.has(key));
+  }
+  const same = JSON.stringify(site);
+  return elsewhere.some((node) => node[keyword] !== undefined && JSON.stringify(node[keyword]) === same);
+}
+
+// Conditional sites that no fixture kills and no proof excuses. CTR-NTF-001 belongs to A5:
+// its two gaps are reported to its owner, not closed here, because proposing a change to
+// another role's contract is reserved to that role.
+const UNPROVEN_CONDITIONAL_GAPS = [
+  'ctr-ntf-001 allOf.2.if.required',
+  'ctr-ntf-001 allOf.3.if.required',
+];
+
+test('every conditional constraint is killed by a fixture or proved unkillable', async () => {
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  const gaps = [];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let data;
+    try { data = await fixturesOf(entry.name); } catch { continue; }
+    const { schema, bodies, resolve } = data;
+    const baseline = verdicts(schema, bodies, resolve);
+    for (const site of constraintSites(schema)) {
+      if (!site.some((key) => typeof key === 'string' && CONDITIONAL.has(key))) continue;
+      const mutated = without(schema, site);
+      if (!mutated || verdicts(mutated, bodies, resolve) !== baseline) continue;
+      if (provablyRedundant(schema, site)) continue;
+      gaps.push(`${entry.name} ${site.join('.')}`);
+    }
+  }
+  const surprises = gaps.filter((gap) => !UNPROVEN_CONDITIONAL_GAPS.includes(gap));
+  assert.deepEqual(surprises, [], `conditional rule(s) that no fixture exercises and no proof excuses:\n  ${surprises.join('\n  ')}`);
+  const closed = UNPROVEN_CONDITIONAL_GAPS.filter((gap) => !gaps.includes(gap));
+  assert.deepEqual(closed, [], `declared gap(s) that are no longer gaps — remove them from UNPROVEN_CONDITIONAL_GAPS:\n  ${closed.join('\n  ')}`);
 });

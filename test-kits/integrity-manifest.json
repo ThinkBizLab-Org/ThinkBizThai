@@ -18,7 +18,7 @@
     "test-kits/contracts/catalog-reference-integrity.test.mjs": "56d06dc56ad220bba969c62b7baf7a8c1291225a96c17cb2bceb99f797eb950f",
     "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs": "52b75dbb5bdfea67723f03d974648693a932eb2b9d7eeadd32e4c0db7a229f93",
     "test-kits/contracts/json-schema-subset.mjs": "fe1beff8c1fe6f3db7720f2683dece0597d103b07eae8de7f7e1d0073b404f00",
-    "test-kits/contracts/schema-mutation-coverage.test.mjs": "77bb4fb1aca16e303378bf0b805587fcbe5635895585748050ffecbb1e3e963b",
+    "test-kits/contracts/schema-mutation-coverage.test.mjs": "2cfe27a9f1b93c97812dd3efe6968e18114db5a88a0e2b0074cf8683b1545072",
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "5006e8a7e026c6ee7a8f45d44a5c4ca3da9ca504a452a885511e0df1104a153a",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "e78143e298c9cb6f52758909d833ccc1f7993803e3fc7c8c820dcbc1d92ae1bd",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
