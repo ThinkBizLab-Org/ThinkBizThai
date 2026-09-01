@@ -181,3 +181,30 @@ Neither was planted. Both were live, declared, and green.
 ## Verification
 
 `npm run check` — **206/206, fail 0, skipped 0, todo 0, exit 0**.
+
+## Probing that fix, in turn — two more holes in my own guard
+
+The two rules above were committed, then probed the same way. Both leaked:
+
+| probe | result | why |
+| --- | --- | --- |
+| fourteen per-contract globs, each under the cap | **exit 0** | they sum to all 705 catalog files. A cap on one pattern cannot see the total. |
+| `test-kits/contracts/**` | **exit 0** | ten files, under the cap, none in `PROTECTED_KEYS` — and every one of them a ratchet. |
+
+Two further fixes:
+
+3. **The shielded set is every file the integrity manifest digests**, not only `PROTECTED_KEYS` —
+   which means every test suite. `test-kits/contracts/**` now covers *ten protected files* and is
+   rejected; `test-kits/**` twenty-four; `scripts/**` fifteen; `contract-catalog/**` one.
+   `PROTECTED_KEYS` stays the floor for the case where the manifest cannot be read, so an
+   unreadable manifest cannot empty the shield.
+4. **`deadAmendments` in the branch-scope guard**: an amendment matching **none** of what the
+   branch changed is not a record of anything. A cap on breadth cannot see intent; the diff can.
+
+On its first run against this branch, rule 4 named **six standing declarations that explained
+nothing**, on this package, live — among them `contract-catalog/shared-kernel/ctr-ten-001/**` and
+`work-packages/WP-0A-A6-001.json`. It is also what would have caught `.agents/**` without anyone
+thinking to look: four protected schemas declared, none of them ever touched.
+
+Four rounds of probing one field, each round finding the next hole, is what it took. The first
+three were written confidently.

@@ -150,3 +150,45 @@ test('an amendment cannot be a blanket permission over a tree', async () => {
   assert.throws(() => validateManifestOwnership(manifest(['scripts/**'])), { code: 74 },
     'the protected-file rule must not depend on the caller supplying a file list');
 });
+
+test('an amendment that explains nothing the branch changed is not a record', async () => {
+  // The manifest validator caps how broad one pattern may be. Probing that cap found fourteen
+  // narrow per-contract globs summing to the whole catalog, at exit 0 — a cap on breadth cannot
+  // see intent. The diff can.
+  //
+  // On its first run against this very branch it named six standing declarations that explained
+  // nothing, including `.agents/**` — four protected protocol schemas the package never touched.
+  const { deadAmendments } = await import('../scripts/verify-branch-scope.mjs');
+  const changed = [
+    'contract-catalog/shared-kernel/ctr-api-001/schema.json',
+    'scripts/verify-branch-scope.mjs',
+  ];
+  assert.deepEqual(deadAmendments(changed, ['contract-catalog/shared-kernel/ctr-api-001/**']), []);
+  assert.deepEqual(deadAmendments(changed, ['scripts/verify-branch-scope.mjs']), []);
+  assert.deepEqual(deadAmendments(changed, ['.agents/**']), ['.agents/**'],
+    'a declaration matching none of the diff is a permission granted for work that never happened');
+  assert.deepEqual(
+    deadAmendments(changed, ['contract-catalog/shared-kernel/ctr-ntf-001/**', 'evidence/WP-0A-CON-007/**']),
+    ['contract-catalog/shared-kernel/ctr-ntf-001/**', 'evidence/WP-0A-CON-007/**']);
+  assert.deepEqual(deadAmendments([], []), [], 'a package amending nothing is not in violation');
+});
+
+test('a glob may not stand in for any file the integrity manifest digests', async () => {
+  // PROTECTED_KEYS was the first shielded set, and `test-kits/contracts/**` passed straight
+  // through it: under the file cap, none of its files in PROTECTED_KEYS, and every one of them a
+  // ratchet this repository is made of.
+  const { validateManifestOwnership } = await import('../scripts/validate-work-package-ownership.mjs');
+  const digested = ['test-kits/contracts/catalog-registry.test.mjs', 'test-kits/branch-scope.test.mjs'];
+  const manifest = (paths) => ([{
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths, rationale: 'a reason long enough to be a reason and not a placeholder word' },
+    },
+    outputs: { files: ['owned.txt'] },
+  }]);
+  assert.throws(() => validateManifestOwnership(manifest(['test-kits/contracts/**']), [], digested), { code: 74 });
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['test-kits/contracts/catalog-registry.test.mjs']), [], digested),
+    'naming the suite is what the rule asks for');
+});

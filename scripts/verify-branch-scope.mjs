@@ -57,6 +57,23 @@ export function undeclared(changedFiles, patterns) {
   return changedFiles.filter((file) => !matchers.some((m) => m.test(file)));
 }
 
+// The other direction: an amendment that explains NOTHING the branch changed.
+//
+// The manifest validator caps how broad one pattern may be, but a package can still declare
+// fourteen narrow globs that sum to the whole catalog -- found by probing that cap, which passed
+// at exit 0. A cap on breadth cannot see intent; the diff can. An amendment is a record of what
+// a package touched outside its scope, so a pattern matching none of what it touched is not a
+// record of anything.
+//
+// This is what would have caught `.agents/**` on this very package: four protected schemas
+// declared, none of them changed.
+export function deadAmendments(changedFiles, patterns) {
+  return patterns.filter((pattern) => {
+    const matcher = globToRegExp(pattern);
+    return !changedFiles.some((file) => matcher.test(file));
+  });
+}
+
 async function main() {
   const [base, packageId] = process.argv.slice(2);
   if (!base || !packageId) {
@@ -79,7 +96,15 @@ async function main() {
     console.error('Declare each one in ownership.writable_paths or ownership.amends_without_owning, with a reason, or move the change to the package that owns it.');
     process.exit(73);
   }
-  console.log(`${packageId}: all ${changed.length} changed path(s) are declared`);
+  const dead = deadAmendments(changed, manifest.ownership?.amends_without_owning?.paths ?? []);
+  if (dead.length > 0) {
+    console.error(`${packageId} declares ${dead.length} amendment(s) that explain nothing this branch changed:`);
+    for (const pattern of dead) console.error(`  ${pattern}`);
+    console.error('An amendment records what a package touched outside its own scope. A declaration matching none of '
+      + 'the diff is a standing permission over another package\'s files, granted for work that never happened.');
+    process.exit(74);
+  }
+  console.log(`${packageId}: all ${changed.length} changed path(s) are declared, and every amendment explains one`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

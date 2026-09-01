@@ -67,7 +67,8 @@ function namesSomething(pattern) {
 // A pattern over the cap is not forbidden work -- it is a request to say which files.
 export const AMENDMENT_BREADTH_CAP = 128;
 
-export function validateManifestOwnership(manifests, repositoryFiles = null) {
+export function validateManifestOwnership(manifests, repositoryFiles = null, digestedFiles = []) {
+  const shieldedFiles = [...new Set([...PROTECTED_KEYS, ...digestedFiles])];
   for (const manifest of manifests) {
     const ownership = manifest.ownership ?? {};
     const writablePaths = ownership.writable_paths;
@@ -127,7 +128,11 @@ export function validateManifestOwnership(manifests, repositoryFiles = null) {
       // files and would pass the cap -- and those fifteen are every guard in this repository.
       // A glob must never stand in for a protected file: those are named, or not amended.
       if (pattern.includes('*')) {
-        const shielded = PROTECTED_KEYS.filter((key) => globToRegExp(pattern).test(key));
+        // The shielded set is PROTECTED_KEYS *and every file the integrity manifest digests* --
+        // which is every test suite too. Probing the first version found `test-kits/contracts/**`
+        // passing at exit 0: fewer than 128 files, none of them in PROTECTED_KEYS, and all of
+        // them the ratchets this repository is made of.
+        const shielded = shieldedFiles.filter((key) => globToRegExp(pattern).test(key));
         if (shielded.length > 0) {
           throw new OwnershipValidationError(74, `work package ${label} amends ${JSON.stringify(pattern)}, which covers `
             + `${shielded.length} protected file(s) — ${shielded.slice(0, 3).join(', ')}${shielded.length > 3 ? ', …' : ''}. `
@@ -185,7 +190,20 @@ export async function validateWorkPackageOwnership(directory) {
       throw new OwnershipValidationError(65, `${manifestFile}: invalid JSON: ${error.message}`);
     }
   }));
-  validateManifestOwnership(manifests, await repositoryFileList());
+  validateManifestOwnership(manifests, await repositoryFileList(), await digestedFileList());
+}
+
+// Every file the integrity manifest digests: the guards, the protocol schemas, the registries
+// AND every test suite. A glob over any of them is a permission over a ratchet.
+async function digestedFileList(path = 'test-kits/integrity-manifest.json') {
+  try {
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    return Object.keys(manifest.files ?? {});
+  } catch {
+    // A missing or unreadable manifest must not silently empty the shielded set; PROTECTED_KEYS
+    // is the floor that needs no file at all.
+    return [];
+  }
 }
 
 // The tree as it stands, so an amendment pattern's breadth is measured rather than guessed.
