@@ -60,5 +60,7 @@ jobs:
             echo "branch names $package_id but work-packages/$package_id.json does not exist"
             exit 73
           fi
-          git fetch --no-tags --depth=0 origin "$BASE_REF"
+          # fetch-depth: 0 on the checkout already brought the full history; this only needs the
+          # base branch ref, which a PR checkout does not create locally.
+          git fetch --no-tags origin "$BASE_REF"
           node scripts/verify-branch-scope.mjs FETCH_HEAD "$package_id"
