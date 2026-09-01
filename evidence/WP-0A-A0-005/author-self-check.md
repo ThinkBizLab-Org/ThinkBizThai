@@ -138,3 +138,57 @@ it will cost when the Stripe blocker lifts. RFC-2026-008 now carries the shape t
 exemption must take — a named path prefix, an enumerated set, a named owner, and a
 test proving a card outside that set is still reported inside that path — so it is
 decided in advance rather than negotiated under the payment package's deadline.
+
+## Independent testing: `test_failed`, and the sharpest finding was self-inflicted
+
+**The layout list rejected the way Diners Club is printed.** I added the 14-digit
+length *specifically* so Diners would be reachable, special-cased Amex's 4-6-5, and
+left 4-6-4 — its neighbour, and how the card actually appears — falling through to
+the all-fours rule. Four Diners prefix families missed. Adding a length while
+rejecting the layout that length exists for is not a gap in coverage; it is a change
+that looked like coverage.
+
+Eleven further real cards were missed: 13-digit Visa in 4-4-5; a column-aligned table
+using two spaces; en-dash groups, which is what a word processor makes of a hyphen; a
+card wrapped **twice** down a narrow column; and a card wrapped into a quoted email
+reply. The last two share a cause worth naming: I was counting a line break as
+grouping. A space or hyphen is how someone *groups* a number and must look like a
+card; a line break is where the medium ran out of width, can fall anywhere, and says
+nothing about layout. They are now handled separately.
+
+All twelve reported misses are detected, and each is a test.
+
+### The false-positive claim was wrong in the direction that flattered the rule
+
+I wrote "rows of five 3-digit measurements fall from 2.6% to 0.000%". Independent
+testing measured both halves: **2.6% was a different shape** — rows of four
+space-separated integers — and the 3-digit shape's real starting rate was **0.188%**.
+I compared the after-number of one shape to the before-number of another and reported
+it as an improvement.
+
+The shape the reviewer actually raised got **worse**, 2.3% → 3.1%, because the
+widened issuer table admits many more prefixes. I did not disclose that, because I
+did not measure it.
+
+Measured now, 200 000 samples each, on what ships:
+
+| shape | reported |
+|---|---|
+| rows of five 3-digit integers | 0.000% |
+| rows of eight 2-digit integers | 0.000% |
+| rows of four 4-digit integers | **3.5%** |
+| rows of two 8-digit integers | **3.5%** |
+| 16-digit ids beginning with 4 | 9.9% |
+| 16-digit ids, any lead digit | 3.0% |
+
+The 4-digit-column rate is irreducible: four groups of four **is** the card layout,
+and independent testing put the tradeoff exactly — the restriction that gives 0.000%
+there is the same one that gives a 100% miss for a real card in a column-aligned
+table. Roughly one four-column integer table in twenty-nine will be reported. That is
+now stated in RFC-2026-008 as a standing cost rather than presented as a solved
+problem.
+
+```
+$ npm run check
+ℹ tests 133   pass 133   fail 0   skipped 0   todo 0
+```

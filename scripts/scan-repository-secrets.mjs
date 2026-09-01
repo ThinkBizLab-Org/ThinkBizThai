@@ -138,35 +138,54 @@ export function isPaymentCardNumber(value) {
 }
 
 // Group sizes a card is actually written in. Independent security review measured the
-// unrestricted rule reporting 2.5% of random 16-digit ids and 2.6% of a row of four
-// space-separated integers -- and this repository's own evidence files are full of numeric
-// tables. A row of five 3-digit latencies is not a card no matter what Luhn says about its
-// concatenation, and a rule that reports one is a rule someone switches off.
+// unrestricted rule reporting 2.6% of rows of small integers, and this repository's evidence
+// files are full of numeric tables. A row of five 3-digit latencies is not a card no matter
+// what Luhn says about its concatenation.
+//
+// Independent testing then found the first version of this list too narrow in the way that
+// mattered most: it rejected 4-6-4, which is exactly how a Diners Club card is printed -- and
+// the 14-digit length had just been added SPECIFICALLY so Diners would be reachable. The
+// Amex 4-6-5 case was special-cased and its Diners neighbour was not.
+const PRINTED_LAYOUTS = [[4, 6, 5], [4, 6, 4], [4, 4, 5]];
+
 function groupingIsCardLike(sizes) {
-  if (sizes.length <= 2) return true;                       // unbroken, or broken once by a line wrap
-  if (sizes.length === 3 && sizes[0] === 4 && sizes[1] === 6 && sizes[2] === 5) return true; // Amex
+  if (sizes.length <= 2) return true;
+  if (PRINTED_LAYOUTS.some((layout) => layout.length === sizes.length && layout.every((n, i) => n === sizes[i]))) return true;
   const body = sizes.slice(0, -1);
   const last = sizes.at(-1);
-  return body.every((size) => size === 4) && last >= 1 && last <= 4;
+  return body.every((size) => size === 4) && last >= 1 && last <= 6;
 }
 
-/** Independent security review defeated the single-window version with the shape cardholder
- *  data actually arrives in -- a PAN followed by an expiry and a CVV on one line of a support
- *  ticket, chat paste or captured form body. The regex committed to the greedy 19-digit
- *  window, `accept` rejected it, and `matchAll` advanced past the card inside it without ever
- *  backtracking. So the run is matched generously here and every card-length window that
- *  starts and ends on a group boundary is tested. */
 export function containsPaymentCardNumber(run) {
-  const groups = run.match(/[0-9]+/g) ?? [];
+  // Two kinds of separator, and they mean different things. A SPACE or hyphen is how someone
+  // GROUPS a number, so the grouping has to look like a card. A LINE BREAK is where the
+  // medium ran out of width -- it can fall anywhere, any number of times, and it carries no
+  // information about layout. Independent testing missed cards wrapped twice and cards
+  // wrapped into a quoted email reply because the first version treated the two alike.
+  const groups = [];
+  let current = '';
+  let wrappedBefore = [];
+  let pendingWrap = false;
+  for (const char of run) {
+    if (char >= '0' && char <= '9') { current += char; continue; }
+    if (current) { groups.push(current); wrappedBefore.push(pendingWrap); current = ''; }
+    if (char === '\n') pendingWrap = true;
+  }
+  if (current) { groups.push(current); wrappedBefore.push(pendingWrap); }
   if (groups.length === 0) return false;
-  const sizes = groups.map((group) => group.length);
-  const digits = groups.join('');
+
+  // Merge across wraps first: a number split by a line break is one written group.
+  const merged = [];
+  groups.forEach((group, index) => {
+    if (index > 0 && wrappedBefore[index]) merged[merged.length - 1] += group;
+    else merged.push(group);
+  });
+
+  const sizes = merged.map((group) => group.length);
+  const digits = merged.join('');
   const starts = [];
   let offset = 0;
-  for (const size of sizes) {
-    starts.push(offset);
-    offset += size;
-  }
+  for (const size of sizes) { starts.push(offset); offset += size; }
   const ends = new Map(starts.map((start, index) => [start + sizes[index], index]));
   for (let index = 0; index < starts.length; index += 1) {
     for (const length of [13, 14, 15, 16, 19]) {
@@ -279,7 +298,7 @@ export const PII_RULES = [
     // pasted with, including a line break, because a wrapped log line or a quoted email is a
     // real artifact shape and a non-breaking space is what a paste from a rendered statement
     // carries. `accept` then does the real work over the windows inside the run.
-    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2007\u2009\u202F\u2011-]|\r?\n[ \t]*)?[0-9])+(?![0-9])/g,
+    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2007\u2009\u202F\u2011\u2013\u2014-]+|\r?\n[ \t>|]*)?[0-9])+(?![0-9])/g,
     accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a

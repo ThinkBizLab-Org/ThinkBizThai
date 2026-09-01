@@ -519,6 +519,47 @@ test('reports the issuer families the first version of this rule could not see',
 // of rows of small integers -- and this repository's evidence directories are full of numeric
 // tables, on a rule that is deliberately not prose-exempt. So a run is only a card when it is
 // WRITTEN like one.
+// Independent testing found this list too narrow in the way that mattered most: 4-6-4 is
+// exactly how a Diners Club card is printed, and the 14-digit length had just been added so
+// that Diners would be reachable at all. The Amex 4-6-5 case was special-cased and its
+// neighbour was not.
+test('reports a card in every layout the card is actually printed in', () => {
+  const split = (number, sizes, separator) => {
+    const out = []; let index = 0;
+    for (const size of sizes) { out.push(number.slice(index, index + size)); index += size; }
+    return out.join(separator);
+  };
+  const cases = {
+    'Diners Club 4-6-4': [synthCard('3630741852963'), [4, 6, 4], ' '],
+    'Diners Club 30xx 4-6-4': [synthCard('3056074185296'), [4, 6, 4], ' '],
+    'Diners Club 4-6-4 hyphenated': [synthCard('3630741852963'), [4, 6, 4], '-'],
+    'Visa 13-digit 4-4-5': [synthCard('401288888188'), [4, 4, 5], ' '],
+    'American Express 4-6-5': [synthCard('37828224631000'), [4, 6, 5], ' '],
+    'column-aligned in a fixed-width table': [synthCard('401288888888188'), [4, 4, 4, 4], '  '],
+    'en dashes, as a word processor autocorrects a hyphen': [synthCard('401288888888188'), [4, 4, 4, 4], '\u2013'],
+  };
+  for (const [layout, [number, sizes, separator]] of Object.entries(cases)) {
+    assert.deepEqual(scanText(`card ${split(number, sizes, separator)}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+      ['payment-card-number'], `${layout} must be reported`);
+  }
+});
+
+// A space or a hyphen is how someone GROUPS a number, so the grouping has to look like a
+// card. A line break is where the medium ran out of width: it can fall anywhere, any number
+// of times, and says nothing about layout. Treating the two alike missed a card wrapped twice
+// down a narrow column and a card wrapped into a quoted email reply.
+test('reports a card however many times the medium wrapped it', () => {
+  const pan = synthCard('401288888888188');
+  const cases = {
+    'wrapped twice down a narrow column': `${pan.slice(0, 6)}\n${pan.slice(6, 12)}\n${pan.slice(12)}`,
+    'wrapped into a quoted email reply': `pan ${pan.slice(0, 8)}\n> ${pan.slice(8)}`,
+    'wrapped inside a quoted markdown block': `pan ${pan.slice(0, 8)}\n| ${pan.slice(8)}`,
+  };
+  for (const [why, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);
+  }
+});
+
 test('does not report a row of numbers that merely concatenates into a card', () => {
   const rows = [
     'p95 latency by run: 340 338 247 491 221',

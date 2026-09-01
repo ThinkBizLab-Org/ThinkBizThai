@@ -48,20 +48,52 @@ globally and widely accepted in Thai e-commerce, which for this product is the w
 one to miss — and omitted the 14-digit length altogether, which made Diners Club
 structurally unreachable.
 
-**A run only counts as a card when it is written like one:** unbroken, broken once
-by a line wrap, grouped in fours, or the Amex 4-6-5. Widening the separator set to
-catch a wrapped or non-breaking-space card also widens what can be mistaken for one,
-and independent security review measured the unrestricted rule reporting 2.6% of
-rows of small integers. This repository's evidence directories are full of numeric
-tables and the rule is deliberately not prose-exempt, so without this a green CI
-would depend on no benchmark table ever landing on a Luhn-valid concatenation. That
-is the switch-it-off pressure this decision exists to avoid, arriving from a
-direction the first draft did not consider. Measured after: rows of five 3-digit
-measurements report at 0.000% over 200 000 samples.
+**A run only counts as a card when it is written like one.** Two kinds of separator
+mean two different things, and treating them alike was a defect:
 
-What remains, and is accepted: **10.1% of random 16-digit identifiers beginning with
-4.** One arbitrary run in ten passes Luhn, and nothing distinguishes such an
-identifier from a card at rest. That is the irreducible cost of the rule.
+- A **space or hyphen** is how someone *groups* a number, so the grouping must be a
+  layout a card is printed in — unbroken, broken once, groups of four, or one of
+  4-6-5 (Amex), 4-6-4 (Diners) and 4-4-5 (13-digit Visa).
+- A **line break** is where the medium ran out of width. It can fall anywhere, any
+  number of times, and carries no information about layout, so it is transparent to
+  the check.
+
+Independent testing found the first version of the layout list too narrow in exactly
+the place it mattered: it rejected **4-6-4, which is how a Diners Club card is
+printed** — and the 14-digit length had just been added so that Diners would be
+reachable at all. Amex's 4-6-5 was special-cased and its neighbour was not. It also
+missed a card wrapped twice down a narrow column, and one wrapped into a quoted email
+reply, because wraps were being counted as grouping.
+
+### The false-positive cost, stated as measured rather than as it flatters
+
+An earlier version of this document said the rate fell "from 2.6% to 0.000%". That
+was wrong, and wrong in the direction that flattered the rule: 2.6% was measured on a
+row of four space-separated integers, and 0.000% on a row of five 3-digit ones,
+whose real starting rate was 0.188%. Independent testing measured both and the
+comparison did not survive it.
+
+Over 200 000 samples each, on what shipped:
+
+| shape | reported |
+|---|---|
+| rows of five 3-digit integers | 0.000% |
+| rows of eight 2-digit integers | 0.000% |
+| **rows of four 4-digit integers** | **3.5%** |
+| **rows of two 8-digit integers** | **3.5%** |
+| random 16-digit ids beginning with 4 | 9.9% |
+| random 16-digit ids, any lead digit | 3.0% |
+
+The 4-digit-column rate is **irreducible, not an oversight**. Four groups of four IS
+the card layout; a benchmark table written that way is indistinguishable from a card
+at rest, and any rule that stops reporting it stops reporting cards. Independent
+testing put the tradeoff exactly: the restriction that gives 0.000% on that shape is
+the same one that gives a 100% miss for a real card in a column-aligned table.
+
+So roughly **one four-column integer table in twenty-nine** will be reported. That is
+the standing cost of this rule and it is stated here so nobody discovers it under
+deadline and reaches for a blanket ignore. The mitigation is that a finding names the
+file, and a benign one is cheap to resolve — unlike a missed card, which is silent.
 
 The rule is **not prose-exempt**. A card number in a comment, a runbook or an
 evidence file is the same disclosure as one in code, and the national-identity
