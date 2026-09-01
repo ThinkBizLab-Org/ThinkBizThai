@@ -3,30 +3,31 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 40**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads. `npm run check` at the top of the stack: **189/189,
+Updated continuously. Last wave: **wave 47**. Thirteen Draft PRs, **#1 through #13**,
+all CI green at their true heads. `npm run check` at the top of the stack: **205/205,
 fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads after the
 last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
 from a fresh clone of the real `main` is green at every step.
 
-**Twelve independent verification runs** were dispatched against this work, and a thirteenth
-is in flight. Every one of the first eight shipped an untested business rule past every
-guard. The ninth through twelfth could not — but each still found real defects in the
-guards' periphery, and all of review twelve's eight findings are closed. That record is the
-most useful thing in this file, and it is written out in "What independent verification kept
-finding" below.
+**Thirteen independent verification runs** were dispatched against this work, and a
+fourteenth is in flight. **Nine of the thirteen shipped an untested business rule past every
+guard** — the most recent one two waves ago. That number is the honest measure of this
+repository's guards, and it is why the runs keep going.
 
-**Review twelve is the clearest example of why this is worth the cost.** It found three HIGH
-defects, and one of them falsified a sentence I had written into this package's own evidence:
-*"There is no path through that step that reaches exit 0 without a resolved package."* There
-was one — replace the guard's `main()` with a no-op. Both CI-only guards had unit tests that
-imported their pure helpers and never executed `main()` at all, so a stub passed at exit 0
-with a perfectly honest digest, because **a digest pins bytes, and the bytes of a stub are
-exactly what they claim to be.** It also showed that `"not": {}` — a rule rejecting every
-document — could be added to the envelope contract every module composes with **zero new
-lines in a 950-line constraint record and a byte-identical digest**, and that a `$ref` into a
-subdirectory opened a rule channel outside every ratchet, permanently, for three one-time
-declaration edits.
+**What review thirteen did, because it is the clearest single example.** In JSON Schema,
+`false` is a schema that rejects every instance. One token — `"items": false` — put *"every
+paginated page must carry zero rows"* into `CTR-PAG-001`, on the exact property whose own
+annotation says the contract does not constrain it, where **no fixture can ever reach it**.
+`npm run check` exited **0 at 198/198**, the ~950-line constraint record was **byte-identical**,
+and no declaration changed anywhere. It did the same to the envelope contract every module
+composes, and to the tenant context nine contracts `$ref`. The repository's validator read a
+boolean as *"no schema here"* while every real validator enforces it — which is the exact
+invariant that validator's own header says it exists to protect.
+
+**And review twelve found that a digest pins bytes, not behaviour.** Both guards that run only
+in CI had tests importing their helpers and never executing `main()`, so replacing the guards
+with no-ops passed at exit 0 with a perfectly honest digest. That one falsified a sentence I
+had written into this package's own evidence.
 
 **Four of the nine fixes for review eleven found a real defect the moment they ran, none
 of them planted:** handoffs citing a commit range that did not match their own file lists;
