@@ -4,7 +4,7 @@ Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves
 merge for you; I never touched `main`.
 
 Updated continuously. Last wave: **wave 40**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads. `npm run check` at the top of the stack: **186/186,
+all CI green at their true heads. `npm run check` at the top of the stack: **188/188,
 fail 0, skipped 0, todo 0**.
 
 **Eleven independent verification runs** were dispatched against this work, and a twelfth
@@ -284,6 +284,9 @@ Start here, in order:
 
 ### Working rules, each learned by breaking something
 
+- **Regenerate every generated fact before committing: `npm run refresh:handoff`, `npm run regenerate:manifest`, `npm run record:verification`.** Three separate things in this repository were maintained by hand and were each wrong at least once: the test count (quoted from two edits earlier, four times), the integrity manifest, and the handoff's commit range. Nobody should type a fact the repository already knows.
+- **A guard that reports a wrong reason is worse than one that stays silent.** The handoff-drift check shipped twice broken — first red by construction (a handoff cannot cite the commit that contains it), then reporting a reversed diff as drift. Both were caught by running it, not by reading it. A wrong reason is how a real finding gets dismissed as noise.
+- **A check that is normally red teaches people to ignore it.** If a guard fails during ordinary work rather than at the moment a mistake is made, the guard is wrong, not the workflow.
 - **The pinned toolchain is already on this machine.** `zsh -lc 'npm run check'` reaches Node 24.20.0 at `/Users/bank/.local/node-v24.20.0/bin/node`. The default shell has Node 26 and will fail with exit 68. **Do not download anything** — one agent did, unnecessarily.
 - **Never switch branches while a subagent holds the working tree.** It cost the Integration Owner's evidence once, which landed on the wrong package's branch.
 - **Never `git checkout --` a file with uncommitted work.** It discarded a whole round.
