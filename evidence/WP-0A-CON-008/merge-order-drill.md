@@ -123,3 +123,35 @@ other file still stops it. With that resolution the full sequence completes —
 
 If a conflict appears in any file that is *not* one of those two, stop. That is a real
 disagreement between two packages and not a bookkeeping artifact.
+
+---
+
+## Re-run at wave 40, after the nine fixes for independent review #11
+
+The drill was re-run from a fresh clone reset to the real `origin/main` (`ff55332`), merging
+all thirteen pull requests in order with `npm run check` after each. Thirteen green PRs still
+say nothing about the sequence, so this is re-run whenever the stack changes.
+
+```
+#1   ok  WP-0A-A0-001-repository-bootstrap           tests 26   pass 26   fail 0
+#2   ok  WP-0A-CON-001-contract-catalog              tests 26   pass 26   fail 0
+#3   ok  WP-0A-A0-002-contract-test-coverage         tests 58   pass 58   fail 0
+#4   ok  WP-0A-CON-002-envelope-contracts            tests 85   pass 85   fail 0
+#5   ok  WP-0A-CON-003-module-and-policy             tests 87   pass 87   fail 0
+#6   ok  WP-0A-CON-005-job-reference-hardening       tests 93   pass 93   fail 0
+#7   ok  WP-0A-CON-004-security-audit-observability  tests 95   pass 95   fail 0
+#8   ok  WP-0A-A0-003-secret-scan                    tests 118  pass 118  fail 0
+#9   ok  WP-0A-CON-006-usage-and-notification        tests 121  pass 121  fail 0
+#10  ok  WP-0A-A0-004-ci-independent-guard-step      tests 124  pass 124  fail 0
+#11  ok  WP-0A-A0-005-cardholder-data-scan           tests 144  pass 144  fail 0
+#12  ok  WP-0A-CON-007-reference-bounds              tests 155  pass 155  fail 0
+#13  ok  WP-0A-CON-008-freeze-readiness              tests 186  pass 186  fail 0
+```
+
+26 → 186, `skipped 0` and `todo 0` at every step, exit 0.
+
+**No conflict in any file this time**, generated or otherwise — including the two that
+collided by construction on the previous run (`test-kits/integrity-manifest.json` and
+`evidence/VERIFICATION.md`). The regenerate-not-merge procedure below still stands, because
+whether those two collide depends on which packages a given sequence touches; this run simply
+did not produce the overlap. **A conflict in any other file remains a real disagreement — stop.**

@@ -3,13 +3,23 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 37**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads.
+Updated continuously. Last wave: **wave 40**. Thirteen Draft PRs, **#1 through #13**,
+all CI green at their true heads. `npm run check` at the top of the stack: **186/186,
+fail 0, skipped 0, todo 0**.
 
-**Nine independent verification runs** were dispatched against this work. Every one of
-the first eight found at least one real defect, several of them in things I had just
-declared closed. That record is the most useful thing in this file, and it is written
-out in "What independent verification kept finding" below.
+**Eleven independent verification runs** were dispatched against this work, and a twelfth
+is in flight. Every one of the first eight shipped an untested business rule past every
+guard. The ninth, tenth and eleventh could not — but each still found real defects in the
+guards' periphery, and review eleven found four, all now closed. That record is the most
+useful thing in this file, and it is written out in "What independent verification kept
+finding" below.
+
+**Four of the nine fixes for review eleven found a real defect the moment they ran, none
+of them planted:** handoffs citing a commit range that did not match their own file lists;
+the tool that rewrites the integrity manifest was not itself in the manifest; `CTR-USG-001`
+shipped `"allOf": []`, a rule that accepts every document, invisible to 184 tests; and the
+two-way impact check found a false positive in its own first formulation, corrected before
+it was committed.
 
 ---
 
