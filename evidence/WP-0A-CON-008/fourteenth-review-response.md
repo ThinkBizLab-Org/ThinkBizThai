@@ -133,3 +133,32 @@ now. Verified from `/tmp/space dir`: exit **75**.
 ## Verification
 
 `npm run check` — **214/214, fail 0, skipped 0, todo 0, exit 0**.
+
+---
+
+## Self-probe: asking whether a guard can be made not to RUN
+
+Review fourteen's HIGH 1 was a *stub* — a guard that runs and does nothing. That suggested a
+different question from the one every ratchet here answers. Every guard asks *"can this be made to
+pass?"*; none asked *"can this be made not to run at all?"*
+
+Three probes against the `check` chain:
+
+| probe | exit | verdict |
+| --- | --- | --- |
+| drop `npm run validate:protocol` from the chain | 81 | rejected — the chain is parsed structurally |
+| background the runner with `&` | 74 | rejected |
+| **`"validate:protocol": "true"`** | **0** | **passed** |
+
+`test:bootstrap` and `verify:coverage-floor` were pinned to exact commands. The three steps
+between them were required **by name only** — so a step could be listed in the chain, in the right
+order, joined by `&&`, and run `true`. `"scan:secrets": "true"` passed the same way: the secret
+scanner and all three protocol validators silently gone, with `npm run check` at exit 0 and the
+chain reading exactly as it should.
+
+**Requiring the step is not requiring the work.** `CHAIN_COMMANDS` now pins the exact command for
+every script the chain invokes. Verified: `true`, `:`, `echo ok` and `node --version` are each
+rejected at exit 74 for each step, and the real commands still pass.
+
+This one came from probing rather than from a review, and it is the same shape as HIGH 1 one level
+up: **HIGH 1 emptied the function a step calls; this empties the step itself.**

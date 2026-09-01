@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  CHAIN_COMMANDS,
   PROTECTED_KEYS,
   assertCoverage,
   assertDeclaredTests,
@@ -65,6 +66,7 @@ const FULL_CHAIN = 'npm run verify:coverage-floor && node scripts/verify-toolcha
 const okScripts = (overrides = {}) => ({
   'test:bootstrap': RUNNER_SCRIPT,
   'verify:coverage-floor': GUARD_SCRIPT,
+  ...CHAIN_COMMANDS,
   check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap',
   ...overrides,
 });
@@ -314,4 +316,25 @@ test('every file whose absence from the manifest would itself be the defect is d
   assert.deepEqual(missing, [], `file(s) that must carry a digest and do not:\n  ${missing.join('\n  ')}\n`
     + 'A guard, a schema deciding what a package may claim, or a registry a gate decision rests on '
     + 'cannot be removed from the protected set by deleting a line.');
+});
+
+test('a step named in the chain cannot run something else', () => {
+  // Requiring the STEP is not requiring the WORK. `test:bootstrap` and `verify:coverage-floor`
+  // were pinned to exact commands and the three steps between them only by name, so
+  // `"validate:protocol": "true"` and `"scan:secrets": "true"` each passed at exit 0 — the chain
+  // still read correctly, every guard still listed, and two of them ran nothing at all.
+  //
+  // Found by probing the chain rather than by a review: "can a guard be made not to RUN, instead
+  // of made to pass?" is a different question from "can a guard be made to pass", and the chain
+  // check only ever answered the second.
+  for (const name of Object.keys(CHAIN_COMMANDS)) {
+    for (const replacement of ['true', ':', 'echo ok', 'node --version']) {
+      assert.throws(() => assertPackageScripts(okScripts({ [name]: replacement })),
+        (error) => error.code === 74,
+        `${name} = ${JSON.stringify(replacement)} must be rejected`);
+    }
+    assert.throws(() => assertPackageScripts(okScripts({ [name]: undefined })), (error) => error.code === 74);
+  }
+  // And the real commands still pass, so the pin is a pin and not a ban.
+  assert.doesNotThrow(() => assertPackageScripts(okScripts()));
 });

@@ -70,6 +70,12 @@ export function globToRegExp(pattern) {
 // Verifying `test:bootstrap` in isolation is not enough: independent review showed that
 // dropping `&& npm run test:bootstrap` from `check` leaves `npm run check` exiting 0 with
 // zero tests while this guard stays silent. The wiring is therefore checked too.
+// Every script the check chain invokes, pinned to the exact command it must run.
+export const CHAIN_COMMANDS = {
+  'scan:secrets': 'node scripts/scan-repository-secrets.mjs',
+  'validate:protocol': 'node scripts/validate-work-packages.mjs && node scripts/validate-capability-profiles.mjs && node scripts/validate-work-package-ownership.mjs',
+};
+
 export function assertPackageScripts(scripts) {
   const bootstrap = scripts?.['test:bootstrap'];
   if (bootstrap !== RUNNER_SCRIPT) {
@@ -112,6 +118,17 @@ export function assertPackageScripts(scripts) {
   const missing = required.filter((step) => !steps.includes(step));
   if (missing.length > 0) {
     throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')} as its own && step; a guard that is not wired into check protects nothing. Found: ${check}`);
+  }
+  // Requiring the STEP is not requiring the WORK. `test:bootstrap` and `verify:coverage-floor`
+  // were pinned to exact commands; the three steps between them were pinned only by name, so
+  // `"validate:protocol": "true"` and `"scan:secrets": "true"` each passed at exit 0 with the
+  // chain intact and every guard listed. A named step that runs `true` is a step that protects
+  // nothing, and the chain check cannot tell the difference by reading the chain.
+  for (const [name, command] of Object.entries(CHAIN_COMMANDS)) {
+    if (scripts?.[name] !== command) {
+      throw new CoverageFloorError(74, `${name} must be exactly \`${command}\`; a step named in check that runs something else `
+        + `protects nothing while the chain still reads correctly. Found: ${String(scripts?.[name])}`);
+    }
   }
   // A guard that is not reached enforces nothing. Independent testing replaced `&&` at
   // EVERY position: step 1 succeeded, the chain short-circuited, and npm run check exited 0
