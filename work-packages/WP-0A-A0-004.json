@@ -50,7 +50,8 @@
     "include": [
       "RFC-2026-007 recording the decision and the ownership transfer",
       "One workflow step invoking node scripts/verify-test-coverage-floor.mjs before npm run check",
-      "Transfer of .github/workflows/ci.yml from WP-0A-A0-001, recorded in that manifest"
+      "Transfer of .github/workflows/ci.yml from WP-0A-A0-001, recorded in that manifest",
+      "One workflow step invoking node scripts/verify-branch-scope.mjs against the pull request's base, which only the workflow knows"
     ],
     "exclude": [
       "Native branch protection, Gate G0 approval, any change to what the guard checks, production configuration, and any merge authorization"
@@ -76,7 +77,9 @@
       ".github/workflows/ci.yml",
       "work-packages/WP-0A-A0-004.json",
       "evidence/WP-0A-A0-004/**",
-      "handoffs/WP-0A-A0-004-*.json"
+      "handoffs/WP-0A-A0-004-*.json",
+      "scripts/verify-branch-scope.mjs",
+      "test-kits/branch-scope.test.mjs"
     ],
     "read_only_paths": [
       "README.md",
@@ -103,7 +106,21 @@
     "authorized_cross_package_amendments": [
       "work-packages/WP-0A-A0-001.json \u2014 remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
       "test-kits/integrity-manifest.json \u2014 recompute digests; ci.yml is already digested there."
-    ]
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "test-kits/integrity-manifest.json",
+        "evidence/VERIFICATION.md",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/test-coverage-floor.test.mjs",
+        "work-packages/WP-0A-A0-001.json"
+      ],
+      "rationale": "Adding a test file requires a digest in the integrity manifest and a re-recorded verification count; both are generated and both belong to WP-0A-A0-002. This package claims neither. Three further paths were reported by scripts/verify-branch-scope.mjs on its first run against this branch and are recorded rather than removed: scripts/verify-test-coverage-floor.mjs and its test gained the requirement that all five gating steps appear in order in scripts.check, which is this package's subject and WP-0A-A0-002's file; work-packages/WP-0A-A0-001.json carries the amendment record transferring .github/workflows/ci.yml to this package.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json",
+        "work-packages/WP-0A-A0-001.json"
+      ]
+    }
   },
   "inputs": {
     "files": [
@@ -121,7 +138,9 @@
       "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
       ".github/workflows/ci.yml",
       "work-packages/WP-0A-A0-004.json",
-      "evidence/WP-0A-A0-004/author-self-check.md"
+      "evidence/WP-0A-A0-004/author-self-check.md",
+      "scripts/verify-branch-scope.mjs",
+      "test-kits/branch-scope.test.mjs"
     ],
     "contracts": []
   },
@@ -130,7 +149,8 @@
     "The guard step precedes the composite step, so a failure is attributed to the guard rather than buried in a chain.",
     "WP-0A-A0-001 retains every other declared output; only ci.yml moves, and the amendment is recorded in its ownership.amended_by.",
     "npm run check still passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo zero.",
-    "The ownership validator accepts the transfer with no cross-package overlap."
+    "The ownership validator accepts the transfer with no cross-package overlap.",
+    "The workflow runs the branch-scope guard on every pull request, deriving the work-package id from the branch name and skipping cleanly when a branch names none."
   ],
   "required_tests": [
     "Ownership validator across all manifests after the transfer",
@@ -160,7 +180,8 @@
     "It does not satisfy the Gate G0 protected-CI requirement, which needs native branch protection and remains blocked on an external constraint recorded in evidence/g0-tracker-th.md.",
     "The ci.yml transfer requires an acknowledgement countersigned by WP-0A-A0-001's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending.",
+    "The branch-scope guard runs only on pull_request events. A push to main carries no base to diff against, so the check is a pull-request control and not a branch-protection one; that distinction matters because protected CI is still an open Gate G0 item."
   ],
   "review_and_test_gates": [
     "author_complete",

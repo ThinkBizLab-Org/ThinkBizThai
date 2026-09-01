@@ -93,3 +93,41 @@ distinguishes this change from a cosmetic edit.
   visible diff line. That is a tripwire, not a control.
 - This run authored the change and must not review, security-review, test-verify or
   integrate it.
+
+## The branch-scope guard now runs, and only the workflow can run it
+
+`scripts/verify-branch-scope.mjs` compares what a branch **changed** against what its
+package **declares** — the gap `validate-work-package-ownership.mjs` cannot see,
+because a manifest is a promise and a branch is a fact. It was written under
+`WP-0A-CON-008` and recorded there as *not* running in CI, because it needs a base ref
+and a repository cannot know which branch a package is being built on.
+
+**A workflow can.** `github.event.pull_request.base.ref` is exactly that, so the guard
+and its test move here, to the package that owns `.github/workflows/ci.yml`, and the
+workflow runs it on every pull request. The package id comes from the branch name; a
+branch that names no work package is skipped with a message rather than failing, and a
+branch naming a package whose manifest does not exist fails with **73**.
+
+`fetch-depth: 0` was added to the checkout: the guard diffs against the base commit,
+and a shallow clone has only the head.
+
+This is the same argument RFC-2026-007 makes for the step above it. A guard invoked by
+the thing it audits cannot constrain that thing; a guard that needs to know the base
+of a pull request cannot be invoked by the repository at all.
+
+### Its first run against this branch reported three undeclared paths
+
+`scripts/verify-test-coverage-floor.mjs`, `test-kits/test-coverage-floor.test.mjs` and
+`work-packages/WP-0A-A0-001.json` — all real changes this package made and none of them
+declared. The first two gained the requirement that all five gating steps appear in
+order in `scripts.check`, which is this package's subject and `WP-0A-A0-002`'s file;
+the third carries the record transferring `ci.yml` here.
+
+All three are recorded now. **The guard found undeclared work on the very branch that
+introduces it**, which is the most useful thing it could have done.
+
+### What it is not
+
+It runs on `pull_request` only. A push to `main` carries no base to diff against, so
+this is a pull-request control, not a branch-protection one — and protected CI is still
+an open Gate G0 item that needs a paid GitHub plan.

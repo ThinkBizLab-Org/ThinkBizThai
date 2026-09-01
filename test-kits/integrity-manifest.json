@@ -1,7 +1,7 @@
 {
   "note": "Content digests of everything that decides whether the test suite runs, and of the suites themselves. A TRIPWIRE WITH NO SELF-ANCHOR on two distinct axes, both confirmed by independent runs. (1) A commit editing a file and its digest together passes; independent review proved this is a fixed-point property of a repository where one commit can change every file. (2) A guard invoked by `npm run check` cannot constrain a `check` that never invokes it. A trailing `&` backgrounds the chain so the shell returns 0 before any exit code matters, and replacing every `&&` with `||` short-circuits at step 1 so nothing after it runs at all -- including this guard. Requiring the guard to be the FIRST step (exit 81) catches demotion but not non-invocation. The remedy for (2) belongs to the CALLER: .github/workflows/ci.yml must run `node scripts/verify-test-coverage-floor.mjs` as its own workflow step rather than relying on a single `npm run check`. That file is owned by WP-0A-A0-001 and is read-only to the packages that found this, so it is referred to the Integration Owner under the RFC path. Both anchors are outside the repository: human review of the diff (RFC-2026-002) and protected CI, an open Gate G0 requirement.",
   "files": {
-    ".github/workflows/ci.yml": "eb434e788107442358abd7d6f0f96ac4e8dde0784596a236b06baa1986bedb62",
+    ".github/workflows/ci.yml": "b7ddb03cba944d0fb9df0408db8f33f5b76083c2ec1976daac1f9bad22e47999",
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
     "package.json": "12c89b881831749ead45acfac0790db7d4cd385144ac82bf2146f87551f0c183",
     "scripts/run-test-suite.mjs": "350aff7f4a55a54b65819ed55387d585d4d0585f2106029e9d0706d6c6d7df9d",
@@ -28,7 +28,9 @@
     "test-kits/test-coverage-floor.test.mjs": "e14a6c07a7f141bbcd4440ab7d338bb2846c5fc243cf1c3f7f3eba73654154bc",
     "test-kits/toolchain-contract.test.mjs": "55b3276f0e039a3950919606432cd98d30888ada98121b2cd210216319ab91e6",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
-    "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe"
+    "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
+    "test-kits/branch-scope.test.mjs": "9f416734623baab9e48c5058679f275dfcfc1f7d00bdf9e4874da48977627fdc",
+    "scripts/verify-branch-scope.mjs": "515f5adb72e4b7bdb15156510c71a753b9b1f1156b36e8c216897c51374bdb39"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
