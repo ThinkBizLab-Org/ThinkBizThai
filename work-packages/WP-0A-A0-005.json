@@ -100,11 +100,14 @@
     ],
     "amends_without_owning": {
       "paths": [
+        ".github/workflows/ci.yml",
         "scripts/scan-repository-secrets.mjs",
         "test-kits/integrity-manifest.json",
-        "test-kits/secret-scan.test.mjs"
+        "test-kits/secret-scan.test.mjs",
+        "work-packages/WP-0A-A0-003.json",
+        "work-packages/WP-0A-A0-004.json"
       ],
-      "rationale": "WP-0A-A0-003 owns the scanner and its test; WP-0A-A0-002 owns the integrity manifest. This package adds one rule and its coverage, and updates the digests it necessarily invalidates. Declaring these as outputs made the ownership validator exit 70, correctly: two packages cannot hold one path. The amendment is recorded on the owning manifests instead.",
+      "rationale": "WP-0A-A0-003 owns the scanner and its test; WP-0A-A0-002 owns the integrity manifest. This package adds one rule and its coverage, and updates the digests it necessarily invalidates. Declaring these as outputs made the ownership validator exit 70, correctly: two packages cannot hold one path. The amendment is recorded on the owning manifests instead. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package.",
       "recorded_on": [
         "work-packages/WP-0A-A0-003.json",
         "work-packages/WP-0A-A0-002.json"
