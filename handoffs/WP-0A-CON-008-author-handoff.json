@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-008",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "653f699d69f749912e9fdd6e389e5497766cf129",
+  "head_revision_or_patch_checksum": "653f699d69f749912e9fdd6e389e5497766cf129",
+  "task_ids": [],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "No contract-catalog file is changed by this package, so no consumer contract is affected.",
+  "known_limitations": [
+    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
+    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
+    "CTR-NTF-001 remains unassessed; A5 owns it."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
+    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
+    "CTR-NTF-001 remains unassessed; A5 owns it."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range 653f699..653f699 covers 0 path(s). Revert through a reviewed revert PR. One decision record and one manifest; no code, no contract, no schema and no status changed.",
+  "recommended_next_work_packages": [
+    "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-CON-008/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

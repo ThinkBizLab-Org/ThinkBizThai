@@ -11,6 +11,41 @@ import {
   discoverTestFiles,
 } from './verify-test-coverage-floor.mjs';
 import { readFile } from 'node:fs/promises';
+import { RECORD_PATH, render } from './record-verification.mjs';
+
+// Four evidence files in this repository have quoted a test count that was true two edits
+// earlier. The number now lives in one machine-written record, and this is the only place that
+// knows the real figure -- after the run, from the runner's own summary. A stale record fails
+// the check instead of reaching a reviewer.
+export async function assertVerificationRecord(summary) {
+  let recorded;
+  try {
+    recorded = await readFile(RECORD_PATH, 'utf8');
+  } catch {
+    const error = new Error(`${RECORD_PATH} is missing. Run \`npm run record:verification\` and commit it.`);
+    error.code = 89;
+    throw error;
+  }
+  // Byte-for-byte against what the writer would produce. Three rounds of independent review
+  // each found another spelling that renders as a headline to a human and slipped past a
+  // parser: `|tests|717|` without spaces, a second table appended below the prose, a
+  // three-column table, a pipe-less GFM table, raw HTML, and plain bold prose. Enumerating
+  // table syntaxes is a losing game -- markdown has more of them than a regex will ever hold.
+  //
+  // So the file is not parsed at all. It either IS the generated record or it is not one.
+  const expected = render({
+    tests: summary.tests, pass: summary.pass, fail: summary.fail,
+    skipped: summary.skipped, todo: summary.todo,
+  });
+  if (recorded !== expected) {
+    const detail = recorded.length === expected.length
+      ? 'same length, different content'
+      : `${recorded.length} bytes recorded, ${expected.length} expected`;
+    const error = new Error(`${RECORD_PATH} is not the record this run would write (${detail}). Run \`npm run record:verification\` and commit it. The file must contain the generated block and nothing else -- a heading, a summary line or a second table added above it is exactly what this check exists to reject.`);
+    error.code = 89;
+    throw error;
+  }
+}
 
 // `node --test` exits 0 while reporting `tests 0` whenever its pattern matches nothing,
 // so a passing exit code alone cannot distinguish "everything passed" from "nothing ran".
@@ -101,6 +136,7 @@ async function main() {
     assertNothingSkipped(summary);
     assertExecuted(summary.pass);
     await assertDeclarationsMatchExecution(summary.pass);
+    await assertVerificationRecord(summary);
   } catch (error) {
     console.error(error.message);
     process.exit(Number.isInteger(error.code) ? error.code : 80);

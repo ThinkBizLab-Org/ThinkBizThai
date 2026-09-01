@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-003",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "17c63c5731eeb38a91c97ec4117b1bf005f66b3c",
+  "head_revision_or_patch_checksum": "7cdd4198dfb43f6a51a49ca7482182f73c68d5c5",
+  "task_ids": [],
+  "files_added": [
+    "OVERNIGHT-SUMMARY.md",
+    "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
+    "evidence/WP-0A-A0-003/author-self-check.md",
+    "evidence/WP-0A-A0-003/review-security-head.md",
+    "work-packages/WP-0A-A0-003.json"
+  ],
+  "files_modified": [
+    "package.json",
+    "scripts/scan-repository-secrets.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/secret-scan.test.mjs",
+    "test-kits/test-coverage-floor.test.mjs",
+    "work-packages/WP-0A-A0-001.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "npm run check exits 0 on pinned Node 24.20.0 / npm 11.19.0 with skipped 0 and todo 0, and the declaration count reconciles with the executed count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "node scripts/scan-repository-secrets.mjs . exits 0 on the repository as it stands, and the suite asserts the same thing so a future commit that makes the tree trip its own scanner fails CI.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "Every row of the decoy table in test-kits/secret-scan.test.mjs is detected, and by the specific rule the row names, so a row cannot be kept green by an unrelated pattern widening.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "No row of the false-positive table fires. The table includes shapes taken verbatim from this repository's committed prose and evidence.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "An unreadable file, an unlistable directory, an undecodable file, an oversize file, and a symbolic link each produce a finding rather than a pass, and each is regression-tested.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "The email-address rule is exempt only under evidence/ and handoffs/; the Thai national ID and Thai phone rules have no exemption anywhere; a credential inside evidence prose is still reported. All four properties are regression-tested.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "node scripts/validate-work-package-ownership.mjs work-packages exits 0, proving the transfer leaves no path co-owned and every declared output covered by its own package's writable paths.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "The WP-0A-A0-001 amendment is limited to removing the two transferred paths and adding an ownership.amended_by block; no status, role, gate, acceptance criterion, or delivered output of that package changes.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "No file in the repository contains a literal credential-shaped string. Every decoy in the suite is assembled from fragments at runtime, because the suite is itself inside the tree the scanner walks.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    },
+    {
+      "criterion": "The Author does not review, security-review, test-verify, or integrate this package.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-003/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "No contract-catalog file is changed by this package, so no consumer contract is affected.",
+  "known_limitations": [
+    "A fresh UNCORRELATED probe -- families the reviewer had not named in the previous round -- detected 8 of 56, and 3 of those 8 are not real coverage (one coincidental prefix hit, five re-detections of existing prefixes in a different file format). Against the 12 families it HAD named, 12 of 12. The improvement is real but NARROW: it fixed exactly what was named and did not generalize. Each round of this measurement fixes the round before it and misses the next.",
+    "The coverage guard cannot constrain a check script that never invokes it. Independent testing replaced every `&&` with `||`: step 1 succeeded, the chain short-circuited, and npm run check exited 0 having run neither the guard nor a single test. Requiring the guard to be the first step (exit 81) catches demotion but not non-invocation, and a trailing `&` is the same class. The remedy is for ci.yml to run the guard as its own workflow step; that file is owned by WP-0A-A0-001 and is read-only here, so it is referred to the Integration Owner under the RFC path. Recorded rather than claimed closed: this Author has twice declared a class closed and been falsified.",
+    "C1a: independent security review with an UNCORRELATED 56-decoy corpus measured 19 detected / 37 missed, against 12/12 and 17/17 from correlated samples. The Meta and Stripe misses are fixed because they are this project's own G0 blockers, but most cloud-vendor families and most credential-carrying file formats are still undetected. C1 is closed only as scoped: its fail-open and no-privacy-dimension components are closed; its near-zero-detection component is downgraded, not closed.",
+    "A Thai juristic-person tax ID shares the identical 13-digit mod-11 form as a national ID and is reported as one; roughly 9.45% of arbitrary 13-digit runs will fire. node_modules/ and .git/ are skipped entirely, so a vendored node_modules is invisible. Git history remains unscanned.",
+    "RFC-2026-005 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge. Until approved it does not hold rank-1 authority, so the ownership transfer and the cross-package amendments are staged, not authorized.",
+    "A PATTERN SCANNER CANNOT PROVE THE ABSENCE OF SECRETS. It proves only that the declared patterns did not match the declared files at this commit. A credential in an unenumerated format, split across lines, encoded, or embedded in opaque bytes passes. This is a property of the approach and cannot be closed by widening the rule set; evidence citing a clean scan must not claim more than this. Measured: the strengthened scanner detects 13 of 14 realistic decoys, against 1 of 14 before.",
+    "Git history is still not scanned. The scanner walks the working tree and skips .git, so a credential committed and later deleted is invisible to it. Closing this needs a history-scanning pass and a decision about what to do when one is found, since history cannot be rewritten under RFC-2026-002's no-force-push rule.",
+    "The email-address rule is exempt under evidence/ and handoffs/. A customer email address pasted into an evidence file will not be caught. The scanner does not attempt to tell a maintainer address from a customer address, because any such test would be a domain allowlist masquerading as a security control.",
+    "Lowercase and JSON-style secret assignments such as api_key: \"...\" are not matched, because this repository's own contract-gap evidence contains that exact shape as prose. Detecting it would mean firing on the audit trail that documents the gaps.",
+    "Private and internal hostnames and RFC1918 addresses are not detected. This is the one decoy family still missed and it is declined deliberately: a .internal/.local/.corp rule fires on the committed taxonomy identifier topic.wardrobe.internal-function in docs/sprint-0a/sprint-0a-industry-research-pack-th.md.",
+    "Rule prefixes and length floors are calibrated to vendor formats as published at the time of writing. A vendor that silently changes a prefix or length defeats the corresponding rule and nothing in this repository would notice.",
+    "The scanner and its test are digested in test-kits/integrity-manifest.json, which RFC-2026-003 records as a TRIPWIRE WITH NO SELF-ANCHOR: a commit that edits a guarded file and its digest together passes. This package inherits that property and does not improve it.",
+    "The ownership transfer amends WP-0A-A0-001, whose Integration Owner /root/r0_steward is an OpenAI Codex run that was not available in this session. That manifest records acknowledgement_status: pending and the amendment is not complete until countersigned.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
+    "No cardholder-data rule exists, though payment providers are among the named G0 blockers. Raised as an advisory by independent security review and not addressed here."
+  ],
+  "open_risks_or_blockers": [
+    "A fresh UNCORRELATED probe -- families the reviewer had not named in the previous round -- detected 8 of 56, and 3 of those 8 are not real coverage (one coincidental prefix hit, five re-detections of existing prefixes in a different file format). Against the 12 families it HAD named, 12 of 12. The improvement is real but NARROW: it fixed exactly what was named and did not generalize. Each round of this measurement fixes the round before it and misses the next.",
+    "The coverage guard cannot constrain a check script that never invokes it. Independent testing replaced every `&&` with `||`: step 1 succeeded, the chain short-circuited, and npm run check exited 0 having run neither the guard nor a single test. Requiring the guard to be the first step (exit 81) catches demotion but not non-invocation, and a trailing `&` is the same class. The remedy is for ci.yml to run the guard as its own workflow step; that file is owned by WP-0A-A0-001 and is read-only here, so it is referred to the Integration Owner under the RFC path. Recorded rather than claimed closed: this Author has twice declared a class closed and been falsified.",
+    "C1a: independent security review with an UNCORRELATED 56-decoy corpus measured 19 detected / 37 missed, against 12/12 and 17/17 from correlated samples. The Meta and Stripe misses are fixed because they are this project's own G0 blockers, but most cloud-vendor families and most credential-carrying file formats are still undetected. C1 is closed only as scoped: its fail-open and no-privacy-dimension components are closed; its near-zero-detection component is downgraded, not closed.",
+    "A Thai juristic-person tax ID shares the identical 13-digit mod-11 form as a national ID and is reported as one; roughly 9.45% of arbitrary 13-digit runs will fire. node_modules/ and .git/ are skipped entirely, so a vendored node_modules is invisible. Git history remains unscanned.",
+    "RFC-2026-005 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge. Until approved it does not hold rank-1 authority, so the ownership transfer and the cross-package amendments are staged, not authorized.",
+    "A PATTERN SCANNER CANNOT PROVE THE ABSENCE OF SECRETS. It proves only that the declared patterns did not match the declared files at this commit. A credential in an unenumerated format, split across lines, encoded, or embedded in opaque bytes passes. This is a property of the approach and cannot be closed by widening the rule set; evidence citing a clean scan must not claim more than this. Measured: the strengthened scanner detects 13 of 14 realistic decoys, against 1 of 14 before.",
+    "Git history is still not scanned. The scanner walks the working tree and skips .git, so a credential committed and later deleted is invisible to it. Closing this needs a history-scanning pass and a decision about what to do when one is found, since history cannot be rewritten under RFC-2026-002's no-force-push rule.",
+    "The email-address rule is exempt under evidence/ and handoffs/. A customer email address pasted into an evidence file will not be caught. The scanner does not attempt to tell a maintainer address from a customer address, because any such test would be a domain allowlist masquerading as a security control.",
+    "Lowercase and JSON-style secret assignments such as api_key: \"...\" are not matched, because this repository's own contract-gap evidence contains that exact shape as prose. Detecting it would mean firing on the audit trail that documents the gaps.",
+    "Private and internal hostnames and RFC1918 addresses are not detected. This is the one decoy family still missed and it is declined deliberately: a .internal/.local/.corp rule fires on the committed taxonomy identifier topic.wardrobe.internal-function in docs/sprint-0a/sprint-0a-industry-research-pack-th.md.",
+    "Rule prefixes and length floors are calibrated to vendor formats as published at the time of writing. A vendor that silently changes a prefix or length defeats the corresponding rule and nothing in this repository would notice.",
+    "The scanner and its test are digested in test-kits/integrity-manifest.json, which RFC-2026-003 records as a TRIPWIRE WITH NO SELF-ANCHOR: a commit that edits a guarded file and its digest together passes. This package inherits that property and does not improve it.",
+    "The ownership transfer amends WP-0A-A0-001, whose Integration Owner /root/r0_steward is an OpenAI Codex run that was not available in this session. That manifest records acknowledgement_status: pending and the amendment is not complete until countersigned.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
+    "No cardholder-data rule exists, though payment providers are among the named G0 blockers. Raised as an advisory by independent security review and not addressed here."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range 17c63c5..7cdd419 covers 13 path(s) — 2 script(s), 3 test file(s), 1 decision record(s), 2 work-package manifest(s). Revert the RFC, the scanner, its test, this manifest, the WP-0A-A0-001 amendment, the two integrity-manifest digests, and the evidence through a reviewed revert PR. Reverting restores the five-pattern fail-open scanner, the two-test suite, the previous digests, and the previous ownership boundaries exactly. No persisted data, provider state, credential, migration, or customer-data effect exists. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
+  "recommended_next_work_packages": [
+    "WP-0A-CON-006"
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-A0-003/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}
