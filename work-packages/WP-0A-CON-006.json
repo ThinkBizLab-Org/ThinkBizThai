@@ -1,0 +1,217 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-006",
+  "title": "Usage/cost and notification contracts \u2014 completing the shared kernel",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback. It is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-004 before the manual merge described in RFC-2026-002",
+    "A1 security owner disposition of the CTR-MOD-001 / CTR-SEC-001 secret-handle syntax ownership conflict, and of the handle issuance format that CTR-SEC-001 cannot specify"
+  ],
+  "purpose": "Materialize the last two Draft shared-kernel contracts, CTR-USG-001 and CTR-NTF-001, completing all 14 entries in the Sprint 0A contract catalog. Written schema-first with every rule carrying an x-source, following the method that WP-0A-CON-003 and WP-0A-CON-004 established after WP-0A-CON-002 was rejected twice for letting schema and test predicates drift apart.",
+  "scope": {
+    "include": [
+      "CTR-USG-001 schema, manifest and synthetic fixtures: OB-004's six usage dimensions, its attribution requirement, and decimal-string money",
+      "CTR-NTF-001 schema, manifest and synthetic fixtures: PT-007's command/result split, permission-checked deep link, ID-005 dedupe, and the prohibition on a delivery failure rolling back a domain result",
+      "An x-source on every rule naming the baseline task, and a declared inference wherever a rule is derived rather than quoted",
+      "untestable_by_fixture and untestable_by_schema declarations for what neither can demonstrate"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, contract-catalog/shared-kernel/index.json, the provider price list, currency conversion, the OB-008 reconciliation algorithm, the OB-006 safe metric-label set, notification retry policy and dedupe window, email and LINE adapter shapes, the MOD-100 preference model, production schema, migrations, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-022",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001"
+  ],
+  "contracts_produced": [
+    "CTR-USG-001 and CTR-NTF-001 materialized at Draft only; no freeze-level advancement"
+  ],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-002",
+      "WP-0A-CON-002",
+      "WP-0A-CON-003",
+      "WP-0A-CON-004",
+      "WP-0A-CON-005"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "contract-catalog/shared-kernel/ctr-usg-001/**",
+      "contract-catalog/shared-kernel/ctr-ntf-001/**",
+      "work-packages/WP-0A-CON-006.json",
+      "evidence/WP-0A-CON-006/**",
+      "handoffs/WP-0A-CON-006-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/README.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/**",
+      "contract-catalog/shared-kernel/ctr-err-001/**",
+      "contract-catalog/shared-kernel/ctr-mod-001/**",
+      "package.json",
+      "package-lock.json",
+      ".github/**",
+      "test-kits/**",
+      "scripts/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "**/*.pem",
+      "**/*.key",
+      "**/*.p12",
+      "**/*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "forbidden_paths_note": "This list deliberately DIFFERS from the sibling packages, which forbid `**/*secret*` and `**/*credential*` by filename. This package materializes the secret-handle contract itself, so files named for secret handling are its declared outputs: `contract-catalog/shared-kernel/ctr-sec-001/**` and `ctr-aud-001/examples/valid-credential-revoked.json` would be forbidden by their own manifest, which is a contradiction rather than a control. Those two globs are replaced by the key and certificate material extensions a credential store would actually carry, and the intent behind them -- that no credential material and no secret store enters the repository -- is carried by `security_privacy.data_classification: synthetic-only`, by the `npm run scan:secrets` step in the verify command, and by CTR-SEC-001's own root `additionalProperties: false`, which gives the contract no property capable of holding credential material. Note the standing limitation recorded in open_blockers: the repository secret scanner is weak, and this substitution does not change that either way.",
+    "module_ids": [
+      "MOD-000"
+    ],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree."
+    ]
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/plans/module-contracts-events-jobs-workstream-th.md",
+      "docs/plans/meta-security-production-ops-workstream-th.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/schema.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-command-carrying-delivery.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-public-url.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-without-permission.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-rolls-back-domain-result.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-without-class.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-free-text.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-command.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-delivered.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-failed-transient.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-suppressed-duplicate.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-float-cost.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-metric-label-carries-content.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-provider-attribution.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-unknown-dimension.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-estimated-storage.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-provider-reported.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/schema.json",
+      "work-packages/WP-0A-CON-006.json",
+      "evidence/WP-0A-CON-006/author-self-check.md"
+    ],
+    "contracts": [
+      "CTR-USG-001 (Draft)",
+      "CTR-NTF-001 (Draft)"
+    ]
+  },
+  "acceptance_criteria": [
+    "Every fixture is validated against its own shipped schema.json by the subset validator; both contracts passed conformance without a correction round.",
+    "Every rule carries an x-source naming the baseline task, and states whether it is quoted or a declared inference.",
+    "Money and quantity are decimal STRINGS, never numbers: Decision Register 4.2 MOD-130 forbids floating-point money.",
+    "A notification deep link requires a permission check as a const, and a delivery failure records that it did not roll back the domain result as a const -- both expressed in the contract rather than in prose.",
+    "All 14 shared-kernel contracts are now materialized; the index still reports 4 Candidate and 10 Draft, so materializing a Draft does not promote it.",
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero."
+  ],
+  "required_tests": [
+    "Schema conformance for both contracts via the subset validator",
+    "Negative cases: floating-point cost notation, missing provider attribution, an unknown usage dimension, a metric label carrying user content",
+    "Negative cases: a deep link without a permission check, a public-URL deep link, a failure that rolls back the domain result, a failure without a class, a command carrying delivery state, free text where a message key is required",
+    "Repository protocol, ownership, role-separation and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "open_blockers": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "CTR-NTF-001 is owned by A5, not A0. It is materialized here from the baseline and REQUIRES A5 ratification before freeze. This is the same class of ownership irregularity that CTR-MOD-001 created for CTR-SEC-001, and it is recorded rather than resolved because A5 is not in this session.",
+    "CTR-USG-001 is owned by A0+A6. A6 has not supplied an independently reviewed capability benchmark for billing-cost-ops (see WP-0A-A6-001), so the cost semantics here are materialized from the baseline and require A6 ratification.",
+    "OB-008 reconciliation -- detecting missing and duplicate usage against a provider statement -- and ID-005 dedupe suppression are properties of a ledger or a store across many events. Declared in untestable_by_fixture and NOT claimed as materialized.",
+    "metric_labels is held at maxProperties 0 because OB-006's safe label set does not exist yet. An open object would invite an unsafe one; this is a deliberate placeholder, not a modelled rule.",
+    "That a cost figure is arithmetically correct for its quantity is declared in untestable_by_schema. Only OB-008 can check it.",
+    "This package depends on five unmerged packages and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor and that npm run check can be neutered by its own script.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
