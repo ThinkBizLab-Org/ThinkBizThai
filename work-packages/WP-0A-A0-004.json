@@ -110,14 +110,13 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/verify-test-coverage-floor.mjs",
         "test-kits/integrity-manifest.json",
         "test-kits/test-coverage-floor.test.mjs",
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json"
       ],
-      "rationale": "Adding a test file requires a digest in the integrity manifest and a re-recorded verification count; both are generated and both belong to WP-0A-A0-002. This package claims neither. Three further paths were reported by scripts/verify-branch-scope.mjs on its first run against this branch and are recorded rather than removed: scripts/verify-test-coverage-floor.mjs and its test gained the requirement that all five gating steps appear in order in scripts.check, which is this package's subject and WP-0A-A0-002's file; work-packages/WP-0A-A0-001.json carries the amendment record transferring .github/workflows/ci.yml to this package. WP-0A-A0-002.json carries the amendment record for the branch-scope guard and its test moving to this package.",
+      "rationale": "Adding a test file requires a digest in the integrity manifest and a re-recorded verification count; both are generated and both belong to WP-0A-A0-002. This package claims neither. Three further paths were reported by scripts/verify-branch-scope.mjs on its first run against this branch and are recorded rather than removed: scripts/verify-test-coverage-floor.mjs and its test gained the requirement that all five gating steps appear in order in scripts.check, which is this package's subject and WP-0A-A0-002's file; work-packages/WP-0A-A0-001.json carries the amendment record transferring .github/workflows/ci.yml to this package. WP-0A-A0-002.json carries the amendment record for the branch-scope guard and its test moving to this package. Removed 1 declaration(s) that explain nothing this package's own branch changed, named by deadAmendments and confirmed by git diff over 3fe40f8..WP-0A-A0-004-ci-independent-guard-step: evidence/VERIFICATION.md. Each was a standing permission over another package's files granted for work that never happened.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json",
         "work-packages/WP-0A-A0-001.json"

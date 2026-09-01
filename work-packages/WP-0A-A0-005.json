@@ -101,14 +101,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".github/workflows/ci.yml",
         "scripts/scan-repository-secrets.mjs",
         "test-kits/integrity-manifest.json",
         "test-kits/secret-scan.test.mjs",
-        "work-packages/WP-0A-A0-003.json",
-        "work-packages/WP-0A-A0-004.json"
+        "work-packages/WP-0A-A0-003.json"
       ],
-      "rationale": "WP-0A-A0-003 owns the scanner and its test; WP-0A-A0-002 owns the integrity manifest. This package adds one rule and its coverage, and updates the digests it necessarily invalidates. Declaring these as outputs made the ownership validator exit 70, correctly: two packages cannot hold one path. The amendment is recorded on the owning manifests instead. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package.",
+      "rationale": "WP-0A-A0-003 owns the scanner and its test; WP-0A-A0-002 owns the integrity manifest. This package adds one rule and its coverage, and updates the digests it necessarily invalidates. Declaring these as outputs made the ownership validator exit 70, correctly: two packages cannot hold one path. The amendment is recorded on the owning manifests instead. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. Removed 2 declaration(s) that explain nothing this package's own branch changed, named by deadAmendments and confirmed by git diff over e287ac6..WP-0A-A0-005-cardholder-data-scan: .github/workflows/ci.yml, work-packages/WP-0A-A0-004.json. Each was a standing permission over another package's files granted for work that never happened.",
       "recorded_on": [
         "work-packages/WP-0A-A0-003.json",
         "work-packages/WP-0A-A0-002.json"
