@@ -97,6 +97,25 @@ export function assertPackageScripts(scripts) {
   if (steps.some((step) => step.length === 0)) {
     throw new CoverageFloorError(81, `check contains an empty step; every step must be a real command joined by &&. Found: ${check}`);
   }
+  // A NEWLINE is a POSIX command separator and was in none of the forbidden sets. Independent
+  // review sixteen wrote `… && true\nexit 0 && npm run test:bootstrap`: every required step
+  // present as its own step, order and first/last satisfied, no forbidden character anywhere --
+  // and `sh` ran `exit 0` before the suite. **exit 0, zero tests executed, no `ℹ pass` line at
+  // all.** The whole suite, the verification record, the post-run integrity re-check and the
+  // declaration reconciliation went with it, and CI's own `npm run check` step went green too.
+  //
+  // Enumerating separators was the wrong shape: `\n`, `\r`, `$(`, backticks and `(` are all
+  // separators or substitutions, and the next one is whatever nobody listed. A step is now an
+  // ALLOWED alphabet, and anything outside it is rejected whatever it means.
+  const allowed = /^[A-Za-z0-9 ./:_@-]+$/;
+  for (const step of steps) {
+    if (!allowed.test(step)) {
+      const offending = [...step].filter((character) => !allowed.test(character))
+        .map((character) => JSON.stringify(character)).join(', ');
+      throw new CoverageFloorError(81, `check step ${JSON.stringify(step)} contains ${offending}, which is not part of a command name or path. `
+        + 'A newline, a substitution or a subshell can end the chain early while every structural check still passes.');
+    }
+  }
   for (const forbidden of ['||', ';', '|', '#', '&']) {
     // `&` is checked after splitting on `&&`, so any surviving `&` is a background operator.
     if (steps.some((step) => step.includes(forbidden))) {
@@ -118,6 +137,15 @@ export function assertPackageScripts(scripts) {
   const missing = required.filter((step) => !steps.includes(step));
   if (missing.length > 0) {
     throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')} as its own && step; a guard that is not wired into check protects nothing. Found: ${check}`);
+  }
+  // Equality, not containment. The review's newline carrier rode in on an EXTRA step -- the chain
+  // was allowed to hold anything as long as it also held the five required ones. An extra step
+  // buys nothing a required step does not.
+  if (steps.length !== required.length) {
+    const extra = steps.filter((step) => !required.includes(step));
+    throw new CoverageFloorError(81, `check has ${steps.length} steps where ${required.length} are required`
+      + `${extra.length > 0 ? `; unexpected: ${extra.map((step) => JSON.stringify(step)).join(', ')}` : ''}. `
+      + 'The chain is exactly the five guards, in order.');
   }
   // Requiring the STEP is not requiring the WORK. `test:bootstrap` and `verify:coverage-floor`
   // were pinned to exact commands; the three steps between them were pinned only by name, so
@@ -354,34 +382,30 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
-  'scripts/verify-clean-run.mjs',
-  // The two highest-authority documents in this repository, added after independent review
-  // fifteen. CONTRIBUTING_AGENTS.md is the conflict-order authority for everything including the
-  // non-negotiable security rules, and the Decision Register is authority level 2 and the exact
-  // string INDEX_HEADER pins as the catalog's provenance. Neither was digested by anything: the
-  // review rewrote "enforce tenant isolation for every tenant data path" into "for browser and
-  // BFF paths; an internal service caller is exempt", declared four contracts FROZEN with no
-  // co-owner sign-off, and appended a freeze-authority section to the Register -- exit 0, 214/214.
-  //
-  // Every catalog ratchet justifies itself by citing these two files. A rule reversed here
-  // survives all of them, and they then enforce a status the amended source says is already
-  // frozen. INDEX_HEADER pinned the CITATION and nothing pinned the CITED DOCUMENT.
-  'CONTRIBUTING_AGENTS.md',
-  'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
   '.agents/capabilities.schema.json',
   '.agents/handoff.schema.json',
   '.agents/status.schema.json',
   '.agents/work-package.schema.json',
   '.github/workflows/ci.yml',
   '.node-version',
-  'contract-catalog/shared-kernel/index.json',
   'CONTRIBUTING_AGENTS.md',
+  'architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md',
+  'architecture/decisions/RFC-2026-002-manual-merge-control.md',
+  'architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md',
+  'architecture/decisions/RFC-2026-004-catalog-reference-integrity.md',
+  'architecture/decisions/RFC-2026-005-secret-scan-strengthening.md',
+  'architecture/decisions/RFC-2026-006-job-reference-hardening.md',
+  'architecture/decisions/RFC-2026-007-ci-independent-guard-step.md',
+  'architecture/decisions/RFC-2026-008-cardholder-data-scan.md',
+  'architecture/decisions/RFC-2026-009-reference-bounds.md',
+  'architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md',
+  'contract-catalog/README.md',
+  'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
   'evidence/VERIFICATION.md',
   'package.json',
   'scripts/record-verification.mjs',
   'scripts/refresh-author-handoff.mjs',
-  'scripts/verify-clean-run.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'scripts/run-test-suite.mjs',
   'scripts/scan-repository-secrets.mjs',
@@ -393,6 +417,7 @@ export const DIGESTED_FLOOR = [
   'scripts/validate-work-packages.mjs',
   'scripts/verify-branch-identity.mjs',
   'scripts/verify-branch-scope.mjs',
+  'scripts/verify-clean-run.mjs',
   'scripts/verify-test-coverage-floor.mjs',
   'scripts/verify-toolchain.mjs',
   'test-kits/branch-identity.test.mjs',
@@ -411,6 +436,7 @@ export const DIGESTED_FLOOR = [
   'test-kits/contracts/shared-kernel-schema-conformance.test.mjs',
   'test-kits/handoff-conformance.test.mjs',
   'test-kits/integrity-manifest-rebuild.test.mjs',
+  'test-kits/protocol-schema-conformance.test.mjs',
   'test-kits/repository-json.test.mjs',
   'test-kits/role-separation.test.mjs',
   'test-kits/secret-scan.test.mjs',
@@ -430,6 +456,24 @@ export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MAN
   if (removed.length > 0) {
     throw new CoverageFloorError(87, `${removed.length} file(s) were removed from ${manifestPath}: ${removed.join(', ')}. `
       + 'Protection is a ratchet: a file that has been digested stays digested, or a guard can be gutted by deleting its line.');
+  }
+  // And the floor maintains itself. Independent review sixteen computed the difference and found
+  // exactly one digested file missing from this list -- `protocol-schema-conformance.test.mjs`,
+  // the suite added two waves earlier to turn `.agents/*.schema.json` into controls. Deleting it
+  // (with record:verification and regenerate:manifest, in that order) exited **0 at 222/222**,
+  // and review fifteen's own MEDIUM 7 mutation then passed again.
+  //
+  // A hand-maintained ratchet drifts the moment someone adds a file and forgets the line. A file
+  // that is digested must join the deletion ratchet in the same commit.
+  const listed = new Set(floor);
+  const unratcheted = [...present].filter((key) => !listed.has(key)).sort();
+  if (unratcheted.length > 0) {
+    throw new CoverageFloorError(87, `${unratcheted.length} digested file(s) are not in DIGESTED_FLOOR: ${unratcheted.join(', ')}. `
+      + 'A file that is protected must also be undeletable; add it to the floor in the same commit.');
+  }
+  const duplicated = floor.filter((key, index) => floor.indexOf(key) !== index);
+  if (duplicated.length > 0) {
+    throw new CoverageFloorError(87, `DIGESTED_FLOOR lists ${duplicated.join(', ')} more than once; the list is hand-maintained and a duplicate is how it starts drifting.`);
   }
 }
 

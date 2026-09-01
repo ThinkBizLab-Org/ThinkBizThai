@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "653f699d69f749912e9fdd6e389e5497766cf129",
-  "head_revision_or_patch_checksum": "59ae56d194c2647e75199fe2801d0afd3097ea0d",
+  "head_revision_or_patch_checksum": "80c6bd690c95b76a42422c48304a492b69b33173",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
@@ -49,6 +49,7 @@
     "scripts/refresh-author-handoff.mjs",
     "scripts/regenerate-integrity-manifest.mjs",
     "scripts/verify-branch-identity.mjs",
+    "scripts/verify-clean-run.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/ci-guard-behaviour.test.mjs",
     "test-kits/contracts/catalog-groups.test.mjs",

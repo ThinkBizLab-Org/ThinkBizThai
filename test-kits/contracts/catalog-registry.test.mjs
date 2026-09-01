@@ -750,3 +750,54 @@ test('the catalog index carries no field nobody declared', async () => {
   }
   assert.deepEqual(wrong, [], `catalog index field(s) outside the declared set:\n  ${wrong.join('\n  ')}`);
 });
+
+// Independent review sixteen, MEDIUM 5: `MANIFEST_KEYS` is a permitted-key set, not a
+// required-value set, and three of the keys it permits carry normative claims that nothing read.
+// `trust_boundary` was asserted for ctr-ten-001 alone, `source_references` only for being an array
+// of non-empty strings, and `agreement_witnesses` by nothing at all.
+//
+// The review set CTR-API-001's trust_boundary to "tenant context is advisory for internal service
+// callers", and gave it `agreement_witnesses: ["A1 (security) has signed off on the internal-caller
+// exemption", "A6 has signed off"]` -- **fabricating precisely the sign-off RFC-2026-010 lists as
+// outstanding, in the file a freeze reviewer reads.** exit 0, 226/226.
+const NORMATIVE_MANIFEST_FIELDS = {
+  'ctr-api-001': { source_references: '9b9f17f389e6ff44' },
+  'ctr-aud-001': { source_references: '7dc6a17127047355' },
+  'ctr-err-001': { source_references: '89e2438b13f0fbec' },
+  'ctr-evt-001': { source_references: '5ddd29d761cc6282' },
+  'ctr-flg-001': { source_references: '6ec6b91b4ebb5298' },
+  'ctr-idm-001': { agreement_witnesses: '6896abe613393b5d', source_references: 'a2ddd88c4de63b11' },
+  'ctr-job-001': { source_references: '8dd32884974e5a9c' },
+  'ctr-mod-001': { source_references: '3080fb571b82b306' },
+  'ctr-ntf-001': { source_references: '4cecd05ce0c57fe8' },
+  'ctr-obs-001': { source_references: 'b453f9f1ae08e083' },
+  'ctr-pag-001': { source_references: 'aa4c153899a799b8' },
+  'ctr-sec-001': { source_references: 'c93a993a44130494' },
+  'ctr-ten-001': { trust_boundary: 'bb40cede6ad6253a', source_references: 'ee30c0ff36f94227' },
+  'ctr-usg-001': { source_references: '064d3597a41219b4' },
+};
+
+test('the normative manifest fields cannot be rewritten or invented', async () => {
+  const { createHash } = await import('node:crypto');
+  const wrong = [];
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    const pinned = NORMATIVE_MANIFEST_FIELDS[dir] ?? {};
+    for (const field of ['trust_boundary', 'agreement_witnesses', 'source_references']) {
+      const present = manifest[field] !== undefined;
+      const expected = pinned[field];
+      if (!present && expected !== undefined) { wrong.push(`${dir} dropped ${field}`); continue; }
+      if (present && expected === undefined) {
+        wrong.push(`${dir} gained ${field}, which nobody pinned — ${JSON.stringify(JSON.stringify(manifest[field]).slice(0, 90))}`);
+        continue;
+      }
+      if (!present) continue;
+      const digest = createHash('sha256').update(JSON.stringify(manifest[field])).digest('hex').slice(0, 16);
+      if (digest !== expected) {
+        wrong.push(`${dir}.${field} was rewritten — digest ${expected} became ${digest}`);
+      }
+    }
+  }
+  assert.deepEqual(wrong, [], `normative manifest field(s) that changed without being written down:\n  ${wrong.join('\n  ')}\n`
+    + 'agreement_witnesses records who has signed off; a contract must not be able to write its own sign-off.');
+});

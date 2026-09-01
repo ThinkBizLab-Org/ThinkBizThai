@@ -58,7 +58,11 @@ now exits **86**.
 ## MEDIUM 5 — the index took invented fields
 
 The key-set ratchet went to contract manifests and not to the index, the one file RFC-2026-010 and
-every gate decision actually read. `INDEX_KEYS` and `INDEX_ENTRY_KEYS` close it. Verified: exit 1.
+every gate decision actually read. `INDEX_KEYS` and `INDEX_ENTRY_KEYS` close it. Verified: exit 1 — **after `npm run regenerate:manifest`.**
+
+> Independent review sixteen corrected this line: the first exit is **86**, the integrity
+> tripwire, because `index.json` is digested. Naming the wrong guard's code makes the record
+> useless to anyone reproducing it.
 
 ## MEDIUM 6 — a dead guard, and a false claim in my evidence
 
@@ -116,7 +120,13 @@ a human is who a contract catalog is for.*
 
 ## Verification
 
-`npm run check` — **225/225, fail 0, skipped 0, todo 0, exit 0**.
+See `evidence/VERIFICATION.md`, which is machine-written by `npm run record:verification`.
+
+> This section said **"225/225 … exit 0"** and was wrong in both directions, as review sixteen
+> pointed out: at the commit it documents the real result was **exit 88**, which this same file
+> admits forty lines below, and the count has since moved. A number typed into evidence is a fact
+> maintained by hand — the thing this package has a machine-written record to avoid — so the
+> number is gone and the record is cited instead.
 
 ---
 

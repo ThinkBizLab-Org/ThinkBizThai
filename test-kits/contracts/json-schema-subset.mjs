@@ -113,6 +113,16 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
       && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(value) || Number.isNaN(Date.parse(value)))) {
       fail('is not an RFC 3339 date-time');
     }
+    // `format` is in SUPPORTED, and only `date-time` was enforced. Independent review sixteen
+    // executed the rest: `format: "uri"` accepts "not a uri at all", `"email"` accepts "@@@",
+    // `"uuid"` accepts "zzz" -- a keyword that APPEARS to constrain and does not, which is the
+    // exact invariant this file's header says it exists to prevent. Latent today (only
+    // status.schema.json uses format, and it uses date-time) and a trap for the next schema.
+    //
+    // Fails closed: a format this validator cannot enforce is not a format it will pretend to.
+    if (schema.format !== undefined && schema.format !== 'date-time') {
+      fail(`declares format '${schema.format}', which this validator does not enforce; a format it cannot check must not appear to constrain`);
+    }
   }
   if (typeOf(value) === 'number' || typeOf(value) === 'integer') {
     if ('minimum' in schema && value < schema.minimum) fail(`below minimum ${schema.minimum}`);
@@ -122,8 +132,16 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
     if ('minItems' in schema && value.length < schema.minItems) fail(`fewer than minItems ${schema.minItems}`);
     if ('maxItems' in schema && value.length > schema.maxItems) fail(`more than maxItems ${schema.maxItems}`);
     if (schema.uniqueItems === true) {
-      const seen = value.map((item) => JSON.stringify(item));
-      if (new Set(seen).size !== seen.length) fail('array items are not unique');
+      // Compared on CANONICAL form. Independent review sixteen showed `[{a:1,b:2},{b:2,a:1}]`
+      // passing: the two objects are the same value and JSON.stringify prints them differently,
+      // so key order defeated the check. Latent in this catalog and wrong wherever it is used.
+      const canonical = (value) => {
+        if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+        if (value === null || typeof value !== 'object') return JSON.stringify(value);
+        return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+      };
+      const seen = new Set(value.map(canonical));
+      if (seen.size !== value.length) fail('contains duplicate items');
     }
     // `in`, not truthiness: `items: false` is a rule ("no element may appear"), and testing
     // truthiness silently skipped it.

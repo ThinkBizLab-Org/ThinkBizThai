@@ -290,7 +290,8 @@ because a list that only grows is a list nobody trusts.
    writing that the divergence is intentional. It is listed here so the *decision* is visible, not
    because it is a defect.
 8. **~~Prose in an `x-` annotation is not enforced, by design.~~** I wrote that one wave ago and it was the wrong call. Independent review fourteen inverted `CTR-SEC-001`'s `x-opacity-limitation` — *"THIS PATTERN IS NOT A SECURITY CONTROL"* became *"IS A SECURITY CONTROL … no further opacity mechanism is required before freeze"* — and deleted the record that nothing binds a claimed scope to its handle, at **exit 0**. Other suites cite `x-reference-rule` as *the* source of a rule, so the channel is normative. All **157** annotations are now pinned by per-contract digest and count. **The cost is real: fixing a typo in a comment is now a ratchet edit.** That is the price of a channel that carries security admissions.
-9. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+9. **A fabricated approval written into a handoff or an evidence file is caught by nothing.** Those paths are `WRITTEN_AFTERWARDS` by construction — a handoff cannot list the commit that contains it — so a handoff claiming `/claude/a1_bastion` approved something, or an evidence file recording a verification that never ran, passes every guard. Independent review sixteen demonstrated it. **A digest cannot fix this; it needs the reviewer to read the handoff.** A *new* RFC file is caught by the branch-scope guard (exit 73) but not by `npm run check`.
+10. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
 
 ### Closed since this list was first written
 

@@ -10,6 +10,18 @@
 // Exit codes: 0 clean; otherwise the check's own code, unchanged, so a caller sees what failed.
 import { spawnSync } from 'node:child_process';
 
+// The guard runs FIRST and OUTSIDE the chain, for the reason RFC-2026-007 gives about CI.
+// Independent review sixteen put `… && true\nexit 0 && npm run test:bootstrap` into
+// `scripts.check`: the coverage-floor guard fired and printed its rejection, and `sh` then ran
+// the `exit 0` on the next line, so `npm run check` exited 0 anyway. A guard that lives inside
+// the string it audits cannot report on that string -- the chain gets the last word.
+const guard = spawnSync(process.execPath, ['scripts/verify-test-coverage-floor.mjs'], { encoding: 'utf8' });
+if (guard.status !== 0) {
+  process.stderr.write(`NOT clean: the coverage-floor guard exited ${guard.status}, run independently of the check chain\n`);
+  process.stderr.write(`  ${`${guard.stdout ?? ''}${guard.stderr ?? ''}`.trimEnd().split('\n').at(-1) ?? ''}\n`);
+  process.exit(guard.status ?? 1);
+}
+
 const result = spawnSync('npm', ['run', 'check'], { encoding: 'utf8' });
 const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 const code = result.status;
