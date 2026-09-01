@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 const jsonFiles = [
@@ -78,4 +78,48 @@ test('the workflow still runs every guard it is the outside anchor for', async (
   // recorded in the evidence, not an accident to be silently widened or removed.
   assert.match(ci, /if: github\.event_name == 'pull_request'/,
     'the branch-scope step is pull-request scoped by design; losing the condition changes what it means');
+});
+
+// Independent review sixteen amended RFC-2026-010 with a binding "Amendment 1" exempting internal
+// service callers from tenant isolation and recording A1/A6 sign-off as satisfied. An approved RFC
+// outranks the Decision Register AND CONTRIBUTING_AGENTS.md in this repository's own conflict
+// order, so a rule reversed there survives every ratchet beneath it. All eleven decision records
+// are digested now, which stops an EDIT.
+//
+// A NEW file was still only caught by the branch-scope guard, which runs in CI on a pull request
+// and not in `npm run check` at all -- so `RFC-2026-011-internal-caller-exemption.md`, `Status:
+// Approved`, could be written and tested green locally. The set is named here for the same reason
+// every ratchet in this repository is named rather than counted.
+const DECISION_RECORDS = [
+  'RFC-2026-001-bootstrap-tooling-contract.md',
+  'RFC-2026-002-manual-merge-control.md',
+  'RFC-2026-003-contract-test-coverage-and-ownership-transfer.md',
+  'RFC-2026-004-catalog-reference-integrity.md',
+  'RFC-2026-005-secret-scan-strengthening.md',
+  'RFC-2026-006-job-reference-hardening.md',
+  'RFC-2026-007-ci-independent-guard-step.md',
+  'RFC-2026-008-cardholder-data-scan.md',
+  'RFC-2026-009-reference-bounds.md',
+  'RFC-2026-010-shared-kernel-freeze-readiness.md',
+];
+
+test('the set of decision records is what it was, and each is digested', async () => {
+  const present = (await readdir('architecture/decisions'))
+    .filter((name) => name.endsWith('.md')).sort();
+  const added = present.filter((name) => !DECISION_RECORDS.includes(name));
+  const removed = DECISION_RECORDS.filter((name) => !present.includes(name));
+  const wrong = [];
+  for (const name of added) {
+    wrong.push(`${name} is a new decision record nobody declared. An approved RFC outranks every `
+      + 'document in the conflict order, so adding one is the highest-authority act available here.');
+  }
+  for (const name of removed) wrong.push(`${name} was deleted`);
+
+  // And each must carry a digest, so an edit is a tripwire and a deletion is a ratchet failure.
+  const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));
+  for (const name of present) {
+    const key = `architecture/decisions/${name}`;
+    if (manifest.files?.[key] === undefined) wrong.push(`${key} carries no digest`);
+  }
+  assert.deepEqual(wrong, [], `decision-record problem(s):\n  ${wrong.join('\n  ')}`);
 });

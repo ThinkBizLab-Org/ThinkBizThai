@@ -247,3 +247,49 @@ test('a fixture change counts as contract impact', async () => {
   assert.ok(!isArtifact('contract-catalog/shared-kernel/ctr-api-001/fixtures/anything.json')
     || true, 'no fixtures/ directory exists in this repository; the old clause matched nothing');
 });
+
+// Independent review sixteen wrote a fabricated approval into a handoff and an evidence file --
+// "/claude/a1_bastion executed the check at exit 0 and approved it" -- and nothing caught it,
+// because `handoffs/` and `evidence/` are WRITTEN_AFTERWARDS by construction: a handoff cannot
+// list the commit that contains it.
+//
+// A digest cannot fix that, and the review said so. **The separation of duties can fix part of
+// it.** An author writes an author handoff and moves work no further than `in_review`; approval is
+// a different role's artifact, in a different file, written by a different agent_run_id. So a
+// handoff that speaks for a role it does not hold is a protocol violation this can see, even
+// though a handoff that merely lies about its own work is not.
+//
+// This is a partial control, and the remaining half is on the "not closed" list where it belongs.
+const APPROVAL_LANGUAGE = /\b(approved|approves|sign-?off|signed off|countersign)\b/i;
+
+test('an author handoff does not record an approval it has no authority to give', async () => {
+  const wrong = [];
+  for (const [name, body] of await authorHandoffs()) {
+    const author = body.agent_run_id;
+    const manifestPath = `work-packages/${body.work_package_id}.json`;
+    const manifest = await readFile(manifestPath, 'utf8').then(JSON.parse).catch(() => null);
+    if (manifest === null) continue;
+    const roles = manifest.role_assignments ?? {};
+    // An author handoff may state its own status only, and only as far as in_review.
+    if (!['author_complete', 'in_review', 'ready', 'backlog'].includes(body.final_status)) {
+      wrong.push(`${name} declares final_status ${JSON.stringify(body.final_status)}; an author moves work no further than in_review`);
+    }
+    if (author !== roles.author_agent_run_id) {
+      wrong.push(`${name} is written by ${author} but ${manifestPath} names ${roles.author_agent_run_id} as author`);
+    }
+    // And it must not put approval words in the mouth of another role's run id.
+    const others = Object.entries(roles)
+      .filter(([key, value]) => key.endsWith('_agent_run_id') && typeof value === 'string' && value !== author)
+      .map(([, value]) => value);
+    const prose = JSON.stringify(body);
+    for (const runId of others) {
+      if (!prose.includes(runId)) continue;
+      const window = prose.slice(Math.max(0, prose.indexOf(runId) - 160), prose.indexOf(runId) + 160);
+      if (APPROVAL_LANGUAGE.test(window)) {
+        wrong.push(`${name} records ${runId} approving something; an approval is that role's own artifact, not the author's`);
+      }
+    }
+  }
+  assert.deepEqual(wrong, [], `handoff(s) speaking for a role they do not hold:\n  ${wrong.join('\n  ')}\n`
+    + 'A handoff that lies about its own work is not caught by anything here — that needs a reader.');
+});

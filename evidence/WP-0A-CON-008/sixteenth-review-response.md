@@ -108,3 +108,40 @@ uses `format`, with `date-time` — and a trap for the next schema.
 
 See `evidence/VERIFICATION.md`, written by `npm run record:verification`. `npm run verify` reports
 the exit code directly.
+
+---
+
+## Closing the two things the review left open, as far as they can be closed
+
+### A new decision record
+
+Digesting the eleven existing RFCs stops an **edit**. A **new** file was still caught only by the
+branch-scope guard — which runs in CI on a pull request and not in `npm run check` at all, so
+`RFC-2026-011-internal-caller-exemption.md`, `Status: Approved`, could be written and tested green
+locally.
+
+The set is now named, and each must carry a digest. Verified: adding that exact file exits **1**,
+*"a new decision record nobody declared. An approved RFC outranks every document in the conflict
+order, so adding one is the highest-authority act available here."*
+
+### A fabricated approval — the half that is mechanisable, and the half that is not
+
+The review is right that a digest cannot fix this: `handoffs/` and `evidence/` are
+`WRITTEN_AFTERWARDS` by construction, because a handoff cannot list the commit that contains it.
+
+**The separation of duties fixes part of it.** An author writes an author handoff and moves work no
+further than `in_review`; an approval is a different role's artifact, in a different file, written
+by a different `agent_run_id`. A handoff that *speaks for a role it does not hold* is a protocol
+violation a machine can see.
+
+Two probes, both now failing:
+
+| probe | exit |
+| --- | --- |
+| author handoff records *"`/claude/a1_bastion` executed the security review and approved this package"* | 1 |
+| author handoff declares `final_status: "review_approved"` | 1 |
+
+**What is still not caught, stated plainly:** a handoff that lies only about **its own** work —
+claiming a test run that never happened, an exit code that was never observed. Nothing here can see
+that, and the "not closed" list says so. That one needs a reader, which is exactly what the
+separation of duties exists to provide and what the Product Owner's review is for.
