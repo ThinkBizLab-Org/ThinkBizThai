@@ -83,16 +83,24 @@ export function isThaiNationalId(value) {
  *  here. No card number, valid or otherwise, is written literally in this file: a rule that
  *  cannot be stated without tripping itself would have to exempt its own source, and a
  *  scanner blind to one file is a scanner with a place to hide things. */
-export function isPaymentCardNumber(value) {
-  const digits = value.replace(/[ -]/g, '');
-  if (!/^[0-9]{13,19}$/.test(digits)) return false;
-  const issuer =
-    (/^4/.test(digits) && (digits.length === 13 || digits.length === 16 || digits.length === 19)) ||
-    (/^(5[1-5]|2[2-7])/.test(digits) && digits.length === 16) ||
-    (/^3[47]/.test(digits) && digits.length === 15) ||
-    (/^(6011|64[4-9]|65)/.test(digits) && (digits.length === 16 || digits.length === 19)) ||
-    (/^35(2[89]|[3-8][0-9])/.test(digits) && digits.length === 16);
-  if (!issuer) return false;
+// Issuer ranges paired with the lengths that issuer actually uses. Independent security
+// review found the first version covered five families and four lengths, omitting UnionPay
+// (BIN 62) entirely -- the highest-volume network globally and widely accepted in Thai
+// e-commerce, which for this product is the wrong one to miss -- and omitting the 14-digit
+// length altogether, which made Diners Club structurally unreachable.
+const ISSUER_RANGES = [
+  [/^4/, [13, 16, 19]],                       // Visa
+  [/^(5[1-5]|2[2-7])/, [16]],                 // Mastercard
+  [/^3[47]/, [15]],                           // American Express
+  [/^(6011|64[4-9]|65)/, [16, 19]],           // Discover
+  [/^35(2[89]|[3-8][0-9])/, [16]],            // JCB
+  [/^62/, [16, 19]],                          // UnionPay
+  [/^(30[0-5]|3095|3[689][0-9])/, [14]],      // Diners Club
+  [/^(50|5[6-8]|6304|6759|676[1-3])/, [16, 19]], // Maestro
+  [/^(60|81|82)/, [16]],                      // RuPay
+];
+
+function luhnHolds(digits) {
   let sum = 0;
   let double = false;
   for (let index = digits.length - 1; index >= 0; index -= 1) {
@@ -106,6 +114,74 @@ export function isPaymentCardNumber(value) {
   }
   return sum % 10 === 0;
 }
+
+/** A primary account number is customer PII, and CONTRIBUTING_AGENTS.md forbids customer PII
+ *  repository-wide with no carve-out. Detecting one needs BOTH tests, never either alone.
+ *
+ *  Luhn alone is far too weak: one in ten arbitrary digit runs of the right length passes it,
+ *  so a rule built on Luhn reports correlation ids, hash prefixes and timestamps until someone
+ *  turns it off. An issuer prefix alone is weaker still -- every 16-digit run starting with 4
+ *  would be a card. Together they are strict enough to run unattended.
+ *
+ *  Deliberately NOT exempted: the published provider test cards. At rest a scanner cannot tell
+ *  a test number from a live one, Gate G0 permits no provider integration that would need one,
+ *  and an allowlist of "safe" card numbers is the shape a real leak hides in. When a payment
+ *  sandbox is authorized, the exemption belongs in a reviewed decision with a named owner, not
+ *  here. No card number, valid or otherwise, is written literally in this file: a rule that
+ *  cannot be stated without tripping itself would have to exempt its own source, and a
+ *  scanner blind to one file is a scanner with a place to hide things. */
+export function isPaymentCardNumber(value) {
+  const digits = value.replace(/[^0-9]/g, '');
+  if (!/^[0-9]{13,19}$/.test(digits)) return false;
+  if (!ISSUER_RANGES.some(([prefix, lengths]) => prefix.test(digits) && lengths.includes(digits.length))) return false;
+  return luhnHolds(digits);
+}
+
+// Group sizes a card is actually written in. Independent security review measured the
+// unrestricted rule reporting 2.5% of random 16-digit ids and 2.6% of a row of four
+// space-separated integers -- and this repository's own evidence files are full of numeric
+// tables. A row of five 3-digit latencies is not a card no matter what Luhn says about its
+// concatenation, and a rule that reports one is a rule someone switches off.
+function groupingIsCardLike(sizes) {
+  if (sizes.length <= 2) return true;                       // unbroken, or broken once by a line wrap
+  if (sizes.length === 3 && sizes[0] === 4 && sizes[1] === 6 && sizes[2] === 5) return true; // Amex
+  const body = sizes.slice(0, -1);
+  const last = sizes.at(-1);
+  return body.every((size) => size === 4) && last >= 1 && last <= 4;
+}
+
+/** Independent security review defeated the single-window version with the shape cardholder
+ *  data actually arrives in -- a PAN followed by an expiry and a CVV on one line of a support
+ *  ticket, chat paste or captured form body. The regex committed to the greedy 19-digit
+ *  window, `accept` rejected it, and `matchAll` advanced past the card inside it without ever
+ *  backtracking. So the run is matched generously here and every card-length window that
+ *  starts and ends on a group boundary is tested. */
+export function containsPaymentCardNumber(run) {
+  const groups = run.match(/[0-9]+/g) ?? [];
+  if (groups.length === 0) return false;
+  const sizes = groups.map((group) => group.length);
+  const digits = groups.join('');
+  const starts = [];
+  let offset = 0;
+  for (const size of sizes) {
+    starts.push(offset);
+    offset += size;
+  }
+  const ends = new Map(starts.map((start, index) => [start + sizes[index], index]));
+  for (let index = 0; index < starts.length; index += 1) {
+    for (const length of [13, 14, 15, 16, 19]) {
+      const from = starts[index];
+      const to = from + length;
+      // A card does not start or stop in the middle of a written group.
+      if (!ends.has(to)) continue;
+      const covered = sizes.slice(index, ends.get(to) + 1);
+      if (!groupingIsCardLike(covered)) continue;
+      if (isPaymentCardNumber(digits.slice(from, to))) return true;
+    }
+  }
+  return false;
+}
+
 
 /** A value that is a template reference or a documented stand-in is not a leaked secret.
  *  Anchored end to end on purpose: a real credential that merely CONTAINS the word
@@ -199,10 +275,12 @@ export const CREDENTIAL_RULES = [
 export const PII_RULES = [
   {
     id: 'payment-card-number',
-    // Separators are allowed INSIDE the run but the run is bounded by non-digits on both
-    // sides, so a longer number does not yield a card-shaped window from its middle.
-    pattern: /(?<![0-9])[0-9](?:[ -]?[0-9]){12,18}(?![0-9])/g,
-    accept: (match) => isPaymentCardNumber(match),
+    // The run is matched generously -- digits joined by the separators a card is written or
+    // pasted with, including a line break, because a wrapped log line or a quoted email is a
+    // real artifact shape and a non-breaking space is what a paste from a rendered statement
+    // carries. `accept` then does the real work over the windows inside the run.
+    pattern: /(?<![0-9])[0-9](?:(?:[ \t\u00A0\u2007\u2009\u202F\u2011-]|\r?\n[ \t]*)?[0-9])+(?![0-9])/g,
+    accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a
     // Thai national identity number that way must treat this one the same or it enforces

@@ -33,9 +33,35 @@ Both tests are required, and neither is sufficient:
 - **An issuer prefix alone is weaker still.** Every sixteen-digit run beginning
   with `4` would become a finding.
 
-Separators are permitted inside the run and the run is bounded by non-digits on
-both sides, so a longer identifier does not yield a card-shaped window from its
-middle.
+The run is matched generously — digits joined by the separators a card is written
+or pasted with, a line break included — and every card-length window that starts
+and ends on a written group boundary is then tested. The first version matched one
+greedy window and tested only that, which independent security review defeated with
+the shape cardholder data actually arrives in: **a PAN followed by an expiry and a
+CVV on one line of a support ticket.** The regex committed to the 19-digit window,
+the check rejected it, and the scan advanced past the card inside it without ever
+backtracking.
+
+Nine issuer families are covered, at the lengths each actually uses. The first
+version covered five and omitted **UnionPay** entirely — the highest-volume network
+globally and widely accepted in Thai e-commerce, which for this product is the wrong
+one to miss — and omitted the 14-digit length altogether, which made Diners Club
+structurally unreachable.
+
+**A run only counts as a card when it is written like one:** unbroken, broken once
+by a line wrap, grouped in fours, or the Amex 4-6-5. Widening the separator set to
+catch a wrapped or non-breaking-space card also widens what can be mistaken for one,
+and independent security review measured the unrestricted rule reporting 2.6% of
+rows of small integers. This repository's evidence directories are full of numeric
+tables and the rule is deliberately not prose-exempt, so without this a green CI
+would depend on no benchmark table ever landing on a Luhn-valid concatenation. That
+is the switch-it-off pressure this decision exists to avoid, arriving from a
+direction the first draft did not consider. Measured after: rows of five 3-digit
+measurements report at 0.000% over 200 000 samples.
+
+What remains, and is accepted: **10.1% of random 16-digit identifiers beginning with
+4.** One arbitrary run in ten passes Luhn, and nothing distinguishes such an
+identifier from a card at rest. That is the irreducible cost of the rule.
 
 The rule is **not prose-exempt**. A card number in a comment, a runbook or an
 evidence file is the same disclosure as one in code, and the national-identity
@@ -56,9 +82,22 @@ carry real issuer prefixes, so this rule reports them. That is deliberate:
    in — one entry added quietly, and the scanner is blind to that number forever.
 
 When a payment sandbox is authorized and that G0 blocker lifts, fixture work may
-legitimately need a test card. The exemption should then arrive as a reviewed
-decision with a named owner and a bounded path, not as a constant appended to this
-rule.
+legitimately need a test card. **Design that exemption before the payment package
+starts, not under its deadline.** Independent security review put the cost plainly:
+every payment fixture, every webhook-projection vector, every recorded provider
+response and every runbook showing an operator a declined charge will trip this
+rule, the friction is immediate and continuous, and it lands on the package with the
+most schedule pressure and the strongest incentive to reach for a blanket ignore.
+
+The shape it should take, so it is decided in advance rather than negotiated:
+
+1. a named fixture path prefix, not a repository-wide carve-out;
+2. an **enumerated** set of provider-published numbers, never a wildcard;
+3. a named owner;
+4. a test asserting that a card **outside** that set is still reported **inside**
+   that path — so the carve-out carries its own tripwire.
+
+What to refuse is the shape refused here: a constant appended to the rule.
 
 ## No card number is written literally, anywhere
 
@@ -84,7 +123,25 @@ A pattern scanner cannot prove absence. This closes one named class. The 37 of 5
 uncorrelated decoys recorded as unreported against `WP-0A-A0-003` remain unreported,
 and this rule does not change that number.
 
-Two classes are excluded on purpose:
+**Git history is not scanned.** The scan walks the working tree, so a card committed
+and later removed stays in history behind a green scan forever. This is recorded for
+the scanner as a whole in RFC-2026-005, but it is restated here because for
+regulated cardholder data the usual remediation — rewrite the history — is
+unavailable under RFC-2026-002's manual-merge and no-force-push control. A PAN that
+reaches `main` is a disclosure that this repository has no mechanism to undo.
+
+**Encoded and non-ASCII digit forms are not detected** — full-width, Arabic-Indic
+and Thai digits, zero-width or soft-hyphen interleaving, base64, hex and percent
+encoding, and digits split across JSON array elements. This is a deliberate refusal
+rather than an oversight: none has a plausible accidental-commit path, and none
+stops a deliberate exfiltrator, who has better options. Adding decode passes for
+them would multiply the surface a maintainer must reason about while buying nothing.
+Independent security review reached the same conclusion and recommended not acting
+on them. The one worth revisiting is base64, because a captured HTTP request body
+committed as a fixture is a real artifact shape — but that is a scanner-wide
+decision, not a card-rule one.
+
+Two further classes are excluded on purpose:
 
 - **Card verification values.** Three digits, no checksum, no prefix. A rule for
   them reports noise and would be disabled, taking the useful rules with it.

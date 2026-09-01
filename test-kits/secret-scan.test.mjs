@@ -437,8 +437,12 @@ test('reports a published provider test card rather than exempting it', () => {
 
 test('does not report digit runs that only look like cards', () => {
   const quiet = [
-    // Luhn-invalid: a correlation id, a counter, a truncated hash of digits.
-    '4012888888881882'.slice(0, 15) + '9',
+    // Luhn-invalid: a correlation id, a counter, a truncated hash of digits. Built by
+    // breaking a synthetic number's check digit. It used to be a published test PAN with one
+    // digit changed -- one well-meaning "typo fix" from putting a real card in this file, in
+    // a block whose whole point is that none is ever written down. Independent security
+    // review caught it.
+    (() => { const valid = synthCard('401288888888188'); return valid.slice(0, -1) + String((Number(valid.at(-1)) + 1) % 10); })(),
     // Luhn-VALID but no issuer prefix: roughly one arbitrary run in ten passes Luhn, and a
     // rule that fires on those reports noise until someone switches it off.
     synthCard('999999999999999'),
@@ -462,4 +466,68 @@ test('does not slice a card-shaped window out of a longer digit run', () => {
   const number = synthCard('401288888888188');
   assert.deepEqual(scanText(`id: 77${number}77`, { relativePath: 'fixtures/order.json' }), [],
     'a 20-digit run must not yield a card from its middle');
+});
+
+// Every case below is one independent security review demonstrated against the first version
+// of this rule. Two were High: a card followed by an expiry and a CVV -- the shape cardholder
+// data actually arrives in -- was swallowed by the greedy digit window and never reported,
+// and whole issuer families were uncovered, including UnionPay, which for a Thai commerce
+// product is the wrong network to omit, and every 14-digit length, which made Diners Club
+// structurally unreachable.
+test('reports a card that is followed by an expiry and a security code', () => {
+  const pan = synthCard('401288888888188');
+  const grouped = pan.replace(/(.{4})(?=.)/g, '$1 ');
+  for (const trailing of [' 12 30 411', ' 411', ' 03 29']) {
+    assert.deepEqual(scanText(`card ${grouped}${trailing}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+      ['payment-card-number'], `a card followed by ${trailing.trim()} must still be reported`);
+  }
+  const hyphenated = pan.replace(/(.{4})(?=.)/g, '$1-');
+  assert.deepEqual(scanText(`card ${hyphenated}-12-30-411`, { relativePath: 'evidence/WP-X/ticket.md' }),
+    ['payment-card-number']);
+});
+
+test('reports a card broken by a line wrap or grouped with the spaces a paste carries', () => {
+  const pan = synthCard('401288888888188');
+  const cases = {
+    'wrapped by an 80-column log line': `pan=${pan.slice(0, 8)}\n     ${pan.slice(8)}`,
+    'non-breaking spaces from a rendered statement': pan.replace(/(.{4})(?=.)/g, '$1\u00a0'),
+    'thin spaces': pan.replace(/(.{4})(?=.)/g, '$1\u2009'),
+  };
+  for (const [why, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);
+  }
+});
+
+test('reports the issuer families the first version of this rule could not see', () => {
+  const families = {
+    'UnionPay 16': synthCard('623074185296307'),
+    'UnionPay 19': synthCard('623074185296307418'),
+    'Diners Club 36, 14 digits': synthCard('3630741852963'),
+    'Diners Club 30, 14 digits': synthCard('3053074185296'),
+    'Maestro 6759': synthCard('675930741852963'),
+    'Maestro 5018': synthCard('501830741852963'),
+    'RuPay 60': synthCard('603074185296307'),
+  };
+  for (const [family, number] of Object.entries(families)) {
+    assert.deepEqual(scanText(`pan: ${number}`, { relativePath: 'fixtures/order.json' }),
+      ['payment-card-number'], `${family} (${number.length} digits) must be reported`);
+  }
+});
+
+// Widening the separator set to catch a wrapped or NBSP-grouped card also widens what can be
+// mistaken for one. Independent security review measured the unrestricted rule reporting 2.6%
+// of rows of small integers -- and this repository's evidence directories are full of numeric
+// tables, on a rule that is deliberately not prose-exempt. So a run is only a card when it is
+// WRITTEN like one.
+test('does not report a row of numbers that merely concatenates into a card', () => {
+  const rows = [
+    'p95 latency by run: 340 338 247 491 221',
+    '| run | 340 338 247 491 221 |',
+    'durations_ms: 44 47 85 77 94 92 56 65',
+    'counts 241 240 816 141 235',
+  ];
+  for (const row of rows) {
+    assert.deepEqual(scanText(row, { relativePath: 'evidence/WP-X/benchmark.md' }), [],
+      `${row} is a table of measurements, not a card`);
+  }
 });

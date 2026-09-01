@@ -69,3 +69,72 @@ looks like a defence is the failure mode this package exists to avoid.
   staged, not authorized.
 - Cross-vendor review is **not** satisfied. Every run on this package is Anthropic
   `claude-opus-5`, carried forward as the recorded exception, not as an equivalent.
+
+## Independent security review: `security_changes_requested`, two High
+
+The rule as first shipped missed cardholder data along two paths a real leak takes.
+
+**High 1 — the greedy window hid the card.** A PAN followed by an expiry and a CVV
+on one line — a support ticket, a chat paste, a captured form body — was never
+reported. The regex committed to the 19-digit window, `isPaymentCardNumber` rejected
+it, and `matchAll` advanced past the card inside it without backtracking. My own
+test at the time asserted the *inverse* case (no card sliced from a longer run) and
+never considered a valid card hidden by a longer window.
+
+**High 2 — whole issuer families were unreachable.** UnionPay (BIN 62) was absent
+entirely; for a Thai commerce product that is the wrong network to omit. No 14-digit
+length was checked at all, which made Diners Club structurally unreachable. Maestro
+and RuPay were also missing.
+
+Fixed by matching the run generously and testing every card-length window that
+starts and ends on a written group boundary, and by covering nine issuer families at
+the lengths each uses.
+
+**Medium 3 — wrapped and NBSP-grouped cards were missed.** A card broken across an
+80-column log line, or grouped with the non-breaking spaces a paste from a rendered
+statement carries. Now detected.
+
+**Low/Medium 5 — the widened separator set brought false positives with it**, which
+the reviewer measured at 2.6% for rows of small integers. This repository's evidence
+directories are full of numeric tables and the rule is not prose-exempt, so a green
+CI would have depended on no benchmark table ever concatenating into a Luhn-valid
+card. A run now counts only when it is *written* like a card. Measured after: rows of
+five 3-digit measurements 0.000% over 200 000 samples, down from 2.6%.
+
+**Low 6 — the negative test held a published test PAN with one digit changed.** In a
+block whose stated principle is that no card number is ever written down, one
+well-meaning "typo fix" would have committed a real card. Now constructed.
+
+### Verification
+
+| Reintroduced defect | Result |
+|---|---|
+| Single greedy window | 3 failures |
+| Four issuer families removed | 1 failure |
+| Grouping plausibility removed | 2 failures |
+
+```
+$ npm run check
+ℹ tests 131   pass 131   fail 0   skipped 0   todo 0
+```
+
+Fifteen must-detect and five must-not-report cases from the review are now tests.
+
+### Accepted, not fixed
+
+- **10.1% of random 16-digit identifiers beginning with 4 are reported.** One
+  arbitrary run in ten passes Luhn, and at rest nothing distinguishes such an
+  identifier from a card. This is the irreducible cost of the rule.
+- **Encoded and non-ASCII digit forms are not detected.** A deliberate refusal, with
+  the reviewer's agreement: no accidental-commit path, no obstacle to a deliberate
+  exfiltrator, and a large maintenance surface. Recorded in RFC-2026-008.
+- **Git history is not scanned**, and under RFC-2026-002's no-force-push control the
+  usual remediation is unavailable. Now restated in RFC-2026-008 for this data class.
+
+### Agreed, and acted on
+
+The reviewer agreed with reporting published provider test cards, and set out what
+it will cost when the Stripe blocker lifts. RFC-2026-008 now carries the shape the
+exemption must take — a named path prefix, an enumerated set, a named owner, and a
+test proving a card outside that set is still reported inside that path — so it is
+decided in advance rather than negotiated under the payment package's deadline.
