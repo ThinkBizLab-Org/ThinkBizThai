@@ -5,13 +5,23 @@
   "title": "CTR-JOB-001 reference-field hardening",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "in_review",
   "required_skill_profiles": {
-    "author": ["architecture-contracts"],
-    "reviewer": ["architecture-contracts"],
-    "tester": ["independent-qa"],
-    "integration_owner": ["integration-release"],
-    "conditional_reviewers": ["security-privacy"]
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
   },
   "role_assignments": {
     "author_agent_run_id": "/claude/a0_atlas",
@@ -28,7 +38,9 @@
     "prefer_cross_vendor_review": true,
     "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback - it is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
   },
-  "accountable_owners": ["A0"],
+  "accountable_owners": [
+    "A0"
+  ],
   "required_human_authorities": [
     "Product Owner disposition of RFC-2026-006 before the manual merge described in RFC-2026-002",
     "CTR-JOB-001 Integration Owner /root/r0_steward acknowledgement of the cross-package amendment to a Candidate contract's delivered content"
@@ -47,13 +59,23 @@
       "contract-catalog/shared-kernel/index.json, contract freeze-level advancement, contract version advancement, package status advancement, the other thirteen catalog contracts, the choice of scheme allow-list membership, production schema, migrations, RLS implementation, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
     ]
   },
-  "decisions_consumed": ["DEC-021"],
-  "contracts_consumed": ["CTR-TEN-001", "CTR-IDM-001"],
+  "decisions_consumed": [
+    "DEC-021"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-IDM-001"
+  ],
   "contracts_produced": [
     "CTR-JOB-001 amended in place at Candidate 1.0.0; no freeze-level or version advancement"
   ],
   "dependencies": {
-    "required_work_packages": ["WP-0A-A0-001", "WP-0A-CON-001", "WP-0A-A0-002", "WP-0A-CON-002"],
+    "required_work_packages": [
+      "WP-0A-A0-001",
+      "WP-0A-CON-001",
+      "WP-0A-A0-002",
+      "WP-0A-CON-002"
+    ],
     "approved_fixtures": []
   },
   "inputs": {
@@ -76,7 +98,9 @@
       "work-packages/WP-0A-CON-005.json",
       "evidence/WP-0A-CON-005/author-self-check.md"
     ],
-    "contracts": ["CTR-JOB-001 (Candidate, unchanged at 1.0.0)"]
+    "contracts": [
+      "CTR-JOB-001 (Candidate, unchanged at 1.0.0)"
+    ]
   },
   "ownership": {
     "writable_paths": [
@@ -99,9 +123,20 @@
       ".github/**",
       "scripts/**"
     ],
-    "forbidden_paths": [".env", ".env.*", "db/**", "migrations/**", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "db/**",
+      "migrations/**",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
+    ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
-    "module_ids": ["MOD-000"],
+    "module_ids": [
+      "MOD-000"
+    ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
       "contract-catalog/shared-kernel/ctr-job-001/schema.json (WP-0A-CON-001 output, Candidate 1.0.0) - permitted change: replace the input_ref and result_ref constraint not:{pattern:\"^https?://\"} with the CTR-IDM-001 pattern ^(job|status|result|app|asset|content):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$, add an x-reference-rule on each naming the demonstrated bypasses, and append a WP-0A-CON-005 record to x-amended-by (which becomes an array so the WP-0A-CON-002 record is carried forward unchanged rather than overwritten). NOTHING ELSE: no property added or removed, no required-list change, no $ref change, version stays 1.0.0, freeze level stays Candidate. RFC-2026-006 decisions 2 and 3. Corrective, not anticipatory: the bypasses are real in the tree today and were re-measured before the change.",
@@ -137,7 +172,9 @@
   ],
   "deterministic_commands": {
     "setup": [],
-    "verify": ["npm run check"],
+    "verify": [
+      "npm run check"
+    ],
     "package_evidence": [
       "node --test test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
       "node --test test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
