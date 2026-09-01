@@ -84,6 +84,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-CON-004-security-audit-observability",
     "writable_paths": [
       "contract-catalog/shared-kernel/ctr-sec-001/**",
       "contract-catalog/shared-kernel/ctr-aud-001/**",

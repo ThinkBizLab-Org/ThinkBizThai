@@ -228,3 +228,60 @@ test('every contract directory on disk is in the pinned registry', async () => {
   const unpinned = dirs.filter((dir) => !CATALOG_REGISTRY[dir]);
   assert.deepEqual(unpinned, [], `contract(s) present but not pinned — a new contract must record its status, owner and freeze requirements: ${unpinned.join(', ')}`);
 });
+
+// Independent review eleven: `freeze_boundary`, `source_references`, `untestable_by_fixture`
+// and `untestable_by_schema` are pinned by nothing across the catalog as a whole. Two contracts
+// have their text asserted in the envelope suite; the other twelve can be rewritten to say
+// anything, emptied, or -- the case that matters -- have a caveat DELETED.
+//
+// A caveat is the only record that a contract makes a claim its own fixtures cannot demonstrate.
+// Deleting one does not fail a test; it makes the contract look better than it is. So the SET of
+// contracts carrying each caveat is pinned by name, the same way untested constraints are: a
+// count can be paid for by adding a caveat somewhere cheap, a name cannot.
+const DECLARES_UNTESTABLE_BY_FIXTURE = [
+  'CTR-AUD-001', 'CTR-FLG-001', 'CTR-MOD-001', 'CTR-NTF-001',
+  'CTR-OBS-001', 'CTR-PAG-001', 'CTR-SEC-001', 'CTR-USG-001',
+];
+const DECLARES_UNTESTABLE_BY_SCHEMA = [
+  'CTR-AUD-001', 'CTR-NTF-001', 'CTR-OBS-001', 'CTR-PAG-001', 'CTR-SEC-001', 'CTR-USG-001',
+];
+
+test('every contract states a freeze boundary and cites where it came from', async () => {
+  const wrong = [];
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    const id = manifest.contract_id;
+    const boundary = manifest.freeze_boundary;
+    // A boundary is a sentence about what freezing this contract does NOT settle. An empty
+    // string, a placeholder, or "n/a" is the absence of one wearing its name.
+    if (typeof boundary !== 'string' || boundary.trim().length < 40) {
+      wrong.push(`${id}: freeze_boundary is ${JSON.stringify(boundary)} — must state what the freeze leaves open`);
+    } else if (/^(n\/?a|none|tbd|todo)\b/i.test(boundary.trim())) {
+      wrong.push(`${id}: freeze_boundary is a placeholder — ${JSON.stringify(boundary.trim().slice(0, 40))}`);
+    }
+    const refs = manifest.source_references;
+    if (!Array.isArray(refs) || refs.length === 0) {
+      wrong.push(`${id}: source_references is ${JSON.stringify(refs)} — a contract with no cited source is unreviewable`);
+    } else if (!refs.every((r) => typeof r === 'string' && r.trim().length > 0)) {
+      wrong.push(`${id}: source_references holds an empty entry`);
+    }
+  }
+  assert.deepEqual(wrong, [], `contract manifest field(s) nothing was checking:\n  ${wrong.join('\n  ')}`);
+});
+
+test('a contract does not quietly stop declaring what its fixtures cannot demonstrate', async () => {
+  const carries = { fixture: [], schema: [] };
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    const id = manifest.contract_id;
+    const stated = (value) => typeof value === 'string' && value.trim().length >= 20;
+    if (stated(manifest.untestable_by_fixture)) carries.fixture.push(id);
+    if (stated(manifest.untestable_by_schema)) carries.schema.push(id);
+  }
+  // Equality in both directions. A contract that drops its caveat fails; a contract that gains
+  // one fails too, because a new caveat is a new admission and belongs in a reviewed diff.
+  assert.deepEqual(carries.fixture.sort(), [...DECLARES_UNTESTABLE_BY_FIXTURE].sort(),
+    'the set of contracts admitting a claim their fixtures cannot demonstrate has changed');
+  assert.deepEqual(carries.schema.sort(), [...DECLARES_UNTESTABLE_BY_SCHEMA].sort(),
+    'the set of contracts admitting a claim their schema cannot express has changed');
+});

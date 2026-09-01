@@ -380,6 +380,7 @@ export const PROTECTED_KEYS = [
   'scripts/test-suite-contract.mjs',
   'scripts/scan-repository-secrets.mjs',
   'scripts/verify-branch-scope.mjs',
+  'scripts/verify-branch-identity.mjs',
   'scripts/record-verification.mjs',
   'scripts/regenerate-integrity-manifest.mjs',
   'contract-catalog/shared-kernel/index.json',

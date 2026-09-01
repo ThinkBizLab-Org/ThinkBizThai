@@ -68,6 +68,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/root/WP-0A-A0-001-repository-bootstrap",
     "amended_by": [
       {
         "work_package_id": "WP-0A-A0-002",

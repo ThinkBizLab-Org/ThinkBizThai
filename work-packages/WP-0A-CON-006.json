@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "protocol_version": "1.0.0",
   "work_package_id": "WP-0A-CON-006",
-  "title": "Usage/cost and notification contracts \u2014 completing the shared kernel",
+  "title": "Usage/cost and notification contracts — completing the shared kernel",
   "gate": "G0",
   "priority": "P0",
   "status": "in_review",
@@ -81,6 +81,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-CON-006-usage-and-notification",
     "writable_paths": [
       "contract-catalog/shared-kernel/ctr-usg-001/**",
       "contract-catalog/shared-kernel/ctr-ntf-001/**",
@@ -120,10 +121,10 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree.",
-      "contract-catalog/shared-kernel/ctr-evt-001/** and ctr-job-001/** \u2014 ADD negative fixtures only, and declare them in each manifest. No schema, version, status or freeze-level change. Both sat below the new per-contract mutation-coverage floor at 26.6% and 25.0%, with only three fixtures each, so constraints the Sprint 0A baseline states in sections 3.2 and 3.3 were exercised by nothing. Adding a counterexample cannot weaken a contract; it can only make an existing rule observable.",
-      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs \u2014 validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice.",
-      "test-kits/contracts/schema-mutation-coverage.test.mjs \u2014 a WP-0A-CON-003 output. Amended to count assertion keywords only, and to raise the floor. Independent review found this package had edited it while listing it in its own read_only_paths and omitting it here, so npm run check stayed green only because outputs.files did not admit the change: the same ship-past-the-control pattern an Integration Owner blocked earlier in this session, relocated into the manifest."
+      "test-kits/integrity-manifest.json — recompute digests only; this package adds no test file but the guard requires the manifest to match the tree.",
+      "contract-catalog/shared-kernel/ctr-evt-001/** and ctr-job-001/** — ADD negative fixtures only, and declare them in each manifest. No schema, version, status or freeze-level change. Both sat below the new per-contract mutation-coverage floor at 26.6% and 25.0%, with only three fixtures each, so constraints the Sprint 0A baseline states in sections 3.2 and 3.3 were exercised by nothing. Adding a counterexample cannot weaken a contract; it can only make an existing rule observable.",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs — validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice.",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs — a WP-0A-CON-003 output. Amended to count assertion keywords only, and to raise the floor. Independent review found this package had edited it while listing it in its own read_only_paths and omitting it here, so npm run check stayed green only because outputs.files did not admit the change: the same ship-past-the-control pattern an Integration Owner blocked earlier in this session, relocated into the manifest."
     ]
   },
   "inputs": {

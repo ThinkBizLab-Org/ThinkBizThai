@@ -80,6 +80,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-CON-002-envelope-contracts",
     "writable_paths": [
       "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
       "contract-catalog/shared-kernel/ctr-api-001/**",

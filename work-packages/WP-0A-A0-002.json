@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
   },
   "accountable_owners": [
     "A0"
@@ -73,6 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A0-002-contract-test-coverage",
     "writable_paths": [
       "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
       "package.json",
@@ -116,8 +117,8 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "work-packages/WP-0A-A0-001.json \u2014 remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
-      "work-packages/WP-0A-CON-001.json \u2014 replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
+      "work-packages/WP-0A-A0-001.json — remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
+      "work-packages/WP-0A-CON-001.json — replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
     ],
     "amended_by": [
       {

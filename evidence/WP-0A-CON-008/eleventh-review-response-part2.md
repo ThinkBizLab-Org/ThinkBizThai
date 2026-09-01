@@ -68,3 +68,57 @@ the manifest.** It could be edited to skip any file and nothing would notice. It
 
 `npm run check` — **176/176, fail 0, skipped 0, todo 0, exit 0**. Both probes above were run
 against this tree and both exit 1; the tree was restored and re-verified at 176/176 after each.
+
+---
+
+# Findings 6 and 7
+
+## MEDIUM #6 — four manifest fields were pinned by nothing
+
+`freeze_boundary` is declared by all 14 contracts, `source_references` by 14,
+`untestable_by_fixture` by 8, `untestable_by_schema` by 6. Only two contracts had any of that
+text asserted, both in the envelope suite. The other twelve could be rewritten, emptied, or —
+the case that matters — have a caveat **deleted**.
+
+A caveat is the only record that a contract makes a claim its own fixtures cannot demonstrate.
+Deleting one fails no test; it just makes the contract look better than it is.
+
+Fix — two tests in `catalog-registry.test.mjs`:
+
+1. every contract states a freeze boundary of real length and cites at least one source, with
+   `n/a`/`none`/`tbd`/`todo` rejected as the absence of one wearing its name;
+2. the **set** of contracts carrying each caveat is pinned **by name**, with equality in both
+   directions. Dropping a caveat fails. *Gaining* one fails too — a new admission belongs in a
+   reviewed diff, not in a silent pass.
+
+Probe: deleting `untestable_by_fixture` from `CTR-PAG-001` → **exit 1**, *"the set of contracts
+admitting a claim their fixtures cannot demonstrate has changed"*. Setting `CTR-EVT-001`'s
+`freeze_boundary` to `"n/a"` → **exit 1**, naming the contract and the value.
+
+## MEDIUM #7 — the CI scope step was opt-out, and the branch chose its own judge
+
+The step derived its package with `sed` over the branch name. Two holes, not one:
+
+- `agent/claude/tidy-up` parses to nothing → *"nothing to scope"*, **exit 0**. The branch-scope
+  guard was opt-out by rename.
+- `agent/claude/WP-0A-A0-001-anything` is judged against `WP-0A-A0-001`'s writable paths — the
+  broadest in the repository. A rename also **selected the judge**.
+
+A ref name is not evidence. Fix — `scripts/verify-branch-identity.mjs`: every work package now
+declares `ownership.branch`, and a branch is judged against the package that **names it**. The
+link is two-way: a branch cannot pick its manifest, and a manifest cannot be pointed at a branch
+without a reviewed edit. Exit 75 no claimant, 76 two claimants, 77 an unreadable manifest —
+because silently skipping a manifest that will not parse is how a claimant disappears and a
+branch becomes unclaimed, which is the same shape as the bypass being replaced.
+
+CI now runs `package_id="$(node scripts/verify-branch-identity.mjs "$HEAD_REF")" || exit $?`.
+There is no path through that step that reaches exit 0 without a resolved package.
+
+`test-kits/branch-identity.test.mjs` covers all four failure modes plus the rename attack
+(`WP-BROAD-alpha` must not resolve to `WP-BROAD`) and asserts the real manifests resolve to
+distinct packages.
+
+## Verification
+
+`npm run check` — **184/184, fail 0, skipped 0, todo 0, exit 0**.
+`verify-branch-scope.mjs` against the stack base — *all 54 changed paths are declared*.

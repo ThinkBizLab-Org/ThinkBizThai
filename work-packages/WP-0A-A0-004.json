@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
   },
   "accountable_owners": [
     "A0"
@@ -72,6 +72,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A0-004-ci-independent-guard-step",
     "writable_paths": [
       "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
       ".github/workflows/ci.yml",
@@ -104,8 +105,8 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "work-packages/WP-0A-A0-001.json \u2014 remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
-      "test-kits/integrity-manifest.json \u2014 recompute digests; ci.yml is already digested there."
+      "work-packages/WP-0A-A0-001.json — remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
+      "test-kits/integrity-manifest.json — recompute digests; ci.yml is already digested there."
     ],
     "amends_without_owning": {
       "paths": [
