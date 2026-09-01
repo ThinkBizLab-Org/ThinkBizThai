@@ -1723,6 +1723,8 @@ const SUBSCHEMA_VALUED = new Set([
   'additionalItems', 'contentSchema',
 ]);
 
+const COMBINATOR_KEYWORDS = new Set(['allOf', 'anyOf', 'oneOf']);
+
 function isEmptySubschema(value) {
   if (value === true || value === false) return false; // a boolean schema is explicit, not empty
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -1774,6 +1776,22 @@ function surfaceOf(schema) {
       // everything can no longer show a mutation. An added rule can retroactively untest others.
       if (SUBSCHEMA_VALUED.has(key) && isEmptySubschema(value)) {
         entries.push(`${path}.${key} = <empty schema, rejects or vacuously accepts everything here>`);
+      }
+      // A BOOLEAN subschema. `isEmptySubschema` returns false for booleans -- deliberately, a
+      // boolean is explicit rather than empty -- so review thirteen used `items: false`,
+      // `allOf: [false]` and `not: true` to add real rules with a byte-identical record.
+      // `not: true` and `not: {}` are the same rule; only one of them produced a line.
+      // `additionalProperties` is excluded: it is an assertion keyword, already recorded above
+      // with its value, so a boolean line here would duplicate every closure rule in the catalog.
+      if (SUBSCHEMA_VALUED.has(key) && key !== 'additionalProperties' && typeof value === 'boolean') {
+        entries.push(`${path}.${key} = ${value} (boolean schema: ${value ? 'accepts' : 'rejects'} everything here)`);
+      }
+      if (COMBINATOR_KEYWORDS.has(key) && Array.isArray(value)) {
+        value.forEach((branch, index) => {
+          if (typeof branch === 'boolean') {
+            entries.push(`${path}.${key}[${index}] = ${branch} (boolean schema branch)`);
+          }
+        });
       }
       walk(value, `${path}.${key}`);
     }

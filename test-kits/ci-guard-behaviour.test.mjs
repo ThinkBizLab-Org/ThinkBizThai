@@ -113,3 +113,73 @@ test('verify-branch-scope accepts a branch whose every path is declared', async 
   assert.equal(code, 0, out);
   assert.match(out, /all 2 changed path\(s\) are declared/);
 });
+
+// Review twelve's process tests pinned five behaviours; independent review thirteen found the
+// gaps between them. AMBIGUOUS_CLAIM (76) and UNREADABLE (77) were never exercised as processes,
+// and the scope guard's PREDICATE was unpinned — so two edits passed at exit 0, 198/198:
+//
+//   verify-branch-scope.mjs   ...undeclared(...).filter((f) => !f.startsWith('contract-catalog/'))
+//   verify-branch-identity.mjs  if (code === AMBIGUOUS_CLAIM || code === UNREADABLE) → exit 0
+//
+// After which an undeclared change to ctr-api-001/schema.json reported "all 4 changed path(s)
+// are declared". Every hole a test leaves is a hole shaped exactly like the test.
+const withPackages = async (files) => {
+  const root = await mkdtemp(join(tmpdir(), 'identity-guard-'));
+  const packages = join(root, 'work-packages');
+  spawnSync('mkdir', ['-p', packages]);
+  for (const [name, body] of Object.entries(files)) {
+    await writeFile(join(packages, name), typeof body === 'string' ? body : JSON.stringify(body));
+  }
+  return root;
+};
+const claiming = (id, branch) => ({ work_package_id: id, ownership: { branch } });
+
+test('verify-branch-identity exits 76 when two packages claim one branch', async () => {
+  const root = await withPackages({
+    'WP-1.json': claiming('WP-1', 'agent/claude/shared'),
+    'WP-2.json': claiming('WP-2', 'agent/claude/shared'),
+  });
+  const guard = join(process.cwd(), 'scripts/verify-branch-identity.mjs');
+  const { code, out } = run(guard, ['agent/claude/shared'], { cwd: root });
+  assert.equal(code, 76, `expected AMBIGUOUS_CLAIM, got ${code}: ${out}`);
+  assert.match(out, /WP-1, WP-2/);
+  assert.doesNotMatch(out, /^WP-\d\s*$/m, 'an ambiguous claim must not print a package id for CI to capture');
+});
+
+test('verify-branch-identity exits 77 rather than resolving past an unreadable manifest', async () => {
+  const root = await withPackages({
+    'WP-1.json': claiming('WP-1', 'agent/claude/WP-1-alpha'),
+    'WP-BROKEN.json': '{ not json',
+  });
+  const guard = join(process.cwd(), 'scripts/verify-branch-identity.mjs');
+  const { code, out } = run(guard, ['agent/claude/WP-1-alpha'], { cwd: root });
+  assert.equal(code, 77, `expected UNREADABLE, got ${code}: ${out}`);
+  assert.match(out, /WP-BROKEN\.json/);
+});
+
+test('verify-branch-scope reports a stray path inside the contract catalog', async () => {
+  // The predicate, not just the exit code: a filter excluding `contract-catalog/` passed all five
+  // of the earlier rows. The catalog is the one place where an undeclared change matters most.
+  const repo = await mkdtemp(join(tmpdir(), 'scope-catalog-'));
+  const git = (...args) => spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('config', 'user.email', ['guard-test', 'example.invalid'].join('@'));
+  git('config', 'user.name', 'guard test');
+  await writeFile(join(repo, 'owned.txt'), 'base\n');
+  git('add', '-A');
+  git('commit', '-qm', 'base');
+  const base = git('rev-parse', 'HEAD').stdout.trim();
+  spawnSync('mkdir', ['-p', join(repo, 'work-packages')]);
+  spawnSync('mkdir', ['-p', join(repo, 'contract-catalog/shared-kernel/ctr-api-001')]);
+  await writeFile(join(repo, 'work-packages/WP-TEST-001.json'), JSON.stringify({
+    work_package_id: 'WP-TEST-001',
+    ownership: { branch: 'x', writable_paths: ['owned.txt', 'work-packages/WP-TEST-001.json'], read_only_paths: [], amends_without_owning: { paths: [], rationale: 'none' } },
+  }));
+  await writeFile(join(repo, 'contract-catalog/shared-kernel/ctr-api-001/schema.json'), '{"type":"object"}\n');
+  git('add', '-A');
+  git('commit', '-qm', 'work');
+  const guard = join(process.cwd(), 'scripts/verify-branch-scope.mjs');
+  const { code, out } = run(guard, [base, 'WP-TEST-001'], { cwd: repo });
+  assert.equal(code, 73, `an undeclared contract change must fail, got ${code}: ${out}`);
+  assert.match(out, /contract-catalog\/shared-kernel\/ctr-api-001\/schema\.json/);
+});

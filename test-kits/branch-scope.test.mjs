@@ -56,3 +56,39 @@ test('a path that is neither owned nor recorded as an amendment is reported', ()
 test('a manifest that declares nothing reports every changed path', () => {
   assert.deepEqual(undeclared(['a.md', 'b/c.json'], declaredPaths({})), ['a.md', 'b/c.json']);
 });
+
+test('an amendment list cannot be a pattern that names nothing', async () => {
+  // `declaredPaths()` unions writable_paths and amends_without_owning.paths, and the ownership
+  // validator read only the first of those -- not for shape, not for breadth, not for overlap.
+  // Independent review thirteen appended `"**"` to the amendment list: globToRegExp('**')
+  // compiles to /^.*$/, so a branch touching contracts it does not own reported
+  // "all N changed path(s) are declared" at exit 0.
+  //
+  // The neighbouring field had been hardened and this one had nothing, which is the more general
+  // lesson: a check on one field says nothing about the field beside it.
+  const { validateManifestOwnership, OwnershipValidationError } = await import('../scripts/validate-work-package-ownership.mjs');
+  const manifest = (paths, rationale = 'a reason long enough to be a reason and not a placeholder word') => ([{
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths, rationale },
+    },
+    outputs: { files: ['owned.txt'] },
+  }]);
+
+  for (const pattern of ['**', '*', '*/*', '**/*']) {
+    assert.throws(() => validateManifestOwnership(manifest([pattern])),
+      (error) => error instanceof OwnershipValidationError && error.code === 74,
+      `${JSON.stringify(pattern)} names nothing and must be rejected`);
+  }
+  assert.throws(() => validateManifestOwnership(manifest(['/etc/passwd'])), { code: 74 });
+  assert.throws(() => validateManifestOwnership(manifest(['../outside.txt'])), { code: 74 });
+  assert.throws(() => validateManifestOwnership(manifest(['scripts/run-test-suite.mjs'], 'too short')), { code: 74 },
+    'an amendment is a claim about another package\'s files and has to say why');
+
+  // And the legitimate forms still pass: a concrete path, and a glob with a literal segment.
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['scripts/run-test-suite.mjs'])));
+  assert.doesNotThrow(() => validateManifestOwnership(manifest(['evidence/WP-0A-CON-007/**'])));
+  assert.doesNotThrow(() => validateManifestOwnership(manifest([])), 'an empty amendment list needs no rationale');
+});

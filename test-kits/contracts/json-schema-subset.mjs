@@ -45,6 +45,23 @@ export function assertSchemaSupported(schema, path = '#') {
   for (const key of ['items', 'not', 'if', 'then', 'else', 'additionalProperties']) {
     if (typeof schema[key] === 'object') assertSchemaSupported(schema[key], `${path}.${key}`);
   }
+  // A boolean subschema is supported by this validator now, but it must not appear in a CATALOG
+  // schema: it is a rule expressed in a form no ratchet here records. `catalog-groups.test.mjs`
+  // rejects it outright; this is the second layer, so a schema reaching the validator by another
+  // route cannot smuggle one in either.
+  for (const key of ['items', 'not', 'if', 'then', 'else', 'additionalProperties', 'contains',
+    'propertyNames', 'unevaluatedProperties', 'unevaluatedItems']) {
+    if (typeof schema[key] === 'boolean' && key !== 'additionalProperties') {
+      throw new Error(`${path}.${key}: a boolean subschema is a rule this repository's ratchets cannot record. Write it as a schema object.`);
+    }
+  }
+  for (const key of ['allOf', 'anyOf', 'oneOf']) {
+    (schema[key] ?? []).forEach((sub, i) => {
+      if (typeof sub === 'boolean') {
+        throw new Error(`${path}.${key}[${i}]: a boolean subschema is a rule this repository's ratchets cannot record. Write it as a schema object.`);
+      }
+    });
+  }
   for (const key of ['allOf', 'anyOf', 'oneOf']) {
     (schema[key] ?? []).forEach((sub, i) => assertSchemaSupported(sub, `${path}.${key}[${i}]`));
   }
@@ -53,6 +70,20 @@ export function assertSchemaSupported(schema, path = '#') {
 export function validate(schema, value, { resolve = () => null, path = '$' } = {}) {
   const errors = [];
   const fail = (message) => errors.push(`${path}: ${message}`);
+  // A BOOLEAN is a schema in JSON Schema, not an absent one: `false` rejects every instance and
+  // `true` accepts every instance. This validator treated both as "no schema here", which is the
+  // exact disagreement its own header forbids -- a shipped contract said one thing and the
+  // repository's validator did another.
+  //
+  // Independent review thirteen used it to put three real rules into the catalog with a
+  // byte-identical constraint record and no declaration edit anywhere:
+  //   ctr-pag-001  properties.items.items = false   every paginated page must carry zero rows
+  //   ctr-api-001  allOf[2].then.allOf = [false]    an `accepted` envelope is always rejected
+  //   ctr-ten-001  allOf = [false]                  every tenant context is rejected, on the
+  //                                                 contract nine others $ref
+  // All three passed at exit 0, 198/198. Every real validator enforces all three.
+  if (schema === false) return [`${path}: false schema — nothing is valid at this location`];
+  if (schema === true) return errors;
   if (!schema || typeof schema !== 'object') return errors;
 
   if ('$ref' in schema) {
@@ -94,7 +125,9 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
       const seen = value.map((item) => JSON.stringify(item));
       if (new Set(seen).size !== seen.length) fail('array items are not unique');
     }
-    if (schema.items) value.forEach((item, i) => errors.push(...validate(schema.items, item, { resolve, path: `${path}[${i}]` })));
+    // `in`, not truthiness: `items: false` is a rule ("no element may appear"), and testing
+    // truthiness silently skipped it.
+    if ('items' in schema) value.forEach((item, i) => errors.push(...validate(schema.items, item, { resolve, path: `${path}[${i}]` })));
   }
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const keys = Object.keys(value);
@@ -135,7 +168,8 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
   if (schema.not && validate(schema.not, value, { resolve, path }).length === 0) fail('matches a schema it must not match');
   if (schema.if) {
     const branch = validate(schema.if, value, { resolve, path }).length === 0 ? schema.then : schema.else;
-    if (branch) errors.push(...validate(branch, value, { resolve, path }));
+    // Likewise: `then: false` and `else: false` are branches that reject, not absent branches.
+    if (branch !== undefined) errors.push(...validate(branch, value, { resolve, path }));
   }
   return errors;
 }

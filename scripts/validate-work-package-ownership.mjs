@@ -37,6 +37,21 @@ function isRepositoryRelativePath(path, { allowGlobs }) {
   return path.split('/').every((segment) => segment.length > 0 && segment !== '.' && segment !== '..');
 }
 
+// A pattern that matches everything asserts nothing. Independent review thirteen appended `"**"`
+// to `amends_without_owning.paths` -- a field this validator never read, for shape, breadth or
+// overlap -- and `globToRegExp('**')` compiles to /^.*$/, so `declaredPaths()` accepted every
+// path in the repository and the branch-scope guard reported "all N changed paths are declared"
+// for a branch touching contracts it does not own. Exit 0, 198/198.
+//
+// The sibling field `writable_paths` was already validated; the review's own note is the point:
+// the check on one field was "narrowly true and practically irrelevant" while the field beside it
+// had none at all.
+//
+// A declaration must name something. A pattern with no literal segment names everything.
+function namesSomething(pattern) {
+  return pattern.split('/').some((segment) => segment.length > 0 && !segment.includes('*'));
+}
+
 export function validateManifestOwnership(manifests) {
   for (const manifest of manifests) {
     const ownership = manifest.ownership ?? {};
@@ -72,6 +87,32 @@ export function validateManifestOwnership(manifests) {
       if (matchesAny(output, readOnlyPaths)) {
         throw new OwnershipValidationError(69, `work package ${label} output matches read_only_paths: ${output}`);
       }
+    }
+  }
+
+  for (const manifest of manifests) {
+    const ownership = manifest.ownership ?? {};
+    const label = manifest.work_package_id ?? '<unknown>';
+    const amendment = ownership.amends_without_owning;
+    if (amendment === undefined) continue;
+    const amendedPaths = amendment?.paths;
+    if (!Array.isArray(amendedPaths)) {
+      throw new OwnershipValidationError(74, `work package ${label} declares amends_without_owning without a paths array`);
+    }
+    for (const pattern of amendedPaths) {
+      if (!isRepositoryRelativePath(pattern, { allowGlobs: true })) {
+        throw new OwnershipValidationError(74, `work package ${label} amends an invalid path: ${JSON.stringify(pattern)}`);
+      }
+      if (!namesSomething(pattern)) {
+        throw new OwnershipValidationError(74, `work package ${label} amends ${JSON.stringify(pattern)}, which names no path at all. `
+          + 'An amendment records what a package touched outside its own scope; a pattern matching everything records nothing '
+          + 'and silences the branch-scope guard entirely.');
+      }
+    }
+    // An amendment is a claim ABOUT ANOTHER PACKAGE'S FILES, so it has to say why. The field
+    // already carried a rationale by convention; nothing required it.
+    if (amendedPaths.length > 0 && (typeof amendment.rationale !== 'string' || amendment.rationale.trim().length < 40)) {
+      throw new OwnershipValidationError(74, `work package ${label} amends ${amendedPaths.length} path(s) with no stated reason`);
     }
   }
 

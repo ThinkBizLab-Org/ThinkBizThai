@@ -343,3 +343,67 @@ test('a caveat cannot be replaced by its opposite', async () => {
   }
   assert.deepEqual(wrong, [], `caveat text that changed without being written down:\n  ${wrong.join('\n  ')}`);
 });
+
+// Independent review thirteen: `accepted_gaps` is the FOURTH field of this kind and CAVEAT_DIGESTS
+// pinned three. It records what a contract knowingly accepts that it should not, and it was
+// checked only by heuristics in the conformance suite -- length over 80, a keyword regex, twenty
+// unique words. That is the identical weakness review twelve found in the length-only caveat pin,
+// relocated one field over.
+//
+// The review rewrote CTR-SEC-001's record that the opaque-handle pattern gives ZERO coverage
+// against a credential smuggled inside a conforming handle body, replacing it with "nothing about
+// credential material remains unresolved before freeze", and kept all three heuristics satisfied:
+// exit 0, 198/198. That is the security co-owner's open item, deleted by rewrite, in silence.
+//
+// RFC-2026-010 assesses freeze readiness against exactly these records.
+const ACCEPTED_GAP_DIGESTS = {
+  'ctr-aud-001': {
+    'examples/accepted-gap-break-glass-without-time-bound.json': 'b8dbc99e5acd5125',
+  },
+  'ctr-obs-001': {
+    'examples/accepted-gap-unbounded-error-code-label.json': 'f484e4844a4c0978',
+  },
+  'ctr-pag-001': {
+    'examples/accepted-gap-decodable-offset-cursor.json': 'd94f54b4994bfda5',
+    'examples/accepted-gap-unbounded-page-size.json': 'c8dc0e403b072644',
+  },
+  'ctr-sec-001': {
+    'examples/accepted-gap-classification-below-restricted.json': 'e21de50c52685457',
+    'examples/accepted-gap-structureless-handle-body.json': '4a59065e1aac7016',
+  },
+};
+
+test('an accepted gap cannot be rewritten into a reassurance', async () => {
+  const { createHash } = await import('node:crypto');
+  const digest = (value) => createHash('sha256').update(JSON.stringify(value, Object.keys(value ?? {}).sort())).digest('hex').slice(0, 16);
+  const wrong = [];
+  const seen = {};
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    const gaps = manifest.accepted_gaps;
+    if (gaps === undefined) continue;
+    if (typeof gaps !== 'object' || gaps === null || Array.isArray(gaps)) {
+      wrong.push(`${dir}.accepted_gaps is not a map`);
+      continue;
+    }
+    seen[dir] = Object.keys(gaps).sort();
+    const pinned = ACCEPTED_GAP_DIGESTS[dir] ?? {};
+    for (const [key, value] of Object.entries(gaps)) {
+      const expected = pinned[key];
+      if (expected === undefined) {
+        wrong.push(`${dir} accepted a new gap "${key}" that is pinned by nothing; a new admission belongs in a reviewed diff`);
+        continue;
+      }
+      const found = digest(value);
+      if (found !== expected) wrong.push(`${dir} rewrote the gap "${key}" — digest ${expected} became ${found}`);
+    }
+    for (const key of Object.keys(pinned)) {
+      if (!(key in gaps)) wrong.push(`${dir} dropped the gap "${key}"; a gap that stops being recorded has not stopped existing`);
+    }
+  }
+  // Both directions on the key set too, so a whole contract cannot quietly stop declaring gaps.
+  const expectedContracts = Object.keys(ACCEPTED_GAP_DIGESTS).sort();
+  assert.deepEqual(Object.keys(seen).filter((d) => seen[d].length > 0).sort(), expectedContracts,
+    'the set of contracts declaring accepted gaps has changed');
+  assert.deepEqual(wrong, [], `accepted gap(s) that changed without being written down:\n  ${wrong.join('\n  ')}`);
+});

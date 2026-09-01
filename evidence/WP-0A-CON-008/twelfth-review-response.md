@@ -153,10 +153,19 @@ a different package"*.
 - An ungoverned group, plain or symlinked. The symlink evades `catalog-groups.test.mjs`, but the
   secret scanner fails closed on any symlink: **exit 71**.
 - Relocating enforcement into an undigested script — all 15 are digested.
-- Self-widening `writable_paths`: **exit 70**, cross-package overlap.
-- Adding an untested rule expressed in any *supported keyword* directly in a contract schema. It
-  measured the fixture coverage while trying: every declared property location is reached by some
-  fixture, and only 8 schema locations catalog-wide are reached by no positive fixture.
+- Self-widening `writable_paths`: **exit 70**, cross-package overlap. **This bullet read as a
+  closed hole and was not one**: review thirteen appended `"**"` to the sibling field
+  `amends_without_owning.paths`, which the ownership validator never read at all, and silenced the
+  branch-scope guard entirely at exit 0. A check on one field says nothing about the field beside
+  it.
+- ~~Adding an untested rule expressed in any *supported keyword* directly in a contract schema.~~
+  **This was false, and independent review thirteen disproved it by execution.** `items` and
+  `allOf` are supported keywords, and `"items": false` — one token — put *"every paginated page
+  must carry zero rows"* into `CTR-PAG-001` at exit 0, 198/198, with a byte-identical constraint
+  record and no declaration edit anywhere. See `thirteenth-review-response.md`. What review twelve
+  measured while trying is still true and still useful: every declared property location is
+  reached by some fixture, and only 8 schema locations catalog-wide are reached by no positive
+  fixture.
 
 ## Closed before review thirteen could ask for it
 

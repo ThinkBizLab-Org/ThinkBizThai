@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { lstat, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 
@@ -70,6 +70,17 @@ test('a governed group is not silently emptied', async () => {
 // staying where they are. This costs nothing: an empty combinator has no legitimate use.
 const COMBINATORS = ['anyOf', 'oneOf', 'allOf'];
 
+// Every position whose value may be a subschema, and therefore may be a BOOLEAN schema.
+//
+// `additionalProperties` is deliberately NOT here. `additionalProperties: false` is the closure
+// rule every contract in this catalog uses, it is an assertion keyword, and `surfaceOf` records
+// it with its value -- so it is already visible in the constraint record and changing it already
+// fails. The rest have no such record, which is the whole finding.
+const SUBSCHEMA_POSITIONS = [
+  'not', 'if', 'then', 'else', 'items', 'contains', 'propertyNames',
+  'unevaluatedProperties', 'unevaluatedItems', 'additionalItems', 'contentSchema',
+];
+
 // An object carrying nothing but `x-` annotations constrains as little as `{}` does; every other
 // guard in this repository skips those keys deliberately.
 const isEmptyObject = (value) => value !== null
@@ -86,6 +97,38 @@ function emptyCombinators(node, path = []) {
       found.push({
         path: [...path, key].join('/'),
         effect: key === 'allOf' ? 'accepts every document (vacuous truth)' : 'rejects every document',
+      });
+    }
+    // Independent review THIRTEEN: a BOOLEAN subschema. `false` rejects every instance at that
+    // location and `true` accepts every instance -- both are real rules, and this repository's
+    // validator read them as "no schema here" while every real validator enforces them. It
+    // planted three, all at exit 0, 198/198, with byte-identical constraint records and no
+    // declaration edit anywhere:
+    //
+    //   ctr-pag-001  properties.items.items = false  every paginated page must carry zero rows
+    //   ctr-api-001  allOf[2].then.allOf = [false]   an `accepted` envelope is always rejected
+    //   ctr-ten-001  allOf = [false]                 every tenant context rejected, on the
+    //                                                contract nine others $ref
+    //
+    // The one-token edit `"items": false` put a rule into an envelope contract that a reviewer
+    // reading the diff of the record would never see. Forbidden outright: a boolean subschema has
+    // no legitimate use in this catalog, and this is the version that cannot be reasoned around.
+    if (SUBSCHEMA_POSITIONS.includes(key) && typeof value === 'boolean') {
+      found.push({
+        path: [...path, key].join('/'),
+        effect: value === false ? 'is `false`, which rejects every document at this location'
+          : 'is `true`, which accepts every document at this location',
+      });
+    }
+    if (['allOf', 'anyOf', 'oneOf'].includes(key) && Array.isArray(value)) {
+      value.forEach((branch, index) => {
+        if (typeof branch === 'boolean') {
+          found.push({
+            path: [...path, key, index].join('/'),
+            effect: branch === false ? 'is `false`, so this branch rejects every document'
+              : 'is `true`, so this branch asserts nothing',
+          });
+        }
       });
     }
     // Independent review twelve: three more shapes with the same property -- an enormous
@@ -167,4 +210,28 @@ test('the walk sees the three empty shapes that carry no keyword at all', () => 
   ]);
   // And the populated forms are not findings.
   assert.deepEqual(emptyCombinators({ not: { type: 'string' }, if: { required: ['a'] }, enum: ['x'] }), []);
+});
+
+test('no path under the catalog is a symbolic link', async () => {
+  // Independent review thirteen: `isGovernedContractDirectory` compares strings, and
+  // `readdir(..., {withFileTypes:true})` reports a symlink-to-directory as neither isDirectory()
+  // nor isFile(). So `contract-catalog/shared-kernel/vocab -> ../../docs/shared-kernel-vocabulary`
+  // was invisible to catalogJsonFiles, contractDirectories, contracts(), the mutation walk and
+  // CATALOG_REGISTRY, while satisfying the $ref restriction added for review twelve.
+  //
+  // It was contained — but only by `scripts/scan-repository-secrets.mjs`, which fails closed on
+  // any symlink (exit 71), for an unrelated reason, in a package this one does not own. **Not one
+  // contract test failed.** A containment that lives somewhere else by accident is one allow-list
+  // entry away from being no containment at all.
+  const found = [];
+  const walk = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      const stats = await lstat(path);
+      if (stats.isSymbolicLink()) { found.push(`${path} — a symbolic link`); continue; }
+      if (stats.isDirectory()) await walk(path);
+    }
+  };
+  await walk(CATALOG);
+  assert.deepEqual(found, [], `symbolic link(s) under the catalog, invisible to every contract suite:\n  ${found.join('\n  ')}`);
 });
