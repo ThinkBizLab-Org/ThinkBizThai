@@ -48,7 +48,7 @@ jobs:
       - name: Verify branch scope
         if: github.event_name == 'pull_request'
         env:
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           package_id="$(printf '%s' "$HEAD_REF" | sed -n 's|.*/\(WP-0A-[A-Z0-9]*-[0-9]*\)-.*|\1|p')"
@@ -60,7 +60,8 @@ jobs:
             echo "branch names $package_id but work-packages/$package_id.json does not exist"
             exit 73
           fi
-          # fetch-depth: 0 on the checkout already brought the full history; this only needs the
-          # base branch ref, which a PR checkout does not create locally.
-          git fetch --no-tags origin "$BASE_REF"
-          node scripts/verify-branch-scope.mjs FETCH_HEAD "$package_id"
+          # `persist-credentials: false` means no fetch can authenticate, so the base has to
+          # come from what the checkout already brought. With `fetch-depth: 0` the full history
+          # is present and the merge-base of HEAD and the base branch is reachable by SHA --
+          # which the pull_request event supplies directly.
+          node scripts/verify-branch-scope.mjs "$BASE_SHA" "$package_id"
