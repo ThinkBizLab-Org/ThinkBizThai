@@ -252,17 +252,46 @@ work, and none of them was found by me.**
 
 ## What is NOT closed, stated plainly
 
-1. **The test-integrity guard is a tripwire, not a control.** A commit editing a file and its digest together passes. Independent review confirmed this is a fixed-point property, not a missing idea.
-2. **`npm run check` can be neutered by its own script.** A trailing `&`, or `||` at every position, exits 0 having run nothing — the guard is either never reached or already too late. The fix belongs to `ci.yml`, which I do not own.
-3. **The secret scanner still misses 37 of 56 uncorrelated decoys**, most cloud-vendor families and most credential-carrying file formats. A pattern scanner cannot prove absence.
-4. **There is no cardholder-data rule in the scanner**, although a payment provider is one of your own G0 blockers.
-5. **`ctr-evt-001.metadata.schema_ref` accepts all 16 hostile forms I threw at it.** It needs a *different* constraint, not a tightened one, because the contract's own fixture does not match the catalog's reference pattern. Escalated deliberately rather than patched.
-6. **No `maxLength` on any `_ref` field** anywhere in the catalog.
-7. **A structural hole remains in the coverage ratchet.** Conformance forces `valid-*` fixtures to pass and `invalid-*` to fail, so a newly added rule can never count as "killed" without a new fixture. `UNKILLED_CEILING` is the only arithmetic backstop, and deleting one rule elsewhere offsets adding an untested one. The shaped-evasion case is now caught; the general observation is not closed.
-8. **`CTR-NTF-001.deep_link.target_ref` is still unbounded.** A5 owns it; reported, not fixed.
-4. **`ctr-evt-001.metadata.schema_ref`** accepts 16/16 hostile forms. Its fixture is `CTR-EVT-001@1.0.0`, which the catalog pattern does not match — so the remedy is a *different* constraint, not a copy-paste.
-5. **No `maxLength` on any `_ref` field**: an 8192-character reference is accepted.
-6. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+Re-measured against the code at wave 45, not carried forward from an earlier wave. Four items
+that were on this list have since been closed and are recorded at the bottom rather than deleted,
+because a list that only grows is a list nobody trusts.
+
+1. **The test-integrity guard is a tripwire, not a control.** A commit editing a file and its
+   digest together passes. Independent review confirmed this is a fixed-point property, not a
+   missing idea. What it does buy: the edit is explicit and appears in a diff.
+2. **`npm run check` can be neutered by its own script string.** A trailing `&`, or `||` at every
+   position, exits 0 having run nothing. This is why `ci.yml` invokes the guards *itself* rather
+   than trusting the chain — but the workflow is not protected, which is item 3.
+3. **Protected CI is still an open Gate G0 requirement.** It needs a paid GitHub plan. Until then
+   every guard in this repository is a tripwire in the same sense as item 1: it makes tampering
+   visible in a diff, and nothing more.
+4. **The secret scanner missed 37 of 56 uncorrelated decoys when last measured** (wave 24, before
+   the cardholder rule), most cloud-vendor families and most credential-carrying file formats.
+   That number has not been re-measured since; treat it as a floor on what a pattern scan cannot
+   do, not as a current score. **A pattern scanner cannot prove absence.**
+5. **`ctr-ntf-001.deep_link.target_ref` is the one unbounded reference left.** Measured just now:
+   10 `_ref` properties in the catalog, 9 bounded by `maxLength` or a `$ref`, this one bounded
+   only by a pattern — which permits unbounded length. **A5 owns CTR-NTF-001**; reported, not
+   fixed, because changing it is that package's decision.
+6. **A structural hole remains in the coverage ratchet.** Conformance forces `valid-*` fixtures to
+   pass and `invalid-*` to fail, so a newly added rule can never count as "killed" without a new
+   fixture. The shaped-evasion case is caught and the named list closes the arithmetic offset; the
+   general observation is not closed.
+7. **`ctr-evt-001.metadata.schema_ref` is deliberately not the catalog reference pattern.** It is
+   now bounded (`maxLength: 32`) and shaped (`CTR-XXX-000@n.n.n`), and its `x-source` says in
+   writing that the divergence is intentional. It is listed here so the *decision* is visible, not
+   because it is a defect.
+8. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+
+### Closed since this list was first written
+
+- **A cardholder-data rule now exists** in the scanner — nine issuer families, Luhn plus issuer
+  prefix, fullwidth/Thai/Arabic-Indic digit folding, and printed-layout grouping. It fired on its
+  own author's evidence file the day it landed.
+- **`_ref` bounds**: 9 of 10 references gained a `maxLength`; the tenth is item 5 above.
+- **`schema_ref` hostile forms**: bounded and shaped, see item 7.
+- **The eight untested-rule bypasses** independent review found through wave 30 are each closed
+  with a named test, and every fix is recorded in `evidence/WP-0A-CON-008/`.
 
 ## About the method, since it is the part I would question
 
