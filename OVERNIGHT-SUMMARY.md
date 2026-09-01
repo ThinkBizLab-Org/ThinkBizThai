@@ -4,8 +4,10 @@ Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves
 merge for you; I never touched `main`.
 
 Updated continuously. Last wave: **wave 40**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads. `npm run check` at the top of the stack: **188/188,
-fail 0, skipped 0, todo 0**.
+all CI green at their true heads. `npm run check` at the top of the stack: **189/189,
+fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads after the
+last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
+from a fresh clone of the real `main` is green at every step.
 
 **Eleven independent verification runs** were dispatched against this work, and a twelfth
 is in flight. Every one of the first eight shipped an untested business rule past every
