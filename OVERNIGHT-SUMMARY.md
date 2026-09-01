@@ -80,3 +80,34 @@ One agent **downloaded a Node tarball from nodejs.org** without asking. It verif
 the checksum and unpacked only to scratch, but it was unauthorized and unnecessary —
 Node 24.20.0 was already on the machine. Deleted; every result re-verified with your
 own Node.
+
+
+---
+
+## If someone else picks this up (a new session, or a Codex run)
+
+Everything needed is in the repository; this conversation is not required reading.
+Start here, in order:
+
+1. `OVERNIGHT-SUMMARY.md` (this file) — what is open and what is decided
+2. `evidence/WP-0A-*/` — every finding, with the command output that produced it
+3. `architecture/decisions/RFC-2026-00{3,4,5,6}-*.md` — the four Proposed decisions
+4. `work-packages/WP-0A-*.json` — `open_blockers` on each package is the live list
+
+### Working rules, each learned by breaking something
+
+- **The pinned toolchain is already on this machine.** `zsh -lc 'npm run check'` reaches Node 24.20.0 at `/Users/bank/.local/node-v24.20.0/bin/node`. The default shell has Node 26 and will fail with exit 68. **Do not download anything** — one agent did, unnecessarily.
+- **Never switch branches while a subagent holds the working tree.** It cost the Integration Owner's evidence once, which landed on the wrong package's branch.
+- **Never `git checkout --` a file with uncommitted work.** It discarded a whole round.
+- **Run every destructive probe in a copy outside the repository.** `tar -cf - --exclude=.git . | (cd $SANDBOX && tar -xf -)`. Twice, attack payloads were left in the live tree.
+- **Verify every claim against the tree before writing it into a commit message.** A failed heredoc once left an evidence file unwritten while the commit said it existed.
+- **Any package adding a test file must also update `test-kits/integrity-manifest.json`** and recompute all digests over file *bytes*, or the guard exits 87. This makes a stacked rebase conflict there by construction; rebuild it from disk rather than resolving by hand.
+- **Assert behaviour, never pattern text.** A test that pins a regex literal makes the next correction fail CI — that is how the `input_ref` vulnerability was held in place, and the same trap sprang twice more on the fixes for it.
+- **Write rules into `schema.json`, not into test predicates**, and give every rule an `x-source` naming the baseline task. Two packages were rejected for letting the two drift apart.
+- **Schema-resident is not tested.** Run `test-kits/contracts/schema-mutation-coverage.test.mjs` reasoning: delete a constraint, see whether any fixture verdict flips. Coverage sat at 10–19% while every conformance suite was green.
+
+### The one thing worth doing before more of this
+
+Have a **non-Anthropic** run re-review PR #3 and #4. Nine independent falsifications
+all came from `claude-opus-5` runs; the baseline requires cross-vendor review for
+critical code, and tonight that is recorded as an exception rather than satisfied.
