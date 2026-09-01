@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-008",
+  "title": "Freeze-readiness evidence for the shared-kernel catalog",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_review",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-010",
+    "A1 sign-off for CTR-SEC-001",
+    "A6 sign-off for CTR-AUD-001, CTR-OBS-001 and CTR-USG-001"
+  ],
+  "purpose": "Ten shared-kernel contracts are still Draft, and the Decision Register permits only exploratory spikes against a Draft contract. Every consumer package waiting to build a fake or a consumer test is blocked on that, while nine of the ten already carry the schema and fixtures Candidate v1 asks for. This package gathers the evidence for each contract against its OWN required_before_freeze list and puts it in front of the owners. It changes no status: promotion is a decision its owner and the Product Owner make.",
+  "scope": {
+    "include": [
+      "RFC-2026-010 recording, per contract, which required_before_freeze items are present and by what artifact",
+      "An explicit statement of what the check does NOT establish, item by item",
+      "Routing of the four co-owned contracts to A1 and A6 rather than promoting them",
+      "A machine-written verification record, and the runner-side check that a stale record fails the build",
+      "A branch-scope guard: what a branch CHANGED, checked against what its package declares",
+      "A pinned catalog registry: every contract's freeze level, owner and freeze requirements, and the index that must agree with them",
+      "Conformance and truthfulness checks over every author handoff"
+    ],
+    "exclude": [
+      "Any change to a contract status, in a manifest, in the catalog index or in the Decision Register",
+      "CTR-NTF-001, which A5 owns and which this package does not assess",
+      "Mutation coverage as a promotion criterion; it is quoted as context and is not a bar",
+      "Production schema, migrations, provider calls and every other Gate G0 restriction"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-CON-001",
+      "WP-0A-CON-002",
+      "WP-0A-CON-003",
+      "WP-0A-CON-004",
+      "WP-0A-CON-006",
+      "WP-0A-CON-007"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
+      "work-packages/WP-0A-CON-008.json",
+      "evidence/WP-0A-CON-008/**",
+      "handoffs/WP-0A-CON-008-*.json",
+      "scripts/record-verification.mjs",
+      "test-kits/verification-record.test.mjs",
+      "evidence/VERIFICATION.md",
+      "test-kits/contracts/catalog-registry.test.mjs",
+      "test-kits/handoff-conformance.test.mjs"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        ".agents/**",
+        ".github/workflows/ci.yml",
+        "OVERNIGHT-SUMMARY.md",
+        "contract-catalog/shared-kernel/ctr-api-001/**",
+        "contract-catalog/shared-kernel/ctr-idm-001/**",
+        "contract-catalog/shared-kernel/ctr-pag-001/**",
+        "contract-catalog/shared-kernel/index.json",
+        "evidence/WP-0A-CON-007/**",
+        "handoffs/WP-0A-*-author-handoff.json",
+        "handoffs/WP-0A-A0-002-author-handoff.json",
+        "package.json",
+        "scripts/run-test-suite.mjs",
+        "scripts/verify-branch-scope.mjs",
+        "test-kits/branch-scope.test.mjs",
+        "test-kits/contracts/schema-mutation-coverage.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "work-packages/WP-0A-A0-001.json",
+        "work-packages/WP-0A-A0-002.json",
+        "work-packages/WP-0A-A0-004.json",
+        "work-packages/WP-0A-CON-007.json"
+      ],
+      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 26 undeclared paths on this branch. Every one is real work done here and none of it was declared, which is the drift the new guard exists to stop. Grouped by why: (a) the runner, package.json and the integrity manifest carry the verification-record control and belong to WP-0A-A0-002 and WP-0A-A0-001; (b) schema-mutation-coverage.test.mjs and the ctr-api-001, ctr-idm-001 and ctr-pag-001 fixtures are corrections made on this branch in response to independent review findings six through nine, and belong to WP-0A-CON-003 and WP-0A-CON-007 -- they were made here because the findings arrived against this head and moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once; (c) the ten author handoffs are each their own package's deliverable, placed here for the reason recorded in evidence/WP-0A-CON-008/handoffs.md; (d) three work-package manifests carry amendment records pointing back at this package; (e) OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. The branch-scope guard and its test were authored here and MOVED to WP-0A-A0-004, because only the workflow that package owns can supply a pull request base ref. This package amends them and claims neither.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-001.json",
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "contract-catalog/shared-kernel/index.json",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
+      "work-packages/WP-0A-CON-008.json",
+      "evidence/WP-0A-CON-008/author-self-check.md",
+      "scripts/record-verification.mjs",
+      "test-kits/verification-record.test.mjs",
+      "evidence/VERIFICATION.md",
+      "evidence/WP-0A-CON-008/verification-record.md",
+      "evidence/WP-0A-CON-008/merge-order-drill.md",
+      "evidence/WP-0A-CON-008/sixth-review-response.md",
+      "test-kits/contracts/catalog-registry.test.mjs",
+      "test-kits/handoff-conformance.test.mjs"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+    "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+    "No contract status changes anywhere in the repository.",
+    "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+    "CTR-NTF-001 is not assessed.",
+    "npm run check stays green with no test skipped."
+  ],
+  "required_tests": [
+    "Work-package, ownership and role-separation validators",
+    "Repository canonical check"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. One decision record and one manifest; no code, no contract, no schema and no status changed.",
+  "open_blockers": [
+    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
+    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
+    "CTR-NTF-001 remains unassessed; A5 owns it."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

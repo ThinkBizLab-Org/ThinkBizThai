@@ -66,8 +66,13 @@ function without(schema, path) {
     if (node?.[key] === undefined) return null;
     node = node[key];
   }
-  if (node?.[path.at(-1)] === undefined) return null;
-  delete node[path.at(-1)];
+  const last = path.at(-1);
+  if (node?.[last] === undefined) return null;
+  // Removing a combinator BRANCH means removing the element, not blanking it: a branch left as
+  // `{}` inside a `not` matches everything and makes the schema reject everything, which is the
+  // opposite of removing an obligation.
+  if (Array.isArray(node) && typeof last === 'number') node.splice(last, 1);
+  else delete node[last];
   return copy;
 }
 
@@ -108,11 +113,21 @@ const verdicts = (schema, bodies, resolve) =>
 // WIDENS the guard, breaking a valid fixture, without any fixture ever entering the branch.
 //
 // So a kill is one direction only: some fixture the contract rejects must become accepted.
-function relaxationObserved(schema, mutated, bodies, resolve) {
+// polarity  1: deletion relaxes, so a REJECTED fixture must become accepted.
+// polarity -1: deletion tightens, so an ACCEPTED fixture must become rejected.
+// polarity  0: the position sits under a guard with both branches; either direction is a
+//              genuine observation, so accept either.
+function relaxationObserved(schema, mutated, bodies, resolve, polarity = 1) {
   for (const { body } of bodies) {
     const before = validate(schema, body, { resolve }).length === 0;
-    if (before) continue;
-    if (validate(mutated, body, { resolve }).length === 0) return true;
+    const after = validate(mutated, body, { resolve }).length === 0;
+    if (before === after) continue;
+    // Polarity 0 marks a position where no direction is sound -- inside a `oneOf`, or under a
+    // guard with both branches. A flip there is not evidence, so it never scores a kill and the
+    // site goes on the named untested list instead of vanishing from every count.
+    if (polarity === 0) return false;
+    if (polarity > 0 && !before && after) return true;
+    if (polarity < 0 && before && !after) return true;
   }
   return false;
 }
@@ -141,9 +156,9 @@ const COVERAGE_FLOOR = 0.70;
 // floor on its constraint-site count, and a rule can only leave the catalog by lowering a
 // number someone has to edit deliberately, in a diff a reviewer reads.
 const SITE_FLOOR = {
-  'ctr-api-001': 36, 'ctr-aud-001': 56, 'ctr-err-001': 23, 'ctr-evt-001': 52,
-  'ctr-flg-001': 55, 'ctr-idm-001': 33, 'ctr-job-001': 42, 'ctr-mod-001': 78,
-  'ctr-ntf-001': 29, 'ctr-obs-001': 75, 'ctr-pag-001': 30, 'ctr-sec-001': 68,
+  'ctr-api-001': 42, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 51,
+  'ctr-flg-001': 74, 'ctr-idm-001': 38, 'ctr-job-001': 42, 'ctr-mod-001': 87,
+  'ctr-ntf-001': 39, 'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76,
   'ctr-ten-001': 23, 'ctr-usg-001': 37 };
 
 // Held at the measured actual, not at a round number above it. Slack in this ceiling is
@@ -154,9 +169,9 @@ const SITE_FLOOR = {
 // between the two is exactly the count the proof carries, and the test at the bottom of this
 // file asserts that relationship rather than leaving two numbers to drift apart.
 const UNKILLED_CEILING = {
-  'ctr-api-001': 1, 'ctr-aud-001': 1, 'ctr-err-001': 0, 'ctr-evt-001': 1, 'ctr-flg-001': 4,
-  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 4, 'ctr-ntf-001': 3, 'ctr-obs-001': 0,
-  'ctr-pag-001': 6, 'ctr-sec-001': 6, 'ctr-ten-001': 0, 'ctr-usg-001': 0 };
+  'ctr-api-001': 1, 'ctr-aud-001': 5, 'ctr-err-001': 0, 'ctr-evt-001': 0, 'ctr-flg-001': 14,
+  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 9, 'ctr-obs-001': 5,
+  'ctr-pag-001': 8, 'ctr-sec-001': 10, 'ctr-ten-001': 0, 'ctr-usg-001': 0 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
@@ -180,27 +195,112 @@ const ASSERTIONS = new Set([
 //
 // Only assertion keywords count now. A property name is not a constraint; deleting one
 // removes whatever it contained, which is a different measurement entirely.
-// WHICH constraints can a deletion test see at all? Not every one, and pretending otherwise is
-// how two independent reviews walked rules past this suite.
+// WHICH constraints can a deletion test see, and in which direction?
 //
-// Deleting a keyword normally weakens a schema. Under an `if` guard and under `not`, the
-// polarity inverts: widening a guard makes it fire MORE often, and emptying a `not` makes it
-// reject MORE. A deletion there can never turn a rejected instance into an accepted one, so no
-// fixture can ever demonstrate it. Counting such positions as sites produced two opposite
-// errors at once -- an `if` keyword scored "killed" because deleting it broke a valid fixture
-// that never entered the branch, and `not: { required: [a, b] }` scored "killed" because
-// emptying the `not` rejected everything.
+// Deleting a keyword normally weakens a schema. Under `not` the polarity inverts and deletion
+// STRENGTHENS. Under an `if` guard it depends on what the branch does with the guard: widening
+// a guard makes a `then` fire more (stricter) and an `else` fire less (weaker).
 //
-// So the walk follows polarity:
+// An earlier version resolved this by refusing to look: `if` contributed nothing and `not` was
+// one opaque site. Independent review broke both. It appended a conjunct to an existing `not`
+// -- the same rule a previous review had injected, rejecting an error envelope that carries a
+// causation chain -- at ZERO new sites, because the walk never descended; a sweep found 132
+// such injections structurally invisible. And it produced two positions inside an `if` that a
+// fixture CAN kill: a `not` inside the guard, where deletion narrows it, and a guard with an
+// `else`, where widening makes the `else` fire less.
 //
-//   `if`   is a CONDITION, not an obligation. It contributes nothing, and is not descended
-//          into: every position inside it is unkillable by deletion, by construction.
-//   `not`  is ONE obligation. Deleting the whole thing removes it -- that is the observable
-//          act -- and the assertions inside it are not separately countable.
-//   an `anyOf`/`oneOf` branch that is the empty schema turns the whole combinator into a
-//          negation, so the combinator itself becomes the obligation.
-//   a `then`/`else` with no assertion under it is itself the obligation, since the rule says
-//          "reject" and names nothing.
+// So the walk descends everywhere and carries the polarity with it. `relaxationObserved` is
+// asked for the direction that position can actually be observed in.
+// A deletion test can only see a constraint whose removal RELAXES the schema, and inside a
+// `not` a keyword deletion does the opposite: `not: { required: [a, b] }` becomes `not: {}`,
+// which matches everything and rejects everything. An earlier version tried to rescue that by
+// asking for the other direction. Independent review showed the rescue was vacuous -- deleting
+// every `invalid-*` fixture from every manifest left all 55 negative-polarity sites still
+// scoring "killed", because the flip comes from the mere existence of one accepted instance and
+// not from any fixture exercising the rule. It then appended one conjunct to an existing `not`
+// -- an error envelope may not carry a causation chain, silently rejecting a legal response --
+// and the whole check stayed green.
+//
+// The mutation operator was wrong, not the direction. Removing an obligation stated inside a
+// `not` means removing the BRANCH, and that relaxes. So `not` is not descended into for
+// keywords; instead each branch under it is a site whose deletion removes it, judged in the
+// ordinary positive direction, and a fixture has to actually be let through to score a kill.
+// The polarity a `not` is REACHED at, not a constant. Independent review pointed out that
+// hardcoding 1 bypasses the polarity-0 invariant everywhere else in the walk: a `not` inside a
+// `oneOf` should never score a kill, and one inside an `if` guard carrying only a `then` is
+// negative. It was not exploitable -- a positive kill needs a rejected fixture to become
+// accepted, and conformance guarantees each rejected fixture is rejected for its own defect --
+// but code that contradicts the comment above it is a defect waiting for its context to change.
+function notSites(node, path, polarity = 1) {
+  const body = node?.not;
+  if (body === undefined) return [];
+  for (const combinator of ['anyOf', 'oneOf', 'allOf']) {
+    if (Array.isArray(body[combinator])) {
+      return body[combinator].map((_, index) => [[...path, 'not', combinator, index], polarity]);
+    }
+  }
+  return [[[...path, 'not'], polarity]];
+}
+
+// A `properties` container's keys are NAMES, not keywords. Independent review found the walk
+// applying keyword dispatch to them: `subject.properties.type` was read as a `type` assertion
+// (one of the eighteen names on the untested list was not a constraint at all), a property
+// named `not` collapsed its whole subtree into one opaque site, and a property named `oneOf`
+// produced no sites for its subtree at all. Both are plausible in a filter or query contract.
+function constraintSites(node, path = [], polarity = 1, inProperties = false) {
+  let found = [];
+  if (node && typeof node === 'object' && !Array.isArray(node)) {
+    if (inProperties) {
+      // Every key here is a property name. Recurse into each value as a schema, never as a
+      // keyword.
+      for (const [name, value] of Object.entries(node)) {
+        found = found.concat(constraintSites(value, [...path, name], polarity));
+      }
+      return found;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key.startsWith('x-')) continue;
+      if (key === 'properties') {
+        found = found.concat(constraintSites(value, [...path, key], polarity, true));
+        continue;
+      }
+      if (key === 'not') { found = found.concat(notSites(node, path, polarity)); continue; }
+      let next = polarity;
+      if (key === 'if') {
+        // A guard read through its branches: only `then` and widening tightens; only `else` and
+        // widening relaxes. With BOTH, a deletion is observable either way and neither
+        // direction is evidence, so the sites are counted and never scored killed -- they go on
+        // the named list rather than disappearing from it.
+        const hasThen = node.then !== undefined;
+        const hasElse = node.else !== undefined;
+        next = hasThen && hasElse ? 0 : hasThen ? -polarity : polarity;
+      } else if (key === 'oneOf') {
+        // `oneOf` is non-monotone: widening a branch can produce a second match and therefore a
+        // rejection, so no direction is sound. An earlier version answered that by not counting
+        // its interior at all, and independent review put a real rule through the hole -- a
+        // success envelope whose `data` carries more than three properties, rejected by the
+        // envelope every module composes, with every count, list and ceiling unchanged.
+        //
+        // Invisible is strictly worse than unprovable. Its interior is counted at polarity 0,
+        // which never scores a kill, so anything added inside a `oneOf` lands on the named
+        // untested list and has to be written down.
+        next = 0;
+      }
+      if (ASSERTIONS.has(key) && !METADATA.has(key)) found.push([[...path, key], polarity]);
+      else if ((key === 'then' || key === 'else') && !hasAssertion(value)) found.push([[...path, key], polarity]);
+      else if (key === 'anyOf' && Array.isArray(value) && value.some(isEmptySchema)) {
+        found.push([[...path, key], polarity]);
+      } else if (key === 'oneOf' && Array.isArray(value) && value.some(isEmptySchema)) {
+        found.push([[...path, key], polarity]);
+      }
+      found = found.concat(constraintSites(value, [...path, key], next));
+    }
+  } else if (Array.isArray(node)) {
+    node.forEach((value, index) => { found = found.concat(constraintSites(value, [...path, index], polarity)); });
+  }
+  return found;
+}
+
 function hasAssertion(node) {
   if (Array.isArray(node)) return node.some(hasAssertion);
   if (!node || typeof node !== 'object') return false;
@@ -210,28 +310,6 @@ function hasAssertion(node) {
 
 const isEmptySchema = (node) => node && typeof node === 'object' && !Array.isArray(node)
   && Object.keys(node).filter((k) => !k.startsWith('x-')).length === 0;
-
-function constraintSites(node, path = []) {
-  let found = [];
-  if (node && typeof node === 'object' && !Array.isArray(node)) {
-    for (const [key, value] of Object.entries(node)) {
-      if (path.some((segment) => typeof segment === 'string' && segment.startsWith('x-'))) continue;
-      if (key.startsWith('x-')) continue;
-      if (key === 'if') continue;                                   // a condition, never an obligation
-      if (key === 'not') { found.push([...path, key]); continue; }  // one obligation, not its parts
-      if ((key === 'anyOf' || key === 'oneOf') && Array.isArray(value) && value.some(isEmptySchema)) {
-        found.push([...path, key]);
-        continue;
-      }
-      if (ASSERTIONS.has(key) && !METADATA.has(key)) found.push([...path, key]);
-      else if ((key === 'then' || key === 'else') && !hasAssertion(value)) found.push([...path, key]);
-      found = found.concat(constraintSites(value, [...path, key]));
-    }
-  } else if (Array.isArray(node)) {
-    node.forEach((value, index) => { found = found.concat(constraintSites(value, [...path, index])); });
-  }
-  return found;
-}
 
 test('every contract reaches the mutation-coverage floor', async () => {
   const entries = await readdir(CATALOG, { withFileTypes: true });
@@ -250,9 +328,9 @@ test('every contract reaches the mutation-coverage floor', async () => {
     const { schema, bodies, resolve } = data;
     const sites = constraintSites(schema);
     let killed = 0;
-    for (const site of sites) {
+    for (const [site, polarity] of sites) {
       const mutated = without(schema, site);
-      if (mutated && relaxationObserved(schema, mutated, bodies, resolve)) killed += 1;
+      if (mutated && relaxationObserved(schema, mutated, bodies, resolve, polarity)) killed += 1;
     }
     const ratio = sites.length === 0 ? 1 : killed / sites.length;
     if (ratio < COVERAGE_FLOOR) {
@@ -425,11 +503,18 @@ function provablyRedundant(schema, path) {
 // targeted instances against each and found none. They are unkillable for a reason this
 // proof does not model (a vacuous consequent, not a duplicated obligation), so they stay
 // listed rather than silently excused, and the earlier escalation to A5 is withdrawn.
-// Empty, and it emptied itself. Both entries were `if` guards on CTR-NTF-001, and an `if` is
-// no longer a constraint site at all: deleting anything inside one WIDENS the guard, which can
-// only cause more rejections, so no fixture can ever demonstrate it. What two independent runs
-// had to establish with 150000 targeted instances each is now a property of the walk.
-const UNPROVEN_CONDITIONAL_GAPS = [];
+// These two came back, and the reason is worth recording. An earlier version excused them by
+// refusing to count `if` interiors at all -- "unkillable by construction" -- and independent
+// review showed that claim false: a `not` inside a guard, or a guard with an `else`, gives a
+// position a fixture CAN kill. The walk descends into guards again, so these two are sites
+// again, and they are genuinely untested: each is `required: ["delivery"]` guarding a `then`
+// that constrains only inside `properties.delivery`, vacuous when `delivery` is absent. Two
+// independent runs put 150000 targeted instances against each and found nothing that
+// distinguishes them. Unkillable for a reason this proof does not model, on A5's contract.
+const UNPROVEN_CONDITIONAL_GAPS = [
+  'ctr-ntf-001 allOf.2.if.required',
+  'ctr-ntf-001 allOf.3.if.required',
+];
 
 // The proof decides whether an untested rule is reported or excused, so its soundness is the
 // whole guarantee. These are the counterexamples independent review and independent testing
@@ -500,10 +585,10 @@ test('every conditional constraint is killed by a fixture or proved unkillable',
     let data;
     try { data = await fixturesOf(entry.name); } catch { continue; }
     const { schema, bodies, resolve } = data;
-    for (const site of constraintSites(schema)) {
+    for (const [site, polarity] of constraintSites(schema)) {
       if (!site.some((key) => typeof key === 'string' && CONDITIONAL.has(key))) continue;
       const mutated = without(schema, site);
-      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve)) continue;
+      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve, polarity)) continue;
       if (provablyRedundant(schema, site)) continue;
       gaps.push(`${entry.name} ${site.join('.')}`);
     }
@@ -565,9 +650,6 @@ const UNKILLED_SITES = {
   'ctr-aud-001': [
     'type',
   ],
-  'ctr-evt-001': [
-    'properties.subject.properties.type',
-  ],
   'ctr-flg-001': [
     'properties.decision_source.type',
   ],
@@ -578,6 +660,8 @@ const UNKILLED_SITES = {
     'properties.lifecycle.properties.readiness.properties.activated.type',
   ],
   'ctr-ntf-001': [
+    'allOf.2.if.required',
+    'allOf.3.if.required',
     'properties.delivery.type',
     'properties.tenant_context.$ref',
     'type',
@@ -601,9 +685,9 @@ test('every untested constraint is named, so no arithmetic can offset a new one'
     let data;
     try { data = await fixturesOf(entry.name); } catch { continue; }
     const { schema, bodies, resolve } = data;
-    for (const site of constraintSites(schema)) {
+    for (const [site, polarity] of constraintSites(schema)) {
       const mutated = without(schema, site);
-      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve)) continue;
+      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve, polarity)) continue;
       const conditional = site.some((key) => typeof key === 'string' && CONDITIONAL.has(key));
       if (conditional && provablyRedundant(schema, site)) continue;
       (found[entry.name] ??= []).push(site.join('.'));
@@ -665,9 +749,9 @@ test('the untested count and the untested list agree about what they measure', a
     let raw = 0;
     let excused = 0;
     const named = [];
-    for (const site of constraintSites(schema)) {
+    for (const [site, polarity] of constraintSites(schema)) {
       const mutated = without(schema, site);
-      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve)) continue;
+      if (!mutated || relaxationObserved(schema, mutated, bodies, resolve, polarity)) continue;
       raw += 1;
       const conditional = site.some((key) => typeof key === 'string' && CONDITIONAL.has(key));
       if (conditional && provablyRedundant(schema, site)) excused += 1;
@@ -685,4 +769,1017 @@ test('the untested count and the untested list agree about what they measure', a
     }
   }
   assert.deepEqual(problems, [], `the two untested-constraint guards disagree:\n  ${problems.join('\n  ')}`);
+});
+
+// Every guard above is computed by DELETING a keyword, so every one of them is invariant under
+// a change to a keyword's VALUE. Independent review demonstrated the consequence three times
+// over: `maxLength` narrowed 128 to 24 on three CTR-API-001 fields, the body alphabet of a
+// PINNED reference pattern narrowed from [A-Za-z0-9_-] to [a-z0-9_], and `currency` narrowed
+// from ["THB","USD"] to ["THB"] on a site this file lists as PROTECTED. All three passed.
+//
+// Pinning individual fields did not work either -- the previous attempt pinned seven, and the
+// narrowings landed on the other sixty-nine. So the whole constraint surface is pinned: every
+// assertion keyword in every contract, with its value, reduced to one digest per contract.
+//
+// The digest is what stays small; the failure message is what stays readable. On a mismatch it
+// prints the sites that were added, removed or changed, so "a narrowing" and "a deliberate
+// tightening someone wrote down" look different in a diff a reviewer reads.
+const CONSTRAINT_SURFACE = {
+  'ctr-api-001': {
+    digest: '6cd40cd39fbd1019',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [kind]",
+      ".allOf.0.if.properties.kind.const = \"success\"",
+      ".allOf.0.then.not.anyOf.0.required = [\"error\"]",
+      ".allOf.0.then.not.anyOf.1.required = [\"accepted\"]",
+      ".allOf.0.then.required = [\"data\"]",
+      ".allOf.1.if.properties = [kind]",
+      ".allOf.1.if.properties.kind.const = \"error\"",
+      ".allOf.1.then.not.anyOf.0.required = [\"data\"]",
+      ".allOf.1.then.not.anyOf.1.required = [\"accepted\"]",
+      ".allOf.1.then.required = [\"error\"]",
+      ".allOf.2.if.properties = [kind]",
+      ".allOf.2.if.properties.kind.const = \"accepted\"",
+      ".allOf.2.then.not.anyOf.0.required = [\"data\"]",
+      ".allOf.2.then.not.anyOf.1.required = [\"error\"]",
+      ".allOf.2.then.required = [\"accepted\"]",
+      ".properties = [accepted, api_version, causation_id, correlation_id, data, error, kind, request_id, tenant_context]",
+      ".properties.accepted.additionalProperties = false",
+      ".properties.accepted.properties = [deep_link_ref, job_id, status_ref]",
+      ".properties.accepted.properties.deep_link_ref.maxLength = 256",
+      ".properties.accepted.properties.deep_link_ref.pattern = \"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.accepted.properties.deep_link_ref.type = \"string\"",
+      ".properties.accepted.properties.job_id.maxLength = 128",
+      ".properties.accepted.properties.job_id.minLength = 1",
+      ".properties.accepted.properties.job_id.type = \"string\"",
+      ".properties.accepted.properties.status_ref.maxLength = 256",
+      ".properties.accepted.properties.status_ref.pattern = \"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.accepted.properties.status_ref.type = \"string\"",
+      ".properties.accepted.required = [\"job_id\",\"status_ref\"]",
+      ".properties.accepted.type = \"object\"",
+      ".properties.api_version.minimum = 1",
+      ".properties.api_version.type = \"integer\"",
+      ".properties.causation_id.maxLength = 128",
+      ".properties.causation_id.minLength = 1",
+      ".properties.causation_id.type = \"string\"",
+      ".properties.correlation_id.maxLength = 128",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.data.type = \"object\"",
+      ".properties.error.$ref = \"../ctr-err-001/schema.json\"",
+      ".properties.kind.enum = [\"success\",\"error\",\"accepted\"]",
+      ".properties.request_id.maxLength = 128",
+      ".properties.request_id.minLength = 1",
+      ".properties.request_id.type = \"string\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".required = [\"api_version\",\"kind\",\"request_id\",\"correlation_id\",\"tenant_context\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-aud-001': {
+    digest: '80676c327acc1c54',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [action]",
+      ".allOf.0.if.properties.action.properties = [category]",
+      ".allOf.0.if.properties.action.properties.category.const = \"delete\"",
+      ".allOf.0.if.properties.action.required = [\"category\"]",
+      ".allOf.0.if.required = [\"action\"]",
+      ".allOf.0.then.properties = [change]",
+      ".allOf.0.then.properties.change.required = [\"before_ref\"]",
+      ".allOf.0.then.required = [\"change\"]",
+      ".allOf.1.if.properties = [outcome]",
+      ".allOf.1.if.properties.outcome.enum = [\"failed\",\"denied\"]",
+      ".allOf.1.if.required = [\"outcome\"]",
+      ".allOf.1.then.required = [\"error\"]",
+      ".allOf.2.if.properties = [outcome]",
+      ".allOf.2.if.properties.outcome.const = \"succeeded\"",
+      ".allOf.2.if.required = [\"outcome\"]",
+      ".allOf.2.then.not.required = [\"error\"]",
+      ".properties = [action, actor, audit_id, causation_id, change, correlation_id, details, error, occurred_at, outcome, reason_key, redaction, retention, tenant_context]",
+      ".properties.action.additionalProperties = false",
+      ".properties.action.properties = [category, name]",
+      ".properties.action.properties.category.enum = [\"role\",\"credential\",\"publish\",\"delete\",\"billing\",\"support\"]",
+      ".properties.action.properties.name.maxLength = 96",
+      ".properties.action.properties.name.pattern = \"^[a-z0-9_]+(\\\\.[a-z0-9_]+)+$\"",
+      ".properties.action.properties.name.type = \"string\"",
+      ".properties.action.required = [\"category\",\"name\"]",
+      ".properties.action.type = \"object\"",
+      ".properties.actor.additionalProperties = false",
+      ".properties.actor.properties = [id, kind]",
+      ".properties.actor.properties.id.minLength = 1",
+      ".properties.actor.properties.id.type = \"string\"",
+      ".properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
+      ".properties.actor.required = [\"kind\",\"id\"]",
+      ".properties.actor.type = \"object\"",
+      ".properties.audit_id.minLength = 1",
+      ".properties.audit_id.type = \"string\"",
+      ".properties.causation_id.minLength = 1",
+      ".properties.causation_id.type = \"string\"",
+      ".properties.change.additionalProperties = false",
+      ".properties.change.properties = [after_ref, before_ref]",
+      ".properties.change.properties.after_ref.maxLength = 256",
+      ".properties.change.properties.after_ref.pattern = \"^(snapshot|record):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.change.properties.after_ref.type = \"string\"",
+      ".properties.change.properties.before_ref.maxLength = 256",
+      ".properties.change.properties.before_ref.pattern = \"^(snapshot|record):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.change.properties.before_ref.type = \"string\"",
+      ".properties.change.type = \"object\"",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.details.maxProperties = 0",
+      ".properties.details.type = \"object\"",
+      ".properties.error.$ref = \"../ctr-err-001/schema.json\"",
+      ".properties.occurred_at.format = \"date-time\"",
+      ".properties.occurred_at.type = \"string\"",
+      ".properties.outcome.enum = [\"succeeded\",\"failed\",\"denied\"]",
+      ".properties.reason_key.maxLength = 96",
+      ".properties.reason_key.pattern = \"^audit\\\\.[a-z0-9_.]+$\"",
+      ".properties.reason_key.type = \"string\"",
+      ".properties.redaction.additionalProperties = false",
+      ".properties.redaction.properties = [content_redacted, pii_redacted, secret_redacted]",
+      ".properties.redaction.properties.content_redacted.const = true",
+      ".properties.redaction.properties.pii_redacted.const = true",
+      ".properties.redaction.properties.secret_redacted.const = true",
+      ".properties.redaction.required = [\"secret_redacted\",\"content_redacted\",\"pii_redacted\"]",
+      ".properties.redaction.type = \"object\"",
+      ".properties.retention.additionalProperties = false",
+      ".properties.retention.properties = [policy_ref]",
+      ".properties.retention.properties.policy_ref.maxLength = 96",
+      ".properties.retention.properties.policy_ref.pattern = \"^retention\\\\.[a-z0-9_.]+$\"",
+      ".properties.retention.properties.policy_ref.type = \"string\"",
+      ".properties.retention.required = [\"policy_ref\"]",
+      ".properties.retention.type = \"object\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".required = [\"audit_id\",\"occurred_at\",\"actor\",\"action\",\"tenant_context\",\"correlation_id\",\"outcome\",\"reason_key\",\"redaction\",\"retention\",\"details\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-err-001': {
+    digest: '58d0cefec7a96119',
+    sites: [
+      ".additionalProperties = false",
+      ".properties = [category, code, correlation_id, details, field_errors, message_key, retry_after_seconds, retryable]",
+      ".properties.category.enum = [\"validation\",\"auth\",\"permission\",\"conflict\",\"rate_limit\",\"provider\",\"temporary\",\"internal\"]",
+      ".properties.code.minLength = 1",
+      ".properties.code.type = \"string\"",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.details.maxProperties = 0",
+      ".properties.details.type = \"object\"",
+      ".properties.field_errors.items.additionalProperties = false",
+      ".properties.field_errors.items.properties = [code, field]",
+      ".properties.field_errors.items.properties.code.minLength = 1",
+      ".properties.field_errors.items.properties.code.type = \"string\"",
+      ".properties.field_errors.items.properties.field.minLength = 1",
+      ".properties.field_errors.items.properties.field.type = \"string\"",
+      ".properties.field_errors.items.required = [\"field\",\"code\"]",
+      ".properties.field_errors.items.type = \"object\"",
+      ".properties.field_errors.type = \"array\"",
+      ".properties.message_key.minLength = 1",
+      ".properties.message_key.type = \"string\"",
+      ".properties.retry_after_seconds.minimum = 1",
+      ".properties.retry_after_seconds.type = \"integer\"",
+      ".properties.retryable.type = \"boolean\"",
+      ".required = [\"code\",\"message_key\",\"category\",\"retryable\",\"correlation_id\",\"details\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-evt-001': {
+    digest: '8cd2878cb3b9c1d6',
+    sites: [
+      ".additionalProperties = false",
+      ".properties = [causation_id, correlation_id, event_id, event_type, event_version, idempotency_key, metadata, occurred_at, payload, producer, subject, tenant_context]",
+      ".properties.causation_id.maxLength = 128",
+      ".properties.causation_id.minLength = 1",
+      ".properties.causation_id.type = \"string\"",
+      ".properties.correlation_id.maxLength = 128",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.event_id.maxLength = 128",
+      ".properties.event_id.minLength = 1",
+      ".properties.event_id.type = \"string\"",
+      ".properties.event_type.maxLength = 128",
+      ".properties.event_type.pattern = \"^[a-z0-9]+\\\\.[a-z0-9]+\\\\.[a-z0-9]+$\"",
+      ".properties.event_type.type = \"string\"",
+      ".properties.event_version.minimum = 1",
+      ".properties.event_version.type = \"integer\"",
+      ".properties.idempotency_key.maxLength = 200",
+      ".properties.idempotency_key.minLength = 1",
+      ".properties.idempotency_key.type = \"string\"",
+      ".properties.metadata.additionalProperties = false",
+      ".properties.metadata.properties = [schema_ref]",
+      ".properties.metadata.properties.schema_ref.maxLength = 32",
+      ".properties.metadata.properties.schema_ref.pattern = \"^CTR-[A-Z]{3}-[0-9]{3}@(0|[1-9][0-9]*)\\\\.(0|[1-9][0-9]*)\\\\.(0|[1-9][0-9]*)$\"",
+      ".properties.metadata.properties.schema_ref.type = \"string\"",
+      ".properties.metadata.required = [\"schema_ref\"]",
+      ".properties.metadata.type = \"object\"",
+      ".properties.occurred_at.format = \"date-time\"",
+      ".properties.occurred_at.type = \"string\"",
+      ".properties.payload.maxProperties = 0",
+      ".properties.payload.type = \"object\"",
+      ".properties.producer.additionalProperties = false",
+      ".properties.producer.properties = [implementation_version, module_key]",
+      ".properties.producer.properties.implementation_version.maxLength = 64",
+      ".properties.producer.properties.implementation_version.minLength = 1",
+      ".properties.producer.properties.implementation_version.type = \"string\"",
+      ".properties.producer.properties.module_key.maxLength = 64",
+      ".properties.producer.properties.module_key.minLength = 1",
+      ".properties.producer.properties.module_key.type = \"string\"",
+      ".properties.producer.required = [\"module_key\",\"implementation_version\"]",
+      ".properties.producer.type = \"object\"",
+      ".properties.subject.additionalProperties = false",
+      ".properties.subject.properties = [id, type, version]",
+      ".properties.subject.properties.id.maxLength = 128",
+      ".properties.subject.properties.id.minLength = 1",
+      ".properties.subject.properties.id.type = \"string\"",
+      ".properties.subject.properties.type.maxLength = 64",
+      ".properties.subject.properties.type.minLength = 1",
+      ".properties.subject.properties.type.type = \"string\"",
+      ".properties.subject.properties.version.minimum = 1",
+      ".properties.subject.properties.version.type = \"integer\"",
+      ".properties.subject.required = [\"type\",\"id\",\"version\"]",
+      ".properties.subject.type = \"object\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".required = [\"event_id\",\"event_type\",\"event_version\",\"occurred_at\",\"producer\",\"tenant_context\",\"subject\",\"correlation_id\",\"payload\",\"metadata\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-flg-001': {
+    digest: '60aa9eebe1c03f01',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [decision_source]",
+      ".allOf.0.if.properties.decision_source.properties = [rule]",
+      ".allOf.0.if.properties.decision_source.properties.rule.const = \"percentage_bucket\"",
+      ".allOf.0.if.properties.decision_source.required = [\"rule\"]",
+      ".allOf.0.if.required = [\"decision_source\"]",
+      ".allOf.0.then.required = [\"bucket\"]",
+      ".allOf.1.if.properties = [decision_source]",
+      ".allOf.1.if.properties.decision_source.properties = [rule]",
+      ".allOf.1.if.properties.decision_source.properties.rule.const = \"kill_switch\"",
+      ".allOf.1.if.properties.decision_source.required = [\"rule\"]",
+      ".allOf.1.if.required = [\"decision_source\"]",
+      ".allOf.1.then.properties = [decision_source, effect]",
+      ".allOf.1.then.properties.decision_source.properties = [scope]",
+      ".allOf.1.then.properties.decision_source.properties.scope.const = \"platform\"",
+      ".allOf.1.then.properties.effect.const = \"deny\"",
+      ".allOf.2.if.properties = [write_disabled]",
+      ".allOf.2.if.properties.write_disabled.const = true",
+      ".allOf.2.if.required = [\"write_disabled\"]",
+      ".allOf.2.then.properties = [historical_read_allowed]",
+      ".allOf.2.then.properties.historical_read_allowed.const = true",
+      ".allOf.2.then.required = [\"historical_read_allowed\"]",
+      ".allOf.3.if.properties = [temporary]",
+      ".allOf.3.if.properties.temporary.const = true",
+      ".allOf.3.if.required = [\"temporary\"]",
+      ".allOf.3.then.properties = [audit]",
+      ".allOf.3.then.properties.audit.required = [\"expires_at\",\"owner_role\"]",
+      ".allOf.3.then.required = [\"audit\"]",
+      ".allOf.4.if.properties = [decision_source]",
+      ".allOf.4.if.properties.decision_source.properties = [rule]",
+      ".allOf.4.if.properties.decision_source.properties.rule.const = \"default_deny\"",
+      ".allOf.4.if.properties.decision_source.required = [\"rule\"]",
+      ".allOf.4.if.required = [\"decision_source\"]",
+      ".allOf.4.then.properties = [effect]",
+      ".allOf.4.then.properties.effect.const = \"deny\"",
+      ".allOf.4.then.required = [\"effect\"]",
+      ".allOf.5.if.properties = [decision_source]",
+      ".allOf.5.if.properties.decision_source.properties = [rule]",
+      ".allOf.5.if.properties.decision_source.properties.rule.const = \"explicit_deny\"",
+      ".allOf.5.if.properties.decision_source.required = [\"rule\"]",
+      ".allOf.5.if.required = [\"decision_source\"]",
+      ".allOf.5.then.properties = [effect]",
+      ".allOf.5.then.properties.effect.const = \"deny\"",
+      ".allOf.5.then.required = [\"effect\"]",
+      ".allOf.6.if.properties = [decision_source]",
+      ".allOf.6.if.properties.decision_source.properties = [rule]",
+      ".allOf.6.if.properties.decision_source.properties.rule.const = \"explicit_allow\"",
+      ".allOf.6.if.properties.decision_source.required = [\"rule\"]",
+      ".allOf.6.if.required = [\"decision_source\"]",
+      ".allOf.6.then.properties = [effect]",
+      ".allOf.6.then.properties.effect.const = \"allow\"",
+      ".allOf.6.then.required = [\"effect\"]",
+      ".properties = [audit, bucket, decided_at, decision_source, effect, evaluated_scopes, historical_read_allowed, policy_key, reason_key, temporary, write_disabled]",
+      ".properties.audit.additionalProperties = false",
+      ".properties.audit.properties = [actor, changed_at, expires_at, owner_role, reason_key]",
+      ".properties.audit.properties.actor.additionalProperties = false",
+      ".properties.audit.properties.actor.properties = [id, kind]",
+      ".properties.audit.properties.actor.properties.id.minLength = 1",
+      ".properties.audit.properties.actor.properties.id.type = \"string\"",
+      ".properties.audit.properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
+      ".properties.audit.properties.actor.required = [\"kind\",\"id\"]",
+      ".properties.audit.properties.actor.type = \"object\"",
+      ".properties.audit.properties.changed_at.format = \"date-time\"",
+      ".properties.audit.properties.changed_at.type = \"string\"",
+      ".properties.audit.properties.expires_at.format = \"date-time\"",
+      ".properties.audit.properties.expires_at.type = \"string\"",
+      ".properties.audit.properties.owner_role.enum = [\"A0\",\"A1\",\"A2\",\"A3\",\"A4\",\"A5\",\"A6\"]",
+      ".properties.audit.properties.reason_key.pattern = \"^policy\\\\.[a-z_.]+$\"",
+      ".properties.audit.properties.reason_key.type = \"string\"",
+      ".properties.audit.required = [\"actor\",\"reason_key\",\"changed_at\"]",
+      ".properties.audit.type = \"object\"",
+      ".properties.bucket.additionalProperties = false",
+      ".properties.bucket.properties = [allocated, percentage]",
+      ".properties.bucket.properties.allocated.type = \"boolean\"",
+      ".properties.bucket.properties.percentage.maximum = 100",
+      ".properties.bucket.properties.percentage.minimum = 0",
+      ".properties.bucket.properties.percentage.type = \"integer\"",
+      ".properties.bucket.required = [\"percentage\",\"allocated\"]",
+      ".properties.bucket.type = \"object\"",
+      ".properties.decided_at.format = \"date-time\"",
+      ".properties.decided_at.type = \"string\"",
+      ".properties.decision_source.additionalProperties = false",
+      ".properties.decision_source.properties = [rule, scope]",
+      ".properties.decision_source.properties.rule.enum = [\"kill_switch\",\"explicit_deny\",\"explicit_allow\",\"percentage_bucket\",\"default_deny\"]",
+      ".properties.decision_source.properties.scope.enum = [\"platform\",\"plan\",\"workspace\",\"business\",\"capability\"]",
+      ".properties.decision_source.required = [\"scope\",\"rule\"]",
+      ".properties.decision_source.type = \"object\"",
+      ".properties.effect.enum = [\"allow\",\"deny\"]",
+      ".properties.evaluated_scopes.enum = [[\"platform\"],[\"platform\",\"plan\"],[\"platform\",\"plan\",\"workspace\"],[\"platform\",\"plan\",\"workspace\",\"business\"],[\"platform\",\"plan\",\"workspace\",\"business\",\"capability\"]]",
+      ".properties.historical_read_allowed.type = \"boolean\"",
+      ".properties.policy_key.pattern = \"^[a-z][a-z0-9.]*$\"",
+      ".properties.policy_key.type = \"string\"",
+      ".properties.reason_key.pattern = \"^policy\\\\.[a-z_.]+$\"",
+      ".properties.reason_key.type = \"string\"",
+      ".properties.temporary.type = \"boolean\"",
+      ".properties.write_disabled.type = \"boolean\"",
+      ".required = [\"policy_key\",\"effect\",\"decided_at\",\"decision_source\",\"reason_key\",\"evaluated_scopes\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-idm-001': {
+    digest: '5ac140989679057f',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [state]",
+      ".allOf.0.if.properties.state.const = \"completed\"",
+      ".allOf.0.then.not.required = [\"error\"]",
+      ".allOf.0.then.required = [\"completed_at\",\"result_ref\"]",
+      ".allOf.1.if.properties = [state]",
+      ".allOf.1.if.properties.state.const = \"failed\"",
+      ".allOf.1.then.not.required = [\"result_ref\"]",
+      ".allOf.1.then.required = [\"completed_at\",\"error\"]",
+      ".allOf.2.if.properties = [state]",
+      ".allOf.2.if.properties.state.const = \"in_progress\"",
+      ".allOf.2.then.not.anyOf.0.required = [\"result_ref\"]",
+      ".allOf.2.then.not.anyOf.1.required = [\"error\"]",
+      ".allOf.2.then.not.anyOf.2.required = [\"completed_at\"]",
+      ".properties = [completed_at, correlation_id, created_at, error, idempotency_key, payload_hash, result_ref, scope, state]",
+      ".properties.completed_at.format = \"date-time\"",
+      ".properties.completed_at.type = \"string\"",
+      ".properties.correlation_id.maxLength = 128",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.created_at.format = \"date-time\"",
+      ".properties.created_at.type = \"string\"",
+      ".properties.error.$ref = \"../ctr-err-001/schema.json\"",
+      ".properties.idempotency_key.maxLength = 128",
+      ".properties.idempotency_key.minLength = 1",
+      ".properties.idempotency_key.type = \"string\"",
+      ".properties.payload_hash.pattern = \"^[a-z0-9-]+:[0-9a-f]{32,128}$\"",
+      ".properties.payload_hash.type = \"string\"",
+      ".properties.result_ref.maxLength = 256",
+      ".properties.result_ref.pattern = \"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.result_ref.type = \"string\"",
+      ".properties.scope.additionalProperties = false",
+      ".properties.scope.properties = [operation, workspace_id]",
+      ".properties.scope.properties.operation.pattern = \"^[a-z0-9]+(\\\\.[a-z0-9]+)+$\"",
+      ".properties.scope.properties.operation.type = \"string\"",
+      ".properties.scope.properties.workspace_id.maxLength = 128",
+      ".properties.scope.properties.workspace_id.minLength = 1",
+      ".properties.scope.properties.workspace_id.type = \"string\"",
+      ".properties.scope.required = [\"workspace_id\",\"operation\"]",
+      ".properties.scope.type = \"object\"",
+      ".properties.state.enum = [\"in_progress\",\"completed\",\"failed\"]",
+      ".required = [\"idempotency_key\",\"scope\",\"payload_hash\",\"state\",\"created_at\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-job-001': {
+    digest: '62391eb76e72d55e',
+    sites: [
+      ".additionalProperties = false",
+      ".properties = [attempt, available_at, cancel_requested_at, dedupe_key, input_ref, job_id, job_type, job_version, last_error_code, lease_expires_at, lease_owner, max_attempts, priority, progress_percent, progress_stage, result_ref, tenant_context, timeout_seconds]",
+      ".properties.attempt.minimum = 0",
+      ".properties.attempt.type = \"integer\"",
+      ".properties.available_at.format = \"date-time\"",
+      ".properties.available_at.type = \"string\"",
+      ".properties.cancel_requested_at.format = \"date-time\"",
+      ".properties.cancel_requested_at.type = \"string\"",
+      ".properties.dedupe_key.maxLength = 128",
+      ".properties.dedupe_key.minLength = 1",
+      ".properties.dedupe_key.type = \"string\"",
+      ".properties.input_ref.maxLength = 256",
+      ".properties.input_ref.pattern = \"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.input_ref.type = \"string\"",
+      ".properties.job_id.maxLength = 128",
+      ".properties.job_id.minLength = 1",
+      ".properties.job_id.type = \"string\"",
+      ".properties.job_type.minLength = 1",
+      ".properties.job_type.type = \"string\"",
+      ".properties.job_version.minimum = 1",
+      ".properties.job_version.type = \"integer\"",
+      ".properties.last_error_code.minLength = 1",
+      ".properties.last_error_code.type = \"string\"",
+      ".properties.lease_expires_at.format = \"date-time\"",
+      ".properties.lease_expires_at.type = \"string\"",
+      ".properties.lease_owner.minLength = 1",
+      ".properties.lease_owner.type = \"string\"",
+      ".properties.max_attempts.minimum = 1",
+      ".properties.max_attempts.type = \"integer\"",
+      ".properties.priority.type = \"integer\"",
+      ".properties.progress_percent.maximum = 100",
+      ".properties.progress_percent.minimum = 0",
+      ".properties.progress_percent.type = \"integer\"",
+      ".properties.progress_stage.minLength = 1",
+      ".properties.progress_stage.type = \"string\"",
+      ".properties.result_ref.maxLength = 256",
+      ".properties.result_ref.pattern = \"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.result_ref.type = \"string\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".properties.timeout_seconds.minimum = 1",
+      ".properties.timeout_seconds.type = \"integer\"",
+      ".required = [\"job_id\",\"job_type\",\"job_version\",\"tenant_context\",\"priority\",\"available_at\",\"attempt\",\"max_attempts\",\"timeout_seconds\",\"dedupe_key\",\"input_ref\",\"progress_percent\",\"progress_stage\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-mod-001': {
+    digest: '59d8c7d8c9198664',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [lifecycle]",
+      ".allOf.0.if.properties.lifecycle.properties = [state]",
+      ".allOf.0.if.properties.lifecycle.properties.state.const = \"ready\"",
+      ".allOf.0.if.properties.lifecycle.required = [\"state\"]",
+      ".allOf.0.if.required = [\"lifecycle\"]",
+      ".allOf.0.then.properties = [lifecycle]",
+      ".allOf.0.then.properties.lifecycle.properties = [readiness]",
+      ".allOf.0.then.properties.lifecycle.properties.readiness.properties = [activated]",
+      ".allOf.0.then.properties.lifecycle.properties.readiness.properties.activated.const = true",
+      ".allOf.0.then.properties.lifecycle.properties.readiness.required = [\"activated\"]",
+      ".allOf.0.then.properties.lifecycle.required = [\"readiness\"]",
+      ".allOf.1.if.properties = [lifecycle]",
+      ".allOf.1.if.properties.lifecycle.properties = [state]",
+      ".allOf.1.if.properties.lifecycle.properties.state.const = \"blocked\"",
+      ".allOf.1.if.properties.lifecycle.required = [\"state\"]",
+      ".allOf.1.if.required = [\"lifecycle\"]",
+      ".allOf.1.then.properties = [lifecycle]",
+      ".allOf.1.then.properties.lifecycle.properties = [readiness]",
+      ".allOf.1.then.properties.lifecycle.properties.readiness.properties = [activated, missing]",
+      ".allOf.1.then.properties.lifecycle.properties.readiness.properties.activated.const = false",
+      ".allOf.1.then.properties.lifecycle.properties.readiness.properties.missing.minItems = 1",
+      ".allOf.1.then.properties.lifecycle.properties.readiness.properties.missing.type = \"array\"",
+      ".allOf.1.then.properties.lifecycle.properties.readiness.required = [\"activated\",\"missing\"]",
+      ".allOf.1.then.properties.lifecycle.required = [\"readiness\"]",
+      ".allOf.2.if.properties = [data_policy]",
+      ".allOf.2.if.properties.data_policy.properties = [classification]",
+      ".allOf.2.if.properties.data_policy.properties.classification.const = \"permissioned-data\"",
+      ".allOf.2.if.properties.data_policy.required = [\"classification\"]",
+      ".allOf.2.if.required = [\"data_policy\"]",
+      ".allOf.2.then.properties = [data_policy]",
+      ".allOf.2.then.properties.data_policy.properties = [tenant_scoped]",
+      ".allOf.2.then.properties.data_policy.properties.tenant_scoped.const = true",
+      ".allOf.2.then.properties.data_policy.required = [\"classification\",\"tenant_scoped\",\"retention_reference\",\"consent_reference\",\"redaction_reference\"]",
+      ".properties = [capabilities, cost_policy, data_policy, dependencies, lifecycle, module_id, module_key, owner_role, permissions, secret_handles, version]",
+      ".properties.capabilities.items.additionalProperties = false",
+      ".properties.capabilities.items.properties = [capability_key, version]",
+      ".properties.capabilities.items.properties.capability_key.pattern = \"^[a-z][a-z0-9.]*$\"",
+      ".properties.capabilities.items.properties.capability_key.type = \"string\"",
+      ".properties.capabilities.items.properties.version.minimum = 1",
+      ".properties.capabilities.items.properties.version.type = \"integer\"",
+      ".properties.capabilities.items.required = [\"capability_key\",\"version\"]",
+      ".properties.capabilities.items.type = \"object\"",
+      ".properties.capabilities.minItems = 1",
+      ".properties.capabilities.type = \"array\"",
+      ".properties.capabilities.uniqueItems = true",
+      ".properties.cost_policy.additionalProperties = false",
+      ".properties.cost_policy.properties = [metered, usage_contract]",
+      ".properties.cost_policy.properties.metered.type = \"boolean\"",
+      ".properties.cost_policy.properties.usage_contract.pattern = \"^CTR-[A-Z]{3}-[0-9]{3}$\"",
+      ".properties.cost_policy.properties.usage_contract.type = \"string\"",
+      ".properties.cost_policy.required = [\"metered\"]",
+      ".properties.cost_policy.type = \"object\"",
+      ".properties.data_policy.additionalProperties = false",
+      ".properties.data_policy.properties = [classification, consent_reference, redaction_reference, retention_reference, tenant_scoped]",
+      ".properties.data_policy.properties.classification.enum = [\"synthetic-only\",\"tenant-data\",\"permissioned-data\"]",
+      ".properties.data_policy.properties.consent_reference.minLength = 1",
+      ".properties.data_policy.properties.consent_reference.type = \"string\"",
+      ".properties.data_policy.properties.redaction_reference.minLength = 1",
+      ".properties.data_policy.properties.redaction_reference.type = \"string\"",
+      ".properties.data_policy.properties.retention_reference.minLength = 1",
+      ".properties.data_policy.properties.retention_reference.type = \"string\"",
+      ".properties.data_policy.properties.tenant_scoped.type = \"boolean\"",
+      ".properties.data_policy.required = [\"classification\",\"tenant_scoped\"]",
+      ".properties.data_policy.type = \"object\"",
+      ".properties.dependencies.items.additionalProperties = false",
+      ".properties.dependencies.items.properties = [module_key, range]",
+      ".properties.dependencies.items.properties.module_key.pattern = \"^[a-z][a-z0-9-]*$\"",
+      ".properties.dependencies.items.properties.module_key.type = \"string\"",
+      ".properties.dependencies.items.properties.range.minLength = 1",
+      ".properties.dependencies.items.properties.range.type = \"string\"",
+      ".properties.dependencies.items.required = [\"module_key\",\"range\"]",
+      ".properties.dependencies.items.type = \"object\"",
+      ".properties.dependencies.type = \"array\"",
+      ".properties.dependencies.uniqueItems = true",
+      ".properties.lifecycle.additionalProperties = false",
+      ".properties.lifecycle.properties = [readiness, state, supports_drain]",
+      ".properties.lifecycle.properties.readiness.additionalProperties = false",
+      ".properties.lifecycle.properties.readiness.properties = [activated, missing, reason]",
+      ".properties.lifecycle.properties.readiness.properties.activated.type = \"boolean\"",
+      ".properties.lifecycle.properties.readiness.properties.missing.items.enum = [\"secret_handle\",\"scope\",\"entitlement\",\"permission\",\"health\"]",
+      ".properties.lifecycle.properties.readiness.properties.missing.minItems = 1",
+      ".properties.lifecycle.properties.readiness.properties.missing.type = \"array\"",
+      ".properties.lifecycle.properties.readiness.properties.reason.pattern = \"^readiness\\\\.[a-z_.]+$\"",
+      ".properties.lifecycle.properties.readiness.properties.reason.type = \"string\"",
+      ".properties.lifecycle.properties.readiness.required = [\"activated\",\"reason\"]",
+      ".properties.lifecycle.properties.readiness.type = \"object\"",
+      ".properties.lifecycle.properties.state.enum = [\"registered\",\"initializing\",\"ready\",\"draining\",\"stopped\",\"blocked\"]",
+      ".properties.lifecycle.properties.supports_drain.type = \"boolean\"",
+      ".properties.lifecycle.required = [\"state\",\"supports_drain\"]",
+      ".properties.lifecycle.type = \"object\"",
+      ".properties.module_id.pattern = \"^MOD-(0[0-9]{2}|1[0-4][0-9])$\"",
+      ".properties.module_id.type = \"string\"",
+      ".properties.module_key.pattern = \"^[a-z][a-z0-9-]*$\"",
+      ".properties.module_key.type = \"string\"",
+      ".properties.owner_role.enum = [\"A0\",\"A1\",\"A2\",\"A3\",\"A4\",\"A5\",\"A6\"]",
+      ".properties.permissions.items.minLength = 1",
+      ".properties.permissions.items.type = \"string\"",
+      ".properties.permissions.type = \"array\"",
+      ".properties.permissions.uniqueItems = true",
+      ".properties.secret_handles.items.pattern = \"^secret:[a-z0-9._-]+$\"",
+      ".properties.secret_handles.items.type = \"string\"",
+      ".properties.secret_handles.type = \"array\"",
+      ".properties.secret_handles.uniqueItems = true",
+      ".properties.version.pattern = \"^(0|[1-9]\\\\d*)\\\\.(0|[1-9]\\\\d*)\\\\.(0|[1-9]\\\\d*)(?:-[0-9A-Za-z-]+(?:\\\\.[0-9A-Za-z-]+)*)?(?:\\\\+[0-9A-Za-z-]+(?:\\\\.[0-9A-Za-z-]+)*)?$\"",
+      ".properties.version.type = \"string\"",
+      ".required = [\"module_key\",\"module_id\",\"version\",\"owner_role\",\"capabilities\",\"dependencies\",\"permissions\",\"cost_policy\",\"data_policy\",\"lifecycle\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-ntf-001': {
+    digest: 'fb2df24d208929e2',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [kind]",
+      ".allOf.0.if.properties.kind.const = \"command\"",
+      ".allOf.0.if.required = [\"kind\"]",
+      ".allOf.0.then.not.required = [\"delivery\"]",
+      ".allOf.0.then.required = [\"channel\",\"message_key\",\"deep_link\"]",
+      ".allOf.1.if.properties = [kind]",
+      ".allOf.1.if.properties.kind.const = \"result\"",
+      ".allOf.1.if.required = [\"kind\"]",
+      ".allOf.1.then.required = [\"delivery\"]",
+      ".allOf.2.if.properties = [delivery]",
+      ".allOf.2.if.properties.delivery.properties = [state]",
+      ".allOf.2.if.properties.delivery.properties.state.const = \"failed\"",
+      ".allOf.2.if.properties.delivery.required = [\"state\"]",
+      ".allOf.2.if.required = [\"delivery\"]",
+      ".allOf.2.then.properties = [delivery]",
+      ".allOf.2.then.properties.delivery.required = [\"state\",\"failure_class\"]",
+      ".allOf.3.if.properties = [delivery]",
+      ".allOf.3.if.properties.delivery.properties = [state]",
+      ".allOf.3.if.properties.delivery.properties.state.const = \"delivered\"",
+      ".allOf.3.if.properties.delivery.required = [\"state\"]",
+      ".allOf.3.if.required = [\"delivery\"]",
+      ".allOf.3.then.properties = [delivery]",
+      ".allOf.3.then.properties.delivery.not.required = [\"failure_class\"]",
+      ".properties = [channel, dedupe_key, deep_link, delivery, kind, locale, message_key, notification_id, tenant_context]",
+      ".properties.channel.enum = [\"in_app\",\"email\",\"line\"]",
+      ".properties.dedupe_key.minLength = 1",
+      ".properties.dedupe_key.type = \"string\"",
+      ".properties.deep_link.additionalProperties = false",
+      ".properties.deep_link.properties = [requires_permission, target_ref]",
+      ".properties.deep_link.properties.requires_permission.const = true",
+      ".properties.deep_link.properties.target_ref.pattern = \"^(app|content|asset|job):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
+      ".properties.deep_link.properties.target_ref.type = \"string\"",
+      ".properties.deep_link.required = [\"target_ref\",\"requires_permission\"]",
+      ".properties.deep_link.type = \"object\"",
+      ".properties.delivery.additionalProperties = false",
+      ".properties.delivery.properties = [failure_class, state]",
+      ".properties.delivery.properties.failure_class.enum = [\"transient\",\"permanent\"]",
+      ".properties.delivery.properties.state.enum = [\"queued\",\"delivered\",\"failed\",\"suppressed_duplicate\"]",
+      ".properties.delivery.required = [\"state\"]",
+      ".properties.delivery.type = \"object\"",
+      ".properties.kind.enum = [\"command\",\"result\"]",
+      ".properties.locale.enum = [\"th-TH\"]",
+      ".properties.message_key.pattern = \"^notification\\\\.[a-z_.]+$\"",
+      ".properties.message_key.type = \"string\"",
+      ".properties.notification_id.minLength = 1",
+      ".properties.notification_id.type = \"string\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".required = [\"kind\",\"notification_id\",\"dedupe_key\",\"locale\",\"tenant_context\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-obs-001': {
+    digest: '31b8ed3985d4ccd8',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [readiness]",
+      ".allOf.0.if.properties.readiness.properties = [ready]",
+      ".allOf.0.if.properties.readiness.properties.ready.const = true",
+      ".allOf.0.if.properties.readiness.required = [\"ready\"]",
+      ".allOf.0.if.required = [\"readiness\"]",
+      ".allOf.0.then.properties = [readiness]",
+      ".allOf.0.then.properties.readiness.properties = [capabilities]",
+      ".allOf.0.then.properties.readiness.properties.capabilities.items.properties = [ready]",
+      ".allOf.0.then.properties.readiness.properties.capabilities.items.properties.ready.const = true",
+      ".allOf.1.if.properties = [liveness]",
+      ".allOf.1.if.properties.liveness.properties = [status]",
+      ".allOf.1.if.properties.liveness.properties.status.const = \"down\"",
+      ".allOf.1.if.properties.liveness.required = [\"status\"]",
+      ".allOf.1.if.required = [\"liveness\"]",
+      ".allOf.1.then.properties = [readiness]",
+      ".allOf.1.then.properties.readiness.properties = [ready]",
+      ".allOf.1.then.properties.readiness.properties.ready.const = false",
+      ".properties = [correlation, dependencies, environment, liveness, module, readiness, redaction, sli_tags]",
+      ".properties.correlation.additionalProperties = false",
+      ".properties.correlation.properties = [causation_id, correlation_id, job_id, request_id, trace_id]",
+      ".properties.correlation.properties.causation_id.minLength = 1",
+      ".properties.correlation.properties.causation_id.type = \"string\"",
+      ".properties.correlation.properties.correlation_id.minLength = 1",
+      ".properties.correlation.properties.correlation_id.type = \"string\"",
+      ".properties.correlation.properties.job_id.minLength = 1",
+      ".properties.correlation.properties.job_id.type = \"string\"",
+      ".properties.correlation.properties.request_id.minLength = 1",
+      ".properties.correlation.properties.request_id.type = \"string\"",
+      ".properties.correlation.properties.trace_id.minLength = 1",
+      ".properties.correlation.properties.trace_id.type = \"string\"",
+      ".properties.correlation.required = [\"correlation_id\"]",
+      ".properties.correlation.type = \"object\"",
+      ".properties.dependencies.items.additionalProperties = false",
+      ".properties.dependencies.items.properties = [dependency_key, kind, status]",
+      ".properties.dependencies.items.properties.dependency_key.pattern = \"^[a-z][a-z0-9.-]*$\"",
+      ".properties.dependencies.items.properties.dependency_key.type = \"string\"",
+      ".properties.dependencies.items.properties.kind.enum = [\"module\",\"external_provider\"]",
+      ".properties.dependencies.items.properties.status.enum = [\"healthy\",\"degraded\",\"unavailable\"]",
+      ".properties.dependencies.items.required = [\"dependency_key\",\"kind\",\"status\"]",
+      ".properties.dependencies.items.type = \"object\"",
+      ".properties.dependencies.type = \"array\"",
+      ".properties.dependencies.uniqueItems = true",
+      ".properties.environment.enum = [\"local\",\"preview\",\"staging\",\"production\"]",
+      ".properties.liveness.additionalProperties = false",
+      ".properties.liveness.properties = [depends_on_external_provider, status]",
+      ".properties.liveness.properties.depends_on_external_provider.const = false",
+      ".properties.liveness.properties.status.enum = [\"up\",\"down\"]",
+      ".properties.liveness.required = [\"status\",\"depends_on_external_provider\"]",
+      ".properties.liveness.type = \"object\"",
+      ".properties.module.additionalProperties = false",
+      ".properties.module.properties = [implementation_version, module_key]",
+      ".properties.module.properties.implementation_version.minLength = 1",
+      ".properties.module.properties.implementation_version.type = \"string\"",
+      ".properties.module.properties.module_key.pattern = \"^[a-z][a-z0-9-]*$\"",
+      ".properties.module.properties.module_key.type = \"string\"",
+      ".properties.module.required = [\"module_key\",\"implementation_version\"]",
+      ".properties.module.type = \"object\"",
+      ".properties.readiness.additionalProperties = false",
+      ".properties.readiness.properties = [capabilities, ready]",
+      ".properties.readiness.properties.capabilities.items.additionalProperties = false",
+      ".properties.readiness.properties.capabilities.items.allOf.0.if.properties = [ready]",
+      ".properties.readiness.properties.capabilities.items.allOf.0.if.properties.ready.const = false",
+      ".properties.readiness.properties.capabilities.items.allOf.0.if.required = [\"ready\"]",
+      ".properties.readiness.properties.capabilities.items.allOf.0.then.required = [\"reason_key\"]",
+      ".properties.readiness.properties.capabilities.items.properties = [capability_key, ready, reason_key]",
+      ".properties.readiness.properties.capabilities.items.properties.capability_key.pattern = \"^[a-z][a-z0-9.]*$\"",
+      ".properties.readiness.properties.capabilities.items.properties.capability_key.type = \"string\"",
+      ".properties.readiness.properties.capabilities.items.properties.ready.type = \"boolean\"",
+      ".properties.readiness.properties.capabilities.items.properties.reason_key.maxLength = 96",
+      ".properties.readiness.properties.capabilities.items.properties.reason_key.pattern = \"^readiness\\\\.[a-z0-9_.]+$\"",
+      ".properties.readiness.properties.capabilities.items.properties.reason_key.type = \"string\"",
+      ".properties.readiness.properties.capabilities.items.required = [\"capability_key\",\"ready\"]",
+      ".properties.readiness.properties.capabilities.items.type = \"object\"",
+      ".properties.readiness.properties.capabilities.minItems = 1",
+      ".properties.readiness.properties.capabilities.type = \"array\"",
+      ".properties.readiness.properties.ready.type = \"boolean\"",
+      ".properties.readiness.required = [\"ready\",\"capabilities\"]",
+      ".properties.readiness.type = \"object\"",
+      ".properties.redaction.additionalProperties = false",
+      ".properties.redaction.properties = [content_redacted, pii_redacted, secret_redacted]",
+      ".properties.redaction.properties.content_redacted.const = true",
+      ".properties.redaction.properties.pii_redacted.const = true",
+      ".properties.redaction.properties.secret_redacted.const = true",
+      ".properties.redaction.required = [\"secret_redacted\",\"content_redacted\",\"pii_redacted\"]",
+      ".properties.redaction.type = \"object\"",
+      ".properties.sli_tags.additionalProperties = false",
+      ".properties.sli_tags.properties = [capability_key, environment, error_code, module_key, outcome]",
+      ".properties.sli_tags.properties.capability_key.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.capability_key.type = \"string\"",
+      ".properties.sli_tags.properties.environment.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.environment.type = \"string\"",
+      ".properties.sli_tags.properties.error_code.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.error_code.type = \"string\"",
+      ".properties.sli_tags.properties.module_key.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.module_key.type = \"string\"",
+      ".properties.sli_tags.properties.outcome.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.outcome.type = \"string\"",
+      ".properties.sli_tags.required = [\"module_key\",\"environment\"]",
+      ".properties.sli_tags.type = \"object\"",
+      ".required = [\"correlation\",\"module\",\"environment\",\"liveness\",\"readiness\",\"sli_tags\",\"redaction\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-pag-001': {
+    digest: 'b7c65d64d6a9f75f',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [kind]",
+      ".allOf.0.if.properties.kind.const = \"request\"",
+      ".allOf.0.then.not.anyOf.0.required = [\"items\"]",
+      ".allOf.0.then.not.anyOf.1.required = [\"next_cursor\"]",
+      ".allOf.0.then.not.anyOf.2.required = [\"has_more\"]",
+      ".allOf.0.then.required = [\"page_size\",\"sort\"]",
+      ".allOf.1.if.properties = [kind]",
+      ".allOf.1.if.properties.kind.const = \"page\"",
+      ".allOf.1.then.allOf.0.if.properties = [has_more]",
+      ".allOf.1.then.allOf.0.if.properties.has_more.const = true",
+      ".allOf.1.then.allOf.0.if.required = [\"has_more\"]",
+      ".allOf.1.then.allOf.0.then.properties = [next_cursor]",
+      ".allOf.1.then.allOf.0.then.properties.next_cursor.minLength = 1",
+      ".allOf.1.then.allOf.0.then.properties.next_cursor.type = \"string\"",
+      ".allOf.1.then.allOf.0.then.required = [\"next_cursor\"]",
+      ".allOf.1.then.allOf.1.if.properties = [has_more]",
+      ".allOf.1.then.allOf.1.if.properties.has_more.const = false",
+      ".allOf.1.then.allOf.1.if.required = [\"has_more\"]",
+      ".allOf.1.then.allOf.1.then.properties = [next_cursor]",
+      ".allOf.1.then.allOf.1.then.properties.next_cursor.type = \"null\"",
+      ".allOf.1.then.not.required = [\"cursor\"]",
+      ".allOf.1.then.required = [\"items\",\"next_cursor\",\"has_more\",\"sort\"]",
+      ".properties = [cursor, filter, has_more, items, kind, next_cursor, page_size, sort]",
+      ".properties.cursor.minLength = 1",
+      ".properties.cursor.type = \"string\"",
+      ".properties.filter.type = \"object\"",
+      ".properties.has_more.type = \"boolean\"",
+      ".properties.items.type = \"array\"",
+      ".properties.kind.enum = [\"request\",\"page\"]",
+      ".properties.next_cursor.minLength = 1",
+      ".properties.next_cursor.type = [\"string\",\"null\"]",
+      ".properties.page_size.minimum = 1",
+      ".properties.page_size.type = \"integer\"",
+      ".properties.sort.items.additionalProperties = false",
+      ".properties.sort.items.properties = [direction, field]",
+      ".properties.sort.items.properties.direction.enum = [\"asc\",\"desc\"]",
+      ".properties.sort.items.properties.field.minLength = 1",
+      ".properties.sort.items.properties.field.type = \"string\"",
+      ".properties.sort.items.required = [\"field\",\"direction\"]",
+      ".properties.sort.items.type = \"object\"",
+      ".properties.sort.minItems = 2",
+      ".properties.sort.type = \"array\"",
+      ".properties.sort.uniqueItems = true",
+      ".required = [\"kind\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-sec-001': {
+    digest: '638983384c302c88',
+    sites: [
+      ".additionalProperties = false",
+      ".allOf.0.if.properties = [state]",
+      ".allOf.0.if.properties.state.const = \"revoked\"",
+      ".allOf.0.if.required = [\"state\"]",
+      ".allOf.0.then.properties = [resolvable]",
+      ".allOf.0.then.properties.resolvable.const = false",
+      ".allOf.0.then.required = [\"revocation\"]",
+      ".allOf.1.if.properties = [state]",
+      ".allOf.1.if.properties.state.const = \"active\"",
+      ".allOf.1.if.required = [\"state\"]",
+      ".allOf.1.then.not.required = [\"revocation\"]",
+      ".allOf.1.then.properties = [resolvable]",
+      ".allOf.1.then.properties.resolvable.const = true",
+      ".allOf.2.if.properties = [ownership]",
+      ".allOf.2.if.properties.ownership.const = \"managed\"",
+      ".allOf.2.if.required = [\"ownership\"]",
+      ".allOf.2.then.properties = [rotation]",
+      ".allOf.2.then.properties.rotation.properties = [owner]",
+      ".allOf.2.then.properties.rotation.properties.owner.properties = [kind]",
+      ".allOf.2.then.properties.rotation.properties.owner.properties.kind.const = \"platform_role\"",
+      ".allOf.2.then.properties.rotation.properties.owner.required = [\"kind\"]",
+      ".allOf.2.then.properties.rotation.required = [\"owner\"]",
+      ".allOf.3.if.properties = [ownership]",
+      ".allOf.3.if.properties.ownership.const = \"byok\"",
+      ".allOf.3.if.required = [\"ownership\"]",
+      ".allOf.3.then.properties = [rotation]",
+      ".allOf.3.then.properties.rotation.properties = [owner]",
+      ".allOf.3.then.properties.rotation.properties.owner.properties = [kind]",
+      ".allOf.3.then.properties.rotation.properties.owner.properties.kind.const = \"workspace_owner\"",
+      ".allOf.3.then.properties.rotation.properties.owner.required = [\"kind\"]",
+      ".allOf.3.then.properties.rotation.required = [\"owner\"]",
+      ".properties = [classification, correlation_id, handle, ownership, redaction, resolvable, revocation, rotation, scope, state]",
+      ".properties.classification.enum = [\"public\",\"internal\",\"confidential\",\"restricted\"]",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.handle.maxLength = 128",
+      ".properties.handle.pattern = \"^secret:[a-z0-9._-]+$\"",
+      ".properties.handle.type = \"string\"",
+      ".properties.ownership.enum = [\"managed\",\"byok\"]",
+      ".properties.redaction.additionalProperties = false",
+      ".properties.redaction.properties = [analytics_safe, browser_safe, error_trace_safe, event_safe, job_safe, log_safe]",
+      ".properties.redaction.properties.analytics_safe.const = true",
+      ".properties.redaction.properties.browser_safe.const = true",
+      ".properties.redaction.properties.error_trace_safe.const = true",
+      ".properties.redaction.properties.event_safe.const = true",
+      ".properties.redaction.properties.job_safe.const = true",
+      ".properties.redaction.properties.log_safe.const = true",
+      ".properties.redaction.required = [\"browser_safe\",\"log_safe\",\"event_safe\",\"job_safe\",\"analytics_safe\",\"error_trace_safe\"]",
+      ".properties.redaction.type = \"object\"",
+      ".properties.resolvable.type = \"boolean\"",
+      ".properties.revocation.additionalProperties = false",
+      ".properties.revocation.properties = [actor, reason_key, revoked_at]",
+      ".properties.revocation.properties.actor.additionalProperties = false",
+      ".properties.revocation.properties.actor.properties = [id, kind]",
+      ".properties.revocation.properties.actor.properties.id.minLength = 1",
+      ".properties.revocation.properties.actor.properties.id.type = \"string\"",
+      ".properties.revocation.properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
+      ".properties.revocation.properties.actor.required = [\"kind\",\"id\"]",
+      ".properties.revocation.properties.actor.type = \"object\"",
+      ".properties.revocation.properties.reason_key.pattern = \"^secret\\\\.[a-z_.]+$\"",
+      ".properties.revocation.properties.reason_key.type = \"string\"",
+      ".properties.revocation.properties.revoked_at.format = \"date-time\"",
+      ".properties.revocation.properties.revoked_at.type = \"string\"",
+      ".properties.revocation.required = [\"revoked_at\",\"actor\",\"reason_key\"]",
+      ".properties.revocation.type = \"object\"",
+      ".properties.rotation.additionalProperties = false",
+      ".properties.rotation.properties = [next_rotation_due_at, owner, rotated_at]",
+      ".properties.rotation.properties.next_rotation_due_at.format = \"date-time\"",
+      ".properties.rotation.properties.next_rotation_due_at.type = \"string\"",
+      ".properties.rotation.properties.owner.additionalProperties = false",
+      ".properties.rotation.properties.owner.properties = [id, kind]",
+      ".properties.rotation.properties.owner.properties.id.minLength = 1",
+      ".properties.rotation.properties.owner.properties.id.type = \"string\"",
+      ".properties.rotation.properties.owner.properties.kind.enum = [\"platform_role\",\"workspace_owner\"]",
+      ".properties.rotation.properties.owner.required = [\"kind\",\"id\"]",
+      ".properties.rotation.properties.owner.type = \"object\"",
+      ".properties.rotation.properties.rotated_at.format = \"date-time\"",
+      ".properties.rotation.properties.rotated_at.type = \"string\"",
+      ".properties.rotation.required = [\"owner\",\"rotated_at\"]",
+      ".properties.rotation.type = \"object\"",
+      ".properties.scope.additionalProperties = false",
+      ".properties.scope.properties = [business_profile_id, capability_key, page_context_profile_id, workspace_id]",
+      ".properties.scope.properties.business_profile_id.minLength = 1",
+      ".properties.scope.properties.business_profile_id.type = \"string\"",
+      ".properties.scope.properties.capability_key.pattern = \"^[a-z][a-z0-9.]*$\"",
+      ".properties.scope.properties.capability_key.type = \"string\"",
+      ".properties.scope.properties.page_context_profile_id.minLength = 1",
+      ".properties.scope.properties.page_context_profile_id.type = \"string\"",
+      ".properties.scope.properties.workspace_id.minLength = 1",
+      ".properties.scope.properties.workspace_id.type = \"string\"",
+      ".properties.scope.required = [\"workspace_id\",\"capability_key\"]",
+      ".properties.scope.type = \"object\"",
+      ".properties.state.enum = [\"active\",\"rotating\",\"revoked\"]",
+      ".required = [\"handle\",\"scope\",\"ownership\",\"classification\",\"state\",\"resolvable\",\"rotation\",\"redaction\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-ten-001': {
+    digest: 'a91d0bcf161ca5a7',
+    sites: [
+      ".additionalProperties = false",
+      ".properties = [actor, business_profile_id, causation_id, correlation_id, locale, page_context_profile_id, request_id, timezone, workspace_id]",
+      ".properties.actor.additionalProperties = false",
+      ".properties.actor.properties = [id, kind]",
+      ".properties.actor.properties.id.minLength = 1",
+      ".properties.actor.properties.id.type = \"string\"",
+      ".properties.actor.properties.kind.enum = [\"user\",\"system_actor\"]",
+      ".properties.actor.required = [\"kind\",\"id\"]",
+      ".properties.actor.type = \"object\"",
+      ".properties.business_profile_id.minLength = 1",
+      ".properties.business_profile_id.type = \"string\"",
+      ".properties.causation_id.minLength = 1",
+      ".properties.causation_id.type = \"string\"",
+      ".properties.correlation_id.minLength = 1",
+      ".properties.correlation_id.type = \"string\"",
+      ".properties.locale.const = \"th-TH\"",
+      ".properties.page_context_profile_id.minLength = 1",
+      ".properties.page_context_profile_id.type = \"string\"",
+      ".properties.request_id.minLength = 1",
+      ".properties.request_id.type = \"string\"",
+      ".properties.timezone.const = \"Asia/Bangkok\"",
+      ".properties.workspace_id.minLength = 1",
+      ".properties.workspace_id.type = \"string\"",
+      ".required = [\"workspace_id\",\"actor\",\"request_id\",\"correlation_id\",\"locale\",\"timezone\"]",
+      ".type = \"object\"",
+    ],
+  },
+  'ctr-usg-001': {
+    digest: '7546cafb151d70f9',
+    sites: [
+      ".additionalProperties = false",
+      ".properties = [attribution, cost, dedupe_key, dimension, occurred_at, quantity, tenant_context, usage_id]",
+      ".properties.attribution.additionalProperties = false",
+      ".properties.attribution.properties = [business_profile_id, job_id, provider_key, workspace_id]",
+      ".properties.attribution.properties.business_profile_id.minLength = 1",
+      ".properties.attribution.properties.business_profile_id.type = \"string\"",
+      ".properties.attribution.properties.job_id.minLength = 1",
+      ".properties.attribution.properties.job_id.type = \"string\"",
+      ".properties.attribution.properties.provider_key.pattern = \"^[a-z][a-z0-9._-]*$\"",
+      ".properties.attribution.properties.provider_key.type = \"string\"",
+      ".properties.attribution.properties.workspace_id.minLength = 1",
+      ".properties.attribution.properties.workspace_id.type = \"string\"",
+      ".properties.attribution.required = [\"workspace_id\",\"job_id\",\"provider_key\"]",
+      ".properties.attribution.type = \"object\"",
+      ".properties.cost.additionalProperties = false",
+      ".properties.cost.properties = [amount, basis, currency, supersedes_usage_id]",
+      ".properties.cost.properties.amount.pattern = \"^(0|[1-9][0-9]{0,15})\\\\.[0-9]{2,8}$\"",
+      ".properties.cost.properties.amount.type = \"string\"",
+      ".properties.cost.properties.basis.enum = [\"provider_reported\",\"estimated\"]",
+      ".properties.cost.properties.currency.enum = [\"THB\",\"USD\"]",
+      ".properties.cost.properties.supersedes_usage_id.minLength = 1",
+      ".properties.cost.properties.supersedes_usage_id.type = \"string\"",
+      ".properties.cost.required = [\"amount\",\"currency\",\"basis\"]",
+      ".properties.cost.type = \"object\"",
+      ".properties.dedupe_key.minLength = 1",
+      ".properties.dedupe_key.type = \"string\"",
+      ".properties.dimension.enum = [\"ai_tokens\",\"research_search\",\"storage_bytes\",\"egress_bytes\",\"media_processing\",\"publish_operation\"]",
+      ".properties.occurred_at.format = \"date-time\"",
+      ".properties.occurred_at.type = \"string\"",
+      ".properties.quantity.additionalProperties = false",
+      ".properties.quantity.properties = [amount, unit]",
+      ".properties.quantity.properties.amount.pattern = \"^(0|[1-9][0-9]{0,15})(\\\\.[0-9]{1,8})?$\"",
+      ".properties.quantity.properties.amount.type = \"string\"",
+      ".properties.quantity.properties.unit.enum = [\"token\",\"request\",\"byte\",\"second\",\"operation\"]",
+      ".properties.quantity.required = [\"amount\",\"unit\"]",
+      ".properties.quantity.type = \"object\"",
+      ".properties.tenant_context.$ref = \"../ctr-ten-001/schema.json\"",
+      ".properties.usage_id.minLength = 1",
+      ".properties.usage_id.type = \"string\"",
+      ".required = [\"usage_id\",\"occurred_at\",\"dimension\",\"quantity\",\"attribution\",\"cost\",\"dedupe_key\",\"tenant_context\"]",
+      ".type = \"object\"",
+    ],
+  },
+};
+
+function surfaceOf(schema) {
+  const entries = [];
+  // `inProperties` for the same reason `constraintSites` needs it: a container's keys are
+  // NAMES. Without it, `subject.properties.type` was recorded as a `type` assertion whose
+  // value is the whole subschema -- 380 characters including an `x-` annotation every other
+  // guard deliberately skips -- so appending one sentence to that comment failed CI. A false
+  // failure, and a nonsense line in the record a reviewer is meant to read.
+  const walk = (node, path, inProperties = false) => {
+    if (Array.isArray(node)) { node.forEach((item, i) => walk(item, `${path}.${i}`)); return; }
+    if (!node || typeof node !== 'object') return;
+    if (inProperties) {
+      for (const [name, value] of Object.entries(node)) walk(value, `${path}.${name}`);
+      return;
+    }
+    // The SHAPE, not only the assertions. Independent review added `properties.diagnostics = {}`
+    // to CTR-API-001 and `properties.impersonated_actor = {}` to CTR-TEN-001 -- the contract
+    // nine others compose -- and `npm run check` stayed green at 153/153 with no guard edit of
+    // any kind. An unconstrained property defeats `additionalProperties: false` for that key,
+    // so the envelope then accepts anything under it: the reviewer put a provider secret and a
+    // stack trace through the one CTR-API-001's own `x-leakage-boundary` exists to stop.
+    //
+    // A property carrying no assertion contributes no keyword, so a surface built only from
+    // keywords cannot see it. The declared property NAMES are part of the contract.
+    if (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) {
+      entries.push(`${path}.properties = [${Object.keys(node.properties).sort().join(', ')}]`);
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key.startsWith('x-')) continue;
+      if (key === 'properties') { walk(value, `${path}.${key}`, true); continue; }
+      if (ASSERTIONS.has(key) && !METADATA.has(key)) entries.push(`${path}.${key} = ${JSON.stringify(value)}`);
+      walk(value, `${path}.${key}`);
+    }
+  };
+  walk(schema, '');
+  return entries.sort();
+}
+
+test('no constraint value changes without the change being written down', async () => {
+  const { createHash } = await import('node:crypto');
+  const problems = [];
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let schema;
+    try { schema = await readJson(join(CATALOG, entry.name, 'schema.json')); } catch { continue; }
+    const surface = surfaceOf(schema);
+    const digest = createHash('sha256').update(surface.join('\n')).digest('hex').slice(0, 16);
+    const declared = CONSTRAINT_SURFACE[entry.name];
+    if (declared === undefined) {
+      problems.push(`${entry.name} — no entry in CONSTRAINT_SURFACE. A new contract must record its constraint surface, or its rules can be narrowed later with nothing failing.`);
+      continue;
+    }
+    // The RECORD is asserted, not only its digest. Independent review pointed out that a
+    // digest match short-circuited before `sites` was ever read, so the hex could be updated
+    // and the ~950 readable lines left to rot -- it narrowed `currency` from ["THB","USD"] to
+    // ["THB"], updated one hex string, and the record still said the old enum while the check
+    // passed. It also replaced an entire contract's `sites` array with `[]` and nothing failed.
+    //
+    // The file's whole claim is that a change is WRITTEN DOWN. A digest cannot carry that; only
+    // the list can, so the list is what is compared and the digest is a label on it.
+    const before = new Set(declared.sites ?? []);
+    const after = new Set(surface);
+    const added = surface.filter((s) => !before.has(s));
+    const removed = (declared.sites ?? []).filter((s) => !after.has(s));
+    if (added.length === 0 && removed.length === 0 && declared.digest === digest) continue;
+    if (added.length === 0 && removed.length === 0) {
+      problems.push(`${entry.name} — the recorded surface matches but its digest does not (declared ${declared.digest}, measured ${digest}). Regenerate the record; a hand-edited digest is the one thing this guard cannot interpret.`);
+      continue;
+    }
+    problems.push(`${entry.name} — constraint surface changed (declared ${declared.digest}, measured ${digest})`
+      + added.map((s) => `\n      + ${s}`).join('')
+      + removed.map((s) => `\n      - ${s}`).join(''));
+  }
+  assert.deepEqual(problems, [], `constraint value(s) changed without being recorded:\n  ${problems.join('\n  ')}`);
 });

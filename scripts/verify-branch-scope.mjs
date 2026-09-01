@@ -44,6 +44,39 @@ export function declaredPaths(manifest) {
   ];
 }
 
+// `amends_without_owning` is how a package records a change to a file another package owns. It
+// was an unvalidated escape hatch: nothing read it except this file, and this file unioned it
+// straight into the allowed set -- so it silently overrode the SAME manifest's own
+// `forbidden_paths`, which name `.env`, `db/**`, `migrations/**` and private-key extensions.
+//
+// A package may amend what it does not own. It may not amend what it has itself declared
+// forbidden, and it may not declare an amendment it never makes.
+export function amendmentProblems(manifest, changedFiles) {
+  const ownership = manifest.ownership ?? {};
+  const amends = ownership.amends_without_owning ?? {};
+  const problems = [];
+  // A forbidden pattern with no slash names a FILE SHAPE, not a top-level path: `*.pem` must
+  // forbid `keys/server.pem`, not only `server.pem`. Matching it as written let a private key
+  // through in any subdirectory, which is the one thing that list exists for.
+  const forbidden = (ownership.forbidden_paths ?? []).map(
+    (pattern) => globToRegExp(pattern.includes('/') ? pattern : `**/${pattern}`),
+  );
+  for (const pattern of amends.paths ?? []) {
+    if (pattern.startsWith('/') || pattern.includes('..')) {
+      problems.push(`amends_without_owning declares "${pattern}", which is absolute or contains a traversal`);
+    }
+  }
+  for (const file of changedFiles) {
+    if (forbidden.some((m) => m.test(file))) {
+      problems.push(`${file} is changed by this branch and matches this package's own forbidden_paths`);
+    }
+  }
+  if ((amends.paths ?? []).length > 0 && !(amends.rationale ?? '').trim()) {
+    problems.push('amends_without_owning declares paths with no rationale; an amendment without a reason is not a record');
+  }
+  return problems;
+}
+
 export function undeclared(changedFiles, patterns) {
   const matchers = patterns.map(globToRegExp);
   return changedFiles.filter((file) => !matchers.some((m) => m.test(file)));
@@ -58,6 +91,12 @@ async function main() {
   const manifest = JSON.parse(await readFile(`work-packages/${packageId}.json`, 'utf8'));
   const diff = (await run('git', ['diff', '--name-only', `${base}..HEAD`])).stdout.trim();
   const changed = diff ? diff.split('\n') : [];
+  const forbidden = amendmentProblems(manifest, changed);
+  if (forbidden.length > 0) {
+    console.error(`${packageId} has amendment problems:`);
+    for (const problem of forbidden) console.error(`  ${problem}`);
+    process.exit(74);
+  }
   const stray = undeclared(changed, declaredPaths(manifest));
   if (stray.length > 0) {
     console.error(`${packageId} changed ${stray.length} path(s) it neither owns nor records as an amendment:`);

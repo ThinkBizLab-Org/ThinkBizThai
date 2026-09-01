@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { declaredPaths, globToRegExp, undeclared } from '../scripts/verify-branch-scope.mjs';
+import { amendmentProblems, declaredPaths, globToRegExp, undeclared } from '../scripts/verify-branch-scope.mjs';
 
 // A manifest is a promise; a branch is a fact. `validate-work-package-ownership.mjs` checks the
 // promise -- that declared outputs sit inside declared writable paths. Nothing checked the fact.
@@ -47,4 +47,45 @@ test('a path that is neither owned nor recorded as an amendment is reported', ()
 
 test('a manifest that declares nothing reports every changed path', () => {
   assert.deepEqual(undeclared(['a.md', 'b/c.json'], declaredPaths({})), ['a.md', 'b/c.json']);
+});
+
+// `amends_without_owning` was an unvalidated escape hatch. Nothing read it except the scope
+// guard, and the guard unioned it straight into the allowed set -- so it silently overrode the
+// SAME manifest's `forbidden_paths`, which name `.env`, `db/**`, `migrations/**` and
+// private-key extensions. A package may amend what it does not own; it may not amend what it
+// has itself declared forbidden.
+test('an amendment cannot reach a path the package itself forbids', () => {
+  const manifest = {
+    ownership: {
+      writable_paths: ['evidence/WP-X/**'],
+      forbidden_paths: ['.env', 'db/**', 'migrations/**', '*.pem'],
+      amends_without_owning: { paths: ['db/**'], rationale: 'stated' },
+    },
+  };
+  assert.deepEqual(amendmentProblems(manifest, ['evidence/WP-X/a.md']), []);
+  const problems = amendmentProblems(manifest, ['db/0001_init.sql', 'keys/server.pem']);
+  assert.equal(problems.length, 2, 'both the migration path and the key in a subdirectory must be reported');
+  assert.match(problems[0], /forbidden_paths/);
+});
+
+// `*.pem` in a forbidden list names a FILE SHAPE, not a top-level path. Matched as written it
+// forbade `server.pem` and allowed `keys/server.pem` -- in the one list that exists to stop a
+// private key reaching the repository.
+test('a slashless forbidden pattern forbids that shape at any depth', () => {
+  const manifest = { ownership: { forbidden_paths: ['*.pem', '.env'] } };
+  for (const file of ['server.pem', 'keys/server.pem', 'a/b/c/server.pem', '.env', 'config/.env']) {
+    assert.equal(amendmentProblems(manifest, [file]).length, 1, `${file} must be reported`);
+  }
+  assert.deepEqual(amendmentProblems(manifest, ['keys/server.pub', 'docs/env.md']), []);
+});
+
+test('an amendment path may not be absolute or traverse, and needs a reason', () => {
+  const traversal = { ownership: { amends_without_owning: { paths: ['../outside/x', '/etc/passwd'], rationale: 'stated' } } };
+  assert.equal(amendmentProblems(traversal, []).length, 2);
+
+  const unexplained = { ownership: { amends_without_owning: { paths: ['package.json'] } } };
+  assert.match(amendmentProblems(unexplained, [])[0], /no rationale/);
+
+  const fine = { ownership: { amends_without_owning: { paths: ['package.json'], rationale: 'why' } } };
+  assert.deepEqual(amendmentProblems(fine, []), []);
 });

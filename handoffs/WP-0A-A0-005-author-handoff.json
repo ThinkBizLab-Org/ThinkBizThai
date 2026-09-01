@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-005",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "e287ac6876c8a91575fdea5d3e094c72cb4d0ee2",
+  "head_revision_or_patch_checksum": "b4a08dbdc9867a82b6479caa08c97cb917169834",
+  "task_ids": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-008-cardholder-data-scan.md",
+    "evidence/WP-0A-A0-005/author-self-check.md",
+    "work-packages/WP-0A-A0-005.json"
+  ],
+  "files_modified": [
+    "evidence/WP-0A-A0-004/author-self-check.md",
+    "scripts/scan-repository-secrets.mjs",
+    "scripts/verify-branch-scope.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/secret-scan.test.mjs",
+    "work-packages/WP-0A-A0-003.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "A Luhn-valid card number carrying a recognised issuer prefix is reported, in prose and in code alike.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    },
+    {
+      "criterion": "A Luhn-INVALID digit run of card length is not reported, so a correlation id or a hash prefix does not become a finding.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    },
+    {
+      "criterion": "A Luhn-valid run with no recognised issuer prefix is not reported: one in ten arbitrary digit runs passes Luhn, and a rule that fires on those is noise.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    },
+    {
+      "criterion": "A published provider test card IS reported. The scanner cannot distinguish a test number from a live one at rest, and Gate G0 permits no provider integration that would need one.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    },
+    {
+      "criterion": "The rule is not prose-exempt, on the same footing as the Thai national identity rule.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    },
+    {
+      "criterion": "Repository scan over the tree stays clean; npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "No contract-catalog file is changed by this package, so no consumer contract is affected.",
+  "known_limitations": [
+    "RFC-2026-008 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "A pattern scanner cannot prove absence. This closes one named class; it does not make the scanner complete, and the 37 of 56 uncorrelated decoys recorded against WP-0A-A0-003 remain unreported.",
+    "When a Stripe sandbox is authorized and a G0 blocker lifts, fixture work may legitimately need a test card. That must arrive as a reviewed exemption with a named owner, not as an allowlist added quietly to this rule."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-008 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "A pattern scanner cannot prove absence. This closes one named class; it does not make the scanner complete, and the 37 of 56 uncorrelated decoys recorded against WP-0A-A0-003 remain unreported.",
+    "When a Stripe sandbox is authorized and a G0 blocker lifts, fixture work may legitimately need a test card. That must arrive as a reviewed exemption with a named owner, not as an allowlist added quietly to this rule."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range e287ac6..b4a08db covers 10 path(s) — 2 script(s), 2 test file(s), 1 decision record(s), 2 work-package manifest(s). Revert through a reviewed revert PR. One scan rule and its tests; no persisted data, provider state, credential, migration or customer-data effect.",
+  "recommended_next_work_packages": [
+    "WP-0A-CON-007"
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-A0-005/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

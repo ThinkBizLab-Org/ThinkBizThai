@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-008",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "ae7170d5f2a0b1bad35a42a68363d3a99c93724e",
+  "head_revision_or_patch_checksum": "447e7d32ef1cf4ec1e06e20e052c938bc7de9c57",
+  "task_ids": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
+    "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-allof0-forbids-accepted.json",
+    "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-allof1-forbids-accepted.json",
+    "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-allof2-forbids-error.json",
+    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-allof2-forbids-completed-at.json",
+    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-allof2-forbids-error.json",
+    "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-allof0-forbids-has-more.json",
+    "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-allof0-forbids-next-cursor.json",
+    "evidence/VERIFICATION.md",
+    "evidence/WP-0A-CON-008/author-self-check.md",
+    "evidence/WP-0A-CON-008/branch-scope.md",
+    "evidence/WP-0A-CON-008/eighth-review-response.md",
+    "evidence/WP-0A-CON-008/handoffs.md",
+    "evidence/WP-0A-CON-008/merge-order-drill.md",
+    "evidence/WP-0A-CON-008/ninth-review-response.md",
+    "evidence/WP-0A-CON-008/seventh-review-response.md",
+    "evidence/WP-0A-CON-008/sixth-review-response.md",
+    "evidence/WP-0A-CON-008/verification-record.md",
+    "handoffs/WP-0A-A0-003-author-handoff.json",
+    "handoffs/WP-0A-A0-004-author-handoff.json",
+    "handoffs/WP-0A-A0-005-author-handoff.json",
+    "handoffs/WP-0A-CON-002-author-handoff.json",
+    "handoffs/WP-0A-CON-003-author-handoff.json",
+    "handoffs/WP-0A-CON-004-author-handoff.json",
+    "handoffs/WP-0A-CON-005-author-handoff.json",
+    "handoffs/WP-0A-CON-006-author-handoff.json",
+    "handoffs/WP-0A-CON-007-author-handoff.json",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/record-verification.mjs",
+    "test-kits/verification-record.test.mjs",
+    "work-packages/WP-0A-CON-008.json"
+  ],
+  "files_modified": [
+    "OVERNIGHT-SUMMARY.md",
+    "contract-catalog/shared-kernel/ctr-api-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-allof2-forbids-result-ref.json",
+    "contract-catalog/shared-kernel/ctr-idm-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-pag-001/manifest.json",
+    "evidence/WP-0A-CON-007/author-self-check.md",
+    "package.json",
+    "scripts/run-test-suite.mjs",
+    "test-kits/contracts/schema-mutation-coverage.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A0-002.json",
+    "work-packages/WP-0A-A0-004.json",
+    "work-packages/WP-0A-CON-007.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "known_limitations": [
+    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
+    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
+    "CTR-NTF-001 remains unassessed; A5 owns it."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
+    "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
+    "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
+    "CTR-NTF-001 remains unassessed; A5 owns it."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range ae7170d..447e7d3 covers 45 path(s) — 11 contract-catalog file(s), 2 script(s), 2 test file(s), 1 decision record(s), 5 work-package manifest(s). Revert through a reviewed revert PR. One decision record and one manifest; no code, no contract, no schema and no status changed.",
+  "recommended_next_work_packages": [
+    "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-CON-008/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

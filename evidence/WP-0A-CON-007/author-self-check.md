@@ -549,5 +549,5 @@ narrowings are caught.
 
 ```
 $ npm run check
-ℹ tests 144   pass 144   fail 0   skipped 0   todo 0
+ℹ tests 146   pass 146   fail 0   skipped 0   todo 0
 ```
