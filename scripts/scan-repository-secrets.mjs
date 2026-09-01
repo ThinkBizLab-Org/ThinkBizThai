@@ -166,6 +166,20 @@ export function containsPaymentCardNumber(run) {
   // found a Luhn-valid card written 4-4-4-4 and wrapped before its final group going
   // unreported, because merging across the wrap turned [4,4,4,4] into [4,4,8] and 8 is not a
   // card-like tail. The medium does not say which happened, so BOTH readings are tried.
+  // A list is not a wrapped card. Independent security review measured the widened
+  // continuation set turning an ordinary markdown bullet list of four-digit build numbers into
+  // a finding -- 15% of bullet lists and 34% of JSDoc number blocks -- and this rule has no
+  // prose exemption, so every one of those fails the whole build on the evidence and runbook
+  // files this repository is made of.
+  //
+  // The distinguishing shape: three or more lines each carrying exactly ONE group is a list.
+  // A wrapped card leaves at least one line carrying more than one group, or fits in two lines.
+  // The cost is stated rather than hidden: a card written one group per line down three or more
+  // lines is no longer detected. That case is speculative; breaking CI on ordinary documents is
+  // not, and a rule that fails on documentation is a rule someone deletes.
+  const lines = run.split('\n');
+  if (lines.length >= 3 && lines.every((line) => (line.match(/[0-9]+/g) ?? []).length === 1)) return false;
+
   const groups = [];
   const wrapped = [];
   let current = '';

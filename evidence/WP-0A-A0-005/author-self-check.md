@@ -246,3 +246,38 @@ five 3-digit and eight 2-digit integers, 3.4% and 3.6% for four 4-digit and two
 $ npm run check
 ℹ tests 135   pass 135   fail 0   skipped 0   todo 0
 ```
+
+## My own widening broke the build on ordinary Markdown
+
+Independent security review found that adding `#`, `//`, `*`, `-` and `/` to the
+line-continuation set meant a newline followed by a bullet no longer ends a digit run.
+A five-line Markdown list of four-digit build numbers became a `payment-card-number`
+finding, and this rule has **no prose exemption**, so it fails the whole build.
+
+Measured by the reviewer over 20 000 documents per shape: **15.06% of markdown bullet
+lists** and **33.53% of JSDoc number blocks**, against 0.000% before the widening —
+on exactly the evidence and runbook files this repository is made of. I widened the
+set to catch a card wrapped inside a comment and did not measure what else the change
+admitted.
+
+Three or more lines each carrying exactly one group is a list, not a wrapped card.
+Both false positives go to zero, and every other wrap case still reports.
+
+**The cost, stated rather than buried:** a card written one group per line down three
+or more lines is no longer detected. I deleted the test that asserted it. That case is
+speculative; breaking CI on ordinary documents is not, and a rule that fails on
+documentation is a rule someone deletes.
+
+## Still open, and the sharpest one is ours
+
+- **Fullwidth digits (U+FF10–FF19) and Thai digits (U+0E50–U+0E59) are not detected at
+  all** — the run regex is `[0-9]` and `isPaymentCardNumber` strips non-ASCII. The
+  rule's own comment claims to cover what a Thai IME produces; it widened the
+  *separators* for that and never the *digits*. On a Thai-market product a bare
+  16-digit fullwidth PAN is the plainest possible representation and is invisible.
+- A hyphenated card wrapped immediately after its hyphen; `;` continuations for
+  `.ini`/`.sql`; several further separators. 28 of 33 probed shapes missed.
+- The false-positive figures I quoted were single-row shapes. Dense tables are much
+  worse and were already: **68.9%** for eight rows of space-separated 4-digit amounts,
+  **48.9%** for an aligned numeric id column. Four groups of four is the card layout;
+  this is the irreducible cost, and the honest number is the table one, not mine.

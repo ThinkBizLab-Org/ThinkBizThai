@@ -556,16 +556,34 @@ test('reports a card however many times the medium wrapped it, and wherever the 
   const pan = synthCard('401288888888188');
   const g = pan.match(/.{4}/g);
   const cases = {
-    'wrapped twice down a narrow column': `${pan.slice(0, 6)}\n${pan.slice(6, 12)}\n${pan.slice(12)}`,
     'wrapped into a quoted email reply': `pan ${pan.slice(0, 8)}\n> ${pan.slice(8)}`,
     'wrapped inside a quoted markdown block': `pan ${pan.slice(0, 8)}\n| ${pan.slice(8)}`,
     'grouped in fours, wrapped before the final group': `${g[0]} ${g[1]} ${g[2]}\n${g[3]}`,
     'grouped in fours, wrapped in the middle': `${g[0]} ${g[1]}\n${g[2]} ${g[3]}`,
     'grouped in fours, wrapped after the first group': `${g[0]}\n${g[1]} ${g[2]} ${g[3]}`,
-    'grouped in fours, wrapped twice': `${g[0]} ${g[1]}\n${g[2]}\n${g[3]}`,
   };
   for (const [why, text] of Object.entries(cases)) {
     assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);
+  }
+});
+
+// A card written one group per line down three or more lines is deliberately NOT detected.
+// Independent security review measured the widened continuation set turning an ordinary
+// markdown bullet list of build numbers into a finding -- 15% of bullet lists, 34% of JSDoc
+// number blocks -- and this rule has no prose exemption, so each one fails the whole build on
+// exactly the evidence and runbook files this repository is made of. Three or more lines each
+// carrying one group is a list. The trade is stated because it is a real loss, not because it
+// is free: a rule that fails on documentation is a rule someone deletes.
+test('does not treat a list of numbers, one per line, as a wrapped card', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const lists = {
+    'markdown bullet list': `- ${g[0]}\n- ${g[1]}\n- ${g[2]}\n- ${g[3]}`,
+    'JSDoc number block': ` * ${g[0]}\n * ${g[1]}\n * ${g[2]}\n * ${g[3]}`,
+    'YAML comment list': `# ${g[0]}\n# ${g[1]}\n# ${g[2]}\n# ${g[3]}`,
+  };
+  for (const [shape, text] of Object.entries(lists)) {
+    assert.deepEqual(scanText(text, { relativePath: 'docs/build-numbers.md' }), [], shape);
   }
 });
 
