@@ -5,7 +5,7 @@
   "title": "Repository secret-scan strengthening and privacy dimension",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"

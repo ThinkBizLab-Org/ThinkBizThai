@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -83,4 +83,21 @@ test('every branch in this repository resolves to exactly one package', async ()
     branches.set(ref, report.message);
   }
   assert.equal(new Set(branches.values()).size, branches.size, 'two branches resolved to the same package');
+});
+
+test('a package that declares a branch is not still in backlog', async () => {
+  // `backlog` means the work has not been picked up. A package that names a branch has a branch
+  // with commits on it and, in this stack, an open pull request. Two packages read `backlog`
+  // while their work sat in pull requests #8 and #10 -- the status corrections were arriving
+  // last, on the top branch, and these two were never reached. Nothing noticed, because status
+  // was checked for being a VALID value and never against the evidence that work had started.
+  const stale = [];
+  for (const entry of await readdir('work-packages')) {
+    if (!entry.endsWith('.json')) continue;
+    const manifest = JSON.parse(await readFile(join('work-packages', entry), 'utf8'));
+    if (manifest?.ownership?.branch && manifest.status === 'backlog') {
+      stale.push(`${manifest.work_package_id} declares ${manifest.ownership.branch} and reads status backlog`);
+    }
+  }
+  assert.deepEqual(stale, [], `package(s) whose status contradicts their own branch:\n  ${stale.join('\n  ')}`);
 });

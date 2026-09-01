@@ -5,7 +5,7 @@
   "title": "CI invokes the test-integrity guard as its own step",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"
