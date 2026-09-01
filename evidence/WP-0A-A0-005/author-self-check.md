@@ -408,3 +408,48 @@ False positives on ordinary documents: **0.00%** on bullet lists, JSDoc blocks,
 aligned id columns, markdown pipe tables, CSV metrics, version strings, file paths,
 latency tables and timestamp lines. **23.7%** on eight rows of four 4-digit amounts,
 which is the irreducible arithmetic of `4-4-4-4` being how a card is written.
+
+## `|` was accepted, then withdrawn, and the reason is about my measurement
+
+I added `|` as a separator in the wave that introduced the "measure both directions
+before accepting" harness. Independent review then measured a **markdown table of four
+4-digit columns over eight rows at 22.2%** — the most common table shape in this
+repository's evidence files, on a rule with no prose exemption, so it fails the whole
+build.
+
+**I had measured `|`'s price against a three-column markdown table with mixed widths**
+— a shape that cannot produce sixteen digits and therefore could never have tripped it.
+I chose, without meaning to, a benign shape that could not fail. A price measured
+against a shape that cannot pay it is not a measurement, and I made that error while
+building the harness meant to prevent exactly it.
+
+Re-measured properly:
+
+| shape | with `\|` | without |
+|---|---|---|
+| markdown table, four 4-digit columns, 8 rows | **24.3%** | **0.00%** |
+| single markdown row, four 4-digit cells | 3.8% | 0.00% |
+| markdown table, three columns, mixed widths | 0.00% | 0.00% |
+
+And what it bought:
+
+| card representation | with `\|` | without |
+|---|---|---|
+| a card **split across four table cells** | detected | missed |
+| a card pasted **bare into one cell** | detected | **detected** |
+| a card pasted **grouped into one cell** | detected | **detected** |
+
+Nobody writes a card split across four table cells. A card pasted *into* a cell is
+what a real leak looks like, and it is detected either way. `|` is withdrawn and the
+refusal is pinned as a test.
+
+## Where the false-positive rate now stands
+
+**0.00%** on markdown tables of every shape measured, bullet lists, JSDoc blocks,
+aligned id columns, CSV metrics, version strings, file paths, latency tables, timestamp
+lines, JSON number fields and sha256 digests.
+
+**24.3%** on eight rows of four *space-separated* 4-digit amounts — one shape, and the
+irreducible one. A row written `4111 1111 1111 1111` is written exactly the way a card
+is written; the per-row floor is P(issuer prefix) × P(Luhn) ≈ 3.5%, and eight rows
+compound it. Any rule that stops reporting that stops detecting cards in tables.

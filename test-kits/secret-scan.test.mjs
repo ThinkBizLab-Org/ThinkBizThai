@@ -701,8 +701,8 @@ test('reports a card written with the separators that cost nothing to accept', (
   const pan = synthCard('401288888888188');
   const g = pan.match(/.{4}/g);
   const shapes = {
-    'a markdown table row': `| ${g.join(' | ')} |`,
-    'inline pipe separators': g.join('|'),
+    'a card pasted bare into a markdown table cell': `| ${pan} |`,
+    'a card pasted grouped into a markdown table cell': `| ${g.join(' ')} |`,
     'a quoted-printable soft break, as a pasted email carries': `${pan.slice(0, 10)}=\n${pan.slice(10)}`,
     'a zero-width joiner between groups': g.join('\u200d'),
   };
@@ -720,8 +720,22 @@ test('does not report the document shapes four refused separators would have cau
     'a CSV row of numeric metrics': '4111,1111,1111,1111',
     'a file path with numeric segments': '/var/log/4111/1111/1111/1111.log',
     'an identifier with underscores': 'run_4111_1111_1111_1111',
+    'a markdown table row of four 4-digit values': '| 4111 | 1111 | 1111 | 1111 |',
   };
   for (const [shape, text] of Object.entries(documents)) {
     assert.deepEqual(scanText(text, { relativePath: 'docs/runbook.md' }), [], shape);
   }
+});
+
+// `|` was accepted as a separator and then withdrawn. It bought a card SPLIT ACROSS FOUR TABLE
+// CELLS -- which nobody writes -- and cost 24.3% on a markdown table of four 4-digit columns
+// over eight rows, the most common table in this repository's evidence files. I had measured
+// its price against a three-column table with mixed widths, a shape that cannot produce sixteen
+// digits and therefore could never have failed.
+//
+// A card pasted INTO a cell, bare or grouped, is what a real leak looks like, and both are
+// detected without `|`. This pins the refusal so re-adding it is a deliberate act.
+test('does not treat a markdown table of numbers as a card, however many rows', () => {
+  const rows = Array.from({ length: 8 }, (_, i) => `| ${4000 + i} | ${1100 + i} | ${1200 + i} | ${1300 + i} |`);
+  assert.deepEqual(scanText(rows.join('\n'), { relativePath: 'evidence/WP-X/benchmark.md' }), []);
 });

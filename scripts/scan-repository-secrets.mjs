@@ -395,9 +395,22 @@ export const PII_RULES = [
     // statement carries, and the minus, fullwidth hyphen and ideographic space a CJK or Thai
     // IME produces. Each was demonstrated missing.
     //
-    // `|` covers a markdown table row and an inline pipe. `=` before a newline is the
-    // quoted-printable soft break a pasted email carries. U+200D is a zero-width joiner, which
-    // has no business between digits at all.
+    // `=` before a newline is the quoted-printable soft break a pasted email carries. U+200D is
+    // a zero-width joiner, which has no business between digits at all.
+    //
+    // `|` was accepted here and is now WITHDRAWN. I measured its price against a markdown table
+    // of three columns with mixed widths, which cannot produce sixteen digits and therefore
+    // could never have tripped it -- a benign shape chosen, without meaning to, so that it could
+    // not fail. Independent review measured the shape that matters: a markdown table of four
+    // 4-digit columns over eight rows, which is the most common table in this repository's
+    // evidence files. With `|`: 24.3%. Without: 0.00%.
+    //
+    // What it bought was a card SPLIT ACROSS FOUR TABLE CELLS. Nobody writes a card that way. A
+    // card pasted into a table cell -- bare or grouped in fours -- is detected either way, and
+    // that is the representation a real leak takes.
+    //
+    // The lesson is not about `|`. A price measured against a shape that cannot pay it is not a
+    // measurement, and I made that error while building the very harness meant to prevent it.
     //
     // FOUR further separators were measured and REFUSED, because each buys one representation
     // and pays about a quarter of a common document shape. The numbers, 3000 trials each:
@@ -413,7 +426,7 @@ export const PII_RULES = [
     // Twice before, a widening here shipped without its price being read, and both times it
     // broke the build on ordinary documents. These four are refused with the measurement
     // attached so the refusal can be argued with rather than rediscovered.
-    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D\u200D|-]+|=?\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
+    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D\u200D-]+|=?\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
     accept: (match) => containsPaymentCardNumber(match),
     // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
     // is the same disclosure as one written into code, and the rule that already treats a
