@@ -1,0 +1,1 @@
+{"policy_key":"content.generation","effect":"deny","decided_at":"2026-08-31T10:00:00Z","decision_source":{"scope":"capability","rule":"default_deny"},"reason_key":"policy.default_deny","evaluated_scopes":["platform","plan","workspace","business","capability"],"write_disabled":"zz_wrong_type"}

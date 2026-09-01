@@ -102,20 +102,43 @@ const verdicts = (schema, bodies, resolve) =>
 //
 // So the floor is computed per contract instead of enumerated. Every contract must reach it,
 // including one added tomorrow by someone who never reads this file.
-const COVERAGE_FLOOR = 0.30;
+// Set to bite, not to pass. Independent review showed the previous 30% floor failed nothing
+// -- the weakest contract cleared it by ONE killed site -- and that the metric it measured was
+// gameable in both directions. With the metric counting assertion keywords only, the true
+// catalog figure was 19.3%, not the 42.4% previously reported. 397 single-fault
+// counterexamples later the catalog is at 82.1% and the weakest contract at 72.4%, so a 70%
+// floor leaves roughly two sites of headroom on the weakest and fails anything that regresses.
+const COVERAGE_FLOOR = 0.70;
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
 // measure documentation rather than enforcement.
 const METADATA = new Set(['$schema', '$id', 'title', 'description']);
+const STRUCTURAL = new Set(['properties', 'allOf', 'anyOf', 'oneOf', 'items', 'then', 'else', 'if', 'not']);
+// Every JSON Schema keyword that actually constrains an instance. Anything else in a schema
+// is a name, a container, or an annotation.
+const ASSERTIONS = new Set([
+  'type', 'enum', 'const', 'required', 'additionalProperties', 'minItems', 'maxItems',
+  'uniqueItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'maximum',
+  'maxProperties', 'minProperties', 'format', '$ref',
+]);
 
+// Independent review proved the earlier version gameable in BOTH directions on real copies
+// with CI green each time: deleting six untested constraints RAISED ctr-ten-001 from 32.4%
+// to 39.3%, and adding four zero-constraint properties raised it to 39.5%. The cause was
+// counting a bare property NAME as a site -- 55-91% of every contract's "kills" -- so a
+// schema was rewarded for having fewer rules and for having more names. It also counted
+// x-amended-by internals, which are unobservable by construction and permanently dead.
+//
+// Only assertion keywords count now. A property name is not a constraint; deleting one
+// removes whatever it contained, which is a different measurement entirely.
 function constraintSites(node, path = []) {
-  const structural = new Set(['properties', 'allOf', 'anyOf', 'oneOf', 'items', 'then', 'else', 'if', 'not']);
   let found = [];
   if (node && typeof node === 'object' && !Array.isArray(node)) {
     for (const [key, value] of Object.entries(node)) {
-      if (!key.startsWith('x-') && !structural.has(key) && !METADATA.has(key)) found.push([...path, key]);
-      found = found.concat(constraintSites(value, [...path, key]));
+      if (path.some((segment) => typeof segment === 'string' && segment.startsWith('x-'))) continue;
+      if (ASSERTIONS.has(key) && !METADATA.has(key)) found.push([...path, key]);
+      if (!key.startsWith('x-')) found = found.concat(constraintSites(value, [...path, key]));
     }
   } else if (Array.isArray(node)) {
     node.forEach((value, index) => { found = found.concat(constraintSites(value, [...path, index])); });

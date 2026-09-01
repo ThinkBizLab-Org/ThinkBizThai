@@ -185,3 +185,83 @@ different control, and real design was authored — four unsourced decisions.
 The concrete harm it names is the one to carry: **the "14 of 14 complete" headline
 counts an unratified non-owner draft as coverage at G0.** That headline is qualified
 wherever it appears.
+
+---
+
+## Review at the real head — the coverage number was inflated by its own metric
+
+Independent review of `5c6eef2..337dfe7` returned `changes_requested`, and the
+finding that matters is not any single rule.
+
+### The metric was gameable in both directions, and had already misfired
+
+`constraintSites` counted **bare property names**, which were 55–91% of every
+contract's "kills". The reviewer proved the consequences on real copies, CI green
+each time: **deleting six untested constraints from `ctr-ten-001` raised its score
+from 32.4% to 39.3%**, and **adding four zero-constraint properties raised it to
+39.5%**. A schema was rewarded both for having fewer rules and for having more
+names. It also counted `x-amended-by` internals, unobservable by construction — 5
+and 10 permanently dead sites in `ctr-evt-001` and `ctr-job-001`.
+
+And it had already misfired for real. The fixtures added to clear the floor were
+**double-faulted**, so `dimension.enum` and `attribution.required` — the two rules
+CTR-USG-001's own `freeze_boundary` says it "materializes exactly" — ended up killed
+by **nothing**, while the reported headline moved 7.0% → 41.9%.
+
+**The number went up while the coverage went down.** That is the worst failure mode
+a metric can have, and this Author shipped it.
+
+### Corrected
+
+The metric now counts **assertion keywords only** — the seventeen JSON Schema
+keywords that actually constrain an instance. A property name is not a constraint.
+
+| | Reported before | True figure |
+|---|---|---|
+| Catalog | 42.4 % | **19.3 %** |
+
+Then 397 **single-fault** counterexamples were generated from the schemas
+themselves, one per unkilled assertion, and verified two ways each: rejected by the
+shipped schema, and accepted once that one constraint is deleted. That is what makes
+a fixture a witness rather than a decoration.
+
+| | Before | After |
+|---|---|---|
+| Catalog | 19.3 % | **82.3 %** |
+| Weakest contract | 4.3 % (`ctr-ten-001`, `ctr-err-001`) | **72.4 %** |
+
+The floor is raised **30% → 70%**. The reviewer's judgement that 30% was "set to
+pass, not to bite" was correct: it failed nothing, and the weakest contract cleared
+it by one site.
+
+### The ownership finding, accepted without qualification
+
+`schema-mutation-coverage.test.mjs` is **WP-0A-CON-003's** output. This package
+edited it while listing it in its own `read_only_paths` and omitting it from
+`authorized_cross_package_amendments`, so `npm run check` stayed green **only
+because `outputs.files` did not admit the change** — and that list was stale in 16
+places. The reviewer's characterisation is exact: *the same ship-past-the-control
+pattern an Integration Owner blocked earlier in this session, relocated into the
+manifest.* Declared, and `outputs.files` resynchronised against the tree.
+
+### `supersedes_usage_id`
+
+Not a no-op — it rejects real documents — but wrong in three ways. It was
+**required unconditionally**, so a first report with no prior estimate was
+inexpressible and a producer would be pushed toward a fabricated reference the
+schema accepts. A cost could supersede **itself**. Two events could supersede the
+same estimate. It is now optional; the dangling-reference and duplicate-supersession
+rules are ledger properties across events and are declared in
+`untestable_by_fixture` rather than faked.
+
+### The copied falsehood
+
+`forbidden_paths_note` was **copy-pasted verbatim from WP-0A-CON-004** and asserted
+that "this package materializes the secret-handle contract itself". CON-004 has 25
+such outputs; this package has **none**. Two globs were dropped on a rationale that
+was false here. Replaced with the real one.
+
+Superseded prose also removed: `scope.include`, an acceptance criterion and a
+required test still described the `domain_result_rolled_back` const that was deleted
+a wave earlier, and `list_price` still shipped inside a fixture after leaving the
+enum.

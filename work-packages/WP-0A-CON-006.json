@@ -49,7 +49,7 @@
   "scope": {
     "include": [
       "CTR-USG-001 schema, manifest and synthetic fixtures: OB-004's six usage dimensions, its attribution requirement, and decimal-string money",
-      "CTR-NTF-001 schema, manifest and synthetic fixtures: PT-007's command/result split, permission-checked deep link, ID-005 dedupe, and the prohibition on a delivery failure rolling back a domain result",
+      "CTR-NTF-001 schema, manifest and synthetic fixtures: PT-007's command/result split, permission-checked deep link, ID-005 dedupe,",
       "An x-source on every rule naming the baseline task, and a declared inference wherever a rule is derived rather than quoted",
       "untestable_by_fixture and untestable_by_schema declarations for what neither can demonstrate"
     ],
@@ -102,7 +102,6 @@
       "package.json",
       "package-lock.json",
       ".github/**",
-      "test-kits/**",
       "scripts/**"
     ],
     "forbidden_paths": [
@@ -115,7 +114,7 @@
       "db/**",
       "migrations/**"
     ],
-    "forbidden_paths_note": "This list deliberately DIFFERS from the sibling packages, which forbid `**/*secret*` and `**/*credential*` by filename. This package materializes the secret-handle contract itself, so files named for secret handling are its declared outputs: `contract-catalog/shared-kernel/ctr-sec-001/**` and `ctr-aud-001/examples/valid-credential-revoked.json` would be forbidden by their own manifest, which is a contradiction rather than a control. Those two globs are replaced by the key and certificate material extensions a credential store would actually carry, and the intent behind them -- that no credential material and no secret store enters the repository -- is carried by `security_privacy.data_classification: synthetic-only`, by the `npm run scan:secrets` step in the verify command, and by CTR-SEC-001's own root `additionalProperties: false`, which gives the contract no property capable of holding credential material. Note the standing limitation recorded in open_blockers: the repository secret scanner is weak, and this substitution does not change that either way.",
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed because six manifests declared them while shipping outputs that matched, and the ownership validator could not see the contradiction until it began comparing outputs against forbidden_paths. An earlier version of this note was copied verbatim from WP-0A-CON-004 and asserted that this package 'materializes the secret-handle contract itself', which is FALSE here -- CON-004 has 25 such outputs and this package has none. Independent review found the copied falsehood. Replaced with the extensions that carry real key material.",
     "module_ids": [
       "MOD-000"
     ],
@@ -123,7 +122,8 @@
     "authorized_cross_package_amendments": [
       "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree.",
       "contract-catalog/shared-kernel/ctr-evt-001/** and ctr-job-001/** \u2014 ADD negative fixtures only, and declare them in each manifest. No schema, version, status or freeze-level change. Both sat below the new per-contract mutation-coverage floor at 26.6% and 25.0%, with only three fixtures each, so constraints the Sprint 0A baseline states in sections 3.2 and 3.3 were exercised by nothing. Adding a counterexample cannot weaken a contract; it can only make an existing rule observable.",
-      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs \u2014 validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice."
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs \u2014 validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice.",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs \u2014 a WP-0A-CON-003 output. Amended to count assertion keywords only, and to raise the floor. Independent review found this package had edited it while listing it in its own read_only_paths and omitting it here, so npm run check stayed green only because outputs.files did not admit the change: the same ship-past-the-control pattern an Integration Owner blocked earlier in this session, relocated into the manifest."
     ]
   },
   "inputs": {
@@ -140,28 +140,88 @@
   },
   "outputs": {
     "files": [
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-channel-enum.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-command-carrying-delivery.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-command-without-deep-link.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-minlength.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-omits-permission-flag.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-public-url.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-target-ref-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-type.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-without-permission.json",
-      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-rolls-back-domain-result.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivered-with-failure-class.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-failure-class-enum.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-required.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-missing-class-only.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-without-class.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-kind-enum.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-free-text.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-key-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-missing-tenant-context.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-notification-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-notification-id-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-required.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-unknown-delivery-state.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-unsupported-locale.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-command.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-delivered.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-failed-transient.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-suppressed-duplicate.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
       "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-business-profile-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-business-profile-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-job-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-job-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-provider-key-pattern.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-provider-key-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-workspace-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-workspace-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-amount-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-basis-enum.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-magnitude-past-exact-range.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dedupe-key-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dedupe-key-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dimension-enum.json",
       "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-float-cost.json",
-      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-metric-label-carries-content.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-dedupe-key.json",
       "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-provider-attribution.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-tenant-context.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-negative-cost.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-occurred-at-format.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-occurred-at-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-amount-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-leading-zero.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-unit-enum.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-unknown-currency.json",
       "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-unknown-dimension.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-usage-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-usage-id-type.json",
       "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-estimated-storage.json",
       "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-provider-reported.json",
       "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
       "contract-catalog/shared-kernel/ctr-usg-001/schema.json",
-      "work-packages/WP-0A-CON-006.json",
-      "evidence/WP-0A-CON-006/author-self-check.md"
+      "evidence/WP-0A-CON-006/author-self-check.md",
+      "evidence/WP-0A-CON-006/review-contract-head.md",
+      "evidence/WP-0A-CON-006/review-contract.md",
+      "evidence/WP-0A-CON-006/test-verdict.md",
+      "work-packages/WP-0A-CON-006.json"
     ],
     "contracts": [
       "CTR-USG-001 (Draft)",
@@ -175,12 +235,13 @@
     "A notification deep link requires a permission check as a const, and a delivery failure records that it did not roll back the domain result as a const -- both expressed in the contract rather than in prose.",
     "All 14 shared-kernel contracts are now materialized; the index still reports 4 Candidate and 10 Draft, so materializing a Draft does not promote it.",
     "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
-    "Every contract in the catalog reaches a per-contract mutation-coverage floor of 30%, computed rather than enumerated, so a contract added later by someone who never reads the guard is still measured."
+    "Every contract in the catalog reaches a per-contract mutation-coverage floor of 30%, computed rather than enumerated, so a contract added later by someone who never reads the guard is still measured.",
+    "The mutation-coverage metric counts assertion keywords only, so a schema cannot raise its score by deleting a rule or by adding a property that constrains nothing."
   ],
   "required_tests": [
     "Schema conformance for both contracts via the subset validator",
     "Negative cases: floating-point cost notation, missing provider attribution, an unknown usage dimension, a metric label carrying user content",
-    "Negative cases: a deep link without a permission check, a public-URL deep link, a failure that rolls back the domain result, a failure without a class, a command carrying delivery state, free text where a message key is required",
+    "Negative cases: a deep link without a permission check, a public-URL deep link, a failure without a class, a command carrying delivery state, free text where a message key is required",
     "Repository protocol, ownership, role-separation and secret-scan checks"
   ],
   "deterministic_commands": {
