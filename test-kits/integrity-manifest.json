@@ -1,7 +1,7 @@
 {
   "note": "Content digests of everything that decides whether the test suite runs, and of the suites themselves. A TRIPWIRE WITH NO SELF-ANCHOR on two distinct axes, both confirmed by independent runs. (1) A commit editing a file and its digest together passes; independent review proved this is a fixed-point property of a repository where one commit can change every file. (2) A guard invoked by `npm run check` cannot constrain a `check` that never invokes it. A trailing `&` backgrounds the chain so the shell returns 0 before any exit code matters, and replacing every `&&` with `||` short-circuits at step 1 so nothing after it runs at all -- including this guard. Requiring the guard to be the FIRST step (exit 81) catches demotion but not non-invocation. The remedy for (2) belongs to the CALLER: .github/workflows/ci.yml must run `node scripts/verify-test-coverage-floor.mjs` as its own workflow step rather than relying on a single `npm run check`. That file is owned by WP-0A-A0-001 and is read-only to the packages that found this, so it is referred to the Integration Owner under the RFC path. Both anchors are outside the repository: human review of the diff (RFC-2026-002) and protected CI, an open Gate G0 requirement.",
   "files": {
-    ".github/workflows/ci.yml": "ff0699213176544a5f63e6e553ee8296e22009bc46eb1add720a87f7df8d2cf3",
+    ".github/workflows/ci.yml": "22c02ee51371972b790223281b60cbff46cc93ca46c549242e599284ca447c78",
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
     "package.json": "12c89b881831749ead45acfac0790db7d4cd385144ac82bf2146f87551f0c183",
     "scripts/run-test-suite.mjs": "350aff7f4a55a54b65819ed55387d585d4d0585f2106029e9d0706d6c6d7df9d",
