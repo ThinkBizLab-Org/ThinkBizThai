@@ -450,6 +450,24 @@ aligned id columns, CSV metrics, version strings, file paths, latency tables, ti
 lines, JSON number fields and sha256 digests.
 
 **24.3%** on eight rows of four *space-separated* 4-digit amounts — one shape, and the
-irreducible one. A row written `4111 1111 1111 1111` is written exactly the way a card
-is written; the per-row floor is P(issuer prefix) × P(Luhn) ≈ 3.5%, and eight rows
+irreducible one. A row of four space-separated four-digit numbers is written exactly the way a card is
+written; the per-row floor is P(issuer prefix) × P(Luhn) ≈ 3.5%, and eight rows
 compound it. Any rule that stops reporting that stops detecting cards in tables.
+
+### And the scanner caught this file
+
+The paragraph above originally spelled the irreducible case out with a real
+Luhn-valid card number as an illustration. `npm run check` exited **70**:
+
+```
+pii: payment-card-number — evidence/WP-0A-A0-005/author-self-check.md
+```
+
+Third time this control has fired on its own author — once on the rule's tests, once
+on a draft of the table test, now on the evidence describing it. Each time the lesson
+is the same and worth restating: **the reason no card number is written literally
+anywhere in this package is not tidiness.** A rule that has to exempt the files
+describing it is a rule with a blind spot, and I keep proving it by walking into one.
+
+I also pushed before checking the exit code again. The commit message for that push
+claims `exit 0`; it was 70. Corrected in the following commit rather than amended away.
