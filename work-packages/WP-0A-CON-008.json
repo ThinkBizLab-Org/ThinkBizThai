@@ -133,7 +133,9 @@
         "test-kits/integrity-manifest.json",
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json",
+        "work-packages/WP-0A-A0-003.json",
         "work-packages/WP-0A-A0-004.json",
+        "work-packages/WP-0A-A0-005.json",
         "work-packages/WP-0A-CON-007.json"
       ],
       "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 26 undeclared paths on this branch. Every one is real work done here and none of it was declared, which is the drift the new guard exists to stop. Grouped by why: (a) the runner, package.json and the integrity manifest carry the verification-record control and belong to WP-0A-A0-002 and WP-0A-A0-001; (b) schema-mutation-coverage.test.mjs and the ctr-api-001, ctr-idm-001 and ctr-pag-001 fixtures are corrections made on this branch in response to independent review findings six through nine, and belong to WP-0A-CON-003 and WP-0A-CON-007 -- they were made here because the findings arrived against this head and moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once; (c) the ten author handoffs are each their own package's deliverable, placed here for the reason recorded in evidence/WP-0A-CON-008/handoffs.md; (d) three work-package manifests carry amendment records pointing back at this package; (e) OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. The branch-scope guard and its test were authored here and MOVED to WP-0A-A0-004, because only the workflow that package owns can supply a pull request base ref. This package amends them and claims neither.",

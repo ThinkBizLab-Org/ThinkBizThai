@@ -35,7 +35,7 @@
     "evidence/VERIFICATION.md": "f3753d478640a2ef6e9f7cef34d933cee1d74192a787f0b2e9c590153b2be8d5",
     "test-kits/branch-scope.test.mjs": "127d4241fdc57c1fab8aa3895f4923a9c1c850cd6fc89f74233ea2fdcb7230c2",
     "scripts/verify-branch-scope.mjs": "afd86f852bd44d90646a487ce95fdc274ade4b018d383cd0430f283b47ca107e",
-    "work-packages/WP-0A-CON-008.json": "2600076640e39323708453e00c9573929aa05c8001281c5cd73a4d9aa7ecbccf",
+    "work-packages/WP-0A-CON-008.json": "6f865884f4d7e3026a35e72fa56a56cbf17d152df51f4b17e094820d463b1376",
     "test-kits/contracts/catalog-registry.test.mjs": "29a992bc93c7a2fefbe33cdaa483ff1fb3a38c4b20d8629b7f19bdd72e667787",
     "contract-catalog/shared-kernel/index.json": "505f7a597970716d07a9a9a806908c7918d92293aac6d7b22e7acf77505a1262",
     ".agents/handoff.schema.json": "d0e9f77f2f0fa88c868083ce65326edd2cf5b96d65c99f5f97fa9572594c9c57",
