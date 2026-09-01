@@ -9,7 +9,7 @@
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
     "contract-catalog/shared-kernel/index.json": "505f7a597970716d07a9a9a806908c7918d92293aac6d7b22e7acf77505a1262",
     "evidence/VERIFICATION.md": "67217dd8e49bbbd68a0874c8c9e847dca3752315b54ab7db76bafdb3ce669bce",
-    "package.json": "31e6f5492647e3e92f72ab621d540ad457164cea69bfe47d69e793eb9b162a81",
+    "package.json": "d5657652e96e64485e83fe052d91adff00d5fa120b8587f7d3078ecd4b9b5844",
     "scripts/record-verification.mjs": "2d28640eff009c029c4f3b1021f196bc72f27953a4f3228fc1529ebd91c6a64c",
     "scripts/refresh-author-handoff.mjs": "e73e9b9d9557aa44998d713b0a9c81c550ffccc35d1445e5aefc72ff5a483bc1",
     "scripts/regenerate-integrity-manifest.mjs": "32b2d82f9a26ef1bbe06626db774b8433e57b9075b6ac982ce1e20d3546d7cbd",
@@ -49,7 +49,7 @@
     "test-kits/verification-record.test.mjs": "b4bfae315b847ca26ac4d1020e1b27400965a13ee6e2f8bf3fdd154981470ff2",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
     "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
-    "work-packages/WP-0A-CON-008.json": "a563377fc32fb673ead7297c4c74012a9eacb79b347350bc2d4475c082b2b7a0"
+    "work-packages/WP-0A-CON-008.json": "00a50f89f84cf608aa878f818a24698d3925e64016fed95b338a14e2b592dc77"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }

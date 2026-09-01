@@ -9,12 +9,24 @@ fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads af
 last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
 from a fresh clone of the real `main` is green at every step.
 
-**Eleven independent verification runs** were dispatched against this work, and a twelfth
+**Twelve independent verification runs** were dispatched against this work, and a thirteenth
 is in flight. Every one of the first eight shipped an untested business rule past every
-guard. The ninth, tenth and eleventh could not — but each still found real defects in the
-guards' periphery, and review eleven found four, all now closed. That record is the most
-useful thing in this file, and it is written out in "What independent verification kept
+guard. The ninth through twelfth could not — but each still found real defects in the
+guards' periphery, and all of review twelve's eight findings are closed. That record is the
+most useful thing in this file, and it is written out in "What independent verification kept
 finding" below.
+
+**Review twelve is the clearest example of why this is worth the cost.** It found three HIGH
+defects, and one of them falsified a sentence I had written into this package's own evidence:
+*"There is no path through that step that reaches exit 0 without a resolved package."* There
+was one — replace the guard's `main()` with a no-op. Both CI-only guards had unit tests that
+imported their pure helpers and never executed `main()` at all, so a stub passed at exit 0
+with a perfectly honest digest, because **a digest pins bytes, and the bytes of a stub are
+exactly what they claim to be.** It also showed that `"not": {}` — a rule rejecting every
+document — could be added to the envelope contract every module composes with **zero new
+lines in a 950-line constraint record and a byte-identical digest**, and that a `$ref` into a
+subdirectory opened a rule channel outside every ratchet, permanently, for three one-time
+declaration edits.
 
 **Four of the nine fixes for review eleven found a real defect the moment they ran, none
 of them planted:** handoffs citing a commit range that did not match their own file lists;
@@ -286,6 +298,7 @@ Start here, in order:
 
 ### Working rules, each learned by breaking something
 
+- **Run the branch-scope guard AFTER committing, with the pull request's own base sha.** It diffs `base..HEAD`, so an uncommitted change is invisible to it and a convenient base is a smaller range than the one CI uses. Both mistakes shipped a red CI run in the same night: `npm run check:scope <pr-base-sha> <package-id>`.
 - **Regenerate every generated fact before committing: `npm run refresh:handoff`, `npm run regenerate:manifest`, `npm run record:verification`.** Three separate things in this repository were maintained by hand and were each wrong at least once: the test count (quoted from two edits earlier, four times), the integrity manifest, and the handoff's commit range. Nobody should type a fact the repository already knows.
 - **A guard that reports a wrong reason is worse than one that stays silent.** The handoff-drift check shipped twice broken — first red by construction (a handoff cannot cite the commit that contains it), then reporting a reversed diff as drift. Both were caught by running it, not by reading it. A wrong reason is how a real finding gets dismissed as noise.
 - **A check that is normally red teaches people to ignore it.** If a guard fails during ordinary work rather than at the moment a mistake is made, the guard is wrong, not the workflow.

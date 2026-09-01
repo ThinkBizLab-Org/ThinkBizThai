@@ -43,3 +43,23 @@ fails on exactly that, naming both packages. Both moved to `in_review`, which is
 Author may take a package.
 
 `npm run check` — **189/189, fail 0, skipped 0, todo 0, exit 0**.
+
+---
+
+## The same class of error again, one wave later — run 33552451049
+
+```
+WP-0A-CON-008 changed 1 path(s) it neither owns nor records as an amendment:
+  test-kits/contracts/catalog-reference-integrity.test.mjs
+```
+
+Local, minutes earlier: *all 74 changed paths are declared*.
+
+The first time, the cause was the wrong **base**. This time it was the wrong **moment**: I ran
+the guard before `git commit`, and it diffs `base..HEAD` — an uncommitted change is not in `HEAD`
+and is therefore invisible to it. The guard was right both times; the invocation was wrong both
+times, in two different ways.
+
+`npm run check:scope <pr-base-sha> <package-id>` now exists so the invocation is one thing to get
+right instead of two, and the working rule is written into `OVERNIGHT-SUMMARY.md`: **after the
+commit, with the pull request's own base sha.**

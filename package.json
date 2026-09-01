@@ -17,6 +17,7 @@
     "verify:coverage-floor": "node scripts/verify-test-coverage-floor.mjs",
     "record:verification": "node scripts/record-verification.mjs",
     "refresh:handoff": "node scripts/refresh-author-handoff.mjs",
-    "check:handoff": "node scripts/refresh-author-handoff.mjs --check"
+    "check:handoff": "node scripts/refresh-author-handoff.mjs --check",
+    "check:scope": "node scripts/verify-branch-scope.mjs"
   }
 }
