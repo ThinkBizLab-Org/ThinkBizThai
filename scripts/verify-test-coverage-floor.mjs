@@ -382,6 +382,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
+  'package-lock.json',
   '.agents/capabilities.schema.json',
   '.agents/handoff.schema.json',
   '.agents/status.schema.json',

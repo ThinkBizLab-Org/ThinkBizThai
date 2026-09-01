@@ -145,3 +145,33 @@ Two probes, both now failing:
 claiming a test run that never happened, an exit code that was never observed. Nothing here can see
 that, and the "not closed" list says so. That one needs a reader, which is exactly what the
 separation of duties exists to provide and what the Product Owner's review is for.
+
+## Self-probe: the npm layer, which no guard had looked at
+
+Sixteen rounds of review and every probe of mine had stayed inside the repository's own files.
+`package.json` is where npm gets to run code.
+
+| probe | before | after |
+| --- | --- | --- |
+| `"dependencies": {"left-pad": "^1.3.0"}` | **exit 0** | exit 1 |
+| `"preinstall": "node -e …"` | **exit 0** | exit 1 |
+| a new script key nobody declared | exit 0 | exit 1 |
+| `npm ci --ignore-scripts` → `npm ci` in the workflow | exit 0 | exit 1 |
+
+**A `preinstall` script runs before every guard in this repository** — a stronger position than any
+bypass found in sixteen rounds, because it does not need to defeat a guard at all. CI happens to
+run `npm ci --ignore-scripts` today, which neutralises it there; that flag was one edit away from
+being deleted, and a developer running `npm install` never had it.
+
+Zero npm dependencies is a **stated property** of this repository, written in the briefing since
+the first wave, and it was asserted by nothing. Now: no dependency field of any kind, no npm
+lifecycle script, the script key set pinned exactly, `--ignore-scripts` required in the workflow,
+and `package-lock.json` digested.
+
+*The lesson generalises past npm: every probe so far asked whether a rule could get INTO the
+repository. This one asked what runs BEFORE the rules are read.*
+
+**And the self-maintaining floor caught me in the same minute.** Digesting `package-lock.json`
+without adding it to `DIGESTED_FLOOR` failed at exit 87 — *"a file that is protected must also be
+undeletable; add it to the floor in the same commit."* That guard was written two hours earlier for
+exactly this, and its first real catch was its own author.

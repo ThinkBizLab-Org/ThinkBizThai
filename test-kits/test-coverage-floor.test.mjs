@@ -359,3 +359,39 @@ test('the clean-run reporter separates a failing count from a failing test', asy
   const steps = scripts.check.split('&&').map((step) => step.trim());
   assert.ok(!steps.includes('npm run verify'), 'verify wraps check; check must not invoke verify');
 });
+
+test('the repository declares no dependency and no lifecycle script', async () => {
+  // Probing the npm layer: `package.json` accepted `"dependencies": {"left-pad": "^1.3.0"}` and
+  // `"preinstall": "node -e …"` at exit 0. CI runs `npm ci --ignore-scripts`, so a lifecycle
+  // script does not execute there today — but that flag is one edit away, and a developer running
+  // `npm install` has no such protection. **A preinstall script runs before every guard in this
+  // repository**, which is a stronger position than any bypass found so far.
+  //
+  // Zero dependencies is a stated property of this repository and was asserted by nothing.
+  const { readFile } = await import('node:fs/promises');
+  const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    assert.equal(manifest[field], undefined,
+      `package.json declares ${field}; this repository runs on the pinned toolchain and nothing else`);
+  }
+
+  // npm runs these around install, before anything here can look at the tree.
+  const LIFECYCLE = [
+    'preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly',
+    'prepack', 'postpack', 'preuninstall', 'uninstall', 'postuninstall', 'dependencies',
+  ];
+  const present = LIFECYCLE.filter((name) => manifest.scripts?.[name] !== undefined);
+  assert.deepEqual(present, [], `package.json declares npm lifecycle script(s): ${present.join(', ')}`);
+
+  // And the script set is pinned, so a new script cannot appear unremarked — the same reason the
+  // chain is pinned step by step.
+  assert.deepEqual(Object.keys(manifest.scripts).sort(), [
+    'check', 'check:handoff', 'check:scope', 'record:verification', 'refresh:handoff',
+    'regenerate:manifest', 'scan:secrets', 'test:bootstrap', 'validate:protocol', 'verify',
+    'verify:coverage-floor',
+  ]);
+
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  assert.match(ci, /npm ci --ignore-scripts/,
+    'CI must install with --ignore-scripts; without it a lifecycle script runs before every guard');
+});
