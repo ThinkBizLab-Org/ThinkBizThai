@@ -208,3 +208,49 @@ thinking to look: four protected schemas declared, none of them ever touched.
 
 Four rounds of probing one field, each round finding the next hole, is what it took. The first
 three were written confidently.
+
+## Self-probing wave 48: what held, and one thing that is deliberately not enforced
+
+Run against the fixes above, each planted and reverted:
+
+| probe | exit | failing tests |
+| --- | --- | --- |
+| `properties.causation_id = false` (a boolean where a subschema was) | 1 | 5 |
+| `properties.data = true` | 1 | 9 |
+| delete a `required` entry | 1 | 3 |
+| delete a property entirely | 1 | 5 |
+| widen an enum by one value | 1 | 13 |
+| loosen `maxLength` 32 → 4096 | 1 | 15 |
+| `additionalProperties: false` → `true` | 1 | 17 |
+| `additionalProperties` removed | 1 | 13 |
+| delete one `invalid-*` fixture | 1 | 15 |
+| promote a contract Draft → Candidate in the index | 1 | 7 |
+| narrow `required_before_freeze` in the index | 1 | 3 |
+
+**Rules created by omission are as guarded as rules created by addition.** That was worth
+checking rather than assuming: every ratchet here is built around *adding* a constraint, and
+deleting one is the more natural way to loosen a contract.
+
+**One probe of mine was designed wrong and I am recording it rather than the phantom finding it
+produced.** I "narrowed" `required_before_freeze` in a contract *manifest* and it passed at exit
+0 — but that field does not exist in a manifest at all. I had added an inert key nobody reads, not
+narrowed a freeze gate. The real copy lives in the catalog index, it is pinned, and narrowing it
+there fails at exit 1. **A probe that mutates something nothing reads proves nothing**, and it
+would have been reported as a hole if I had not checked the field existed.
+
+### Stated limitation: prose in an `x-` annotation is not enforced, by design
+
+Adding `"MUST be omitted entirely when kind is accepted. Consumers MUST reject a response that
+carries it."` to an `x-source` passes at exit 0. Every guard here skips `x-` keys deliberately, so
+that fixing a comment cannot fail CI.
+
+The hazard is real: a reviewer reads `MUST` and believes something enforces it. Measured, the
+catalog carries **155** `x-` annotations, of which **5** use uppercase RFC-2119 keywords — and all
+five are *deferrals*, which is the honest use: *"Per-command response schemas MUST constrain it;
+this envelope cannot"*, *"An integrity mechanism MUST be specified before freeze"*, *"THIS PATTERN
+IS NOT A SECURITY CONTROL, AND MUST NOT BE CITED AS ONE"*.
+
+Distinguishing a deferral from an unenforced obligation mechanically is not something I can do
+without a fragile heuristic, and pinning all 155 annotations by digest would make every comment
+fix a ratchet edit. **So it is written down as a limitation instead of guarded badly**, and it is
+on the "What is NOT closed" list in `OVERNIGHT-SUMMARY.md`.

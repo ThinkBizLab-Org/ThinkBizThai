@@ -282,7 +282,8 @@ because a list that only grows is a list nobody trusts.
    now bounded (`maxLength: 32`) and shaped (`CTR-XXX-000@n.n.n`), and its `x-source` says in
    writing that the divergence is intentional. It is listed here so the *decision* is visible, not
    because it is a defect.
-8. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+8. **Prose in an `x-` annotation is not enforced, by design.** Every guard skips `x-` keys so that fixing a comment cannot fail CI — which means `"MUST be omitted entirely"` in an `x-source` passes at exit 0 while nothing implements it. Measured: 155 annotations, 5 with uppercase RFC-2119 keywords, and all five are honest *deferrals* ("per-command schemas MUST constrain it; this envelope cannot"). Guarding it needs either a fragile heuristic or pinning all 155 by digest, which would make every comment fix a ratchet edit. **Written down rather than guarded badly.**
+9. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
 
 ### Closed since this list was first written
 
