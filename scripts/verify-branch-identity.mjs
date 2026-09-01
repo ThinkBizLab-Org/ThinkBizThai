@@ -15,7 +15,8 @@
 // Exit codes: 0 match (package id on stdout), 75 no package claims this branch, 76 more than
 // one does, 77 a manifest could not be read.
 import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const NO_CLAIMANT = 75;
 export const AMBIGUOUS_CLAIM = 76;
@@ -70,4 +71,10 @@ async function main(argv) {
   return report.code;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(await main(process.argv));
+// The same idiom as the other twelve scripts. Independent review fourteen ran this from a
+// directory containing a space: `file://${process.argv[1]}` did not match, `main()` never ran, and
+// it exited 0 with no output where NO_CLAIMANT was required. CI then captures an empty package id
+// and the scope guard fails on usage -- the job still fails, with the wrong reason.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exit(await main(process.argv));
+}

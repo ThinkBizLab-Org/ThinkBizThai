@@ -224,6 +224,13 @@ test('no path under the catalog is a symbolic link', async () => {
   // contract test failed.** A containment that lives somewhere else by accident is one allow-list
   // entry away from being no containment at all.
   const found = [];
+  // The ROOT itself, first. Independent review fourteen: the walk `readdir`s CATALOG and `lstat`s
+  // its children, so `mv contract-catalog catalog-real && ln -s catalog-real contract-catalog`
+  // left every contract suite at 71/71 passing. Contained again only by the secret scanner, in
+  // another package, for an unrelated reason -- the exact thing this test's own comment says it
+  // exists to stop, one level up.
+  const root = await lstat(CATALOG);
+  if (root.isSymbolicLink()) found.push(`${CATALOG} — the catalog root is a symbolic link`);
   const walk = async (directory) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name);

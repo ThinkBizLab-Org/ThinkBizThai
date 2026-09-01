@@ -324,6 +324,81 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // Independent review gutted the four test files the manifest did not name, with the manifest
 // byte-identical -- exit 0, 54/54 green. That is NOT the unclosable digest-updating class,
 // so it is closed: the protected set must cover every file the runner will execute.
+// Independent review fourteen: the manifest's key set could still SHRINK. `PROTECTED_KEYS`
+// names seventeen files whose absence is itself the defect -- and the four protocol validators
+// were not among them, digested only because they happened to be listed. `regenerate:manifest`
+// re-adds discovered test files and nothing else, so a deleted entry stays deleted.
+//
+// The review deleted four keys, stubbed the directory entry point of
+// validate-work-package-ownership.mjs with `if (directory === 'work-packages') return;`, set this
+// package's amendments to ["**"], and got exit 0 at 208/208 -- after which a branch changing a
+// contract it neither owns nor amends reported "all 932 changed path(s) are declared".
+//
+// So the whole set is a ratchet, not just a named subset: a file that has ever been digested
+// stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
+export const DIGESTED_FLOOR = [
+  '.agents/capabilities.schema.json',
+  '.agents/handoff.schema.json',
+  '.agents/status.schema.json',
+  '.agents/work-package.schema.json',
+  '.github/workflows/ci.yml',
+  '.node-version',
+  'contract-catalog/shared-kernel/index.json',
+  'evidence/VERIFICATION.md',
+  'package.json',
+  'scripts/record-verification.mjs',
+  'scripts/refresh-author-handoff.mjs',
+  'scripts/regenerate-integrity-manifest.mjs',
+  'scripts/run-test-suite.mjs',
+  'scripts/scan-repository-secrets.mjs',
+  'scripts/test-suite-contract.mjs',
+  'scripts/toolchain-contract.mjs',
+  'scripts/validate-capability-profiles.mjs',
+  'scripts/validate-work-package-ownership.mjs',
+  'scripts/validate-work-package-role-separation.mjs',
+  'scripts/validate-work-packages.mjs',
+  'scripts/verify-branch-identity.mjs',
+  'scripts/verify-branch-scope.mjs',
+  'scripts/verify-test-coverage-floor.mjs',
+  'scripts/verify-toolchain.mjs',
+  'test-kits/branch-identity.test.mjs',
+  'test-kits/branch-scope.test.mjs',
+  'test-kits/capability-profile.test.mjs',
+  'test-kits/ci-guard-behaviour.test.mjs',
+  'test-kits/contracts/catalog-groups.test.mjs',
+  'test-kits/contracts/catalog-reference-integrity.test.mjs',
+  'test-kits/contracts/catalog-registry.test.mjs',
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs',
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs',
+  'test-kits/contracts/json-schema-subset.mjs',
+  'test-kits/contracts/schema-mutation-coverage.test.mjs',
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs',
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs',
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs',
+  'test-kits/handoff-conformance.test.mjs',
+  'test-kits/integrity-manifest-rebuild.test.mjs',
+  'test-kits/repository-json.test.mjs',
+  'test-kits/role-separation.test.mjs',
+  'test-kits/secret-scan.test.mjs',
+  'test-kits/test-coverage-floor.test.mjs',
+  'test-kits/toolchain-contract.test.mjs',
+  'test-kits/verification-record.test.mjs',
+  'test-kits/work-package-discovery.test.mjs',
+  'test-kits/work-package-ownership.test.mjs',
+  'work-packages/WP-0A-CON-008.json',
+];
+
+// A file that has ever been digested stays digested. See DIGESTED_FLOOR above for why.
+export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MANIFEST, floor = DIGESTED_FLOOR) {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const present = new Set(Object.keys(manifest.files ?? {}));
+  const removed = floor.filter((key) => !present.has(key));
+  if (removed.length > 0) {
+    throw new CoverageFloorError(87, `${removed.length} file(s) were removed from ${manifestPath}: ${removed.join(', ')}. `
+      + 'Protection is a ratchet: a file that has been digested stays digested, or a guard can be gutted by deleting its line.');
+  }
+}
+
 export async function assertEveryTestFileProtected(files, manifestPath = INTEGRITY_MANIFEST) {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const protectedFiles = new Set(Object.keys(manifest.files ?? {}));
@@ -348,6 +423,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   }
   assertCoverage(pattern, files, floor);
   await assertEveryTestFileProtected(files);
+  await assertDigestedSetNeverShrinks();
   await assertNoEscapingPath(files);
   const declared = await assertDeclaredTests(files);
   return { pattern, files, declared };

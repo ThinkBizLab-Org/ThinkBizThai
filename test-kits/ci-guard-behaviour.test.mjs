@@ -183,3 +183,50 @@ test('verify-branch-scope reports a stray path inside the contract catalog', asy
   assert.equal(code, 73, `an undeclared contract change must fail, got ${code}: ${out}`);
   assert.match(out, /contract-catalog\/shared-kernel\/ctr-api-001\/schema\.json/);
 });
+
+// Independent review fourteen: `validate-work-package-ownership.mjs`'s DIRECTORY entry point --
+// the one `npm run validate:protocol` actually calls -- was executed by no test. Every unit test
+// calls the pure `validateManifestOwnership` on synthetic manifests, so inserting
+// `if (directory === 'work-packages') return;` as its first line passed at exit 0, 208/208, and
+// took `namesSomething`, the protected-file rule and `deadAmendments` with it.
+//
+// The same lesson as review twelve's, one script over: a digest pins bytes; only running the
+// thing pins behaviour.
+test('validate-work-package-ownership rejects a blanket amendment when run over a real directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ownership-cli-'));
+  const packages = join(root, 'work-packages');
+  spawnSync('mkdir', ['-p', packages]);
+  await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify({
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths: ['**'], rationale: 'a reason long enough to be a reason and not a placeholder' },
+    },
+    outputs: { files: ['owned.txt'] },
+  }));
+  const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
+  const { code, out } = run(guard, [packages]);
+  assert.equal(code, 74, `a blanket amendment must be rejected by the CLI, got ${code}: ${out}`);
+  assert.match(out, /names no path at all/);
+});
+
+test('validate-work-package-ownership accepts a manifest that declares only what it owns', async () => {
+  // Both directions: a validator that always exits 74 would pass the row above and block every
+  // package in the repository.
+  const root = await mkdtemp(join(tmpdir(), 'ownership-cli-ok-'));
+  const packages = join(root, 'work-packages');
+  spawnSync('mkdir', ['-p', packages]);
+  await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify({
+    work_package_id: 'WP-T-001',
+    ownership: {
+      writable_paths: ['owned.txt'],
+      read_only_paths: [],
+      amends_without_owning: { paths: [], rationale: 'none' },
+    },
+    outputs: { files: ['owned.txt'] },
+  }));
+  const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
+  const { code, out } = run(guard, [packages]);
+  assert.equal(code, 0, out);
+});
