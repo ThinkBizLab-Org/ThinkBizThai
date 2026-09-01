@@ -1,1 +1,151 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"CTR-IDM-001","title":"Command idempotency record","type":"object","additionalProperties":false,"required":["idempotency_key","scope","payload_hash","state","created_at"],"properties":{"idempotency_key":{"type":"string","minLength":1},"scope":{"type":"object","additionalProperties":false,"required":["workspace_id","operation"],"properties":{"workspace_id":{"type":"string","minLength":1},"operation":{"type":"string","minLength":1,"pattern":"^[a-z0-9]+(\\.[a-z0-9]+)+$"}}},"payload_hash":{"type":"string","pattern":"^[a-z0-9-]+:[0-9a-f]{32,128}$","x-algorithm-note":"The baseline says \"payload hash\" and names no algorithm for CTR-IDM-001. The algorithm-prefixed form is required so the algorithm is explicit on the wire and can be migrated; the algorithm itself is NOT pinned here, because choosing it is a Security decision. sprint-0a-stripe-billing-contract-th.md line 284 uses payload_sha256 for the Stripe inbox, which is cited as PRECEDENT for the shape, not as authority for CTR-IDM-001."},"state":{"enum":["in_progress","completed","failed"]},"created_at":{"type":"string","format":"date-time"},"completed_at":{"type":"string","format":"date-time"},"result_ref":{"type":"string","minLength":1,"pattern":"^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$","x-reference-rule":"Allow-listed scheme AND constrained body. An earlier version allow-listed only the scheme while the body permitted `.` and `/` freely, so independent security review passed result:../../../etc/passwd, status:/proc/self/environ, content:/.env and content://attacker.example.invalid/exfil. A leading slash, any `..` segment, and an empty segment are now all rejected. The scheme list is closed; the body is a path of dot-separated identifier segments and nothing else. The two negative lookaheads were removed: a 400,000-string fuzz by independent testing found zero divergence from this lookahead-free form, because the body grammar already forbids a leading slash, an empty segment and a `..` segment. Removing them closes WP-0A-CON-002 review finding R8 (RE2 portability) at zero cost, which had no recorded disposition anywhere."},"error":{"$ref":"../ctr-err-001/schema.json"},"correlation_id":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"state":{"const":"completed"}}},"then":{"required":["completed_at","result_ref"],"not":{"required":["error"]}}},{"if":{"properties":{"state":{"const":"failed"}}},"then":{"required":["completed_at","error"],"not":{"required":["result_ref"]}}},{"if":{"properties":{"state":{"const":"in_progress"}}},"then":{"not":{"anyOf":[{"required":["result_ref"]},{"required":["error"]},{"required":["completed_at"]}]}}}]}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "CTR-IDM-001",
+  "title": "Command idempotency record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "idempotency_key",
+    "scope",
+    "payload_hash",
+    "state",
+    "created_at"
+  ],
+  "properties": {
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found reference-shaped fields on these envelopes with no pattern AND no bound, so each accepted a 100000-character value. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "operation"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "Bounded because independent security review found reference-shaped fields on these envelopes with no pattern AND no bound, so each accepted a 100000-character value. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+        },
+        "operation": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9]+)+$",
+          "x-minlength-note": "`minLength` was REMOVED as unreachable: no single character matches this pattern, checked over every code point below U+2100, so no instance can distinguish this schema from one without it. Keeping a constraint nothing can exercise inflates every coverage number that counts it and reads as a defence it is not."
+        }
+      }
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+:[0-9a-f]{32,128}$",
+      "x-algorithm-note": "The baseline says \"payload hash\" and names no algorithm for CTR-IDM-001. The algorithm-prefixed form is required so the algorithm is explicit on the wire and can be migrated; the algorithm itself is NOT pinned here, because choosing it is a Security decision. sprint-0a-stripe-billing-contract-th.md line 284 uses payload_sha256 for the Stripe inbox, which is cited as PRECEDENT for the shape, not as authority for CTR-IDM-001."
+    },
+    "state": {
+      "enum": [
+        "in_progress",
+        "completed",
+        "failed"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "result_ref": {
+      "type": "string",
+      "pattern": "^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$",
+      "x-reference-rule": "Allow-listed scheme AND constrained body. An earlier version allow-listed only the scheme while the body permitted `.` and `/` freely, so independent security review passed result:../../../etc/passwd, status:/proc/self/environ, content:/.env and content://attacker.example.invalid/exfil. A leading slash, any `..` segment, and an empty segment are now all rejected. The scheme list is closed; the body is a path of dot-separated identifier segments and nothing else. The two negative lookaheads were removed: a 400,000-string fuzz by independent testing found zero divergence from this lookahead-free form, because the body grammar already forbids a leading slash, an empty segment and a `..` segment. Removing them closes WP-0A-CON-002 review finding R8 (RE2 portability) at zero cost, which had no recorded disposition anywhere.",
+      "maxLength": 256,
+      "x-minlength-note": "`minLength` was REMOVED as unreachable: no single character matches this pattern, checked over every code point below U+2100, so no instance can distinguish this schema from one without it. Keeping a constraint nothing can exercise inflates every coverage number that counts it and reads as a defence it is not."
+    },
+    "error": {
+      "$ref": "../ctr-err-001/schema.json"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found reference-shaped fields on these envelopes with no pattern AND no bound, so each accepted a 100000-character value. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "completed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "completed_at",
+          "result_ref"
+        ],
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "completed_at",
+          "error"
+        ],
+        "not": {
+          "required": [
+            "result_ref"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "in_progress"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "result_ref"
+              ]
+            },
+            {
+              "required": [
+                "error"
+              ]
+            },
+            {
+              "required": [
+                "completed_at"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
