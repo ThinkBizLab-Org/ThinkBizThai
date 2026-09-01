@@ -52,6 +52,29 @@ const CREDENTIAL_DECOYS = [
   ['npm access token', 'npm-access-token', A('npm_', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yj5Hs0TaGe2Uu')],
   ['bearer authorization header', 'authorization-header', A('Authorization', ': ', 'Bearer ', 'k9Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yj5Hs0Ta')],
   ['pem private key', 'pem-private-key', A('-----BEGIN ', 'PRIVATE KEY-----')],
+
+  // C2: the ten rules added after the first uncorrelated probe had NO test coverage at all --
+  // the decoy table was pinned at 17 rows, none targeting a new rule, and the only guard was a
+  // rule COUNT. Any of the ten could have been deleted or broken with the suite still green.
+  // Independent security review found it. Every value is built by concatenation so this file
+  // does not match its own scanner.
+  ['meta page access token', 'meta-access-token', A('EAA', 'GZC1ZBk2xQBO4BA', 'M'.repeat(60))],
+  ['stripe restricted key', 'stripe-restricted-key', A('rk_', 'live_', '51H8x9K2mNpQrStUvWxYz')],
+  ['gcp service account private key', 'gcp-service-account-key', A('{"type"', ': "service_account", "private_key": "', '-----', 'BEGIN PRIVATE KEY', '-----')],
+  ['twilio sid and auth token', 'twilio-auth-pair', A('AC', '0'.repeat(32), ' ', 'b'.repeat(32))],
+  ['sendgrid key', 'sendgrid-key', A('SG', '.', 'A'.repeat(22), '.', 'B'.repeat(43))],
+  ['npmrc auth token', 'npmrc-auth-token', A('//registry.npmjs.org/:', '_authToken', '=', 'npm', '_', 'x'.repeat(36))],
+  ['netrc password block', 'netrc-password', A('machine registry.example\n  login bot\n  ', 'password', ' ', 'Zx9Zx9Zx9Zx9')],
+  ['kubernetes service account token', 'kubernetes-service-account-token', A('eyJhbGciOiJSUzI1NiIsImtpZCI6', 'Ab3Cd5Ef7Gh', '.', 'eyJzdWIiOiJzYSJ9', '.', 'Z'.repeat(43))],
+  ['vault service token', 'vault-token', A('hvs', '.', 'CAESIJ9xQm4Rt7Zx2Lp8Vb3Nd6Wc1Yk9Jf5Hs0Ta')],
+  // The per-rule coverage assertion exposed five rules with no decoy that PREDATE the ten
+  // added after the uncorrelated probe -- the hardcoded count of 17 had hidden them too.
+  ['azure sas signature', 'azure-sas-signature', A('https://acct.blob.core.windows.net/c/b', '?sv=2021-01-01&', 'sig', '=', 'Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yk9Jf5Hs0TaGe2Uu7Ii4Oo1Pp8Aa%3D')],
+  ['putty private key', 'putty-private-key', A('PuTTY', '-User-Key-File-3', ': ssh-rsa')],
+  ['aws secret access key', 'aws-secret-access-key', A('aws_secret_access_key', ' = ', 'wJalrXUtnFEMI', 'K7MDENG', 'bPxRfiCYEXAMPLEKEY', 'AA')],
+  ['github fine-grained pat', 'github-fine-grained-pat', A('github_pat', '_', '11ABCDEFG0', '_', 'x'.repeat(59))],
+  ['openai legacy key', 'openai-legacy-key', A('sk', '-', 'Qm4Rt7Zx2Lp8Vb3Nd6Wc1Yk9Jf5Hs0TaGe2Uu7Ii4O')],
+  ['slack app token', 'slack-app-token', A('xapp', '-', '1', '-', 'A0123456789', '-', '2468013579246', '-', 'q'.repeat(64))],
 ];
 
 // Values that MUST NOT fire. Several are verbatim shapes that already exist in this
@@ -127,7 +150,10 @@ test('detects every synthetic credential decoy the earlier probes defeated', asy
   }
   assert.deepEqual(missed, [], `undetected credential decoys: ${missed.join(', ')}`);
   assert.deepEqual(wrongRule, [], `decoys matched by an unexpected rule: ${wrongRule.join('; ')}`);
-  assert.equal(CREDENTIAL_DECOYS.length, 17);
+  // A hardcoded count is exactly why ten rules shipped with no decoy at all: adding a rule
+  // never broke this assertion. The table must instead grow with the rule set.
+  assert.ok(CREDENTIAL_DECOYS.length >= CREDENTIAL_RULES.length,
+    `${CREDENTIAL_RULES.length} credential rules but only ${CREDENTIAL_DECOYS.length} decoys`);
 });
 
 test('the credential decoy table is detected on disk, not only in memory', async () => {
@@ -136,7 +162,13 @@ test('the credential decoy table is detected on disk, not only in memory', async
       await writeFile(join(directory, `decoy-${index}.env`), `${value}\n`);
     }
     const findings = await scanDirectory(directory);
-    assert.equal(findings.length, CREDENTIAL_DECOYS.length);
+    // At least one per decoy. A decoy may legitimately match two rules -- an npmrc line
+    // carries both an npm token shape and an _authToken assignment -- so equality would
+    // forbid overlapping coverage rather than measure it.
+    assert.ok(findings.length >= CREDENTIAL_DECOYS.length,
+      `${findings.length} findings for ${CREDENTIAL_DECOYS.length} decoys written to disk`);
+    const byFile = new Set(findings.map((finding) => finding.relativePath ?? finding.file));
+    assert.equal(byFile.size, CREDENTIAL_DECOYS.length, 'every decoy file must produce at least one finding');
     assert.ok(findings.every((finding) => finding.kind === 'credential'));
   });
 });
@@ -317,4 +349,26 @@ test('exitCodeFor separates a pattern finding from an unscannable input', () => 
   assert.equal(exitCodeFor([{ kind: 'credential' }]), EXIT_PATTERN_FINDING);
   assert.equal(exitCodeFor([{ kind: 'pii' }]), EXIT_PATTERN_FINDING);
   assert.equal(exitCodeFor([{ kind: 'unscannable' }, { kind: 'pii' }]), EXIT_PATTERN_FINDING);
+});
+
+// Independent security review found three CI-breaking false positives in the rules added
+// after the first uncorrelated probe. Each is pinned so the fix cannot silently regress.
+const NEW_RULE_FALSE_POSITIVES = [
+  ['prose beginning with the word password', 'password reset flows are documented separately'],
+  ['a member chain resembling a legacy vault token', 'const v = x.s.someVeryLongIdentifierName;'],
+  ['a publish script referencing an env var', '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'],
+  ['a forty-character git object id', 'a3f5c9e1b7d2048f6a3c5e9b1d7f2048a6c3e5b9'],
+];
+
+test('the rules added after the uncorrelated probe do not fire on legitimate content', () => {
+  for (const [label, content] of NEW_RULE_FALSE_POSITIVES) {
+    const hits = scanText(content, 'sample.txt');
+    assert.deepEqual(hits, [], `${label} must not be reported: ${JSON.stringify(hits)}`);
+  }
+});
+
+test('every credential rule is exercised by at least one decoy', () => {
+  const covered = new Set(CREDENTIAL_DECOYS.map(([, id]) => id));
+  const uncovered = CREDENTIAL_RULES.map((rule) => rule.id).filter((id) => !covered.has(id));
+  assert.deepEqual(uncovered, [], `credential rule(s) with no decoy — a rule nothing tests can be deleted silently:\n  ${uncovered.join('\n  ')}`);
 });

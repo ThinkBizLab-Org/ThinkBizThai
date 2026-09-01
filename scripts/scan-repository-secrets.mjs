@@ -129,11 +129,16 @@ export const CREDENTIAL_RULES = [
   { id: 'gcp-service-account-key', pattern: /"type"\s*:\s*"service_account"[\s\S]{0,400}?"private_key"\s*:\s*"-----BEGIN/g },
   { id: 'twilio-auth-pair', pattern: /\bAC[0-9a-f]{32}\b[\s\S]{0,200}?\b[0-9a-f]{32}\b/g },
   { id: 'sendgrid-key', pattern: /\bSG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g },
-  { id: 'cloudflare-api-token', pattern: /\b(?:CLOUDFLARE|CF)_API_TOKEN\s*[=:]\s*["']?[A-Za-z0-9_-]{40,}/g },
   { id: 'npmrc-auth-token', pattern: /_authToken\s*=\s*["']?[A-Za-z0-9_%+./-]{16,}/g },
-  { id: 'netrc-password', pattern: /^\s*password\s+\S{8,}$/gm },
+  // Anchored to a netrc block. The unanchored form matched any prose line beginning with
+  // `password` and ending in one long token -- this repository already carries two such lines
+  // in review evidence, one reflow away from a red CI. Independent security review found it.
+  { id: 'netrc-password', pattern: /^[ \t]*machine[ \t]+\S+[\s\S]{0,200}?^[ \t]*password[ \t]+\S{8,}$/gm },
   { id: 'kubernetes-service-account-token', pattern: /\beyJhbGciOiJSUzI1NiIsImtpZCI6[A-Za-z0-9_-]{10,}\./g },
-  { id: 'vault-token', pattern: /\b(?:hvs|hvb|s)\.[A-Za-z0-9]{24,}/g },
+  // The single-letter legacy alternative matched ordinary member chains (`x.s.someLongName`)
+  // and `s.`-prefixed filenames. Dropped: a service token issued today carries hvs./hvb.,
+  // and a rule that fires on JavaScript is worth less than the format it misses.
+  { id: 'vault-token', pattern: /\b(?:hvs|hvb)\.[A-Za-z0-9]{24,}/g },
   {
     id: 'secret-named-assignment',
     // Environment-variable style only: an UPPERCASE secret-named identifier, `=`, and a

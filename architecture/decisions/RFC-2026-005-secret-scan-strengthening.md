@@ -75,7 +75,7 @@ evidence of secret coverage. Evidence artifacts that cite it should say so.
 
 ## Decision
 
-1. **Broaden the credential rule set** from 5 to 21 rules, each anchored on a
+1. **Broaden the credential rule set** from 5 to 30 rules, each anchored on a
    vendor prefix, a structural shape, or an explicit secret-named assignment —
    never on entropy alone. Added: PuTTY private keys, AWS secret access keys and
    the non-`AKIA` AWS key-id prefixes, GitHub fine-grained PATs, OpenAI project
@@ -353,3 +353,19 @@ A pattern scanner cannot prove absence of secrets. 19/56 against an uncorrelated
 corpus is a more honest number than 12/12 against a correlated one, and it is still
 a measurement of one reviewer's imagination, not of coverage. Every number in this
 RFC is a regression test against failures somebody thought to look for.
+
+
+### `cloudflare-api-token` was withdrawn, not weakened
+
+Independent security review showed the rule detected nothing the scanner did not
+already catch: its named form (`CF_API_TOKEN=…`) is matched by
+`secret-named-assignment`, and a bare 40-character token is indistinguishable from
+any other 40-character identifier without a false-positive rate this repository
+cannot carry — the tree holds 130+ hex strings of that length. The catalog test
+proved it directly: the decoy was matched by `secret-named-assignment`, not by the
+rule written for it.
+
+Adding it was a rule that fired only where another rule already fired. **That is not
+coverage, and counting it as a family "detected" overstated the improvement.** It is
+removed rather than kept for the count. A Cloudflare token in an unnamed position
+remains undetected, and is recorded as such.
