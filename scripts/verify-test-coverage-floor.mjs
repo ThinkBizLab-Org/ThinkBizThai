@@ -97,7 +97,18 @@ export function assertPackageScripts(scripts) {
       throw new CoverageFloorError(81, `check must be a plain && chain: '${forbidden}' would let a step be skipped, backgrounded, or commented out while this guard still saw the text. Found: ${check}`);
     }
   }
-  const required = ['npm run verify:coverage-floor', 'npm run test:bootstrap'];
+  // Requiring only the guard and the runner left the MIDDLE of the chain unconstrained.
+  // Independent review reduced check to `verify:coverage-floor && test:bootstrap`, recomputed
+  // the digest, and both this guard and npm run check exited 0 -- silently deleting the
+  // toolchain pin, the secret scan and all three protocol validators from CI. Every step that
+  // gates the repository is required, in order.
+  const required = [
+    'npm run verify:coverage-floor',
+    'node scripts/verify-toolchain.mjs',
+    'npm run scan:secrets',
+    'npm run validate:protocol',
+    'npm run test:bootstrap',
+  ];
   const missing = required.filter((step) => !steps.includes(step));
   if (missing.length > 0) {
     throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')} as its own && step; a guard that is not wired into check protects nothing. Found: ${check}`);
@@ -109,8 +120,9 @@ export function assertPackageScripts(scripts) {
   if (steps[0] !== 'npm run verify:coverage-floor') {
     throw new CoverageFloorError(81, `check must START with npm run verify:coverage-floor; a guard placed later is never reached if an earlier step short-circuits. Found first step: ${steps[0]}`);
   }
-  if (steps.indexOf('npm run verify:coverage-floor') > steps.indexOf('npm run test:bootstrap')) {
-    throw new CoverageFloorError(81, 'check must run verify:coverage-floor before test:bootstrap so a broken declaration fails fast.');
+  const order = required.map((step) => steps.indexOf(step));
+  if (order.some((position, index) => index > 0 && position < order[index - 1])) {
+    throw new CoverageFloorError(81, `check must run its steps in the order ${required.join(' -> ')}; found: ${check}`);
   }
   if (steps.at(-1) !== 'npm run test:bootstrap') {
     throw new CoverageFloorError(81, `check must END with npm run test:bootstrap so nothing can follow and mask its exit code. Found: ${check}`);

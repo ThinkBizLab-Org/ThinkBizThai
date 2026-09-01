@@ -25,7 +25,7 @@ inside the scripts:
 | Injected `scripts.check` | Result |
 |---|---|
 | `… && npm run test:bootstrap &` | exit **0**. The trailing `&` backgrounds the whole chain, so the shell returns before any step's exit code matters. The guard *does* run and *does* print its rejection; the process status was already decided. |
-| every `&&` replaced with `\|\|` | exit **0**. Step 1 succeeds and the chain short-circuits, so the guard is **never invoked at all** and executes nothing. |
+| every `&&` replaced with `\|\|` | exit **0**. Step 1 succeeds and the chain short-circuits. **Correction, from independent review:** the guard IS invoked — WP-0A-A0-002's first-step rule puts it there, it runs, and it correctly rejects with exit `81`. `||` then **discards that exit code** and hands off to the next step, which succeeds. An earlier draft of this RFC said the guard was never invoked, which wrongly described A0-002's rule as ineffective when it is firing. The outcome is the same — a green job that ran no test — but the mechanism is discarded status, not absent execution, and that distinction is the whole reason the fix has to come from the caller. |
 
 WP-0A-A0-002 closed everything it could reach from inside: the chain is parsed
 structurally, `||`, `;`, `|`, `#` and a surviving `&` are rejected inside a step,
@@ -56,6 +56,8 @@ The guard is then invoked **by the workflow**, not by the script it audits. A
 reach, because the workflow file is a different artifact with a different owner and
 a separate review path.
 
+The guard now also requires **all five** gating steps in order, not merely the guard and the runner: independent review reduced `check` to `verify:coverage-floor && test:bootstrap`, recomputed the digest, and both the new workflow step and `npm run check` exited `0` — silently deleting the toolchain pin, the secret scan and all three protocol validators from CI. Verified after the fix: the same edit now exits `81`.
+
 `.github/workflows/ci.yml` and `scripts/verify-test-coverage-floor.mjs` are both
 already digested in `test-kits/integrity-manifest.json`, so editing either to
 defeat this is a visible line in a diff.
@@ -84,7 +86,8 @@ amendment in `ownership.amended_by` with an acknowledgement pending from
 
 ## Verification
 
-- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — exit `0`.
+- `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — exit `0`, 119 tests.
+- `check` reduced to the guard plus the runner — exit `81`, naming the missing steps.
 - With `scripts.check` neutered by a trailing `&`, the **workflow's guard step**
   must fail even though `npm run check` exits `0`. This cannot be observed locally,
   because the failure is a property of the workflow rather than of any command; it

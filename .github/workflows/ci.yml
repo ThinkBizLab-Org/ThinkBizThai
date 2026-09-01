@@ -28,7 +28,7 @@ jobs:
       # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
       # neutered by its own scripts.check string -- a trailing `&` backgrounds the chain so
       # the shell returns 0 before any exit code matters, and replacing every `&&` with `||`
-      # short-circuits at step 1 so the guard is never invoked at all. A guard invoked by a
+      # short-circuits at step 1; the guard runs and rejects with exit 81, and `||` discards that exit code. A guard invoked by a
       # command cannot constrain the command that invokes it. See RFC-2026-007.
       - name: Verify test-integrity guard
         run: node scripts/verify-test-coverage-floor.mjs

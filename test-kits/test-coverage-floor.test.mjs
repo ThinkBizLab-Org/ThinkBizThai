@@ -59,10 +59,12 @@ test('a suite confined to one directory is rejected as the WP-0A-A0-002 defect c
   assert.throws(() => assertCoverage(CURRENT, flat, 4), (error) => error.code === 77);
 });
 
+const FULL_CHAIN = 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap';
+
 const okScripts = (overrides = {}) => ({
   'test:bootstrap': RUNNER_SCRIPT,
   'verify:coverage-floor': GUARD_SCRIPT,
-  check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run validate:protocol && npm run test:bootstrap',
+  check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap',
   ...overrides,
 });
 
@@ -91,7 +93,7 @@ test('any wrapper that could neutralise the runner is rejected', () => {
 // substring check still passed while `||` short-circuited: npm run check exited 0 having
 // executed no test, with every protected file byte-identical. The chain is parsed now.
 test('a check script that could skip, comment out, or mask a step is rejected', () => {
-  const base = 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run validate:protocol';
+  const base = 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol';
   for (const check of [
     `${base} || npm run test:bootstrap`,
     `${base} ; npm run test:bootstrap`,
@@ -107,7 +109,7 @@ test('a check script that could skip, comment out, or mask a step is rejected', 
   // The guard must be reached before anything can short-circuit past it.
   assert.throws(() => assertPackageScripts(okScripts({
     check: 'node scripts/verify-toolchain.mjs && npm run verify:coverage-floor && npm run test:bootstrap',
-  })), (error) => error.code === 81 && /must START/.test(error.message));
+  })), (error) => error.code === 81 && /(must START|as its own && step|in the order)/.test(error.message));
 });
 
 // Everything that decides whether the suite runs must be digested, not only the suites.
@@ -123,17 +125,26 @@ test('the manifest covers the whole decision surface, not just the test files', 
 test('a check script that drops the runner or the guard is rejected', () => {
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs' })),
-    (error) => error.code === 81 && /npm run test:bootstrap/.test(error.message),
+    (error) => error.code === 81 && /npm run (test:bootstrap|scan:secrets)/.test(error.message),
   );
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'node scripts/verify-toolchain.mjs && npm run test:bootstrap' })),
-    (error) => error.code === 81 && /(verify:coverage-floor|must START)/.test(error.message),
+    (error) => error.code === 81 && /(verify:coverage-floor|must START|as its own && step)/.test(error.message),
   );
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'npm run test:bootstrap && npm run verify:coverage-floor' })),
-    (error) => error.code === 81 && /(before test:bootstrap|must START)/.test(error.message),
+    (error) => error.code === 81 && /(before test:bootstrap|must START|in the order|as its own && step)/.test(error.message),
   );
   assert.throws(() => assertPackageScripts(okScripts({ check: undefined })), (error) => error.code === 74);
+  // Independent review reduced the chain to the guard plus the runner and both this guard and
+  // npm run check exited 0, silently deleting the toolchain pin, the secret scan and all three
+  // protocol validators from CI. Every gating step is required now, not just the ends.
+  for (const dropped of ['node scripts/verify-toolchain.mjs', 'npm run scan:secrets', 'npm run validate:protocol']) {
+    const check = FULL_CHAIN.split(' && ').filter((step) => step !== dropped).join(' && ');
+    assert.throws(() => assertPackageScripts(okScripts({ check })), (error) => error.code === 81, `dropping ${dropped} must be rejected`);
+  }
+  const reordered = 'npm run verify:coverage-floor && npm run validate:protocol && npm run scan:secrets && node scripts/verify-toolchain.mjs && npm run test:bootstrap';
+  assert.throws(() => assertPackageScripts(okScripts({ check: reordered })), (error) => error.code === 81 && /in the order/.test(error.message));
   assert.throws(() => assertPackageScripts(okScripts({ 'verify:coverage-floor': 'echo skipped' })), (error) => error.code === 74);
 });
 

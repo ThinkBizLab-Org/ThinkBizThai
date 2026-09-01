@@ -18,7 +18,7 @@ Independent testing produced two forms of the same problem:
 | Injected `scripts.check` | `npm run check` |
 |---|---|
 | trailing `&` | exit **0** — the shell backgrounds the chain and returns before any step's exit code matters. The guard runs and prints its rejection; the status was already decided. |
-| every `&&` replaced with `\|\|` | exit **0** — step 1 succeeds, the chain short-circuits, and the guard is **never invoked at all**. |
+| every `&&` replaced with `\|\|` | exit **0** — step 1 succeeds and the chain short-circuits. The guard **does** run and **does** reject with exit `81`; `||` discards the exit code. |
 
 WP-0A-A0-002 closed everything reachable from inside: the chain is parsed
 structurally, `||`, `;`, `|`, `#` and a surviving `&` are rejected inside a step,
