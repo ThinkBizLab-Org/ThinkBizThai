@@ -260,7 +260,6 @@ export function containsPaymentCardNumber(run) {
   }
 
   return scanReading(groups);
-  return false;
 }
 
 function scanReading(groups, { wholeRunOnly = false } = {}) {

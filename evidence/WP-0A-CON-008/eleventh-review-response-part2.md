@@ -122,3 +122,57 @@ distinct packages.
 
 `npm run check` — **184/184, fail 0, skipped 0, todo 0, exit 0**.
 `verify-branch-scope.mjs` against the stack base — *all 54 changed paths are declared*.
+
+---
+
+# Findings 8 and 9 — and one defect the fix found
+
+## LOW-MED #8 — empty combinators were invisible primitives
+
+`anyOf: []` and `oneOf: []` reject every document. `allOf: []` accepts every document — vacuous
+truth. None is visible to the mutation walk, because there is nothing inside to delete.
+
+Probed first, as always. All three ARE caught in the catalog as it stands today, but only by
+accident of coverage: the empty combinator happened to sit where a fixture reaches it, so a
+valid fixture stopped validating or a negative fixture stopped being rejected. Buried under an
+unused property, only the constraint-surface pin fires, and only because the KEYWORD is new.
+
+Fix — `no catalog schema holds an empty combinator`, a structural walk over every governed
+schema. It costs nothing: an empty combinator has no legitimate use. A second test asserts the
+walk actually reaches the positions that matter — under a property, inside array `items`,
+beneath a `not`, inside `definitions` — because a walk that finds nothing passes trivially.
+
+**On its first run it found one that was already shipped.** `ctr-usg-001/schema.json` carried
+`"allOf": []` — a rule that accepts every document, in a Candidate contract, left behind when a
+vacuous rule was removed in `b00c6b3`. Nothing in 184 tests had observed it. Removed here.
+
+Probe: replanting `anyOf: []` at `properties/readiness/properties/capabilities/items` in
+`ctr-obs-001` — a position no fixture reaches — → **exit 1**, naming the JSON path and the
+effect.
+
+## LOW #9 — a one-directional impact check, and dead code
+
+The handoff impact check ran one direction: claiming an impact you do not have. That is the
+harmless half — it looks worse than the truth. The half that matters is a package that **does**
+change the contract catalog and says nothing about compatibility, because a reader of that
+handoff has no reason to look. Now checked both ways.
+
+Measured cost, first run: it reported `WP-0A-A0-001` for adding `contract-catalog/README.md` —
+a prose file with no compatibility surface. Narrowed to contract **artifacts**: the index, each
+contract's `manifest.json` and `schema.json`, and fixtures. A README is not a contract.
+
+`scan-repository-secrets.mjs:263` — unreachable `return false;` after a `return`. Deleted.
+
+## Verification
+
+`npm run check` — **186/186, fail 0, skipped 0, todo 0, exit 0**.
+
+Every finding of independent review #11 is now closed: HIGH 1–4, MEDIUM 5–7, LOW-MED 8, LOW 9.
+Four of the nine fixes found a real defect the moment they ran, none of them planted:
+
+| fix | what it found unprompted |
+| --- | --- |
+| revision-resolving handoff check | handoffs citing a range that did not match their file lists |
+| `PROTECTED_KEYS` | the tool that rewrites the integrity manifest was not in the manifest |
+| empty-combinator walk | `allOf: []` shipped in `CTR-USG-001`, accepting every document |
+| two-way impact check | a false positive in its own first formulation, corrected before commit |

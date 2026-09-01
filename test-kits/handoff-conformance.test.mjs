@@ -63,11 +63,27 @@ test('a handoff describes its own package, not a template', async () => {
 
   const wrong = [];
   for (const [name, body] of handoffs) {
-    const touchesContracts = [...body.files_added, ...body.files_modified]
-      .some((f) => f.startsWith('contract-catalog/'));
+    // A contract ARTIFACT, not merely a path under the catalog. The first run of the reverse
+    // check below reported WP-0A-A0-001 for adding `contract-catalog/README.md`, which carries
+    // no compatibility surface at all -- a prose file cannot break a consumer. Narrowed to the
+    // files a consumer actually reads: the index, each contract's manifest and schema, and the
+    // fixtures a conformance suite runs.
+    const contractArtifacts = [...body.files_added, ...body.files_modified].filter((f) => (
+      f.startsWith('contract-catalog/')
+      && (/\/(manifest|schema|index)\.json$/.test(f) || /\/fixtures\//.test(f))
+    ));
+    const touchesContracts = contractArtifacts.length > 0;
     const claimsContracts = /contract-catalog changes are additive/i.test(body.compatibility_impact ?? '');
     if (claimsContracts && !touchesContracts) {
       wrong.push(`${name} claims contract-catalog compatibility impact but changes no contract-catalog file`);
+    }
+    // Independent review eleven: the check ran one direction only. Claiming an impact you do
+    // not have is the harmless half -- it looks worse than the truth. The half that matters is
+    // a package that DOES change the contract catalog and says nothing about compatibility,
+    // because a reader of that handoff has no reason to look.
+    if (touchesContracts && !claimsContracts) {
+      wrong.push(`${name} changes ${contractArtifacts.length} contract artifact(s) and states no compatibility impact `
+        + `— ${contractArtifacts.slice(0, 3).join(', ')}${contractArtifacts.length > 3 ? ', …' : ''}`);
     }
   }
   assert.deepEqual(wrong, [], `handoff(s) claiming an impact they do not have:\n  ${wrong.join('\n  ')}`);
