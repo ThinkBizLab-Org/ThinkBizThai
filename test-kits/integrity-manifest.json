@@ -43,7 +43,7 @@
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
     "test-kits/handoff-conformance.test.mjs": "b1a37396ff7131739c82017f956db248f6940345e81dedfcf444447f667f1fd6",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
-    "test-kits/protocol-schema-conformance.test.mjs": "6ff5174029b3795cd98be61f2865e6f43c47cdc1c8a7b42a8511504593359761",
+    "test-kits/protocol-schema-conformance.test.mjs": "53f75bb38d749c2383936a7c358e9c00c76b60bbcf80b671c5a31be1aaf90945",
     "test-kits/repository-json.test.mjs": "d90a495fb278539495246948b6947b8ed722731960c4c6a048eb9b7dd576591f",
     "test-kits/role-separation.test.mjs": "e00a8c05ee43e01652b83fff1d1ac82039921f2db4149b48427a24e42aa3c756",
     "test-kits/secret-scan.test.mjs": "5a3fdf81619e93da6098747b793df98efb799484033daf4e48417dd88790f590",

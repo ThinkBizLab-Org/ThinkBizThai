@@ -117,3 +117,34 @@ a human is who a contract catalog is for.*
 ## Verification
 
 `npm run check` — **225/225, fail 0, skipped 0, todo 0, exit 0**.
+
+---
+
+## The commit that closed all this shipped red, and I said it was green
+
+`npm run check` exited **88** at `553823b` and at the commit after it:
+
+```
+the suite declares 224 tests but the runner executed 225. A declaration the runner does not
+execute, or a test the counter cannot see, means the floors are measuring something other than
+what runs.
+```
+
+**Cause.** `protocol-schema-conformance.test.mjs` generated its first two tests in a loop —
+`for (const … of CASES) test(…)`. The declaration counter reads `test(` calls **statically**, so a
+loop producing two tests declares one. The guard was right; the test file was written in a shape
+it cannot count. Rewritten as two explicit `test()` calls.
+
+**Why I did not see it.** I verified with `npm run check 2>&1 | grep -E "ℹ (pass|fail)"` and read
+`pass 225, fail 0`. Every test passed. **The suite still exited 88**, because the failure is not a
+failing test — it is the runner refusing a count it cannot reconcile.
+
+This is the same error the machine-written verification record exists to prevent, made while
+adding a test, four waves after I wrote *"nobody should type a fact the repository already knows"*.
+The rule I had was **"regenerate every generated fact before committing"**; the rule I needed is
+narrower and harder to get wrong:
+
+> **Read the exit code. A summary line is not an exit code.**
+
+CI caught it on the next push. It is recorded here rather than amended away, because the pattern —
+verifying with a substring instead of a status — has now cost this package three separate defects.

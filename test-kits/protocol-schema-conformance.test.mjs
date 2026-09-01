@@ -14,27 +14,33 @@ import { assertSchemaSupported, validate } from './contracts/json-schema-subset.
 // in PROTECTED_KEYS, and **read by no validator at all.**
 //
 // A schema nothing validates against is a document, not a control. These three are now controls.
-const CASES = [
-  { schema: '.agents/work-package.schema.json', directory: 'work-packages', label: 'work package' },
-  { schema: '.agents/capabilities.schema.json', directory: '.agents/capability-profiles', label: 'capability profile' },
-];
-
-for (const { schema: schemaPath, directory, label } of CASES) {
-  test(`every ${label} conforms to the schema that governs it`, async () => {
-    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
-    // A schema this validator only partly understands would silently under-check; the same rule
-    // the contract catalog lives under.
-    assertSchemaSupported(schema, schemaPath);
-    const failures = [];
-    for (const entry of (await readdir(directory)).sort()) {
-      if (!entry.endsWith('.json')) continue;
-      const document = JSON.parse(await readFile(join(directory, entry), 'utf8'));
-      const errors = validate(schema, document, { path: entry });
-      if (errors.length > 0) failures.push(`${entry}: ${errors.slice(0, 4).join('; ')}`);
-    }
-    assert.deepEqual(failures, [], `${label}(s) that do not satisfy ${schemaPath}:\n  ${failures.join('\n  ')}`);
-  });
+// Written as two explicit tests, not a loop over a CASES array. The first version generated them
+// with `for (const … of CASES) test(…)` and `npm run check` exited **88**: the declaration counter
+// reads test() calls statically, so a loop producing two tests declares one. I reported that run
+// as passing because I read the `ℹ pass` line instead of the exit code — the exact mistake this
+// repository has a machine-written verification record to prevent, made while adding a test.
+async function assertConforms(schemaPath, directory, label) {
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  // A schema this validator only partly understands would silently under-check; the same rule the
+  // contract catalog lives under.
+  assertSchemaSupported(schema, schemaPath);
+  const failures = [];
+  for (const entry of (await readdir(directory)).sort()) {
+    if (!entry.endsWith('.json')) continue;
+    const document = JSON.parse(await readFile(join(directory, entry), 'utf8'));
+    const errors = validate(schema, document, { path: entry });
+    if (errors.length > 0) failures.push(`${entry}: ${errors.slice(0, 4).join('; ')}`);
+  }
+  assert.deepEqual(failures, [], `${label}(s) that do not satisfy ${schemaPath}:\n  ${failures.join('\n  ')}`);
 }
+
+test('every work package conforms to the schema that governs it', async () => {
+  await assertConforms('.agents/work-package.schema.json', 'work-packages', 'work package');
+});
+
+test('every capability profile conforms to the schema that governs it', async () => {
+  await assertConforms('.agents/capabilities.schema.json', '.agents/capability-profiles', 'capability profile');
+});
 
 test('the work-package schema is closed, so an invented normative field cannot be added', async () => {
   // The specific hole: `additionalProperties` was `true` at the top level, so any field could be
