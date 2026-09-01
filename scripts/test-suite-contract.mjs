@@ -12,7 +12,7 @@ export const MIN_DECLARED_TESTS = 30;
 // check stayed green. Floors are therefore per directory as well as global.
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
   'test-kits': 30,
-  'test-kits/contracts': 6,
+  'test-kits/contracts': 7,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
 // when its pattern matches nothing, so the count is asserted after the run -- and it is

@@ -361,3 +361,30 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(Number.isInteger(error.code) ? error.code : 65);
   }
 }
+
+// The manifest's key set was self-selecting. Independent review deleted seven entries -- the
+// branch-scope guard, all four protocol schemas, the catalog index and the secret scanner --
+// gutted the guard's whole enforcement path, and the check still exited 0. The floor asked for
+// seven named keys and a length, and a length is satisfied by whatever remains.
+//
+// These are the files whose ABSENCE from the manifest is itself the defect: a guard, a schema
+// that decides what a package may claim, or a registry a gate decision rests on. Removing one
+// from this list is a deliberate act in a diff a reviewer reads, which is the only anchor a
+// tripwire can have.
+export const PROTECTED_KEYS = [
+  'package.json',
+  '.github/workflows/ci.yml',
+  '.node-version',
+  'scripts/verify-test-coverage-floor.mjs',
+  'scripts/run-test-suite.mjs',
+  'scripts/test-suite-contract.mjs',
+  'scripts/scan-repository-secrets.mjs',
+  'scripts/verify-branch-scope.mjs',
+  'scripts/record-verification.mjs',
+  'scripts/regenerate-integrity-manifest.mjs',
+  'contract-catalog/shared-kernel/index.json',
+  '.agents/handoff.schema.json',
+  '.agents/work-package.schema.json',
+  '.agents/capabilities.schema.json',
+  '.agents/status.schema.json',
+];

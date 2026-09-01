@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
   },
   "accountable_owners": [
     "A0"
@@ -96,7 +96,8 @@
       "test-kits/contracts/catalog-registry.test.mjs",
       "test-kits/handoff-conformance.test.mjs",
       "scripts/regenerate-integrity-manifest.mjs",
-      "test-kits/integrity-manifest-rebuild.test.mjs"
+      "test-kits/integrity-manifest-rebuild.test.mjs",
+      "test-kits/contracts/catalog-groups.test.mjs"
     ],
     "read_only_paths": [
       "README.md",
@@ -130,10 +131,13 @@
         "handoffs/WP-0A-A0-002-author-handoff.json",
         "package.json",
         "scripts/run-test-suite.mjs",
+        "scripts/test-suite-contract.mjs",
         "scripts/verify-branch-scope.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-scope.test.mjs",
         "test-kits/contracts/schema-mutation-coverage.test.mjs",
         "test-kits/integrity-manifest.json",
+        "test-kits/test-coverage-floor.test.mjs",
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json",
         "work-packages/WP-0A-A0-003.json",
@@ -141,7 +145,7 @@
         "work-packages/WP-0A-A0-005.json",
         "work-packages/WP-0A-CON-007.json"
       ],
-      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 26 undeclared paths on this branch. Every one is real work done here and none of it was declared, which is the drift the new guard exists to stop. Grouped by why: (a) the runner, package.json and the integrity manifest carry the verification-record control and belong to WP-0A-A0-002 and WP-0A-A0-001; (b) schema-mutation-coverage.test.mjs and the ctr-api-001, ctr-idm-001 and ctr-pag-001 fixtures are corrections made on this branch in response to independent review findings six through nine, and belong to WP-0A-CON-003 and WP-0A-CON-007 -- they were made here because the findings arrived against this head and moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once; (c) the ten author handoffs are each their own package's deliverable, placed here for the reason recorded in evidence/WP-0A-CON-008/handoffs.md; (d) three work-package manifests carry amendment records pointing back at this package; (e) OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. The branch-scope guard and its test were authored here and MOVED to WP-0A-A0-004, because only the workflow that package owns can supply a pull request base ref. This package amends them and claims neither.",
+      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported 26 undeclared paths on this branch. Every one is real work done here and none of it was declared, which is the drift the new guard exists to stop. Grouped by why: (a) the runner, package.json and the integrity manifest carry the verification-record control and belong to WP-0A-A0-002 and WP-0A-A0-001; (b) schema-mutation-coverage.test.mjs and the ctr-api-001, ctr-idm-001 and ctr-pag-001 fixtures are corrections made on this branch in response to independent review findings six through nine, and belong to WP-0A-CON-003 and WP-0A-CON-007 -- they were made here because the findings arrived against this head and moving them down the stack risked the fixture loss a bulk rebase resolution has already caused once; (c) the ten author handoffs are each their own package's deliverable, placed here for the reason recorded in evidence/WP-0A-CON-008/handoffs.md; (d) three work-package manifests carry amendment records pointing back at this package; (e) OVERNIGHT-SUMMARY.md is the Product Owner briefing and belongs to no package. The workflow and the manifests below were carried up the stack so every downstream pull request runs the same branch-scope step; .github/workflows/ci.yml belongs to WP-0A-A0-004 and each manifest to its own package. The branch-scope guard and its test were authored here and MOVED to WP-0A-A0-004, because only the workflow that package owns can supply a pull request base ref. This package amends them and claims neither. Independent review eleven added three more amendments to this list. The coverage floor, its contract and its test belong to WP-0A-A0-002; this package adds PROTECTED_KEYS to them because the review deleted seven manifest entries -- the branch-scope guard, all four protocol schemas, the catalog index and the secret scanner -- and the check still exited 0. A floor stated as a length is satisfied by whatever remains, so the files whose ABSENCE is itself the defect are now named. The named set found a real gap immediately: scripts/regenerate-integrity-manifest.mjs, the tool that rewrites the manifest, was not in the manifest.",
       "recorded_on": [
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json"

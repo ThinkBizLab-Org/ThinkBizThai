@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  PROTECTED_KEYS,
   assertCoverage,
   assertDeclaredTests,
   assertIntegrityManifest,
@@ -208,7 +209,10 @@ test('swapping a protected suite for a placeholder is rejected even when the tot
     () => assertDeclaredTests(withoutContracts, 8, { 'test-kits/contracts': 6 }),
     (error) => error.code === 82 && /test-kits\/contracts' declares 0 tests/.test(error.message),
   );
-  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
+  // Raised to 7 when catalog-groups.test.mjs was added. The pin is an equality, not a floor, so
+  // that a RAISE is as deliberate as a lowering: a floor that drifts up with the suite silently
+  // re-baselines itself and stops being a statement about what must exist.
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 7);
 });
 
 // A test can print a summary line into the very stream the post-run floor audits.
@@ -292,5 +296,22 @@ test('declaration counting ignores comments, template literals and strings', () 
 // lowering MIN_EXECUTED_TESTS from 40 to 1 passed the entire check.
 test('the executed-test floor and the directory floor are both pinned', () => {
   assert.ok(MIN_EXECUTED_TESTS >= 40, `MIN_EXECUTED_TESTS must not be lowered below 40, found ${MIN_EXECUTED_TESTS}`);
-  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
+  // Raised to 7 when catalog-groups.test.mjs was added. The pin is an equality, not a floor, so
+  // that a RAISE is as deliberate as a lowering: a floor that drifts up with the suite silently
+  // re-baselines itself and stops being a statement about what must exist.
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 7);
+});
+
+// The manifest's key set was self-selecting: the floor required seven named keys and a length,
+// and a length is satisfied by whatever remains. Independent review deleted the branch-scope
+// guard, all four protocol schemas, the catalog index and the secret scanner -- 43 entries down
+// to 36 -- then replaced the guard's entire enforcement path with `const stray = []`, and the
+// check exited 0. That is a removal of protection, not the acknowledged
+// edit-the-file-and-its-digest-together class.
+test('every file whose absence from the manifest would itself be the defect is digested', async () => {
+  const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));
+  const missing = PROTECTED_KEYS.filter((key) => manifest.files?.[key] === undefined);
+  assert.deepEqual(missing, [], `file(s) that must carry a digest and do not:\n  ${missing.join('\n  ')}\n`
+    + 'A guard, a schema deciding what a package may claim, or a registry a gate decision rests on '
+    + 'cannot be removed from the protected set by deleting a line.');
 });
