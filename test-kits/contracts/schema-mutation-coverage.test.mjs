@@ -1709,6 +1709,23 @@ const CONSTRAINT_SURFACE = {
   },
 };
 
+// Keywords whose VALUE is a subschema (or a map of them). An empty subschema under any of these
+// is a rule with no keywords in it, which is why a keyword-driven surface cannot see it.
+// Distinct from STRUCTURAL above, which is the walk's descent set: this is the set of keywords
+// whose VALUE is a subschema, and so can be empty.
+const SUBSCHEMA_VALUED = new Set([
+  'not', 'if', 'then', 'else', 'items', 'contains', 'propertyNames',
+  'additionalProperties', 'unevaluatedProperties', 'unevaluatedItems',
+]);
+
+function isEmptySubschema(value) {
+  if (value === true || value === false) return false; // a boolean schema is explicit, not empty
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  // `x-` annotations are skipped everywhere else in this file; a subschema carrying only
+  // annotations still constrains nothing.
+  return Object.keys(value).every((key) => key.startsWith('x-'));
+}
+
 function surfaceOf(schema) {
   const entries = [];
   // `inProperties` for the same reason `constraintSites` needs it: a container's keys are
@@ -1739,6 +1756,20 @@ function surfaceOf(schema) {
       if (key.startsWith('x-')) continue;
       if (key === 'properties') { walk(value, `${path}.${key}`, true); continue; }
       if (ASSERTIONS.has(key) && !METADATA.has(key)) entries.push(`${path}.${key} = ${JSON.stringify(value)}`);
+      // An EMPTY subschema under a structural keyword asserts something enormous and records
+      // nothing. Independent review twelve added `"not": {}` to CTR-API-001's `causation_id` --
+      // `not` is not in ASSERTIONS, and walking `{}` emits no entry, so the ~950-line record and
+      // its digest were byte-identical while a legal envelope started failing:
+      //
+      //   valid-success.json + causation_id -> ["$.causation_id: matches a schema it must not match"]
+      //
+      // CTR-API-001 is the envelope every module composes, so the causation chain was outlawed
+      // in silence. The injection also DE-KILLED three constraints that had been tested --
+      // causation_id's type, minLength and maxLength -- because a location that rejects
+      // everything can no longer show a mutation. An added rule can retroactively untest others.
+      if (SUBSCHEMA_VALUED.has(key) && isEmptySubschema(value)) {
+        entries.push(`${path}.${key} = <empty schema, rejects or vacuously accepts everything here>`);
+      }
       walk(value, `${path}.${key}`);
     }
   };

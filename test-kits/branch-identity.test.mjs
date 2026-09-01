@@ -101,3 +101,47 @@ test('a package that declares a branch is not still in backlog', async () => {
   }
   assert.deepEqual(stale, [], `package(s) whose status contradicts their own branch:\n  ${stale.join('\n  ')}`);
 });
+
+// Independent review twelve: the previous test pinned four refs out of thirteen. It repointed
+// WP-0A-CON-002's `ownership.branch` at `agent/claude/WP-0A-CON-009-tidy`, ran
+// `npm run regenerate:manifest`, and got exit 0 at 187/187 -- so a branch doing no CON-002 work
+// would be judged against CON-002's eleven writable paths, including three contract directories
+// and two contract test suites. The branch could still pick its judge; only the mechanism had
+// moved, from the ref name into the manifest.
+//
+// The whole mapping is pinned. Repointing a branch is a diff line in this table too.
+const BRANCH_OWNERSHIP = {
+  'agent/root/WP-0A-A0-001-repository-bootstrap': 'WP-0A-A0-001',
+  'agent/claude/WP-0A-A0-002-contract-test-coverage': 'WP-0A-A0-002',
+  'agent/claude/WP-0A-A0-003-secret-scan': 'WP-0A-A0-003',
+  'agent/claude/WP-0A-A0-004-ci-independent-guard-step': 'WP-0A-A0-004',
+  'agent/claude/WP-0A-A0-005-cardholder-data-scan': 'WP-0A-A0-005',
+  'agent/root/WP-0A-CON-001-contract-catalog': 'WP-0A-CON-001',
+  'agent/claude/WP-0A-CON-002-envelope-contracts': 'WP-0A-CON-002',
+  'agent/claude/WP-0A-CON-003-module-and-policy': 'WP-0A-CON-003',
+  'agent/claude/WP-0A-CON-004-security-audit-observability': 'WP-0A-CON-004',
+  'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
+  'agent/claude/WP-0A-CON-006-usage-and-notification': 'WP-0A-CON-006',
+  'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',
+  'agent/claude/WP-0A-CON-008-freeze-readiness': 'WP-0A-CON-008',
+};
+
+test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {
+  const declared = {};
+  for (const entry of await readdir('work-packages')) {
+    if (!entry.endsWith('.json')) continue;
+    const manifest = JSON.parse(await readFile(join('work-packages', entry), 'utf8'));
+    const branch = manifest?.ownership?.branch;
+    if (branch) declared[branch] = manifest.work_package_id;
+  }
+  assert.deepEqual(declared, BRANCH_OWNERSHIP,
+    'a branch was repointed at a different package, or a package declared a branch nobody pinned');
+
+  // And each pinned branch must still resolve through the guard itself -- the table and the
+  // resolver agreeing is the property CI depends on.
+  for (const [branch, packageId] of Object.entries(BRANCH_OWNERSHIP)) {
+    const report = reportFor(branch, await claimantsOf(branch));
+    assert.equal(report.code, 0, `${branch}: ${report.message}`);
+    assert.equal(report.message, packageId);
+  }
+});

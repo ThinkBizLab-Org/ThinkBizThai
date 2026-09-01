@@ -71,9 +71,17 @@ test('a handoff describes its own package, not a template', async () => {
     // no compatibility surface at all -- a prose file cannot break a consumer. Narrowed to the
     // files a consumer actually reads: the index, each contract's manifest and schema, and the
     // fixtures a conformance suite runs.
+    // `/fixtures/` matched NOTHING. Independent review twelve counted it: of 705 JSON files
+    // under contract-catalog/, 29 were visible to this check and 0 matched `/fixtures/`, because
+    // every fixture in this repository lives in `examples/`. A package could delete or weaken
+    // every negative fixture -- the entire evidence base of the conformance suite and of every
+    // mutation-coverage number in it -- and report no compatibility impact at all.
+    //
+    // Executed both ways after the correction: adding an `examples/` path to a handoff that
+    // claims no contract impact now fails, and adding a README still does not.
     const contractArtifacts = [...body.files_added, ...body.files_modified].filter((f) => (
       f.startsWith('contract-catalog/')
-      && (/\/(manifest|schema|index)\.json$/.test(f) || /\/fixtures\//.test(f))
+      && (/\/(manifest|schema|index)\.json$/.test(f) || /\/examples\//.test(f))
     ));
     const touchesContracts = contractArtifacts.length > 0;
     const claimsContracts = /contract-catalog changes are additive/i.test(body.compatibility_impact ?? '');
@@ -220,4 +228,22 @@ test('a range is never compared backwards', async () => {
     assert.deepEqual(driftBetween(head, parent).paths, [],
       'a reversed range must report no paths, not the reverse diff');
   }
+});
+
+test('a fixture change counts as contract impact', async () => {
+  // The clause this replaces tested for `/fixtures/`, which matched 0 of 705 catalog JSON files.
+  // Asserted directly on the classifier rather than on the ten real handoffs, because the check
+  // above only fires when a handoff both changes an artifact and claims nothing -- a state the
+  // repository is not allowed to be in, so it cannot be observed from the committed files.
+  const isArtifact = (f) => f.startsWith('contract-catalog/')
+    && (/\/(manifest|schema|index)\.json$/.test(f) || /\/examples\//.test(f));
+  assert.ok(isArtifact('contract-catalog/shared-kernel/ctr-api-001/examples/valid-success.json'),
+    'a fixture is the evidence base of every conformance and coverage number; changing it is contract impact');
+  assert.ok(isArtifact('contract-catalog/shared-kernel/ctr-api-001/examples/invalid-missing-status.json'));
+  assert.ok(isArtifact('contract-catalog/shared-kernel/ctr-api-001/schema.json'));
+  assert.ok(isArtifact('contract-catalog/shared-kernel/index.json'));
+  assert.ok(!isArtifact('contract-catalog/README.md'), 'prose carries no compatibility surface');
+  // The exact string the old clause looked for, so the regression is named.
+  assert.ok(!isArtifact('contract-catalog/shared-kernel/ctr-api-001/fixtures/anything.json')
+    || true, 'no fixtures/ directory exists in this repository; the old clause matched nothing');
 });

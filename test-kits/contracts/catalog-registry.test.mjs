@@ -285,3 +285,61 @@ test('a contract does not quietly stop declaring what its fixtures cannot demons
   assert.deepEqual(carries.schema.sort(), [...DECLARES_UNTESTABLE_BY_SCHEMA].sort(),
     'the set of contracts admitting a claim their schema cannot express has changed');
 });
+
+// Independent review twelve: the caveat pin checked PRESENCE and LENGTH only -- a caveat had to
+// be at least 20 characters, a freeze boundary at least 40 and not start with a placeholder
+// word. So the text could be replaced by its opposite. It rewrote CTR-SEC-001, the secret-handle
+// contract:
+//
+//   freeze_boundary       -> "Freezing this contract settles every open question about secret handling."
+//   untestable_by_fixture -> "Every claim this contract makes is demonstrated by its fixtures."
+//   untestable_by_schema  -> "Every rule this contract states is expressed in its JSON Schema."
+//
+// exit 0, 187/187. The admission that revocation immediacy and encryption cannot be demonstrated
+// by fixtures was replaced by the claim that everything is demonstrated -- and RFC-2026-010
+// assesses freeze readiness against exactly these three fields.
+//
+// The text is now pinned the way schemas are: by digest, per contract. Editing a caveat is a
+// deliberate act in a diff a reviewer reads, which is the whole point of writing one down.
+const CAVEAT_DIGESTS = {
+  'ctr-api-001': { freeze_boundary: '815831740f125bb3' },
+  'ctr-aud-001': { freeze_boundary: 'fe526bf824b85104', untestable_by_fixture: '67c4cb4f02912a5a', untestable_by_schema: '78ec5549a12ddd0d' },
+  'ctr-err-001': { freeze_boundary: '07345b618e8388f4' },
+  'ctr-evt-001': { freeze_boundary: '236e75aeda851184' },
+  'ctr-flg-001': { freeze_boundary: '4eac2ca0f49b152b', untestable_by_fixture: 'a33afe671089ceac' },
+  'ctr-idm-001': { freeze_boundary: '5cba1fd899632d41' },
+  'ctr-job-001': { freeze_boundary: '05243c910b16d414' },
+  'ctr-mod-001': { freeze_boundary: '22314a6d0c859d81', untestable_by_fixture: '8053ad9e74ea24fd' },
+  'ctr-ntf-001': { freeze_boundary: '0d7a35df9e223055', untestable_by_fixture: '0b3a2ecd0bb8fa68', untestable_by_schema: 'd97d8cb30f2c4735' },
+  'ctr-obs-001': { freeze_boundary: '23991f04c65fefc7', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: 'e09815187ab0f302' },
+  'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
+  'ctr-sec-001': { freeze_boundary: '0e6eb9fec617fa66', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: '30e08899a871ede7' },
+  'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
+  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '7254124ea26dfae6', untestable_by_schema: 'b0cd175edc358c13' },
+};
+
+test('a caveat cannot be replaced by its opposite', async () => {
+  const { createHash } = await import('node:crypto');
+  const digest = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16);
+  const wrong = [];
+  for (const [dir, pinned] of Object.entries(CAVEAT_DIGESTS)) {
+    const manifest = await readJson(join(CATALOG, dir, 'manifest.json'));
+    for (const [field, expected] of Object.entries(pinned)) {
+      const actual = manifest[field];
+      if (typeof actual !== 'string' || actual.trim().length === 0) {
+        wrong.push(`${dir}.${field} is gone; it read something with digest ${expected}`);
+        continue;
+      }
+      const found = digest(actual);
+      if (found !== expected) {
+        wrong.push(`${dir}.${field} was rewritten — digest ${expected} became ${found}: ${JSON.stringify(actual.slice(0, 90))}…`);
+      }
+    }
+    for (const field of ['untestable_by_fixture', 'untestable_by_schema']) {
+      if (pinned[field] === undefined && typeof manifest[field] === 'string' && manifest[field].trim().length > 0) {
+        wrong.push(`${dir}.${field} appeared and is pinned by nothing; a new admission belongs in a reviewed diff`);
+      }
+    }
+  }
+  assert.deepEqual(wrong, [], `caveat text that changed without being written down:\n  ${wrong.join('\n  ')}`);
+});

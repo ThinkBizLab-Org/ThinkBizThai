@@ -70,6 +70,13 @@ test('a governed group is not silently emptied', async () => {
 // staying where they are. This costs nothing: an empty combinator has no legitimate use.
 const COMBINATORS = ['anyOf', 'oneOf', 'allOf'];
 
+// An object carrying nothing but `x-` annotations constrains as little as `{}` does; every other
+// guard in this repository skips those keys deliberately.
+const isEmptyObject = (value) => value !== null
+  && typeof value === 'object'
+  && !Array.isArray(value)
+  && Object.keys(value).every((key) => key.startsWith('x-'));
+
 function emptyCombinators(node, path = []) {
   if (Array.isArray(node)) return node.flatMap((item, index) => emptyCombinators(item, [...path, index]));
   if (node === null || typeof node !== 'object') return [];
@@ -80,6 +87,23 @@ function emptyCombinators(node, path = []) {
         path: [...path, key].join('/'),
         effect: key === 'allOf' ? 'accepts every document (vacuous truth)' : 'rejects every document',
       });
+    }
+    // Independent review twelve: three more shapes with the same property -- an enormous
+    // assertion made of no keywords, so nothing keyword-driven can see it.
+    //
+    //   not: {}    rejects every instance at that location. Added to CTR-API-001's causation_id
+    //              it produced ZERO new lines in the ~950-line constraint record and left the
+    //              digest byte-identical, while a legal envelope started failing.
+    //   enum: []   permits no value at all.
+    //   if: {}     matches everything, so `then` becomes unconditional and `else` unreachable.
+    if (key === 'not' && isEmptyObject(value)) {
+      found.push({ path: [...path, key].join('/'), effect: 'rejects every document at this location' });
+    }
+    if (key === 'if' && isEmptyObject(value)) {
+      found.push({ path: [...path, key].join('/'), effect: 'always matches, so `then` is unconditional and `else` unreachable' });
+    }
+    if (key === 'enum' && Array.isArray(value) && value.length === 0) {
+      found.push({ path: [...path, key].join('/'), effect: 'permits no value at all' });
     }
     found.push(...emptyCombinators(value, [...path, key]));
   }
@@ -120,4 +144,27 @@ test('the empty-combinator walk finds one wherever it is buried', () => {
   ]);
   assert.equal(emptyCombinators({ allOf: [{ type: 'object' }], anyOf: [{}] }).length, 0,
     'a populated combinator is not a finding, and `anyOf: [{}]` is populated');
+});
+
+test('the walk sees the three empty shapes that carry no keyword at all', () => {
+  // `not: {}`, `if: {}` and `enum: []` are assertions made of nothing, which is exactly why a
+  // keyword-driven record cannot represent them. Review twelve shipped `not: {}` past the
+  // ~950-line constraint surface with a byte-identical digest.
+  const found = emptyCombinators({
+    properties: {
+      causation_id: { not: {} },
+      status: { enum: [] },
+      annotated: { not: { 'x-source': 'a comment is not a constraint' } },
+    },
+    if: {},
+    then: { required: ['a'] },
+  }).map((site) => site.path).sort();
+  assert.deepEqual(found, [
+    'if',
+    'properties/annotated/not',
+    'properties/causation_id/not',
+    'properties/status/enum',
+  ]);
+  // And the populated forms are not findings.
+  assert.deepEqual(emptyCombinators({ not: { type: 'string' }, if: { required: ['a'] }, enum: ['x'] }), []);
 });
