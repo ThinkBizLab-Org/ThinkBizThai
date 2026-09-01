@@ -548,12 +548,21 @@ test('reports a card in every layout the card is actually printed in', () => {
 // card. A line break is where the medium ran out of width: it can fall anywhere, any number
 // of times, and says nothing about layout. Treating the two alike missed a card wrapped twice
 // down a narrow column and a card wrapped into a quoted email reply.
-test('reports a card however many times the medium wrapped it', () => {
+// A line break is ambiguous: it may have split a group, or replaced the space between two.
+// Independent review found a card written 4-4-4-4 and wrapped before its FINAL group going
+// unreported, because merging across the wrap made the tail 8 digits and 8 is not a card-like
+// tail. Both readings are tried now, so the wrap may fall at any group boundary.
+test('reports a card however many times the medium wrapped it, and wherever the wrap falls', () => {
   const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
   const cases = {
     'wrapped twice down a narrow column': `${pan.slice(0, 6)}\n${pan.slice(6, 12)}\n${pan.slice(12)}`,
     'wrapped into a quoted email reply': `pan ${pan.slice(0, 8)}\n> ${pan.slice(8)}`,
     'wrapped inside a quoted markdown block': `pan ${pan.slice(0, 8)}\n| ${pan.slice(8)}`,
+    'grouped in fours, wrapped before the final group': `${g[0]} ${g[1]} ${g[2]}\n${g[3]}`,
+    'grouped in fours, wrapped in the middle': `${g[0]} ${g[1]}\n${g[2]} ${g[3]}`,
+    'grouped in fours, wrapped after the first group': `${g[0]}\n${g[1]} ${g[2]} ${g[3]}`,
+    'grouped in fours, wrapped twice': `${g[0]} ${g[1]}\n${g[2]}\n${g[3]}`,
   };
   for (const [why, text] of Object.entries(cases)) {
     assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);

@@ -192,3 +192,31 @@ problem.
 $ npm run check
 ℹ tests 133   pass 133   fail 0   skipped 0   todo 0
 ```
+
+## The wrap fix was half a fix
+
+Independent review found a Luhn-valid Visa written `4-4-4-4` and wrapped **before its
+final group** going unreported. The cause: I applied the layout test to the
+*wrap-merged* groups, so `[4,4,4,4]` became `[4,4,8]` and an 8-digit tail is not
+card-like.
+
+The review also spotted a latent bug that was masking it — `pendingWrap` was set on a
+newline and never reset, so every group after the first newline merged into the
+previous one. Fixing the reset alone would have *regressed* detection for the layouts
+that only worked by accident. The reviewer said the two had to move together, and they
+do.
+
+The real point is that a line break is **ambiguous**: it may have split a group, or it
+may have replaced the space between two groups. The medium does not say which. So both
+readings are tried — one per subset of wrap boundaries, capped at eight wraps, because
+no real card is written across nine lines.
+
+All four wrap positions are now tests. False-positive rates are unchanged: 0.000% for
+rows of five 3-digit and eight 2-digit integers, 3.5% for four 4-digit and two 8-digit
+ones, 10.1% for 16-digit ids beginning with 4. Verified the tests bite by restoring
+the single-reading behaviour.
+
+```
+$ npm run check
+ℹ tests 133   pass 133   fail 0   skipped 0   todo 0
+```

@@ -159,30 +159,43 @@ function groupingIsCardLike(sizes) {
 export function containsPaymentCardNumber(run) {
   // Two kinds of separator, and they mean different things. A SPACE or hyphen is how someone
   // GROUPS a number, so the grouping has to look like a card. A LINE BREAK is where the
-  // medium ran out of width -- it can fall anywhere, any number of times, and it carries no
-  // information about layout. Independent testing missed cards wrapped twice and cards
-  // wrapped into a quoted email reply because the first version treated the two alike.
+  // medium ran out of width.
+  //
+  // But a line break is AMBIGUOUS in a way the first version missed: it may have split a
+  // group in two, or it may have replaced the space between two groups. Independent review
+  // found a Luhn-valid card written 4-4-4-4 and wrapped before its final group going
+  // unreported, because merging across the wrap turned [4,4,4,4] into [4,4,8] and 8 is not a
+  // card-like tail. The medium does not say which happened, so BOTH readings are tried.
   const groups = [];
+  const wrapped = [];
   let current = '';
-  let wrappedBefore = [];
   let pendingWrap = false;
   for (const char of run) {
     if (char >= '0' && char <= '9') { current += char; continue; }
-    if (current) { groups.push(current); wrappedBefore.push(pendingWrap); current = ''; }
+    if (current) { groups.push(current); wrapped.push(pendingWrap); current = ''; pendingWrap = false; }
     if (char === '\n') pendingWrap = true;
   }
-  if (current) { groups.push(current); wrappedBefore.push(pendingWrap); }
+  if (current) { groups.push(current); wrapped.push(pendingWrap); }
   if (groups.length === 0) return false;
 
-  // Merge across wraps first: a number split by a line break is one written group.
-  const merged = [];
-  groups.forEach((group, index) => {
-    if (index > 0 && wrappedBefore[index]) merged[merged.length - 1] += group;
-    else merged.push(group);
-  });
+  // One reading per subset of wrap boundaries: merge it, or treat it as a separator. Capped
+  // because the count doubles per wrap and no real card is written across nine lines.
+  const wrapAt = wrapped.map((w, i) => (w && i > 0 ? i : -1)).filter((i) => i >= 0).slice(0, 8);
+  for (let choice = 0; choice < (1 << wrapAt.length); choice += 1) {
+    const merge = new Set(wrapAt.filter((_, bit) => (choice >> bit) & 1));
+    const reading = [];
+    groups.forEach((group, index) => {
+      if (index > 0 && merge.has(index)) reading[reading.length - 1] += group;
+      else reading.push(group);
+    });
+    if (scanReading(reading)) return true;
+  }
+  return false;
+}
 
-  const sizes = merged.map((group) => group.length);
-  const digits = merged.join('');
+function scanReading(groups) {
+  const sizes = groups.map((group) => group.length);
+  const digits = groups.join('');
   const starts = [];
   let offset = 0;
   for (const size of sizes) { starts.push(offset); offset += size; }
