@@ -158,6 +158,19 @@ a different package"*.
   measured the fixture coverage while trying: every declared property location is reached by some
   fixture, and only 8 schema locations catalog-wide are reached by no positive fixture.
 
+## Closed before review thirteen could ask for it
+
+The HIGH 1 fix listed ten subschema-valued keywords. Checked against the JSON Schema 2020-12
+vocabulary rather than against what this catalog happens to contain, two were missing:
+`additionalItems` and `contentSchema`. Neither appears in any contract today and neither is
+supported by the validator, so both are currently rejected earlier — but **a set that is complete
+only by accident of what is currently written is not a set**, and one missing keyword is exactly
+how `not: {}` got past a 950-line record.
+
+Both added, and a test now asserts the set against the vocabulary *and* runs `surfaceOf` for each
+of the twelve, requiring a line for every one. Listing a keyword and emitting for it are two
+different claims.
+
 ## Verification
 
-`npm run check` — **198/198, fail 0, skipped 0, todo 0, exit 0**.
+`npm run check` — **199/199, fail 0, skipped 0, todo 0, exit 0**.

@@ -1716,6 +1716,11 @@ const CONSTRAINT_SURFACE = {
 const SUBSCHEMA_VALUED = new Set([
   'not', 'if', 'then', 'else', 'items', 'contains', 'propertyNames',
   'additionalProperties', 'unevaluatedProperties', 'unevaluatedItems',
+  // `additionalItems` (2019-09) and `contentSchema` complete the single-subschema set. Neither
+  // appears in this catalog and neither is supported by the validator, so today they are
+  // rejected earlier -- but a set that is complete only by accident of what is currently
+  // written is not a set, and the next contract is what breaks it.
+  'additionalItems', 'contentSchema',
 ]);
 
 function isEmptySubschema(value) {
@@ -1813,4 +1818,25 @@ test('no constraint value changes without the change being written down', async 
       + removed.map((s) => `\n      - ${s}`).join(''));
   }
   assert.deepEqual(problems, [], `constraint value(s) changed without being recorded:\n  ${problems.join('\n  ')}`);
+});
+
+test('every keyword whose value is a subschema can be seen when it is empty', () => {
+  // The set is asserted against the JSON Schema 2020-12 vocabulary rather than against what the
+  // catalog happens to contain. Independent review twelve got `not: {}` past a 950-line record
+  // because ONE keyword was missing from a set like this; a set that is complete only by
+  // accident of today's contracts is not a set.
+  const vocabulary = [
+    'not', 'if', 'then', 'else', 'items', 'contains', 'propertyNames',
+    'additionalProperties', 'unevaluatedProperties', 'unevaluatedItems',
+    'additionalItems', 'contentSchema',
+  ];
+  const missing = vocabulary.filter((keyword) => !SUBSCHEMA_VALUED.has(keyword));
+  assert.deepEqual(missing, [], `subschema-valued keyword(s) an empty value could hide behind:\n  ${missing.join('\n  ')}`);
+
+  // And the walk must actually emit for each one, not merely list it.
+  for (const keyword of vocabulary) {
+    const surface = surfaceOf({ type: 'object', properties: { subject: { [keyword]: {} } } });
+    assert.ok(surface.some((line) => line === `.properties.subject.${keyword} = <empty schema, rejects or vacuously accepts everything here>`),
+      `an empty ${keyword} produced no line in the constraint record: ${JSON.stringify(surface)}`);
+  }
 });
