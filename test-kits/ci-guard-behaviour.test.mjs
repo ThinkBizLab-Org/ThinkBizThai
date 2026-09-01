@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -229,4 +229,80 @@ test('validate-work-package-ownership accepts a manifest that declares only what
   const guard = join(process.cwd(), 'scripts/validate-work-package-ownership.mjs');
   const { code, out } = run(guard, [packages]);
   assert.equal(code, 0, out);
+});
+
+// Review fourteen's HIGH 1 was a stubbed guard. Asking the generalised question afterwards --
+// *which exported guard functions does no test ever execute?* -- found nine, and the one that
+// mattered: `validate-capability-profiles.mjs` sits in the `check` chain and was spawned by no
+// test at all. Adding `if (manifestDirectory === 'work-packages') { process.exit(0); }` to its
+// CLI passed at **exit 0**.
+//
+// So every guard the chain invokes is now spawned as a process, on a real failing input and on a
+// real passing one. The pattern is the same in each: a guard that always fails would satisfy the
+// failing row and block the repository, so both directions or neither.
+// A real profile from this repository, minus its identity, so the fixture satisfies the profile
+// schema instead of asserting a shape this test invented.
+const realProfile = async () => {
+  const directory = '.agents/capability-profiles';
+  const name = (await readdir(directory)).filter((f) => f.endsWith('.json')).sort()[0];
+  return JSON.parse(await readFile(join(directory, name), 'utf8'));
+};
+
+const capabilityFixture = async (profile, manifest) => {
+  const root = await mkdtemp(join(tmpdir(), 'capability-cli-'));
+  const profiles = join(root, 'profiles');
+  const packages = join(root, 'work-packages');
+  spawnSync('mkdir', ['-p', profiles]);
+  spawnSync('mkdir', ['-p', packages]);
+  if (profile) await writeFile(join(profiles, 'a0_atlas.json'), JSON.stringify(profile));
+  await writeFile(join(packages, 'WP-T-001.json'), JSON.stringify(manifest));
+  return { root, profiles, packages };
+};
+
+test('validate-capability-profiles rejects a role run with no capability declaration', async () => {
+  // The real failure mode, found by reading the validator rather than assuming one: a manifest
+  // that assigns a role to an agent_run_id no profile declares. My first version of this test
+  // asserted a rejection the validator does not make and passed at exit 0 for the wrong reason --
+  // the same defect as a probe that mutates something nothing reads.
+  const profile = await realProfile();
+  const { profiles, packages } = await capabilityFixture(profile, {
+    work_package_id: 'WP-T-001',
+    // The check applies from `ready` onward: a backlog package has no roles to honour yet.
+    status: 'in_review',
+    required_skill_profiles: [],
+    role_assignments: { author_agent_run_id: '/claude/an-agent-with-no-profile' },
+  });
+  const guard = join(process.cwd(), 'scripts/validate-capability-profiles.mjs');
+  const { code, out } = run(guard, [profiles, packages]);
+  assert.equal(code, 68, `an undeclared role run must be rejected, got ${code}: ${out}`);
+  assert.match(out, /without capability declarations/);
+});
+
+test('validate-capability-profiles accepts a manifest whose capabilities are all declared', async () => {
+  const profile = await realProfile();
+  const { profiles, packages } = await capabilityFixture(profile, {
+    work_package_id: 'WP-T-001',
+    status: 'in_review',
+    required_skill_profiles: [],
+    role_assignments: { author_agent_run_id: profile.agent_run_id },
+  });
+  const guard = join(process.cwd(), 'scripts/validate-capability-profiles.mjs');
+  const { code, out } = run(guard, [profiles, packages]);
+  assert.equal(code, 0, out);
+});
+
+test('scan-repository-secrets exits non-zero on a planted credential and zero on clean text', async () => {
+  // The scanner is a chain step that no test had ever run as a process either. Its pure helpers
+  // are unit-tested; `main` was not.
+  const clean = await mkdtemp(join(tmpdir(), 'scan-clean-'));
+  await writeFile(join(clean, 'notes.md'), 'A note with no credential in it at all.\n');
+  const guard = join(process.cwd(), 'scripts/scan-repository-secrets.mjs');
+  const ok = run(guard, [clean]);
+  assert.equal(ok.code, 0, ok.out);
+
+  const dirty = await mkdtemp(join(tmpdir(), 'scan-dirty-'));
+  // Assembled at runtime so this file does not itself carry a scannable literal.
+  await writeFile(join(dirty, 'leak.env'), `AWS_SECRET_ACCESS_KEY=${'A'.repeat(20)}${'b7Kd'.repeat(5)}\n`);
+  const bad = run(guard, [dirty]);
+  assert.notEqual(bad.code, 0, `a planted credential must be reported, got ${bad.code}: ${bad.out}`);
 });

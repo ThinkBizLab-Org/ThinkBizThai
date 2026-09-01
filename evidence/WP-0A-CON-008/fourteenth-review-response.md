@@ -162,3 +162,35 @@ rejected at exit 74 for each step, and the real commands still pass.
 
 This one came from probing rather than from a review, and it is the same shape as HIGH 1 one level
 up: **HIGH 1 emptied the function a step calls; this empties the step itself.**
+
+## And the same question again, one level down: which guards does no test ever run?
+
+Review fourteen's HIGH 1 was a stubbed guard, so the generalised question was worth asking
+mechanically: **which exported guard functions does no test execute?** Nine, of which one mattered.
+
+`scripts/validate-capability-profiles.mjs` sits in the `check` chain and was **spawned by no test
+at all**. Adding `if (manifestDirectory === 'work-packages') { process.exit(0); }` to its CLI:
+**exit 0.** `scripts/scan-repository-secrets.mjs` was in the same position — its pure helpers are
+unit-tested, its `main` was not.
+
+Both now have process rows, on a real failing input and a real passing one. Verified by stubbing:
+
+| stub | exit | test that caught it |
+| --- | --- | --- |
+| `if (missing.length > 0)` → `if (false)` in the capability validator | 1 | *rejects a role run with no capability declaration* |
+| `process.exit(exitCodeFor(findings))` → `process.exit(0)` in the scanner | 1 | *exits non-zero on a planted credential and zero on clean text* |
+
+### Two mistakes of mine while writing those rows, both worth recording
+
+**The first test asserted a rejection the validator does not make.** I assumed
+`required_skill_profiles: ['a-capability-nobody-has']` would fail; it does not. The real rule is a
+role assigned to an `agent_run_id` no profile declares, and only from status `ready` onward. My
+test passed for the wrong reason until I read the validator instead of guessing at it — **the same
+defect as a probe that mutates something nothing reads**, which I recorded two waves ago and then
+repeated.
+
+**And the scanner stub appeared not to be caught.** I reported `exit=0` for a moment — but the
+replacement string had eight spaces of indentation where the file has four, so the stub was never
+applied. The guard was fine; the probe was broken. **A probe that silently fails to apply looks
+exactly like a guard that does not fire**, which is the most dangerous shape of false result in
+this whole exercise.
