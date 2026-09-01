@@ -3,14 +3,14 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 47**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads. `npm run check` at the top of the stack: **205/205,
+Updated continuously. Last wave: **wave 50**. Thirteen Draft PRs, **#1 through #13**,
+all CI green at their true heads. `npm run check` at the top of the stack: **214/214,
 fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads after the
 last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
 from a fresh clone of the real `main` is green at every step.
 
-**Thirteen independent verification runs** were dispatched against this work, and a
-fourteenth is in flight. **Nine of the thirteen shipped an untested business rule past every
+**Fourteen independent verification runs** were dispatched against this work, and a
+fifteenth is in flight. **Nine of the thirteen shipped an untested business rule past every
 guard** — the most recent one two waves ago. That number is the honest measure of this
 repository's guards, and it is why the runs keep going.
 
@@ -23,6 +23,13 @@ and no declaration changed anywhere. It did the same to the envelope contract ev
 composes, and to the tenant context nine contracts `$ref`. The repository's validator read a
 boolean as *"no schema here"* while every real validator enforces it — which is the exact
 invariant that validator's own header says it exists to protect.
+
+**Review fourteen removed every ownership guard in three edits, at exit 0, 208/208.** The
+four protocol validators were not in the protected list, the tool that rebuilds the manifest
+re-adds only test files, and the entry point that `npm run validate:protocol` actually calls
+was executed by no test at all — so stubbing it took three guards written the wave before
+with it. A branch changing a contract it neither owns nor amends then reported *"all 932
+changed path(s) are declared"*.
 
 **And review twelve found that a digest pins bytes, not behaviour.** Both guards that run only
 in CI had tests importing their helpers and never executing `main()`, so replacing the guards
@@ -282,7 +289,7 @@ because a list that only grows is a list nobody trusts.
    now bounded (`maxLength: 32`) and shaped (`CTR-XXX-000@n.n.n`), and its `x-source` says in
    writing that the divergence is intentional. It is listed here so the *decision* is visible, not
    because it is a defect.
-8. **Prose in an `x-` annotation is not enforced, by design.** Every guard skips `x-` keys so that fixing a comment cannot fail CI — which means `"MUST be omitted entirely"` in an `x-source` passes at exit 0 while nothing implements it. Measured: 155 annotations, 5 with uppercase RFC-2119 keywords, and all five are honest *deferrals* ("per-command schemas MUST constrain it; this envelope cannot"). Guarding it needs either a fragile heuristic or pinning all 155 by digest, which would make every comment fix a ratchet edit. **Written down rather than guarded badly.**
+8. **~~Prose in an `x-` annotation is not enforced, by design.~~** I wrote that one wave ago and it was the wrong call. Independent review fourteen inverted `CTR-SEC-001`'s `x-opacity-limitation` — *"THIS PATTERN IS NOT A SECURITY CONTROL"* became *"IS A SECURITY CONTROL … no further opacity mechanism is required before freeze"* — and deleted the record that nothing binds a claimed scope to its handle, at **exit 0**. Other suites cite `x-reference-rule` as *the* source of a rule, so the channel is normative. All **157** annotations are now pinned by per-contract digest and count. **The cost is real: fixing a typo in a comment is now a ratchet edit.** That is the price of a channel that carries security admissions.
 9. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
 
 ### Closed since this list was first written
