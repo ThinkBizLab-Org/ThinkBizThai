@@ -147,11 +147,12 @@
     "amends_without_owning": {
       "paths": [
         "architecture/decisions/RFC-2026-011-repository-language.md",
+        "architecture/decisions/RFC-2026-012-client-database-boundary.md",
         "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
         "scripts/verify-test-coverage-floor.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "OPEN-018 asks for language, runtime and package manager together. This package owns the two RFCs that answered runtime and package manager, so the language half belongs with them; RFC-2026-011 and the decision register are owned by no package. The other two paths are the consequence, not new work: a new decision record must be declared in DIGESTED_FLOOR (scripts/verify-test-coverage-floor.mjs, WP-0A-A0-002) and carry a digest (test-kits/integrity-manifest.json, the same package), or the guard that keeps a decision record from being edited unnoticed exits 87 on it. Four literal paths, no tree.",
+      "rationale": "Two decision dispositions, both owned by no package because architecture/decisions and the decision register are unowned. OPEN-018 asks for language, runtime and package manager together. This package owns the two RFCs that answered runtime and package manager, so the language half belongs with them; RFC-2026-011 and the decision register are owned by no package. The other two paths are the consequence, not new work: a new decision record must be declared in DIGESTED_FLOOR (scripts/verify-test-coverage-floor.mjs, WP-0A-A0-002) and carry a digest (test-kits/integrity-manifest.json, the same package), or the guard that keeps a decision record from being edited unnoticed exits 87 on it. Four literal paths, no tree. RFC-2026-012 disposes OPEN-015 (the client/server database boundary), prepared by A1 as the register requires; it is carried on this branch rather than opened as a second package because its declaration cost is the identical three files and no package owns a decision record.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]

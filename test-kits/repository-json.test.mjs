@@ -106,6 +106,7 @@ const DECISION_RECORDS = [
   'RFC-2026-009-reference-bounds.md',
   'RFC-2026-010-shared-kernel-freeze-readiness.md',
   'RFC-2026-011-repository-language.md',
+  'RFC-2026-012-client-database-boundary.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
