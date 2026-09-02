@@ -1,6 +1,6 @@
 # RFC-2026-001 — Bootstrap tooling contract
 
-Status: In review — local implementation authorized by delegated Product Owner
+Status: Approved 2026-09-02 by the Product Owner — the pinned toolchain, the repository layout and the declared commands are what every later package builds on and what CI has run against at every step. The Limitations and Rollback in this document stand unchanged.
 Decision needed by: G0 / `OPEN-018`
 Owner: A0 Atlas (Architecture/Integration)
 Execution basis: Product Owner delegated execution on 2026-08-30; independent technical review, security review, test, integration, and CI evidence are required before approval and merge
