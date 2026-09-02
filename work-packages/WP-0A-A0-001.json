@@ -150,11 +150,9 @@
         "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
         "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
         "scripts/verify-test-coverage-floor.mjs",
-        "scripts/test-suite-contract.mjs",
-        "test-kits/integrity-manifest.json",
-        "evidence/VERIFICATION.md"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The Product Owner disposed three more decision records in one review round; architecture/decisions is owned by no package, and this package carries the protocol. verify-test-coverage-floor.mjs (WP-0A-A0-002) is here for a correction rather than a feature: its exit-86 message told every reader that protected CI 'remains an open Gate G0 requirement', which stopped being true when branch protection on main became real and was proved by a rejected direct push. A guard that states a false fact about the repository is the same defect class this round has been closing everywhere else. The remaining paths are the floors, digest and generated verification record that move with any protected-file edit.",
+      "rationale": "The Product Owner disposed three more decision records in one review round; architecture/decisions is owned by no package, and this package carries the protocol. verify-test-coverage-floor.mjs (WP-0A-A0-002) is here for a correction rather than a feature: its exit-86 message told every reader that protected CI 'remains an open Gate G0 requirement', which stopped being true when branch protection on main became real and was proved by a rejected direct push. A guard that states a false fact about the repository is the same defect class this round has been closing everywhere else. The remaining path is the digest that moves with any protected-file edit.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
