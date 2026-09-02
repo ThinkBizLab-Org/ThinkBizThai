@@ -174,3 +174,24 @@ supposed to be running.
 (`#13 → #12 → … → #3 → #2 → main`, with `#1` and `#2` on `main`). GitHub retargets each one to
 `main` as the branch below it merges, so **merging them in numeric order through the UI is all
 that is required** — there is no rebase step for the Product Owner to perform.
+
+## Re-run at wave 56
+
+Fresh clone reset to `origin/main` (`ff55332`), thirteen merges in PR order, `npm run check` after
+each: **26 → 233**, `skipped 0` and `todo 0` at every step, no conflict in any file, exit 0.
+
+The stack has grown by 47 tests since the wave-44 drill and the guards have changed underneath it
+substantially — the chain parser, the `.npmrc` and symlink checks, the per-file floors, the RFC and
+annotation pins. **None of that is visible from thirteen green pull requests**, which is why this
+is re-run whenever the top of the stack moves rather than when it feels necessary.
+
+Counts at this drill, measured rather than remembered:
+
+| | |
+| --- | --- |
+| digested files | 66 |
+| `DIGESTED_FLOOR` entries | 66 (set-equal, both directions) |
+| `PROTECTED_KEYS` | 20 |
+| test files / declared tests | 24 / 233 |
+| contracts / fixtures | 14 / 676 |
+| guard scripts | 16 |

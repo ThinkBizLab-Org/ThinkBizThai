@@ -3,15 +3,18 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 50**. Thirteen Draft PRs, **#1 through #13**,
-all CI green at their true heads. `npm run check` at the top of the stack: **214/214,
+Updated continuously. Last wave: **wave 56**. Thirteen Draft PRs, **#1 through #13**,
+all CI green at their true heads. `npm run verify` at the top of the stack: **clean: exit 0 — 233/233,
 fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads after the
 last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
 from a fresh clone of the real `main` is green at every step.
 
-**Fourteen independent verification runs** were dispatched against this work, and a
-fifteenth is in flight. **Nine of the thirteen shipped an untested business rule past every
-guard** — the most recent one two waves ago. That number is the honest measure of this
+**Seventeen independent verification runs** were dispatched against this work, and an
+eighteenth is in flight. **Ten of the seventeen shipped an untested business rule past every
+guard.** The last three did it from *outside* the repository's own files, which turned out to
+be the productive direction: a newline in the `check` string skipped the entire suite at exit
+0; one line in `.npmrc` silenced every `npm run` including the verifier; a guard replaced by a
+symlink kept its digest intact while its bytes came from outside the repository. That number is the honest measure of this
 repository's guards, and it is why the runs keep going.
 
 **What review thirteen did, because it is the clearest single example.** In JSON Schema,
