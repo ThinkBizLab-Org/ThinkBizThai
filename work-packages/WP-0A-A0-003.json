@@ -5,7 +5,7 @@
   "title": "Repository secret-scan strengthening and privacy dimension",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"
@@ -74,6 +74,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A0-003-secret-scan",
     "writable_paths": [
       "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
       "scripts/scan-repository-secrets.mjs",
@@ -109,8 +110,8 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "work-packages/WP-0A-A0-001.json \u2014 remove scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs from writable_paths and outputs.files, and add an ownership.amended_by block in the same shape as the existing one. Nothing else in that file changes and it is not reformatted (RFC-2026-005 ownership transfer).",
-      "test-kits/integrity-manifest.json \u2014 recompute the sha256 digests of scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs only. The file remains a WP-0A-A0-002 output and is deliberately NOT claimed in this package's writable_paths, because doing so would make the ownership validator exit 70 on a path WP-0A-A0-002 declares as an output."
+      "work-packages/WP-0A-A0-001.json — remove scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs from writable_paths and outputs.files, and add an ownership.amended_by block in the same shape as the existing one. Nothing else in that file changes and it is not reformatted (RFC-2026-005 ownership transfer).",
+      "test-kits/integrity-manifest.json — recompute the sha256 digests of scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs only. The file remains a WP-0A-A0-002 output and is deliberately NOT claimed in this package's writable_paths, because doing so would make the ownership validator exit 70 on a path WP-0A-A0-002 declares as an output."
     ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: this package is ABOUT secret scanning, so they forbade its own RFC, its scanner and its test. Five other manifests carried the same contradiction and the ownership validator could not see it until it began comparing outputs against forbidden_paths (exit 72). Replaced with the extensions that carry real key material.",
     "amended_by": [

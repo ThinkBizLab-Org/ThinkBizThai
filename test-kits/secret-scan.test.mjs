@@ -739,3 +739,51 @@ test('does not treat a markdown table of numbers as a card, however many rows', 
   const rows = Array.from({ length: 8 }, (_, i) => `| ${4000 + i} | ${1100 + i} | ${1200 + i} | ${1300 + i} |`);
   assert.deepEqual(scanText(rows.join('\n'), { relativePath: 'evidence/WP-X/benchmark.md' }), []);
 });
+
+
+test('every credential rule fires in every path shape, whatever the scanner has been told to skip', async () => {
+  // Independent review twenty-two inserted ONE line into `scanText` --
+  // `if (relativePath.startsWith('evidence/WP-0A-CON-008/')) return [...hits];` -- and shipped an
+  // AWS key pair with **no test file touched**: the full secret-scan suite and the full behaviour
+  // ratchet both passed, 59/59.
+  //
+  // `mustNoticeSourceEdit` pins two named reversals of this scanner. It proves those two lines
+  // matter; it says nothing about a third carve-out somewhere else in the same function. **Pinning
+  // which lines are load-bearing is not the same as pinning the outcome.**
+  //
+  // So: one planted credential per rule, in each path shape a carve-out would target, and a hit
+  // required for every combination. A carve-out cannot satisfy this; only scanning can.
+  const { mkdtemp, mkdir, writeFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join, dirname } = await import('node:path');
+  const { scanDirectory, CREDENTIAL_RULES } = await import('../scripts/scan-repository-secrets.mjs');
+
+  const shapes = [
+    'leak.txt',
+    'evidence/WP-0A-CON-008/leak.txt',
+    'handoffs/leak.txt',
+    'docs/nested/deeper/leak.txt',
+    'contract-catalog/shared-kernel/ctr-sec-001/leak.txt',
+  ];
+  const specimens = [
+    ['aws-access-key-id', `AKIA${'IOSFODNN7EXAMPLE'}`],
+    ['stripe-secret-key', `sk_live_${'0123456789abcdefghijklmn'}`],
+    ['github-token', `ghp_${'0123456789abcdefghijklmnopqrstuvwxyz'.slice(0, 36)}`],
+    ['secret-named-assignment', `AWS_SECRET_ACCESS_KEY=${'wJalrXUtnFEMI'}${'/K7MDENG/bPxRfiCYEXAMPLEKEY'}`],
+  ];
+
+  const missed = [];
+  for (const shape of shapes) {
+    for (const [label, body] of specimens) {
+      const root = await mkdtemp(join(tmpdir(), 'scan-outcome-'));
+      const target = join(root, shape);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, `${body}\n`);
+      const findings = await scanDirectory(root);
+      if (findings.length === 0) missed.push(`${label} planted at ${shape} was not reported`);
+    }
+  }
+  assert.deepEqual(missed, [], `credential(s) the scanner did not report:\n  ${missed.join('\n  ')}\n`
+    + 'A path the scanner has been told to skip is a path an author can choose.');
+  assert.ok(CREDENTIAL_RULES.length >= 25, `expected the full credential rule set, found ${CREDENTIAL_RULES.length}`);
+});

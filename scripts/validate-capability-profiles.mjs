@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 const requiredProfileFields = [
   'schema_version',
@@ -110,7 +111,7 @@ export async function validateCapabilityProfiles(profileDirectory, manifestDirec
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const [profileDirectory = '.agents/capability-profiles', manifestDirectory = 'work-packages'] = process.argv.slice(2);
   try {
     await validateCapabilityProfiles(profileDirectory, manifestDirectory);

@@ -2,55 +2,281 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ThinkBizThai Work Package",
   "type": "object",
-  "required": ["schema_version", "protocol_version", "work_package_id", "title", "gate", "status", "required_skill_profiles", "role_assignments", "independence", "ownership", "inputs", "outputs", "acceptance_criteria", "required_tests", "deterministic_commands", "security_privacy"],
+  "required": [
+    "schema_version",
+    "protocol_version",
+    "work_package_id",
+    "title",
+    "gate",
+    "status",
+    "required_skill_profiles",
+    "role_assignments",
+    "independence",
+    "ownership",
+    "inputs",
+    "outputs",
+    "acceptance_criteria",
+    "required_tests",
+    "deterministic_commands",
+    "security_privacy"
+  ],
   "properties": {
-    "schema_version": { "type": "string" },
-    "protocol_version": { "const": "1.0.0" },
-    "work_package_id": { "type": "string", "pattern": "^WP-[A-Za-z0-9-]+$" },
-    "title": { "type": "string", "minLength": 1 },
-    "gate": { "type": "string", "minLength": 1 },
-    "status": { "enum": ["backlog", "ready", "in_progress", "in_review", "review_approved", "test_verified", "integration_verified", "done", "blocked"] },
-    "required_skill_profiles": { "type": "object" },
+    "schema_version": {
+      "type": "string"
+    },
+    "protocol_version": {
+      "const": "1.0.0"
+    },
+    "work_package_id": {
+      "type": "string",
+      "pattern": "^WP-[A-Za-z0-9-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "backlog",
+        "ready",
+        "in_progress",
+        "in_review",
+        "review_approved",
+        "test_verified",
+        "integration_verified",
+        "done",
+        "blocked"
+      ]
+    },
+    "required_skill_profiles": {
+      "type": "object"
+    },
     "role_assignments": {
       "type": "object",
-      "required": ["author_agent_run_id", "reviewer_agent_run_id", "tester_agent_run_id", "integration_owner_agent_run_id"],
+      "required": [
+        "author_agent_run_id",
+        "reviewer_agent_run_id",
+        "tester_agent_run_id",
+        "integration_owner_agent_run_id"
+      ],
       "properties": {
-        "author_agent_run_id": { "type": ["string", "null"] },
-        "reviewer_agent_run_id": { "type": ["string", "null"] },
-        "tester_agent_run_id": { "type": ["string", "null"] },
-        "integration_owner_agent_run_id": { "type": ["string", "null"] }
+        "author_agent_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewer_agent_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tester_agent_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "integration_owner_agent_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": true
     },
-    "independence": { "type": "object" },
-    "ownership": { "type": "object" },
-    "inputs": { "type": "object", "required": ["files", "fixtures"], "additionalProperties": true },
-    "outputs": { "type": "object", "required": ["files", "contracts"], "additionalProperties": true },
-    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
-    "required_tests": { "type": "array", "items": { "type": "string" } },
-    "deterministic_commands": { "type": "object", "required": ["setup", "verify", "package_evidence"], "additionalProperties": true },
-    "security_privacy": { "type": "object" }
+    "independence": {
+      "type": "object"
+    },
+    "ownership": {
+      "type": "object"
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "files",
+        "fixtures"
+      ],
+      "additionalProperties": true
+    },
+    "outputs": {
+      "type": "object",
+      "required": [
+        "files",
+        "contracts"
+      ],
+      "additionalProperties": true
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_tests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deterministic_commands": {
+      "type": "object",
+      "required": [
+        "setup",
+        "verify",
+        "package_evidence"
+      ],
+      "additionalProperties": true
+    },
+    "security_privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_classification",
+        "secrets_required",
+        "network_policy"
+      ],
+      "properties": {
+        "data_classification": {
+          "enum": [
+            "synthetic-only",
+            "permissioned-customer-content",
+            "public-source-content"
+          ]
+        },
+        "secrets_required": {
+          "type": "boolean"
+        },
+        "network_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pii_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consent_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retention_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "redaction_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "data_classification": {
+                "const": "permissioned-customer-content"
+              }
+            },
+            "required": [
+              "data_classification"
+            ]
+          },
+          "then": {
+            "required": [
+              "consent_basis",
+              "retention_policy",
+              "redaction_policy",
+              "pii_policy"
+            ]
+          }
+        }
+      ],
+      "description": "Independent review fifteen flipped data_classification to permissioned-customer-content and secrets_required to true on a work package, at exit 0, with nothing else declared. CONTRIBUTING_AGENTS.md requires consent, retention and redaction for permissioned data; this makes that requirement machine-checked."
+    },
+    "accountable_owners": {
+      "type": "array"
+    },
+    "contracts_consumed": {
+      "type": "array"
+    },
+    "contracts_produced": {
+      "type": "array"
+    },
+    "decisions_consumed": {
+      "type": "array"
+    },
+    "dependencies": {
+      "type": "object"
+    },
+    "open_blockers": {
+      "type": "array"
+    },
+    "priority": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "required_human_authorities": {
+      "type": "array"
+    },
+    "review_and_test_gates": {
+      "type": "array"
+    },
+    "rollback_or_forward_fix": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object"
+    }
   },
   "allOf": [
     {
       "if": {
         "properties": {
-          "status": { "enum": ["ready", "in_progress", "in_review", "review_approved", "test_verified", "integration_verified", "done"] }
+          "status": {
+            "enum": [
+              "ready",
+              "in_progress",
+              "in_review",
+              "review_approved",
+              "test_verified",
+              "integration_verified",
+              "done"
+            ]
+          }
         }
       },
       "then": {
         "properties": {
           "role_assignments": {
             "properties": {
-              "author_agent_run_id": { "type": "string", "minLength": 1 },
-              "reviewer_agent_run_id": { "type": "string", "minLength": 1 },
-              "tester_agent_run_id": { "type": "string", "minLength": 1 },
-              "integration_owner_agent_run_id": { "type": "string", "minLength": 1 }
+              "author_agent_run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reviewer_agent_run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tester_agent_run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "integration_owner_agent_run_id": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
       }
     }
   ],
-  "additionalProperties": true
+  "additionalProperties": false
 }

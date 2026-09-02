@@ -10,9 +10,16 @@
   },
   "scripts": {
     "check": "npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap",
+    "regenerate:manifest": "node scripts/regenerate-integrity-manifest.mjs",
     "scan:secrets": "node scripts/scan-repository-secrets.mjs",
     "test:bootstrap": "node scripts/run-test-suite.mjs",
     "validate:protocol": "node scripts/validate-work-packages.mjs && node scripts/validate-capability-profiles.mjs && node scripts/validate-work-package-ownership.mjs",
-    "verify:coverage-floor": "node scripts/verify-test-coverage-floor.mjs"
+    "verify:coverage-floor": "node scripts/verify-test-coverage-floor.mjs",
+    "record:verification": "node scripts/record-verification.mjs",
+    "refresh:handoff": "node scripts/refresh-author-handoff.mjs",
+    "check:handoff": "node scripts/refresh-author-handoff.mjs --check",
+    "check:scope": "node scripts/verify-branch-scope.mjs",
+    "verify": "node scripts/verify-clean-run.mjs",
+    "commit": "node scripts/commit-when-clean.mjs"
   }
 }

@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-004",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "3fe40f8e728325669d0cd2643f144c18c7c5fb8b",
+  "head_revision_or_patch_checksum": "e287ac6876c8a91575fdea5d3e094c72cb4d0ee2",
+  "task_ids": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+    "evidence/WP-0A-A0-004/author-self-check.md",
+    "scripts/verify-branch-scope.mjs",
+    "test-kits/branch-scope.test.mjs",
+    "work-packages/WP-0A-A0-004.json"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/test-coverage-floor.test.mjs",
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A0-002.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The workflow invokes node scripts/verify-test-coverage-floor.mjs as its own step, before npm run check, so a package.json edit cannot skip it.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    },
+    {
+      "criterion": "The guard step precedes the composite step, so a failure is attributed to the guard rather than buried in a chain.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    },
+    {
+      "criterion": "WP-0A-A0-001 retains every other declared output; only ci.yml moves, and the amendment is recorded in its ownership.amended_by.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check still passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo zero.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    },
+    {
+      "criterion": "The ownership validator accepts the transfer with no cross-package overlap.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    },
+    {
+      "criterion": "The workflow runs the branch-scope guard on every pull request, deriving the work-package id from the branch name and skipping cleanly when a branch names none.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A0-004/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "No contract-catalog file is changed by this package, so no consumer contract is affected.",
+  "known_limitations": [
+    "RFC-2026-007 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This does NOT make the guard unbypassable. Someone who can edit ci.yml can delete the step. It moves the bypass from a place no control can see into a place a reviewer reads, and no further.",
+    "It does not close the digest class: a commit editing a guarded file AND its digest still passes. Independent review established that as a fixed-point property.",
+    "It does not satisfy the Gate G0 protected-CI requirement, which needs native branch protection and remains blocked on an external constraint recorded in evidence/g0-tracker-th.md.",
+    "The ci.yml transfer requires an acknowledgement countersigned by WP-0A-A0-001's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending.",
+    "The branch-scope guard runs only on pull_request events. A push to main carries no base to diff against, so the check is a pull-request control and not a branch-protection one; that distinction matters because protected CI is still an open Gate G0 item."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-007 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This does NOT make the guard unbypassable. Someone who can edit ci.yml can delete the step. It moves the bypass from a place no control can see into a place a reviewer reads, and no further.",
+    "It does not close the digest class: a commit editing a guarded file AND its digest still passes. Independent review established that as a fixed-point property.",
+    "It does not satisfy the Gate G0 protected-CI requirement, which needs native branch protection and remains blocked on an external constraint recorded in evidence/g0-tracker-th.md.",
+    "The ci.yml transfer requires an acknowledgement countersigned by WP-0A-A0-001's Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending.",
+    "The branch-scope guard runs only on pull_request events. A push to main carries no base to diff against, so the check is a pull-request control and not a branch-protection one; that distinction matters because protected CI is still an open Gate G0 item."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range 3fe40f8..e287ac6 covers 11 path(s) — 2 script(s), 2 test file(s), 1 decision record(s), 3 work-package manifest(s). Revert through a reviewed revert PR. One workflow step and one path moved between two manifests; no persisted data, provider state, credential, migration or customer-data effect.",
+  "recommended_next_work_packages": [
+    "WP-0A-A0-005"
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-A0-004/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

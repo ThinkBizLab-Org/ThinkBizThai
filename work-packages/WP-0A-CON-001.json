@@ -7,11 +7,22 @@
   "priority": "P0",
   "status": "integration_verified",
   "required_skill_profiles": {
-    "author": ["architecture-contracts"],
-    "reviewer": ["architecture-contracts"],
-    "tester": ["independent-qa"],
-    "integration_owner": ["integration-release"],
-    "conditional_reviewers": ["security-privacy", "product-ux"]
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy",
+      "product-ux"
+    ]
   },
   "role_assignments": {
     "author_agent_run_id": "/root",
@@ -38,14 +49,31 @@
       "Production migrations, RLS implementation, provider SDKs, credentials, external calls, customer data and contract freezing beyond the baseline's Candidate/Draft status"
     ]
   },
-  "decisions_consumed": ["DEC-010", "DEC-011", "DEC-021", "DEC-022", "DEC-023", "DEC-025"],
-  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
-  "contracts_produced": ["catalog-index and synthetic fixture candidates only; no freeze-level advancement"],
+  "decisions_consumed": [
+    "DEC-010",
+    "DEC-011",
+    "DEC-021",
+    "DEC-022",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
+  "contracts_produced": [
+    "catalog-index and synthetic fixture candidates only; no freeze-level advancement"
+  ],
   "dependencies": {
-    "required_work_packages": ["WP-0A-A0-001"],
+    "required_work_packages": [
+      "WP-0A-A0-001"
+    ],
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/root/WP-0A-CON-001-contract-catalog",
     "amended_by": {
       "work_package_id": "WP-0A-A0-002",
       "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
@@ -53,11 +81,40 @@
       "acknowledgement_required_from": "/root/r0_steward",
       "acknowledgement_status": "pending"
     },
-    "writable_paths": ["contract-catalog/shared-kernel/index.json", "contract-catalog/shared-kernel/ctr-ten-001/**", "contract-catalog/shared-kernel/ctr-err-001/**", "contract-catalog/shared-kernel/ctr-evt-001/**", "contract-catalog/shared-kernel/ctr-job-001/**", "test-kits/contracts/shared-kernel-contract-catalog.test.mjs", ".agents/capability-profiles/c0-contract-reviewer.json", "work-packages/WP-0A-CON-001.json", "evidence/WP-0A-CON-001/**", "evidence/capability-benchmarks/c0-contract-reviewer.md", "handoffs/WP-0A-CON-001-*.json"],
-    "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "architecture/decisions/**", "contract-catalog/README.md"],
-    "forbidden_paths": [".env", ".env.*", "db/**", "migrations/**", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "writable_paths": [
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/**",
+      "contract-catalog/shared-kernel/ctr-err-001/**",
+      "contract-catalog/shared-kernel/ctr-evt-001/**",
+      "contract-catalog/shared-kernel/ctr-job-001/**",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
+      ".agents/capability-profiles/c0-contract-reviewer.json",
+      "work-packages/WP-0A-CON-001.json",
+      "evidence/WP-0A-CON-001/**",
+      "evidence/capability-benchmarks/c0-contract-reviewer.md",
+      "handoffs/WP-0A-CON-001-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/**",
+      "contract-catalog/README.md"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "db/**",
+      "migrations/**",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
+    ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
-    "module_ids": ["MOD-000"],
+    "module_ids": [
+      "MOD-000"
+    ],
     "migration_reservations": []
   },
   "inputs": {
@@ -120,8 +177,12 @@
   ],
   "deterministic_commands": {
     "setup": [],
-    "verify": ["npm run check"],
-    "package_evidence": ["node --test test-kits/contracts/*.test.mjs"]
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node --test test-kits/contracts/*.test.mjs"
+    ]
   },
   "security_privacy": {
     "data_classification": "synthetic-only",
@@ -135,5 +196,11 @@
     "The named roles may not advance status beyond their documented independent gate authority, and no contract may advance from Candidate/Draft to Frozen without the source-defined owner approval.",
     "Contract freeze-level advancement requires the owners and approvals stated in the Sprint 0A baseline."
   ],
-  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
 }

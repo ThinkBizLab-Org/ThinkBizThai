@@ -5,7 +5,7 @@
   "title": "CI invokes the test-integrity guard as its own step",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "architecture-contracts"
@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
   },
   "accountable_owners": [
     "A0"
@@ -72,6 +72,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A0-004-ci-independent-guard-step",
     "writable_paths": [
       "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
       ".github/workflows/ci.yml",
@@ -104,19 +105,18 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "work-packages/WP-0A-A0-001.json \u2014 remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
-      "test-kits/integrity-manifest.json \u2014 recompute digests; ci.yml is already digested there."
+      "work-packages/WP-0A-A0-001.json — remove .github/workflows/ci.yml from writable_paths and outputs.files only (RFC-2026-007). CI configuration is protected and CONTRIBUTING_AGENTS.md directs the change through the Integration Owner/RFC path.",
+      "test-kits/integrity-manifest.json — recompute digests; ci.yml is already digested there."
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/verify-test-coverage-floor.mjs",
         "test-kits/integrity-manifest.json",
         "test-kits/test-coverage-floor.test.mjs",
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json"
       ],
-      "rationale": "Adding a test file requires a digest in the integrity manifest and a re-recorded verification count; both are generated and both belong to WP-0A-A0-002. This package claims neither. Three further paths were reported by scripts/verify-branch-scope.mjs on its first run against this branch and are recorded rather than removed: scripts/verify-test-coverage-floor.mjs and its test gained the requirement that all five gating steps appear in order in scripts.check, which is this package's subject and WP-0A-A0-002's file; work-packages/WP-0A-A0-001.json carries the amendment record transferring .github/workflows/ci.yml to this package. WP-0A-A0-002.json carries the amendment record for the branch-scope guard and its test moving to this package.",
+      "rationale": "Adding a test file requires a digest in the integrity manifest and a re-recorded verification count; both are generated and both belong to WP-0A-A0-002. This package claims neither. Three further paths were reported by scripts/verify-branch-scope.mjs on its first run against this branch and are recorded rather than removed: scripts/verify-test-coverage-floor.mjs and its test gained the requirement that all five gating steps appear in order in scripts.check, which is this package's subject and WP-0A-A0-002's file; work-packages/WP-0A-A0-001.json carries the amendment record transferring .github/workflows/ci.yml to this package. WP-0A-A0-002.json carries the amendment record for the branch-scope guard and its test moving to this package. Removed 1 declaration(s) that explain nothing this package's own branch changed, named by deadAmendments and confirmed by git diff over 3fe40f8..WP-0A-A0-004-ci-independent-guard-step: evidence/VERIFICATION.md. Each was a standing permission over another package's files granted for work that never happened.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json",
         "work-packages/WP-0A-A0-001.json"

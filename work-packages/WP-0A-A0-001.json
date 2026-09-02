@@ -7,11 +7,22 @@
   "priority": "P0",
   "status": "integration_verified",
   "required_skill_profiles": {
-    "author": ["architecture-contracts"],
-    "reviewer": ["architecture-contracts"],
-    "tester": ["independent-qa"],
-    "integration_owner": ["integration-release"],
-    "conditional_reviewers": ["security-privacy", "product-ux"]
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy",
+      "product-ux"
+    ]
   },
   "role_assignments": {
     "author_agent_run_id": "/root",
@@ -39,36 +50,54 @@
       "Product/domain implementation, schema migrations, provider integrations, and credentials"
     ]
   },
-  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
-  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025",
+    "OPEN-018"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
   "contracts_produced": [],
   "dependencies": {
     "required_work_packages": [],
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/root/WP-0A-A0-001-repository-bootstrap",
     "amended_by": [
-          {
-                "work_package_id": "WP-0A-A0-002",
-                "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
-                "change": "package.json was removed from writable_paths and outputs.files and transferred to WP-0A-A0-002. This package did author package.json; the removal is forced by scripts/validate-work-package-ownership.mjs, which exits 70 while two packages hold the same path. No status, role, gate, or delivered output of this package changed.",
-                "acknowledgement_required_from": "/root/r0_steward",
-                "acknowledgement_status": "pending"
-          },
-          {
-                "work_package_id": "WP-0A-A0-003",
-                "decision_record": "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
-                "change": "scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs were removed from writable_paths and outputs.files and transferred to WP-0A-A0-003. No status, role, gate or delivered output of this package changed.",
-                "acknowledgement_required_from": "/root/r0_steward",
-                "acknowledgement_status": "pending"
-          },
-          {
-                "work_package_id": "WP-0A-A0-004",
-                "decision_record": "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
-                "change": ".github/workflows/ci.yml was removed from writable_paths and outputs.files and transferred to WP-0A-A0-004, so the workflow can invoke the test-integrity guard as its own step. No status, role, gate or delivered output of this package changed.",
-                "acknowledgement_required_from": "/root/r0_steward",
-                "acknowledgement_status": "pending"
-          }
+      {
+        "work_package_id": "WP-0A-A0-002",
+        "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+        "change": "package.json was removed from writable_paths and outputs.files and transferred to WP-0A-A0-002. This package did author package.json; the removal is forced by scripts/validate-work-package-ownership.mjs, which exits 70 while two packages hold the same path. No status, role, gate, or delivered output of this package changed.",
+        "acknowledgement_required_from": "/root/r0_steward",
+        "acknowledgement_status": "pending"
+      },
+      {
+        "work_package_id": "WP-0A-A0-003",
+        "decision_record": "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
+        "change": "scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs were removed from writable_paths and outputs.files and transferred to WP-0A-A0-003. No status, role, gate or delivered output of this package changed.",
+        "acknowledgement_required_from": "/root/r0_steward",
+        "acknowledgement_status": "pending"
+      },
+      {
+        "work_package_id": "WP-0A-A0-004",
+        "decision_record": "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+        "change": ".github/workflows/ci.yml was removed from writable_paths and outputs.files and transferred to WP-0A-A0-004, so the workflow can invoke the test-integrity guard as its own step. No status, role, gate or delivered output of this package changed.",
+        "acknowledgement_required_from": "/root/r0_steward",
+        "acknowledgement_status": "pending"
+      },
+      {
+        "work_package_id": "WP-0A-CON-008",
+        "decision_record": "evidence/WP-0A-CON-008/verification-record.md",
+        "change": "package.json gained one script, record:verification. Ownership stays with this package; npm run check is unchanged.",
+        "acknowledgement_required_from": "/root/r0_steward",
+        "acknowledgement_status": "pending"
+      }
     ],
     "amended_by_shape_note": "An array, because this package now carries three amendments and JSON cannot hold a duplicate key. The first element is the original WP-0A-A0-002 record, unchanged. Independent review found the RFC-2026-005 and RFC-2026-007 amendments were both unrecorded while RFC-2026-007 asserted as present fact that the record existed.",
     "writable_paths": [
@@ -115,10 +144,22 @@
       "test-kits/work-package-ownership.test.mjs",
       "work-packages/WP-0A-A0-001.json"
     ],
-    "read_only_paths": ["README.md", "docs/**"],
-    "forbidden_paths": [".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "read_only_paths": [
+      "README.md",
+      "docs/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
+    ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
-    "module_ids": ["MOD-000"],
+    "module_ids": [
+      "MOD-000"
+    ],
     "migration_reservations": []
   },
   "inputs": {
@@ -235,7 +276,13 @@
   ],
   "deterministic_commands": {
     "setup": [],
-    "verify": ["npm run check", "node scripts/validate-work-packages.mjs", "node scripts/validate-capability-profiles.mjs", "node scripts/validate-work-package-role-separation.mjs <manifest.json>", "node scripts/scan-repository-secrets.mjs"],
+    "verify": [
+      "npm run check",
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-capability-profiles.mjs",
+      "node scripts/validate-work-package-role-separation.mjs <manifest.json>",
+      "node scripts/scan-repository-secrets.mjs"
+    ],
     "package_evidence": []
   },
   "security_privacy": {
@@ -249,5 +296,12 @@
     "Native repository branch protection remains unavailable: the recorded GitHub API response requires GitHub Pro or a public repository; RFC-2026-002 is procedural only.",
     "Capability declarations and benchmark references must map real agent runs to required skill profiles before later packages become Ready."
   ],
-  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "product_approved", "test_verified", "integration_verified"]
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "product_approved",
+    "test_verified",
+    "integration_verified"
+  ]
 }

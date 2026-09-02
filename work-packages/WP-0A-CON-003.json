@@ -79,6 +79,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-CON-003-module-and-policy",
     "writable_paths": [
       "contract-catalog/shared-kernel/ctr-mod-001/**",
       "contract-catalog/shared-kernel/ctr-flg-001/**",
@@ -115,7 +116,7 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "test-kits/integrity-manifest.json \u2014 add this package's new test file and recompute digests. The WP-0A-A0-002 guard REQUIRES every discovered test file to be digested (exit 87), so any package adding a suite must touch that file. This is a structural coupling created by that guard, not a discretionary edit: the alternative is that the package cannot ship a test at all. It changes no digest policy and no other package's entry."
+      "test-kits/integrity-manifest.json — add this package's new test file and recompute digests. The WP-0A-A0-002 guard REQUIRES every discovered test file to be digested (exit 87), so any package adding a suite must touch that file. This is a structural coupling created by that guard, not a discretionary edit: the alternative is that the package cannot ship a test at all. It changes no digest policy and no other package's entry."
     ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed. A contract catalog that models secret HANDLES must name them, and this package ships contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json and invalid-secret-handle-shape.json -- both matching a glob this manifest declared forbidden. The contradiction was found by the run authoring WP-0A-CON-004 and confirmed: the ownership validator checks writable and read-only paths but never compares forbidden_paths against declared outputs, so nothing caught it. Replaced with extensions that carry actual key material (*.pem, *.key, *.p12, *.pfx), which is what the rule was for. A filename is not a secret; a private key file is."
   },
@@ -173,7 +174,7 @@
     ]
   },
   "acceptance_criteria": [
-    "Every fixture is validated against its own shipped schema.json by the subset validator, and every protected constraint is killed by at least one declared fixture \u2014 a constraint no fixture can kill is documentation.",
+    "Every fixture is validated against its own shipped schema.json by the subset validator, and every protected constraint is killed by at least one declared fixture — a constraint no fixture can kill is documentation.",
     "Every rule in both schemas carries an x-source naming the baseline task it comes from; no rule is present without one.",
     "MR-004 deny-by-default is expressed in the contract: a module cannot be `ready` unless activation readiness explicitly succeeded, and a `blocked` module must record what was missing.",
     "FP-002 is expressed in the contract: a kill switch is a platform-scope deny, and disabling write preserves historical read.",
@@ -212,8 +213,8 @@
     "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
     "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
     "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
-    "Not one of the nine catalog contracts has a fixture that kills its root required list \u2014 every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
-    "The ENFORCEMENT half of FP-002 \u2014 that a narrower scope cannot override a live platform kill switch \u2014 cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
+    "Not one of the nine catalog contracts has a fixture that kills its root required list — every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "The ENFORCEMENT half of FP-002 — that a narrower scope cannot override a live platform kill switch — cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
     "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
     "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
     "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",

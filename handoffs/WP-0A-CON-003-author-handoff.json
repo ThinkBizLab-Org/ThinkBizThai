@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-003",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "c9dd4b776b877b05349b2ccd6cc9c8560a7e869c",
+  "head_revision_or_patch_checksum": "4874b527a78815db01cadc2fbdb5ba05ec01c882",
+  "task_ids": [],
+  "files_added": [
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-business-overrides-kill-switch.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-default-deny-allows.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-kill-switch-allows.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-missing-required-reason-key.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-over-100.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-without-bucket.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-reason-key-free-text.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-scopes-out-of-order.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-owner.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-write-disabled-without-history.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-default-deny.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-explicit-allow.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-kill-switch-preserves-history.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-percentage-bucket.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-temporary-with-expiry.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-flg-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-blocked-without-missing.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-data-policy.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-required-permissions.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-unknown-reason.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-permissioned-without-declarations.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-ready-without-activation.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-secret-handle-shape.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-semver.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-unknown-classification.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-ready.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-mod-001/schema.json",
+    "evidence/WP-0A-CON-003/author-self-check.md",
+    "evidence/WP-0A-CON-003/review-contract.md",
+    "evidence/WP-0A-CON-003/review-security.md",
+    "evidence/WP-0A-CON-003/test-verdict.md",
+    "test-kits/contracts/schema-mutation-coverage.test.mjs",
+    "work-packages/WP-0A-CON-003.json"
+  ],
+  "files_modified": [
+    "test-kits/integrity-manifest.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-022",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001"
+  ],
+  "contracts_produced_or_changed": [
+    "CTR-MOD-001 and CTR-FLG-001 materialized at Draft only; no freeze-level advancement"
+  ],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every fixture is validated against its own shipped schema.json by the subset validator, and every protected constraint is killed by at least one declared fixture — a constraint no fixture can kill is documentation.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "Every rule in both schemas carries an x-source naming the baseline task it comes from; no rule is present without one.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "MR-004 deny-by-default is expressed in the contract: a module cannot be `ready` unless activation readiness explicitly succeeded, and a `blocked` module must record what was missing.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "FP-002 is expressed in the contract: a kill switch is a platform-scope deny, and disabling write preserves historical read.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "A secret handle is an opaque reference; no literal credential appears in any fixture.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "Both manifests declare in untestable_by_fixture the properties a single document cannot demonstrate, rather than reading as if they were materialized.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "The index still reports 4 Candidate and 10 Draft: materializing a Draft contract does not promote it.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "Every rule states whether it is sourced verbatim from a named task or is a declared inference, and every citation names the correct document section.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    },
+    {
+      "criterion": "Each obligation has its own counterexample: a fixture that violates two rules at once tests neither independently.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-003/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "known_limitations": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
+    "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
+    "Not one of the nine catalog contracts has a fixture that kills its root required list — every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "The ENFORCEMENT half of FP-002 — that a narrower scope cannot override a live platform kill switch — cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
+    "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
+    "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
+    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
+    "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
+    "Not one of the nine catalog contracts has a fixture that kills its root required list — every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "The ENFORCEMENT half of FP-002 — that a narrower scope cannot override a live platform kill switch — cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
+    "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
+    "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
+    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range c9dd4b7..4874b52 covers 38 path(s) — 31 contract-catalog file(s), 1 test file(s), 1 work-package manifest(s). Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "recommended_next_work_packages": [
+    "WP-0A-CON-005"
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-CON-003/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

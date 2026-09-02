@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  CHAIN_COMMANDS,
+  PROTECTED_KEYS,
   assertCoverage,
   assertDeclaredTests,
   assertIntegrityManifest,
@@ -16,7 +18,7 @@ import {
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
 import { assertDeclarationsMatchExecution, assertExecuted, assertNothingSkipped, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
-import { GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
+import { REVERSAL_FLOOR, GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
 const files = [
@@ -64,6 +66,7 @@ const FULL_CHAIN = 'npm run verify:coverage-floor && node scripts/verify-toolcha
 const okScripts = (overrides = {}) => ({
   'test:bootstrap': RUNNER_SCRIPT,
   'verify:coverage-floor': GUARD_SCRIPT,
+  ...CHAIN_COMMANDS,
   check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run scan:secrets && npm run validate:protocol && npm run test:bootstrap',
   ...overrides,
 });
@@ -208,7 +211,10 @@ test('swapping a protected suite for a placeholder is rejected even when the tot
     () => assertDeclaredTests(withoutContracts, 8, { 'test-kits/contracts': 6 }),
     (error) => error.code === 82 && /test-kits\/contracts' declares 0 tests/.test(error.message),
   );
-  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
+  // Raised to 7 when catalog-groups.test.mjs was added. The pin is an equality, not a floor, so
+  // that a RAISE is as deliberate as a lowering: a floor that drifts up with the suite silently
+  // re-baselines itself and stops being a statement about what must exist.
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 7);
 });
 
 // A test can print a summary line into the very stream the post-run floor audits.
@@ -292,5 +298,160 @@ test('declaration counting ignores comments, template literals and strings', () 
 // lowering MIN_EXECUTED_TESTS from 40 to 1 passed the entire check.
 test('the executed-test floor and the directory floor are both pinned', () => {
   assert.ok(MIN_EXECUTED_TESTS >= 40, `MIN_EXECUTED_TESTS must not be lowered below 40, found ${MIN_EXECUTED_TESTS}`);
-  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 6);
+  // Raised to 7 when catalog-groups.test.mjs was added. The pin is an equality, not a floor, so
+  // that a RAISE is as deliberate as a lowering: a floor that drifts up with the suite silently
+  // re-baselines itself and stops being a statement about what must exist.
+  assert.equal(MIN_DECLARED_TESTS_BY_DIRECTORY['test-kits/contracts'], 7);
+});
+
+// The manifest's key set was self-selecting: the floor required seven named keys and a length,
+// and a length is satisfied by whatever remains. Independent review deleted the branch-scope
+// guard, all four protocol schemas, the catalog index and the secret scanner -- 43 entries down
+// to 36 -- then replaced the guard's entire enforcement path with `const stray = []`, and the
+// check exited 0. That is a removal of protection, not the acknowledged
+// edit-the-file-and-its-digest-together class.
+test('every file whose absence from the manifest would itself be the defect is digested', async () => {
+  const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));
+  const missing = PROTECTED_KEYS.filter((key) => manifest.files?.[key] === undefined);
+  assert.deepEqual(missing, [], `file(s) that must carry a digest and do not:\n  ${missing.join('\n  ')}\n`
+    + 'A guard, a schema deciding what a package may claim, or a registry a gate decision rests on '
+    + 'cannot be removed from the protected set by deleting a line.');
+});
+
+test('a step named in the chain cannot run something else', () => {
+  // Requiring the STEP is not requiring the WORK. `test:bootstrap` and `verify:coverage-floor`
+  // were pinned to exact commands and the three steps between them only by name, so
+  // `"validate:protocol": "true"` and `"scan:secrets": "true"` each passed at exit 0 — the chain
+  // still read correctly, every guard still listed, and two of them ran nothing at all.
+  //
+  // Found by probing the chain rather than by a review: "can a guard be made not to RUN, instead
+  // of made to pass?" is a different question from "can a guard be made to pass", and the chain
+  // check only ever answered the second.
+  for (const name of Object.keys(CHAIN_COMMANDS)) {
+    for (const replacement of ['true', ':', 'echo ok', 'node --version']) {
+      assert.throws(() => assertPackageScripts(okScripts({ [name]: replacement })),
+        (error) => error.code === 74,
+        `${name} = ${JSON.stringify(replacement)} must be rejected`);
+    }
+    assert.throws(() => assertPackageScripts(okScripts({ [name]: undefined })), (error) => error.code === 74);
+  }
+  // And the real commands still pass, so the pin is a pin and not a ban.
+  assert.doesNotThrow(() => assertPackageScripts(okScripts()));
+});
+
+test('the clean-run reporter separates a failing count from a failing test', async () => {
+  // `npm run check` printed `pass 225, fail 0` and exited 88 -- a count the runner could not
+  // reconcile, not a failing test. I verified two commits by grepping the summary lines and
+  // shipped both red. This asserts the reporter says the thing I got wrong, out loud.
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile('scripts/verify-clean-run.mjs', 'utf8');
+  assert.match(source, /result\.status/, 'the reporter must read the process status, not the output');
+  assert.match(source, /every test passed and the run still failed/,
+    'the exit-88 shape needs saying in words, because the numbers look clean');
+
+  const scripts = JSON.parse(await readFile('package.json', 'utf8')).scripts;
+  assert.equal(scripts.verify, 'node scripts/verify-clean-run.mjs');
+  // `verify` must not be a STEP of `check`: it runs check as a child, and a chain containing it
+  // would recurse. Compared step by step, not by substring -- the first version of this line used
+  // `check.includes('npm run verify')` and matched `npm run verify:coverage-floor`, failing the
+  // moment it was written. Substring-instead-of-structure is the same habit that produced the
+  // exit-88 report this whole test exists because of.
+  const steps = scripts.check.split('&&').map((step) => step.trim());
+  assert.ok(!steps.includes('npm run verify'), 'verify wraps check; check must not invoke verify');
+});
+
+test('the repository declares no dependency and no lifecycle script', async () => {
+  // Probing the npm layer: `package.json` accepted `"dependencies": {"left-pad": "^1.3.0"}` and
+  // `"preinstall": "node -e …"` at exit 0. CI runs `npm ci --ignore-scripts`, so a lifecycle
+  // script does not execute there today — but that flag is one edit away, and a developer running
+  // `npm install` has no such protection. **A preinstall script runs before every guard in this
+  // repository**, which is a stronger position than any bypass found so far.
+  //
+  // Zero dependencies is a stated property of this repository and was asserted by nothing.
+  const { readFile } = await import('node:fs/promises');
+  const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    assert.equal(manifest[field], undefined,
+      `package.json declares ${field}; this repository runs on the pinned toolchain and nothing else`);
+  }
+
+  // npm runs these around install, before anything here can look at the tree.
+  const LIFECYCLE = [
+    'preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly',
+    'prepack', 'postpack', 'preuninstall', 'uninstall', 'postuninstall', 'dependencies',
+  ];
+  const present = LIFECYCLE.filter((name) => manifest.scripts?.[name] !== undefined);
+  assert.deepEqual(present, [], `package.json declares npm lifecycle script(s): ${present.join(', ')}`);
+
+  // And the script set is pinned, so a new script cannot appear unremarked — the same reason the
+  // chain is pinned step by step.
+  assert.deepEqual(Object.keys(manifest.scripts).sort(), [
+    'check', 'check:handoff', 'check:scope', 'commit', 'record:verification', 'refresh:handoff',
+    'regenerate:manifest', 'scan:secrets', 'test:bootstrap', 'validate:protocol', 'verify',
+    'verify:coverage-floor',
+  ]);
+
+  const ci = await readFile('.github/workflows/ci.yml', 'utf8');
+  assert.match(ci, /npm ci --ignore-scripts/,
+    'CI must install with --ignore-scripts; without it a lifecycle script runs before every guard');
+});
+
+test('no npm configuration file redirects what npm run executes', async () => {
+  // `script-shell=/usr/bin/true` in `.npmrc` makes every `npm run` a no-op. Independent review
+  // seventeen ran it: `npm run check` exited 0 having executed nothing, and `npm run verify` --
+  // the command this repository tells reviewers to trust because it reports the status -- exited
+  // 0 printing `clean` and no counts at all.
+  //
+  // The chain string was untouched, so the allowed-alphabet check saw nothing wrong. **npm decides
+  // which shell runs the chain, and that decision lived in a file no guard read.** Only CI's
+  // `node scripts/verify-test-coverage-floor.mjs` step survived, because it is invoked directly
+  // rather than through npm.
+  //
+  // If this repository ever needs an npm configuration file, digest it and add it to
+  // DIGESTED_FLOOR in the same commit. Until then its absence is the control.
+  const { readdir } = await import('node:fs/promises');
+  const NPM_CONFIG_FILES = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs', 'pnpm-workspace.yaml'];
+  const present = (await readdir('.')).filter((name) => NPM_CONFIG_FILES.includes(name));
+  assert.deepEqual(present, [], `npm/package-manager configuration file(s) present: ${present.join(', ')}. `
+    + 'One line in such a file can redirect or silence every npm run in this repository, including the verifier.');
+});
+
+
+test('package.json carries no field nobody declared', async () => {
+  // Probed `"type": "commonjs"`, `"workspaces": ["packages/*"]` and an `"imports"` subpath map:
+  // all three pass, and all three are inert here — every file is `.mjs`, so `type` changes
+  // nothing, and the other two are unused. **Recording that they are inert rather than guarding
+  // them as if they were dangerous**; the guard that is worth having is the same one every other
+  // declaration file in this repository already has.
+  //
+  // A new top-level field is then a reviewed line, which is what stopped `normative_rules` in a
+  // work package and `freeze_approved` in the catalog index.
+  const { readFile } = await import('node:fs/promises');
+  const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+  assert.deepEqual(Object.keys(manifest).sort(), ["description", "engines", "name", "packageManager", "private", "scripts", "version"]);
+});
+
+
+test('the behaviour ratchet puts enough reversals through each suite', async () => {
+  // This counted `/^\s+\['/gm` over the source. Independent review twenty-one wrote
+  // `reversals.slice(0, 0)` into the loop that consumes them: the 23 tuples stayed in the file,
+  // this count still read 23, and **not one of them executed.**
+  //
+  // **A count over source text is satisfied by dead syntax.** The control now lives inside
+  // `mustNotice`, which asserts at RUNTIME that it was handed at least two reversals, and the
+  // registry case generates a cross-product rather than listing three. This test keeps only what
+  // a source count can honestly say: that the file still calls the helper that carries the
+  // runtime assertion, and that the helper still makes it.
+  const { readFile } = await import('node:fs/promises');
+  const raw = await readFile('test-kits/ratchets-bite.test.mjs', 'utf8');
+  // Comments are prose, not code. The first version of the last assertion below matched the
+  // comment in that file describing the very bypass it forbids -- a guard tripping on its own
+  // explanation, which is the sixth wrong reason recorded in this package.
+  const source = raw.replace(/^\s*\/\/.*$/gm, '');
+  assert.match(source, /assert\.ok\(reversals\.length >= 2,/,
+    'mustNotice must assert its own reversal count at runtime, where dead syntax cannot satisfy it');
+  const calls = (source.match(/await mustNotice\(/g) ?? []).length;
+  assert.ok(calls >= 9, `ratchets-bite calls mustNotice ${calls} time(s), expected at least 9`);
+  assert.doesNotMatch(source, /reversals\.slice\(/,
+    'the reversal list must reach the loop intact');
 });

@@ -3,7 +3,68 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 20**, complete. Eleven Draft PRs, #2 through #12, all CI green at their true heads.
+Updated continuously. Last wave: **wave 62**. Thirteen Draft PRs, **#1 through #13**,
+all CI green at their true heads. `npm run verify` at the top of the stack: **clean: exit 0 — 249/249,
+fail 0, skipped 0, todo 0**. All thirteen were re-checked at their live heads after the
+last wave: **thirteen `pass`, thirteen `MERGEABLE`**, and the merge-order drill re-run
+from a fresh clone of the real `main` is green at every step.
+
+**Twenty independent verification runs** were dispatched against this work, and a
+twenty-first is in flight. **Twelve of the twenty shipped an untested business rule past every
+guard.** The last three did it from *outside* the repository's own files, which turned out to
+be the productive direction: a newline in the `check` string skipped the entire suite at exit
+0; one line in `.npmrc` silenced every `npm run` including the verifier; a guard replaced by a
+symlink kept its digest intact while its bytes came from outside the repository. That number is the honest measure of this
+repository's guards, and it is why the runs keep going.
+
+**What review thirteen did, because it is the clearest single example.** In JSON Schema,
+`false` is a schema that rejects every instance. One token — `"items": false` — put *"every
+paginated page must carry zero rows"* into `CTR-PAG-001`, on the exact property whose own
+annotation says the contract does not constrain it, where **no fixture can ever reach it**.
+`npm run check` exited **0 at 198/198**, the ~950-line constraint record was **byte-identical**,
+and no declaration changed anywhere. It did the same to the envelope contract every module
+composes, and to the tenant context nine contracts `$ref`. The repository's validator read a
+boolean as *"no schema here"* while every real validator enforces it — which is the exact
+invariant that validator's own header says it exists to protect.
+
+**Review fourteen removed every ownership guard in three edits, at exit 0, 208/208.** The
+four protocol validators were not in the protected list, the tool that rebuilds the manifest
+re-adds only test files, and the entry point that `npm run validate:protocol` actually calls
+was executed by no test at all — so stubbing it took three guards written the wave before
+with it. A branch changing a contract it neither owns nor amends then reported *"all 932
+changed path(s) are declared"*.
+
+**And review twelve found that a digest pins bytes, not behaviour.** Both guards that run only
+in CI had tests importing their helpers and never executing `main()`, so replacing the guards
+with no-ops passed at exit 0 with a perfectly honest digest. That one falsified a sentence I
+had written into this package's own evidence.
+
+**Four of the nine fixes for review eleven found a real defect the moment they ran, none
+of them planted:** handoffs citing a commit range that did not match their own file lists;
+the tool that rewrites the integrity manifest was not itself in the manifest; `CTR-USG-001`
+shipped `"allOf": []`, a rule that accepts every document, invisible to 184 tests; and the
+two-way impact check found a false positive in its own first formulation, corrected before
+it was committed.
+
+---
+
+## The one command
+
+```bash
+npm run verify
+```
+
+It runs the whole check as a child process and reports the **exit code**, which is the thing I got
+wrong twice by reading the summary lines instead. Clean looks like this:
+
+```
+clean: exit 0 — tests 233, pass 233, fail 0, skipped 0, todo 0
+```
+
+Anything else prints `NOT clean`, the exit code, and the runner's last line. If it ever prints
+`clean` with no counts, something silenced npm itself — run
+`node scripts/verify-test-coverage-floor.mjs` directly, which is what CI does and what an npm
+setting cannot reach.
 
 ---
 
@@ -11,8 +72,9 @@ Updated continuously. Last wave: **wave 20**, complete. Eleven Draft PRs, #2 thr
 
 | # | Decision | Why it is yours |
 |---|---|---|
-| 1 | **Dispose RFC-2026-003 through -009** | All seven are `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
-| 2 | **Merge PRs #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12 in that order** | Stacked; each depends on the one before. |
+| 1 | **Dispose RFC-2026-003 through -010** | All eight are `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
+| 2 | **Merge PRs #1 → #13 in order. Drilled four times: it works.** | The whole stack is merged into a scratch copy of the real `main`, in PR order, with the check after every step — re-run whenever the top of the stack moves. Latest: **green at all thirteen, 26 → 249 tests, no conflict in any file.** The pull requests are *stacked*, each targeting the branch below it, so **GitHub retargets them as you merge and there is no rebase step for you to perform** — merging in numeric order through the UI is all that is required. If a sequence ever does collide, it will be in one of the two *generated* files (`test-kits/integrity-manifest.json`, `evidence/VERIFICATION.md`); regenerate rather than merge them — `npm run regenerate:manifest`, `npm run record:verification`, `npm run regenerate:manifest`, then `npm run verify`. **A conflict in any other file is a real disagreement — stop.** Evidence: `evidence/WP-0A-CON-008/merge-order-drill.md`. **Merge the whole stack** — stopping partway leaves manifests reading `backlog` while their work is on `main`, because the status corrections arrive last. |
+| 2b | **Dispose RFC-2026-010** | Nine contracts are ready to leave `Draft`. `Draft` permits *exploratory spikes only*, so every consumer package waiting to build a fake or a consumer test is blocked by a status, not by missing work. Five are A0's to propose; four need **A1** or **A6**; `CTR-NTF-001` is A5's and was deliberately not assessed. |
 | 3 | **`/root/r0_steward` countersignatures** | My Integration Owner correctly refused to sign for a run it is not: different vendor, and not the owner of the amended packages. |
 | 4 | **A1 must ratify the secret-handle syntax** | `CTR-MOD-001` (owner A0) fixed syntax chartered to `CTR-SEC-001` (owner A0+A1). Recorded, not resolved. |
 | 5 | **A5 and A6 must ratify `CTR-NTF-001` and `CTR-USG-001`** | I authored `CTR-NTF-001`, which A5 owns. Independent review graded that **High**: §4.1 reserves *proposing* a contract to its owner. I stopped authoring contracts at that point; the remaining catalog work belongs to A1–A6, not to me. |
@@ -49,11 +111,11 @@ text, and broke the moment the pattern was made RE2-portable. Both now assert
 
 ## Numbers
 
-- `npm run check`: **26 → 142 tests**, skipped 0, todo 0
+- `npm run check`: **26 → 156 tests**, skipped 0, todo 0
 - Shared-kernel contract catalog: **4 → 14 of 14** contracts materialized
 - Contract fixtures under schema conformance: **0 → ~545**
 - Secret scanner against an **uncorrelated** 56-decoy corpus: **1/56 → 19/56**, and 9/9 on the Meta and Stripe families that are your own G0 blockers
-- Mutation coverage, measured honestly: **19.3% → 91.2%** (654 of 717 constraint sites), four contracts at 100%
+- Mutation coverage, on a criterion that is now evidential: **19.3% → 91.1%** (653 of 716 constraint sites). Independent verification re-implemented the metric and reproduced both this and the control figure below.
 - Conditional (`if`/`then`) rules: **100% of the sites that can be tested at all**
 
 ## The measurement was wrong twice, and both corrections are in the record
@@ -94,6 +156,54 @@ one is killed by a fixture or proved unkillable, and the proof cites the schema.
 Nine further fixtures were written and eight deleted again — measured one at a time
 they closed nothing, because a duplicated constraint rejected them for another reason
 first. Keeping them would have looked like coverage and been none.
+
+## What independent verification kept finding
+
+Nine runs were dispatched. **The first eight each found at least one real defect**,
+and the pattern in what they found matters more than the totals.
+
+| # | What it found | Severity |
+|---|---|---|
+| 1 | The redundancy proof excused constraints a real instance can distinguish | High |
+| 2 | **Shipped an untested business rule past the whole suite with CI green** | High |
+| 3 | The card rule missed a PAN followed by an expiry and a CVV — the shape a leak takes | High |
+| 4 | I added the 14-digit length for Diners Club, then rejected how Diners is printed | High |
+| 5 | A rule with no assertion keyword in it was invisible to the entire ratchet; **628 more like it** | High |
+| 6 | The kill criterion was direction-blind; `not: {required:[a,b]}` scored killed vacuously | High |
+| 7 | The negative direction was *also* vacuous — proven by deleting every negative fixture and watching nothing change | High |
+| 8 | The constraint record was never verified, only its digest; a rule inside `oneOf` was invisible | High |
+| 9 | *(running)* | — |
+
+**Every error I made was in the direction that flattered the work, and I found none of
+them myself.** Three times I annotated a list with "not closeable" and was wrong. Four
+times I quoted a test count that was true two edits earlier. Twice I widened the card
+rule without measuring what else it admitted, and one of those broke the build on
+ordinary Markdown.
+
+Two of those became controls rather than apologies:
+
+- **I stopped typing the test count.** `npm run record:verification` writes it and the
+  runner exits 89 if the record disagrees with the run. It caught me within the same
+  wave it was added.
+- **Every untested constraint is named, not counted.** A count can be offset by
+  deleting a rule elsewhere; independent testing did exactly that. A name cannot.
+
+## Where the work now stands
+
+**The G0 internal-specification lane that A0 can act on is close to exhausted.** Every
+item under "internal specification" in the G0 checklist is ticked. The nine unticked
+items are all human or external: your approval of DEC-01..16, Meta credentials, a real
+Stripe sandbox, legal/PDPA/accountant, five Thai SME usability participants, a
+qualified skincare reviewer, storage-provider evidence, and protected CI, which needs
+a paid GitHub plan.
+
+I checked `WP-0A-A6-001`, which A0 co-owns and which looked startable. Its own
+acceptance criteria forbid advancing it until A6 supplies an independently reviewed
+capability benchmark. It is parked on purpose.
+
+So the useful thing left was not more test polish — it was the two things in the
+decision table above: **proving the merge works**, and **putting the freeze evidence
+in front of the owners**.
 
 ## Waves 19–20: the fourth independent run found the biggest hole yet
 
@@ -173,17 +283,49 @@ work, and none of them was found by me.**
 
 ## What is NOT closed, stated plainly
 
-1. **The test-integrity guard is a tripwire, not a control.** A commit editing a file and its digest together passes. Independent review confirmed this is a fixed-point property, not a missing idea.
-2. **`npm run check` can be neutered by its own script.** A trailing `&`, or `||` at every position, exits 0 having run nothing — the guard is either never reached or already too late. The fix belongs to `ci.yml`, which I do not own.
-3. **The secret scanner still misses 37 of 56 uncorrelated decoys**, most cloud-vendor families and most credential-carrying file formats. A pattern scanner cannot prove absence.
-4. **There is no cardholder-data rule in the scanner**, although a payment provider is one of your own G0 blockers.
-5. **`ctr-evt-001.metadata.schema_ref` accepts all 16 hostile forms I threw at it.** It needs a *different* constraint, not a tightened one, because the contract's own fixture does not match the catalog's reference pattern. Escalated deliberately rather than patched.
-6. **No `maxLength` on any `_ref` field** anywhere in the catalog.
-7. **A structural hole remains in the coverage ratchet.** Conformance forces `valid-*` fixtures to pass and `invalid-*` to fail, so a newly added rule can never count as "killed" without a new fixture. `UNKILLED_CEILING` is the only arithmetic backstop, and deleting one rule elsewhere offsets adding an untested one. The shaped-evasion case is now caught; the general observation is not closed.
-8. **`CTR-NTF-001.deep_link.target_ref` is still unbounded.** A5 owns it; reported, not fixed.
-4. **`ctr-evt-001.metadata.schema_ref`** accepts 16/16 hostile forms. Its fixture is `CTR-EVT-001@1.0.0`, which the catalog pattern does not match — so the remedy is a *different* constraint, not a copy-paste.
-5. **No `maxLength` on any `_ref` field**: an 8192-character reference is accepted.
-6. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+Re-measured against the code at wave 45, not carried forward from an earlier wave. Four items
+that were on this list have since been closed and are recorded at the bottom rather than deleted,
+because a list that only grows is a list nobody trusts.
+
+1. **The test-integrity guard is a tripwire, not a control.** A commit editing a file and its
+   digest together passes. Independent review confirmed this is a fixed-point property, not a
+   missing idea. What it does buy: the edit is explicit and appears in a diff.
+2. **`npm run check` can be neutered by its own script string.** A trailing `&`, or `||` at every
+   position, exits 0 having run nothing. This is why `ci.yml` invokes the guards *itself* rather
+   than trusting the chain — but the workflow is not protected, which is item 3.
+3. **Protected CI is still an open Gate G0 requirement.** It needs a paid GitHub plan. Until then
+   every guard in this repository is a tripwire in the same sense as item 1: it makes tampering
+   visible in a diff, and nothing more.
+4. **The secret scanner missed 37 of 56 uncorrelated decoys when last measured** (wave 24, before
+   the cardholder rule), most cloud-vendor families and most credential-carrying file formats.
+   That number has not been re-measured since; treat it as a floor on what a pattern scan cannot
+   do, not as a current score. **A pattern scanner cannot prove absence.**
+5. **`ctr-ntf-001.deep_link.target_ref` is the one unbounded reference left.** Measured just now:
+   10 `_ref` properties in the catalog, 9 bounded by `maxLength` or a `$ref`, this one bounded
+   only by a pattern — which permits unbounded length. **A5 owns CTR-NTF-001**; reported, not
+   fixed, because changing it is that package's decision.
+6. **A structural hole remains in the coverage ratchet.** Conformance forces `valid-*` fixtures to
+   pass and `invalid-*` to fail, so a newly added rule can never count as "killed" without a new
+   fixture. The shaped-evasion case is caught and the named list closes the arithmetic offset; the
+   general observation is not closed.
+7. **`ctr-evt-001.metadata.schema_ref` is deliberately not the catalog reference pattern.** It is
+   now bounded (`maxLength: 32`) and shaped (`CTR-XXX-000@n.n.n`), and its `x-source` says in
+   writing that the divergence is intentional. It is listed here so the *decision* is visible, not
+   because it is a defect.
+8. **~~Prose in an `x-` annotation is not enforced, by design.~~** I wrote that one wave ago and it was the wrong call. Independent review fourteen inverted `CTR-SEC-001`'s `x-opacity-limitation` — *"THIS PATTERN IS NOT A SECURITY CONTROL"* became *"IS A SECURITY CONTROL … no further opacity mechanism is required before freeze"* — and deleted the record that nothing binds a claimed scope to its handle, at **exit 0**. Other suites cite `x-reference-rule` as *the* source of a rule, so the channel is normative. All **157** annotations are now pinned by per-contract digest and count. **The cost is real: fixing a typo in a comment is now a ratchet edit.** That is the price of a channel that carries security admissions.
+9. **A fabricated approval written into a handoff or an evidence file is caught by nothing.** Those paths are `WRITTEN_AFTERWARDS` by construction — a handoff cannot list the commit that contains it — so a handoff claiming `/claude/a1_bastion` approved something, or an evidence file recording a verification that never ran, passes every guard. Independent review sixteen demonstrated it. **A digest cannot fix this; it needs the reviewer to read the handoff.** A *new* RFC file is caught by the branch-scope guard (exit 73) but not by `npm run check`.
+10. **The environment the interpreter starts in is not defensible from inside the repository.** `NODE_OPTIONS=--require …` runs code before any guard and exits 0; `NPM_CONFIG_SCRIPT_SHELL=/usr/bin/true` silences every `npm run` the way `.npmrc` did, and npm reads environment variables above every config file. The one containment that survives both: **CI invokes `node scripts/verify-test-coverage-floor.mjs` directly, and an npm environment variable does not touch `node`.** So does anything else the runner is handed. The answer is protected CI on a trusted runner — item 3 — not another test. Stated rather than guarded badly.
+11. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.
+
+### Closed since this list was first written
+
+- **A cardholder-data rule now exists** in the scanner — nine issuer families, Luhn plus issuer
+  prefix, fullwidth/Thai/Arabic-Indic digit folding, and printed-layout grouping. It fired on its
+  own author's evidence file the day it landed.
+- **`_ref` bounds**: 9 of 10 references gained a `maxLength`; the tenth is item 5 above.
+- **`schema_ref` hostile forms**: bounded and shaped, see item 7.
+- **The eight untested-rule bypasses** independent review found through wave 30 are each closed
+  with a named test, and every fix is recorded in `evidence/WP-0A-CON-008/`.
 
 ## About the method, since it is the part I would question
 
@@ -219,12 +361,22 @@ Start here, in order:
 
 ### Working rules, each learned by breaking something
 
+- **Run the branch-scope guard AFTER committing, with the pull request's own base sha.** It diffs `base..HEAD`, so an uncommitted change is invisible to it and a convenient base is a smaller range than the one CI uses. Both mistakes shipped a red CI run in the same night: `npm run check:scope <pr-base-sha> <package-id>`.
+- **Every static property of a file can be reproduced by a file that does nothing.** Test counts, assertion counts and even test names were each pinned in turn, and each was defeated by copying the number or the strings. The ratchet that holds pins *behaviour*: reverse a real rule in a copy of the repository and require the suite to fail. `test-kits/ratchets-bite.test.mjs`.
+- **`resolve()` does not follow symlinks; `import.meta.url` is the realpath.** Ten guards ended with `resolve(process.argv[1]) === fileURLToPath(import.meta.url)`, and `git mv scripts tools && ln -s tools scripts` made every one of them exit 0 having run nothing. Compare realpaths on both sides, and `lstat` **every path component** of a protected file, not the leaf.
+- **A guard can only be trusted from outside what it audits.** One line in `.npmrc` — `script-shell=/usr/bin/true` — made every `npm run` a no-op: `npm run check` exited 0 having run nothing, and `npm run verify` exited 0 printing `clean`, because it runs through npm too. The only survivor was `node scripts/verify-test-coverage-floor.mjs`, invoked directly. **Exit 0 is not evidence that anything ran.**
+- **`npm run commit <message-file>` — do not use `git commit` directly.** It runs the verifier and commits only if it reports clean, both the exit code and the counts line. I committed a red tree three times by running the verifier afterwards; a rule broken three times is a hope, not a rule, so the order is enforced rather than remembered.
+- **Read the exit code. A summary line is not an exit code.** `npm run check` can print `pass 225, fail 0` and exit **88** — the runner refuses a test count it cannot reconcile, and no test has failed. I verified two commits with `grep "ℹ (pass|fail)"` and shipped both red. Verify with `npm run check; echo $?`.
+- **A test generated in a loop is invisible to the declaration counter.** `for (… of CASES) test(…)` declares one test and runs two. Write each `test()` call out.
+- **Regenerate every generated fact before committing: `npm run refresh:handoff`, `npm run regenerate:manifest`, `npm run record:verification`.** Three separate things in this repository were maintained by hand and were each wrong at least once: the test count (quoted from two edits earlier, four times), the integrity manifest, and the handoff's commit range. Nobody should type a fact the repository already knows.
+- **A guard that reports a wrong reason is worse than one that stays silent.** The handoff-drift check shipped twice broken — first red by construction (a handoff cannot cite the commit that contains it), then reporting a reversed diff as drift. Both were caught by running it, not by reading it. A wrong reason is how a real finding gets dismissed as noise.
+- **A check that is normally red teaches people to ignore it.** If a guard fails during ordinary work rather than at the moment a mistake is made, the guard is wrong, not the workflow.
 - **The pinned toolchain is already on this machine.** `zsh -lc 'npm run check'` reaches Node 24.20.0 at `/Users/bank/.local/node-v24.20.0/bin/node`. The default shell has Node 26 and will fail with exit 68. **Do not download anything** — one agent did, unnecessarily.
 - **Never switch branches while a subagent holds the working tree.** It cost the Integration Owner's evidence once, which landed on the wrong package's branch.
 - **Never `git checkout --` a file with uncommitted work.** It discarded a whole round.
 - **Run every destructive probe in a copy outside the repository.** `tar -cf - --exclude=.git . | (cd $SANDBOX && tar -xf -)`. Twice, attack payloads were left in the live tree.
 - **Verify every claim against the tree before writing it into a commit message.** A failed heredoc once left an evidence file unwritten while the commit said it existed.
-- **Any package adding a test file must also update `test-kits/integrity-manifest.json`** and recompute all digests over file *bytes*, or the guard exits 87. This makes a stacked rebase conflict there by construction; rebuild it from disk rather than resolving by hand.
+- **Any package adding a test file must also update `test-kits/integrity-manifest.json`** and recompute all digests over file *bytes*, or the guard exits 87. This makes a stacked rebase conflict there by construction; run `npm run regenerate:manifest` rather than resolving by hand. Four places in this repository said "rebuild the digests" for weeks with no command to do it, so every rebuild was improvised under a conflict.
 - **Assert behaviour, never pattern text.** A test that pins a regex literal makes the next correction fail CI — that is how the `input_ref` vulnerability was held in place, and the same trap sprang twice more on the fixes for it.
 - **Write rules into `schema.json`, not into test predicates**, and give every rule an `x-source` naming the baseline task. Two packages were rejected for letting the two drift apart.
 - **Schema-resident is not tested.** Run `test-kits/contracts/schema-mutation-coverage.test.mjs` reasoning: delete a constraint, see whether any fixture verdict flips. Coverage sat at 10–19% while every conformance suite was green.
@@ -232,6 +384,23 @@ Start here, in order:
 - **A ratio can always be improved by deleting its denominator.** Pin the constraint count per contract, and hold the unkilled ceiling at the measured actual, or coverage regresses into slack no one reads.
 - **Measure each fixture's marginal contribution before shipping it.** Remove it, re-measure, keep it only if a site reopens. Nine looked like coverage; eight were none.
 - **A constraint restated inside a conditional branch cannot be mutation-tested.** Deleting either copy leaves the other rejecting. Prove those unkillable and exclude them; chasing them with fixtures produces exactly the mechanical fixtures that make a suite look thorough and test nothing.
+
+- **Regenerate machine-written files AFTER a rebase, never during it.** The integrity
+  manifest and `evidence/VERIFICATION.md` both conflict by construction on a stacked
+  rebase — every package writes to them — and both are generated. I regenerated one
+  mid-rebase and shipped a stale count.
+- **Read the exit code, not the output.** I grepped a summary, saw the right test
+  number, and missed that the run had exited 89. The number was right and the run had
+  failed.
+- **Measure a widening in both directions before shipping it.** Twice I widened the
+  card rule to catch a representation and did not measure what else it admitted; one
+  of those made 15% of ordinary Markdown bullet lists fail the build.
+- **A test that reads its expected value out of the thing it is testing cannot fail.**
+  I pinned a reference field's accepted schemes by deriving them from that field's own
+  pattern; narrowing the field narrowed the test with it.
+- **"Not closeable" is a measurement, not a judgement.** Three times I wrote it into a
+  list from reasoning about the schema, and three times an independent run closed the
+  sites in an afternoon.
 
 ### The one thing worth doing before more of this
 
