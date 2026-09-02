@@ -40,8 +40,18 @@ async function main(argv) {
   // that would have blocked all work rather than allowing it.
   //
   // The paths, and a digest of each one's bytes: staging changes neither.
+  //
+  // `-uall` is load-bearing, and its absence was the EIGHTH wrong reason. Plain `--porcelain`
+  // collapses an untracked directory into a single entry -- `?? evidence/WP-0A-A6-001/` -- which
+  // is not a readable file, and which `git add -A` then expands into one entry per file. The path
+  // set therefore differed across staging for reasons that had nothing to do with anything
+  // changing, and the guard refused the FIRST COMMIT OF EVERY PACKAGE that creates its own
+  // evidence directory. Two runs hit it independently within an hour: an A6 author run in its own
+  // worktree, which worked around it rather than touching a guard outside its writable paths, and
+  // A0 on this branch. `-uall` lists untracked files individually, so the set is the same on both
+  // samples and the check measures what it claims to measure.
   const treeState = () => {
-    const status = run('git', ['status', '--porcelain']);
+    const status = run('git', ['status', '--porcelain', '-uall']);
     const paths = (status.stdout ?? '').split('\n')
       .map((line) => line.slice(3).trim())
       .filter(Boolean)
