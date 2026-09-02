@@ -43,7 +43,7 @@ from `test-kits/contracts/schema-mutation-coverage.test.mjs`.
 
 | Contract | Co-owner | Required before freeze | Present | Coverage |
 |---|---|---|---|---|
-| CTR-SEC-001 | A1 | opaque ref · scope · rotation/revoke · redaction tests | 4/4 | 91.2% |
+| CTR-SEC-001 | A1 | opaque ref · scope · rotation/revoke · redaction tests | 3/4 | 91.2% |
 | CTR-AUD-001 | A6 | actor/scope/action/reason/ref/redaction | 1/1 | 98.2% |
 | CTR-OBS-001 | A6 | propagation · SLI tags · bounded cardinality | 3/3 | 100.0% |
 | CTR-USG-001 | A6 | dimensions · attribution · decimal money · dedupe | 4/4 | 100.0% |
@@ -66,13 +66,21 @@ two is real:
 - *"auth rules"* is checked as **`tenant_context` is referenced**. The contract carries
   the trusted context; it does not encode an authorization policy.
 - *"decimal money"* is checked as **a money-shaped property with a decimal
-  representation**. An accountant has not reviewed it, and OPEN-016 still requires that.
+  representation**. An accountant has not reviewed it, and **OPEN-001** requires that. An earlier version of this line cited OPEN-016; that is the Product KPI item, and A6 corrected the citation in co-owner review. OPEN-001 is the price/VAT/refund item whose owner is "Product + Accountant" — and the schema does not touch it: `cost` carries amount, currency and basis and states no VAT treatment at all.
 - *"bounded cardinality"* is checked as **`sli_tags` closes `additionalProperties` or
   constrains its values**. Whether the resulting cardinality is operationally
   acceptable is an SRE judgement.
 
 Each phrase was written by someone who knew what they meant by it. A script can show
 the artifact exists; only the owner can say it is the artifact they meant.
+
+**The co-owners have now said it, and the script was wrong in one row.** `CTR-SEC-001`
+reads **3/4**, not 4/4: A1 found that *"redaction tests"* has no artifact at all. What
+ships under that name is `redaction`, six `const: true` flags — a producer's
+self-attestation that, because every flag is `const: true`, cannot express an unsafe
+surface and so carries no evidence about behaviour. The contract's own manifest says
+this; the presence check counted the block and did not read it. That is exactly the gap
+this section describes, caught in the row that claimed to be complete.
 
 ## Why coverage is quoted, and why it is not the criterion
 

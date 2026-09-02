@@ -8,8 +8,8 @@
   },
   "ownership": "managed",
   "classification": "restricted",
-  "state": "revoked",
-  "resolvable": false,
+  "state": "rotating",
+  "resolvable": true,
   "rotation": {
     "owner": {
       "kind": "platform_role",
@@ -26,7 +26,7 @@
     "error_trace_safe": true
   },
   "revocation": {
-    "revoked_at": 12345,
+    "revoked_at": "2026-08-31T11:42:00Z",
     "actor": {
       "kind": "user",
       "id": "user_synthetic_0003"
