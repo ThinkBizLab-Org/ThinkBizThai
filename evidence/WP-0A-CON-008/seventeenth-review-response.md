@@ -89,3 +89,44 @@ recursive walk found). Corrected where it was written.
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+---
+
+## Self-probe in the same layer: what a guard reads versus what it protects
+
+`.npmrc` was one instance of a class — configuration that changes what tooling sees without
+changing a byte any guard reads. Probing the rest of that class:
+
+| probe | result |
+| --- | --- |
+| duplicate `"files"` key in the integrity manifest (`JSON.parse` keeps the last) | **exit 86** — held |
+| a credential in a `.gitignore`d file | **exit 70** — held; the scanner walks the tree, not git |
+| **a guard script replaced by a symlink to a file outside the repository** | **exit 0** — hole |
+| `.gitattributes` with a `filter=` attribute | **exit 0** — hole, latent |
+| `NODE_OPTIONS=--require …` | **exit 0** — not closeable from inside the repository |
+
+### The symlink
+
+`readFile` follows a symlink, so `scripts/verify-branch-scope.mjs → /tmp/elsewhere/x.mjs` keeps
+its digest matching perfectly: the bytes are simply read from somewhere nothing here protects.
+**What a symlink buys is not a byte change; it is a change of where the bytes come from.** On
+another machine, in CI, or after a clone, that path holds something else or nothing at all, and the
+digest that vouched for the file vouched for a target no one can see from here.
+
+Every digested path must now be a regular file — `lstat`, all 65 of them. Verified: **exit 91**,
+naming the link.
+
+### `.gitattributes`
+
+A `filter=` attribute routes content through a program on checkout and check-in, so the working
+tree need not hold the bytes the object store does. The filter's *definition* lives in
+`.git/config` and is not committed, which makes the attribute file harmless on its own — and
+exactly the kind of thing that is harmless until it is not. Added to the same declare-or-absent
+rule as `.npmrc`. Verified: **exit 90**.
+
+### `NODE_OPTIONS`, stated rather than guarded
+
+`NODE_OPTIONS=--require /tmp/pre.cjs npm run verify` exits 0. **Nothing inside a repository can
+defend against the environment its own interpreter is started with**, and pretending otherwise
+would be a guard that reports a wrong reason. It belongs with protected CI on the "not closed"
+list: the answer is a trusted runner, not another test.

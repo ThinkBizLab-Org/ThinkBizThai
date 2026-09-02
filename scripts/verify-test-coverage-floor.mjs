@@ -1,4 +1,4 @@
-import { readFile, readdir, realpath } from 'node:fs/promises';
+import { lstat, readFile, readdir, realpath } from 'node:fs/promises';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -513,7 +513,40 @@ export async function assertEveryTestFileProtected(files, manifestPath = INTEGRI
 // So this check lives HERE, in the guard CI invokes with `node` directly, which is the only thing
 // in the repository a redirected script-shell cannot silence. That is the same reason RFC-2026-007
 // gives for the workflow invoking this script rather than trusting the chain.
-const PACKAGE_MANAGER_CONFIG = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs', 'pnpm-workspace.yaml'];
+// `.gitattributes` is here for the same reason as `.npmrc`: it changes what tooling sees without
+// changing a byte any guard reads. A `filter=` attribute routes file content through a program on
+// checkout and check-in, so the bytes in the working tree need not be the bytes in the object
+// store. The filter's definition lives in `.git/config` and is not committed -- which makes the
+// attribute file harmless on its own and exactly the kind of thing that is harmless until it is
+// not. Declare it and digest it if this repository ever needs one.
+const PACKAGE_MANAGER_CONFIG = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs',
+  'pnpm-workspace.yaml', '.gitattributes'];
+
+// Every digested path must be a REGULAR FILE. `readFile` follows a symlink, so replacing a guard
+// with a link to a file outside the repository keeps the digest matching -- the bytes are simply
+// read from somewhere nothing here protects. Probed on `scripts/verify-branch-scope.mjs` pointed
+// at `/tmp/elsewhere/x.mjs`: exit 0, everything green.
+//
+// What a symlink buys is not a byte change; it is a change of WHERE THE BYTES COME FROM. On
+// another machine, in CI, or after a clone, that path holds something else or nothing at all --
+// and the digest that vouched for the file vouched for a target no one can see from here.
+export async function assertDigestedFilesAreRegular(manifestPath = INTEGRITY_MANIFEST) {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const wrong = [];
+  for (const key of Object.keys(manifest.files ?? {})) {
+    try {
+      const stats = await lstat(key);
+      if (stats.isSymbolicLink()) wrong.push(`${key} is a symbolic link`);
+      else if (!stats.isFile()) wrong.push(`${key} is not a regular file`);
+    } catch (error) {
+      wrong.push(`${key} cannot be inspected: ${error.code ?? error.message}`);
+    }
+  }
+  if (wrong.length > 0) {
+    throw new CoverageFloorError(91, `digested path(s) that are not regular files:\n  ${wrong.join('\n  ')}\n`
+      + 'A digest over a symlink vouches for a target outside this repository.');
+  }
+}
 
 export async function assertNoPackageManagerConfig(directory = '.') {
   const present = (await readdir(directory)).filter((name) => PACKAGE_MANAGER_CONFIG.includes(name));
@@ -526,6 +559,7 @@ export async function assertNoPackageManagerConfig(directory = '.') {
 
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
   await assertNoPackageManagerConfig();
+  await assertDigestedFilesAreRegular();
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
   const pattern = assertPackageScripts(manifest.scripts);
   await assertIntegrityManifest();

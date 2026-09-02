@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "653f699d69f749912e9fdd6e389e5497766cf129",
-  "head_revision_or_patch_checksum": "aaa0f12bba2b0688271f6ecae3622547a3da7799",
+  "head_revision_or_patch_checksum": "475bbf3d8253ea6d604dbf03a964bf954992c311",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
@@ -29,6 +29,7 @@
     "evidence/WP-0A-CON-008/merge-order-drill.md",
     "evidence/WP-0A-CON-008/ninth-review-response.md",
     "evidence/WP-0A-CON-008/regenerate-manifest.md",
+    "evidence/WP-0A-CON-008/seventeenth-review-response.md",
     "evidence/WP-0A-CON-008/seventh-review-response.md",
     "evidence/WP-0A-CON-008/sixteenth-review-response.md",
     "evidence/WP-0A-CON-008/sixth-review-response.md",

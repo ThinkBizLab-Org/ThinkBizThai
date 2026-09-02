@@ -39,7 +39,7 @@
     "scripts/verify-branch-identity.mjs": "32c2eb1142794d451468b15bbd67fd979c39bd760e1314932304299a6a3c8ab1",
     "scripts/verify-branch-scope.mjs": "97114de3e950326feaf9e6876f416dbbea3c908941b8ef1106cc8fb46bc91a73",
     "scripts/verify-clean-run.mjs": "b1e699cc243d1aed20cf1b56667d426c1beb78d733b88daffb22d372d8c11578",
-    "scripts/verify-test-coverage-floor.mjs": "c293d77ab4f3e37940dacb790f72a99dd2d59b74d215155f73633bfc07690488",
+    "scripts/verify-test-coverage-floor.mjs": "83a457b489ea5ccf733fe60e31060b63c57d9d9474f59b6c2295d16bafcfbaa1",
     "scripts/verify-toolchain.mjs": "3ee3fb3492df132acb50a6cdbebccddea02d07ef7f800d8d5da55cf3befba633",
     "test-kits/branch-identity.test.mjs": "3b3a71bd607a846ea0f0e609cfd0e9a4706b3196561798dbe3fa7087b6a0faee",
     "test-kits/branch-scope.test.mjs": "92d5a2fc87d9ac13f1f9740fa4d2a784b98373cda4949164be9183c3dd509494",
