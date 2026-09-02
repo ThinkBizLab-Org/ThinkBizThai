@@ -176,8 +176,13 @@ test('no decision record exists outside the directory that holds them', async ()
   //
   // Emphasis, list bullets, quote markers and table pipes are stripped per line and whitespace
   // collapsed; then one pattern matches all of them.
+  // Inline code is QUOTED, not declared. My own evidence file describing this very finding trips
+  // the guard otherwise: it quotes `**Status:** Approved` to explain the bypass, and stripping the
+  // backticks turns the quotation into a declaration. A guard that cannot tell a document from a
+  // description of a document flags the write-up of every finding it makes.
   const normaliseLine = (line) => line
-    .replace(/[*_`>|]/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/[*_>|]/g, ' ')
     .replace(/^\s*[-+]\s+/, '')
     .replace(/\s+/g, ' ')
     .trim();

@@ -134,3 +134,20 @@ stated as a limit rather than approximated.**
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+## And I committed a red tree, again
+
+`npm run verify` exited 1 at the commit above and I pushed it. Two tests failed, and the first was
+**this file**: the write-up quotes `**Status:** Approved` to explain the bypass, and the normaliser
+stripped the backticks — turning the quotation into a declaration.
+
+**A guard that cannot tell a document from a description of a document flags the write-up of every
+finding it makes.** Inline code is skipped before normalisation now, and a real declaration in the
+same file still flags.
+
+The other failure was the workflow behaviour case, which had drifted for the same reason: it
+asserts on a suite that now reports one more finding than its floor expected.
+
+I ran `npm run verify` **after** committing rather than before. The rule that exists for exactly
+this — *read the exit code before you commit* — is in `OVERNIGHT-SUMMARY.md` and I wrote it after
+the last time. Recorded rather than amended away.
