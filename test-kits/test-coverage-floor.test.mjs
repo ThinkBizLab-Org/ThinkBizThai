@@ -386,7 +386,7 @@ test('the repository declares no dependency and no lifecycle script', async () =
   // And the script set is pinned, so a new script cannot appear unremarked — the same reason the
   // chain is pinned step by step.
   assert.deepEqual(Object.keys(manifest.scripts).sort(), [
-    'check', 'check:handoff', 'check:scope', 'record:verification', 'refresh:handoff',
+    'check', 'check:handoff', 'check:scope', 'commit', 'record:verification', 'refresh:handoff',
     'regenerate:manifest', 'scan:secrets', 'test:bootstrap', 'validate:protocol', 'verify',
     'verify:coverage-floor',
   ]);

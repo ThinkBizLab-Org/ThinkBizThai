@@ -19,6 +19,7 @@
     "refresh:handoff": "node scripts/refresh-author-handoff.mjs",
     "check:handoff": "node scripts/refresh-author-handoff.mjs --check",
     "check:scope": "node scripts/verify-branch-scope.mjs",
-    "verify": "node scripts/verify-clean-run.mjs"
+    "verify": "node scripts/verify-clean-run.mjs",
+    "commit": "node scripts/commit-when-clean.mjs"
   }
 }

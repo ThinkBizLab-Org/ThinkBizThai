@@ -105,7 +105,8 @@
       "test-kits/ci-guard-behaviour.test.mjs",
       "test-kits/protocol-schema-conformance.test.mjs",
       "scripts/verify-clean-run.mjs",
-      "test-kits/ratchets-bite.test.mjs"
+      "test-kits/ratchets-bite.test.mjs",
+      "scripts/commit-when-clean.mjs"
     ],
     "read_only_paths": [
       "README.md",
