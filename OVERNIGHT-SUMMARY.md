@@ -3,7 +3,7 @@
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the
 merge for you; I never touched `main`.
 
-Updated continuously. Last wave: **wave 15**.
+Updated continuously. Last wave: **wave 20**, complete. Eleven Draft PRs, #2 through #12, all CI green at their true heads.
 
 ---
 
@@ -11,8 +11,8 @@ Updated continuously. Last wave: **wave 15**.
 
 | # | Decision | Why it is yours |
 |---|---|---|
-| 1 | **Dispose RFC-2026-003, -004, -005, -006, -007** | All `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
-| 2 | **Merge PRs #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 in that order** | Stacked; each depends on the one before. |
+| 1 | **Dispose RFC-2026-003 through -009** | All seven are `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
+| 2 | **Merge PRs #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12 in that order** | Stacked; each depends on the one before. |
 | 3 | **`/root/r0_steward` countersignatures** | My Integration Owner correctly refused to sign for a run it is not: different vendor, and not the owner of the amended packages. |
 | 4 | **A1 must ratify the secret-handle syntax** | `CTR-MOD-001` (owner A0) fixed syntax chartered to `CTR-SEC-001` (owner A0+A1). Recorded, not resolved. |
 | 5 | **A5 and A6 must ratify `CTR-NTF-001` and `CTR-USG-001`** | I authored `CTR-NTF-001`, which A5 owns. Independent review graded that **High**: §4.1 reserves *proposing* a contract to its owner. I stopped authoring contracts at that point; the remaining catalog work belongs to A1–A6, not to me. |
@@ -49,11 +49,11 @@ text, and broke the moment the pattern was made RE2-portable. Both now assert
 
 ## Numbers
 
-- `npm run check`: **26 → 120 tests**, skipped 0, todo 0
+- `npm run check`: **26 → 142 tests**, skipped 0, todo 0
 - Shared-kernel contract catalog: **4 → 14 of 14** contracts materialized
 - Contract fixtures under schema conformance: **0 → ~545**
 - Secret scanner against an **uncorrelated** 56-decoy corpus: **1/56 → 19/56**, and 9/9 on the Meta and Stripe families that are your own G0 blockers
-- Mutation coverage, measured honestly: **19.3% → 84.1%** (588 of 699 constraint sites)
+- Mutation coverage, measured honestly: **19.3% → 91.2%** (654 of 717 constraint sites), four contracts at 100%
 - Conditional (`if`/`then`) rules: **100% of the sites that can be tested at all**
 
 ## The measurement was wrong twice, and both corrections are in the record
@@ -95,6 +95,82 @@ Nine further fixtures were written and eight deleted again — measured one at a
 they closed nothing, because a duplicated constraint rejected them for another reason
 first. Keeping them would have looked like coverage and been none.
 
+## Waves 19–20: the fourth independent run found the biggest hole yet
+
+**A rule can forbid something without using a single assertion keyword.** Written as
+`then: { "not": {} }` — *"if the guard matches, reject"* — it contributed **zero**
+constraint sites, and every site it did create sat in its `if` guard, where deleting a
+keyword *widens* the guard and breaks an existing valid fixture. The site scored
+"killed" by a fixture that never once satisfied the rule.
+
+Independent review shipped exactly that as a real untested business rule with CI
+green, then found **628 more** across five contracts — several of them rules that
+would *reject legitimate production documents*, including one forbidding the very key
+rotation SEC-005 requires. The comment I had written in that file said a new rule
+could never be counted killed without a fixture. That was the load-bearing claim of
+the whole design, and it was false.
+
+The same review closed **four sites I had annotated as untestable** — the third
+consecutive round in which a "not closeable" note of mine was wrong. Each time the
+note reasoned about the schema instead of executing against it. The one claim in that
+block that execution can settle is now a **test** rather than a comment.
+
+Fixed, then **checked against the class rather than the example**: 896 generated
+prohibitions, every one now visible and named. Verifying a class fix against one
+instance was the same mistake in a different place.
+
+## Waves 16–18: what independent verification kept finding
+
+Three more independent runs, and every one of them landed:
+
+**Security review** (`security_changes_requested`, two High). The card rule missed
+the shape a leak actually takes — a card followed by an expiry and a CVV on one line
+was swallowed by a greedy match and never reported — and whole issuer families were
+unreachable, **UnionPay entirely**, which for a Thai commerce product is the wrong
+network to omit.
+
+**Independent testing** (`test_failed`). I had added the 14-digit card length
+*specifically* so Diners Club would be reachable, then rejected 4-6-4, which is how a
+Diners card is printed. It also walked through my bounds-discovery predicate twice and
+shipped an unbounded reference field past a green CI — a nullable reference, and an
+array of references. And it caught me comparing one shape's after-number to another
+shape's before-number and calling it an improvement.
+
+**The structural finding, and the fix.** Independent testing showed the coverage
+ratchet could be walked through: add an untested rule, delete a vacuous one elsewhere,
+and both numeric guards balance. A count can be offset; a name cannot. Every untested
+constraint is now **listed by name**, and working that list closed 31 more constraints
+— including the rule that each document is an object at all, which nothing had ever
+tested on eight contracts.
+
+**Twice I annotated that list with "not closeable" and was wrong both times** —
+`$ref` and `type`. Both notes reasoned about the schema instead of executing against
+it. The list is worth what its annotations are worth, and mine were the weakest part.
+
+## The two independent runs before that are the most useful thing in here
+
+Both were dispatched at the true head, and both defeated work I had just called
+finished. They found the same class of defect without seeing each other.
+
+Independent review supplied two schemas where my redundancy proof excused a
+constraint that a real instance can distinguish. Independent testing went further
+and **shipped a genuine untested business rule past the whole suite with CI green**
+— a percentage bucket that did not allocate the subject still returning `allow`, a
+rule no fixture in the catalog touches. Both are fixed, both counterexamples are now
+permanent tests, and both were reintroduced deliberately to confirm the tests bite.
+
+Independent testing also corrected a claim I had escalated to A5: two CTR-NTF-001
+rules I reported as untested gaps are not gaps at all. **A5 would have been asked to
+fix something that is not broken.** The escalation is withdrawn.
+
+And CI caught me claiming a green check I never ran: I verified the tree, then wrote
+two more files, then quoted the old number. That is the same rule I had already
+written down after breaking it once. It is recorded in the evidence rather than
+quietly amended.
+
+The pattern across all of it: **every error was in the direction that flattered the
+work, and none of them was found by me.**
+
 ## What is NOT closed, stated plainly
 
 1. **The test-integrity guard is a tripwire, not a control.** A commit editing a file and its digest together passes. Independent review confirmed this is a fixed-point property, not a missing idea.
@@ -103,7 +179,8 @@ first. Keeping them would have looked like coverage and been none.
 4. **There is no cardholder-data rule in the scanner**, although a payment provider is one of your own G0 blockers.
 5. **`ctr-evt-001.metadata.schema_ref` accepts all 16 hostile forms I threw at it.** It needs a *different* constraint, not a tightened one, because the contract's own fixture does not match the catalog's reference pattern. Escalated deliberately rather than patched.
 6. **No `maxLength` on any `_ref` field** anywhere in the catalog.
-7. **Two conditional rules in `CTR-NTF-001` are untested and stay that way.** They are declared in the suite as known gaps. The contract belongs to A5.
+7. **A structural hole remains in the coverage ratchet.** Conformance forces `valid-*` fixtures to pass and `invalid-*` to fail, so a newly added rule can never count as "killed" without a new fixture. `UNKILLED_CEILING` is the only arithmetic backstop, and deleting one rule elsewhere offsets adding an untested one. The shaped-evasion case is now caught; the general observation is not closed.
+8. **`CTR-NTF-001.deep_link.target_ref` is still unbounded.** A5 owns it; reported, not fixed.
 4. **`ctr-evt-001.metadata.schema_ref`** accepts 16/16 hostile forms. Its fixture is `CTR-EVT-001@1.0.0`, which the catalog pattern does not match — so the remedy is a *different* constraint, not a copy-paste.
 5. **No `maxLength` on any `_ref` field**: an 8192-character reference is accepted.
 6. **Gate G0 is unchanged.** Everything here is reversible, synthetic-only work inside the gate.

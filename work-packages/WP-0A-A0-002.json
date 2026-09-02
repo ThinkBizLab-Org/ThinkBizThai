@@ -126,6 +126,13 @@
         "change": "A digest for test-kits/branch-scope.test.mjs was added to test-kits/integrity-manifest.json and the verification record re-run. The branch-scope guard and its test moved here from WP-0A-CON-008 because only the workflow, which this package owns, can supply a pull request's base ref.",
         "acknowledgement_required_from": "/claude/a0_atlas",
         "acknowledgement_status": "pending"
+      },
+      {
+        "work_package_id": "WP-0A-CON-007",
+        "decision_record": "architecture/decisions/RFC-2026-009-reference-bounds.md",
+        "change": "A digest for test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs was added to test-kits/integrity-manifest.json, and digests for four contract schemas recomputed. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/a0_atlas",
+        "acknowledgement_status": "pending"
       }
     ]
   },
