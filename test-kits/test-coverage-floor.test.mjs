@@ -415,3 +415,18 @@ test('no npm configuration file redirects what npm run executes', async () => {
   assert.deepEqual(present, [], `npm/package-manager configuration file(s) present: ${present.join(', ')}. `
     + 'One line in such a file can redirect or silence every npm run in this repository, including the verifier.');
 });
+
+
+test('package.json carries no field nobody declared', async () => {
+  // Probed `"type": "commonjs"`, `"workspaces": ["packages/*"]` and an `"imports"` subpath map:
+  // all three pass, and all three are inert here — every file is `.mjs`, so `type` changes
+  // nothing, and the other two are unused. **Recording that they are inert rather than guarding
+  // them as if they were dangerous**; the guard that is worth having is the same one every other
+  // declaration file in this repository already has.
+  //
+  // A new top-level field is then a reviewed line, which is what stopped `normative_rules` in a
+  // work package and `freeze_approved` in the catalog index.
+  const { readFile } = await import('node:fs/promises');
+  const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+  assert.deepEqual(Object.keys(manifest).sort(), ["description", "engines", "name", "packageManager", "private", "scripts", "version"]);
+});
