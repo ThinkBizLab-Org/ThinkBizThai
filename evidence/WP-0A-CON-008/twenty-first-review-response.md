@@ -151,3 +151,28 @@ asserts on a suite that now reports one more finding than its floor expected.
 I ran `npm run verify` **after** committing rather than before. The rule that exists for exactly
 this — *read the exit code before you commit* — is in `OVERNIGHT-SUMMARY.md` and I wrote it after
 the last time. Recorded rather than amended away.
+
+## Attacking the commit path I had just written
+
+`npm run commit` runs the verifier and commits only if it is clean. **But `git add -A` stages
+whatever is on disk when it runs**, and the verifier takes tens of seconds — so a file written in
+between is committed unverified.
+
+Probed with a timed write. The first attempt landed early enough to be caught by the verifier
+itself, which is luck rather than a control. The second, timed to land after the verifier returns,
+**was committed** — `late-write.md` in the commit, `clean: exit 0` printed, exit 0.
+
+Two samples of `git status --porcelain`, one before the verifier and one after staging:
+
+| window | before | after |
+| --- | --- | --- |
+| a write during the ~35 s verifier run | committed unverified | **exit 92** |
+| a write between the verifier returning and `git add` | committed unverified | **exit 92** |
+
+**What remains, stated rather than claimed closed:** the instant between staging and the commit
+itself. A tree being written to while it is committed cannot be fully guarded from inside that
+tree, and the honest control is not to write to it during a commit — the same shape as
+`NODE_OPTIONS` and protected CI, and it belongs on the same list.
+
+The measurement is what made this real: I would not have believed the window mattered without
+watching an unverified file land in a commit that printed `clean`.

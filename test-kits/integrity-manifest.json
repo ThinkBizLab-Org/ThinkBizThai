@@ -25,7 +25,7 @@
     "evidence/VERIFICATION.md": "7ee397891e182332717c1f0f0d9a2bb42a461cdb2c33929745a599671a7fc7d4",
     "package-lock.json": "24471bf1aa7ced9e84119f90054030e044f099d5310dd3ddeaaf8209d9721cb5",
     "package.json": "fbbca027d2445f87badb757e33dd87fbc2c2349c1dcb7049d0471277d9a33a78",
-    "scripts/commit-when-clean.mjs": "35a49c04370861bb69755c474b3a56f36c9e609d0d60918a44f3c22992688b1f",
+    "scripts/commit-when-clean.mjs": "0cf9c25d987a9be78316aefc4c7b50fb83ec15c2a7fa9fa7a003c2b2fa97ae09",
     "scripts/record-verification.mjs": "c10b40a1b4e838193fd4e2e58c0a14fc7969723b45d8619fb018931132120630",
     "scripts/refresh-author-handoff.mjs": "e73e9b9d9557aa44998d713b0a9c81c550ffccc35d1445e5aefc72ff5a483bc1",
     "scripts/regenerate-integrity-manifest.mjs": "575bdf846675b50a51b977fff49dcf7e4400e392feda6c8a8e04539c846669db",
