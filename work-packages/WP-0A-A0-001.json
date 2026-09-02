@@ -147,10 +147,16 @@
     "amends_without_owning": {
       "paths": [
         ".agents/capability-profiles/cc-a6-relay.json",
+        "contract-catalog/shared-kernel/ctr-usg-001/**",
+        "evidence/VERIFICATION.md",
         "evidence/WP-0A-CON-004/**",
+        "scripts/test-suite-contract.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/contracts/catalog-registry.test.mjs",
+        "test-kits/integrity-manifest.json",
         "work-packages/WP-0A-A6-001.json"
       ],
-      "rationale": "Two acts, both protocol work and both A0's. First, a correction: A0 dispatched three A6 assessments telling each that its agent_run_id was /root/a6_relay, which is the OpenAI Codex run whose profile records vendor openai and can_create_branch_or_worktree false. The runs that did the work were Anthropic Claude Code sessions. cc-a6-relay.json declares the run that actually did it and the CON-004 evidence now cites it, with the correction recorded rather than the file quietly rewritten. The repository already carried this distinction for A1, so the convention existed and A0 failed to follow it. Second, staffing: the protocol makes A0 responsible for filling real distinct agent_run_id values before a package leaves backlog, and WP-0A-A6-001 sat at backlog with all seven roles null. It is now ready with five distinct runs; product_reviewer and finance_reviewer stay null because RFC-2026-013 does not delegate those. Three literal paths and one evidence glob.",
+      "rationale": "Two acts, both protocol work and both A0's. First, a correction: A0 dispatched three A6 assessments telling each that its agent_run_id was /root/a6_relay, which is the OpenAI Codex run whose profile records vendor openai and can_create_branch_or_worktree false. The runs that did the work were Anthropic Claude Code sessions. cc-a6-relay.json declares the run that actually did it and the CON-004 evidence now cites it, with the correction recorded rather than the file quietly rewritten. The repository already carried this distinction for A1, so the convention existed and A0 failed to follow it. Second, staffing: the protocol makes A0 responsible for filling real distinct agent_run_id values before a package leaves backlog, and WP-0A-A6-001 sat at backlog with all seven roles null. It is now ready with five distinct runs; product_reviewer and finance_reviewer stay null because RFC-2026-013 does not delegate those. Three literal paths and one evidence glob. Staffing WP-0A-A6-001 gave it a branch, and branch-identity.test.mjs pins every branch to its package by declared set, so a new branch that nobody pins fails there -- correctly. The CTR-USG-001 paths are A6's third assessment: it SIGNED the contract with five conditions, four of them blocking, and the four are closed in this change. The first of them was a false sentence in the shipped contract -- the stated composition rule produced a key the pattern rejects for any fractional or offset timestamp, capping a literal-minded producer at second resolution, which is precisely the window the key exists to close. Leaving that shipped while the paperwork moved to another package was not an option. The remaining paths are the pinned digests, floors and generated verification record that move whenever a contract annotation does.",
       "recorded_on": [
         "work-packages/WP-0A-CON-004.json"
       ]
