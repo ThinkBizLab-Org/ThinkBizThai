@@ -62,7 +62,7 @@ test('a suite confined to one directory is rejected as the WP-0A-A0-002 defect c
 const okScripts = (overrides = {}) => ({
   'test:bootstrap': RUNNER_SCRIPT,
   'verify:coverage-floor': GUARD_SCRIPT,
-  check: 'node scripts/verify-toolchain.mjs && npm run validate:protocol && npm run verify:coverage-floor && npm run test:bootstrap',
+  check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run validate:protocol && npm run test:bootstrap',
   ...overrides,
 });
 
@@ -91,7 +91,7 @@ test('any wrapper that could neutralise the runner is rejected', () => {
 // substring check still passed while `||` short-circuited: npm run check exited 0 having
 // executed no test, with every protected file byte-identical. The chain is parsed now.
 test('a check script that could skip, comment out, or mask a step is rejected', () => {
-  const base = 'node scripts/verify-toolchain.mjs && npm run validate:protocol && npm run verify:coverage-floor';
+  const base = 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs && npm run validate:protocol';
   for (const check of [
     `${base} || npm run test:bootstrap`,
     `${base} ; npm run test:bootstrap`,
@@ -104,6 +104,10 @@ test('a check script that could skip, comment out, or mask a step is rejected', 
     assert.throws(() => assertPackageScripts(okScripts({ check })), (error) => error.code === 81, `expected rejection: ${check}`);
   }
   assert.doesNotThrow(() => assertPackageScripts(okScripts({ check: `${base} && npm run test:bootstrap` })));
+  // The guard must be reached before anything can short-circuit past it.
+  assert.throws(() => assertPackageScripts(okScripts({
+    check: 'node scripts/verify-toolchain.mjs && npm run verify:coverage-floor && npm run test:bootstrap',
+  })), (error) => error.code === 81 && /must START/.test(error.message));
 });
 
 // Everything that decides whether the suite runs must be digested, not only the suites.
@@ -118,16 +122,16 @@ test('the manifest covers the whole decision surface, not just the test files', 
 
 test('a check script that drops the runner or the guard is rejected', () => {
   assert.throws(
-    () => assertPackageScripts(okScripts({ check: 'node scripts/verify-toolchain.mjs && npm run verify:coverage-floor' })),
+    () => assertPackageScripts(okScripts({ check: 'npm run verify:coverage-floor && node scripts/verify-toolchain.mjs' })),
     (error) => error.code === 81 && /npm run test:bootstrap/.test(error.message),
   );
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'node scripts/verify-toolchain.mjs && npm run test:bootstrap' })),
-    (error) => error.code === 81 && /npm run verify:coverage-floor/.test(error.message),
+    (error) => error.code === 81 && /(verify:coverage-floor|must START)/.test(error.message),
   );
   assert.throws(
     () => assertPackageScripts(okScripts({ check: 'npm run test:bootstrap && npm run verify:coverage-floor' })),
-    (error) => error.code === 81 && /before test:bootstrap/.test(error.message),
+    (error) => error.code === 81 && /(before test:bootstrap|must START)/.test(error.message),
   );
   assert.throws(() => assertPackageScripts(okScripts({ check: undefined })), (error) => error.code === 74);
   assert.throws(() => assertPackageScripts(okScripts({ 'verify:coverage-floor': 'echo skipped' })), (error) => error.code === 74);

@@ -11,7 +11,11 @@ const CATALOG = 'contract-catalog/shared-kernel';
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
 const isText = (value) => typeof value === 'string' && value.length > 0;
-const isPrivateRef = (value) => isText(value) && !/^https?:\/\//.test(value);
+// A deny-list on a lowercase http(s) prefix only -- the exact form independent security
+// review bypassed with HTTPS://, //host, ftp:, data:, file:, javascript: and traversal.
+// The Author claimed to have closed this class and closed it in one of two files;
+// independent testing of WP-0A-CON-005 found this survivor. Defer to the contract.
+const isPrivateRef = (value) => isText(value) && /^(job|status|result|app|asset|content):(?!\/)(?!.*\.\.)[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$/.test(value);
 const hasTenantContext = (value) => Boolean(value && isText(value.workspace_id)
   && value.actor && ['user', 'system_actor'].includes(value.actor.kind) && isText(value.actor.id)
   && isText(value.request_id) && isText(value.correlation_id)
