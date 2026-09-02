@@ -102,6 +102,13 @@ export function assertPackageScripts(scripts) {
   if (missing.length > 0) {
     throw new CoverageFloorError(81, `check must invoke ${missing.join(' and ')} as its own && step; a guard that is not wired into check protects nothing. Found: ${check}`);
   }
+  // A guard that is not reached enforces nothing. Independent testing replaced `&&` at
+  // EVERY position: step 1 succeeded, the chain short-circuited, and npm run check exited 0
+  // having never invoked this guard at all. Rejecting `||` inside a step cannot help when
+  // the step containing that check never runs, so the guard must be the FIRST step.
+  if (steps[0] !== 'npm run verify:coverage-floor') {
+    throw new CoverageFloorError(81, `check must START with npm run verify:coverage-floor; a guard placed later is never reached if an earlier step short-circuits. Found first step: ${steps[0]}`);
+  }
   if (steps.indexOf('npm run verify:coverage-floor') > steps.indexOf('npm run test:bootstrap')) {
     throw new CoverageFloorError(81, 'check must run verify:coverage-floor before test:bootstrap so a broken declaration fails fast.');
   }
