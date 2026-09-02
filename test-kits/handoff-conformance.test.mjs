@@ -260,34 +260,86 @@ test('a fixture change counts as contract impact', async () => {
 // though a handoff that merely lies about its own work is not.
 //
 // This is a partial control, and the remaining half is on the "not closed" list where it belongs.
-const APPROVAL_LANGUAGE = /\b(approved|approves|sign-?off|signed off|countersign)\b/i;
+// Independent review seventeen defeated the first version twice.
+//
+// **Vocabulary.** "completed the independent security review … raised no objections, and cleared
+// the shared-kernel freeze" contains none of the five stems the regex hunted for. exit 0.
+//
+// **The window.** `prose.indexOf(runId)` takes the FIRST occurrence only, so a benign mention in a
+// field serialised earlier moved the ±160-character window off the payload entirely — and the
+// payload then used the literal words "approved" and "signed off", attached to the security
+// reviewer's run id, in the field a freeze reviewer reads. exit 0.
+//
+// Three corrections: every occurrence, the whole string value rather than a byte window over the
+// serialised JSON, and any `/claude/…`-shaped id that is not the author's — the previous version
+// only examined ids present in `role_assignments`, so an approval attributed to anything else was
+// never looked at.
+//
+// The vocabulary is still a vocabulary and cannot be the control on its own. It is widened, and
+// the limitation stays on the "not closed" list.
+const APPROVAL_LANGUAGE = new RegExp(
+  '\\b(approv\\w*|sign-?off|signed off|signs off|countersign\\w*|cleared|clears|concurs?|'
+  + 'no objections?|accepted|ratifi\\w*|authoris\\w*|authoriz\\w*|endorse\\w*|verified this|attests?)\\b',
+  'i',
+);
+// The ids are ENUMERATED from the repository -- every capability profile and every role
+// assignment -- rather than pattern-matched. The first version used a `/x/y` shape and reported
+// `contract-catalog/shared-kernel/ctr-api-001/examples/valid-accepted.json` as an agent run id,
+// which is a guard reporting a wrong reason: the thing this package has already recorded twice as
+// worse than a guard that stays silent.
+async function knownRunIds() {
+  const ids = new Set();
+  for (const entry of await readdir('.agents/capability-profiles')) {
+    if (!entry.endsWith('.json')) continue;
+    const profile = JSON.parse(await readFile(join('.agents/capability-profiles', entry), 'utf8'));
+    if (typeof profile.agent_run_id === 'string') ids.add(profile.agent_run_id);
+  }
+  for (const entry of await readdir('work-packages')) {
+    if (!entry.endsWith('.json')) continue;
+    const manifest = JSON.parse(await readFile(join('work-packages', entry), 'utf8'));
+    for (const [key, value] of Object.entries(manifest.role_assignments ?? {})) {
+      if (key.endsWith('_agent_run_id') && typeof value === 'string') ids.add(value);
+    }
+  }
+  return [...ids];
+}
+
+// A sentence that says an approval is REQUIRED, OUTSTANDING or ABSENT is the opposite of a
+// fabricated one, and three real handoffs say exactly that -- "requires an acknowledgement
+// countersigned by WP-0A-A0-001's Integration Owner". Flagging those would train a reader to
+// ignore this check, which is how a guard stops working without anyone editing it.
+const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|not yet|has not|was not|cannot|must be|needs?|blocked|unresolved|no .{0,20}(approval|sign-?off))\b/i;
+
+// Every string anywhere in the document, with the path that reached it, so a claim cannot hide in
+// a nested array the way it hid outside a byte window.
+function stringsOf(node, path = '') {
+  if (typeof node === 'string') return [[path, node]];
+  if (Array.isArray(node)) return node.flatMap((item, index) => stringsOf(item, `${path}[${index}]`));
+  if (node === null || typeof node !== 'object') return [];
+  return Object.entries(node).flatMap(([key, value]) => stringsOf(value, path ? `${path}.${key}` : key));
+}
 
 test('an author handoff does not record an approval it has no authority to give', async () => {
   const wrong = [];
+  const runIds = await knownRunIds();
   for (const [name, body] of await authorHandoffs()) {
     const author = body.agent_run_id;
     const manifestPath = `work-packages/${body.work_package_id}.json`;
     const manifest = await readFile(manifestPath, 'utf8').then(JSON.parse).catch(() => null);
     if (manifest === null) continue;
     const roles = manifest.role_assignments ?? {};
-    // An author handoff may state its own status only, and only as far as in_review.
     if (!['author_complete', 'in_review', 'ready', 'backlog'].includes(body.final_status)) {
       wrong.push(`${name} declares final_status ${JSON.stringify(body.final_status)}; an author moves work no further than in_review`);
     }
     if (author !== roles.author_agent_run_id) {
       wrong.push(`${name} is written by ${author} but ${manifestPath} names ${roles.author_agent_run_id} as author`);
     }
-    // And it must not put approval words in the mouth of another role's run id.
-    const others = Object.entries(roles)
-      .filter(([key, value]) => key.endsWith('_agent_run_id') && typeof value === 'string' && value !== author)
-      .map(([, value]) => value);
-    const prose = JSON.stringify(body);
-    for (const runId of others) {
-      if (!prose.includes(runId)) continue;
-      const window = prose.slice(Math.max(0, prose.indexOf(runId) - 160), prose.indexOf(runId) + 160);
-      if (APPROVAL_LANGUAGE.test(window)) {
-        wrong.push(`${name} records ${runId} approving something; an approval is that role's own artifact, not the author's`);
-      }
+    for (const [path, value] of stringsOf(body)) {
+      if (!APPROVAL_LANGUAGE.test(value) || OUTSTANDING.test(value)) continue;
+      const mentioned = runIds.filter((id) => id !== author && value.includes(id));
+      if (mentioned.length === 0) continue;
+      wrong.push(`${name}.${path} attributes approval language to ${[...new Set(mentioned)].join(', ')}: `
+        + `${JSON.stringify(value.slice(0, 120))}`);
     }
   }
   assert.deepEqual(wrong, [], `handoff(s) speaking for a role they do not hold:\n  ${wrong.join('\n  ')}\n`

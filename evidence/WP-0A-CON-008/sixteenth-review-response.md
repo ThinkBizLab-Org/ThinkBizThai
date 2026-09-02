@@ -51,7 +51,7 @@ callers from tenant isolation and recording A1/A6 sign-off as satisfied, echoed 
 Owner briefing, the author self-check, a work package's acceptance criteria and the handoff — and
 `npm run check` **exit 0**, `verify-branch-scope` **exit 0**.
 
-All eleven decision records are digested and in `DIGESTED_FLOOR`, along with
+All ~~eleven~~ **ten** decision records are digested and in `DIGESTED_FLOOR` (review seventeen counted them; the directory holds ten RFCs and a `.gitkeep`), along with
 `contract-catalog/README.md` (MEDIUM 6, the one filename the whole-catalog walk allows). Verified:
 appending an amendment to RFC-2026-010 exits **86**.
 

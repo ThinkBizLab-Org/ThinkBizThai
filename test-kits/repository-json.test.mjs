@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import test from 'node:test';
 
 const jsonFiles = [
@@ -91,6 +92,9 @@ test('the workflow still runs every guard it is the outside anchor for', async (
 // Approved`, could be written and tested green locally. The set is named here for the same reason
 // every ratchet in this repository is named rather than counted.
 const DECISION_RECORDS = [
+  // The directory's placeholder, declared rather than special-cased: a walk that skips dotfiles
+  // is a walk with a hole in it, and this one is what the first recursive run found.
+  '.gitkeep',
   'RFC-2026-001-bootstrap-tooling-contract.md',
   'RFC-2026-002-manual-merge-control.md',
   'RFC-2026-003-contract-test-coverage-and-ownership-transfer.md',
@@ -104,16 +108,30 @@ const DECISION_RECORDS = [
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
-  const present = (await readdir('architecture/decisions'))
-    .filter((name) => name.endsWith('.md')).sort();
-  const added = present.filter((name) => !DECISION_RECORDS.includes(name));
-  const removed = DECISION_RECORDS.filter((name) => !present.includes(name));
+  // The first version was `readdir(...).filter(n => n.endsWith('.md'))` — non-recursive and
+  // case-sensitive. Independent review seventeen put the file back where it started two ways:
+  // `architecture/decisions/amendments/RFC-2026-012-exemption.md` and
+  // `architecture/decisions/RFC-2026-011-exemption.MD`, each **exit 0, 231/231**.
+  //
+  // `amendments/` is a more natural home for an amendment than the flat directory is, which is
+  // what makes the subdirectory case the likelier one. The walk now matches the enumeration's
+  // ambition: everything under the directory, at any depth, whatever it is called.
+  const walk = async (directory, prefix = '') => {
+    const found = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const relative = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) found.push(...await walk(join(directory, entry.name), `${relative}/`));
+      else found.push(relative);
+    }
+    return found.sort();
+  };
+  const present = await walk('architecture/decisions');
   const wrong = [];
-  for (const name of added) {
-    wrong.push(`${name} is a new decision record nobody declared. An approved RFC outranks every `
+  for (const name of present.filter((n) => !DECISION_RECORDS.includes(n))) {
+    wrong.push(`architecture/decisions/${name} is a file nobody declared. An approved RFC outranks every `
       + 'document in the conflict order, so adding one is the highest-authority act available here.');
   }
-  for (const name of removed) wrong.push(`${name} was deleted`);
+  for (const name of DECISION_RECORDS.filter((n) => !present.includes(n))) wrong.push(`${name} was deleted`);
 
   // And each must carry a digest, so an edit is a tripwire and a deletion is a ratchet failure.
   const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));

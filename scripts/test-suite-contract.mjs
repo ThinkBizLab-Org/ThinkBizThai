@@ -39,3 +39,45 @@ export const GUARD_SCRIPT = 'node scripts/verify-test-coverage-floor.mjs';
 // open Gate G0 requirement. The manifest's value is that tampering must appear as a
 // deliberate, reviewable line in a diff instead of a silent behaviour change.
 export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
+
+// Independent review seventeen replaced eight of the nine contract suites with one-test
+// placeholders, keeping only shared-kernel-contract-catalog.test.mjs, then reversed three real
+// rules: CTR-SEC-001's handle pattern to `^.*$`, its six redaction consts from true to false, and
+// CTR-API-001's root additionalProperties to true. **exit 0, 167/167, no failing test.**
+//
+// The per-DIRECTORY floor was 7 against 78 declared tests -- ninety per cent headroom in the one
+// floor written specifically to stop a protected suite being swapped for a placeholder. Ten Draft
+// contracts, including the envelope every module composes and the secret-handle contract, lost
+// every ratchet at once: the constraint surface, the registry, the caveats, the mutation walk.
+// DIGESTED_FLOOR does not help -- it ratchets WHICH files are digested, and every gutted file
+// stayed digested.
+//
+// A floor per file, at what each suite declares today. Adding tests is free; a file that has ever
+// declared N must keep declaring N, or the number is edited deliberately, in a diff a reviewer
+// reads.
+export const DECLARED_TEST_FLOOR_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': 8,
+  'test-kits/branch-scope.test.mjs': 7,
+  'test-kits/capability-profile.test.mjs': 4,
+  'test-kits/ci-guard-behaviour.test.mjs': 14,
+  'test-kits/contracts/catalog-groups.test.mjs': 7,
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
+  'test-kits/contracts/catalog-registry.test.mjs': 14,
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 6,
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 15,
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
+  'test-kits/handoff-conformance.test.mjs': 10,
+  'test-kits/integrity-manifest-rebuild.test.mjs': 3,
+  'test-kits/protocol-schema-conformance.test.mjs': 4,
+  'test-kits/repository-json.test.mjs': 4,
+  'test-kits/role-separation.test.mjs': 8,
+  'test-kits/secret-scan.test.mjs': 45,
+  'test-kits/test-coverage-floor.test.mjs': 31,
+  'test-kits/toolchain-contract.test.mjs': 3,
+  'test-kits/verification-record.test.mjs': 4,
+  'test-kits/work-package-discovery.test.mjs': 1,
+  'test-kits/work-package-ownership.test.mjs': 8,
+};

@@ -3,6 +3,7 @@ import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  DECLARED_TEST_FLOOR_BY_FILE,
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
   INTEGRITY_MANIFEST,
@@ -382,6 +383,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
+  'architecture/decisions/.gitkeep',
   'package-lock.json',
   '.agents/capabilities.schema.json',
   '.agents/handoff.schema.json',
@@ -478,6 +480,22 @@ export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MAN
   }
 }
 
+// See DECLARED_TEST_FLOOR_BY_FILE for why a per-directory floor was not enough.
+export async function assertPerFileFloors(files, floors = DECLARED_TEST_FLOOR_BY_FILE) {
+  const short = [];
+  for (const [file, floor] of Object.entries(floors)) {
+    if (!files.includes(file)) { short.push(`${file} is gone; it declared ${floor} test(s)`); continue; }
+    const declared = countDeclaredTests(stripNonCode(await readFile(file, 'utf8')));
+    if (declared < floor) short.push(`${file} declares ${declared} test(s), floor ${floor}`);
+  }
+  const unfloored = files.filter((file) => floors[file] === undefined);
+  for (const file of unfloored) short.push(`${file} has no declared-test floor; add one in the same commit`);
+  if (short.length > 0) {
+    throw new CoverageFloorError(84, `suite(s) below their own declared floor:\n  ${short.join('\n  ')}\n`
+      + 'A suite that has declared N tests keeps declaring N, or a protected file can be swapped for a placeholder.');
+  }
+}
+
 export async function assertEveryTestFileProtected(files, manifestPath = INTEGRITY_MANIFEST) {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const protectedFiles = new Set(Object.keys(manifest.files ?? {}));
@@ -487,7 +505,27 @@ export async function assertEveryTestFileProtected(files, manifestPath = INTEGRI
   }
 }
 
+// npm decides which shell runs a script, and that decision lives in a file no guard read.
+// Independent review seventeen wrote one line -- `script-shell=/usr/bin/true` -- into `.npmrc`:
+// every `npm run` became a no-op, `npm run check` exited 0 having executed nothing, and
+// `npm run verify` exited 0 printing `clean`, because IT runs through npm too.
+//
+// So this check lives HERE, in the guard CI invokes with `node` directly, which is the only thing
+// in the repository a redirected script-shell cannot silence. That is the same reason RFC-2026-007
+// gives for the workflow invoking this script rather than trusting the chain.
+const PACKAGE_MANAGER_CONFIG = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs', 'pnpm-workspace.yaml'];
+
+export async function assertNoPackageManagerConfig(directory = '.') {
+  const present = (await readdir(directory)).filter((name) => PACKAGE_MANAGER_CONFIG.includes(name));
+  if (present.length > 0) {
+    throw new CoverageFloorError(90, `package-manager configuration file(s) present: ${present.join(', ')}. `
+      + 'One line in such a file redirects or silences every npm run in this repository, including the verifier. '
+      + 'If one is ever needed, digest it and add it to DIGESTED_FLOOR in the same commit.');
+  }
+}
+
 export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', testDirectory = TEST_ROOT, floor = DEFAULT_FLOOR) {
+  await assertNoPackageManagerConfig();
   const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'));
   const pattern = assertPackageScripts(manifest.scripts);
   await assertIntegrityManifest();
@@ -503,6 +541,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   assertCoverage(pattern, files, floor);
   await assertEveryTestFileProtected(files);
   await assertDigestedSetNeverShrinks();
+  await assertPerFileFloors(files);
   await assertNoEscapingPath(files);
   const declared = await assertDeclaredTests(files);
   return { pattern, files, declared };

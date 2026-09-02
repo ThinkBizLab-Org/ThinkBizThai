@@ -33,6 +33,20 @@ for (const key of ['tests', 'pass', 'fail', 'skipped', 'todo']) {
 }
 
 const stated = Object.entries(counts).map(([key, value]) => `${key} ${value}`).join(', ');
+
+// Exit 0 is not evidence that anything ran. Independent review seventeen wrote a single line into
+// `.npmrc` -- `script-shell=/usr/bin/true` -- and every `npm run` in the repository became a
+// no-op: `npm run check` exited 0 having executed nothing, and THIS reporter exited 0 printing
+// `clean`, because it trusted a status without asking whether a suite had run.
+//
+// The chain string was byte-identical, every digest intact, no failing test. npm decides which
+// shell runs the chain, and that decision lived in a file no guard read.
+if (code === 0 && (counts.pass === undefined || counts.pass === 0)) {
+  process.stderr.write('NOT clean: the check exited 0 without reporting a single passing test. '
+    + 'Something ran nothing — check .npmrc, the shell npm was given, and whether the chain executed at all.\n');
+  process.exit(90);
+}
+
 if (code === 0) {
   process.stdout.write(`clean: exit 0${stated ? ` — ${stated}` : ''}\n`);
   process.exit(0);

@@ -395,3 +395,23 @@ test('the repository declares no dependency and no lifecycle script', async () =
   assert.match(ci, /npm ci --ignore-scripts/,
     'CI must install with --ignore-scripts; without it a lifecycle script runs before every guard');
 });
+
+test('no npm configuration file redirects what npm run executes', async () => {
+  // `script-shell=/usr/bin/true` in `.npmrc` makes every `npm run` a no-op. Independent review
+  // seventeen ran it: `npm run check` exited 0 having executed nothing, and `npm run verify` --
+  // the command this repository tells reviewers to trust because it reports the status -- exited
+  // 0 printing `clean` and no counts at all.
+  //
+  // The chain string was untouched, so the allowed-alphabet check saw nothing wrong. **npm decides
+  // which shell runs the chain, and that decision lived in a file no guard read.** Only CI's
+  // `node scripts/verify-test-coverage-floor.mjs` step survived, because it is invoked directly
+  // rather than through npm.
+  //
+  // If this repository ever needs an npm configuration file, digest it and add it to
+  // DIGESTED_FLOOR in the same commit. Until then its absence is the control.
+  const { readdir } = await import('node:fs/promises');
+  const NPM_CONFIG_FILES = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs', 'pnpm-workspace.yaml'];
+  const present = (await readdir('.')).filter((name) => NPM_CONFIG_FILES.includes(name));
+  assert.deepEqual(present, [], `npm/package-manager configuration file(s) present: ${present.join(', ')}. `
+    + 'One line in such a file can redirect or silence every npm run in this repository, including the verifier.');
+});
