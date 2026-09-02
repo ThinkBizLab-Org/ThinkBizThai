@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "50c886570452c64e17fd72cb139ca5d026b64a8f",
-  "head_revision_or_patch_checksum": "e0478f2e38cc64c91686d8252914b43d974e0504",
+  "head_revision_or_patch_checksum": "6b99e3cc664c6a218a57b2ee4d68ddfe84cb877d",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
@@ -14,9 +14,13 @@
   "files_modified": [
     ".gitignore",
     "architecture/decisions/RFC-2026-011-repository-language.md",
+    "architecture/decisions/RFC-2026-012-client-database-boundary.md",
+    "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
+    "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-A0-001-author-handoff.json",
     "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",

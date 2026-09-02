@@ -365,7 +365,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
     if (actual !== expected) drifted.push(`${file} — content does not match its recorded digest`);
   }
   if (drifted.length > 0) {
-    throw new CoverageFloorError(86, `protected file(s) changed without updating ${manifestPath}:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the guards or the suites they protect explicit and reviewable. A commit that updates both still passes; the anchor is human review of the diff and protected CI, which remains an open Gate G0 requirement.`);
+    throw new CoverageFloorError(86, `protected file(s) changed without updating ${manifestPath}:\n  ${drifted.join('\n  ')}\nThis is a tripwire, not a security boundary: it makes an edit to the guards or the suites they protect explicit and reviewable. A commit that updates both still passes; the anchor is human review of the diff and protected CI. Branch protection on main became real on 2026-09-02 -- required status check, admins included, verified by a rejected direct push -- so the outside anchor this sentence used to describe as missing now exists. What is still missing is a required review: the Product Owner opens the pull requests and GitHub forbids approving your own, so the human half of the anchor is the Product Owner reading the diff, not a control.`);
   }
   return entries.length;
 }

@@ -1,6 +1,6 @@
 # RFC-2026-013 — An agent run can sign; it cannot become the Product Owner
 
-Status: Proposed
+Status: Approved 2026-09-02 by the Product Owner — an agent run's assessment is that role's signature, for roles a capability profile declares an agent run may hold. The Product Owner's own role is NOT delegated by this, and neither is the accountant, the Privacy/Legal reviewer, the qualified skincare reviewer, or any external verification G0 lists. The guard and its stated limits stand unchanged: it checks that a package's claim on a decision record matches that record, and nothing wider.
 Decision needed by: G0 sign-off, and every package waiting at `in_review`
 Owner: A0 Architecture/Integration, on the Product Owner's disposition
 Protocol version: `1.0.0`

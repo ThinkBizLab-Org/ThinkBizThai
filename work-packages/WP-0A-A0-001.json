@@ -146,16 +146,15 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".gitignore",
-        "architecture/decisions/RFC-2026-011-repository-language.md",
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
-        "test-kits/handoff-conformance.test.mjs",
+        "architecture/decisions/RFC-2026-012-client-database-boundary.md",
+        "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
+        "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The Product Owner approved RFC-2026-011, whose own Limitations said the guard enforcing it belonged in the same change as an approval and not before one. The guard lives in this package's own test-kits/repository-json.test.mjs; the decision record is owned by no package. handoff-conformance.test.mjs (WP-0A-CON-008) is here because widening it in the previous increment introduced a second bug in the same file: one boolean was answering two different questions, so a handoff stating \"No contract changes\" tripped the check for claiming an impact it did not have. The two questions are now asked separately. The last two paths are the digest and generated verification record that move with any protected-file change. Four literal paths, no tree. .gitignore is added because the same worktree interaction had a second effect: the enclosing `.claude/` directory reported as one untracked path, and commit-when-clean.mjs compares the porcelain set before and after staging, so it refused every commit on this branch. An A6 author run hit the identical refusal independently and worked around it rather than touching the guard. The ignore line is narrow -- only the worktrees -- so a later decision to track .claude settings is not pre-empted. scripts/test-suite-contract.mjs (WP-0A-A0-002) carries the per-file test, assertion and name-digest floors; adding one test to this package's own test kit moves all three, and a floor that is not raised with the test it counts is a floor the next placeholder passes.",
+      "rationale": "The Product Owner disposed three more decision records in one review round; architecture/decisions is owned by no package, and this package carries the protocol. verify-test-coverage-floor.mjs (WP-0A-A0-002) is here for a correction rather than a feature: its exit-86 message told every reader that protected CI 'remains an open Gate G0 requirement', which stopped being true when branch protection on main became real and was proved by a rejected direct push. A guard that states a false fact about the repository is the same defect class this round has been closing everywhere else. The remaining path is the digest that moves with any protected-file edit.",
       "recorded_on": [
-        "work-packages/WP-0A-CON-008.json"
+        "work-packages/WP-0A-A0-002.json"
       ]
     },
     "read_only_paths": [

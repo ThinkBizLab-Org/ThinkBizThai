@@ -1,6 +1,6 @@
 # RFC-2026-012 — Which tier issues the statement: the client/server database boundary
 
-Status: Proposed
+Status: Approved 2026-09-02 by the Product Owner — server-only mutation for every table family with zero exceptions at G0; direct client reads only through named security_invoker views, on an allowlist that starts empty and grows only by RFC. The four conditions A1 attached stand, and so do the Limitations: the enforcement mechanism named here depends on DATA-DEC-03, which is open and due G1, and the Realtime question is recorded as unanswered rather than answered.
 Decision needed by: G0 / `OPEN-015`
 Owner: A0 Architecture/Integration with A1 Security
 Protocol version: `1.0.0`

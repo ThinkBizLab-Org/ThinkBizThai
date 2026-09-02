@@ -1,6 +1,6 @@
 # RFC-2026-014 — A usage key identifies a measurement, not a job
 
-Status: Proposed
+Status: Approved 2026-09-02 by the Product Owner — the dedupe key identifies one measurement, carrying the measurement instant, and redelivery idempotency stays keyed on usage_id per ID-002. The refusal to assert a per-job event cardinality stands, as do the recorded limitations: the identical-instant collision, the over-count direction, and that the key's agreement with the document's own fields is a resolver obligation this validator cannot express.
 Decision needed by: before `CTR-USG-001` leaves Draft
 Owner: A0 Architecture/Integration with A6 SRE/Billing
 Protocol version: `1.0.0`
