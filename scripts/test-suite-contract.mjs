@@ -81,3 +81,40 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/work-package-discovery.test.mjs': 1,
   'test-kits/work-package-ownership.test.mjs': 8,
 };
+
+// Independent review eighteen answered the question the per-file floor was written to close, and
+// the answer was yes. The floor pins the `test()` COUNT, so a suite can be rewritten as N
+// placeholders -- `test('placeholder 1', () => { assert.ok(true); })` ten times -- and the count
+// is unchanged. It then added `ctr-api-001 properties.data.maxProperties = 3`, so a success
+// envelope carrying four fields is rejected by the contract every module composes, and got
+// **exit 0, 233/233**, with `record:verification` not even needed because nothing moved.
+//
+// Hollowing preserves the count. It cannot preserve the ASSERTIONS: a placeholder makes one
+// trivial assertion where the real test made many. This is the same ratchet shape one level down,
+// and it needs no new machinery.
+export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': 15,
+  'test-kits/branch-scope.test.mjs': 37,
+  'test-kits/capability-profile.test.mjs': 4,
+  'test-kits/ci-guard-behaviour.test.mjs': 27,
+  'test-kits/contracts/catalog-groups.test.mjs': 9,
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
+  'test-kits/contracts/catalog-registry.test.mjs': 16,
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 25,
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 48,
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
+  'test-kits/handoff-conformance.test.mjs': 19,
+  'test-kits/integrity-manifest-rebuild.test.mjs': 10,
+  'test-kits/protocol-schema-conformance.test.mjs': 6,
+  'test-kits/repository-json.test.mjs': 14,
+  'test-kits/role-separation.test.mjs': 8,
+  'test-kits/secret-scan.test.mjs': 86,
+  'test-kits/test-coverage-floor.test.mjs': 89,
+  'test-kits/toolchain-contract.test.mjs': 3,
+  'test-kits/verification-record.test.mjs': 14,
+  'test-kits/work-package-discovery.test.mjs': 2,
+  'test-kits/work-package-ownership.test.mjs': 8,
+};

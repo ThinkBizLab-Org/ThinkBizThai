@@ -141,3 +141,46 @@ test('the set of decision records is what it was, and each is digested', async (
   }
   assert.deepEqual(wrong, [], `decision-record problem(s):\n  ${wrong.join('\n  ')}`);
 });
+
+test('no decision record exists outside the directory that holds them', async () => {
+  // The recursive walk added one wave earlier starts at `architecture/decisions`, so
+  // `architecture/RFC-2026-011-exemption.md` and `docs/sprint-0a/RFC-2026-011-exemption.md` were
+  // both invisible to it — **exit 0** — while an approved RFC outranks every document in this
+  // repository's conflict order. Independent review eighteen put one in each place.
+  //
+  // Ratcheted on CONTENT and NAME, repo-wide, rather than on location: a document that calls
+  // itself an RFC or declares an approved status is a decision record wherever it sits.
+  const RFC_NAME = /RFC-\d{4}-\d{3}/;
+  // TWO signals, because one is not enough in either direction. The first version matched
+  // `evidence/WP-0A-A0-001/rfc-002-exact-commit-verification.md`, which opens
+  // `# RFC-2026-002 exact-commit verification` — an evidence record ABOUT an RFC, not an RFC. A
+  // guard that reports a wrong reason is worse than one that stays silent, and this repository
+  // has recorded that three times now.
+  //
+  // A decision record opens as one AND declares a status. An evidence file does neither.
+  const RFC_HEADING = /^#\s*RFC-\d{4}-\d{3}/m;
+  const RFC_STATUS = /^\s*(\*\*)?Status(\*\*)?:\s*(Approved|Accepted|Proposed)/mi;
+  // `architecture/decisions` is the declared home and is checked by the test above; skipping all
+  // of `architecture` was my own first version, and it let `architecture/RFC-2026-011-exemption.md`
+  // -- one directory up from the declared home, the likeliest place of all -- pass at exit 0.
+  const SKIP = new Set(['.git', 'node_modules']);
+  const SKIP_PATHS = new Set(['architecture/decisions']);
+  const found = [];
+  const walk = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (directory === '.' && SKIP.has(entry.name)) continue;
+      const path = directory === '.' ? entry.name : `${directory}/${entry.name}`;
+      if (SKIP_PATHS.has(path)) continue;
+      if (entry.isDirectory()) { await walk(path); continue; }
+      if (!entry.isFile() || !/\.(md|markdown|mdx|txt)$/i.test(entry.name)) continue;
+      if (RFC_NAME.test(entry.name)) { found.push(`${path} — named as a decision record`); continue; }
+      const body = await readFile(path, 'utf8');
+      // Evidence files quote RFCs constantly; only a document that OPENS as one counts.
+      const head = body.slice(0, 600);
+      if (RFC_HEADING.test(head) && RFC_STATUS.test(head)) found.push(`${path} — opens as a decision record`);
+    }
+  };
+  await walk('.');
+  assert.deepEqual(found, [], `decision record(s) outside architecture/decisions:\n  ${found.join('\n  ')}\n`
+    + 'An approved RFC outranks the Decision Register and CONTRIBUTING_AGENTS.md; where it sits does not change that.');
+});

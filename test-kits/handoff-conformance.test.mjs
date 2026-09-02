@@ -308,7 +308,17 @@ async function knownRunIds() {
 // fabricated one, and three real handoffs say exactly that -- "requires an acknowledgement
 // countersigned by WP-0A-A0-001's Integration Owner". Flagging those would train a reader to
 // ignore this check, which is how a guard stops working without anyone editing it.
-const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|not yet|has not|was not|cannot|must be|needs?|blocked|unresolved|no .{0,20}(approval|sign-?off))\b/i;
+const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|not|never|neither|nor|without|absent|lacks?|unsigned|cannot|must be|needs?|blocked|unresolved|no .{0,20}(approval|sign-?off))\b/i;
+
+// `not` is deliberately in that list, and it is the weak point: a fabricated approval can include
+// the word. Clause-level evaluation narrows it -- "X approved this" and "Y is not countersigned"
+// are different clauses now -- but a single clause saying "X approved this and nothing is not
+// outstanding" would still pass. **A vocabulary is not a control**, which is why the residual
+// limitation stays on the not-closed list: a handoff's claims about who approved what need a
+// reader, and this check only makes the crude forms fail.
+//
+// The alternative -- flagging every real handoff that says "requires an acknowledgement
+// countersigned by ..." -- would train that reader to ignore the check, which is worse.
 
 // Every string anywhere in the document, with the path that reached it, so a claim cannot hide in
 // a nested array the way it hid outside a byte window.
@@ -335,11 +345,20 @@ test('an author handoff does not record an approval it has no authority to give'
       wrong.push(`${name} is written by ${author} but ${manifestPath} names ${roles.author_agent_run_id} as author`);
     }
     for (const [path, value] of stringsOf(body)) {
-      if (!APPROVAL_LANGUAGE.test(value) || OUTSTANDING.test(value)) continue;
-      const mentioned = runIds.filter((id) => id !== author && value.includes(id));
+      // CLAUSE BY CLAUSE. Independent review eighteen exempted a whole value by appending one
+      // sentence containing an exempting word -- "/claude/a1_bastion signed off on the security
+      // review at exit 0 and cleared the freeze. Only the Product Owner merge button is still
+      // pending." Three roles, three approval verbs, one `pending`, exit 0.
+      //
+      // An exemption in a neighbouring clause must not cover an affirmative approval in this one.
+      const clauses = value.split(/(?<=[.;!?])\s+/).filter((clause) => clause.trim().length > 0);
+      const claimed = clauses.filter((clause) => APPROVAL_LANGUAGE.test(clause) && !OUTSTANDING.test(clause));
+      if (claimed.length === 0) continue;
+      const mentioned = runIds.filter((id) => id !== author
+        && claimed.some((clause) => clause.includes(id)));
       if (mentioned.length === 0) continue;
       wrong.push(`${name}.${path} attributes approval language to ${[...new Set(mentioned)].join(', ')}: `
-        + `${JSON.stringify(value.slice(0, 120))}`);
+        + `${JSON.stringify(claimed[0].slice(0, 120))}`);
     }
   }
   assert.deepEqual(wrong, [], `handoff(s) speaking for a role they do not hold:\n  ${wrong.join('\n  ')}\n`

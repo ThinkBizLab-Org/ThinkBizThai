@@ -12,6 +12,7 @@ import {
 } from './verify-test-coverage-floor.mjs';
 import { readFile } from 'node:fs/promises';
 import { RECORD_PATH, render } from './record-verification.mjs';
+import { realpathSync } from 'node:fs';
 
 // Four evidence files in this repository have quoted a test count that was true two edits
 // earlier. The number now lives in one machine-written record, and this is the only place that
@@ -143,6 +144,6 @@ async function main() {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   await main();
 }

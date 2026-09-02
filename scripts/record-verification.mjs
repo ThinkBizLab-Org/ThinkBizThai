@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { TEST_PATTERN } from './test-suite-contract.mjs';
+import { realpathSync } from 'node:fs';
 
 // Four times in this repository an evidence file has quoted a test count that was true two
 // edits earlier. Every time the mechanism was identical: run the check, write the prose, make
@@ -67,6 +68,6 @@ async function main() {
   console.log(`recorded ${counts.pass} passing, ${counts.skipped} skipped, ${counts.todo} todo`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   await main();
 }

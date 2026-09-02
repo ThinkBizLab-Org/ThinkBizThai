@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROTECTED_KEYS } from './verify-test-coverage-floor.mjs';
+import { realpathSync } from 'node:fs';
 
 export class OwnershipValidationError extends Error {
   constructor(code, message) {
@@ -223,7 +224,7 @@ async function repositoryFileList(root = '.') {
   return files;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const directory = process.argv[2] ?? 'work-packages';
   try {
     await validateWorkPackageOwnership(directory);

@@ -17,6 +17,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 export const NO_CLAIMANT = 75;
 export const AMBIGUOUS_CLAIM = 76;
@@ -75,6 +76,6 @@ async function main(argv) {
 // directory containing a space: `file://${process.argv[1]}` did not match, `main()` never ran, and
 // it exited 0 with no output where NO_CLAIMANT was required. CI then captures an empty package id
 // and the scope guard fails on usage -- the job still fails, with the wrong reason.
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   process.exit(await main(process.argv));
 }

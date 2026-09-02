@@ -113,7 +113,7 @@ its digest matching perfectly: the bytes are simply read from somewhere nothing 
 another machine, in CI, or after a clone, that path holds something else or nothing at all, and the
 digest that vouched for the file vouched for a target no one can see from here.
 
-Every digested path must now be a regular file — `lstat`, all 65 of them. Verified: **exit 91**,
+Every digested path must now be a regular file — `lstat`, all ~~65~~ **66** of them (review eighteen counted; `DIGESTED_FLOOR.length === 66` at the same head). Verified: **exit 91**,
 naming the link.
 
 ### `.gitattributes`

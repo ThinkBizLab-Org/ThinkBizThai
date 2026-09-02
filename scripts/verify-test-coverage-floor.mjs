@@ -3,6 +3,7 @@ import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  DECLARED_ASSERTION_FLOOR_BY_FILE,
   DECLARED_TEST_FLOOR_BY_FILE,
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
@@ -15,6 +16,7 @@ import {
   TEST_ROOT,
 } from './test-suite-contract.mjs';
 import { createHash } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 
 // A green `npm run check` must never mean "executed nothing".
 // `node --test <pattern>` exits 0 with `tests 0` when the pattern matches no file,
@@ -485,10 +487,19 @@ export async function assertPerFileFloors(files, floors = DECLARED_TEST_FLOOR_BY
   const short = [];
   for (const [file, floor] of Object.entries(floors)) {
     if (!files.includes(file)) { short.push(`${file} is gone; it declared ${floor} test(s)`); continue; }
-    const declared = countDeclaredTests(stripNonCode(await readFile(file, 'utf8')));
+    const source = stripNonCode(await readFile(file, 'utf8'));
+    const declared = countDeclaredTests(source);
     if (declared < floor) short.push(`${file} declares ${declared} test(s), floor ${floor}`);
+    // The assertion floor, which hollowing cannot preserve: a placeholder makes one trivial
+    // assertion where the real test made many.
+    const assertions = (source.match(/\bassert\.\w+\(/g) ?? []).length;
+    const assertionFloor = DECLARED_ASSERTION_FLOOR_BY_FILE[file];
+    if (assertionFloor !== undefined && assertions < assertionFloor) {
+      short.push(`${file} makes ${assertions} assertion(s), floor ${assertionFloor}`);
+    }
   }
-  const unfloored = files.filter((file) => floors[file] === undefined);
+  const unfloored = files.filter((file) => floors[file] === undefined
+    || DECLARED_ASSERTION_FLOOR_BY_FILE[file] === undefined);
   for (const file of unfloored) short.push(`${file} has no declared-test floor; add one in the same commit`);
   if (short.length > 0) {
     throw new CoverageFloorError(84, `suite(s) below their own declared floor:\n  ${short.join('\n  ')}\n`
@@ -533,13 +544,27 @@ const PACKAGE_MANAGER_CONFIG = ['.npmrc', 'npmrc', '.yarnrc', '.yarnrc.yml', '.p
 export async function assertDigestedFilesAreRegular(manifestPath = INTEGRITY_MANIFEST) {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const wrong = [];
+  // EVERY PATH COMPONENT, not the leaf. Independent review eighteen ran
+  // `git mv scripts tools && ln -s tools scripts`: every digested `scripts/*.mjs` leaf is still a
+  // regular file, reached through a symlinked parent, so a leaf-only check saw nothing -- while
+  // `resolve()` (which normalises but does not follow links) stopped matching `import.meta.url`
+  // (which is the realpath), and `main()` in ten guards never ran. Every one of them exited 0
+  // having done nothing.
+  const seen = new Set();
   for (const key of Object.keys(manifest.files ?? {})) {
-    try {
-      const stats = await lstat(key);
-      if (stats.isSymbolicLink()) wrong.push(`${key} is a symbolic link`);
-      else if (!stats.isFile()) wrong.push(`${key} is not a regular file`);
-    } catch (error) {
-      wrong.push(`${key} cannot be inspected: ${error.code ?? error.message}`);
+    const parts = key.split('/');
+    for (let depth = 1; depth <= parts.length; depth += 1) {
+      const path = parts.slice(0, depth).join('/');
+      if (seen.has(path)) continue;
+      seen.add(path);
+      try {
+        const stats = await lstat(path);
+        if (stats.isSymbolicLink()) wrong.push(`${path} is a symbolic link`);
+        else if (depth === parts.length && !stats.isFile()) wrong.push(`${path} is not a regular file`);
+        else if (depth < parts.length && !stats.isDirectory()) wrong.push(`${path} is not a directory`);
+      } catch (error) {
+        wrong.push(`${path} cannot be inspected: ${error.code ?? error.message}`);
+      }
     }
   }
   if (wrong.length > 0) {
@@ -549,7 +574,17 @@ export async function assertDigestedFilesAreRegular(manifestPath = INTEGRITY_MAN
 }
 
 export async function assertNoPackageManagerConfig(directory = '.') {
-  const present = (await readdir(directory)).filter((name) => PACKAGE_MANAGER_CONFIG.includes(name));
+  // Case-insensitively and Unicode-normalised. Independent review eighteen wrote `.NPMRC` on
+  // macOS's case-insensitive filesystem: `npm config get script-shell` returned `/usr/bin/true`,
+  // `npm run check` exited 0 with zero guards run, and `npm run verify` exited 0 with no output
+  // at all -- while this check compared `'.NPMRC'` to `'.npmrc'` with `Array.includes` and found
+  // nothing. The guard asserts the absence of a CLASS; comparing one spelling of it is not that.
+  //
+  // On a case-sensitive CI filesystem npm would not read `.NPMRC` -- so this is a local-evidence
+  // bypass. Local evidence is what every handoff in this package records.
+  const normalise = (name) => name.normalize('NFC').toLowerCase();
+  const forbidden = PACKAGE_MANAGER_CONFIG.map(normalise);
+  const present = (await readdir(directory)).filter((name) => forbidden.includes(normalise(name)));
   if (present.length > 0) {
     throw new CoverageFloorError(90, `package-manager configuration file(s) present: ${present.join(', ')}. `
       + 'One line in such a file redirects or silences every npm run in this repository, including the verifier. '
@@ -581,7 +616,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   return { pattern, files, declared };
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try {
     await verifyTestCoverageFloor();
   } catch (error) {
