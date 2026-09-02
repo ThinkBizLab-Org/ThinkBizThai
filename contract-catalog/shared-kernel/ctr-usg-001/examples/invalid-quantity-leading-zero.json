@@ -17,7 +17,7 @@
     "basis": "provider_reported",
     "supersedes_usage_id": "usg_synthetic_0002"
   },
-  "dedupe_key": "usg:ws_synthetic_0001:job_synthetic_0001:ai_tokens:provider_reported",
+  "dedupe_key": "usg:ws_synthetic_0001:job_synthetic_0001:ai_tokens:provider_reported:20260831T100000Z",
   "tenant_context": {
     "workspace_id": "00000000-0000-4000-8000-000000000001",
     "business_profile_id": "00000000-0000-4000-8000-000000000002",

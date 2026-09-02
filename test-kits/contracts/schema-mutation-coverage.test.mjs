@@ -1712,7 +1712,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-usg-001': {
-    digest: '941ede572de52a18',
+    digest: '3c08b240792db0fc',
     sites: [
       ".additionalProperties = false",
       ".properties = [attribution, cost, dedupe_key, dimension, occurred_at, quantity, tenant_context, usage_id]",
@@ -1740,7 +1740,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.cost.type = \"object\"",
       ".properties.dedupe_key.maxLength = 512",
       ".properties.dedupe_key.minLength = 1",
-      ".properties.dedupe_key.pattern = \"^usg:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:(ai_tokens|research_search|storage_bytes|egress_bytes|media_processing|publish_operation):(provider_reported|estimated)$\"",
+      ".properties.dedupe_key.pattern = \"^usg:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:(ai_tokens|research_search|storage_bytes|egress_bytes|media_processing|publish_operation):(provider_reported|estimated):[0-9]{8}T[0-9]{6}(?:[0-9]{1,6})?Z$\"",
       ".properties.dedupe_key.type = \"string\"",
       ".properties.dimension.enum = [\"ai_tokens\",\"research_search\",\"storage_bytes\",\"egress_bytes\",\"media_processing\",\"publish_operation\"]",
       ".properties.occurred_at.format = \"date-time\"",

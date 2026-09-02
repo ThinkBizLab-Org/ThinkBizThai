@@ -388,6 +388,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 export const DIGESTED_FLOOR = [
   'scripts/verify-disposition-branch.mjs',
   'scripts/commit-when-clean.mjs',
+  'test-kits/authority-dispositions.test.mjs',
   'test-kits/ratchets-bite.test.mjs',
   'architecture/decisions/.gitkeep',
   'package-lock.json',
@@ -410,6 +411,8 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md',
   'architecture/decisions/RFC-2026-011-repository-language.md',
   'architecture/decisions/RFC-2026-012-client-database-boundary.md',
+  'architecture/decisions/RFC-2026-013-agent-signature-scope.md',
+  'architecture/decisions/RFC-2026-014-usage-measurement-identity.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',

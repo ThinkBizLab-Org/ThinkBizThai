@@ -81,6 +81,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/verification-record.test.mjs': 4,
   'test-kits/work-package-discovery.test.mjs': 1,
   'test-kits/work-package-ownership.test.mjs': 8,
+  'test-kits/authority-dispositions.test.mjs': 3,
 };
 
 // Independent review eighteen answered the question the per-file floor was written to close, and
@@ -124,6 +125,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/verification-record.test.mjs': 14,
   'test-kits/work-package-discovery.test.mjs': 2,
   'test-kits/work-package-ownership.test.mjs': 8,
+  'test-kits/authority-dispositions.test.mjs': 8,
 };
 
 // Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
@@ -164,6 +166,7 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
   'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
   'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
+  'test-kits/authority-dispositions.test.mjs': 'dd031bcd9460744c',
 };
 
 // How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
