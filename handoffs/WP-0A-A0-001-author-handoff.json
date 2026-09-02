@@ -5,12 +5,13 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
-  "head_revision_or_patch_checksum": "2765150c80409c0d7de834a339d5c6088b4c20b8",
+  "head_revision_or_patch_checksum": "a2dc51489961af1eac1e0f4da44366d992d50a30",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
   "files_added": [
+    ".agents/capability-profiles/cc-a6-relay.json",
     "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
     "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
     "test-kits/authority-dispositions.test.mjs"
@@ -68,12 +69,14 @@
     "handoffs/WP-0A-A0-001-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/contracts/schema-mutation-coverage.test.mjs",
     "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-A0-001.json"
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A6-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
