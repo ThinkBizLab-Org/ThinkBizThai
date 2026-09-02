@@ -118,3 +118,42 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/work-package-discovery.test.mjs': 2,
   'test-kits/work-package-ownership.test.mjs': 8,
 };
+
+// Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
+// its count. I added an assertion-count floor; probing that immediately showed the obvious next
+// step -- preserve BOTH. Ten placeholders making fifteen `assert.ok(true)` calls, plus
+// `ctr-api-001 properties.data.maxProperties = 3`: **exit 0**, every floor satisfied.
+//
+// Counting anything can be satisfied by repeating anything. What hollowing cannot preserve is
+// WHAT THE TESTS ARE CALLED: a suite's test names are a description of what it checks, and
+// `placeholder 1..10` is not `every contract reaches the mutation-coverage floor`.
+//
+// This is a digest over the sorted distinct test names per file. Renaming a test is a deliberate
+// edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
+// this repository -- a name cannot be paid for with a count -- arriving one level further down.
+export const TEST_NAME_DIGEST_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
+  'test-kits/branch-scope.test.mjs': '4153a9a5088a9ec7',
+  'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
+  'test-kits/ci-guard-behaviour.test.mjs': '5ee8cd9cd226ad72',
+  'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': '9753730c2bab68ba',
+  'test-kits/contracts/catalog-registry.test.mjs': '6868cdbb372c0207',
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 'd1304414d53dccd7',
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': '6675342a26c7bc01',
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 'd84ed15beca0a546',
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 'bd0c948ddd7fa982',
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': '9fbcbb4ef6ddac05',
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
+  'test-kits/handoff-conformance.test.mjs': 'e5d7f6d4e0426065',
+  'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
+  'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
+  'test-kits/repository-json.test.mjs': 'c1b967354bd964a9',
+  'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
+  'test-kits/secret-scan.test.mjs': 'b522288e91824c97',
+  'test-kits/test-coverage-floor.test.mjs': 'dbda7fd43692fb92',
+  'test-kits/toolchain-contract.test.mjs': '593ef9010e698df4',
+  'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
+  'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
+  'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
+};

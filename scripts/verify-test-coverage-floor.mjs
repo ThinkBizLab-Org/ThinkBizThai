@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   DECLARED_ASSERTION_FLOOR_BY_FILE,
+  TEST_NAME_DIGEST_BY_FILE,
   DECLARED_TEST_FLOOR_BY_FILE,
   GUARD_SCRIPT,
   MIN_DECLARED_TESTS,
@@ -487,11 +488,23 @@ export async function assertPerFileFloors(files, floors = DECLARED_TEST_FLOOR_BY
   const short = [];
   for (const [file, floor] of Object.entries(floors)) {
     if (!files.includes(file)) { short.push(`${file} is gone; it declared ${floor} test(s)`); continue; }
-    const source = stripNonCode(await readFile(file, 'utf8'));
+    const raw = await readFile(file, 'utf8');
+    const source = stripNonCode(raw);
     const declared = countDeclaredTests(source);
     if (declared < floor) short.push(`${file} declares ${declared} test(s), floor ${floor}`);
     // The assertion floor, which hollowing cannot preserve: a placeholder makes one trivial
     // assertion where the real test made many.
+    // The test NAMES, which hollowing cannot preserve: `placeholder 1..10` is not what the suite
+    // was called before.
+    // Read from the RAW file: `stripNonCode` removes string literals, which is exactly where a
+    // test's name lives. The first version digested an empty list for every file and reported all
+    // twenty-four as renamed -- a guard reporting a wrong reason, caught by running it.
+    const names = [...new Set([...raw.matchAll(/^test\(\s*[`'"](.+?)[`'"]\s*,/gm)].map((m) => m[1]))].sort();
+    const nameDigest = createHash('sha256').update(names.join('\n')).digest('hex').slice(0, 16);
+    const expectedNames = TEST_NAME_DIGEST_BY_FILE[file];
+    if (expectedNames !== undefined && nameDigest !== expectedNames) {
+      short.push(`${file} renamed, added or removed tests — name digest ${expectedNames} became ${nameDigest}`);
+    }
     const assertions = (source.match(/\bassert\.\w+\(/g) ?? []).length;
     const assertionFloor = DECLARED_ASSERTION_FLOOR_BY_FILE[file];
     if (assertionFloor !== undefined && assertions < assertionFloor) {
@@ -499,7 +512,8 @@ export async function assertPerFileFloors(files, floors = DECLARED_TEST_FLOOR_BY
     }
   }
   const unfloored = files.filter((file) => floors[file] === undefined
-    || DECLARED_ASSERTION_FLOOR_BY_FILE[file] === undefined);
+    || DECLARED_ASSERTION_FLOOR_BY_FILE[file] === undefined
+    || TEST_NAME_DIGEST_BY_FILE[file] === undefined);
   for (const file of unfloored) short.push(`${file} has no declared-test floor; add one in the same commit`);
   if (short.length > 0) {
     throw new CoverageFloorError(84, `suite(s) below their own declared floor:\n  ${short.join('\n  ')}\n`
