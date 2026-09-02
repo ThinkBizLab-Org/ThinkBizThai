@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "653f699d69f749912e9fdd6e389e5497766cf129",
-  "head_revision_or_patch_checksum": "1609bfe1d27810e439ef81eea2ef215a33ab3c93",
+  "head_revision_or_patch_checksum": "078ee1955c73976f32e94b53e9a46ed2d7fb52ad",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",

@@ -101,3 +101,33 @@ Verified: all three placements exit 1.
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+---
+
+## Probing my own fix for HIGH 2, before the next review could
+
+The assertion floor closed the count-preserving hollow. The obvious next step is to preserve
+**both** counts, so I ran it: ten placeholders making fifteen `assert.ok(true)` calls — exactly the
+numbers the real suite declares — plus `ctr-api-001 properties.data.maxProperties = 3`.
+
+**exit 0.** Every floor satisfied, a real rule in the envelope every module composes, nothing
+failing.
+
+**Counting anything can be satisfied by repeating anything.** What hollowing cannot preserve is
+**what the tests are called**: `placeholder 1..10` is not
+*"every contract reaches the mutation-coverage floor"*. `TEST_NAME_DIGEST_BY_FILE` digests the
+sorted distinct test names per file, so a rename, an addition or a deletion is a deliberate edit
+in a diff a reviewer reads.
+
+It is the same lesson as the constraint surface, the untested-constraint list and the amendment
+ratchet, arriving one level further down: **a name cannot be paid for with a count.**
+
+Verified against the committed guard, in a clone: the both-floors mutation exits **84**, naming
+the file and both digests. Renaming four tests honestly also exits 84 — which is the point, not a
+false positive.
+
+**My first version was wrong and running it said so.** It digested an empty list for all
+twenty-four files and reported every one as renamed: it read `stripNonCode` output, and
+`stripNonCode` removes string literals — which is exactly where a test's name lives. Fifth time in
+this package a guard has been caught reporting a wrong reason, and each time by running it rather
+than reading it.
