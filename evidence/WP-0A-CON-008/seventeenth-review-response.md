@@ -178,3 +178,29 @@ always available, and I re-ran the probe properly in a copy afterwards to get th
 
 Written down rather than quietly corrected, for the same reason every other mistake in these files
 is: the pattern is the finding.
+
+## My own attempt at PRIORITY 1, and why it failed
+
+Ten of seventeen independent runs have shipped an untested business rule past every guard, so it
+was worth attempting directly rather than waiting for the eighteenth to try. Four shapes, all in a
+copy outside the repository, each with `regenerate:manifest` and `record:verification` run
+afterwards so no tripwire could be mistaken for the guard:
+
+| shape | exit |
+| --- | --- |
+| `$comment` carrying a normative sentence — the narrative channel `description` used to be | 1 |
+| widen `CTR-SEC-001`'s handle pattern to admit `:` and `/` | 1 |
+| multiply every `maxLength` in `CTR-JOB-001` by four | 1 |
+| add `internal_bypass: {type: boolean}` to the envelope | 1 |
+
+`$comment` fails because it is not a keyword the validator enforces, and a catalog schema may only
+use keywords it does. The other three fail because `CONSTRAINT_SURFACE` is a **named list in a test
+file**: no regeneration can absorb the change, because nothing generates it.
+
+**That is the property worth stating.** The guards that survive are the ones nothing can regenerate
+— a list a person wrote, compared to what the tree actually holds. Every guard here that has been
+defeated was defeated because something about it was computed, defaulted, or inferred.
+
+An author willing to edit the pinned list as well still gets through. That is the acknowledged
+tripwire property, and it is item 1 on the "not closed" list: the anchor is a reviewer reading the
+diff, which is what the whole separation of duties exists to provide.

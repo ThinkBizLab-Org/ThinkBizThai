@@ -48,12 +48,32 @@ it was committed.
 
 ---
 
+## The one command
+
+```bash
+npm run verify
+```
+
+It runs the whole check as a child process and reports the **exit code**, which is the thing I got
+wrong twice by reading the summary lines instead. Clean looks like this:
+
+```
+clean: exit 0 — tests 233, pass 233, fail 0, skipped 0, todo 0
+```
+
+Anything else prints `NOT clean`, the exit code, and the runner's last line. If it ever prints
+`clean` with no counts, something silenced npm itself — run
+`node scripts/verify-test-coverage-floor.mjs` directly, which is what CI does and what an npm
+setting cannot reach.
+
+---
+
 ## What you need to decide
 
 | # | Decision | Why it is yours |
 |---|---|---|
 | 1 | **Dispose RFC-2026-003 through -010** | All eight are `Proposed`. Until approved they do not hold rank-1 authority under `CONTRIBUTING_AGENTS.md`, so every cross-package amendment below is *staged, not authorized*. |
-| 2 | **Merge PRs #1 → #13 in order. Drilled: it works.** | The whole stack was merged into a scratch copy of the real `main`, in PR order, with `npm run check` after every step. **Green at all thirteen; 26 → 171 tests.** Two *generated* files collide on any sequence merge — `test-kits/integrity-manifest.json` and `evidence/VERIFICATION.md` — and the resolution is to regenerate rather than merge them: `npm run regenerate:manifest`, `npm run record:verification`, `npm run regenerate:manifest` again, then `npm run check`. **A conflict in any other file is a real disagreement — stop.** Evidence: `evidence/WP-0A-CON-008/merge-order-drill.md`. **Merge the whole stack** — stopping partway leaves seven manifests reading `backlog` while their work is on `main`, because the status corrections arrive last. |
+| 2 | **Merge PRs #1 → #13 in order. Drilled four times: it works.** | The whole stack is merged into a scratch copy of the real `main`, in PR order, with the check after every step — re-run whenever the top of the stack moves. Latest: **green at all thirteen, 26 → 233 tests, no conflict in any file.** The pull requests are *stacked*, each targeting the branch below it, so **GitHub retargets them as you merge and there is no rebase step for you to perform** — merging in numeric order through the UI is all that is required. If a sequence ever does collide, it will be in one of the two *generated* files (`test-kits/integrity-manifest.json`, `evidence/VERIFICATION.md`); regenerate rather than merge them — `npm run regenerate:manifest`, `npm run record:verification`, `npm run regenerate:manifest`, then `npm run verify`. **A conflict in any other file is a real disagreement — stop.** Evidence: `evidence/WP-0A-CON-008/merge-order-drill.md`. **Merge the whole stack** — stopping partway leaves manifests reading `backlog` while their work is on `main`, because the status corrections arrive last. |
 | 2b | **Dispose RFC-2026-010** | Nine contracts are ready to leave `Draft`. `Draft` permits *exploratory spikes only*, so every consumer package waiting to build a fake or a consumer test is blocked by a status, not by missing work. Five are A0's to propose; four need **A1** or **A6**; `CTR-NTF-001` is A5's and was deliberately not assessed. |
 | 3 | **`/root/r0_steward` countersignatures** | My Integration Owner correctly refused to sign for a run it is not: different vendor, and not the owner of the amended packages. |
 | 4 | **A1 must ratify the secret-handle syntax** | `CTR-MOD-001` (owner A0) fixed syntax chartered to `CTR-SEC-001` (owner A0+A1). Recorded, not resolved. |
