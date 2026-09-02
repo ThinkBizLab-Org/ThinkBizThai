@@ -134,3 +134,74 @@ test('the reference ratchet fails when a $ref reaches outside a governed contrac
   const after = runSuite(root, suite);
   assert.notEqual(after.status, 0, 'a $ref into a directory no ratchet iterates must fail the reference suite');
 });
+
+// Four contract suites had no behaviour case, which is four files whose hollowing still ships a
+// rule. Listing what is covered and what is not is the point of doing this by name rather than by
+// a table: the gap is visible.
+
+test('the envelope ratchet fails when a required field stops being required', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const schemaPath = join(root, 'contract-catalog/shared-kernel/ctr-ten-001/schema.json');
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  schema.required = schema.required.filter((name) => name !== 'workspace_id');
+  await writeFile(schemaPath, `${JSON.stringify(schema)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0,
+    'a tenant context that need not name a workspace must fail the envelope suite');
+});
+
+test('the catalog ratchet fails when a Candidate contract is promoted', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/shared-kernel-contract-catalog.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const indexPath = join(root, 'contract-catalog/shared-kernel/index.json');
+  const index = JSON.parse(await readFile(indexPath, 'utf8'));
+  for (const entry of index.contracts) if (entry.status === 'Candidate') { entry.status = 'Frozen'; break; }
+  await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0, 'promoting a contract to a level the register does not define must fail');
+});
+
+test('the schema-ref ratchet fails when the bound on a schema reference is lifted', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const schemaPath = join(root, 'contract-catalog/shared-kernel/ctr-evt-001/schema.json');
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  schema.properties.metadata.properties.schema_ref.maxLength = 4096;
+  await writeFile(schemaPath, `${JSON.stringify(schema)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0, 'a 4096-character schema reference must fail the bounds suite');
+});
+
+test('the job-reference ratchet fails when a job reference stops being bounded', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  // The reversal the suite actually notices, found by reading it rather than assuming: this field
+  // is bounded by an allow-listed SCHEME, not by a length. My first version deleted a `maxLength`
+  // that field does not have, and the case passed for the wrong reason -- the same defect this
+  // package has recorded three times, caught here by the unmodified-copy assertion above failing
+  // to be followed by a failure.
+  const schemaPath = join(root, 'contract-catalog/shared-kernel/ctr-job-001/schema.json');
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  schema.properties.result_ref.pattern = '^.*$';
+  await writeFile(schemaPath, `${JSON.stringify(schema)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0,
+    'a job result reference that accepts any string at all must fail the hardening suite');
+});

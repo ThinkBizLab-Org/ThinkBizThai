@@ -103,3 +103,23 @@ CTR-SEC-001's admission … must fail the registry suite"*.
 
 They are written out rather than generated from a table, for the reason recorded three waves ago:
 **a test generated in a loop is one the declaration counter cannot see.**
+
+### All nine contract suites now have a behaviour case
+
+Four had none, which is four files whose hollowing still shipped a rule:
+
+| suite | reversal it must notice |
+| --- | --- |
+| `shared-kernel-envelope-contracts` | a tenant context that need not name a workspace |
+| `shared-kernel-contract-catalog` | a Candidate contract promoted to a level the register does not define |
+| `ctr-evt-001-schema-ref-bounds` | a 4096-character schema reference |
+| `ctr-job-001-reference-hardening` | a job result reference that accepts any string |
+
+**The last one failed on its first run and the reason is worth keeping.** I wrote it as *"delete
+`result_ref.maxLength`"* — and that field has no `maxLength`; it is bounded by an **allow-listed
+scheme**. The case would have passed for the wrong reason had the meta-test not required a failure
+after the mutation. I read the suite and used the reversal it actually notices.
+
+That is the fourth time in this package a probe has been aimed at something that was not there. The
+difference this time is that the shape of this test — *assert the suite passes clean, then assert
+it fails dirty* — **cannot** be satisfied by a mutation nothing observes.
