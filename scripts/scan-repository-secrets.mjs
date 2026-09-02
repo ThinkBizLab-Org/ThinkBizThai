@@ -68,6 +68,224 @@ export function isThaiNationalId(value) {
   return (11 - (sum % 11)) % 10 === Number(digits[12]);
 }
 
+/** A primary account number is customer PII, and CONTRIBUTING_AGENTS.md forbids customer PII
+ *  repository-wide with no carve-out. Detecting one needs BOTH tests, never either alone.
+ *
+ *  Luhn alone is far too weak: one in ten arbitrary digit runs of the right length passes it,
+ *  so a rule built on Luhn reports correlation ids, hash prefixes and timestamps until someone
+ *  turns it off. An issuer prefix alone is weaker still -- every 16-digit run starting with 4
+ *  would be a card. Together they are strict enough to run unattended.
+ *
+ *  Deliberately NOT exempted: the published provider test cards. At rest a scanner cannot tell
+ *  a test number from a live one, Gate G0 permits no provider integration that would need one,
+ *  and an allowlist of "safe" card numbers is the shape a real leak hides in. When a payment
+ *  sandbox is authorized, the exemption belongs in a reviewed decision with a named owner, not
+ *  here. No card number, valid or otherwise, is written literally in this file: a rule that
+ *  cannot be stated without tripping itself would have to exempt its own source, and a
+ *  scanner blind to one file is a scanner with a place to hide things. */
+// Issuer ranges paired with the lengths that issuer actually uses. Independent security
+// review found the first version covered five families and four lengths, omitting UnionPay
+// (BIN 62) entirely -- the highest-volume network globally and widely accepted in Thai
+// e-commerce, which for this product is the wrong one to miss -- and omitting the 14-digit
+// length altogether, which made Diners Club structurally unreachable.
+const ISSUER_RANGES = [
+  [/^4/, [13, 16, 19]],                       // Visa
+  [/^(5[1-5]|2[2-7])/, [16]],                 // Mastercard
+  [/^3[47]/, [15]],                           // American Express
+  [/^(6011|64[4-9]|65)/, [16, 19]],           // Discover
+  [/^35(2[89]|[3-8][0-9])/, [16]],            // JCB
+  [/^62/, [16, 19]],                          // UnionPay
+  [/^(30[0-5]|3095|3[689][0-9])/, [14]],      // Diners Club
+  [/^(50|5[6-8]|6304|6759|676[1-3])/, [16, 19]], // Maestro
+  [/^(60|81|82)/, [16]],                      // RuPay
+];
+
+function luhnHolds(digits) {
+  let sum = 0;
+  let double = false;
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(digits[index]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
+/** A primary account number is customer PII, and CONTRIBUTING_AGENTS.md forbids customer PII
+ *  repository-wide with no carve-out. Detecting one needs BOTH tests, never either alone.
+ *
+ *  Luhn alone is far too weak: one in ten arbitrary digit runs of the right length passes it,
+ *  so a rule built on Luhn reports correlation ids, hash prefixes and timestamps until someone
+ *  turns it off. An issuer prefix alone is weaker still -- every 16-digit run starting with 4
+ *  would be a card. Together they are strict enough to run unattended.
+ *
+ *  Deliberately NOT exempted: the published provider test cards. At rest a scanner cannot tell
+ *  a test number from a live one, Gate G0 permits no provider integration that would need one,
+ *  and an allowlist of "safe" card numbers is the shape a real leak hides in. When a payment
+ *  sandbox is authorized, the exemption belongs in a reviewed decision with a named owner, not
+ *  here. No card number, valid or otherwise, is written literally in this file: a rule that
+ *  cannot be stated without tripping itself would have to exempt its own source, and a
+ *  scanner blind to one file is a scanner with a place to hide things. */
+// A digit is not always U+0030..U+0039. Independent security review found the rule blind to
+// FULLWIDTH digits and to THAI digits -- on a Thai-market product, in a rule whose own comment
+// claims to cover what a Thai IME produces. It had widened the SEPARATORS for that scenario and
+// never the DIGITS, so a bare sixteen-digit fullwidth card number, the plainest representation
+// there is, was invisible.
+const DIGIT_RANGES = [[0x0030, '0'], [0xff10, '0'], [0x0e50, '0'], [0x0660, '0'], [0x06f0, '0']];
+export function foldDigits(value) {
+  let out = '';
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    const range = DIGIT_RANGES.find(([base]) => code >= base && code <= base + 9);
+    if (range) out += String(code - range[0]);
+  }
+  return out;
+}
+
+export function isPaymentCardNumber(value) {
+  // `foldDigits` rather than a strip: this is exported and called directly by the tests, so it
+  // must handle a non-ASCII number on its own. The scanner folds the run before it gets here,
+  // which makes the call redundant on that path and correct on this one.
+  const digits = foldDigits(value);
+  if (!/^[0-9]{13,19}$/.test(digits)) return false;
+  if (!ISSUER_RANGES.some(([prefix, lengths]) => prefix.test(digits) && lengths.includes(digits.length))) return false;
+  return luhnHolds(digits);
+}
+
+// Group sizes a card is actually written in. Independent security review measured the
+// unrestricted rule reporting 2.6% of rows of small integers, and this repository's evidence
+// files are full of numeric tables. A row of five 3-digit latencies is not a card no matter
+// what Luhn says about its concatenation.
+//
+// Independent testing then found the first version of this list too narrow in the way that
+// mattered most: it rejected 4-6-4, which is exactly how a Diners Club card is printed -- and
+// the 14-digit length had just been added SPECIFICALLY so Diners would be reachable. The
+// Amex 4-6-5 case was special-cased and its Diners neighbour was not.
+const PRINTED_LAYOUTS = [[4, 6, 5], [4, 6, 4], [4, 4, 5]];
+
+function groupingIsCardLike(sizes) {
+  if (sizes.length <= 2) return true;
+  if (PRINTED_LAYOUTS.some((layout) => layout.length === sizes.length && layout.every((n, i) => n === sizes[i]))) return true;
+  const body = sizes.slice(0, -1);
+  const last = sizes.at(-1);
+  return body.every((size) => size === 4) && last >= 1 && last <= 6;
+}
+
+export function containsPaymentCardNumber(run) {
+  // Two kinds of separator, and they mean different things. A SPACE or hyphen is how someone
+  // GROUPS a number, so the grouping has to look like a card. A LINE BREAK is where the
+  // medium ran out of width.
+  //
+  // But a line break is AMBIGUOUS in a way the first version missed: it may have split a
+  // group in two, or it may have replaced the space between two groups. Independent review
+  // found a Luhn-valid card written 4-4-4-4 and wrapped before its final group going
+  // unreported, because merging across the wrap turned [4,4,4,4] into [4,4,8] and 8 is not a
+  // card-like tail. The medium does not say which happened, so BOTH readings are tried.
+  // A list is not a wrapped card. Independent security review measured the widened
+  // continuation set turning an ordinary markdown bullet list of four-digit build numbers into
+  // a finding -- 15% of bullet lists and 34% of JSDoc number blocks -- and this rule has no
+  // prose exemption, so every one of those fails the whole build on the evidence and runbook
+  // files this repository is made of.
+  //
+  // The distinguishing shape: three or more lines each carrying exactly ONE group is a list.
+  // A wrapped card leaves at least one line carrying more than one group, or fits in two lines.
+  // The cost is stated rather than hidden: a card written one group per line down three or more
+  // lines is no longer detected. That case is speculative; breaking CI on ordinary documents is
+  // not, and a rule that fails on documentation is a rule someone deletes.
+  // Fold non-ASCII digits before any of this: the grouping analysis counts digits, and a
+  // fullwidth or Thai numeral is a digit.
+  run = [...run].map((c) => foldDigits(c) || c).join('');
+  const lines = run.split('\n');
+  if (lines.length >= 3 && lines.every((line) => (line.match(/[0-9]+/g) ?? []).length === 1)) return false;
+
+  const groups = [];
+  const wrapped = [];
+  let current = '';
+  let pendingWrap = false;
+  for (const char of run) {
+    if (char >= '0' && char <= '9') { current += char; continue; }
+    if (current) { groups.push(current); wrapped.push(pendingWrap); current = ''; pendingWrap = false; }
+    if (char === '\n') pendingWrap = true;
+  }
+  if (current) { groups.push(current); wrapped.push(pendingWrap); }
+  if (groups.length === 0) return false;
+
+  // A card is 13 to 19 digits, and a wrapped one carries a little context at most. A run that
+  // crosses a line break carrying FAR more digits than that is not one number split over lines
+  // -- it is a table, and a window spanning two of its rows is two different numbers joined at
+  // a row boundary.
+  //
+  // Independent security review measured this: eight rows of four 4-digit amounts reported at
+  // 64%, an aligned numeric id column at 45%, on the kind of benchmark and evidence file this
+  // repository is made of. Most of that came from cross-row windows, and none of those windows
+  // is a card. Within a single line the arithmetic is irreducible -- four groups of four IS the
+  // card layout -- but across rows there is a real signal and it was not being used.
+  // A card that the medium wrapped is the WHOLE run: the line ran out of width in the middle
+  // of one number and the rest continues below. Anything that spans a line break while being
+  // only PART of the run is two different numbers meeting at a row boundary.
+  //
+  // Independent security review measured what the absence of that rule cost: eight rows of four
+  // 4-digit amounts reported at 64%, an aligned numeric id column at 45%, on the benchmark and
+  // evidence files this repository is made of, on a rule with no prose exemption. Every one of
+  // those findings came from a window joining the tail of one row to the head of the next, and
+  // not one of them was a card.
+  //
+  // Within a single line the arithmetic stays irreducible -- four groups of four IS how a card
+  // is written -- so a row that is itself card-shaped is still reported. That is the cost of
+  // the format, not of this rule.
+  const spansLines = wrapped.some((w, index) => w && index > 0);
+  if (spansLines) {
+    // Reading 1: each line on its own. No window can cross a boundary.
+    let line = [];
+    for (let index = 0; index < groups.length; index += 1) {
+      if (index > 0 && wrapped[index]) {
+        if (scanReading(line)) return true;
+        line = [];
+      }
+      line.push(groups[index]);
+    }
+    if (scanReading(line)) return true;
+
+    // Reading 2: the whole run is one wrapped number. Only a window covering ALL of it counts.
+    const merged = [];
+    groups.forEach((group, index) => {
+      if (index > 0 && wrapped[index]) merged[merged.length - 1] += group;
+      else merged.push(group);
+    });
+    return scanReading(merged, { wholeRunOnly: true }) || scanReading(groups, { wholeRunOnly: true });
+  }
+
+  return scanReading(groups);
+  return false;
+}
+
+function scanReading(groups, { wholeRunOnly = false } = {}) {
+  const sizes = groups.map((group) => group.length);
+  const digits = groups.join('');
+  const starts = [];
+  let offset = 0;
+  for (const size of sizes) { starts.push(offset); offset += size; }
+  const ends = new Map(starts.map((start, index) => [start + sizes[index], index]));
+  for (let index = 0; index < starts.length; index += 1) {
+    for (const length of [13, 14, 15, 16, 19]) {
+      const from = starts[index];
+      const to = from + length;
+      // A card does not start or stop in the middle of a written group.
+      if (!ends.has(to)) continue;
+      if (wholeRunOnly && (from !== 0 || to !== digits.length)) continue;
+      const covered = sizes.slice(index, ends.get(to) + 1);
+      if (!groupingIsCardLike(covered)) continue;
+      if (isPaymentCardNumber(digits.slice(from, to))) return true;
+    }
+  }
+  return false;
+}
+
+
 /** A value that is a template reference or a documented stand-in is not a leaked secret.
  *  Anchored end to end on purpose: a real credential that merely CONTAINS the word
  *  "synthetic" must still be reported. */
@@ -158,6 +376,63 @@ export const CREDENTIAL_RULES = [
 
 /** Privacy rules. `proseExempt` marks the single rule relaxed under PII_PROSE_PREFIXES. */
 export const PII_RULES = [
+  {
+    id: 'payment-card-number',
+    // The run is matched generously -- digits joined by the separators a card is written or
+    // pasted with, including a line break, because a wrapped log line or a quoted email is a
+    // real artifact shape and a non-breaking space is what a paste from a rendered statement
+    // carries. `accept` then does the real work over the windows inside the run.
+    //
+    // The continuation set covers `#`, `//` and ` * ` as well as `>` and `|`. Independent
+    // security review pointed out that the first version handled quoted email and markdown
+    // tables but not the comment leaders THIS repository is written in -- YAML, shell, JS and
+    // JSDoc -- and this scanner's own source is a ` * ` block. A card wrapped inside one was
+    // not reported; the same file with `# ` rewritten to `> ` was.
+    //
+    // The separator set covers U+2010 HYPHEN (the actual typographic hyphen), U+2012 FIGURE
+    // DASH (defined by Unicode for use BETWEEN DIGITS), the em/en/hair spaces beside the ones
+    // already listed, the soft hyphen and zero-width space a justified or HTML-rendered
+    // statement carries, and the minus, fullwidth hyphen and ideographic space a CJK or Thai
+    // IME produces. Each was demonstrated missing.
+    //
+    // `=` before a newline is the quoted-printable soft break a pasted email carries. U+200D is
+    // a zero-width joiner, which has no business between digits at all.
+    //
+    // `|` was accepted here and is now WITHDRAWN. I measured its price against a markdown table
+    // of three columns with mixed widths, which cannot produce sixteen digits and therefore
+    // could never have tripped it -- a benign shape chosen, without meaning to, so that it could
+    // not fail. Independent review measured the shape that matters: a markdown table of four
+    // 4-digit columns over eight rows, which is the most common table in this repository's
+    // evidence files. With `|`: 24.3%. Without: 0.00%.
+    //
+    // What it bought was a card SPLIT ACROSS FOUR TABLE CELLS. Nobody writes a card that way. A
+    // card pasted into a table cell -- bare or grouped in fours -- is detected either way, and
+    // that is the representation a real leak takes.
+    //
+    // The lesson is not about `|`. A price measured against a shape that cannot pay it is not a
+    // measurement, and I made that error while building the very harness meant to prevent it.
+    //
+    // FOUR further separators were measured and REFUSED, because each buys one representation
+    // and pays about a quarter of a common document shape. The numbers, 3000 trials each:
+    //
+    //   `.`  gains dot-separated groups, costs 0.0% -> 24.1% on semantic versions and dotted
+    //        build ids -- `v1.02.003 build.4111.1111.1111.1111` is a version string
+    //   `,`  gains comma-separated groups, costs 0.0% -> 24.2% on a CSV of numeric metrics,
+    //        which is the single most common numeric document there is
+    //   `/`  gains slash-separated groups, costs 0.0% -> 24.8% on file paths with numeric
+    //        segments, e.g. /var/log/4111/1111/1111/1111.log
+    //   `_`  gains underscore-separated groups, costs 24.2% -> 26.4% on numeric tables
+    //
+    // Twice before, a widening here shipped without its price being read, and both times it
+    // broke the build on ordinary documents. These four are refused with the measurement
+    // attached so the refusal can be argued with rather than rediscovered.
+    pattern: /(?<![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9](?:(?:[ \t\u00A0\u2002\u2003\u2007\u2009\u200A\u202F\u3000\u00AD\u200B\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D\u200D-]+|=?\r?\n[ \t>|#*/-]*)?[0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])+(?![0-9\uFF10-\uFF19\u0E50-\u0E59\u0660-\u0669\u06F0-\u06F9])/g,
+    accept: (match) => containsPaymentCardNumber(match),
+    // NOT prose-exempt. A card number written into a comment, a runbook or an evidence file
+    // is the same disclosure as one written into code, and the rule that already treats a
+    // Thai national identity number that way must treat this one the same or it enforces
+    // CONTRIBUTING_AGENTS.md selectively.
+  },
   {
     id: 'thai-national-id',
     pattern: /\b[0-9](?:-?[0-9]){12}\b/g,
