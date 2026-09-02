@@ -82,6 +82,8 @@ async function mustNoticeSourceEdit(suite, edits) {
   const before = runSuite(root, suite);
   assert.equal(before.status, 0, `${suite} must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
 
+  let applied = 0;
+  try {
   for (const [description, path, find, replace] of edits) {
     const target = join(root, path);
     const original = await readFile(target, 'utf8');
@@ -90,8 +92,12 @@ async function mustNoticeSourceEdit(suite, edits) {
     const after = runSuite(root, suite);
     await writeFile(target, original);
     assertFailed(after, `${suite} must notice: ${description}`);
+    applied += 1;
   }
-  await rm(root, { recursive: true, force: true });
+  assert.equal(applied, edits.length, `${suite}: ${applied} of ${edits.length} source edits executed`);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 }
 
 async function mustNotice(suite, reversals) {
@@ -108,6 +114,8 @@ async function mustNotice(suite, reversals) {
   const before = runSuite(root, suite);
   assert.equal(before.status, 0, `${suite} must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
 
+  let applied = 0;
+  try {
   for (const [description, path, mutate] of reversals) {
     const target = join(root, path);
     const original = await readFile(target, 'utf8');
@@ -117,6 +125,20 @@ async function mustNotice(suite, reversals) {
     const after = runSuite(root, suite);
     await writeFile(target, original);
     assertFailed(after, `${suite} must notice: ${description}`);
+    applied += 1;
+  }
+  // THE LOOP MUST CONSUME WHAT IT WAS HANDED. Independent review twenty-two wrote
+  // `reversals.filter(() => false)` -- the runtime length assertion above still passed, all 30
+  // tuples stayed in the file, and not one executed. The source-level blacklist that caught
+  // `.slice(0, 0)` is a vocabulary, and `reversals.slice (0, 0)` defeats it with a space.
+  //
+  // Counting what ran cannot be satisfied by a spelling.
+  assert.equal(applied, reversals.length,
+    `${suite}: ${applied} of ${reversals.length} reversals executed`);
+  } finally {
+    // `rm` after the loop leaks a 7-13 MB copy on every failure, and a reviewer's job is to make
+    // it fail: review twenty-two accumulated 23 directories and ~200 MB doing exactly that.
+    await rm(root, { recursive: true, force: true });
   }
   // Independent review twenty-one filled a disk running this file four times: 35 whole-repository
   // copies per run, ~840 MB, never removed. A guard that exhausts the machine it runs on is a
