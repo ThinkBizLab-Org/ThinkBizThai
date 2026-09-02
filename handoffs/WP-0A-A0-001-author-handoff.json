@@ -5,13 +5,18 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
-  "head_revision_or_patch_checksum": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
+  "head_revision_or_patch_checksum": "e3babb024166b730726a27876160c37cb3fb96bf",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md",
+    "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "work-packages/WP-0A-A0-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
