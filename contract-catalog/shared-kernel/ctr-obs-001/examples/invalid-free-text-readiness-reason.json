@@ -1,0 +1,14 @@
+{
+  "correlation": { "correlation_id": "corr_synthetic_0010" },
+  "module": { "module_key": "ai-generation", "implementation_version": "1.4.0" },
+  "environment": "production",
+  "liveness": { "status": "up", "depends_on_external_provider": false },
+  "readiness": {
+    "ready": false,
+    "capabilities": [
+      { "capability_key": "ai.text.generate", "ready": false, "reason_key": "The provider key for this workspace has not been supplied yet" }
+    ]
+  },
+  "sli_tags": { "module_key": "ai-generation", "environment": "production" },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true }
+}

@@ -1,0 +1,26 @@
+{
+  "handle": "secret:platform.ai.openai.synthetic-0001",
+  "scope": {
+    "workspace_id": "ws_synthetic_0001",
+    "business_profile_id": "bp_synthetic_0001",
+    "capability_key": "ai.text.generate"
+  },
+  "ownership": "managed",
+  "classification": "restricted",
+  "state": "active",
+  "resolvable": true,
+  "rotation": {
+    "owner": { "kind": "platform_role", "id": "A1" },
+    "rotated_at": "2026-08-01T03:00:00Z",
+    "next_rotation_due_at": "2026-11-01T03:00:00Z"
+  },
+  "redaction": {
+    "browser_safe": true,
+    "log_safe": true,
+    "event_safe": true,
+    "job_safe": true,
+    "analytics_safe": true,
+    "error_trace_safe": true
+  },
+  "correlation_id": "corr_synthetic_0001"
+}

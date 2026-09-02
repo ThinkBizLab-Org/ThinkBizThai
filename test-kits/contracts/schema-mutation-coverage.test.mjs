@@ -28,6 +28,21 @@ const PROTECTED = [
   ['ctr-flg-001', ['properties', 'bucket', 'properties', 'percentage', 'maximum']],
   ['ctr-flg-001', ['properties', 'evaluated_scopes', 'enum']],
   ['ctr-flg-001', ['properties', 'reason_key', 'pattern']],
+  // Independent review measured CTR-SEC-001 at 16.0%, CTR-AUD-001 at 19.4% and CTR-OBS-001
+  // at 15.7% -- the same band CON-003 sat in before fixtures were added for it, and the 31
+  // new fixtures did not move it. It named the specific sites defended by nothing: five of
+  // six redaction const-true surfaces, though freeze_boundary says the contract "materializes
+  // exactly" that requirement; SEC-009's six action categories, the package's best citation;
+  // and the whole dependencies subtree, so M1's enum was tested by nothing.
+  ['ctr-sec-001', ['properties', 'handle', 'pattern']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'browser_safe', 'const']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'log_safe', 'const']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'event_safe', 'const']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'job_safe', 'const']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'analytics_safe', 'const']],
+  ['ctr-sec-001', ['properties', 'redaction', 'properties', 'error_trace_safe', 'const']],
+  ['ctr-aud-001', ['properties', 'action', 'properties', 'category', 'enum']],
+  ['ctr-obs-001', ['properties', 'dependencies', 'items', 'properties', 'status', 'enum']],
 ];
 
 function without(schema, path) {

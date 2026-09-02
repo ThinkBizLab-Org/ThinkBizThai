@@ -108,10 +108,12 @@
     "forbidden_paths": [
       ".env",
       ".env.*",
-      "**/*secret*",
-      "**/*credential*",
       "db/**",
-      "migrations/**"
+      "migrations/**",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
     ],
     "module_ids": [
       "MOD-000"
@@ -120,7 +122,8 @@
     "authorized_cross_package_amendments": [
       "contract-catalog/shared-kernel/ctr-evt-001/schema.json - correct tenant_context $ref from ../../ctr-ten-001/schema.json to ../ctr-ten-001/schema.json and record x-amended-by (RFC-2026-004 decision 2). Corrective, not anticipatory: the reference is broken today.",
       "contract-catalog/shared-kernel/ctr-job-001/schema.json - same correction and record (RFC-2026-004 decision 2)."
-    ]
+    ],
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed. A contract catalog that models secret HANDLES must name them, and this package ships contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json and invalid-secret-handle-shape.json -- both matching a glob this manifest declared forbidden. The contradiction was found by the run authoring WP-0A-CON-004 and confirmed: the ownership validator checks writable and read-only paths but never compares forbidden_paths against declared outputs, so nothing caught it. Replaced with extensions that carry actual key material (*.pem, *.key, *.p12, *.pfx), which is what the rule was for. A filename is not a secret; a private key file is."
   },
   "inputs": {
     "files": [

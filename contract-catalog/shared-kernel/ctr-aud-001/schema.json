@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "CTR-AUD-001",
+  "title": "Audit Event",
+  "description": "The record written when a security, admin or external action happens. It carries WHO, IN WHAT SCOPE, WHAT ACTION, WITH WHAT OUTCOME AND REASON, and REFERENCES to the state before and after. It carries no state values, no free-form bag and no human prose, so that redaction is a property of the shape rather than of the producer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "audit_id",
+    "occurred_at",
+    "actor",
+    "action",
+    "tenant_context",
+    "correlation_id",
+    "outcome",
+    "reason_key",
+    "redaction",
+    "retention",
+    "details"
+  ],
+  "properties": {
+    "audit_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-source": "DECLARED INFERENCE from Workstream 3.2: OB-005 lists EV-001 (Event Envelope) as a dependency, so an audit event is an event and carries a unique event identity. `event_id` in 3.2 is the field it is inferred from; the name is specialised to this contract."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "x-source": "Workstream 3.2 `occurred_at` (UTC), inherited through OB-005's dependency on EV-001."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "user",
+            "system_actor"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "x-source": "OB-005 requires `actor`; SEC-009 requires that a role, credential, publish, delete, billing or support action states its actor. The typed kind/id shape (never a free string) is Workstream 3.1 and matches CTR-TEN-001."
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "name"
+      ],
+      "properties": {
+        "category": {
+          "enum": [
+            "role",
+            "credential",
+            "publish",
+            "delete",
+            "billing",
+            "support"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+          "maxLength": 96
+        }
+      },
+      "x-source": "OB-005 requires `action`. The six categories are exactly the six auditable action classes SEC-009 enumerates: role, credential, publish, delete, billing, support. The dotted `name` grammar is a DECLARED INFERENCE from the Workstream 3.2 `event_type` convention `<domain>.<entity>.<action>`. It permits an underscore inside a segment where CTR-EVT-001 `event_type` does not, because the entities DEC-010 names are `business_profile` and `page_context_profile`; that widening is deliberate and declared, not accidental. The maximum length is inferred, not sourced."
+    },
+    "tenant_context": {
+      "$ref": "../ctr-ten-001/schema.json",
+      "x-source": "OB-005 lists TC-001 (Trusted Tenant Context) as a dependency, and Decision Register 5.2 requires `scope` on this contract. The scope is therefore the Trusted Tenant Context itself, not a second scope vocabulary. A platform-scope action belonging to no workspace is NOT modelled; see freeze_boundary."
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-source": "SEC-009 requires actor AND correlation on every audited action; OB-001 requires one trace across the whole workflow. Stated at the root as well as inside tenant_context, following the CTR-EVT-001 precedent."
+    },
+    "causation_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-source": "Workstream 3.1 `causation_id`: the id of the command, event or job that caused this one."
+    },
+    "outcome": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "denied"
+      ],
+      "x-source": "DECLARED INFERENCE. No source names an outcome field. It is inferred from SEC-007, which makes authorization deny-by-default, and SEC-016, which requires break-glass access to be audited: a denial is the single most important thing an audit of an authorization boundary can record, and an audit that cannot distinguish a denial from a success does not satisfy either. Inferred from SEC-007 and SEC-016, with the failure case from OB-002."
+    },
+    "reason_key": {
+      "type": "string",
+      "pattern": "^audit\\.[a-z0-9_.]+$",
+      "maxLength": 96,
+      "x-source": "OB-005 requires `reason`. It is a stable KEY rather than free text because CM-004 and CTR-ERR-001 establish stable machine codes with Thai message keys for anything a person reads, and because OBS-001 forbids full content on this path. Key-not-prose is a DECLARED INFERENCE from CM-004 and CTR-ERR-001, not wording in OB-005."
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "before_ref": {
+          "type": "string",
+          "pattern": "^(snapshot|record):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$",
+          "maxLength": 256
+        },
+        "after_ref": {
+          "type": "string",
+          "pattern": "^(snapshot|record):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$",
+          "maxLength": 256
+        }
+      },
+      "x-source": "OB-005 requires a 'before-after ref'. A REFERENCE, not a value, is what makes the same task's 'secret/content redaction' achievable at all: the audit record cannot leak state it does not hold. The reference GRAMMAR -- closed scheme list, no leading slash, no `..` segment, no public URL -- is adopted from CTR-IDM-001 `result_ref` as precedent after that contract's own security review. The two scheme names are a DECLARED INFERENCE; no source names them."
+    },
+    "error": {
+      "$ref": "../ctr-err-001/schema.json",
+      "x-source": "OB-002 requires a stable operational error taxonomy, which CM-004 and CTR-ERR-001 already materialize. A failed or denied action reuses it rather than defining a second error vocabulary."
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "secret_redacted",
+        "content_redacted",
+        "pii_redacted"
+      ],
+      "properties": {
+        "secret_redacted": {
+          "const": true
+        },
+        "content_redacted": {
+          "const": true
+        },
+        "pii_redacted": {
+          "const": true
+        }
+      },
+      "x-source": "OB-005 requires 'secret/content redaction'; OB-002 requires PII to be redacted on this path; OBS-001 requires that trace, job, workspace, module and error stay linkable without carrying a secret or full content. Decision Register 5.2 lists redaction as a required artifact for this contract."
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_ref"
+      ],
+      "properties": {
+        "policy_ref": {
+          "type": "string",
+          "pattern": "^retention\\.[a-z0-9_.]+$",
+          "maxLength": 96
+        }
+      },
+      "x-source": "SEC-009's deliverable is 'Audit schema + retention', and PDPA-006 requires a machine-readable retention schedule per entity that names audit explicitly. The record therefore carries a reference to the policy that governs it. The DURATION is deliberately not pinned: PDPA-006 is undelivered and the baseline states that Thai legal counsel must confirm retention periods before production."
+    },
+    "details": {
+      "type": "object",
+      "maxProperties": 0,
+      "x-source": "OB-005 'secret/content redaction'. A free-form bag is how a secret or a page of user content reaches an audit log, so this contract declares the bag and holds it empty, exactly as CTR-ERR-001 does for `details` and CTR-EVT-001 for `payload`. Widening it requires an owner-approved payload contract."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "properties": {
+              "category": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "category"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "required": [
+          "change"
+        ],
+        "properties": {
+          "change": {
+            "required": [
+              "before_ref"
+            ]
+          }
+        }
+      },
+      "x-rule": "OB-005 requires a before/after reference, and PDPA-008 requires a deletion to leave a tombstone and an audit entry: a delete that records no reference to what existed beforehand cannot satisfy either."
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "failed",
+              "denied"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      },
+      "x-rule": "OB-002 stable operational error taxonomy with SEC-007 deny-by-default: an audit record saying an action did not happen must say, in the stable vocabulary of CTR-ERR-001, why it did not."
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "succeeded"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      },
+      "x-rule": "OB-002: an action recorded as successful and carrying an error is two contradictory statements about one event, and a reader cannot tell which the alert route should trust."
+    }
+  ]
+}
