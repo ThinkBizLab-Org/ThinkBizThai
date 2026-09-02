@@ -5,13 +5,15 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "423a1acf2aabc2bccea175c22c8a42eb52a42acc",
-  "head_revision_or_patch_checksum": "a70455eb57bdf9ee44cfe852897806f3a9eb9cbc",
+  "head_revision_or_patch_checksum": "ae1141ce461f04411a8c535929acb847c02fd43a",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
   "files_added": [
-    "architecture/decisions/RFC-2026-011-repository-language.md"
+    "architecture/decisions/RFC-2026-011-repository-language.md",
+    "architecture/decisions/RFC-2026-012-client-database-boundary.md",
+    "evidence/WP-0A-A0-001/open-015-client-database-boundary.md"
   ],
   "files_modified": [
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
