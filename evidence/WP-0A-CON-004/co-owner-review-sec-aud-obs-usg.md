@@ -90,3 +90,39 @@ found that every guard in this repository had passed, and one reviewer recommend
 was wrong and was not followed.
 
 `npm run verify` after the change: `clean: exit 0 — tests 256, pass 256, fail 0`.
+
+---
+
+## Second A6 assessment of `CTR-USG-001` — 2026-09-02
+
+The Product Owner ruled that an agent run's assessment is that role's signature
+(RFC-2026-013). A6 was therefore asked again, from a fresh run, whether the refusal was
+lifted now that its three named items were closed.
+
+**A6 confirmed all three closed** — the composition and uniqueness scope stated and
+pattern-enforced, the supersession now pointing at an estimate of the same dimension, the
+false self-reference claim corrected and declared — **and refused again on a fourth
+ground, which the author's own fix had introduced.**
+
+The composition `usg:<workspace>:<job>:<dimension>:<basis>` together with the rule *"a
+second event carrying a key already seen is a duplicate and must be dropped, not summed"*
+instructs a consumer to discard a second legitimate charge for one job. Verified by the
+author before acting: two `ai_tokens` estimates for one job five minutes apart, 1450 then
+2900 tokens, both validate carrying an identical key.
+
+That is worse than the gap it replaced. The first key could not detect double-counting;
+the replacement **manufactures** the missing-usage condition OB-008 exists to detect, and
+does it in the direction that loses money.
+
+RFC-2026-014 records the fix: the key carries the measurement instant, so two measurements
+are summed and a redelivery still collapses, while `ID-002` redelivery idempotency stays
+keyed on `usage_id` where it belongs. A6 offered a second acceptable resolution — declaring
+a usage event to be the single terminal measurement per job, dimension and basis — which
+was **not** taken, because no source states that cardinality and the chosen reading loses
+no data if the other one turns out to be intended.
+
+**The point worth keeping:** the second refusal caught a defect the fix for the first
+refusal introduced. That is the failure an author is least able to see, having just
+convinced himself, and it is the strongest argument yet for what the Product Owner's
+ruling makes these signatures worth. `CTR-USG-001` remains **unsigned** pending a third
+assessment.

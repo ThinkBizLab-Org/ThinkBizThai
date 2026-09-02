@@ -16,7 +16,7 @@
     "currency": "THB",
     "basis": "estimated"
   },
-  "dedupe_key": "usg:ws_synthetic_0001:job_synthetic_0001:not_a_dimension:estimated",
+  "dedupe_key": "usg:ws_synthetic_0001:job_synthetic_0001:not_a_dimension:estimated:20260831T100000Z",
   "tenant_context": {
     "workspace_id": "00000000-0000-4000-8000-000000000001",
     "business_profile_id": "00000000-0000-4000-8000-000000000002",

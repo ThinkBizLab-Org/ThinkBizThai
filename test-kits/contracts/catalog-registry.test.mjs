@@ -315,7 +315,7 @@ const CAVEAT_DIGESTS = {
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
   'ctr-sec-001': { freeze_boundary: 'bb9ed12a3f70f374', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
-  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '7254124ea26dfae6', untestable_by_schema: 'fc93a0da49f8d1b1' },
+  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '7254124ea26dfae6', untestable_by_schema: '0a78479dca3d99c2' },
 };
 
 test('a caveat cannot be replaced by its opposite', async () => {
@@ -439,7 +439,7 @@ const ANNOTATION_DIGESTS = {
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
   'ctr-sec-001': { count: 21, digest: 'e34025a0d11d5e37' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
-  'ctr-usg-001': { count: 14, digest: '45167d79fd628647' },
+  'ctr-usg-001': { count: 14, digest: '225bc92e59eb0420' },
 };
 
 // `description` and `title` belong here for the same reason `x-` keys do, and independent review

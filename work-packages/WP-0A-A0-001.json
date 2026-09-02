@@ -146,10 +146,26 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md"
+        "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
+        "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
+        "contract-catalog/shared-kernel/ctr-usg-001/**",
+        "evidence/WP-0A-CON-004/**",
+        "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/authority-dispositions.test.mjs",
+        "test-kits/contracts/catalog-registry.test.mjs",
+        "test-kits/contracts/schema-mutation-coverage.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "evidence/VERIFICATION.md"
       ],
-      "rationale": "One literal path, owned by no package. The readiness report's checklist box for canonical guide, adapters and protected CI is now objectively satisfiable: all three exist and the third was verified by a probe that pushed directly to main and was rejected. Ticking the box is a statement about the repository this package built, and the evidence for it lives in this package's own tracker.",
-      "recorded_on": []
+      "rationale": "The Product Owner ruled that an agent run's assessment is that role's signature. Recording a ruling about what a signature means, and making it checkable, is protocol work and belongs with the package that owns the protocol. RFC-2026-013 and the new guard are that. RFC-2026-014 and the CTR-USG-001 change are its first consequence: the ruling sent A6 back to re-assess a contract it had refused, and that second assessment found a defect the author's own earlier fix had introduced -- a dedupe rule that instructed consumers to discard a legitimate second charge. Fixing it in a separate package would have left a revenue-losing rule shipped while the paperwork moved. The remaining paths are the declaration cost of a new decision record and a new test kit, which cannot be paid inside one package: the record set, the digest floor, the per-file floors, the integrity manifest and the generated verification record. Eleven paths, one glob covering 48 files, none of them a tree.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json",
+        "work-packages/WP-0A-CON-003.json",
+        "work-packages/WP-0A-CON-004.json",
+        "work-packages/WP-0A-CON-006.json",
+        "work-packages/WP-0A-CON-008.json"
+      ]
     },
     "read_only_paths": [
       "README.md",
