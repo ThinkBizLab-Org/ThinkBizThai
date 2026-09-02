@@ -65,7 +65,10 @@ test('shared-kernel catalog preserves baseline IDs, versions, and freeze levels'
     const contract = catalog.contracts.find((entry) => entry.id === id);
     assert.deepEqual({ version: contract.version, status: contract.status }, { version: '1.0.0', status: 'Candidate' });
   }
-  assert.equal(catalog.contracts.filter((entry) => entry.status === 'Draft').length, 10);
+  // 10 → 5 when the Product Owner approved RFC-2026-010's five A0-owned promotions on
+  // 2026-09-02. The number is asserted, not derived, so it moves only when someone decides it
+  // should — which is the whole reason this line exists.
+  assert.equal(catalog.contracts.filter((entry) => entry.status === 'Draft').length, 5);
 });
 
 test('Candidate schemas and synthetic valid/invalid fixtures remain present and traceable', async () => {

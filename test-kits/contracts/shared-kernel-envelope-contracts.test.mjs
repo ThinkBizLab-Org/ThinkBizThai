@@ -106,12 +106,15 @@ async function conforms(dir, body) {
   return schemaValidate(schema, body, { resolve }).length === 0;
 }
 
-test('each new contract stays Draft and cites its baseline source', async () => {
+// Renamed with the promotion: these three were materialized as Draft and the Product Owner
+// approved them for Candidate on 2026-09-02. What the test is for is unchanged — a contract's
+// identity, version and owner must not move when its status does.
+test('each envelope contract keeps its identity, and cites its baseline source', async () => {
   for (const { id, dir } of CONTRACTS) {
     const manifest = await readJson(`${CATALOG}/${dir}/manifest.json`);
     assert.deepEqual(
       { contract_id: manifest.contract_id, version: manifest.version, status: manifest.status, owner: manifest.owner },
-      { contract_id: id, version: '1.0.0', status: 'Draft', owner: 'A0' },
+      { contract_id: id, version: '1.0.0', status: 'Candidate', owner: 'A0' },
     );
     assert.ok(manifest.source_references.some((r) => r.includes('Decision Register')), `${id} must cite the Decision Register`);
     assert.ok(manifest.source_references.some((r) => r.includes('Workstream')), `${id} must cite its workstream task`);
@@ -119,15 +122,33 @@ test('each new contract stays Draft and cites its baseline source', async () => 
   }
 });
 
-test('the index still reports 4 Candidate and 10 Draft: materializing a Draft does not promote it', async () => {
+test('the index reports the census the Product Owner approved, not one that drifted', async () => {
+  // This test said "4 Candidate and 10 Draft" and asserted the three envelope contracts were
+  // Draft. It was written so that MATERIALIZING a contract could not silently promote it, and it
+  // did that job — it is one of the three guards that failed when the promotion landed.
+  //
+  // On 2026-09-02 the Product Owner approved RFC-2026-010's five A0-owned promotions:
+  // CTR-API-001, CTR-PAG-001, CTR-IDM-001, CTR-MOD-001, CTR-FLG-001. The census moves 4/10 → 9/5
+  // because a person decided it, which is the only reason it may move.
+  //
+  // The four co-owned contracts — CTR-SEC-001 (A1), CTR-AUD-001, CTR-OBS-001, CTR-USG-001 (A6) —
+  // stay Draft until their co-owners sign, and CTR-NTF-001 belongs to A5 and was never assessed.
+  // Those five are asserted by name below, because "still Draft" is the part a drift would eat.
+  const PROMOTED = ['CTR-API-001', 'CTR-PAG-001', 'CTR-IDM-001', 'CTR-MOD-001', 'CTR-FLG-001'];
+  const AWAITING_CO_OWNER = ['CTR-SEC-001', 'CTR-AUD-001', 'CTR-OBS-001', 'CTR-USG-001', 'CTR-NTF-001'];
+
   const index = await readJson(`${CATALOG}/index.json`);
   assert.equal(index.contracts.length, 14);
-  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 10);
-  for (const { id } of CONTRACTS) {
-    assert.equal(index.contracts.find((c) => c.id === id).status, 'Draft');
+  assert.equal(index.contracts.filter((c) => c.status === 'Candidate').length, 9);
+  assert.equal(index.contracts.filter((c) => c.status === 'Draft').length, 5);
+  for (const id of PROMOTED) {
+    assert.equal(index.contracts.find((c) => c.id === id).status, 'Candidate', `${id} was approved for Candidate`);
+  }
+  for (const id of AWAITING_CO_OWNER) {
+    assert.equal(index.contracts.find((c) => c.id === id).status, 'Draft',
+      `${id} needs a co-owner's sign-off and no Product Owner approval covers it`);
   }
 });
-
 test('every valid fixture is accepted and every invalid fixture is rejected', async () => {
   for (const { id, dir, validate } of CONTRACTS) {
     const manifest = await readJson(`${CATALOG}/${dir}/manifest.json`);

@@ -1,6 +1,6 @@
 # RFC-2026-010 — Nine shared-kernel contracts are ready to leave Draft
 
-Status: Proposed — awaiting independent review, co-owner sign-off, and Product Owner disposition
+Status: Partially approved 2026-09-02 — the Product Owner approved the five A0-owned promotions (CTR-API-001, CTR-PAG-001, CTR-IDM-001, CTR-MOD-001, CTR-FLG-001), which are now Candidate. CTR-SEC-001 awaits A1; CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 await A6; CTR-NTF-001 is A5's and remains unassessed. The Limitations in this document stand unchanged — approval is of the promotion, not a claim that every 'present' row is the artifact the phrase meant.
 Decision needed by: before any package builds a consumer against a Draft contract
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`
@@ -104,3 +104,21 @@ restriction on this repository stands unchanged.
 If any owner reads a "present" row and disagrees that the artifact is what the phrase
 meant, that disagreement is the useful outcome — and it is the reason this is an RFC
 and not a status change.
+
+## Disposition, 2026-09-02
+
+The Product Owner approved the five A0-owned promotions. `CTR-API-001`, `CTR-PAG-001`,
+`CTR-IDM-001`, `CTR-MOD-001` and `CTR-FLG-001` moved `Draft` → `Candidate v1` in their manifests
+and in the catalog index; the census is now **9 Candidate and 5 Draft**.
+
+Three guards failed when the change landed, which is what they exist for — the index census, the
+baseline freeze-level pin, and the registry's per-contract status pin. Each was updated in the
+same commit with the date and the reason, so the promotion is legible in the diff rather than
+inferred from a number that moved.
+
+**Nothing else changed.** No schema, fixture, version or owner moved. Candidate v1 permits fakes,
+fixtures and consumer tests; it does not authorize a production schema, a migration, a provider
+call, or any Gate G0 item.
+
+The four co-owned contracts stay `Draft` and are now asserted by name — *"still Draft"* is the
+part a drift would eat quietly.
