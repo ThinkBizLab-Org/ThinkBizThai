@@ -1,6 +1,6 @@
 # RFC-2026-008 — The secret scanner must detect cardholder data
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — the payment-card rule requires Luhn and an issuer prefix together, and the false-positive cost is recorded. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before any payment-provider work package leaves backlog
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`
