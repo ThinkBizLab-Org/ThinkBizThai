@@ -243,10 +243,13 @@ test('the envelope ratchet notices three unrelated reversals', async () => {
 
 test('the catalog ratchet notices two unrelated reversals', async () => {
   await mustNotice('test-kits/contracts/shared-kernel-contract-catalog.test.mjs', [
-    ['a Candidate contract promoted in the index', 'contract-catalog/shared-kernel/index.json',
+    ['a Candidate contract promoted to a level the register does not define', 'contract-catalog/shared-kernel/index.json',
       (i) => { for (const e of i.contracts) if (e.status === 'Candidate') { e.status = 'Frozen'; break; } }],
-    ['a Draft contract counted as Candidate', 'contract-catalog/shared-kernel/index.json',
-      (i) => { for (const e of i.contracts) if (e.status === 'Draft') { e.status = 'Candidate'; break; } }],
+    // A Draft counted as Candidate is the promotion that must never happen by drift. Five
+    // contracts are Draft precisely because their co-owners have not signed, so this reversal
+    // now names one of them rather than taking whichever came first.
+    ['a co-owned Draft contract promoted without its co-owner', 'contract-catalog/shared-kernel/index.json',
+      (i) => { for (const e of i.contracts) if (e.id === 'CTR-SEC-001') e.status = 'Candidate'; }],
   ]);
 });
 

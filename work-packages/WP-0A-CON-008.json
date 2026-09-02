@@ -85,7 +85,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-CON-008-disposition-branch-kind",
+    "branch": "agent/claude/WP-0A-CON-008-candidate-promotion",
     "writable_paths": [
       "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
       "work-packages/WP-0A-CON-008.json",

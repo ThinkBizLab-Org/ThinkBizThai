@@ -36,7 +36,7 @@ test('verify-branch-identity exits 75 for a branch no package claims', () => {
 });
 
 test('verify-branch-identity resolves a real branch to its package and prints only that', () => {
-  const { code, out } = run('scripts/verify-branch-identity.mjs', ['agent/claude/WP-0A-CON-008-disposition-branch-kind']);
+  const { code, out } = run('scripts/verify-branch-identity.mjs', ['agent/claude/WP-0A-CON-008-candidate-promotion']);
   assert.equal(code, 0, out);
   // CI does `package_id="$(node …)"`, so stdout IS the package id. Anything else on stdout
   // becomes part of the id and the scope guard is then handed a manifest path that cannot exist.
