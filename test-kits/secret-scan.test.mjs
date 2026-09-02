@@ -372,3 +372,370 @@ test('every credential rule is exercised by at least one decoy', () => {
   const uncovered = CREDENTIAL_RULES.map((rule) => rule.id).filter((id) => !covered.has(id));
   assert.deepEqual(uncovered, [], `credential rule(s) with no decoy — a rule nothing tests can be deleted silently:\n  ${uncovered.join('\n  ')}`);
 });
+
+// Built at runtime, never written down. A test that states a valid card number puts one in
+// the repository, and the rule under test would report the file that tests it -- so the suite
+// would have to exempt itself, which is the one thing a scanner must never do.
+function synthCard(leadingDigits) {
+  let sum = 0;
+  let double = true;
+  for (let index = leadingDigits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(leadingDigits[index]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    double = !double;
+  }
+  return leadingDigits + String((10 - (sum % 10)) % 10);
+}
+
+test('detects a Luhn-valid card number for each issuer family this rule claims', () => {
+  // 15 digits + a check digit, 12 + check, 14 + check: the lengths each issuer actually uses.
+  const families = {
+    visa16: synthCard('401288888888188'),
+    visa13: synthCard('401288888188'),
+    mastercard: synthCard('555555555555444'),
+    mastercard2: synthCard('222100000000000'),
+    amex: synthCard('37828224631000'),
+    discover: synthCard('601111111111111'),
+    jcb: synthCard('353011133330000'),
+    // 19 is a real card length and was accepted by the rule with nothing testing it, which
+    // a per-branch mutation of the length checks surfaced.
+    visa19: synthCard('401288888888188123'),
+    discover19: synthCard('601111111111111123'),
+  };
+  for (const [family, number] of Object.entries(families)) {
+    assert.deepEqual(scanText(`pan: ${number}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number'],
+      `${family} (${number.length} digits) must be reported`);
+  }
+});
+
+test('detects a card number written with the separators a human would type', () => {
+  const number = synthCard('401288888888188');
+  const spaced = `${number.slice(0, 4)} ${number.slice(4, 8)} ${number.slice(8, 12)} ${number.slice(12)}`;
+  const hyphenated = spaced.replaceAll(' ', '-');
+  assert.deepEqual(scanText(`card ${spaced}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number']);
+  assert.deepEqual(scanText(`card ${hyphenated}`, { relativePath: 'fixtures/order.json' }), ['payment-card-number']);
+});
+
+test('reports a card number in prose, on the same footing as a national identity number', () => {
+  const number = synthCard('401288888888188');
+  assert.deepEqual(scanText(`The customer paid with ${number} last Tuesday.`, { relativePath: 'docs/runbook.md' }),
+    ['payment-card-number']);
+  assert.deepEqual(scanText(`pan ${number}`, { relativePath: 'evidence/WP-0A-A0-005/note.md' }), ['payment-card-number']);
+});
+
+test('reports a published provider test card rather than exempting it', () => {
+  // The number a payment provider publishes for sandbox use. It is reported deliberately:
+  // at rest nothing distinguishes it from a live number, and Gate G0 authorizes no
+  // integration that would need one in the tree.
+  const testCard = synthCard('424242424242424');
+  assert.deepEqual(scanText(`card: ${testCard}`, { relativePath: 'fixtures/checkout.json' }), ['payment-card-number']);
+});
+
+test('does not report digit runs that only look like cards', () => {
+  const quiet = [
+    // Luhn-invalid: a correlation id, a counter, a truncated hash of digits. Built by
+    // breaking a synthetic number's check digit. It used to be a published test PAN with one
+    // digit changed -- one well-meaning "typo fix" from putting a real card in this file, in
+    // a block whose whole point is that none is ever written down. Independent security
+    // review caught it.
+    (() => { const valid = synthCard('401288888888188'); return valid.slice(0, -1) + String((Number(valid.at(-1)) + 1) % 10); })(),
+    // Luhn-VALID but no issuer prefix: roughly one arbitrary run in ten passes Luhn, and a
+    // rule that fires on those reports noise until someone switches it off.
+    synthCard('999999999999999'),
+    synthCard('700000000000000'),
+    // A repeated-digit filler. No such run is both Luhn-valid and issuer-prefixed at any
+    // card length -- checked exhaustively over all ten digits and all four lengths -- so
+    // this rule needs no separate filler guard, and one was removed after it turned out
+    // deleting it failed no test.
+    '4444444444444444',
+    // Too short and too long for any issuer this rule claims.
+    synthCard('40128888'),
+    synthCard('40128888888818812345'),
+  ];
+  for (const value of quiet) {
+    assert.deepEqual(scanText(`value: ${value}`, { relativePath: 'fixtures/order.json' }), [],
+      `${value} must not be reported`);
+  }
+});
+
+test('does not slice a card-shaped window out of a longer digit run', () => {
+  const number = synthCard('401288888888188');
+  assert.deepEqual(scanText(`id: 77${number}77`, { relativePath: 'fixtures/order.json' }), [],
+    'a 20-digit run must not yield a card from its middle');
+});
+
+// Every case below is one independent security review demonstrated against the first version
+// of this rule. Two were High: a card followed by an expiry and a CVV -- the shape cardholder
+// data actually arrives in -- was swallowed by the greedy digit window and never reported,
+// and whole issuer families were uncovered, including UnionPay, which for a Thai commerce
+// product is the wrong network to omit, and every 14-digit length, which made Diners Club
+// structurally unreachable.
+test('reports a card that is followed by an expiry and a security code', () => {
+  const pan = synthCard('401288888888188');
+  const grouped = pan.replace(/(.{4})(?=.)/g, '$1 ');
+  for (const trailing of [' 12 30 411', ' 411', ' 03 29']) {
+    assert.deepEqual(scanText(`card ${grouped}${trailing}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+      ['payment-card-number'], `a card followed by ${trailing.trim()} must still be reported`);
+  }
+  const hyphenated = pan.replace(/(.{4})(?=.)/g, '$1-');
+  assert.deepEqual(scanText(`card ${hyphenated}-12-30-411`, { relativePath: 'evidence/WP-X/ticket.md' }),
+    ['payment-card-number']);
+});
+
+test('reports a card broken by a line wrap or grouped with the spaces a paste carries', () => {
+  const pan = synthCard('401288888888188');
+  const cases = {
+    'wrapped by an 80-column log line': `pan=${pan.slice(0, 8)}\n     ${pan.slice(8)}`,
+    'non-breaking spaces from a rendered statement': pan.replace(/(.{4})(?=.)/g, '$1\u00a0'),
+    'thin spaces': pan.replace(/(.{4})(?=.)/g, '$1\u2009'),
+  };
+  for (const [why, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);
+  }
+});
+
+test('reports the issuer families the first version of this rule could not see', () => {
+  const families = {
+    'UnionPay 16': synthCard('623074185296307'),
+    'UnionPay 19': synthCard('623074185296307418'),
+    'Diners Club 36, 14 digits': synthCard('3630741852963'),
+    'Diners Club 30, 14 digits': synthCard('3053074185296'),
+    'Maestro 6759': synthCard('675930741852963'),
+    'Maestro 5018': synthCard('501830741852963'),
+    'RuPay 60': synthCard('603074185296307'),
+  };
+  for (const [family, number] of Object.entries(families)) {
+    assert.deepEqual(scanText(`pan: ${number}`, { relativePath: 'fixtures/order.json' }),
+      ['payment-card-number'], `${family} (${number.length} digits) must be reported`);
+  }
+});
+
+// Widening the separator set to catch a wrapped or NBSP-grouped card also widens what can be
+// mistaken for one. Independent security review measured the unrestricted rule reporting 2.6%
+// of rows of small integers -- and this repository's evidence directories are full of numeric
+// tables, on a rule that is deliberately not prose-exempt. So a run is only a card when it is
+// WRITTEN like one.
+// Independent testing found this list too narrow in the way that mattered most: 4-6-4 is
+// exactly how a Diners Club card is printed, and the 14-digit length had just been added so
+// that Diners would be reachable at all. The Amex 4-6-5 case was special-cased and its
+// neighbour was not.
+test('reports a card in every layout the card is actually printed in', () => {
+  const split = (number, sizes, separator) => {
+    const out = []; let index = 0;
+    for (const size of sizes) { out.push(number.slice(index, index + size)); index += size; }
+    return out.join(separator);
+  };
+  const cases = {
+    'Diners Club 4-6-4': [synthCard('3630741852963'), [4, 6, 4], ' '],
+    'Diners Club 30xx 4-6-4': [synthCard('3056074185296'), [4, 6, 4], ' '],
+    'Diners Club 4-6-4 hyphenated': [synthCard('3630741852963'), [4, 6, 4], '-'],
+    'Visa 13-digit 4-4-5': [synthCard('401288888188'), [4, 4, 5], ' '],
+    'American Express 4-6-5': [synthCard('37828224631000'), [4, 6, 5], ' '],
+    'column-aligned in a fixed-width table': [synthCard('401288888888188'), [4, 4, 4, 4], '  '],
+    'en dashes, as a word processor autocorrects a hyphen': [synthCard('401288888888188'), [4, 4, 4, 4], '\u2013'],
+  };
+  for (const [layout, [number, sizes, separator]] of Object.entries(cases)) {
+    assert.deepEqual(scanText(`card ${split(number, sizes, separator)}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+      ['payment-card-number'], `${layout} must be reported`);
+  }
+});
+
+// A space or a hyphen is how someone GROUPS a number, so the grouping has to look like a
+// card. A line break is where the medium ran out of width: it can fall anywhere, any number
+// of times, and says nothing about layout. Treating the two alike missed a card wrapped twice
+// down a narrow column and a card wrapped into a quoted email reply.
+// A line break is ambiguous: it may have split a group, or replaced the space between two.
+// Independent review found a card written 4-4-4-4 and wrapped before its FINAL group going
+// unreported, because merging across the wrap made the tail 8 digits and 8 is not a card-like
+// tail. Both readings are tried now, so the wrap may fall at any group boundary.
+test('reports a card however many times the medium wrapped it, and wherever the wrap falls', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const cases = {
+    'wrapped into a quoted email reply': `pan ${pan.slice(0, 8)}\n> ${pan.slice(8)}`,
+    'wrapped inside a quoted markdown block': `pan ${pan.slice(0, 8)}\n| ${pan.slice(8)}`,
+    'grouped in fours, wrapped before the final group': `${g[0]} ${g[1]} ${g[2]}\n${g[3]}`,
+    'grouped in fours, wrapped in the middle': `${g[0]} ${g[1]}\n${g[2]} ${g[3]}`,
+    'grouped in fours, wrapped after the first group': `${g[0]}\n${g[1]} ${g[2]} ${g[3]}`,
+  };
+  for (const [why, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], why);
+  }
+});
+
+// A card written one group per line down three or more lines is deliberately NOT detected.
+// Independent security review measured the widened continuation set turning an ordinary
+// markdown bullet list of build numbers into a finding -- 15% of bullet lists, 34% of JSDoc
+// number blocks -- and this rule has no prose exemption, so each one fails the whole build on
+// exactly the evidence and runbook files this repository is made of. Three or more lines each
+// carrying one group is a list. The trade is stated because it is a real loss, not because it
+// is free: a rule that fails on documentation is a rule someone deletes.
+test('does not treat a list of numbers, one per line, as a wrapped card', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const lists = {
+    'markdown bullet list': `- ${g[0]}\n- ${g[1]}\n- ${g[2]}\n- ${g[3]}`,
+    'JSDoc number block': ` * ${g[0]}\n * ${g[1]}\n * ${g[2]}\n * ${g[3]}`,
+    'YAML comment list': `# ${g[0]}\n# ${g[1]}\n# ${g[2]}\n# ${g[3]}`,
+  };
+  for (const [shape, text] of Object.entries(lists)) {
+    assert.deepEqual(scanText(text, { relativePath: 'docs/build-numbers.md' }), [], shape);
+  }
+});
+
+test('does not report a row of numbers that merely concatenates into a card', () => {
+  const rows = [
+    'p95 latency by run: 340 338 247 491 221',
+    '| run | 340 338 247 491 221 |',
+    'durations_ms: 44 47 85 77 94 92 56 65',
+    'counts 241 240 816 141 235',
+  ];
+  for (const row of rows) {
+    assert.deepEqual(scanText(row, { relativePath: 'evidence/WP-X/benchmark.md' }), [],
+      `${row} is a table of measurements, not a card`);
+  }
+});
+
+// Independent security review found the continuation set covered quoted email and markdown
+// tables but not the comment leaders this repository is actually written in -- YAML, shell, JS
+// and JSDoc. This scanner's own source is a ` * ` block. A card wrapped inside one went
+// unreported while the same file with `# ` rewritten to `> ` was reported; only the leader
+// differed.
+test('reports a card wrapped inside the comment styles this repository is written in', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const cases = {
+    'YAML or shell comment': `# card ${g[0]} ${g[1]} ${g[2]}\n#   ${g[3]}`,
+    'JS line comment': `// card ${g[0]} ${g[1]} ${g[2]}\n//  ${g[3]}`,
+    'JSDoc block': ` * card ${g[0]} ${g[1]} ${g[2]}\n *  ${g[3]}`,
+  };
+  for (const [style, text] of Object.entries(cases)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], style);
+  }
+});
+
+// Each of these was demonstrated missing while a neighbouring code point in the same family
+// was already covered -- U+2011 was listed and U+2010, the actual typographic hyphen, was not.
+test('reports a card grouped with the separators real documents and IMEs produce', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const separators = {
+    'U+2010 hyphen': '\u2010',
+    'U+2012 figure dash, defined for use between digits': '\u2012',
+    'U+2003 em space': '\u2003',
+    'U+2002 en space': '\u2002',
+    'U+200A hair space': '\u200a',
+    'U+00AD soft hyphen, from justified text': '\u00ad',
+    'U+200B zero-width space, from rendered HTML': '\u200b',
+    'U+2212 minus': '\u2212',
+    'U+FF0D fullwidth hyphen, from a CJK IME': '\uff0d',
+    'U+3000 ideographic space': '\u3000',
+  };
+  for (const [name, separator] of Object.entries(separators)) {
+    assert.deepEqual(scanText(`card ${g.join(separator)}`, { relativePath: 'fixtures/order.json' }),
+      ['payment-card-number'], `grouped with ${name}`);
+  }
+});
+
+// A digit is not always U+0030..U+0039. Independent security review found the rule blind to
+// fullwidth and Thai digits -- on a Thai-market product, in a rule whose own comment claims to
+// cover what a Thai IME produces. The separators had been widened for that scenario and the
+// digits never were, so a bare sixteen-digit fullwidth card number -- the plainest
+// representation there is -- was invisible.
+test('reports a card written in digits that are not ASCII', () => {
+  const pan = synthCard('401288888888188');
+  const transcribe = (base) => [...pan].map((d) => String.fromCodePoint(base + Number(d))).join('');
+  const scripts = {
+    'fullwidth digits, bare': transcribe(0xff10),
+    'fullwidth digits, grouped in fours': transcribe(0xff10).match(/.{4}/g).join(' '),
+    'Thai digits, bare': transcribe(0x0e50),
+    'Thai digits grouped with an ideographic space': transcribe(0x0e50).match(/.{4}/g).join('\u3000'),
+    'Arabic-Indic digits': transcribe(0x0660),
+    'Eastern Arabic-Indic digits': transcribe(0x06f0),
+    'ASCII and Thai mixed in one number': pan.slice(0, 8) + transcribe(0x0e50).slice(8),
+  };
+  for (const [script, value] of Object.entries(scripts)) {
+    assert.deepEqual(scanText(`card ${value}`, { relativePath: 'evidence/WP-X/note.md' }),
+      ['payment-card-number'], script);
+  }
+});
+
+// A run that crosses a line break carrying far more digits than a card is a TABLE, and a window
+// spanning two of its rows joins two different numbers at a row boundary. Independent security
+// review measured eight rows of four 4-digit amounts reporting at 64% and an aligned numeric id
+// column at 45% -- on the benchmark and evidence files this repository is made of, on a rule
+// with no prose exemption, so each one fails the whole build.
+//
+// The card in this test is built at run time, as everywhere else in this file: writing a
+// Luhn-valid number into the source would put a card in the repository, and the scanner would
+// report its own test. That is not hypothetical -- the first draft of this test did exactly
+// that and `npm run scan:secrets` caught it.
+test('does not join two rows of a table into a card', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+
+  // A table whose rows carry no card, but whose ROWS CONCATENATE into one: the tail of row 1
+  // plus the head of row 2 is the card. Reading rows independently is what stops this.
+  const split = `9999 ${g[0]} ${g[1]}\n${g[2]} ${g[3]} 8888`;
+  assert.deepEqual(scanText(split, { relativePath: 'evidence/WP-X/benchmark.md' }), [],
+    'a window must not join the end of one row to the start of the next');
+
+  // An aligned two-column table with nothing card-like in it.
+  const clean = ['  1111  2222', '  3333  4444', '  5555  6666', '  7777  8888'].join('\n');
+  assert.deepEqual(scanText(clean, { relativePath: 'evidence/WP-X/benchmark.md' }), [], 'aligned id column');
+
+  // And the control: the same card on ONE line is still reported.
+  assert.deepEqual(scanText(`card ${g.join(' ')}`, { relativePath: 'evidence/WP-X/ticket.md' }),
+    ['payment-card-number'], 'a card on one line is still a card');
+});
+
+// Independent security review reported 18 of 46 realistic representations missed. Each
+// candidate separator was measured in BOTH directions before being added -- what it detects,
+// and what it costs on ordinary numeric documents -- because twice a widening here shipped
+// without its price being read and both times it broke the build on documentation.
+test('reports a card written with the separators that cost nothing to accept', () => {
+  const pan = synthCard('401288888888188');
+  const g = pan.match(/.{4}/g);
+  const shapes = {
+    'a card pasted bare into a markdown table cell': `| ${pan} |`,
+    'a card pasted grouped into a markdown table cell': `| ${g.join(' ')} |`,
+    'a quoted-printable soft break, as a pasted email carries': `${pan.slice(0, 10)}=\n${pan.slice(10)}`,
+    'a zero-width joiner between groups': g.join('\u200d'),
+  };
+  for (const [shape, text] of Object.entries(shapes)) {
+    assert.deepEqual(scanText(text, { relativePath: 'evidence/WP-X/note.md' }), ['payment-card-number'], shape);
+  }
+});
+
+// The refusals, pinned so that adding one later is a deliberate act with a number to argue
+// against. Each buys exactly one representation and pays about a quarter of a document shape
+// this repository is full of; the measurements are in the scanner's own comment.
+test('does not report the document shapes four refused separators would have caught', () => {
+  const documents = {
+    'a semantic version with a dotted build id': 'v1.02.003 build.4111.1111.1111.1111',
+    'a CSV row of numeric metrics': '4111,1111,1111,1111',
+    'a file path with numeric segments': '/var/log/4111/1111/1111/1111.log',
+    'an identifier with underscores': 'run_4111_1111_1111_1111',
+    'a markdown table row of four 4-digit values': '| 4111 | 1111 | 1111 | 1111 |',
+  };
+  for (const [shape, text] of Object.entries(documents)) {
+    assert.deepEqual(scanText(text, { relativePath: 'docs/runbook.md' }), [], shape);
+  }
+});
+
+// `|` was accepted as a separator and then withdrawn. It bought a card SPLIT ACROSS FOUR TABLE
+// CELLS -- which nobody writes -- and cost 24.3% on a markdown table of four 4-digit columns
+// over eight rows, the most common table in this repository's evidence files. I had measured
+// its price against a three-column table with mixed widths, a shape that cannot produce sixteen
+// digits and therefore could never have failed.
+//
+// A card pasted INTO a cell, bare or grouped, is what a real leak looks like, and both are
+// detected without `|`. This pins the refusal so re-adding it is a deliberate act.
+test('does not treat a markdown table of numbers as a card, however many rows', () => {
+  const rows = Array.from({ length: 8 }, (_, i) => `| ${4000 + i} | ${1100 + i} | ${1200 + i} | ${1300 + i} |`);
+  assert.deepEqual(scanText(rows.join('\n'), { relativePath: 'evidence/WP-X/benchmark.md' }), []);
+});
