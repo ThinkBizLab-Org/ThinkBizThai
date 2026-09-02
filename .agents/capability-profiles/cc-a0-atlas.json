@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/claude/a0_atlas",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": false,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": ["javascript", "json", "markdown", "typescript"]
+  },
+  "limitations": {
+    "declaration_origin": "Self-declared by /claude/a0_atlas on 2026-08-31 while accepting WP-0A-A0-002 as Author. This run is an Anthropic Claude Code session and is distinct from every /root/* OpenAI Codex run declared in this directory.",
+    "benchmark_outcome": "No independent capability benchmark exists for this run. It is declared as Author only; it must not be assigned as Reviewer, Tester, Security reviewer, or Integration Owner for any package it authors.",
+    "unavailable_tools": ["external secrets", "production credentials", "provider credentials", "Product Owner authority", "Security/Privacy approval authority", "Product/UX approval authority", "Tester authority", "Integration authority", "merge authorization", "Gate G0 approval authority"],
+    "network_note": "The session harness can reach the network, but this run performs no network access for package work; verification uses repository-declared Node-only commands with no network, credentials, or global tools.",
+    "evidence": ["evidence/WP-0A-A0-002/author-self-check.md"]
+  },
+  "accepted_work_package": "WP-0A-A0-002"
+}

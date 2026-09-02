@@ -1,0 +1,222 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-002",
+  "title": "Contract-test CI coverage and ownership boundary transfer",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_review",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-003 before the manual merge described in RFC-2026-002"
+  ],
+  "purpose": "Correct two committed bootstrap defects recorded in RFC-2026-003: npm run check never executes the shared-kernel contract tests, and committed package writable globs capture the declared outputs of every planned follow-on contract package. Both fixes are reversible, synthetic-only, and change no contract, status, provider, schema, or gate.",
+  "scope": {
+    "include": [
+      "RFC-2026-003 decision record for the test-glob fix and the ownership boundary transfer",
+      "package.json test:bootstrap glob correction so npm run check executes test-kits/**/*.test.mjs",
+      "Anthropic capability declarations for the distinct Claude Code role runs used by this package",
+      "Author, independent Reviewer, Security, Tester, and Integration Owner evidence and handoffs for this package",
+      "A two-layer guarantee that a green npm run check cannot mean 'executed nothing': the test pattern is handed to node as an argv string and never reaches a shell, scripts/verify-test-coverage-floor.mjs pins the runner command and verifies check actually invokes it, and scripts/run-test-suite.mjs asserts the executed-test count the runner itself reported after the run"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, other package status advancement, production schema, migrations, provider SDKs, credentials, customer data, network calls, native branch protection, merge authorization, and Gate G0 approval"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-001",
+      "WP-0A-CON-001"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "package.json",
+      "scripts/verify-test-coverage-floor.mjs",
+      "scripts/run-test-suite.mjs",
+      "scripts/test-suite-contract.mjs",
+      "test-kits/test-coverage-floor.test.mjs",
+      "work-packages/WP-0A-A0-002.json",
+      ".agents/capability-profiles/cc-a0-atlas.json",
+      ".agents/capability-profiles/cc-c0-contract-reviewer.json",
+      ".agents/capability-profiles/cc-q0-sentinel.json",
+      ".agents/capability-profiles/cc-a1-bastion.json",
+      ".agents/capability-profiles/cc-r0-steward.json",
+      "evidence/WP-0A-A0-002/**",
+      "handoffs/WP-0A-A0-002-*.json",
+      "test-kits/integrity-manifest.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      ".github/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "**/*secret*",
+      "**/*credential*",
+      "db/**",
+      "migrations/**",
+      "package-lock.json"
+    ],
+    "module_ids": [
+      "MOD-000"
+    ],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "work-packages/WP-0A-A0-001.json \u2014 remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
+      "work-packages/WP-0A-CON-001.json \u2014 replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
+    ]
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+      "architecture/decisions/RFC-2026-002-manual-merge-control.md",
+      "work-packages/WP-0A-A0-001.json",
+      "work-packages/WP-0A-CON-001.json",
+      "scripts/validate-work-package-ownership.mjs"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "package.json",
+      "scripts/verify-test-coverage-floor.mjs",
+      "scripts/run-test-suite.mjs",
+      "scripts/test-suite-contract.mjs",
+      "test-kits/test-coverage-floor.test.mjs",
+      "work-packages/WP-0A-A0-002.json",
+      ".agents/capability-profiles/cc-a0-atlas.json",
+      ".agents/capability-profiles/cc-c0-contract-reviewer.json",
+      ".agents/capability-profiles/cc-q0-sentinel.json",
+      ".agents/capability-profiles/cc-a1-bastion.json",
+      ".agents/capability-profiles/cc-r0-steward.json",
+      "evidence/WP-0A-A0-002/author-self-check.md",
+      "evidence/WP-0A-A0-002/author-remediation.md",
+      "evidence/WP-0A-A0-002/review-contract.md",
+      "evidence/WP-0A-A0-002/review-security.md",
+      "evidence/WP-0A-A0-002/test-verdict.md",
+      "evidence/WP-0A-A0-002/integration-verdict.md",
+      "evidence/WP-0A-A0-002/test-verdict-remediation.md",
+      "evidence/WP-0A-A0-002/review-contract-remediation.md",
+      "evidence/WP-0A-A0-002/author-remediation-2.md",
+      "handoffs/WP-0A-A0-002-author-handoff.json",
+      "handoffs/WP-0A-A0-002-integration-handoff.json",
+      "test-kits/integrity-manifest.json",
+      "evidence/WP-0A-A0-002/author-remediation-4.md",
+      "evidence/WP-0A-A0-002/review-contract-round7.md",
+      "evidence/WP-0A-A0-002/test-verdict-round6.md",
+      "evidence/WP-0A-A0-002/review-contract-head.md",
+      "evidence/WP-0A-A0-002/review-security-head.md",
+      "evidence/WP-0A-A0-002/test-verdict-head.md",
+      "evidence/WP-0A-A0-002/author-remediation-3.md"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "npm run check executes every test-kits suite including test-kits/contracts, reports 58 passing tests with skipped and todo both zero on pinned Node 24.20.0 / npm 11.19.0, and the declaration count reconciles with the executed count.",
+    "node scripts/validate-work-package-ownership.mjs work-packages exits 0 with no cross-package writable/output overlap.",
+    "WP-0A-A0-001 and WP-0A-CON-001 declared outputs remain fully covered by their remaining writable_paths after the amendment.",
+    "The two cross-package manifest amendments are limited to the exact removals authorized by RFC-2026-003 and are declared in authorized_cross_package_amendments.",
+    "No contract status, package status other than this package, provider, schema, credential, or gate state changes.",
+    "The Author does not review, security-review, test-verify, or integrate this package.",
+    "npm run check fails closed under every demonstrated neutralisation: a wrapper around the runner, an unquoted or extra-flag command, the superseded glob, a bare '**' inside a segment, a shell that does not strip quotes, check no longer invoking the runner or the guard, the guard running after the runner, the guard itself neutered, a relocated test root, files declaring no test, and a run that executes fewer tests than the floor.",
+    "Each amended manifest records the amendment in-file with the authorizing decision record and a pending acknowledgement from its Integration Owner."
+  ],
+  "required_tests": [
+    "npm run check on the pinned toolchain, asserting contract tests are included",
+    "Ownership validator across all work-package manifests",
+    "Role-separation validator for this manifest",
+    "Capability-profile validator for all declared role runs",
+    "Synthetic-only repository secret scan",
+    "Negative check that the previous glob missed test-kits/contracts and the corrected glob does not",
+    "Coverage-floor guard and post-run executed-count floor: reject a neutralising wrapper (74), a check script that drops or reorders the guard and the runner (81), the superseded glob and a bare '**' inside a segment (74/76), an empty or below-floor suite (75), a single-directory suite (77), files declaring no test (78), a relocated test root (79), and a run whose reported executed count is below the floor (80)"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/verify-test-coverage-floor.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages",
+      "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json",
+      "node scripts/validate-capability-profiles.mjs",
+      "node scripts/scan-repository-secrets.mjs"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert the RFC, package.json, manifest, capability-profile, evidence, and handoff changes through a reviewed revert PR. Reverting restores the previous test glob and the previous ownership boundaries exactly; no persisted data, provider state, credential, migration, or customer-data effect exists.",
+  "open_blockers": [
+    "RFC-2026-003 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge. Until approved it does not hold rank-1 authority, so the cross-package amendments are staged, not authorized.",
+    "The test-integrity guard is a TRIPWIRE, NOT A CONTROL, and has no self-anchor. A change that edits a guarded file and its digest in test-kits/integrity-manifest.json together passes. Independent review confirmed by construction that no in-repository control can close this: any verifier inside the mutable set can be replaced by an accept-always verifier. The anchor is human review of the diff under RFC-2026-002 and protected CI, which remains an open Gate G0 requirement blocked on an external constraint. Everything OUTSIDE that class -- an unprotected suite, phantom declarations, an escaping path -- is closed.",
+    "A trailing '&' in package.json's check script backgrounds the whole && chain, so `npm run check` returns 0 before any step's exit code matters. Independent testing demonstrated it, and the integrity digest does NOT help: the exit code is already 0 whether or not the manifest is updated. No control inside the scripts that check invokes can prevent this, because the exit code is decided by the shell operator in the script itself. The caller must invoke the guard as its own step: .github/workflows/ci.yml should run node scripts/verify-test-coverage-floor.mjs as a separate step rather than relying on npm run check alone. That file is owned by WP-0A-A0-001 and is read-only to this package, so the change is referred to the Integration Owner under the RFC path rather than made here. ci.yml is now digested so the omission is visible.",
+    "Independent review ruled the RFC/Integration-Owner path sufficient to amend another package's manifest without re-opening the owning package, contingent on an amendment acknowledgement countersigned by WP-0A-A0-001's and WP-0A-CON-001's Integration Owner /root/r0_steward. That run is an OpenAI Codex run and was not available in this session; both manifests record acknowledgement_status: pending.",
+    "A bounded npm run check re-execution addendum for WP-0A-CON-001, recorded by /root/r0_steward, must supersede the stale 26/26 citation in five WP-0A-CON-001 artifacts. No re-review, re-test, or re-integration of that package is required: all four of its independent roles separately ran the contract tests at f28fb8e and recorded 6/6, and the reviewed artifacts are byte-identical since.",
+    "Independent security review demonstrated that scripts/scan-repository-secrets.mjs is materially weak - it detected none of twelve realistic synthetic credential decoys, fails open on an unreadable file, and never inspects git history. A clean scan is therefore not evidence of secret coverage. This is pre-existing and out of this package's scope; it must be closed before any package handles permissioned data or a real credential.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

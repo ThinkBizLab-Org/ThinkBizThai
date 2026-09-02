@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/claude/a1_bastion",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": false,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": false,
+    "supported_languages": ["javascript", "json", "markdown", "yaml"]
+  },
+  "limitations": {
+    "declaration_origin": "Self-declared by /claude/a1_bastion on 2026-08-31 while accepting WP-0A-A0-002 as the independent Security/Privacy reviewer. This run is an Anthropic Claude Code session, is distinct from the Author run /claude/a0_atlas, and is distinct from the OpenAI Codex run /root/a1_bastion declared separately in this directory.",
+    "role_scope": "Security and privacy review only. This run holds NO Author, Reviewer (contract/architecture), Tester, Integration Owner, Product Owner, merge, or Gate G0 authority, and it did not author any part of the change under review.",
+    "benchmark_outcome": "No independent or external security capability benchmark exists for this run. Its findings are self-attested evidence from repository-declared deterministic commands, not a certified security assessment.",
+    "unavailable_tools": ["external secrets", "production credentials", "provider credentials", "Author authority", "Reviewer authority", "Tester authority", "Integration authority", "Product Owner authority", "Product/UX approval authority", "merge authorization", "Gate G0 approval authority"],
+    "harness_note": "The session harness exposes network and browser tooling. These flags declare this run's operating policy for package work — no network access, no browser use, no credentials, no global tools — not a harness-enforced sandbox. All verification used repository-declared Node-only commands on the pinned toolchain via a login shell.",
+    "write_scope": "This run wrote only .agents/capability-profiles/cc-a1-bastion.json and evidence/WP-0A-A0-002/review-security.md, both inside the WP-0A-A0-002 declared writable paths. It committed nothing and pushed nothing.",
+    "evidence": ["evidence/WP-0A-A0-002/review-security.md"]
+  },
+  "accepted_work_package": "WP-0A-A0-002"
+}

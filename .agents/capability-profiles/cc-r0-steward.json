@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/claude/r0_steward",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": true,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": ["javascript", "json", "markdown", "typescript"]
+  },
+  "limitations": {
+    "declaration_origin": "Self-declared by /claude/r0_steward on 2026-08-31 while accepting WP-0A-A0-002 as independent Integration Owner. This run is an Anthropic Claude Code session and is distinct from the Author run /claude/a0_atlas, the Reviewer run /claude/c0_contract_reviewer, the Security reviewer run /claude/a1_bastion, the Tester run /claude/q0_sentinel, and from every /root/* OpenAI Codex run declared in this directory - including the separately declared /root/r0_steward in .agents/capability-profiles/r0-steward.json, which is a DIFFERENT run of a different vendor and is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001. Neither run substitutes for the other and this declaration does not speak for /root/r0_steward.",
+    "benchmark_outcome": "No external or independent capability benchmark exists for this run. Nothing in this declaration is a benchmark result, an external approval, a cross-vendor dry run, or an audited capability assessment; it is a self-declaration only and must be read as such.",
+    "role_authority": "This run holds NO Author, Reviewer, Security/Privacy reviewer, Tester, Product/UX, Product Owner, merge, release, repository-administration, or Gate G0 authority for WP-0A-A0-002 or any other package. It is declared as independent Integration Owner only. It authored, reviewed, security-reviewed and tested no part of the change under integration. Its integration verdict is a statement about the final state of the branch and about evidence completeness; it is not an approval that substitutes for any missing independent role, it does not authorize or perform a merge (RFC-2026-002 reserves the merge for the Product Owner), and it does not move Gate G0.",
+    "unavailable_tools": ["external secrets", "production credentials", "provider credentials", "Author authority", "Reviewer approval authority", "Security/Privacy approval authority", "Product/UX approval authority", "Tester authority", "Product Owner authority", "merge authorization", "release authorization", "Gate G0 approval authority", "native branch-protection administration", "remote CI administration", "authority to countersign on behalf of /root/r0_steward or any other run"],
+    "network_note": "The session harness can reach the network and exposes browser tooling, so both booleans are declared true rather than understated. This run used neither for package verification: all WP-0A-A0-002 integration verification was performed with repository-declared, Node-only local commands on the pinned Node 24.20.0 / npm 11.19.0 toolchain, with no network access, no browser use, no credentials, and no global tools.",
+    "verification_scope": "Provides local integration verification evidence only. This run observed no GitHub pull request, no remote CI run, and no protected-branch configuration, because none exists for this branch at the time of declaration. Remote CI status, provider state, and any external system must be independently verified from their own authoritative systems; this run did not and cannot verify them.",
+    "evidence": ["evidence/WP-0A-A0-002/integration-verdict.md"]
+  },
+  "accepted_work_package": "WP-0A-A0-002"
+}

@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-002",
+  "agent_run_id": "/claude/r0_steward",
+  "role": "independent Integration Owner",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "final_status": "integration_blocked",
+  "base_revision": "dcafcf8",
+  "head_revision_or_patch_checksum": "4e1d6e566e5fa6fb9a5efd8155f722fce10a83b7",
+  "branch": "agent/claude/WP-0A-A0-002-contract-test-coverage",
+  "task_ids": [
+    "WP-0A-A0-002-integration-verification",
+    "RFC-2026-003-integration-disposition"
+  ],
+  "files_added": [
+    ".agents/capability-profiles/cc-r0-steward.json",
+    "evidence/WP-0A-A0-002/integration-verdict.md",
+    "handoffs/WP-0A-A0-002-integration-handoff.json"
+  ],
+  "files_modified": [
+    "work-packages/WP-0A-A0-002.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-023",
+    "DEC-025",
+    "RFC-2026-001-bootstrap-tooling-contract",
+    "RFC-2026-002-manual-merge-control",
+    "RFC-2026-003-contract-test-coverage-and-ownership-transfer"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "The head under integration is 4e1d6e5 on agent/claude/WP-0A-A0-002-contract-test-coverage, as assigned. Verification of that head was performed against an isolated `git archive 4e1d6e5` extraction outside the repository, because the shared working tree was mutated by a concurrent run during this verification (see open_risks_or_blockers).",
+    "Node 24.20.0 / npm 11.19.0 resolved from /Users/bank/.local/node-v24.20.0/bin/node via a login shell, matching the RFC-2026-001 pin. No dependency was installed; the repository declares none.",
+    "`node scripts/scan-repository-secrets.mjs` exiting 0 is NOT treated as evidence of secret coverage (Security C1). Every no-secret / no-credential confirmation in this handoff rests on this run's own inspection of `git diff dcafcf8..4e1d6e5`, not on the scanner.",
+    "This run observed no GitHub pull request, no remote CI run, and no protected-branch configuration, because none exists for this branch at the time of writing. Remote CI status is unverified and unverifiable by this run."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "npm run check executes every test-kits suite including test-kits/contracts and reports 46 passing tests on pinned Node 24.20.0 / npm 11.19.0",
+      "result": "pass",
+      "evidence": "Isolated 4e1d6e5 extraction: `npm run check` exit 0, `tests 46 / suites 0 / pass 46 / fail 0 / cancelled 0 / skipped 0 / todo 0`. Independent per-file declared-test count by this run totals 46, of which 6 are test-kits/contracts/shared-kernel-contract-catalog.test.mjs."
+    },
+    {
+      "criterion": "node scripts/validate-work-package-ownership.mjs work-packages exits 0 with no cross-package writable/output overlap",
+      "result": "pass",
+      "evidence": "exit 0, no output, at the isolated 4e1d6e5 extraction and at the live tree."
+    },
+    {
+      "criterion": "WP-0A-A0-001 and WP-0A-CON-001 declared outputs remain fully covered by their remaining writable_paths after the amendment",
+      "result": "pass",
+      "evidence": "validate-work-package-ownership.mjs enforces exactly this and exits 0. Line-by-line diff review of both amended manifests confirmed every declared output is still covered."
+    },
+    {
+      "criterion": "The two cross-package manifest amendments are limited to the exact removals authorized by RFC-2026-003 and are declared in authorized_cross_package_amendments",
+      "result": "pass",
+      "evidence": "git diff dcafcf8..4e1d6e5 -- work-packages/WP-0A-A0-001.json work-packages/WP-0A-CON-001.json reviewed line by line. WP-0A-A0-001: package.json removed from writable_paths and outputs.files, amended_by block added, nothing else. WP-0A-CON-001: three globs replaced by index.json + four Candidate directories + the one contract test file, amended_by block added, nothing else. Both match RFC-2026-003 Decisions 2 and 3 and both entries of ownership.authorized_cross_package_amendments. Both record acknowledgement_status: pending; neither was self-closed."
+    },
+    {
+      "criterion": "No contract status, package status other than this package, provider, schema, credential, or gate state changes",
+      "result": "pass",
+      "evidence": "git diff dcafcf8..4e1d6e5 -- contract-catalog/ is empty. WP-0A-A0-001 integration_verified -> integration_verified; WP-0A-CON-001 integration_verified -> integration_verified; WP-0A-A6-001 backlog -> backlog. gate G0 unchanged in every manifest. package.json declares no dependencies; package-lock.json untouched."
+    },
+    {
+      "criterion": "The Author does not review, security-review, test-verify, or integrate this package",
+      "result": "pass",
+      "evidence": "Five distinct agent_run_id values, each with its own capability declaration; validate-work-package-role-separation.mjs and validate-capability-profiles.mjs both exit 0. This Integration Owner run authored, reviewed, security-reviewed and tested no part of the change."
+    },
+    {
+      "criterion": "npm run check fails closed under every demonstrated neutralisation",
+      "result": "pass for every attack demonstrated by any run to date, with a recorded residual",
+      "evidence": "Seven attacks independently re-injected by this run: check drops the runner -> 81; ': ' no-op wrapper -> 74; superseded glob -> 74; guard neutered to echo -> 1 (suite backstop, fail 2); check drops the guard -> 1 (fail 3); guard moved after the runner -> 1 (fail 3); '|| true' suffix -> 74. No injection reached exit 0. Residual: finding I3 shows the global floors permit the six-test contract suite to be reduced to one placeholder test with npm run check still exiting 0 at 41/41 - a coverage-reduction path, not a green-run-executed-nothing path."
+    },
+    {
+      "criterion": "Each amended manifest records the amendment in-file with the authorizing decision record and a pending acknowledgement from its Integration Owner",
+      "result": "pass",
+      "evidence": "Both ownership.amended_by blocks present, naming WP-0A-A0-002, RFC-2026-003, the exact change, forced-vs-anticipatory characterisation, acknowledgement_required_from '/root/r0_steward', and acknowledgement_status 'pending'."
+    }
+  ],
+  "tests": [
+    { "command": "zsh -lc 'node --version'", "exit_code": 0, "result": "v24.20.0", "context": "toolchain" },
+    { "command": "zsh -lc 'npm --version'", "exit_code": 0, "result": "11.19.0", "context": "toolchain" },
+    { "command": "npm run check", "exit_code": 0, "result": "tests 46 / suites 0 / pass 46 / fail 0 / cancelled 0 / skipped 0 / todo 0", "context": "isolated git-archive extraction of 4e1d6e5 (authoritative for the assigned head)" },
+    { "command": "node scripts/verify-test-coverage-floor.mjs", "exit_code": 0, "result": "no output", "context": "isolated 4e1d6e5" },
+    { "command": "node scripts/validate-work-package-ownership.mjs work-packages", "exit_code": 0, "result": "no output", "context": "isolated 4e1d6e5" },
+    { "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json", "exit_code": 0, "result": "no output", "context": "isolated 4e1d6e5" },
+    { "command": "node scripts/validate-capability-profiles.mjs", "exit_code": 0, "result": "no output", "context": "isolated 4e1d6e5" },
+    { "command": "node scripts/scan-repository-secrets.mjs", "exit_code": 0, "result": "no output - NOT evidence of secret coverage, see Security C1", "context": "isolated 4e1d6e5" },
+    { "command": "node scripts/run-test-suite.mjs", "exit_code": 0, "result": "tests 46", "context": "isolated 4e1d6e5" },
+    { "command": "npm run check", "exit_code": 0, "result": "tests 59 / pass 59 / fail 0", "context": "live shared working tree after the concurrent WP-0A-CON-002 commit 106f91c plus this run's status edit; +13 tests are WP-0A-CON-002's" },
+    { "command": "node scripts/verify-test-coverage-floor.mjs", "exit_code": 0, "result": "no output", "context": "live tree" },
+    { "command": "node scripts/validate-work-package-ownership.mjs work-packages", "exit_code": 0, "result": "no output", "context": "live tree, after the status edit" },
+    { "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A0-002.json", "exit_code": 0, "result": "no output", "context": "live tree, after the status edit" },
+    { "command": "node scripts/validate-capability-profiles.mjs", "exit_code": 0, "result": "no output", "context": "live tree, after adding cc-r0-steward.json" },
+    { "command": "node scripts/scan-repository-secrets.mjs", "exit_code": 0, "result": "no output", "context": "live tree" },
+    { "command": "node scripts/run-test-suite.mjs", "exit_code": 0, "result": "tests 59", "context": "live tree" },
+    { "command": "ATTACK A1: scripts.check drops '&& npm run test:bootstrap', then npm run check", "exit_code": 81, "result": "check must invoke npm run test:bootstrap; a guard that is not wired into check protects nothing.", "context": "independent re-run of the Author's table; package.json restored byte-identically after each" },
+    { "command": "ATTACK A2: test:bootstrap = \": node scripts/run-test-suite.mjs\", then npm run check", "exit_code": 74, "result": "test:bootstrap must be exactly `node scripts/run-test-suite.mjs`; found: : node scripts/run-test-suite.mjs", "context": "independent re-run" },
+    { "command": "ATTACK A3: test:bootstrap reverted to \"node --test 'test-kits/*.test.mjs'\", then npm run check", "exit_code": 74, "result": "pinned-command mismatch", "context": "independent re-run" },
+    { "command": "ATTACK A4: verify:coverage-floor = \"echo skipped\", then npm run check", "exit_code": 1, "result": "test-suite backstop, fail 2 - the guard's own tests reject the neutered script", "context": "independent re-run" },
+    { "command": "ATTACK A5: scripts.check drops '&& npm run verify:coverage-floor', then npm run check", "exit_code": 1, "result": "test-suite backstop, fail 3", "context": "independent re-run" },
+    { "command": "ATTACK A6: guard moved to run after the runner in scripts.check, then npm run check", "exit_code": 1, "result": "test-suite backstop, fail 3", "context": "independent re-run" },
+    { "command": "ATTACK A7: test:bootstrap = \"node scripts/run-test-suite.mjs || true\", then npm run check", "exit_code": 74, "result": "pinned-command mismatch", "context": "independent re-run" },
+    { "command": "RESTORE VERIFY: shasum -a 256 package.json; git diff --stat package.json", "exit_code": 0, "result": "bc50cb780b7a8f7a0f86d927f37bcbd82a92299bbdfd802ba97ed7c62ecd1c7b, diff empty - package.json byte-identical after all seven injections", "context": "restore proof" },
+    { "command": "PROBE I3: replace test-kits/contracts/shared-kernel-contract-catalog.test.mjs with a single placeholder test in an isolated 4e1d6e5 copy, then npm run check", "exit_code": 0, "result": "tests 41 / pass 41 - the six-test contract suite this package exists to protect can be gutted and every floor stays green (files 9>=8, dirs 2>=2, declared 41>=30, executed 41>=40)", "context": "new finding by this run" },
+    { "command": "PROBE I4: parseExecutedTests('\\u2139 tests 9999\\n...\\n\\u2139 tests 0\\n') from scripts/run-test-suite.mjs", "exit_code": 0, "result": "returns 9999 (first regex match wins; the runner's real summary is emitted last), and assertExecuted(9999) does not throw", "context": "new finding by this run" },
+    { "command": "STATUS EXPERIMENT: rewrite WP-0A-A0-002 status to each of backlog/ready/in_progress/in_review/review_approved/test_verified/integration_verified/done WITH cc-r0-steward.json present; run all four validators plus npm run check at each", "exit_code": 0, "result": "every validator exits 0 at every status - the validators constrain nothing above ready once the declaration exists", "context": "status ruling" },
+    { "command": "STATUS EXPERIMENT: same, WITHOUT cc-r0-steward.json, running node scripts/validate-capability-profiles.mjs", "exit_code": 68, "result": "backlog -> 0 (early return); ready -> 68; integration_verified -> 68, message: work package WP-0A-A0-002 references role runs without capability declarations: /claude/r0_steward", "context": "confirms Reviewer N6 and confirms this run's declaration is what unblocks ready+" },
+    { "command": "git diff --name-only dcafcf8..4e1d6e5 | grep -E 'package-lock|\\.github|^db/|^migrations/|\\.env'", "exit_code": 1, "result": "NONE - package-lock.json, .github/, db/, migrations/ and .env untouched across the whole branch", "context": "scope confirmation" },
+    { "command": "git diff dcafcf8..4e1d6e5 -- contract-catalog/", "exit_code": 0, "result": "empty - no contract changed, no freeze level advanced", "context": "scope confirmation" },
+    { "command": "grep -nE 'fetch\\(|https?://|node:http|node:net|node:dns|node:tls|execSync|spawnSync|process\\.env' scripts/run-test-suite.mjs scripts/test-suite-contract.mjs scripts/verify-test-coverage-floor.mjs", "exit_code": 1, "result": "no match - the only external invocation is spawn(process.execPath, ['--test', TEST_PATTERN]), an argv array with no shell and no external input", "context": "security confirmation by this run, not by the Security role" }
+  ],
+  "rfc_2026_002_pre_merge_evidence": {
+    "note": "RFC-2026-002 section 2 requires the PR head SHA to have a green required CI run and a handoff linking the head SHA, CI run, clean diff, Author self-check, independent Reviewer, independent Tester, required conditional reviewer(s), Integration Owner verdict, known limitations, and rollback plan. That evidence set is INCOMPLETE at this head.",
+    "pull_request_url": "NOT YET KNOWN - no pull request has been opened for agent/claude/WP-0A-A0-002-contract-test-coverage. This run opened none and holds no authority to open, merge, or push one.",
+    "target_branch": "main",
+    "head_sha": "4e1d6e566e5fa6fb9a5efd8155f722fce10a83b7",
+    "merge_commit_sha": "NONE - not merged. RFC-2026-002 reserves the merge for the Product Owner.",
+    "ci_run_url": "NOT OBSERVED - no CI run for this head was observed by this run. .github/workflows/ci.yml is untouched across the branch and would run `npm run check` on pull_request, so the corrected command is what CI would execute, but no green required run at this head has been verified. This run cannot verify remote CI.",
+    "clean_diff": "verified - git status --porcelain was empty at the start of this run; the only tracked-file modification this run made is the one-line status edit in work-packages/WP-0A-A0-002.json",
+    "author_self_check": "evidence/WP-0A-A0-002/author-self-check.md (1873ade), evidence/WP-0A-A0-002/author-remediation.md (1873ade), evidence/WP-0A-A0-002/author-remediation-2.md (9403484)",
+    "independent_reviewer": "evidence/WP-0A-A0-002/review-contract.md (1873ade, approved_with_conditions), evidence/WP-0A-A0-002/review-contract-remediation.md (9403484, approved_with_conditions) - NEITHER COVERS HEAD 4e1d6e5",
+    "independent_tester": "evidence/WP-0A-A0-002/test-verdict.md (1873ade, test_verified_with_conditions), evidence/WP-0A-A0-002/test-verdict-remediation.md (9403484, test_verified_with_conditions) - NEITHER COVERS HEAD 4e1d6e5",
+    "security_privacy_reviewer": "evidence/WP-0A-A0-002/review-security.md (1873ade, security_approved_with_conditions) - DOES NOT COVER 9403484 OR HEAD 4e1d6e5, and has never reviewed any of the three scripts",
+    "product_ux_reviewer": "not required for this package; product_reviewer_agent_run_id is null",
+    "integration_owner_verdict": "evidence/WP-0A-A0-002/integration-verdict.md - VERDICT: integration_blocked",
+    "conclusion": "The RFC-2026-002 pre-merge evidence set is NOT satisfied at head 4e1d6e5. Missing: a green required CI run at the head SHA, a pull request, an independent Reviewer pass at the head, an independent Tester pass at the head, a Security/Privacy pass covering the three scripts, and the /root/r0_steward countersignature on which the Reviewer's approval was expressly contingent."
+  },
+  "security_privacy_cost_impact": "No secret, credential, token, API key, private URL, customer PII, or customer content is added, logged, fixtured, or handed off. Data classification is synthetic-only; secrets_required is false; network_policy is deny-unless-declared and no network call exists. No schema, migration, RLS, tenant-isolation, provider, billing, publishing-idempotency, or production-configuration change. package.json declares no dependencies and package-lock.json is untouched, so the dependency graph is unchanged and there is no supply-chain or cost delta. The only new external invocation is spawn(process.execPath, ['--test', TEST_PATTERN]) with an argv array and no shell, which is not reachable for argument or command injection. Direct security effect is positive: six contract tests guarding tenant isolation, raw-provider-data leakage into error and event envelopes, and public-URL job references now execute in CI instead of silently not running. TWO SECURITY CAVEATS: (1) the exit-0 result of scripts/scan-repository-secrets.mjs is not evidence of secret coverage - independent security review demonstrated it detects none of twelve realistic decoys, fails open on unreadable files, and never inspects git history (Security C1, pre-existing, out of scope, must be closed before any package handles permissioned data or a real credential); every confirmation above rests on this run's own diff inspection instead. (2) No Security/Privacy review exists for scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, or scripts/verify-test-coverage-floor.mjs - review-security.md is scoped to 1873ade, where none of them existed. This run's reading finds them safe, but this run does not hold Security/Privacy authority.",
+  "migration_and_data_impact": "None. No migration, no migration reservation, no schema, no database, no persisted data, no provider state, no customer data. db/ and migrations/ do not exist in the repository and are declared forbidden_paths for this package.",
+  "compatibility_impact": "npm run check changes what it executes: 26 tests before the branch, 46 at head 4e1d6e5 on the pinned toolchain. .github/workflows/ci.yml is untouched and still runs npm run check, so CI picks the corrected command up with no CI change. Five WP-0A-CON-001 artifacts now cite a stale 26/26 count for a command that has changed; the correct count at 4e1d6e5 is 46 (blocker B3). Ownership boundaries for WP-0A-A0-001 and WP-0A-CON-001 are narrowed; both packages' declared outputs remain covered and neither package's status, role, gate, or delivered output changed. Any future work-package manifest declaring outputs under contract-catalog/shared-kernel/ or test-kits/contracts/ becomes representable only because of that narrowing - WP-0A-CON-002 already depends on it.",
+  "known_limitations": [
+    "I1 - Head 4e1d6e5 has no independent Reviewer, Security, or Tester evidence. It adds scripts/run-test-suite.mjs (new, spawns a child process) and scripts/test-suite-contract.mjs (new), rewrites 97 lines of scripts/verify-test-coverage-floor.mjs, adds 88 lines of tests, and changes package.json. The Reviewer stated in review-contract-remediation.md section 11a that if that delta were committed it would need its own Reviewer disposition. It was committed without one.",
+    "I2 - The Security reviewer has never reviewed any of the three scripts; review-security.md is scoped to 1873ade, where the only change was a one-line package.json glob edit. work-packages/WP-0A-A0-002.json outputs.files never declared a second security artifact.",
+    "I3 - The coverage floors are global aggregates (executed 40 vs actual 46, files 8 vs 9, directories 2 vs 2, declared 30 vs 46) with no per-file or per-directory floor. Demonstrated: replacing test-kits/contracts/shared-kernel-contract-catalog.test.mjs with a single placeholder test leaves npm run check at exit 0, 41/41. The six-test suite whose CI invisibility is this package's reason for existing can be deleted without failing the guard.",
+    "I4 - scripts/run-test-suite.mjs parseExecutedTests takes the FIRST regex match of `^\\u2139 tests (\\d+)$` / `^# tests (\\d+)$`, while the runner's real summary is emitted last. Any test file writing such a line to stdout determines what the post-run floor reads. Verified: parseExecutedTests returns 9999 for output whose real count is 0, and assertExecuted does not throw.",
+    "I5 - The shared working tree switched branches during this verification. A concurrent WP-0A-CON-002 run committed 106f91c on top of 4e1d6e5 and swept this run's untracked .agents/capability-profiles/cc-r0-steward.json into that commit (verified byte-identical, sha256 7fadb4dc961e97738791c7f1015044eab7d2f15375c1564e20f5486657b64edf, but now absent from the WP-0A-A0-002 branch head while declared in its outputs.files). WP-0A-CON-002 also consumes the RFC-2026-003 ownership narrowing before that RFC has any Product Owner disposition, so reverting RFC-2026-003 is no longer a self-contained revert.",
+    "R4 / Tester C1 remains narrowed, not closed, by the Author's own assessment and this run's concurrence. Every attack demonstrated by any run fails closed and execution is asserted after the run, but I3 and I4 show the class is not exhausted.",
+    "Chain of custody: 9403484 committed the Reviewer's, Security reviewer's and Tester's previously untracked evidence files inside an Author commit; the Tester confirmed its own artifact intact, the Reviewer and Security reviewer have not confirmed theirs. 106f91c repeated the pattern from an unrelated package with this Integration Owner's declaration. The repository has no mechanism preventing one run from committing another run's role artifact.",
+    "prefer_cross_vendor_review is not satisfied: all five role runs are Anthropic claude-opus-5. Recorded as an explicit exception per the Decision Register, not waived. Its cost is visible in this package's own history: four same-model runs shipped 4e1d6e5 and a fifth same-model run found two further defects in it.",
+    "Two runs are named r0_steward, differing by one path segment (/claude/r0_steward, Anthropic, this run; /root/r0_steward, OpenAI). The distinction is real and correctly declared, but is mitigated only by prose in one manifest field, not by a machine check.",
+    "The one-line status edit made by this run is uncommitted and currently sits in a working tree checked out on agent/claude/WP-0A-CON-002-envelope-contracts. It must be committed onto agent/claude/WP-0A-A0-002-contract-test-coverage, not onto the WP-0A-CON-002 branch.",
+    "This run holds no Author, Reviewer, Security, Tester, Product Owner, merge, release, or Gate G0 authority, and verified no remote CI, no pull request, and no protected-branch configuration."
+  ],
+  "open_risks_or_blockers": [
+    "BLOCKS integration_verified AND merge - I1: no independent Reviewer, Security, or Tester evidence exists for head 4e1d6e5. CONTRIBUTING_AGENTS.md 'Verification and handoff' and RFC-2026-002 section 2 both bind the evidence to the head SHA.",
+    "BLOCKS integration_verified AND merge - I2: the required conditional reviewer (security-privacy) has never reviewed scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, or scripts/verify-test-coverage-floor.mjs.",
+    "BLOCKS integration_verified AND merge - no pull request and no observed green required CI run exists at head 4e1d6e5, as RFC-2026-002 section 2 requires.",
+    "CONDITIONS integration_verified, BLOCKS merge - blocker (b): the /root/r0_steward countersignature on the WP-0A-A0-001 and WP-0A-CON-001 ownership.amended_by blocks. The Reviewer's approval of the RFC amendment path was expressly contingent on it. /claude/r0_steward CANNOT supply it: different run, different vendor (OpenAI), different session, and Integration Owner of neither amended package. Supplying it would be impersonation and would collapse the separation-of-duties record. It can be closed only by /root/r0_steward itself, or by an explicit Product Owner reassignment of that acknowledgement authority on the record.",
+    "DOES NOT block integration_verified, BLOCKS merge - blocker (a): RFC-2026-003 is Proposed and requires Product Owner disposition. Until then the cross-package amendments are staged, not authorized. Aggravated by I5, since WP-0A-CON-002 already depends on them.",
+    "DOES NOT block integration_verified, SHOULD block merge - blocker (c): the bounded WP-0A-CON-001 npm run check addendum superseding the stale 26/26 citation in five artifacts. The correct count at 4e1d6e5 is 46, supplied here as a measurement; recording it as WP-0A-CON-001 evidence belongs to /root/r0_steward, not to this run.",
+    "DOES NOT block integration_verified, DOES NOT block merge, STANDING RISK - blocker (d) Security C1: scripts/scan-repository-secrets.mjs is materially weak (none of twelve realistic decoys detected, fails open on unreadable files, never inspects git history). Pre-existing and out of this package's scope. Its exit 0 must never be cited as evidence of secret coverage. Must be closed before any package handles permissioned data, customer content, or a real provider credential.",
+    "DOES NOT block integration_verified, DOES NOT block merge, MUST BE SURFACED - blocker (e): the single-vendor cross-vendor exception. Permitted by the Decision Register as an explicit recorded exception when cross-vendor capacity is absent, correctly characterised, and not waived. The Product Owner should acknowledge it explicitly rather than inherit it silently.",
+    "DOES NOT block integration_verified, DOES NOT block merge - blocker (f) R4/C1: narrowed, not closed, by the Author's own assessment. This run concurs and adds I3 and I4 as evidence that the class is not exhausted.",
+    "DOES NOT block integration_verified, BLOCKS merge ORDERING - I5: WP-0A-CON-002 (106f91c) branched from this unmerged head and consumed the RFC-2026-003 ownership narrowing. The Product Owner must decide the ordering of WP-0A-A0-002 and WP-0A-CON-002 before either merges.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. Nothing in this handoff moves it."
+  ],
+  "rollback_or_forward_fix": "Nothing has been merged, pushed, or committed by this run, so no rollback of integrated state is required. (1) To reverse this run's own writes: `git checkout -- work-packages/WP-0A-A0-002.json` restores status to backlog; `rm evidence/WP-0A-A0-002/integration-verdict.md handoffs/WP-0A-A0-002-integration-handoff.json` removes the two evidence artifacts; .agents/capability-profiles/cc-r0-steward.json is now committed in 106f91c on the WP-0A-CON-002 branch and would need a reviewed revert there. (2) To reverse the package itself if it is ever merged: revert the RFC-2026-003 decision record, package.json, scripts/run-test-suite.mjs, scripts/test-suite-contract.mjs, scripts/verify-test-coverage-floor.mjs, test-kits/test-coverage-floor.test.mjs, the WP-0A-A0-002 manifest, the two cross-package manifest amendments, the five capability declarations, and the evidence and handoff files through a reviewed revert commit or PR, per RFC-2026-002 point 5. Never force-push or rewrite main history. Reverting restores the previous test glob and the previous ownership boundaries exactly. The change creates no persisted data, provider state, credential, migration, or customer-data effect, so the revert is complete and lossless - WITH ONE EXCEPTION recorded as I5: WP-0A-CON-002 (106f91c) has already branched from this head and declares outputs under paths that only became declarable because of the RFC-2026-003 ownership narrowing, so a revert of WP-0A-A0-002 after WP-0A-CON-002 lands would make WP-0A-CON-002's manifest fail the ownership validator. The revert is self-contained only while WP-0A-CON-002 is unmerged.",
+  "recommended_next_work_packages": [
+    "Re-run the independent Reviewer, independent Tester, and Security/Privacy roles against head 4e1d6e5 (or its successor) as distinct runs, and declare review-security-remediation.md in WP-0A-A0-002 outputs.files. This is the prerequisite for any integration_verified verdict.",
+    "Product Owner disposition of RFC-2026-003, taken together with the WP-0A-A0-002 / WP-0A-CON-002 merge ordering decision.",
+    "/root/r0_steward to countersign both ownership.amended_by blocks and record the bounded WP-0A-CON-001 npm run check addendum (correct count: 46).",
+    "A follow-on package owning scripts/scan-repository-secrets.mjs to close Security C1: fail closed on unreadable files, add sk-/AIza/xox/JWT/DSN/inline KEY=value patterns, and inspect git history. Required before any package handles permissioned data or a real credential.",
+    "A small forward fix for I3 and I4: raise MIN_EXECUTED_TESTS to the actual suite size or add a per-directory floor, and make parseExecutedTests take the last match or read a machine-readable reporter."
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-A0-002/integration-verdict.md section 2 FIRST. The shared working tree switched branches mid-verification and the current checkout is agent/claude/WP-0A-CON-002-envelope-contracts at 106f91c, not the branch under review. Anchor any re-verification to an isolated `git archive 4e1d6e5` extraction rather than the live tree.",
+    "The decisive finding is I1: head 4e1d6e5 has no independent Reviewer, Security, or Tester evidence, and it is not a documentation commit - it adds two new implementation scripts and rewrites a third. Do not treat the 1873ade and 9403484 evidence as covering it.",
+    "Confirm, as their own authors, that evidence/WP-0A-A0-002/review-contract.md and evidence/WP-0A-A0-002/review-security.md crossed unaltered into commit 9403484. The Tester has confirmed its own artifact; the Reviewer and Security reviewer have not.",
+    "Do not accept /claude/r0_steward as a substitute for /root/r0_steward. They are different runs of different vendors. The countersignature on the two amended manifests remains open.",
+    "Do not cite `node scripts/scan-repository-secrets.mjs` exit 0 as evidence that no secret is present. Inspect the diff.",
+    "The one-line status edit to work-packages/WP-0A-A0-002.json (backlog -> in_review) is uncommitted and parked on the WP-0A-CON-002 branch's working tree. Commit it onto agent/claude/WP-0A-A0-002-contract-test-coverage, not onto WP-0A-CON-002.",
+    "This handoff is Integration Owner evidence only. It is not Product Owner approval, not merge authorization, and not Gate G0 passage. VERDICT: integration_blocked."
+  ]
+}
