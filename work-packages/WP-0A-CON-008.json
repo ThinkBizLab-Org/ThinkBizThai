@@ -85,7 +85,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-CON-008-candidate-promotion",
+    "branch": "agent/claude/WP-0A-CON-008-guard-self-coverage",
     "writable_paths": [
       "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
       "work-packages/WP-0A-CON-008.json",
@@ -129,20 +129,13 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "contract-catalog/shared-kernel/ctr-api-001/manifest.json",
-        "contract-catalog/shared-kernel/ctr-flg-001/manifest.json",
-        "contract-catalog/shared-kernel/ctr-idm-001/manifest.json",
-        "contract-catalog/shared-kernel/ctr-mod-001/manifest.json",
-        "contract-catalog/shared-kernel/ctr-pag-001/manifest.json",
-        "contract-catalog/shared-kernel/index.json",
+        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/ci-guard-behaviour.test.mjs",
-        "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
-        "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The stack this package grew on is merged, so the amendment list starts again from what THIS branch touches. Every earlier entry was accurate for the stacked branch and is dead on a branch cut from main -- deadAmendments said so in CI, which is what it was written for. ci.yml belongs to WP-0A-A0-004 and gains the disposition fallback; verify-test-coverage-floor.mjs and test-suite-contract.mjs belong to WP-0A-A0-002 and carry the digest floor and the per-file floors that a new script and three new tests move; branch-identity.test.mjs and ci-guard-behaviour.test.mjs pin this package’s own branch name, which changed when the stack was merged; and the two generated files are rebuilt by their own commands. The disposition guard itself is this package’s own file. The five contract manifests and the catalog index carry the status the Product Owner approved on 2026-09-02 under RFC-2026-010; they belong to WP-0A-CON-001 and WP-0A-CON-003 and only their status field moves. shared-kernel-contract-catalog.test.mjs and shared-kernel-envelope-contracts.test.mjs belong to those packages too and carry the census and freeze-level pins that failed when the promotion landed -- which is what those pins are for. Each is updated with the date and the reason rather than relaxed. Three entries carried over from the disposition-branch work and explain nothing in this diff; deadAmendments named them and they are removed rather than left as a standing permission.",
+      "rationale": "This branch gives the two guards nobody executed a behaviour case. test-suite-contract.mjs belongs to WP-0A-A0-002 and carries the per-file floors; the guard functions being probed are edited only inside a throwaway copy, never here; branch-identity.test.mjs and ci-guard-behaviour.test.mjs pin this package’s own branch name, which changes with every branch; the manifest and the verification record are rebuilt by their own commands. Independent review twenty-two found that assertNoPackageManagerConfig and assertDigestedFilesAreRegular were executed by no test at all — one line disabled the .npmrc guard at exit 0, reopening review seventeen’s finding in full with both CI steps green and zero tests run.",
       "recorded_on": [
         "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json"
