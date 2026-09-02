@@ -146,13 +146,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "architecture/decisions/RFC-2026-012-client-database-boundary.md",
-        "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
-        "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
-        "scripts/verify-test-coverage-floor.mjs",
+        "scripts/commit-when-clean.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The Product Owner disposed three more decision records in one review round; architecture/decisions is owned by no package, and this package carries the protocol. verify-test-coverage-floor.mjs (WP-0A-A0-002) is here for a correction rather than a feature: its exit-86 message told every reader that protected CI 'remains an open Gate G0 requirement', which stopped being true when branch protection on main became real and was proved by a rejected direct push. A guard that states a false fact about the repository is the same defect class this round has been closing everywhere else. The remaining path is the digest that moves with any protected-file edit.",
+      "rationale": "commit-when-clean.mjs (WP-0A-A0-002) refused the first commit of every package that creates its own evidence directory. `git status --porcelain` collapses an untracked directory into one entry, which is not a readable file, and `git add -A` expands it into one entry per file -- so the path set differed across staging for reasons unrelated to anything changing. Two runs hit it independently within an hour: an A6 author run in its own worktree, which worked around it rather than touch a guard outside its writable paths, and A0 on this branch. A guard that blocks all work is the failure mode this file's own comments already record twice, so leaving it while paperwork moved was not defensible. `-uall` fixes it; the guard was re-probed afterwards and still catches both cases it exists for.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
