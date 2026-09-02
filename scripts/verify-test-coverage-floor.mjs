@@ -408,6 +408,8 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-008-cardholder-data-scan.md',
   'architecture/decisions/RFC-2026-009-reference-bounds.md',
   'architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md',
+  'architecture/decisions/RFC-2026-011-repository-language.md',
+  'architecture/decisions/RFC-2026-012-client-database-boundary.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
