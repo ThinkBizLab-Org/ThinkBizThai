@@ -47,6 +47,13 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "amended_by": {
+      "work_package_id": "WP-0A-A0-002",
+      "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "change": "package.json was removed from writable_paths and outputs.files and transferred to WP-0A-A0-002. This package did author package.json; the removal is forced by scripts/validate-work-package-ownership.mjs, which exits 70 while two packages hold the same path. No status, role, gate, or delivered output of this package changed.",
+      "acknowledgement_required_from": "/root/r0_steward",
+      "acknowledgement_status": "pending"
+    },
     "writable_paths": [
       "CONTRIBUTING_AGENTS.md",
       "AGENTS.md",
@@ -76,7 +83,6 @@
       "handoffs/WP-0A-A0-001-*.json",
       "handoffs/WP-0A-A0-001-*.md",
       "ownership/README.md",
-      "package.json",
       "package-lock.json",
       "scripts/scan-repository-secrets.mjs",
       "scripts/toolchain-contract.mjs",
@@ -149,7 +155,6 @@
       "handoffs/WP-0A-A0-001-product-ux-blocker-reconciliation-handoff.json",
       ".node-version",
       "ownership/README.md",
-      "package.json",
       "package-lock.json",
       ".github/workflows/ci.yml",
       "scripts/validate-work-package-role-separation.mjs",
