@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -30,7 +30,12 @@ const REPOSITORY = process.cwd();
 // running tests can forge*. I wrote that sentence's lesson into a test and then broke it.
 // `.git` is 4.9 MB and copies in 0.15 s. **Every case asserts an exit code now.**
 async function repositoryCopy() {
-  const root = await mkdtemp(join(tmpdir(), 'ratchet-bite-'));
+  // `realpath` the copy root. `$TMPDIR` on macOS is `/var/folders/…`, a symlink to
+  // `/private/var/folders/…`, and `test-coverage-floor.test.mjs` resolves realpaths against the
+  // working directory — so three of its tests failed on an unmodified copy and it was the one
+  // suite left without a behaviour case. Independent review twenty-two said the obstacle was
+  // removable and it was: one call, and the suite passes from a copy.
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'ratchet-bite-')));
   for (const entry of await readdir(REPOSITORY)) {
     if (entry === 'node_modules') continue;
     await cp(join(REPOSITORY, entry), join(root, entry), { recursive: true });
@@ -359,3 +364,29 @@ test('the ci-guard ratchet notices a guard stubbed at its entry point', async ()
 // this way. Its script is reached by every other case in this file, because `runSuite` runs
 // `node --test` and the guard runs in the chain; what is not covered is the proof. Recorded on the
 // "not closed" list rather than papered over.
+
+test('the coverage-floor ratchet notices a guard stopped being enforced', async () => {
+  // The last suite without a behaviour case, and the one that mattered most: independent review
+  // twenty-two found that `assertNoPackageManagerConfig` and `assertDigestedFilesAreRegular` are
+  // executed by **no test at all**, so `if (directory) return;` disabled the `.npmrc` guard at
+  // exit 0 — reopening review seventeen's finding in full, with both CI steps green and zero
+  // tests run.
+  //
+  // These two are the guards that close the two worst holes found in this repository: an npm
+  // setting that silences every command, and a symlink that makes a digest vouch for a file
+  // outside the tree.
+  await mustNoticeSourceEdit('test-kits/test-coverage-floor.test.mjs', [
+    ['the package-manager configuration check disabled',
+      'scripts/verify-test-coverage-floor.mjs',
+      'export async function assertNoPackageManagerConfig(directory = \'.\') {',
+      'export async function assertNoPackageManagerConfig(directory = \'.\') {\n  if (directory) return;'],
+    ['the regular-file check disabled, so a symlinked guard passes',
+      'scripts/verify-test-coverage-floor.mjs',
+      'export async function assertDigestedFilesAreRegular(manifestPath = INTEGRITY_MANIFEST) {',
+      'export async function assertDigestedFilesAreRegular(manifestPath = INTEGRITY_MANIFEST) {\n  if (manifestPath) return;'],
+    ['the digested-set ratchet disabled',
+      'scripts/verify-test-coverage-floor.mjs',
+      'export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MANIFEST, floor = DIGESTED_FLOOR) {',
+      'export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MANIFEST, floor = DIGESTED_FLOOR) {\n  if (floor) return;'],
+  ]);
+});

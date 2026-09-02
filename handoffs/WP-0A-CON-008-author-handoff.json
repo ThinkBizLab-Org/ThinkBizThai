@@ -4,7 +4,7 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f91475e177d612e044842950a44a0af1103aaf70",
+  "base_revision": "23137fa7b08bfa28f6b36a2d6ed95f7801d56df5",
   "head_revision_or_patch_checksum": "5fba1bac29581b2cb508673746e51c6c76064b65",
   "task_ids": [],
   "files_added": [],
@@ -83,7 +83,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "contract-catalog changes are additive in the sense that matters here: no schema, fixture, version or owner moved. Five manifests and five index entries change status Draft -> Candidate, on the Product Owner's approval of RFC-2026-010 dated 2026-09-02. A consumer reading these contracts sees the same shape it saw yesterday; what changes is what the protocol permits a package to build against them -- Candidate v1 allows fakes, fixtures and consumer tests where Draft allowed an exploratory spike only. The four co-owned contracts are untouched and remain Draft pending A1 and A6.",
+  "compatibility_impact": "This branch changes no contract file. It adds a behaviour case for the two guards that no test executed, so a one-line edit to either can no longer pass at exit 0. No schema, fixture, version, owner or status moves, so there is no compatibility surface to report.",
   "known_limitations": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
