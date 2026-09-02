@@ -1,1 +1,140 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"CTR-USG-001","title":"Usage and Cost Event","type":"object","additionalProperties":false,"required":["usage_id","occurred_at","dimension","quantity","attribution","cost","dedupe_key","tenant_context"],"properties":{"usage_id":{"type":"string","minLength":1,"x-source":"OB-004 depends on EV-001; an event needs a unique id. DECLARED INFERENCE from the Event Envelope, section 3.2."},"occurred_at":{"type":"string","format":"date-time","x-source":"Section 3.2 Event Envelope: occurred_at is a UTC timestamptz. DECLARED INFERENCE via OB-004's EV-001 dependency."},"dimension":{"enum":["ai_tokens","research_search","storage_bytes","egress_bytes","media_processing","publish_operation"],"x-source":"OB-004 Inputs names token / search / bytes / egress / processing / publish. Each value here RENAMES one of those to add its referent (`bytes` -> `storage_bytes`), which independent review correctly flagged: the mapping is one-to-one but the names are this contract's, not the task's."},"quantity":{"type":"object","additionalProperties":false,"required":["amount","unit"],"properties":{"amount":{"type":"string","pattern":"^(0|[1-9][0-9]{0,15})(\\.[0-9]{1,8})?$","x-source":"Carried as a decimal string for the same reason as money -- Decision Register 4.2 MOD-130. DECLARED INFERENCE that the prohibition extends to the number a cost is derived from. Bounded and leading-zero-free on the same grounds as cost.amount; an earlier draft said 'for the same reason' while permitting 60 fraction digits and unbounded magnitude, so the stated reason and the written pattern disagreed."},"unit":{"enum":["token","request","byte","second","operation"],"x-source":"DECLARED INFERENCE, previously UNSOURCED. OB-004's Inputs name token, search, bytes, egress, processing and publish; the UNITS those are counted in are not stated anywhere. `token`, `byte` and `second` follow from the dimensions; `request` and `operation` are this contract's own terms."}},"x-source":"OB-004 requires money precision to be correct. A quantity is carried as a DECIMAL STRING for the same reason a money amount is; MOD-130 in Decision Register 4.2 forbids floating point for money. DECLARED INFERENCE that the rule extends to the quantity a cost is derived from."},"attribution":{"type":"object","additionalProperties":false,"required":["workspace_id","job_id","provider_key"],"properties":{"workspace_id":{"type":"string","minLength":1},"business_profile_id":{"type":"string","minLength":1},"job_id":{"type":"string","minLength":1},"provider_key":{"type":"string","pattern":"^[a-z][a-z0-9._-]*$"}},"x-source":"OB-004 acceptance: 'workspace/business/job/provider attribution \u0e04\u0e23\u0e1a'. workspace, job and provider are required; business_profile_id is conditional because section 3.1 makes it conditional in the Tenant Context."},"cost":{"type":"object","additionalProperties":false,"required":["amount","currency","basis"],"properties":{"amount":{"type":"string","pattern":"^(0|[1-9][0-9]{0,15})\\.[0-9]{2,8}$","x-source":"OB-004 requires correct money precision; Decision Register 4.2 MOD-130 forbids floating-point money, so an amount is a decimal STRING. NO SIGN: an earlier draft allowed `-`, which would have materialized an explicitly OPEN decision -- NG-006 marks automated refund a non-goal, OPEN-001 leaves refund policy to Product and an accountant, and BILL-DEC-013 is Proposed. A credit must not enter this contract before that decision. The integer part is bounded at 16 digits so a value the contract calls valid cannot exceed IEEE-754 exact range -- an unbounded one defeats the very purpose of MOD-130 for any consumer that parses it. Leading zeros are excluded so one amount has one spelling."},"currency":{"enum":["THB","USD"]},"basis":{"enum":["provider_reported","estimated"],"x-source":"DECLARED INFERENCE from OB-008, which reconciles usage against provider statements and so must know whether a figure was reported or estimated. A third value `list_price` was removed: it had no source and CONTRADICTED this package's own scope.exclude, which puts the provider price list out of scope. Independent review found the enum had three values where the stated inference yields two."},"supersedes_usage_id":{"type":"string","minLength":1,"x-source":"OB-008 reconciliation: a provider statement replaces an estimate. Without a reference to the estimate it supersedes, a reported event and the estimate it replaces are two events for one cost. DECLARED INFERENCE from OB-008; the task does not name the field. Independent review found three things wrong with the first version: it was REQUIRED on every provider_reported cost, so a first report with no prior estimate could not be expressed at all and a producer would be pushed to invent a reference; a cost could supersede ITSELF; and nothing stopped two events superseding the same estimate. It is now optional, self-reference is rejected, and the remaining two -- a dangling id and a duplicated supersession -- are ledger properties across events that no single document can express, declared in untestable_by_fixture."}},"x-source":"OB-004 requires correct money precision. A decimal STRING with an explicit scale, never a number: MOD-130 in Decision Register 4.2 forbids floating-point money. `basis` is a DECLARED INFERENCE from OB-008, which reconciles usage against provider statements and therefore needs to know whether a figure was reported or estimated."},"dedupe_key":{"type":"string","minLength":1,"x-source":"OB-008 detects missing and DUPLICATE usage, and ID-002 requires a dedupe record. A usage event must carry the key that makes double-counting detectable."},"tenant_context":{"$ref":"../ctr-ten-001/schema.json","x-source":"Section 3.1: every command, query, job and event touching customer data carries the Trusted Tenant Context."}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "CTR-USG-001",
+  "title": "Usage and Cost Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "usage_id",
+    "occurred_at",
+    "dimension",
+    "quantity",
+    "attribution",
+    "cost",
+    "dedupe_key",
+    "tenant_context"
+  ],
+  "properties": {
+    "usage_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-source": "OB-004 depends on EV-001; an event needs a unique id. DECLARED INFERENCE from the Event Envelope, section 3.2."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "x-source": "Section 3.2 Event Envelope: occurred_at is a UTC timestamptz. DECLARED INFERENCE via OB-004's EV-001 dependency."
+    },
+    "dimension": {
+      "enum": [
+        "ai_tokens",
+        "research_search",
+        "storage_bytes",
+        "egress_bytes",
+        "media_processing",
+        "publish_operation"
+      ],
+      "x-source": "OB-004 Inputs names token / search / bytes / egress / processing / publish. Each value here RENAMES one of those to add its referent (`bytes` -> `storage_bytes`), which independent review correctly flagged: the mapping is one-to-one but the names are this contract's, not the task's."
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "unit"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,15})(\\.[0-9]{1,8})?$",
+          "x-source": "Carried as a decimal string for the same reason as money -- Decision Register 4.2 MOD-130. DECLARED INFERENCE that the prohibition extends to the number a cost is derived from. Bounded and leading-zero-free on the same grounds as cost.amount; an earlier draft said 'for the same reason' while permitting 60 fraction digits and unbounded magnitude, so the stated reason and the written pattern disagreed."
+        },
+        "unit": {
+          "enum": [
+            "token",
+            "request",
+            "byte",
+            "second",
+            "operation"
+          ],
+          "x-source": "DECLARED INFERENCE, previously UNSOURCED. OB-004's Inputs name token, search, bytes, egress, processing and publish; the UNITS those are counted in are not stated anywhere. `token`, `byte` and `second` follow from the dimensions; `request` and `operation` are this contract's own terms."
+        }
+      },
+      "x-source": "OB-004 requires money precision to be correct. A quantity is carried as a DECIMAL STRING for the same reason a money amount is; MOD-130 in Decision Register 4.2 forbids floating point for money. DECLARED INFERENCE that the rule extends to the quantity a cost is derived from."
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "job_id",
+        "provider_key"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "business_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]*$"
+        }
+      },
+      "x-source": "OB-004 acceptance: 'workspace/business/job/provider attribution ครบ'. workspace, job and provider are required; business_profile_id is conditional because section 3.1 makes it conditional in the Tenant Context."
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "currency",
+        "basis"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,15})\\.[0-9]{2,8}$",
+          "x-source": "OB-004 requires correct money precision; Decision Register 4.2 MOD-130 forbids floating-point money, so an amount is a decimal STRING. NO SIGN: an earlier draft allowed `-`, which would have materialized an explicitly OPEN decision -- NG-006 marks automated refund a non-goal, OPEN-001 leaves refund policy to Product and an accountant, and BILL-DEC-013 is Proposed. A credit must not enter this contract before that decision. PARSE AS ARBITRARY-PRECISION DECIMAL, NEVER AS A DOUBLE. CORRECTION, raised by A6 in co-owner review: an earlier version of this note justified the 16-digit integer bound as keeping a valid value inside IEEE-754 exact range. That was false -- `9999999999999999.99999999` is valid here and parses to 10000000000000000 as a double, past 2^53-1. The bound is a sane maximum, not a float-safety guarantee, and a consumer that parses these into a double loses money. Leading zeros are excluded so one amount has one spelling; note that scale is 2-8 digits, so `0.10` and `0.10000000` are one value with two spellings and no canonical form is stated yet. VAT treatment is absent by design and belongs to OPEN-001 with an accountant, not to this schema."
+        },
+        "currency": {
+          "enum": [
+            "THB",
+            "USD"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "provider_reported",
+            "estimated"
+          ],
+          "x-source": "DECLARED INFERENCE from OB-008, which reconciles usage against provider statements and so must know whether a figure was reported or estimated. A third value `list_price` was removed: it had no source and CONTRADICTED this package's own scope.exclude, which puts the provider price list out of scope. Independent review found the enum had three values where the stated inference yields two."
+        },
+        "supersedes_usage_id": {
+          "type": "string",
+          "minLength": 1,
+          "x-source": "OB-008 reconciliation: a provider statement replaces an estimate. Without a reference to the estimate it supersedes, a reported event and the estimate it replaces are two events for one cost. DECLARED INFERENCE from OB-008; the task does not name the field. It is optional, so a first report with no prior estimate is expressible. CORRECTION, raised by A6 in co-owner review: an earlier version of this note claimed 'self-reference is rejected'. It is not, and it never was -- comparing two properties of one document is outside this validator's subset, so a document whose `cost.supersedes_usage_id` equals its own `usage_id` VALIDATES. Rejecting self-reference, and rejecting two events that supersede the same estimate, are resolver obligations; both are recorded under untestable_by_schema. A consumer must not build a fake on the strength of the old sentence."
+        }
+      },
+      "x-source": "OB-004 requires correct money precision. A decimal STRING with an explicit scale, never a number: MOD-130 in Decision Register 4.2 forbids floating-point money. `basis` is a DECLARED INFERENCE from OB-008, which reconciles usage against provider statements and therefore needs to know whether a figure was reported or estimated."
+    },
+    "dedupe_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^usg:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:(ai_tokens|research_search|storage_bytes|egress_bytes|media_processing|publish_operation):(provider_reported|estimated)$",
+      "x-source": "OB-008 detects missing and DUPLICATE usage, and ID-002 requires a dedupe record. COMPOSITION, stated here because A6 refused sign-off without it: `usg:<attribution.workspace_id>:<attribution.job_id>:<dimension>:<cost.basis>`. UNIQUENESS SCOPE: at most one accepted usage event per key per workspace; a second event carrying a key already seen is a duplicate and must be dropped, not summed. `cost.basis` is part of the key on purpose -- without it a provider_reported correction and a double-counted estimate for the same job and dimension are byte-identical, so a consumer cannot tell a correction from a double-count. A superseding event therefore carries a DIFFERENT key from the event it supersedes and points at it through `cost.supersedes_usage_id`. The pattern makes the shape checkable; that the parts MATCH this document's own fields is a resolver obligation the subset cannot express, and is recorded under untestable_by_schema."
+    },
+    "tenant_context": {
+      "$ref": "../ctr-ten-001/schema.json",
+      "x-source": "Section 3.1: every command, query, job and event touching customer data carries the Trusted Tenant Context."
+    }
+  }
+}

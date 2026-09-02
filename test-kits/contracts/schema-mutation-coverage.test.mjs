@@ -170,8 +170,8 @@ const SITE_FLOOR = {
 // file asserts that relationship rather than leaving two numbers to drift apart.
 const UNKILLED_CEILING = {
   'ctr-api-001': 1, 'ctr-aud-001': 5, 'ctr-err-001': 0, 'ctr-evt-001': 0, 'ctr-flg-001': 14,
-  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 9, 'ctr-obs-001': 5,
-  'ctr-pag-001': 8, 'ctr-sec-001': 10, 'ctr-ten-001': 0, 'ctr-usg-001': 0 };
+  'ctr-idm-001': 1, 'ctr-job-001': 0, 'ctr-mod-001': 10, 'ctr-ntf-001': 9, 'ctr-obs-001': 6,
+  'ctr-pag-001': 8, 'ctr-sec-001': 12, 'ctr-ten-001': 0, 'ctr-usg-001': 1 };
 
 // `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
 // verdict, so counting them as constraints would drag every ratio down and make the floor
@@ -514,6 +514,27 @@ function provablyRedundant(schema, path) {
 const UNPROVEN_CONDITIONAL_GAPS = [
   'ctr-ntf-001 allOf.2.if.required',
   'ctr-ntf-001 allOf.3.if.required',
+  // CTR-SEC-001 allOf[4] -- "a handle carrying a revocation record must not resolve, whatever
+  // its state" -- was added after A1's security co-owner review found that a `rotating` handle
+  // could carry a complete revocation record and still declare `resolvable: true`. It is
+  // strictly more general than two clauses that were already here, so neither of those can now
+  // be killed by any document:
+  //   allOf[0] fires on `state: revoked` and REQUIRES `revocation`, so allOf[4] fires too and
+  //   forces `resolvable: false` on its own. Verified: revoked + `resolvable: true` against a
+  //   schema with allOf.0.then.properties.resolvable.const deleted still fails `expected const
+  //   false`.
+  //   allOf[1] forces `resolvable: true` on an `active` handle, so an active handle carrying a
+  //   revocation record is rejected by the contradiction with allOf[4] even without the `not`.
+  //   Verified: active + revocation + `resolvable: false` against a schema with allOf.1.then.not
+  //   deleted still fails `expected const true`.
+  // Both narrower clauses are KEPT DELIBERATELY, and that is why these are gaps rather than
+  // deletions: they name the actual violation. Without allOf[1]'s `not`, an active handle
+  // carrying a revocation record is reported as a `resolvable` const mismatch, which sends a
+  // reader to the wrong field. A guard that reports a wrong reason is worse than one that stays
+  // silent. Remove these two entries if allOf[4] is ever removed -- they are only unkillable
+  // while it stands.
+  'ctr-sec-001 allOf.0.then.properties.resolvable.const',
+  'ctr-sec-001 allOf.1.then.not',
 ];
 
 // The proof decides whether an untested rule is reported or excused, so its soundness is the
@@ -672,9 +693,34 @@ const UNKILLED_SITES = {
     'required',
     'type',
   ],
+  'ctr-obs-001': [
+    // SUBSUMED, not untested. `environment` was an open `^[a-z0-9_.:-]{1,64}$` pattern that
+    // accepted a workspace id as a metric label; A6's SRE co-owner review had it closed to the
+    // four Track INF environments the schema already enumerates for its own `environment`
+    // property. Every enum member is a string, so removing `type` leaves the enum rejecting
+    // every non-string. Verified: `sli_tags.environment: 12345` against the type-less schema
+    // fails with `value not in enum ["local","preview","staging","production"]`.
+    'properties.sli_tags.properties.environment.type',
+  ],
   'ctr-sec-001': [
+    // SUBSUMED by allOf[4], the clause A1's co-owner review required: a handle carrying a
+    // revocation record must not resolve, whatever its state. allOf[0] said that for
+    // `revoked` and allOf[1] said an `active` handle carries no revocation record; the
+    // general rule now rejects both exploit documents on its own, so removing either
+    // narrower site changes no fixture's verdict. Verified: revoked + resolvable true is
+    // still `expected const false`, active + revocation is still `expected const true`.
+    // These entries are the price of the stronger rule and must be removed if allOf[4] is.
+    'allOf.0.then.properties.resolvable.const',
+    'allOf.1.then.not',
     'properties.rotation.properties.owner.properties.kind.enum',
     'type',
+  ],
+  'ctr-usg-001': [
+    // SUBSUMED by the `dedupe_key` pattern A6's co-owner review required before sign-off.
+    // The pattern's shortest match is longer than one character, so the empty string it
+    // rejects is the only string `minLength: 1` would have caught. Verified: `dedupe_key: ""`
+    // against the minLength-less schema still fails the pattern.
+    'properties.dedupe_key.minLength',
   ],
 };
 
@@ -838,7 +884,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-aud-001': {
-    digest: '80676c327acc1c54',
+    digest: '3ecbe179e9eabfa5',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [action]",
@@ -878,6 +924,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.causation_id.minLength = 1",
       ".properties.causation_id.type = \"string\"",
       ".properties.change.additionalProperties = false",
+      ".properties.change.minProperties = 1",
       ".properties.change.properties = [after_ref, before_ref]",
       ".properties.change.properties.after_ref.maxLength = 256",
       ".properties.change.properties.after_ref.pattern = \"^(snapshot|record):[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\\\.[A-Za-z0-9_-]+)*)*$\"",
@@ -1374,7 +1421,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-obs-001': {
-    digest: '31b8ed3985d4ccd8',
+    digest: 'd28b7b1494050e2b',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [readiness]",
@@ -1466,7 +1513,7 @@ const CONSTRAINT_SURFACE = {
       ".properties.sli_tags.properties = [capability_key, environment, error_code, module_key, outcome]",
       ".properties.sli_tags.properties.capability_key.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
       ".properties.sli_tags.properties.capability_key.type = \"string\"",
-      ".properties.sli_tags.properties.environment.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
+      ".properties.sli_tags.properties.environment.enum = [\"local\",\"preview\",\"staging\",\"production\"]",
       ".properties.sli_tags.properties.environment.type = \"string\"",
       ".properties.sli_tags.properties.error_code.pattern = \"^[a-z0-9_.:-]{1,64}$\"",
       ".properties.sli_tags.properties.error_code.type = \"string\"",
@@ -1532,7 +1579,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-sec-001': {
-    digest: '638983384c302c88',
+    digest: '8a2dae660837accc',
     sites: [
       ".additionalProperties = false",
       ".allOf.0.if.properties = [state]",
@@ -1565,6 +1612,9 @@ const CONSTRAINT_SURFACE = {
       ".allOf.3.then.properties.rotation.properties.owner.properties.kind.const = \"workspace_owner\"",
       ".allOf.3.then.properties.rotation.properties.owner.required = [\"kind\"]",
       ".allOf.3.then.properties.rotation.required = [\"owner\"]",
+      ".allOf.4.if.required = [\"revocation\"]",
+      ".allOf.4.then.properties = [resolvable]",
+      ".allOf.4.then.properties.resolvable.const = false",
       ".properties = [classification, correlation_id, handle, ownership, redaction, resolvable, revocation, rotation, scope, state]",
       ".properties.classification.enum = [\"public\",\"internal\",\"confidential\",\"restricted\"]",
       ".properties.correlation_id.minLength = 1",
@@ -1662,7 +1712,7 @@ const CONSTRAINT_SURFACE = {
     ],
   },
   'ctr-usg-001': {
-    digest: '7546cafb151d70f9',
+    digest: '941ede572de52a18',
     sites: [
       ".additionalProperties = false",
       ".properties = [attribution, cost, dedupe_key, dimension, occurred_at, quantity, tenant_context, usage_id]",
@@ -1688,7 +1738,9 @@ const CONSTRAINT_SURFACE = {
       ".properties.cost.properties.supersedes_usage_id.type = \"string\"",
       ".properties.cost.required = [\"amount\",\"currency\",\"basis\"]",
       ".properties.cost.type = \"object\"",
+      ".properties.dedupe_key.maxLength = 512",
       ".properties.dedupe_key.minLength = 1",
+      ".properties.dedupe_key.pattern = \"^usg:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:(ai_tokens|research_search|storage_bytes|egress_bytes|media_processing|publish_operation):(provider_reported|estimated)$\"",
       ".properties.dedupe_key.type = \"string\"",
       ".properties.dimension.enum = [\"ai_tokens\",\"research_search\",\"storage_bytes\",\"egress_bytes\",\"media_processing\",\"publish_operation\"]",
       ".properties.occurred_at.format = \"date-time\"",

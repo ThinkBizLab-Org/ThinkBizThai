@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "CTR-SEC-001",
   "title": "Secret Reference / Handle",
-  "description": "An opaque, scoped REFERENCE to a credential held by the secret registry. This document is what a module manifest, a log line, an event, a job and an audit record are permitted to carry. It never carries credential material, and this schema declares no property that could hold any.",
+  "description": "An opaque, scoped REFERENCE to a credential held by the secret registry. This document is what a module manifest, a log line, an event, a job and an audit record are permitted to carry. It never carries credential material in `handle`, and no property of this schema is intended to hold any. Note that `correlation_id`, `scope.workspace_id`, `rotation.owner.id` and `revocation.actor.id` are free-text strings: the schema cannot stop a producer pasting a credential into one, so a producer must not.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -315,6 +315,21 @@
         }
       },
       "x-rule": "PT-010 managed/BYOK split with SEC-012 BYOK isolation: a customer-supplied key is rotated by the workspace that supplied it, not by a platform role."
+    },
+    {
+      "if": {
+        "required": [
+          "revocation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "resolvable": {
+            "const": false
+          }
+        }
+      },
+      "x-rule": "PT-010 'revoke immediately': a handle that carries a revocation record must not resolve, whatever its `state` says. allOf[0] binds this to `state: revoked` and allOf[1] keeps a revocation record off an `active` handle; without this clause a `rotating` handle could carry a complete revocation record and still declare `resolvable: true`, which is the revoked-but-still-resolving case PT-010 exists to forbid. Raised by A1 in security co-owner review of the Candidate promotion."
     }
   ]
 }
