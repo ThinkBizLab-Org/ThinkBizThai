@@ -1,0 +1,1 @@
+{"idempotency_key":"idem_synthetic_0007","scope":{"workspace_id":"ws_synthetic_0001","operation":12345},"payload_hash":"blake3:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","state":"completed","created_at":"2026-08-31T10:00:00Z","completed_at":"2026-08-31T10:00:04Z","result_ref":"result:content_synthetic_0007","correlation_id":"cor_synthetic_0001"}

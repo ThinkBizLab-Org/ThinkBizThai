@@ -1,0 +1,1 @@
+{"policy_key":"content.generation","effect":"allow","decided_at":"2026-08-31T10:00:00Z","decision_source":{"scope":"workspace","rule":"explicit_allow"},"reason_key":"policy.workspace.explicit_allow","evaluated_scopes":["platform","plan","workspace"],"write_disabled":false,"historical_read_allowed":false}

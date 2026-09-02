@@ -1,0 +1,1 @@
+{"code":"validation.required","message_key":"errors.validation.required","category":"validation","retryable":false,"field_errors":[{"field":"business_profile_id","code":12345}],"correlation_id":"00000000-0000-4000-8000-000000000006","details":{}}

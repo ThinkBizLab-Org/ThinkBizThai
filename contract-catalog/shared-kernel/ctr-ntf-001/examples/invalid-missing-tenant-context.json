@@ -1,0 +1,1 @@
+{"kind":"command","notification_id":"ntf_synthetic_0001","channel":"in_app","message_key":"notification.content.approved","locale":"th-TH","deep_link":{"target_ref":"content:content_synthetic_0001","requires_permission":true},"dedupe_key":"ntf:content_synthetic_0001:approved"}
