@@ -146,12 +146,11 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "scripts/commit-when-clean.mjs",
-        "test-kits/integrity-manifest.json"
+        "evidence/WP-0A-A6-001/**"
       ],
-      "rationale": "commit-when-clean.mjs (WP-0A-A0-002) refused the first commit of every package that creates its own evidence directory. `git status --porcelain` collapses an untracked directory into one entry, which is not a readable file, and `git add -A` expands it into one entry per file -- so the path set differed across staging for reasons unrelated to anything changing. Two runs hit it independently within an hour: an A6 author run in its own worktree, which worked around it rather than touch a guard outside its writable paths, and A0 on this branch. A guard that blocks all work is the failure mode this file's own comments already record twice, so leaving it while paperwork moved was not defensible. `-uall` fixes it; the guard was re-probed afterwards and still catches both cases it exists for.",
+      "rationale": "A0 staffed WP-0A-A6-001 against a written prohibition in that package's own manifest -- open_blockers[0] says the run assigned as Author must not be assigned as Author. The independent review of that package is recorded here because the defect it names is A0's, not the Author's, and a defect an author records about itself belongs in the protocol package's evidence rather than buried in the package it damaged. The disposition of whether the assignment stands is the Product Owner's; nothing in this change decides it, and the blocker is untouched.",
       "recorded_on": [
-        "work-packages/WP-0A-A0-002.json"
+        "work-packages/WP-0A-A6-001.json"
       ]
     },
     "read_only_paths": [

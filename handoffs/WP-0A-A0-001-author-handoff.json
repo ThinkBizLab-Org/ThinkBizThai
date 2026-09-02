@@ -5,12 +5,14 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "50c886570452c64e17fd72cb139ca5d026b64a8f",
-  "head_revision_or_patch_checksum": "cd02c8c9b9135dad916fa3fe45f5c656b778cb00",
+  "head_revision_or_patch_checksum": "3e32d3408455754a36f72146538d127332889b07",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md"
+  ],
   "files_modified": [
     ".gitignore",
     "architecture/decisions/RFC-2026-011-repository-language.md",
