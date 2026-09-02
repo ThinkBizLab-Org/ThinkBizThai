@@ -1,1 +1,137 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"CTR-EVT-001","title":"Domain Event Envelope","type":"object","additionalProperties":false,"required":["event_id","event_type","event_version","occurred_at","producer","tenant_context","subject","correlation_id","payload","metadata"],"properties":{"event_id":{"type":"string","minLength":1},"event_type":{"type":"string","pattern":"^[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9]+$"},"event_version":{"type":"integer","minimum":1},"occurred_at":{"type":"string","format":"date-time"},"producer":{"type":"object","additionalProperties":false,"required":["module_key","implementation_version"],"properties":{"module_key":{"type":"string","minLength":1},"implementation_version":{"type":"string","minLength":1}}},"tenant_context":{"$ref":"../ctr-ten-001/schema.json"},"subject":{"type":"object","additionalProperties":false,"required":["type","id","version"],"properties":{"type":{"type":"string","minLength":1},"id":{"type":"string","minLength":1},"version":{"type":"integer","minimum":1}}},"correlation_id":{"type":"string","minLength":1},"causation_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"payload":{"type":"object","maxProperties":0},"metadata":{"type":"object","additionalProperties":false,"required":["schema_ref"],"properties":{"schema_ref":{"type":"string","minLength":1}}}},"x-amended-by":{"work_package_id":"WP-0A-CON-002","decision_record":"architecture/decisions/RFC-2026-004-catalog-reference-integrity.md","change":"tenant_context $ref corrected from ../../ctr-ten-001/schema.json (which resolves to a path that does not exist) to ../ctr-ten-001/schema.json. No field, semantics, version, or freeze-level change.","acknowledgement_required_from":"/root/r0_steward","acknowledgement_status":"pending"}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "CTR-EVT-001",
+  "title": "Domain Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "occurred_at",
+    "producer",
+    "tenant_context",
+    "subject",
+    "correlation_id",
+    "payload",
+    "metadata"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9]+$",
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_key",
+        "implementation_version"
+      ],
+      "properties": {
+        "module_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+        },
+        "implementation_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+        }
+      }
+    },
+    "tenant_context": {
+      "$ref": "../ctr-ten-001/schema.json"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "version"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "causation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "x-bound-note": "Bounded because independent security review found that the fields NEXT to the one this package hardened were strictly weaker than it: no pattern AND no bound, so each accepted a 100000-character value and four of the sixteen hostile forms named in RFC-2026-009. The bound is a DECLARED INFERENCE; no baseline task states a limit."
+    },
+    "payload": {
+      "type": "object",
+      "maxProperties": 0
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_ref"
+      ],
+      "properties": {
+        "schema_ref": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^CTR-[A-Z]{3}-[0-9]{3}@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "x-source": "Workstream 3.1 names schema_ref on the event envelope. The SHAPE is a DECLARED INFERENCE and it is deliberately not the catalog's `scheme:path` reference pattern: schema_ref does not locate a resource, it NAMES the contract that defines this event's body, so its form is a contract id and a semantic version. Constrained as a name rather than as a reference because a reference pattern would admit every URL form -- an unconstrained schema_ref accepted file:///, javascript:, data:, protocol-relative //host, traversal, a cloud metadata address and a 100000-character string, all 16 hostile forms probed. `minLength` was REMOVED rather than kept: the pattern already requires at least seventeen characters, so no instance could distinguish the two and the empty-string fixture that used to isolate it stopped isolating anything the moment the pattern was added."
+        }
+      }
+    }
+  },
+  "x-amended-by": {
+    "work_package_id": "WP-0A-CON-002",
+    "decision_record": "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
+    "change": "tenant_context $ref corrected from ../../ctr-ten-001/schema.json (which resolves to a path that does not exist) to ../ctr-ten-001/schema.json. No field, semantics, version, or freeze-level change.",
+    "acknowledgement_required_from": "/root/r0_steward",
+    "acknowledgement_status": "pending"
+  }
+}
