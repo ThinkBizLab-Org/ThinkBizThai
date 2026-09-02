@@ -1,7 +1,7 @@
 # Co-owner review of the four jointly-owned shared-kernel contracts
 
 Author run: `/claude/a0_atlas`. Reviewers: `/claude/a1_bastion` (A1, Security) and
-`/root/a6_relay` (A6, SRE/Billing), each a distinct `agent_run_id` from the author and
+`/claude/a6_relay` (A6, SRE/Billing), each a distinct `agent_run_id` from the author and
 from each other. Both worked from the shipped schema, manifest and fixture set and ran
 probes against the repository's own validator.
 
@@ -126,3 +126,55 @@ refusal introduced. That is the failure an author is least able to see, having j
 convinced himself, and it is the strongest argument yet for what the Product Owner's
 ruling makes these signatures worth. `CTR-USG-001` remains **unsigned** pending a third
 assessment.
+
+---
+
+## Attribution correction — 2026-09-02
+
+The A6 assessments above were first recorded as the work of `/root/a6_relay`. That is the OpenAI Codex run declared in `.agents/capability-profiles/a6-relay.json`, whose profile records vendor `openai` and `can_create_branch_or_worktree: false`. The runs that actually did the work were Anthropic Claude Code sessions, and the Author told each of them the wrong id when dispatching it.
+
+`.agents/capability-profiles/cc-a6-relay.json` now declares `/claude/a6_relay`, and the citations above point at it. The repository already carried this distinction for A1 — `cc-a1-bastion.json` says in its own words that it *"is distinct from the OpenAI Codex run /root/a1_bastion declared separately in this directory"* — so the convention existed and the Author failed to follow it for A6.
+
+**What this changes about the verdicts: nothing.** Separation of duties asks that the reviewing run be distinct from the authoring run, and it was, under either id. What it changes is whether the evidence names the run that produced it, which is the whole point of recording an id at all.
+
+---
+
+## Third A6 assessment of `CTR-USG-001` — 2026-09-02 — **SIGNED**
+
+Run `/claude/a6_relay`. A6 verified rather than accepted: two measurements of one job
+five minutes apart now carry distinct keys and both validate; a byte-identical
+redelivery still collapses to one key; all 47 fixtures reach their declared verdict.
+
+A6 also checked the author's *reasoning* for declining its alternative resolution, and
+confirmed it: `OB-004`'s acceptance column reads *"workspace/business/job/provider
+attributionครบ; money precisionถูก"* and says nothing about cardinality, and `ID-002`'s
+inputs are *"consumer key/event id"* — so redelivery really is keyed on the event id and
+not on `dedupe_key`. The author's claim that no source states a per-job event count is
+true.
+
+**Five conditions. Four were blocking and are closed in the same change.**
+
+| | Condition | Disposition |
+|---|---|---|
+| C1 | The stated composition rule and the shipped pattern disagree | **Closed.** Confirmed by the author before acting: `2026-08-31T10:00:00.123Z` composed by the old wording gives `20260831T100000.123Z`, which the pattern **rejects**, as does a permitted `+07:00` offset. A producer following the sentence literally was capped at **second** resolution — the exact window in which the money-losing behaviour survives. The rule is now stated in digits, with the fraction carried without its dot and the instant normalised to UTC. |
+| C2 | No canonical spelling for the instant | **Closed.** `.1` and `.100` are one instant; without a canonical form they make two keys and one measurement is summed twice. Trailing zeros are now excluded and a zero fraction is omitted. |
+| C3 | `occurred_at`'s billing meaning lived only in `dedupe_key` and the RFC | **Closed.** It now sits on `occurred_at`: the instant is stamped once at measurement and reused verbatim on every re-emission. |
+| C4 | The limitation was recorded in one direction only | **Closed.** The over-count direction — one measurement re-stamped, therefore a new key, therefore summed twice — was created by putting the instant in the key and is now recorded beside the collision. |
+| C5 | Hygiene, non-blocking | **Recorded, not fixed.** `dedupe_key.minLength: 1` is dead (shortest valid key is 44 characters) and `invalid-float-cost.json` carries a `basis` value from a removed enum, so both fail for two reasons. A6 confirmed neither is new: both predate the sixth segment. |
+
+**A6's own reason for signing rather than refusing a third time**, recorded because it
+is the distinction that matters: C1 *is* a false statement in a shipped contract, the
+class of defect the first refusal named — but it is false in the **restrictive**
+direction. A producer following it emits a document the validator rejects at the first
+test, rather than one that silently loses money. That is a different severity from
+*"self-reference is rejected"*, which would have had a consumer build on a guarantee
+that did not exist.
+
+**Carried forward, out of scope here:** `CTR-JOB-001` ships a `dedupe_key` with no
+composition and no `x-source` at all — the same gap this contract took three assessments
+to close, in another contract, under the same field name. It belongs to that contract's
+package.
+
+**Status of the four jointly-owned contracts after three rounds:** `CTR-SEC-001`,
+`CTR-AUD-001`, `CTR-OBS-001` and `CTR-USG-001` are all now signed by their co-owners,
+every blocking condition closed, and every non-blocking one recorded.
