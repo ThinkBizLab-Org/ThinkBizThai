@@ -1,7 +1,7 @@
 # Co-owner review of the four jointly-owned shared-kernel contracts
 
 Author run: `/claude/a0_atlas`. Reviewers: `/claude/a1_bastion` (A1, Security) and
-`/root/a6_relay` (A6, SRE/Billing), each a distinct `agent_run_id` from the author and
+`/claude/a6_relay` (A6, SRE/Billing), each a distinct `agent_run_id` from the author and
 from each other. Both worked from the shipped schema, manifest and fixture set and ran
 probes against the repository's own validator.
 
@@ -126,3 +126,13 @@ refusal introduced. That is the failure an author is least able to see, having j
 convinced himself, and it is the strongest argument yet for what the Product Owner's
 ruling makes these signatures worth. `CTR-USG-001` remains **unsigned** pending a third
 assessment.
+
+---
+
+## Attribution correction — 2026-09-02
+
+The A6 assessments above were first recorded as the work of `/root/a6_relay`. That is the OpenAI Codex run declared in `.agents/capability-profiles/a6-relay.json`, whose profile records vendor `openai` and `can_create_branch_or_worktree: false`. The runs that actually did the work were Anthropic Claude Code sessions, and the Author told each of them the wrong id when dispatching it.
+
+`.agents/capability-profiles/cc-a6-relay.json` now declares `/claude/a6_relay`, and the citations above point at it. The repository already carried this distinction for A1 — `cc-a1-bastion.json` says in its own words that it *"is distinct from the OpenAI Codex run /root/a1_bastion declared separately in this directory"* — so the convention existed and the Author failed to follow it for A6.
+
+**What this changes about the verdicts: nothing.** Separation of duties asks that the reviewing run be distinct from the authoring run, and it was, under either id. What it changes is whether the evidence names the run that produced it, which is the whole point of recording an id at all.

@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/claude/a6_relay",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": [
+      "javascript",
+      "json",
+      "markdown",
+      "yaml"
+    ]
+  },
+  "limitations": {
+    "declaration_origin": "Declared on 2026-09-02 to correct a misattribution by the Author. A0 dispatched three A6 SRE/Billing assessments of CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 and told each of them its agent_run_id was /root/a6_relay. That is the OpenAI Codex run declared separately in this directory, whose profile records vendor openai and can_create_branch_or_worktree false. The runs that actually performed those assessments were Anthropic Claude Code sessions. This profile declares the run that did the work, and the evidence has been corrected to cite it.",
+    "role_scope": "SRE, observability and billing review only. This run holds NO Author, Contract Reviewer, Tester, Integration Owner, Product Owner, merge, or Gate G0 authority, and it did not author any part of the work it assesses.",
+    "benchmark_outcome": "No independent or external capability benchmark exists for this run. Its verdicts are evidence produced by a run distinct from the Author's, which is what the protocol's separation of duties requires; they are not a substitute for a benchmark and are not a Product Owner disposition.",
+    "unavailable_tools": [
+      "browser control",
+      "Meta test app or account",
+      "Stripe account or webhook endpoint",
+      "GitHub branch-protection administration",
+      "any production database or provider credential"
+    ],
+    "network_note": "Network tools are present in the session. The three assessments performed to date used none: each read the repository and executed probes against the repository's own validator from a scratch directory outside the tree.",
+    "verification_scope": "Repository-local reading and deterministic probes against shipped schemas and fixtures. Worktree isolation is available to this run but was not used for the assessments to date, which were read-only by instruction.",
+    "evidence": "evidence/WP-0A-CON-004/co-owner-review-sec-aud-obs-usg.md"
+  },
+  "accepted_work_package": null
+}

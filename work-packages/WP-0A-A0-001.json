@@ -146,26 +146,13 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
-        "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
-        "contract-catalog/shared-kernel/ctr-usg-001/**",
-        "evidence/VERIFICATION.md",
+        ".agents/capability-profiles/cc-a6-relay.json",
         "evidence/WP-0A-CON-004/**",
-        "scripts/test-suite-contract.mjs",
-        "scripts/verify-test-coverage-floor.mjs",
-        "test-kits/authority-dispositions.test.mjs",
-        "test-kits/contracts/catalog-registry.test.mjs",
-        "test-kits/contracts/schema-mutation-coverage.test.mjs",
-        "test-kits/handoff-conformance.test.mjs",
-        "test-kits/integrity-manifest.json"
+        "work-packages/WP-0A-A6-001.json"
       ],
-      "rationale": "The Product Owner ruled that an agent run's assessment is that role's signature. Recording a ruling about what a signature means, and making it checkable, is protocol work and belongs with the package that owns the protocol. RFC-2026-013 and the new guard are that. RFC-2026-014 and the CTR-USG-001 change are its first consequence: the ruling sent A6 back to re-assess a contract it had refused, and that second assessment found a defect the author's own earlier fix had introduced -- a dedupe rule that instructed consumers to discard a legitimate second charge. Fixing it in a separate package would have left a revenue-losing rule shipped while the paperwork moved. The remaining paths are the declaration cost of a new decision record and a new test kit, which cannot be paid inside one package: the record set, the digest floor, the per-file floors, the integrity manifest and the generated verification record. Eleven paths, one glob covering 48 files, none of them a tree. One more path, added after the fact and for the same reason the rest are here: this increment's own handoff could not state its compatibility position truthfully, because the conformance guard (WP-0A-CON-008's file) accepted only the sentence \"contract-catalog changes are additive\" and this change is breaking. Writing the additive sentence to pass would have been a false statement in evidence. The guard now accepts a position rather than one phrase, and still fails on silence.",
+      "rationale": "Two acts, both protocol work and both A0's. First, a correction: A0 dispatched three A6 assessments telling each that its agent_run_id was /root/a6_relay, which is the OpenAI Codex run whose profile records vendor openai and can_create_branch_or_worktree false. The runs that did the work were Anthropic Claude Code sessions. cc-a6-relay.json declares the run that actually did it and the CON-004 evidence now cites it, with the correction recorded rather than the file quietly rewritten. The repository already carried this distinction for A1, so the convention existed and A0 failed to follow it. Second, staffing: the protocol makes A0 responsible for filling real distinct agent_run_id values before a package leaves backlog, and WP-0A-A6-001 sat at backlog with all seven roles null. It is now ready with five distinct runs; product_reviewer and finance_reviewer stay null because RFC-2026-013 does not delegate those. Three literal paths and one evidence glob.",
       "recorded_on": [
-        "work-packages/WP-0A-A0-002.json",
-        "work-packages/WP-0A-CON-003.json",
-        "work-packages/WP-0A-CON-004.json",
-        "work-packages/WP-0A-CON-006.json",
-        "work-packages/WP-0A-CON-008.json"
+        "work-packages/WP-0A-CON-004.json"
       ]
     },
     "read_only_paths": [
