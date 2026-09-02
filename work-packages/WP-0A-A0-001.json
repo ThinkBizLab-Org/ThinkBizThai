@@ -146,8 +146,7 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/WP-0A-A6-001/**",
-        "test-kits/integrity-manifest.json"
+        "evidence/WP-0A-A6-001/**"
       ],
       "rationale": "A0 staffed WP-0A-A6-001 against a written prohibition in that package's own manifest -- open_blockers[0] says the run assigned as Author must not be assigned as Author. The independent review of that package is recorded here because the defect it names is A0's, not the Author's, and a defect an author records about itself belongs in the protocol package's evidence rather than buried in the package it damaged. The disposition of whether the assignment stands is the Product Owner's; nothing in this change decides it, and the blocker is untouched.",
       "recorded_on": [
