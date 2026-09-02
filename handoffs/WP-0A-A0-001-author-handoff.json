@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "423a1acf2aabc2bccea175c22c8a42eb52a42acc",
-  "head_revision_or_patch_checksum": "81bca4778bdd493fc6b464e88028232938096cd9",
+  "head_revision_or_patch_checksum": "2dd6f1235884cc029fe6e0851e4deff5223b62c3",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
@@ -17,6 +17,7 @@
   ],
   "files_modified": [
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+    "evidence/g0-tracker-th.md",
     "handoffs/WP-0A-A0-001-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/integrity-manifest.json",
