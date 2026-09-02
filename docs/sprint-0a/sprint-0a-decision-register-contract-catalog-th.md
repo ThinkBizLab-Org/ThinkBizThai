@@ -124,7 +124,7 @@ Agent ใช้ `Safe default` ได้เฉพาะ Spike/Fixture ถ้า 
 | OPEN-015 | Direct client DB allowlist vs server-only API inventory | A0+A1 Security | A1 | G0 | server-only mutations; deny direct table access | ห้าม frontend สร้าง direct write จากการเดา |
 | OPEN-016 | Product KPI targets สำหรับ activation/cost/support | Product | A0/A6 | G0 | เก็บ event ก่อนโดยยังไม่ตั้ง vanity target | ห้ามใช้ metric ที่ไม่มีสูตร/source/owner |
 | OPEN-017 | Accessibility P0 threshold | Product + UX | A5 | G0 | WCAG 2.2 AA component baseline | ห้ามปล่อย core flowที่แตะไม่ได้/ไม่มี label |
-| OPEN-018 | Repository language/runtime/package manager | A0 | Platform spike | ก่อนเริ่ม G1 | TypeScript/Node/Next.js assumption ห้าม lockfile จนประกาศ | ห้ามหลาย Agent bootstrap คนละ stack |
+| OPEN-018 | Repository language/runtime/package manager | A0 | Platform spike | ก่อนเริ่ม G1 | TypeScript/Node/Next.js assumption ห้าม lockfile จนประกาศ | ห้ามหลาย Agent bootstrap คนละ stack |<br>**Partially closed 2026-09-02.** Runtime `24.20.0` และ package manager `npm@11.19.0` ปิดโดย RFC-2026-001 (Approved). Language ของ tooling tier ปิดโดย RFC-2026-011 (Proposed) เป็น JavaScript ESM — Node 24 รัน `.ts` ได้โดยไม่ต้องมี dependency แต่ไม่ตรวจชนิดให้ ทำให้ annotation กลายเป็นคำกล่าวอ้างที่ไม่มีอะไรตรวจ. Language ของ application tier ยังเปิด ตัดสินพร้อม stack ที่ G1.
 | OPEN-019 | Queue implementation และ operational limits | A0+A6 | Job spike | G1 | Job contract + Fake Queue | ห้าม Domain import queue SDK |
 | OPEN-020 | Supabase Storage vs R2 serving provider | Product+A0+A4 | Cost/security spike | G1 | Storage Port + fake; no provider field in Domain | ห้าม Domain ผูก bucket URL/provider SDK |
 

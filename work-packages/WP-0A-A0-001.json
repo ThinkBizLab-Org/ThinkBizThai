@@ -144,6 +144,18 @@
       "test-kits/work-package-ownership.test.mjs",
       "work-packages/WP-0A-A0-001.json"
     ],
+    "amends_without_owning": {
+      "paths": [
+        "architecture/decisions/RFC-2026-011-repository-language.md",
+        "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "OPEN-018 asks for language, runtime and package manager together. This package owns the two RFCs that answered runtime and package manager, so the language half belongs with them; RFC-2026-011 and the decision register are owned by no package. The other two paths are the consequence, not new work: a new decision record must be declared in DIGESTED_FLOOR (scripts/verify-test-coverage-floor.mjs, WP-0A-A0-002) and carry a digest (test-kits/integrity-manifest.json, the same package), or the guard that keeps a decision record from being edited unnoticed exits 87 on it. Four literal paths, no tree.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    },
     "read_only_paths": [
       "README.md",
       "docs/**"
