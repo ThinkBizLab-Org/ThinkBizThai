@@ -130,3 +130,19 @@ rule as `.npmrc`. Verified: **exit 90**.
 defend against the environment its own interpreter is started with**, and pretending otherwise
 would be a guard that reports a wrong reason. It belongs with protected CI on the "not closed"
 list: the answer is a trusted runner, not another test.
+
+## A negative result worth recording, because I nearly reported it as a finding
+
+Counting fixtures per contract showed three with **zero** `valid-*` files — `CTR-EVT-001`,
+`CTR-JOB-001`, `CTR-TEN-001` — which would be a hole by construction: with no positive fixture, a
+schema that rejects **everything** passes its own conformance suite, and that is exactly the shape
+review thirteen shipped with `items: false`.
+
+It is not a finding. Those three name their positive fixture `valid.json` rather than
+`valid-something.json`, and the suite matches `/(^|\/)valid[-.]/`, which covers both. Removing
+`ctr-evt-001/examples/valid.json` exits **1**.
+
+My glob was `valid-*.json`. **The measurement was wrong, not the repository** — the third time in
+this package a probe has measured something other than what it claimed, and the first time I caught
+it before writing it up. The rule that saved it is the one already recorded: run the thing, and
+when the result is surprising, suspect the probe first.
