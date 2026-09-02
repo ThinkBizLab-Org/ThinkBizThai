@@ -99,7 +99,17 @@
       "contract-catalog/**",
       ".github/**"
     ],
-    "forbidden_paths": [".env", ".env.*", "db/**", "migrations/**", "package-lock.json", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "db/**",
+      "migrations/**",
+      "package-lock.json",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx"
+    ],
     "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
     "module_ids": [
       "MOD-000"
@@ -108,6 +118,15 @@
     "authorized_cross_package_amendments": [
       "work-packages/WP-0A-A0-001.json \u2014 remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
       "work-packages/WP-0A-CON-001.json \u2014 replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
+    ],
+    "amended_by": [
+      {
+        "work_package_id": "WP-0A-A0-004",
+        "decision_record": "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+        "change": "A digest for test-kits/branch-scope.test.mjs was added to test-kits/integrity-manifest.json and the verification record re-run. The branch-scope guard and its test moved here from WP-0A-CON-008 because only the workflow, which this package owns, can supply a pull request's base ref.",
+        "acknowledgement_required_from": "/claude/a0_atlas",
+        "acknowledgement_status": "pending"
+      }
     ]
   },
   "inputs": {
