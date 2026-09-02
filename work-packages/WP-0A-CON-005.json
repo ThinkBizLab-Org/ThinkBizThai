@@ -1,0 +1,185 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-005",
+  "title": "CTR-JOB-001 reference-field hardening",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": ["architecture-contracts"],
+    "reviewer": ["architecture-contracts"],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback - it is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
+  },
+  "accountable_owners": ["A0"],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-006 before the manual merge described in RFC-2026-002",
+    "CTR-JOB-001 Integration Owner /root/r0_steward acknowledgement of the cross-package amendment to a Candidate contract's delivered content"
+  ],
+  "purpose": "Close the CTR-JOB-001 reference-field defect that WP-0A-CON-002 escalated rather than changed: input_ref and result_ref are constrained by a deny-list matching only a literal lowercase http(s) prefix, which independent security review proved bypassable and which this package re-measured against the shipped schema before changing anything. Replace it with the CTR-IDM-001 allow-listed-scheme-plus-constrained-body treatment, add the standing guard that makes a recurrence a CI failure, and do so as a content-neutral amendment that changes no field, no version and no freeze level.",
+  "scope": {
+    "include": [
+      "RFC-2026-006 recording the measured defect, the authority for amending a Candidate contract's delivered content, and the structural content-neutrality proof",
+      "The two CTR-JOB-001 reference constraints, each carrying an x-reference-rule naming the demonstrated bypasses, plus an x-amended-by record",
+      "A negative fixture using a form the previous deny-list ACCEPTED, declared in the CTR-JOB-001 manifest",
+      "The two shipped CTR-JOB-001 fixtures whose input_ref does not satisfy the tightened schema",
+      "The WP-0A-CON-001 catalog test assertions that pinned the defective deny-list in place, and its acceptance predicate that carried the same bypasses",
+      "A standing guard suite exercising every demonstrated hostile form on both reference fields"
+    ],
+    "exclude": [
+      "contract-catalog/shared-kernel/index.json, contract freeze-level advancement, contract version advancement, package status advancement, the other thirteen catalog contracts, the choice of scheme allow-list membership, production schema, migrations, RLS implementation, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
+    ]
+  },
+  "decisions_consumed": ["DEC-021"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-IDM-001"],
+  "contracts_produced": [
+    "CTR-JOB-001 amended in place at Candidate 1.0.0; no freeze-level or version advancement"
+  ],
+  "dependencies": {
+    "required_work_packages": ["WP-0A-A0-001", "WP-0A-CON-001", "WP-0A-A0-002", "WP-0A-CON-002"],
+    "approved_fixtures": []
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+      "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
+      "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
+      "contract-catalog/shared-kernel/index.json",
+      "test-kits/contracts/json-schema-subset.mjs",
+      "work-packages/WP-0A-CON-001.json",
+      "work-packages/WP-0A-CON-002.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
+      "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
+      "work-packages/WP-0A-CON-005.json",
+      "evidence/WP-0A-CON-005/author-self-check.md"
+    ],
+    "contracts": ["CTR-JOB-001 (Candidate, unchanged at 1.0.0)"]
+  },
+  "ownership": {
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
+      "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
+      "work-packages/WP-0A-CON-005.json",
+      "evidence/WP-0A-CON-005/**",
+      "handoffs/WP-0A-CON-005-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/README.md",
+      "contract-catalog/shared-kernel/index.json",
+      "package.json",
+      "package-lock.json",
+      ".github/**",
+      "scripts/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "**/*secret*",
+      "**/*credential*",
+      "db/**",
+      "migrations/**"
+    ],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "contract-catalog/shared-kernel/ctr-job-001/schema.json (WP-0A-CON-001 output, Candidate 1.0.0) - permitted change: replace the input_ref and result_ref constraint not:{pattern:\"^https?://\"} with the CTR-IDM-001 pattern ^(job|status|result|app|asset|content):(?!/)(?!.*\\.\\.)[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*)*$, add an x-reference-rule on each naming the demonstrated bypasses, and append a WP-0A-CON-005 record to x-amended-by (which becomes an array so the WP-0A-CON-002 record is carried forward unchanged rather than overwritten). NOTHING ELSE: no property added or removed, no required-list change, no $ref change, version stays 1.0.0, freeze level stays Candidate. RFC-2026-006 decisions 2 and 3. Corrective, not anticipatory: the bypasses are real in the tree today and were re-measured before the change.",
+      "contract-catalog/shared-kernel/ctr-job-001/examples/valid.json (WP-0A-CON-001 output) - permitted change: input_ref only, from synthetic://input/00000000-0000-4000-8000-000000000202 to asset:input/00000000-0000-4000-8000-000000000202. Scheme token only; the path is identical and every other leaf is unchanged. FORCED: the shipped valid fixture does not satisfy the tightened schema, because synthetic is not an allow-listed scheme and // is the protocol-relative authority form the rule rejects.",
+      "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-max-attempts.json (WP-0A-CON-001 output) - permitted change: the identical input_ref substitution, so this negative fixture continues to fail for the max_attempts violation it is named for and not for an incidental second reason.",
+      "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-public-input-ref.json (NEW file inside a WP-0A-CON-001 directory) - permitted change: add a negative fixture identical to valid.json except input_ref: \"HTTPS://public.example.invalid/exfil\", a form the previous deny-list ACCEPTED.",
+      "contract-catalog/shared-kernel/ctr-job-001/manifest.json (WP-0A-CON-001 output) - permitted change: append examples/invalid-public-input-ref.json to the fixtures array. One added leaf; contract_id, version, status, owner, schema, source_references and freeze_boundary are all untouched. Required because the reference-integrity guard rejects any fixture on disk that its manifest does not declare.",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs (WP-0A-CON-001 output) - permitted change: (a) the two assertions pinning properties.input_ref.not.pattern and properties.result_ref.not.pattern to \"^https?://\" now assert the allow-list pattern is present and the deny-list is absent - unavoidable, because as written they made the defect MANDATORY and no correct fix could pass CI; (b) the acceptance predicate's !/^https?:\\/\\//.test(fixture.input_ref) is replaced by the same allow-list and extended to result_ref, which it never checked - required, because otherwise the new negative fixture passes the hand-written predicate while the shipped schema rejects it, which is the predicate/schema divergence RFC-2026-004 exists to eliminate. This amends another package's TEST, not its contract, and strictly narrows what that test accepts. No other line of the file changes.",
+      "test-kits/integrity-manifest.json (WP-0A-A0-002 output, that package is in_review) - permitted change: add the sha256 digest of the new test file test-kits/contracts/ctr-job-001-reference-hardening.test.mjs, and update the digest of test-kits/contracts/shared-kernel-contract-catalog.test.mjs to match its amended bytes. All 27 digests were recomputed over file BYTES and only those two entries differ, which is itself the evidence that no other protected file drifted. This edit is not discretionary: verify-test-coverage-floor.mjs exits 87 if a discovered test file is undigested and 86 if a digested file's bytes change, so a package that adds or edits a protected test file CANNOT leave this file alone. The manifest's own cross_package_note pre-declares that coupling: \"Any package that adds a test file must add it here.\" Acknowledgement therefore runs to WP-0A-A0-002's Integration Owner /claude/r0_steward, not to /root/r0_steward."
+    ]
+  },
+  "acceptance_criteria": [
+    "The defect was re-measured against the shipped schema with the repository's own subset validator BEFORE any change, and the accepted forms recorded. The escalation was not taken on trust.",
+    "Every hostile form independent security review demonstrated - uppercase and mixed-case scheme, protocol-relative authority, ftp:, data:, file:, javascript: and bare traversal - is rejected on BOTH input_ref and result_ref, and so are the four forms that defeat a scheme allow-list with a free body.",
+    "A well-formed private reference is still accepted on both fields, so the guard is not vacuously strict.",
+    "The two reference fields use the CTR-IDM-001 pattern verbatim and carry no deny-list, and both patterns are identical to each other so the two fields cannot drift apart.",
+    "The amendment is content-neutral as a MEASURED structural property: the parsed schema before and after differs only at the two reference constraints and the x-amended-by annotation, with zero leaf paths modified in place, no property added or removed, an unchanged required list, an unchanged tenant_context $ref, version 1.0.0 and freeze level Candidate.",
+    "The WP-0A-CON-002 x-amended-by record is carried forward deep-equal, not overwritten.",
+    "contract-catalog/shared-kernel/index.json is untouched and still reports 4 Candidate and 10 Draft, with CTR-JOB-001 at 1.0.0 / Candidate.",
+    "The standing guard was observed to FAIL against the pre-fix schema, naming the accepted forms, and to pass after.",
+    "Every cross-package file touched is named in authorized_cross_package_amendments together with the exact permitted change, and nothing outside that list is modified.",
+    "Every test file discovered under test-kits/ is digested in test-kits/integrity-manifest.json over file BYTES.",
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero."
+  ],
+  "required_tests": [
+    "Every demonstrated hostile reference form is rejected on both input_ref and result_ref by the shipped schema, via the WP-0A-CON-002 subset validator",
+    "A well-formed private reference is accepted on both fields",
+    "Neither reference field carries a deny-list, both carry an x-reference-rule, and the two patterns are identical",
+    "Content-neutrality invariants: property key set, required list, tenant_context $ref, additionalProperties, manifest version and status, and the index entry",
+    "The x-amended-by record exists, carries the WP-0A-CON-002 record forward, and tracks the /root/r0_steward acknowledgement",
+    "The declared negative fixture is rejected, fails ONLY on its reference field, and uses a form the previous deny-list accepted",
+    "Existing catalog, conformance, reference-integrity and envelope suites still pass; repository protocol, ownership, role-separation, coverage-floor and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check"],
+    "package_evidence": [
+      "node --test test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
+      "node --test test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
+      "node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
+      "node scripts/verify-test-coverage-floor.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores the deny-list, the two fixtures' synthetic:// values and the two WP-0A-CON-001 test assertions exactly, and removes the negative fixture and the standing guard. No persisted data, provider state, credential, migration or customer-data effect exists. Reverting also restores the bypasses, so a revert must be paired with re-opening the WP-0A-CON-002 escalation rather than closing it.",
+  "open_blockers": [
+    "The /root/r0_steward acknowledgement of this cross-package amendment is PENDING. It is recorded in x-amended-by with acknowledgement_status: pending and is not countersigned here.",
+    "No script, test or CI job in this repository reads acknowledgement_status. Nothing prevents `pending` surviving to merge; the only control is human review of the diff under RFC-2026-002. Carried forward unresolved from the WP-0A-CON-002 contract review (N-C1).",
+    "CTR-JOB-001 is a CANDIDATE contract, not Draft. This amendment changes the delivered content of a contract that WP-0A-CON-001 carried to integration_verified. The RFC/Integration-Owner path was ruled sufficient for a cross-package amendment, but that ruling was bounded to pre-freeze status and required independent structural proof of content-neutrality by a NON-AUTHOR run. The proof in evidence/WP-0A-CON-005/author-self-check.md is the Author's own measurement and must be re-derived independently; it does not discharge that requirement.",
+    "This amendment is heavier than RFC-2026-004's. That RFC corrected $refs that were BROKEN and could not have been depended on. This one tightens a constraint that ACCEPTS values today, so it is a narrowing of accepted input, not a repair of a dangling pointer. Nothing in the repository depends on the old breadth - CTR-JOB-001 has no implementation and its only instances are its own two fixtures - but the class of change differs and the Integration Owner should dispose of it on that basis.",
+    "Two WP-0A-CON-001 fixtures had to change because the shipped valid.json did NOT satisfy the tightened schema. The contract's own reference example was written in a form its stated intent excludes.",
+    "A third WP-0A-CON-001 file, test-kits/contracts/shared-kernel-contract-catalog.test.mjs, had to change because its assertions made the defect mandatory and its acceptance predicate carried the same bypasses. Amending another package's test is a wider surface than RFC-2026-004 needed.",
+    "A sixth cross-package file, test-kits/integrity-manifest.json, belongs to WP-0A-A0-002 and had to change because the coverage-floor guard refuses an undigested test file (exit 87) or a digested file whose bytes moved (exit 86). Its acknowledgement runs to /claude/r0_steward and is likewise not countersigned here. WP-0A-A0-002 is in_review, so this package amends a file whose own package has not yet been integrated.",
+    "The scheme allow-list job|status|result|app|asset|content is adopted from CTR-IDM-001 for catalog consistency, NOT decided here. Whether that closed set is right for a job envelope is a contract-owner decision open before freeze.",
+    "A constrained reference string is not an authorization decision. A reference of the correct shape naming ANOTHER TENANT's object still passes: the envelope carries no binding between tenant_context.workspace_id and the reference body. That binding is not invented here and remains open before freeze.",
+    "ctr-evt-001 metadata.schema_ref is an unconstrained {type:string,minLength:1} with no scheme rule of any kind, so every hostile form tabulated in RFC-2026-006 is accepted there. CTR-EVT-001 is Candidate and outside this package's authorized amendment set; escalated to its owner rather than changed here.",
+    "The negative fixture on disk demonstrates ONE hostile form. The other fifteen are covered only by the standing guard, not by a fixture.",
+    "RFC-2026-006 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This package depends on WP-0A-A0-002 and WP-0A-CON-002, both unmerged, and inherits every open blocker recorded on them.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
