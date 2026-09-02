@@ -92,14 +92,27 @@ test('a handoff describes its own package, not a template', async () => {
     // handoff may take, not one blessed phrase; silence still fails, which is the half that
     // matters. Caught when CTR-USG-001's dedupe key changed shape and the only passing wording
     // would have called a breaking change additive.
-    const COMPATIBILITY_POSITIONS = [
+    //
+    // Widening it introduced a second bug immediately, which is recorded because it is the more
+    // interesting one: one boolean was answering two different questions. "Does this handoff
+    // ASSERT a contract change?" and "Does it STATE a position on contract compatibility?" are
+    // not the same, and a handoff saying "No contract changes." is a position, not a claim of
+    // impact. Reusing one flag made that sentence trip the opposite check. They are separated
+    // below: an assertion of impact is checked against whether contracts really changed; a
+    // stated position, positive or negative, satisfies the requirement to say something.
+    const ASSERTS_CONTRACT_IMPACT = [
       /contract-catalog changes are additive/i,
       /\bBREAKING\b/,
+    ];
+    const NEGATIVE_POSITIONS = [
       /no contract (?:changes|interface changes)/i,
       /no other contract changes/i,
+      /no contract-catalog file/i,
     ];
-    const claimsContracts = COMPATIBILITY_POSITIONS.some((p) => p.test(body.compatibility_impact ?? ''));
-    if (claimsContracts && !touchesContracts) {
+    const impact = body.compatibility_impact ?? '';
+    const assertsImpact = ASSERTS_CONTRACT_IMPACT.some((p) => p.test(impact));
+    const claimsContracts = assertsImpact || NEGATIVE_POSITIONS.some((p) => p.test(impact));
+    if (assertsImpact && !touchesContracts && !NEGATIVE_POSITIONS.some((p) => p.test(impact))) {
       wrong.push(`${name} claims contract-catalog compatibility impact but changes no contract-catalog file`);
     }
     // Independent review eleven: the check ran one direction only. Claiming an impact you do

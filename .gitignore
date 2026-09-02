@@ -26,3 +26,12 @@ coverage/
 tmp/
 temp/
 
+# Agent harness state
+# `.claude/worktrees/` holds linked git worktrees the agent harness creates, each a full
+# checkout of this repository. Git keeps them out of `git status` once they are registered,
+# but the enclosing `.claude/` directory itself reports as one untracked path -- which is
+# enough to make `npm run commit` refuse every commit, because it compares the porcelain set
+# before and after staging and an untracked directory does not expand the same way a file
+# does. Narrow on purpose: only the worktrees, so a future decision to track `.claude`
+# settings or skills is not pre-empted by this line.
+.claude/worktrees/

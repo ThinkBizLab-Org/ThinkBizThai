@@ -198,7 +198,14 @@ test('no decision record exists outside the directory that holds them', async ()
   // of `architecture` was my own first version, and it let `architecture/RFC-2026-011-exemption.md`
   // -- one directory up from the declared home, the likeliest place of all -- pass at exit 0.
   const SKIP = new Set(['.git', 'node_modules']);
-  const SKIP_PATHS = new Set(['architecture/decisions']);
+  // `.claude/worktrees` holds LINKED GIT WORKTREES the agent harness creates, each a full
+  // checkout of this repository. Git already excludes them from `git status`; a guard that
+  // walks the filesystem does not, so without this every decision record is reported again
+  // from inside every live worktree and the guard fails on a tree that is actually clean.
+  // Narrow on purpose: only this path, not `.claude`, and the repository tracks no file under
+  // `.claude` at all -- verified, not assumed -- so nothing real is being hidden. If a future
+  // change starts tracking files there, this exemption must be revisited rather than widened.
+  const SKIP_PATHS = new Set(['architecture/decisions', '.claude/worktrees']);
   const found = [];
   const walk = async (directory) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -299,4 +306,58 @@ test('the workflow directory holds exactly the workflows nobody added to', async
     if (exists) wrong.push(`${location} exists and decides whose review GitHub requires; declare and digest it or remove it`);
   }
   assert.deepEqual(wrong, [], `.github problem(s):\n  ${wrong.join('\n  ')}`);
+});
+
+// RFC-2026-011, approved 2026-09-02: the repository tooling tier is JavaScript ESM. The RFC's
+// own Limitations said a guard belonged in the same change as an approval and not before it,
+// because writing it earlier would have been the author enforcing his own proposal. This is
+// that guard.
+//
+// WHAT IT CHECKS: no TypeScript source and no TypeScript project file exists anywhere in the
+// repository. That is the whole of the decision for this tier, and it is checkable exactly.
+//
+// WHAT IT DOES NOT CHECK, and could not: whether the decision is still the right one, or
+// anything at all about the APPLICATION tier's language, which RFC-2026-011 deliberately
+// leaves open to be decided with the stack at G1. A future package that adds `tsc`, a
+// lockfile and application code is not defeating this guard; it is superseding the RFC, and
+// the way to do that is another RFC, not a file extension.
+//
+// The measured reason, in one line, so a reader of this file does not have to fetch the RFC:
+// Node 24.20.0 runs a `.ts` file with no dependency, and does NOT type-check it. A file
+// declaring `const h: Handle = { id: 42 }` for a string field runs and fails at run time
+// exactly as untyped JavaScript would. Annotations that nothing verifies are the largest
+// class of unverified claim this repository has spent twenty-two review rounds removing.
+const TYPESCRIPT_SOURCE = /\.(ts|tsx|mts|cts)$/i;
+const TYPESCRIPT_PROJECT = /^tsconfig(\..+)?\.json$/i;
+// `.claude/worktrees` is skipped for the reason given on the decision-record walk above: each
+// entry is a linked git worktree holding a full checkout, so walking it reports this
+// repository's own files back as if they were extra ones. The `seen > 100` assertion below is
+// what stops this exemption from quietly becoming a hole.
+const NOT_WALKED = new Set(['node_modules', '.git']);
+const NOT_WALKED_PATHS = new Set(['.claude/worktrees']);
+
+test('the tooling tier is JavaScript, and nothing has quietly become TypeScript', async () => {
+  const found = [];
+  let seen = 0;
+  const walk = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (NOT_WALKED.has(entry.name)) continue;
+      const path = join(directory, entry.name);
+      if (NOT_WALKED_PATHS.has(path.replace(/^\.\//, ''))) continue;
+      if (entry.isDirectory()) { await walk(path); continue; }
+      if (!entry.isFile()) continue;
+      seen += 1;
+      if (TYPESCRIPT_SOURCE.test(entry.name)) {
+        found.push(`${path} — a TypeScript source file. Node strips its types and never checks them, so what it declares is a claim nothing verifies. RFC-2026-011 decided this tier is JavaScript ESM; supersede it with another RFC, not with a file extension.`);
+      }
+      if (TYPESCRIPT_PROJECT.test(entry.name)) {
+        found.push(`${path} — a TypeScript project file. Real type checking needs \`tsc\`, which is the first dependency and the first lockfile, and RFC-2026-001 forbids both. That reversal is worth making deliberately if the benefit is there; it is not one to arrive at by adding a config file.`);
+      }
+    }
+  };
+  await walk('.');
+  // A walk that finds nothing would report a clean tier while proving nothing at all. The
+  // repository has hundreds of tracked files; a single-digit count means the walk broke.
+  assert.ok(seen > 100, `the language walk saw only ${seen} file(s) — it did not traverse the repository, and a guard that reports "no TypeScript" over an empty set is reporting nothing`);
+  assert.deepEqual(found, [], `TypeScript in a JavaScript tier:\n  ${found.join('\n  ')}`);
 });

@@ -146,17 +146,16 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".agents/capability-profiles/cc-a6-relay.json",
-        "contract-catalog/shared-kernel/ctr-usg-001/**",
-        "evidence/WP-0A-CON-004/**",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/contracts/catalog-registry.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "work-packages/WP-0A-A6-001.json"
+        ".gitignore",
+        "architecture/decisions/RFC-2026-011-repository-language.md",
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
+        "test-kits/handoff-conformance.test.mjs",
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "Two acts, both protocol work and both A0's. First, a correction: A0 dispatched three A6 assessments telling each that its agent_run_id was /root/a6_relay, which is the OpenAI Codex run whose profile records vendor openai and can_create_branch_or_worktree false. The runs that did the work were Anthropic Claude Code sessions. cc-a6-relay.json declares the run that actually did it and the CON-004 evidence now cites it, with the correction recorded rather than the file quietly rewritten. The repository already carried this distinction for A1, so the convention existed and A0 failed to follow it. Second, staffing: the protocol makes A0 responsible for filling real distinct agent_run_id values before a package leaves backlog, and WP-0A-A6-001 sat at backlog with all seven roles null. It is now ready with five distinct runs; product_reviewer and finance_reviewer stay null because RFC-2026-013 does not delegate those. Three literal paths and one evidence glob. Staffing WP-0A-A6-001 gave it a branch, and branch-identity.test.mjs pins every branch to its package by declared set, so a new branch that nobody pins fails there -- correctly. The CTR-USG-001 paths are A6's third assessment: it SIGNED the contract with five conditions, four of them blocking, and the four are closed in this change. The first of them was a false sentence in the shipped contract -- the stated composition rule produced a key the pattern rejects for any fractional or offset timestamp, capping a literal-minded producer at second resolution, which is precisely the window the key exists to close. Leaving that shipped while the paperwork moved to another package was not an option. The remaining paths are the pinned digests that move whenever a contract annotation does.",
+      "rationale": "The Product Owner approved RFC-2026-011, whose own Limitations said the guard enforcing it belonged in the same change as an approval and not before one. The guard lives in this package's own test-kits/repository-json.test.mjs; the decision record is owned by no package. handoff-conformance.test.mjs (WP-0A-CON-008) is here because widening it in the previous increment introduced a second bug in the same file: one boolean was answering two different questions, so a handoff stating \"No contract changes\" tripped the check for claiming an impact it did not have. The two questions are now asked separately. The last two paths are the digest and generated verification record that move with any protected-file change. Four literal paths, no tree. .gitignore is added because the same worktree interaction had a second effect: the enclosing `.claude/` directory reported as one untracked path, and commit-when-clean.mjs compares the porcelain set before and after staging, so it refused every commit on this branch. An A6 author run hit the identical refusal independently and worked around it rather than touching the guard. The ignore line is narrow -- only the worktrees -- so a later decision to track .claude settings is not pre-empted. scripts/test-suite-contract.mjs (WP-0A-A0-002) carries the per-file test, assertion and name-digest floors; adding one test to this package's own test kit moves all three, and a floor that is not raised with the test it counts is a floor the next placeholder passes.",
       "recorded_on": [
-        "work-packages/WP-0A-CON-004.json"
+        "work-packages/WP-0A-CON-008.json"
       ]
     },
     "read_only_paths": [
