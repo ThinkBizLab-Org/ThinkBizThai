@@ -1,6 +1,6 @@
 # RFC-2026-011 — The repository's language, and why type annotations would be a claim nothing checks
 
-Status: Proposed
+Status: Approved 2026-09-02 by the Product Owner — the repository tooling tier is JavaScript ESM. The application tier's language stays open and is decided with the stack at G1. The Limitations and Rollback in this document stand unchanged, except that the guard they describe as belonging with an approval landed in the same change as this one.
 Decision needed by: `OPEN-018`, the remaining half of it
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`
