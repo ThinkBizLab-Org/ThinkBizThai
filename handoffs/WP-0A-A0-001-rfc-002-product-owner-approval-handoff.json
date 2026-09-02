@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "03aebeef6932d4901ac8182b80908447bffd3fbf",
+  "head_revision_or_patch_checksum": "Product Owner RFC-2026-002 temporary manual-control approval evidence; commit pending",
+  "task_ids": ["g0-rfc-002-product-owner-approval-record"],
+  "files_added": ["evidence/WP-0A-A0-001/rfc-002-product-owner-approval.md", "handoffs/WP-0A-A0-001-rfc-002-product-owner-approval-handoff.json"],
+  "files_modified": ["evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The statement approves only the temporary RFC procedure and preserves all explicit limits recorded in the evidence.", "An RFC status transition requires independent exact-revision review, tester replay, Integration Owner verification, and CI evidence after this record is committed."],
+  "acceptance_results": [
+    {
+      "criterion": "The Product Owner RFC approval is recorded faithfully and without secrets or customer data.",
+      "result": "pass; independent review pending"
+    },
+    {
+      "criterion": "The approval cannot be read as native protection, G0 passage, a merge authorization, or a waiver of controls.",
+      "result": "pass by explicit limits; independent review pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": "pending independent replay",
+      "result": "not yet run for this approval record"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": "pending",
+      "result": "not yet run for this approval record"
+    }
+  ],
+  "security_privacy_cost_impact": "Approval metadata only. No secret, customer data, provider credential, schema, external call, billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, database, provider, or contract semantic change. Native protected-CI G0 evidence remains unresolved.",
+  "known_limitations": ["The RFC remains In review until its independent exact-revision evidence is complete.", "Manual controls are procedural and cannot technically prevent an authorized user from bypassing them."],
+  "open_risks_or_blockers": ["Native protected-branch evidence remains unavailable without a supported GitHub plan or future authorized configuration.", "Cross-vendor evidence and the other G0 external verification requirements remain open."],
+  "rollback_or_forward_fix": "Revert this metadata-only commit or record a reviewed superseding owner decision; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["Obtain independent review, tester replay, Integration Owner verification, and CI evidence for the exact RFC revision before considering its status transition.", "Do not use this owner approval to advance G0 or make a later package Ready."],
+  "reviewer_instructions": ["Verify the recorded Thai statement matches the Product Owner approval and preserves its explicit limits.", "Verify no document claims native protection, G0 passage, direct-merge authority, or a waived independent control.", "Confirm no billing, visibility, secret, provider, or production action is introduced."]
+}

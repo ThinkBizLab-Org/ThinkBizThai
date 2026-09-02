@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-001",
+  "agent_run_id": "/root",
+  "final_status": "backlog",
+  "base_revision": "04aaeb98d3bf3aebf4f8e49bf204f1e67293c989",
+  "head_revision_or_patch_checksum": "CON-00 backlog manifest and independent reviewer benchmark candidate; commit pending",
+  "task_ids": ["con-00-backlog-bootstrap", "contract-reviewer-capability-benchmark"],
+  "files_added": [
+    ".agents/capability-profiles/c0-contract-reviewer.json",
+    "evidence/capability-benchmarks/c0-contract-reviewer.md",
+    "work-packages/WP-0A-CON-001.json",
+    "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json"
+  ],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-010", "DEC-011", "DEC-021", "DEC-022", "DEC-023", "DEC-025"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["CON-00 remains backlog. Its manifest is a source-linked dispatch record, not contract implementation, freeze approval, provider selection, or G0 advancement."],
+  "acceptance_results": [
+    {
+      "criterion": "CON-00 is represented by a machine-readable backlog manifest with its source-defined scope, dependencies, owners, tests, boundaries and blockers.",
+      "result": "pass"
+    },
+    {
+      "criterion": "An independent architecture-contracts reviewer candidate has a bounded, real-run capability benchmark before assignment.",
+      "result": "pass with limitation: benchmark run lacked pinned Node 24, made no test-pass claim, and accepts no implementation package"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "18 tests passed; all work-package and capability declarations validate"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean"
+    }
+  ],
+  "security_privacy_cost_impact": "Backlog/benchmark evidence only. No contract implementation, schema, provider, secret, customer data, billing operation, publish action, or external credential is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None. Future contract changes remain Candidate/Draft and require their documented owner/reviewer approval before freeze.",
+  "known_limitations": ["No author, reviewer, tester, integration owner or conditional reviewer is assigned to CON-00 yet.", "The current A0 bootstrap manifest owns broad catalog/test paths; its ownership must be narrowed through a reviewed change before CON-00 may become Ready.", "This reviewer benchmark is same-vendor and not cross-vendor/G0 evidence."],
+  "open_risks_or_blockers": ["WP-0A-A0-001 remains in_review with the G0 tracker blockers.", "CON-00 requires real role assignments matched to capability declarations and skill evidence before Ready.", "No contract freeze or downstream dependency may be inferred from this backlog record."],
+  "rollback_or_forward_fix": "Revert this backlog-only commit or issue a reviewed forward correction; no external or persisted state requires recovery.",
+  "recommended_next_work_packages": ["Narrow A0 bootstrap ownership to exact existing paths, then assign independent real runs to CON-00 through the manifest transition process.", "Do not start DB-00, JOB-00, UX-00, BILL-00, or provider work until CON-00 has its declared contract evidence and dependencies."],
+  "reviewer_instructions": ["Verify all CON-00 fields and acceptance criteria trace to the Sprint 0A baseline rather than new scope.", "Verify the C0 declaration matches its benchmark evidence and that the profile does not claim unavailable tools/authority.", "Confirm backlog state is retained and every added path is explicitly declared as an output and writable path without a writable/read-only collision."]
+}

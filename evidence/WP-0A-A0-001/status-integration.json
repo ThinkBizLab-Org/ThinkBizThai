@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root/r0_steward",
+  "status": "in_review",
+  "base_revision": "3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+  "branch_or_worktree": "agent/root/WP-0A-A0-001-repository-bootstrap",
+  "started_at": "2026-08-30T21:06:39Z",
+  "updated_at": "2026-08-30T21:06:39Z",
+  "completed_task_ids": [
+    "REP-00-staged-candidate-reconciliation",
+    "REP-00-pinned-node24-replay",
+    "REP-00-remote-ci-reconciliation"
+  ],
+  "current_task_id": "REP-00-external-gate-evidence",
+  "files_changed": [
+    "evidence/WP-0A-A0-001/status-integration.json"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-EVT-001",
+    "CTR-JOB-001"
+  ],
+  "contracts_proposed_or_changed": [],
+  "tests_run": [
+    {
+      "command": "npm_config_offline=true PATH=<pinned-node24>/bin:$PATH npm run check",
+      "exit_code": 0,
+      "result": "Integration Owner replay: Node v24.20.0/npm 11.19.0; 14 tests passed."
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "exit_code": 0,
+      "result": "The exact staged candidate was whitespace-clean before commit."
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation",
+      "exit_code": 0,
+      "result": "Workflow Bootstrap validation, job bootstrap, concluded success for head SHA 3c8e02589fd5436e8688f3a17a142f3ba7cf5360; job duration 21s.",
+      "run_url": "https://github.com/ThinkBizLab-Org/ThinkBizThai/actions/runs/33335381144",
+      "run_id": "33335381144",
+      "workflow": "Bootstrap validation",
+      "job": "bootstrap",
+      "head_sha": "3c8e02589fd5436e8688f3a17a142f3ba7cf5360",
+      "conclusion": "success",
+      "duration_seconds": 21,
+      "annotation": "Node.js 20 is deprecated; actions/checkout@11d5960a326750d5838078e36cf38b85af677262 and actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 are being forced to run on Node.js 24.",
+      "annotation_disposition": "Non-fatal. The project runtime Node 24.20.0/npm 11.19.0 validation passed. Track action-runtime modernization separately through the normal CI/RFC path."
+    }
+  ],
+  "open_risks": [
+    "The CI run page was not retrievable from the Integration Owner environment; its success, duration, and annotation disposition are recorded from authorized project reporting and require normal repository retention.",
+    "The action-runtime Node 20 deprecation annotation is non-fatal for this run but requires a future pinned-action compatibility review."
+  ],
+  "blockers": [
+    "RFC-2026-001 and OPEN-018 remain in review; they are not approved by this status record.",
+    "P0 WP-0A-A0-001 acceptance still requires Product Owner plus A1-A6 representative review and a recorded cross-vendor protocol dry run.",
+    "Protected CI/branch-protection evidence requires an authorized repository administrator.",
+    "G0 remains Specification Baseline Complete / External Verification Pending: Product Owner DEC-01..16 approval, capability-benchmarked agent assignments, Meta evidence, Stripe evidence, legal/PDPA/accounting approval, Thai-SME usability evidence, qualified skincare review, and storage lifecycle/restore evidence remain external conditions."
+  ],
+  "next_action": "Keep the manifest at in_review. Record the outstanding P0 and G0 approvals/evidence in canonical repository artifacts; only then create an independently reviewed integration-status transition. Do not merge based on this record."
+}

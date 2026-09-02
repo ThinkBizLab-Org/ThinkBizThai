@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "anthropic-cli/g0-schema-audit-20260831-01",
+  "final_status": "in_review",
+  "base_revision": "3ecfdcddddba20cdac2d8f1e91c9c69bb2972e93",
+  "head_revision_or_patch_checksum": "3ecfdcddddba20cdac2d8f1e91c9c69bb2972e93",
+  "task_ids": ["external-cross-vendor-protocol-dry-run"],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "This is external Anthropic read-only protocol evidence only and accepts no work package.",
+    "The stream audit recorded exactly the twelve allowlisted reads and verification commands.",
+    "The external participant returned a JSON handoff object that was extracted from explanatory wrapper text before schema validation."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "A distinct vendor can consume the canonical guide, assigned manifest, declared inputs, Claude adapter, and protocol schemas from repository files.",
+      "result": "pass",
+      "evidence_path": "evidence/WP-0A-A0-001/cross-vendor-claude-code-audited-dry-run.md"
+    },
+    {
+      "criterion": "A distinct vendor can reproduce the declared verification suite on the exact pinned runtime without substituting Node or npm.",
+      "result": "pass",
+      "evidence_path": "npm run check exit 0 in the audited external stream; Node v24.20.0, npm 11.19.0, 24 passing tests"
+    },
+    {
+      "criterion": "A protocol-shaped external handoff can satisfy the repository handoff schema.",
+      "result": "pass",
+      "evidence_path": "handoffs/WP-0A-A0-001-cross-vendor-claude-code-audited-dry-run-handoff.json"
+    }
+  ],
+  "tests": [
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "evidence_path": "Audited external stream observed 3ecfdcddddba20cdac2d8f1e91c9c69bb2972e93"
+    },
+    {
+      "command": "git status --short",
+      "exit_code": 0,
+      "evidence_path": "Audited external stream observed an empty working tree"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "evidence_path": "Audited external stream observed no whitespace errors"
+    },
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "evidence_path": "Audited external stream observed exact toolchain pass and 24 passing bootstrap tests"
+    }
+  ],
+  "security_privacy_cost_impact": "Read-only repository verification only. No repository write, credential access, project provider-integration call, production action, customer data, or secret was used. The Anthropic inference service and its local CLI harness are external to this repository; the harness may retain local tool output outside it.",
+  "migration_and_data_impact": "None. No schema, migration, data, object-storage, or customer state changed.",
+  "compatibility_impact": "None. This records evidence only and changes no contract, API, runtime, CI, or protocol behavior.",
+  "known_limitations": [
+    "This external result has no approval authority and does not advance the work-package lifecycle by itself.",
+    "The handoff JSON was extracted from a fenced response; the raw response wrapper is not a canonical repository artifact.",
+    "Native GitHub branch protection remains unavailable and RFC-2026-002 remains a procedural control.",
+    "G0 remains pending its other external evidence and required owner/expert decisions."
+  ],
+  "open_risks_or_blockers": [
+    "Independent Reviewer, Tester, and Integration Owner must validate this evidence before the G0 tracker marks the cross-vendor item complete.",
+    "Meta, Stripe, legal/PDPA/accounting, SME usability, storage drill, and native branch-protection blockers remain outside this evidence scope."
+  ],
+  "rollback_or_forward_fix": "No repository behavior changed. If evidence is rejected, update the tracker disposition and rerun an independently auditable read-only protocol dry run; do not alter the external result retroactively.",
+  "recommended_next_work_packages": [
+    "Complete independent review, test, and integration disposition of this cross-vendor evidence before changing G0-023 status.",
+    "Proceed only with repository-safe G0 remediation while external owner/expert blockers remain open."
+  ],
+  "reviewer_instructions": [
+    "Verify the external stream audit recorded only the twelve commands enumerated in the companion evidence file.",
+    "Verify the four command outcomes and exact base revision independently in this repository.",
+    "Treat the evidence as cross-vendor execution only: it is not G0, merge, native-protection, role, RFC, or production approval."
+  ]
+}

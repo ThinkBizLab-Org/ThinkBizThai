@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "status": "in_review",
+  "base_revision": "ff55332a7d19236a54be43c0d06269d8acac9ba9",
+  "branch_or_worktree": "agent/root/WP-0A-A0-001-repository-bootstrap",
+  "started_at": "2026-08-30T00:00:00+07:00",
+  "updated_at": "2026-08-31T04:06:18+07:00",
+  "completed_task_ids": ["REP-00", "WP-0A-A0-001", "author-self-check", "staged-candidate-reconciliation", "commit-and-push"],
+  "current_task_id": "record-canonical-post-ci-status",
+  "files_changed": [
+    "evidence/WP-0A-A0-001/author-self-check.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "evidence/WP-0A-A0-001/status-author.json"
+  ],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_proposed_or_changed": [],
+  "tests_run": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "14 tests passed; repository secret scan and all-work-package validation passed"
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation, run 33335381144",
+      "exit_code": 0,
+      "result": "passed in 21 seconds for commit 3c8e02589fd5436e8688f3a17a142f3ba7cf5360; actions internal Node 20 deprecation annotation was non-fatal and the project runtime was Node 24.20.0"
+    }
+  ],
+  "open_risks": [
+    "The action-runtime deprecation annotation should be reassessed through a future reviewed dependency/action update; it did not affect this passing CI run."
+  ],
+  "blockers": [
+    "RFC-2026-001 and OPEN-018 remain in review.",
+    "REP-00 P0 acceptance still requires Product Owner plus A1-A6 representative review and a cross-vendor protocol dry run.",
+    "Protected CI/branch-protection evidence and broader G0 external approvals remain outstanding."
+  ],
+  "next_action": "Have independent roles record their canonical statuses, then review the status-only evidence commit; do not merge or claim G0 until the documented external approvals and evidence exist."
+}

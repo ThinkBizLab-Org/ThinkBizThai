@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "91a8c7384976fca66add199cb80c70d6145d4e74",
+  "head_revision_or_patch_checksum": "RFC-2026-002 provisional-approval status and exact-commit verification evidence; commit pending",
+  "task_ids": ["g0-rfc-002-provisional-manual-control-approval"],
+  "files_added": ["evidence/WP-0A-A0-001/rfc-002-exact-commit-verification.md", "handoffs/WP-0A-A0-001-rfc-002-provisional-approval-handoff.json"],
+  "files_modified": ["architecture/decisions/RFC-2026-002-manual-merge-control.md", "evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The recorded reviewer, tester, and Integration Owner verdicts apply only to base revision 91a8c7384976fca66add199cb80c70d6145d4e74.", "The RFC approval is provisional procedural control and cannot substitute for native branch protection or any separate merge evidence."],
+  "acceptance_results": [
+    {
+      "criterion": "RFC-2026-002 has owner approval and independent technical/security, tester, integration, and exact-commit CI evidence.",
+      "result": "pass for provisional manual-procedure classification only"
+    },
+    {
+      "criterion": "The RFC does not claim native protection, G0 passage, package advancement, or merge authority.",
+      "result": "pass by RFC, verification record, and G0 tracker limits"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "Independent Tester replayed the base revision: 24 passed, 0 failed"
+    },
+    {
+      "command": "GitHub Actions Bootstrap validation run 33359209924",
+      "exit_code": 0,
+      "result": "success for base revision 91a8c7384976fca66add199cb80c70d6145d4e74"
+    },
+    {
+      "command": "git diff --check 91a8c7384976fca66add199cb80c70d6145d4e74^ 91a8c7384976fca66add199cb80c70d6145d4e74",
+      "exit_code": 0,
+      "result": "Independent Tester replayed clean whitespace check"
+    }
+  ],
+  "security_privacy_cost_impact": "Documentation/process-only change. No secret, customer data, provider credential, schema, external billing action, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API, database, provider, or contract semantic change. The G0 protected-CI requirement remains open.",
+  "known_limitations": ["Manual controls are procedural and cannot technically prevent an authorized user from bypassing them.", "Each proposed merge needs fresh exact-head evidence even though this RFC is provisionally approved."],
+  "open_risks_or_blockers": ["Native protected-branch evidence remains unavailable without a supported GitHub plan or future authorized configuration.", "Cross-vendor protocol evidence and all remaining G0 external verification requirements remain open."],
+  "rollback_or_forward_fix": "Revert this documentation status/evidence change through the reviewed manual PR procedure or record a reviewed superseding RFC; never force-push main.",
+  "recommended_next_work_packages": ["Use the approved procedure for the existing Draft PR only after all package-specific merge evidence is refreshed for its then-exact head.", "Continue the source-defined G0 evidence sequence; do not begin a backlog package until its required roles, dependencies, and contracts qualify it as Ready."],
+  "reviewer_instructions": ["Verify the status is limited to provisional manual control and matches the base-commit evidence without widening authority.", "Verify exact SHA, CI run, reviewer/tester/integration verdicts, and rollback are accurately recorded.", "Confirm native protection/G0/merge/provider/production limits remain explicit and no secrets/customer data are present."]
+}

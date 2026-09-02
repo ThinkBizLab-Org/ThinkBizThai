@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "78477f5b514950fefefe6d197459e976e99a51ac",
+  "head_revision_or_patch_checksum": "branch-protection evidence candidate; commit pending",
+  "task_ids": ["g0-branch-protection-evidence"],
+  "files_added": ["handoffs/WP-0A-A0-001-branch-protection-evidence-handoff.json"],
+  "files_modified": ["evidence/g0-tracker-th.md", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-ERR-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["The GitHub CLI authenticated request is an authoritative read-only observation of the repository branch-protection API response on 2026-08-31."],
+  "acceptance_results": [
+    {
+      "criterion": "Protected-CI/branch-protection G0 blocker has current, actionable, non-speculative evidence.",
+      "result": "pass: GitHub API response is recorded exactly as an external blocker; no configuration was changed"
+    }
+  ],
+  "tests": [
+    {
+      "command": "gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection",
+      "exit_code": 1,
+      "result": "expected external blocker: HTTP 403, Upgrade to GitHub Pro or make this repository public to enable branch protection"
+    },
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "14 tests passed"
+    }
+  ],
+  "security_privacy_cost_impact": "Read-only GitHub metadata query and documentation only. No repository visibility, billing plan, branch policy, credential, customer data, or production state changed.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
+  "known_limitations": ["The API response does not choose a remediation. Only the Product Owner/repository administrator may decide whether to change plan, visibility, or adopt an approved policy fallback."],
+  "open_risks_or_blockers": ["Protected branch/required-CI evidence remains blocked until an authorized owner resolves the GitHub feature constraint.", "All other G0 and REP-00 blockers in the G0 tracker remain open."],
+  "rollback_or_forward_fix": "Revert this evidence-only commit if the observation becomes stale or incorrect; update the tracker with a new authorized configuration evidence record rather than rewriting historical source-of-truth documents.",
+  "recommended_next_work_packages": ["Obtain Product Owner/repository-administrator decision for protected CI and record the resulting evidence.", "Do not merge the draft PR or advance G0 on the basis of green CI alone."],
+  "reviewer_instructions": ["Verify the exact GitHub API error text and ensure the tracker does not imply a plan/visibility decision.", "Confirm no branch-protection, billing, or visibility mutation occurred."]
+}

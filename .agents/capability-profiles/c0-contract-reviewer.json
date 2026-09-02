@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/root/c0_contract_reviewer",
+  "vendor": "OpenAI",
+  "model": "Codex GPT-5",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": false,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": false,
+    "supported_languages": ["javascript", "json", "markdown"]
+  },
+  "limitations": {
+    "declaration_origin": "Observed and stated in evidence/capability-benchmarks/c0-contract-reviewer.md on 2026-08-31; transcribed by A0 for repository routing.",
+    "benchmark_outcome": "Conditionally suitable for independent architecture-contracts review only; pinned Node 24 runtime was unavailable in that run.",
+    "unavailable_tools": ["external credentials", "Production credentials", "cross-vendor execution", "Product Owner authority", "Security/Privacy approval", "Integration approval"],
+    "evidence": ["evidence/capability-benchmarks/c0-contract-reviewer.md"]
+  },
+  "accepted_work_package": null
+}

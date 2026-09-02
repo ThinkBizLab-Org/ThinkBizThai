@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ThinkBizThai Work Package Status",
+  "type": "object",
+  "required": ["schema_version", "protocol_version", "work_package_id", "agent_run_id", "status", "base_revision", "branch_or_worktree", "started_at", "updated_at", "completed_task_ids", "current_task_id", "files_changed", "contracts_consumed", "contracts_proposed_or_changed", "tests_run", "open_risks", "blockers", "next_action"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "protocol_version": { "const": "1.0.0" },
+    "work_package_id": { "type": "string" },
+    "agent_run_id": { "type": "string", "minLength": 1 },
+    "status": { "type": "string" },
+    "base_revision": { "type": "string", "minLength": 1 },
+    "branch_or_worktree": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "completed_task_ids": { "type": "array", "items": { "type": "string" } },
+    "current_task_id": { "type": "string" },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "contracts_consumed": { "type": "array", "items": { "type": "string" } },
+    "contracts_proposed_or_changed": { "type": "array", "items": { "type": "string" } },
+    "tests_run": { "type": "array", "items": { "type": "object" } },
+    "open_risks": { "type": "array", "items": { "type": "string" } },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "next_action": { "type": "string" }
+  },
+  "additionalProperties": true
+}

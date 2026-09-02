@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-001",
+  "title": "CON-00 Canonical shared contracts and fixture catalog",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": ["architecture-contracts"],
+    "reviewer": ["architecture-contracts"],
+    "tester": ["independent-qa"],
+    "integration_owner": ["integration-release"],
+    "conditional_reviewers": ["security-privacy", "product-ux"]
+  },
+  "role_assignments": {
+    "author_agent_run_id": null,
+    "reviewer_agent_run_id": null,
+    "tester_agent_run_id": null,
+    "integration_owner_agent_run_id": null,
+    "security_reviewer_agent_run_id": null,
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true
+  },
+  "purpose": "Materialize the Candidate/Draft shared-kernel contract catalog and synthetic fixtures from the approved Sprint 0A baseline without selecting a provider, changing a production schema, or weakening tenant/security rules.",
+  "scope": {
+    "include": [
+      "Machine-readable catalog entries and synthetic valid/invalid fixtures for CTR-TEN-001, CTR-ERR-001, CTR-EVT-001, CTR-JOB-001 and Draft shared-kernel contracts declared in the Sprint 0A Contract Catalog",
+      "Contract ownership, producer/consumer, version, freeze-level and fixture-requirement index",
+      "Deterministic contract parsing, compatibility and negative-case tests"
+    ],
+    "exclude": [
+      "Production migrations, RLS implementation, provider SDKs, credentials, external calls, customer data and contract freezing beyond the baseline's Candidate/Draft status"
+    ]
+  },
+  "decisions_consumed": ["DEC-010", "DEC-011", "DEC-021", "DEC-022", "DEC-023", "DEC-025"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced": ["catalog-index and synthetic fixture candidates only; no freeze-level advancement"],
+  "dependencies": {
+    "required_work_packages": ["WP-0A-A0-001"],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": ["contract-catalog/shared-kernel/**", "fixtures/contracts/**", "test-kits/contracts/**", ".agents/capability-profiles/c0-contract-reviewer.json", "work-packages/WP-0A-CON-001.json", "evidence/WP-0A-CON-001/**", "evidence/capability-benchmarks/c0-contract-reviewer.md", "handoffs/WP-0A-CON-001-*.json"],
+    "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "architecture/decisions/**", "contract-catalog/README.md"],
+    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**"],
+    "module_ids": ["MOD-000"],
+    "migration_reservations": []
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md",
+      "docs/plans/ai-content-os-execution-master-plan-th.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [".agents/capability-profiles/c0-contract-reviewer.json", "evidence/capability-benchmarks/c0-contract-reviewer.md", "evidence/WP-0A-CON-001/role-routing-preparation.md", "work-packages/WP-0A-CON-001.json", "handoffs/WP-0A-CON-001-backlog-bootstrap-handoff.json", "handoffs/WP-0A-CON-001-role-routing-preparation-handoff.json"],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "Every cataloged entry cites its baseline Contract ID, owner/producer/consumer, version, status/freeze level and required fixture types without inventing contract semantics.",
+    "All fixtures are synthetic and include valid plus relevant invalid/negative cases.",
+    "No contract advances from Draft/Candidate to Frozen without the documented owner/reviewer approval.",
+    "No production schema, provider dependency, credential, customer data or cross-module write is introduced."
+  ],
+  "required_tests": [
+    "Contract catalog parsing and unique Contract ID validation",
+    "Synthetic valid/invalid fixture validation",
+    "Version/freeze-level compatibility and source-reference checks",
+    "Repository protocol, capability declaration and secret scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": ["npm run check"],
+    "package_evidence": []
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert the contract-catalog/fixture-only commit or make a reviewed forward correction; no persisted or external state is created.",
+  "open_blockers": [
+    "WP-0A-A0-001 remains in_review and must retain its documented G0 boundaries.",
+    "The current A0 bootstrap manifest owns broad contract-catalog/test-kits paths; exact ownership must be narrowed and reviewed before this package is Ready.",
+    "Author, Reviewer, Tester and Integration Owner must be assigned to real capability-declared runs before this package changes from backlog to Ready.",
+    "Contract freeze-level advancement requires the owners and approvals stated in the Sprint 0A baseline."
+  ],
+  "review_and_test_gates": ["author_complete", "review_approved", "security_approved", "test_verified", "integration_verified"]
+}

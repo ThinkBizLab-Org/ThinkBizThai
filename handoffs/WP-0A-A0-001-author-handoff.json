@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "ff55332a7d19236a54be43c0d06269d8acac9ba9",
+  "head_revision_or_patch_checksum": "staged candidate on agent/root/WP-0A-A0-001-repository-bootstrap; commit pending",
+  "task_ids": ["REP-00", "WP-0A-A0-001"],
+  "files_added": [
+    ".agents/capabilities.schema.json",
+    ".agents/examples/capability-profile.example.json",
+    ".agents/examples/work-package-ready.example.json",
+    ".agents/handoff.schema.json",
+    ".agents/protocol-version.txt",
+    ".agents/role-profiles/README.md",
+    ".agents/role-profiles/roles.json",
+    ".agents/status.schema.json",
+    ".agents/work-package.schema.json",
+    ".github/workflows/ci.yml",
+    ".node-version",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "architecture/decisions/.gitkeep",
+    "contract-catalog/README.md",
+    "evidence/.gitkeep",
+    "evidence/WP-0A-A0-001/review-security-verdict.md",
+    "evidence/WP-0A-A0-001/test-verdict.md",
+    "handoffs/.gitkeep",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "handoffs/WP-0A-A0-001-integration-verdict.md",
+    "ownership/README.md",
+    "package-lock.json",
+    "runbooks/.gitkeep",
+    "scripts/scan-repository-secrets.mjs",
+    "scripts/toolchain-contract.mjs",
+    "scripts/validate-work-packages.mjs",
+    "scripts/verify-toolchain.mjs",
+    "test-kits/.gitkeep",
+    "test-kits/first-integration-slice-fixture-plan.md",
+    "test-kits/repository-json.test.mjs",
+    "test-kits/role-separation.test.mjs",
+    "test-kits/secret-scan.test.mjs",
+    "test-kits/toolchain-contract.test.mjs",
+    "test-kits/work-package-discovery.test.mjs",
+    "work-packages/WP-0A-A0-001.json"
+  ],
+  "files_modified": [
+    "CONTRIBUTING_AGENTS.md", "architecture/decisions/RFC-2026-001-bootstrap-tooling-contract.md",
+    "evidence/WP-0A-A0-001/author-self-check.md", "package.json",
+    "scripts/validate-work-package-role-separation.mjs"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Product Owner delegated local bootstrap implementation on 2026-08-30; this does not approve RFC-2026-001, a merge, or G0.",
+    "The repository remains in Sprint 0A Specification Baseline Complete / External Verification Pending.",
+    "All data and secret checks are synthetic-only; no provider credential, customer data, schema, or production configuration is in scope."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Canonical agent protocol, schemas, role profiles, bootstrap validator, toolchain contract, and read-only CI exist in the working-tree candidate.",
+      "result": "pass for working-tree candidate"
+    },
+    {
+      "criterion": "Author, Reviewer, Tester, and Integration Owner are distinct named runs in the in-review manifest.",
+      "result": "pass"
+    },
+    {
+      "criterion": "No production secret or customer data is introduced.",
+      "result": "pass for deterministic scanner patterns; independently security reviewed"
+    },
+    {
+      "criterion": "Candidate is staged, committed, remote-CI verified, and integrated.",
+      "result": "partially met: exact staged candidate exists; commit, push, remote CI, and integration verification remain pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm run check",
+      "exit_code": 0,
+      "result": "toolchain guard, secret scan, all-work-package validation, and 14 tests pass"
+    },
+    {
+      "command": "npm_config_offline=true PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm ci --ignore-scripts",
+      "exit_code": 0,
+      "result": "offline clean install; zero dependencies, zero vulnerabilities"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean"
+    },
+    {
+      "command": "node scripts/verify-toolchain.mjs under system Node v26.7.0/npm 11.19.0",
+      "exit_code": 68,
+      "result": "expected negative control: rejects unpinned Node runtime"
+    }
+  ],
+  "security_privacy_cost_impact": "No secrets, personal data, customer content, provider integration, billable provider call, or production configuration was added. CI has read-only contents permission and disables persisted checkout credentials. The scanner is a deterministic guardrail, not the only secret-control measure.",
+  "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation, data retention operation, or external state change was made.",
+  "compatibility_impact": "Bootstrap-only. Node 24.20.0/npm 11.19.0 is an in-review local tooling decision; it does not select or approve the application stack.",
+  "known_limitations": [
+    "This handoff describes an exact staged candidate, not a committed, pushed, merged, or remote-CI-verified candidate.",
+    "Secret scanner detects only documented common patterns and does not replace secret management or platform controls.",
+    "No remote GitHub Actions run, branch protection evidence, or cross-vendor protocol dry run exists."
+  ],
+  "open_risks_or_blockers": [
+    "The exact staged candidate still requires a commit, push, and remote CI result before release integration.",
+    "RFC-2026-001 and OPEN-018 remain in review pending integration and remote CI evidence.",
+    "P0 self-package acceptance still requires Product Owner plus A1-A6 representative review and a recorded cross-vendor protocol dry run.",
+    "Protected CI/branch protection requires an authorized repository administrator.",
+    "G0 external evidence and approvals remain open as recorded in the Sprint 0A readiness report."
+  ],
+  "rollback_or_forward_fix": "Commit only the intended staged candidate after independent integration verification, then replay checks from the committed revision. If a forward fix is not appropriate, use a normal revert of the bootstrap-only commit; no external or persisted state needs recovery.",
+  "recommended_next_work_packages": [
+    "Complete REP-00 release evidence after Git index access and remote CI are available.",
+    "Do not start a Ready domain implementation package until G0 authority, capability declarations, and its declared dependencies are satisfied."
+  ],
+  "reviewer_instructions": [
+    "Verify the staged diff exactly matches this handoff and the reviewed candidate; do not commit an older partial index.",
+    "Replay npm ci --ignore-scripts and npm run check with Node 24.20.0/npm 11.19.0 on the staged/committed commit.",
+    "Read the independent reviewer/security, tester, and integration verdicts; preserve their scope limitations.",
+    "Keep the manifest in_review until the Integration Owner has a matching staged candidate and remote CI evidence."
+  ]
+}

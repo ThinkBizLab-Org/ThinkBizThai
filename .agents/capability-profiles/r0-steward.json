@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "agent_run_id": "/root/r0_steward",
+  "vendor": "OpenAI",
+  "model": "GPT-5 Codex runtime",
+  "protocol_version": "1.0.0",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": ["JSON", "Markdown", "Shell", "JavaScript"]
+  },
+  "limitations": {
+    "role_scope": "Independent integration and release-gate verification; not an approval proxy for Product Owner, legal, finance, privacy, security, or repository administration decisions.",
+    "external_secret_access": "No external secrets may be accessed, requested, or recorded.",
+    "authenticated_browser_access": "Not available; external CI or provider state requires an accessible artifact or authorized project reporting.",
+    "gate_claims": "Cannot claim RFC approval, protected-branch configuration, merge approval, release approval, or G0 passage without the repository evidence and authorized independent approvals required by the canonical guide."
+  },
+  "accepted_work_package": null
+}

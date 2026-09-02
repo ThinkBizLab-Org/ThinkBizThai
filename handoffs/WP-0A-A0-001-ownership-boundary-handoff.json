@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-001",
+  "agent_run_id": "/root",
+  "final_status": "in_review",
+  "base_revision": "d0445349d3e73e9762de000f623f40c29ac26b1f",
+  "head_revision_or_patch_checksum": "A0 ownership narrowed from directory wildcards and deterministic ownership validation added; commit pending",
+  "task_ids": ["a0-ownership-boundary-narrowing", "a0-ownership-validator"],
+  "files_added": ["scripts/validate-work-package-ownership.mjs", "test-kits/work-package-ownership.test.mjs"],
+  "files_modified": ["handoffs/WP-0A-A0-001-ownership-boundary-handoff.json", "package.json", "work-packages/WP-0A-A0-001.json"],
+  "files_deleted": [],
+  "decisions_consumed": ["DEC-021", "DEC-023", "DEC-025", "OPEN-018"],
+  "contracts_consumed": ["CTR-TEN-001", "CTR-ERR-001", "CTR-EVT-001", "CTR-JOB-001"],
+  "contracts_produced_or_changed": [],
+  "assumptions": ["A0 remains in_review and must not claim G0, product approval, cross-vendor evidence, or production authority.", "CON-00 owns its explicitly declared C0 benchmark/profile paths; A0 must no longer reserve broad .agents, evidence, handoff, catalog, script, test-kit, or work-package directories in writable-path or output declarations."],
+  "acceptance_results": [
+    {
+      "criterion": "A0 writable paths and outputs are limited to actual bootstrap artifacts and leave future package paths unreserved by default.",
+      "result": "pass by manifest inventory and deterministic ownership validator; independent review pending"
+    },
+    {
+      "criterion": "CON-00's C0 capability profile and benchmark are no longer captured by A0's writable glob.",
+      "result": "pass by exact-path inspection and cross-package ownership validation; independent review pending"
+    }
+  ],
+  "tests": [
+    {
+      "command": "Pinned Node v24.20.0/npm 11.19.0: npm run check",
+      "exit_code": 0,
+      "result": "24 tests passed after repository-relative POSIX-path containment coverage, including Windows absolute/traversal forms"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "working-tree whitespace clean before final independent review"
+    }
+  ],
+  "security_privacy_cost_impact": "Ownership metadata and handoff only. No secret, customer data, tenant data path, schema, provider, external call, billing operation, or publish action is introduced.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "No API or contract semantic change. CI now rejects malformed ownership declarations before subsequent packages can rely on them.",
+  "known_limitations": ["A0 remains in_review; Product Owner/Product-UX and cross-vendor G0 requirements remain external blockers.", "This change narrows A0 ownership only; it does not assign CON-00 roles or make CON-00 Ready."],
+  "open_risks_or_blockers": ["Branch protection/ruleset verification still requires an eligible authorized repository setting.", "G0 cannot be approved until Product Owner, Product/UX, cross-vendor and other source-listed external evidence are satisfied."],
+  "rollback_or_forward_fix": "Revert this ownership-only commit or issue a reviewed forward correction; no persisted or external state requires recovery.",
+  "recommended_next_work_packages": ["Assign real, independent, capability-declared roles to CON-00 only after its source dependencies and ownership boundaries are accepted.", "Do not start production schema, provider, billing, publishing, or customer-data work from this metadata change."],
+  "reviewer_instructions": ["Compare every A0 writable path with the actual A0 output inventory and confirm no broad future-package directory remains.", "Confirm the C0 profile and benchmark remain exclusive CON-00 outputs.", "Verify no status/G0/production authority changes are implied."]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "agent_run_id": "/root",
+  "vendor": "OpenAI",
+  "model": "Codex GPT-5 runtime",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": true,
+    "supported_languages": ["javascript", "json", "markdown", "yaml"]
+  },
+  "limitations": {
+    "max_runtime_minutes": "session-bound",
+    "unavailable_tools": ["external secrets", "Production credentials", "cross-vendor agent execution"],
+    "evidence": ["evidence/WP-0A-A0-001/author-self-check.md", "handoffs/WP-0A-A0-001-author-handoff.json"]
+  },
+  "accepted_work_package": null
+}

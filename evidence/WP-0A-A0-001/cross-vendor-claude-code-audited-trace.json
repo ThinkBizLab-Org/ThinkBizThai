@@ -1,0 +1,33 @@
+{
+  "trace_version": "1.0.0",
+  "external_participant": {
+    "vendor": "Anthropic",
+    "model": "claude-haiku-4-5-20251001",
+    "agent_run_id": "anthropic-cli/g0-schema-audit-20260831-01",
+    "cli_exit_code": 0,
+    "raw_stream_sha256": "51ba690676f5c271bf3c310e3ae07d2d55fa26fd5a540340d1f5005566b68833"
+  },
+  "redaction": "This trace omits raw document contents, model reasoning, session identifiers, authentication data, billing data, and local file locations. It retains only tool-call metadata and non-sensitive command-result summaries.",
+  "tool_calls": [
+    { "tool_use_id": "toolu_01TUFLTEYxTYkcJa4ALpavCV", "tool": "Bash", "command": "cat CONTRIBUTING_AGENTS.md", "result": "success" },
+    { "tool_use_id": "toolu_01C8YwwGTLBFVpYGMZJjxLWn", "tool": "Bash", "command": "cat work-packages/WP-0A-A0-001.json", "result": "success" },
+    { "tool_use_id": "toolu_01DPP9NBjVFSZr95DdY8tQgt", "tool": "Bash", "command": "cat docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md", "result": "success" },
+    { "tool_use_id": "toolu_019ZRhDSgCxX9Le2CHxhc4yi", "tool": "Bash", "command": "cat docs/sprint-0a/sprint-0a-multi-agent-engineering-operating-model-th.md", "result": "success" },
+    { "tool_use_id": "toolu_019w1sBPwMVXyrJn7dt7DyAE", "tool": "Bash", "command": "cat docs/sprint-0a/sprint-0a-g0-readiness-report-th.md", "result": "success" },
+    { "tool_use_id": "toolu_016WL4pzUjAF2Kh4vcJP5DHe", "tool": "Bash", "command": "cat CLAUDE.md", "result": "success" },
+    { "tool_use_id": "toolu_01P7cw4cymZBk6pQceoJZMKq", "tool": "Bash", "command": "cat .agents/handoff.schema.json", "result": "success" },
+    { "tool_use_id": "toolu_018ng2SSz2Ea7EceEoNXHE6S", "tool": "Bash", "command": "cat .agents/work-package.schema.json", "result": "success" },
+    { "tool_use_id": "toolu_01EYQJ9A6WB9TkgU6kTtXUey", "tool": "Bash", "command": "git rev-parse HEAD", "result": "success; observed 3ecfdcddddba20cdac2d8f1e91c9c69bb2972e93" },
+    { "tool_use_id": "toolu_0137Tj9u7AcqEwoGvc9JRJxf", "tool": "Bash", "command": "git status --short", "result": "success; empty output" },
+    { "tool_use_id": "toolu_016eKDAvnzZYvYw5MUcmxtQZ", "tool": "Bash", "command": "git diff --check", "result": "success; empty output" },
+    { "tool_use_id": "toolu_015aakqabhGbFZxyT1AiATAv", "tool": "Bash", "command": "npm run check", "result": "success; exact toolchain guard, secret scan, protocol validators, and 24 bootstrap tests passed" }
+  ],
+  "assertions": {
+    "tool_call_count": 12,
+    "additional_tool_calls_observed": false,
+    "repository_write_observed": false,
+    "git_write_observed": false,
+    "credential_or_browser_tool_observed": false,
+    "project_provider_or_production_tool_observed": false
+  }
+}

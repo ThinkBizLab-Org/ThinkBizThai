@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "agent_run_id": "/root/a6_relay",
+  "vendor": "openai",
+  "model": "runtime model identifier not exposed",
+  "protocol_version": "1.0.0",
+  "capabilities": {
+    "can_edit_files": true,
+    "can_run_shell": true,
+    "can_run_tests": true,
+    "can_access_network": true,
+    "can_use_browser": false,
+    "can_access_external_secrets": false,
+    "can_create_branch_or_worktree": false,
+    "supported_languages": ["markdown", "json", "javascript"]
+  },
+  "limitations": {
+    "work_scope": "Repository-local review and synthetic/deterministic validation only.",
+    "unavailable_tools": ["browser control", "Meta test app/account", "Stripe account or webhook endpoint", "GitHub branch-protection administration", "production credentials"],
+    "evidence_limitations": ["Cannot independently confirm Meta capabilities, Stripe signature verification, payment entitlement, provider idempotency, partial-publish behavior, or production release controls without an assigned package and redacted external evidence.", "Does not provide Product Owner, legal, tax, accounting, PDPA, Security, Finance, Integration, or G0 approval."],
+    "data_clearance": "Synthetic and repository metadata only; no customer data or secrets."
+  },
+  "accepted_work_package": null
+}
