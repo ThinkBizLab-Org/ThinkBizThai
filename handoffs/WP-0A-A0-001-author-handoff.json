@@ -5,7 +5,7 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
-  "head_revision_or_patch_checksum": "82a5c4b413fdf55da97458b0a707d80bcbd7b03c",
+  "head_revision_or_patch_checksum": "2765150c80409c0d7de834a339d5c6088b4c20b8",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
@@ -70,6 +70,7 @@
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/contracts/schema-mutation-coverage.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-A0-001.json"
