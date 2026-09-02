@@ -123,3 +123,29 @@ after the mutation. I read the suite and used the reversal it actually notices.
 That is the fourth time in this package a probe has been aimed at something that was not there. The
 difference this time is that the shape of this test — *assert the suite passes clean, then assert
 it fails dirty* — **cannot** be satisfied by a mutation nothing observes.
+
+### And the three suites whose enforcement has no script behind it
+
+There are two kinds of suite in `test-kits/`, and only one kind needs a behaviour case:
+
+- **Enforcement in a script the chain runs** — `test-coverage-floor`, `secret-scan`,
+  `branch-scope`, `role-separation`, `capability-profile`, `toolchain-contract`. Hollowing these
+  removes the **proof** that a guard works; the guard still runs, because `npm run check` invokes
+  the script.
+- **Enforcement in the test file itself** — the nine contract suites, plus
+  `handoff-conformance` (the approval and drift checks), `repository-json` (the workflow and
+  decision-record ratchets) and `protocol-schema-conformance` (the `.agents` schema validation).
+  Hollowing one of these **removes the enforcement**.
+
+The second kind all have behaviour cases now. Twelve in total:
+
+| suite | reversal it must notice |
+| --- | --- |
+| `handoff-conformance` | an author handoff claiming the Security reviewer cleared the freeze |
+| `repository-json` | a workflow nobody declared |
+| `protocol-schema-conformance` | a work package inventing `normative_rules` |
+
+Two of the three are scoped to the specific test rather than the whole file, because those suites
+also read files the copy does not carry — git history, the toolchain pins. **Copying the whole
+repository per case would be honest too, and slower for no more evidence**; the scoping is stated
+in the test rather than hidden.

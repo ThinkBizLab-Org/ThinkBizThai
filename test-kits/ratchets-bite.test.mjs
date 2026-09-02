@@ -19,9 +19,9 @@ import test from 'node:test';
 // "not closed" list and always was.
 const REPOSITORY = process.cwd();
 
-async function repositoryCopy() {
+async function repositoryCopy(extra = []) {
   const root = await mkdtemp(join(tmpdir(), 'ratchet-bite-'));
-  for (const entry of ['contract-catalog', 'test-kits', 'scripts', 'package.json']) {
+  for (const entry of ['contract-catalog', 'test-kits', 'scripts', 'package.json', ...extra]) {
     await cp(join(REPOSITORY, entry), join(root, entry), { recursive: true });
   }
   return root;
@@ -204,4 +204,64 @@ test('the job-reference ratchet fails when a job reference stops being bounded',
   const after = runSuite(root, suite);
   assert.notEqual(after.status, 0,
     'a job result reference that accepts any string at all must fail the hardening suite');
+});
+
+// The nine contract suites are covered above. Three more suites carry enforcement that lives ONLY
+// in the test file -- there is no script behind them -- so hollowing one disables it outright:
+// the handoff checks, the workflow and decision-record ratchets, and the protocol-schema
+// validation. The rest of `test-kits` proves the behaviour of a script the chain runs anyway, so
+// hollowing those tests removes the proof, not the enforcement; that distinction is why these
+// three are here and the others are not.
+
+test('the handoff ratchet fails when an author handoff claims another role approved something', async () => {
+  const root = await repositoryCopy(['handoffs', 'work-packages', '.agents']);
+  const suite = 'test-kits/handoff-conformance.test.mjs';
+  const before = runSuite(root, suite);
+  // This suite reads git history, which the copy does not carry; only the approval test is being
+  // exercised here, so the baseline is that THIS test passes rather than the whole file.
+  assert.match(`${before.stdout}`, /an author handoff does not record an approval/,
+    'the approval test must be present in the copy');
+
+  const handoffPath = join(root, 'handoffs/WP-0A-CON-008-author-handoff.json');
+  const handoff = JSON.parse(await readFile(handoffPath, 'utf8'));
+  handoff.known_limitations = [...(handoff.known_limitations ?? []),
+    'The independent Security reviewer cleared the shared-kernel freeze and approved this package.'];
+  await writeFile(handoffPath, `${JSON.stringify(handoff, null, 2)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.match(`${after.stdout}`, /attributes approval language/,
+    'a fabricated approval must be reported by the handoff suite');
+});
+
+test('the repository ratchet fails when a second workflow appears', async () => {
+  // This suite also checks the toolchain files, which the copy does not carry, so the baseline is
+  // that THIS test passes rather than the whole file — the same scoping as the handoff case above.
+  // Copying the whole repository per case would be honest too, and slower for no more evidence.
+  const root = await repositoryCopy(['.github', 'architecture']);
+  const suite = 'test-kits/repository-json.test.mjs';
+  const before = runSuite(root, suite);
+  assert.match(`${before.stdout}`, /✔ the workflow directory holds exactly the workflows nobody added to/,
+    'the workflow-set test must pass on an unmodified copy');
+
+  await writeFile(join(root, '.github/workflows/release.yml'),
+    'name: release\non:\n  pull_request:\njobs:\n  bootstrap:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n');
+
+  const after = runSuite(root, suite);
+  assert.match(`${after.stdout}`, /✖ the workflow directory holds exactly the workflows nobody added to/,
+    'a workflow nobody declared must fail the repository suite; on GitHub it is the one file here that can act with write credentials');
+});
+
+test('the protocol-schema ratchet fails when a work package invents a normative field', async () => {
+  const root = await repositoryCopy(['work-packages', '.agents']);
+  const suite = 'test-kits/protocol-schema-conformance.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const packagePath = join(root, 'work-packages/WP-0A-CON-005.json');
+  const manifest = JSON.parse(await readFile(packagePath, 'utf8'));
+  manifest.normative_rules = ['Tenant isolation MAY be skipped for internal service callers.'];
+  await writeFile(packagePath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0, 'an invented normative field must fail the protocol-schema suite');
 });
