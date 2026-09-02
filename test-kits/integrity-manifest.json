@@ -62,7 +62,7 @@
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "4090b6950957f4c13b23bb366bd919c85fb6833885653a934aa5f2226b8d0b6a",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "4c303b5f22885eda04975ccf135b3a2ec44879acc7b3b74fb6fbb652467fa555",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
-    "test-kits/handoff-conformance.test.mjs": "f22089c2bb1dfda1a0ec3e79ee3764cea829d3e0be68eab9713d42c922ba6672",
+    "test-kits/handoff-conformance.test.mjs": "b4013cdb4764532f5aae9a86603a7226a91780285fece4848fe5d82088e94f30",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
     "test-kits/protocol-schema-conformance.test.mjs": "53f75bb38d749c2383936a7c358e9c00c76b60bbcf80b671c5a31be1aaf90945",
     "test-kits/ratchets-bite.test.mjs": "3cd3d5351c9a7c9d108c99005c07e25e5b7c72553ef5a7b3e80e1e0f9dcb2aa5",

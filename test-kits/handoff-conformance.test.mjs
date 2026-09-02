@@ -84,7 +84,21 @@ test('a handoff describes its own package, not a template', async () => {
       && (/\/(manifest|schema|index)\.json$/.test(f) || /\/examples\//.test(f))
     ));
     const touchesContracts = contractArtifacts.length > 0;
-    const claimsContracts = /contract-catalog changes are additive/i.test(body.compatibility_impact ?? '');
+    // Independent review, and then this guard's own author, both got this wrong. The check
+    // first accepted exactly one sentence -- "contract-catalog changes are additive" -- which
+    // means a handoff describing a BREAKING catalog change could not state its impact
+    // truthfully and pass. It had to write the additive sentence or fail. A guard that forces
+    // a false statement is worse than no guard, so the accepted set is the set of POSITIONS a
+    // handoff may take, not one blessed phrase; silence still fails, which is the half that
+    // matters. Caught when CTR-USG-001's dedupe key changed shape and the only passing wording
+    // would have called a breaking change additive.
+    const COMPATIBILITY_POSITIONS = [
+      /contract-catalog changes are additive/i,
+      /\bBREAKING\b/,
+      /no contract (?:changes|interface changes)/i,
+      /no other contract changes/i,
+    ];
+    const claimsContracts = COMPATIBILITY_POSITIONS.some((p) => p.test(body.compatibility_impact ?? ''));
     if (claimsContracts && !touchesContracts) {
       wrong.push(`${name} claims contract-catalog compatibility impact but changes no contract-catalog file`);
     }
