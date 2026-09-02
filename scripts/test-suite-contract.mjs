@@ -76,7 +76,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/repository-json.test.mjs': 6,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 45,
-  'test-kits/test-coverage-floor.test.mjs': 31,
+  'test-kits/test-coverage-floor.test.mjs': 33,
   'test-kits/toolchain-contract.test.mjs': 3,
   'test-kits/verification-record.test.mjs': 4,
   'test-kits/work-package-discovery.test.mjs': 1,
@@ -93,6 +93,11 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // Hollowing preserves the count. It cannot preserve the ASSERTIONS: a placeholder makes one
 // trivial assertion where the real test made many. This is the same ratchet shape one level down,
 // and it needs no new machinery.
+// `ratchets-bite.test.mjs` reads 5 here and that is not a weakening: its assertions moved into
+// the shared `mustNotice`/`assertFailed` helpers when it went from one reversal per suite to
+// several. The number that matters for that file is REVERSAL_FLOOR below -- assertion counting is
+// a proxy, and this is the one place in the repository where the proxy and the thing it proxies
+// point in opposite directions.
 export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 15,
   'test-kits/branch-scope.test.mjs': 37,
@@ -110,7 +115,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 19,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
-  'test-kits/ratchets-bite.test.mjs': 24,
+  'test-kits/ratchets-bite.test.mjs': 5,
   'test-kits/repository-json.test.mjs': 16,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 86,
@@ -150,13 +155,22 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 'e5d7f6d4e0426065',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
-  'test-kits/ratchets-bite.test.mjs': '795ed4b2dbe9da36',
+  'test-kits/ratchets-bite.test.mjs': '0b2b9a5883cd4693',
   'test-kits/repository-json.test.mjs': 'e47612c15b1ae079',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': 'b522288e91824c97',
-  'test-kits/test-coverage-floor.test.mjs': 'dbda7fd43692fb92',
+  'test-kits/test-coverage-floor.test.mjs': 'ad676cb55e0fa018',
   'test-kits/toolchain-contract.test.mjs': '593ef9010e698df4',
   'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
   'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
   'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
 };
+
+// How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
+// showed why the number matters: with ONE reversal per suite, a stub keeping exactly the one
+// assertion that reversal exercises survives -- 804 lines of `catalog-registry.test.mjs` reduced
+// to 76, and `CTR-SEC-001` shipped as `Frozen` with its freeze requirements emptied, at exit 0.
+//
+// Each additional unrelated reversal is another pin a stub must reimplement to survive, and a
+// stub that reimplements them all is the suite.
+export const REVERSAL_FLOOR = 23;

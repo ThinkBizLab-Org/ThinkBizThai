@@ -18,7 +18,7 @@ import {
   verifyTestCoverageFloor,
 } from '../scripts/verify-test-coverage-floor.mjs';
 import { assertDeclarationsMatchExecution, assertExecuted, assertNothingSkipped, parseExecutedTests, parseSummary } from '../scripts/run-test-suite.mjs';
-import { GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
+import { REVERSAL_FLOOR, GUARD_SCRIPT, INTEGRITY_MANIFEST, MIN_DECLARED_TESTS_BY_DIRECTORY, MIN_EXECUTED_TESTS, RUNNER_SCRIPT, TEST_PATTERN } from '../scripts/test-suite-contract.mjs';
 
 const CURRENT = TEST_PATTERN;
 const files = [
@@ -429,4 +429,15 @@ test('package.json carries no field nobody declared', async () => {
   const { readFile } = await import('node:fs/promises');
   const manifest = JSON.parse(await readFile('package.json', 'utf8'));
   assert.deepEqual(Object.keys(manifest).sort(), ["description", "engines", "name", "packageManager", "private", "scripts", "version"]);
+});
+
+
+test('the behaviour ratchet puts enough reversals through each suite', async () => {
+  // A stub keeping one assertion survives one reversal. It cannot survive several unrelated ones
+  // without reimplementing the pins, at which point it is the suite. See REVERSAL_FLOOR.
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile('test-kits/ratchets-bite.test.mjs', 'utf8');
+  const reversals = (source.match(/^\s+\['/gm) ?? []).length;
+  assert.ok(reversals >= REVERSAL_FLOOR,
+    `ratchets-bite declares ${reversals} reversal(s), floor ${REVERSAL_FLOOR}`);
 });
