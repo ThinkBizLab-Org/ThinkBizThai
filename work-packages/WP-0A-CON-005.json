@@ -103,6 +103,7 @@
     ]
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-CON-005-job-reference-hardening",
     "writable_paths": [
       "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
       "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",

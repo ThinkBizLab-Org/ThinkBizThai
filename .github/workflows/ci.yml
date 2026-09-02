@@ -51,15 +51,13 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          package_id="$(printf '%s' "$HEAD_REF" | sed -n 's|.*/\(WP-0A-[A-Z0-9]*-[0-9]*\)-.*|\1|p')"
-          if [ -z "$package_id" ]; then
-            echo "branch $HEAD_REF does not name a work package; nothing to scope"
-            exit 0
-          fi
-          if [ ! -f "work-packages/$package_id.json" ]; then
-            echo "branch names $package_id but work-packages/$package_id.json does not exist"
-            exit 73
-          fi
+          # The package is NOT derived from the branch name. Independent review eleven showed
+          # both halves of that broken: an unparseable name skipped the guard entirely at
+          # exit 0, and a parseable one SELECTED which manifest the branch is judged against --
+          # rename to WP-0A-A0-001-anything and inherit the broadest writable paths in the
+          # repository. A ref name is not evidence. The claim is made in the manifest, where it
+          # appears in a diff, and this resolves the branch to the package that names it.
+          package_id="$(node scripts/verify-branch-identity.mjs "$HEAD_REF")" || exit $?
           # `persist-credentials: false` means no fetch can authenticate, so the base has to
           # come from what the checkout already brought. With `fetch-depth: 0` the full history
           # is present and the merge-base of HEAD and the base branch is reachable by SHA --

@@ -11,8 +11,8 @@ export const MIN_DECLARED_TESTS = 30;
 // the contract suite -- the suite this repository's guards exist to protect -- and every
 // check stayed green. Floors are therefore per directory as well as global.
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
-  'test-kits': 30,
-  'test-kits/contracts': 6,
+  'test-kits': 33,
+  'test-kits/contracts': 7,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
 // when its pattern matches nothing, so the count is asserted after the run -- and it is
@@ -39,3 +39,138 @@ export const GUARD_SCRIPT = 'node scripts/verify-test-coverage-floor.mjs';
 // open Gate G0 requirement. The manifest's value is that tampering must appear as a
 // deliberate, reviewable line in a diff instead of a silent behaviour change.
 export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
+
+// Independent review seventeen replaced eight of the nine contract suites with one-test
+// placeholders, keeping only shared-kernel-contract-catalog.test.mjs, then reversed three real
+// rules: CTR-SEC-001's handle pattern to `^.*$`, its six redaction consts from true to false, and
+// CTR-API-001's root additionalProperties to true. **exit 0, 167/167, no failing test.**
+//
+// The per-DIRECTORY floor was 7 against 78 declared tests -- ninety per cent headroom in the one
+// floor written specifically to stop a protected suite being swapped for a placeholder. Ten Draft
+// contracts, including the envelope every module composes and the secret-handle contract, lost
+// every ratchet at once: the constraint surface, the registry, the caveats, the mutation walk.
+// DIGESTED_FLOOR does not help -- it ratchets WHICH files are digested, and every gutted file
+// stayed digested.
+//
+// A floor per file, at what each suite declares today. Adding tests is free; a file that has ever
+// declared N must keep declaring N, or the number is edited deliberately, in a diff a reviewer
+// reads.
+export const DECLARED_TEST_FLOOR_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': 8,
+  'test-kits/branch-scope.test.mjs': 7,
+  'test-kits/capability-profile.test.mjs': 4,
+  'test-kits/ci-guard-behaviour.test.mjs': 14,
+  'test-kits/contracts/catalog-groups.test.mjs': 7,
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
+  'test-kits/contracts/catalog-registry.test.mjs': 14,
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 6,
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 15,
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 6,
+  'test-kits/handoff-conformance.test.mjs': 11,
+  'test-kits/integrity-manifest-rebuild.test.mjs': 3,
+  'test-kits/protocol-schema-conformance.test.mjs': 4,
+  'test-kits/ratchets-bite.test.mjs': 14,
+  'test-kits/repository-json.test.mjs': 6,
+  'test-kits/role-separation.test.mjs': 8,
+  'test-kits/secret-scan.test.mjs': 46,
+  'test-kits/test-coverage-floor.test.mjs': 33,
+  'test-kits/toolchain-contract.test.mjs': 3,
+  'test-kits/verification-record.test.mjs': 4,
+  'test-kits/work-package-discovery.test.mjs': 1,
+  'test-kits/work-package-ownership.test.mjs': 8,
+};
+
+// Independent review eighteen answered the question the per-file floor was written to close, and
+// the answer was yes. The floor pins the `test()` COUNT, so a suite can be rewritten as N
+// placeholders -- `test('placeholder 1', () => { assert.ok(true); })` ten times -- and the count
+// is unchanged. It then added `ctr-api-001 properties.data.maxProperties = 3`, so a success
+// envelope carrying four fields is rejected by the contract every module composes, and got
+// **exit 0, 233/233**, with `record:verification` not even needed because nothing moved.
+//
+// Hollowing preserves the count. It cannot preserve the ASSERTIONS: a placeholder makes one
+// trivial assertion where the real test made many. This is the same ratchet shape one level down,
+// and it needs no new machinery.
+// `ratchets-bite.test.mjs` reads 5 here and that is not a weakening: its assertions moved into
+// the shared `mustNotice`/`assertFailed` helpers when it went from one reversal per suite to
+// several. The number that matters for that file is REVERSAL_FLOOR below -- assertion counting is
+// a proxy, and this is the one place in the repository where the proxy and the thing it proxies
+// point in opposite directions.
+export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': 15,
+  'test-kits/branch-scope.test.mjs': 37,
+  'test-kits/capability-profile.test.mjs': 4,
+  'test-kits/ci-guard-behaviour.test.mjs': 27,
+  'test-kits/contracts/catalog-groups.test.mjs': 9,
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
+  'test-kits/contracts/catalog-registry.test.mjs': 16,
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 25,
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': 48,
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': 11,
+  'test-kits/handoff-conformance.test.mjs': 20,
+  'test-kits/integrity-manifest-rebuild.test.mjs': 10,
+  'test-kits/protocol-schema-conformance.test.mjs': 6,
+  'test-kits/ratchets-bite.test.mjs': 13,
+  'test-kits/repository-json.test.mjs': 16,
+  'test-kits/role-separation.test.mjs': 8,
+  'test-kits/secret-scan.test.mjs': 88,
+  'test-kits/test-coverage-floor.test.mjs': 92,
+  'test-kits/toolchain-contract.test.mjs': 3,
+  'test-kits/verification-record.test.mjs': 14,
+  'test-kits/work-package-discovery.test.mjs': 2,
+  'test-kits/work-package-ownership.test.mjs': 8,
+};
+
+// Independent review eighteen defeated the test-count floor by hollowing a suite while preserving
+// its count. I added an assertion-count floor; probing that immediately showed the obvious next
+// step -- preserve BOTH. Ten placeholders making fifteen `assert.ok(true)` calls, plus
+// `ctr-api-001 properties.data.maxProperties = 3`: **exit 0**, every floor satisfied.
+//
+// Counting anything can be satisfied by repeating anything. What hollowing cannot preserve is
+// WHAT THE TESTS ARE CALLED: a suite's test names are a description of what it checks, and
+// `placeholder 1..10` is not `every contract reaches the mutation-coverage floor`.
+//
+// This is a digest over the sorted distinct test names per file. Renaming a test is a deliberate
+// edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
+// this repository -- a name cannot be paid for with a count -- arriving one level further down.
+export const TEST_NAME_DIGEST_BY_FILE = {
+  'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
+  'test-kits/branch-scope.test.mjs': '4153a9a5088a9ec7',
+  'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
+  'test-kits/ci-guard-behaviour.test.mjs': '5ee8cd9cd226ad72',
+  'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',
+  'test-kits/contracts/catalog-reference-integrity.test.mjs': '9753730c2bab68ba',
+  'test-kits/contracts/catalog-registry.test.mjs': '6868cdbb372c0207',
+  'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 'd1304414d53dccd7',
+  'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': '6675342a26c7bc01',
+  'test-kits/contracts/schema-mutation-coverage.test.mjs': 'd84ed15beca0a546',
+  'test-kits/contracts/shared-kernel-contract-catalog.test.mjs': 'bd0c948ddd7fa982',
+  'test-kits/contracts/shared-kernel-envelope-contracts.test.mjs': '9fbcbb4ef6ddac05',
+  'test-kits/contracts/shared-kernel-schema-conformance.test.mjs': '99724af4706e30ad',
+  'test-kits/handoff-conformance.test.mjs': '3f72b90365afbf52',
+  'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
+  'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
+  'test-kits/ratchets-bite.test.mjs': 'c158963db3983568',
+  'test-kits/repository-json.test.mjs': 'e47612c15b1ae079',
+  'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
+  'test-kits/secret-scan.test.mjs': 'dc3d730ee7d4d461',
+  'test-kits/test-coverage-floor.test.mjs': 'ad676cb55e0fa018',
+  'test-kits/toolchain-contract.test.mjs': '593ef9010e698df4',
+  'test-kits/verification-record.test.mjs': '550b0a1ed6388295',
+  'test-kits/work-package-discovery.test.mjs': 'a3920136781048b6',
+  'test-kits/work-package-ownership.test.mjs': 'edeaf529d5267bba',
+};
+
+// How many reversals `ratchets-bite.test.mjs` puts through a suite. Independent review twenty
+// showed why the number matters: with ONE reversal per suite, a stub keeping exactly the one
+// assertion that reversal exercises survives -- 804 lines of `catalog-registry.test.mjs` reduced
+// to 76, and `CTR-SEC-001` shipped as `Frozen` with its freeze requirements emptied, at exit 0.
+//
+// Each additional unrelated reversal is another pin a stub must reimplement to survive, and a
+// stub that reimplements them all is the suite.
+export const REVERSAL_FLOOR = 23;

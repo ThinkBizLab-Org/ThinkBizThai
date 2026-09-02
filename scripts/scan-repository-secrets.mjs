@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 // A pattern scanner CANNOT prove that a repository contains no secret. It proves that the
 // declared patterns did not match the declared files at this commit. RFC-2026-005 records
@@ -260,7 +261,6 @@ export function containsPaymentCardNumber(run) {
   }
 
   return scanReading(groups);
-  return false;
 }
 
 function scanReading(groups, { wholeRunOnly = false } = {}) {
@@ -570,7 +570,7 @@ export function exitCodeFor(findings) {
   return findings.some((finding) => finding.kind !== 'unscannable') ? EXIT_PATTERN_FINDING : EXIT_UNSCANNABLE;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const directory = process.argv[2] ?? '.';
   const findings = await scanDirectory(directory);
   if (findings.length > 0) {

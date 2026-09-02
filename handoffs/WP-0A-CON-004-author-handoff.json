@@ -1,0 +1,211 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-004",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "64d9c65c7ef00f072d742d83646fba571b2466fa",
+  "head_revision_or_patch_checksum": "17c63c5731eeb38a91c97ec4117b1bf005f66b3c",
+  "task_ids": [],
+  "files_added": [
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/accepted-gap-break-glass-without-time-bound.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-delete-without-before-ref.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-denied-without-error.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-free-text-reason.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-public-before-ref.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-succeeded-with-error.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-unknown-action-category.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/invalid-unredacted-details-payload.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/valid-business-profile-deleted.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/valid-credential-revoked.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/examples/valid-publish-denied.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/accepted-gap-unbounded-error-code-label.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-down-but-ready.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-free-text-readiness-reason.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-liveness-depends-on-external-provider.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-ready-with-unready-capability.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-unknown-dependency-status.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-unready-capability-without-reason.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/invalid-user-content-metric-label.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/valid-down-and-not-ready.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/valid-provider-unavailable-but-still-live.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/examples/valid-ready.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/accepted-gap-classification-below-restricted.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/accepted-gap-structureless-handle-body.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-byok-rotated-by-platform-role.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-event-surface-not-redaction-safe.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-handle-not-an-opaque-reference.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-inline-credential-material.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-analytics-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-browser-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-error-trace-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-event-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-job-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-redaction-log-safe-false.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-revoked-still-resolvable.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/invalid-revoked-without-revocation-record.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/valid-byok-rotating.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/valid-managed-active.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/examples/valid-revoked-no-longer-resolvable.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/schema.json",
+    "evidence/WP-0A-CON-004/author-self-check.md",
+    "evidence/WP-0A-CON-004/review-contract.md",
+    "work-packages/WP-0A-CON-004.json"
+  ],
+  "files_modified": [
+    "scripts/validate-work-package-ownership.mjs",
+    "test-kits/contracts/schema-mutation-coverage.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/work-package-ownership.test.mjs",
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A0-002.json",
+    "work-packages/WP-0A-A6-001.json",
+    "work-packages/WP-0A-CON-001.json",
+    "work-packages/WP-0A-CON-002.json",
+    "work-packages/WP-0A-CON-003.json",
+    "work-packages/WP-0A-CON-005.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DEC-010",
+    "DEC-014",
+    "DEC-021",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001",
+    "CTR-MOD-001"
+  ],
+  "contracts_produced_or_changed": [
+    "CTR-SEC-001, CTR-AUD-001 and CTR-OBS-001 materialized at Draft only; no freeze-level advancement"
+  ],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
+    "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
+    "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
+    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every fixture is validated against its own shipped schema.json by the WP-0A-CON-002 subset validator, not by a hand-written predicate.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "Every rule in all three schemas carries an x-source naming the baseline task it comes from, and every rule that was inferred rather than read says so and names what it was inferred from.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "PT-010 is expressed in CTR-SEC-001: the document is a reference with no property capable of holding credential material, every redaction surface is a const true, a revoked handle no longer resolves and records who revoked it and why, and a managed credential is rotated by a platform role while a BYOK credential is rotated by its workspace.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "No fixture in any of the three contracts contains anything resembling a real credential; every value is synthetic.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "OB-003 is expressed in CTR-OBS-001: liveness declares `depends_on_external_provider` as const false, and a module cannot report itself ready while listing an unready capability.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "OB-005 and SEC-009 are expressed in CTR-AUD-001: the six action categories are SEC-009's six, state is carried by reference and never by value, the free-form bag is declared and held empty, and a denied or failed action must carry a CTR-ERR-001 error.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "Every human-readable field on a support-visible or log-visible path is a stable key with a pattern, never free text, on the CM-004 and CTR-ERR-001 precedent.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "Each manifest declares in untestable_by_fixture what a single document cannot demonstrate and in untestable_by_schema what JSON Schema cannot express, rather than reading as if those rules were materialized.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "Each of the four accepted-gap fixtures is accompanied by an accepted_gaps entry naming the unresolved requirement and the owner who must resolve it before freeze.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "The index still reports 4 Candidate and 10 Draft: materializing a Draft contract does not promote it, and contract-catalog/shared-kernel/index.json is untouched.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    },
+    {
+      "criterion": "Conformance coverage is demonstrated by mutation, not assumed: mutating a negative fixture so its schema accepts it makes the conformance suite fail naming that file.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-004/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "known_limitations": [
+    "SECRET-HANDLE OWNERSHIP CONFLICT, unresolved by this package. CTR-MOD-001 `secret_handles` already fixed the pattern ^secret:[a-z0-9._-]+$ while Decision Register 5.2 owns CTR-MOD-001 to A0 and CTR-SEC-001 to A0+A1, so a single-owner contract fixed the syntax of a jointly-owned one with no RFC. CTR-SEC-001 adopts that pattern as PRECEDENT, because two different handle syntaxes would stop the two contracts composing, and records the irregularity. The A1 owner is a required authority and must dispose of it; this author must not.",
+    "THE SECRET-HANDLE PATTERN IS NOT A CONTROL AND IS NOT CLAIMED AS ONE. It excludes mixed-case base64 and nothing else: lowercase hex, lowercase base32 and lowercase dashed token shapes all satisfy it. Independent security review further showed that scripts/scan-repository-secrets.mjs detects only strings the pattern already rejects, so schema and scanner compose to zero coverage against a credential smuggled inside a conforming handle body. No shape rule available to JSON Schema closes it and none was invented. A1 must specify a handle ISSUANCE format before freeze. Shipped as examples/accepted-gap-structureless-handle-body.json.",
+    "SEC-003 has not assigned the data class a credential handle carries, so CTR-SEC-001 enumerates the four classes and pins none and accepts a provider credential declared merely `internal`. Shipped as examples/accepted-gap-classification-below-restricted.json; A1 must assign the class before freeze.",
+    "SEC-016 has not defined the expiry, approver or revocation fields for break-glass access, so CTR-AUD-001 records that break-glass happened without showing it was time-bound. Shipped as examples/accepted-gap-break-glass-without-time-bound.json; A1 must specify those fields before freeze.",
+    "OB-006 requires bounded metric cardinality and CTR-OBS-001 does not achieve it: the label NAME set is closed but no numeric budget for label VALUES exists in the baseline, and a population property cannot be expressed in JSON Schema in any case. Shipped as examples/accepted-gap-unbounded-error-code-label.json; the A6 observability owner must set the budget before freeze.",
+    "The audit record has no immutability or tamper-evidence mechanism because no source specifies one; an audit trail that can be rewritten afterwards is not an audit trail. Declared in CTR-AUD-001 untestable_by_schema and open for A0+A6 and A1 before freeze.",
+    "Nothing binds the scope a CTR-SEC-001 document CLAIMS to the scope the registry recorded when the handle was issued, so a document, or a CTR-MOD-001 manifest listing the same handle string, may claim another tenant's scope and be accepted. JSON Schema cannot compare one property against another. Enforcement belongs to the PT-010 resolver and is not claimed as materialized.",
+    "PT-010 immediate revocation, SEC-005 encryption and masking, OB-001 correlation propagation across retry and worker, OBS-004 span joining, OB-003 readiness reflecting the real capability, and SEC-009 audit COMPLETENESS are all properties of a system over time rather than of a single document. All are declared in untestable_by_fixture and none is claimed as materialized; each needs a runtime harness before freeze. Decision Register 5.2 names redaction tests as a required freeze artifact for CTR-SEC-001 and they do not exist.",
+    "CTR-AUD-001 requires a full CTR-TEN-001 tenant context on every record, so a platform-scope administrative action belonging to no workspace is not modelled. Open before freeze.",
+    "The audit retention DURATION is not pinned: PDPA-006 is undelivered and the baseline states that Thai legal counsel must confirm retention periods before production.",
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This package depends on WP-0A-CON-002, WP-0A-CON-003 and WP-0A-A0-002, all unmerged, and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "open_risks_or_blockers": [
+    "SECRET-HANDLE OWNERSHIP CONFLICT, unresolved by this package. CTR-MOD-001 `secret_handles` already fixed the pattern ^secret:[a-z0-9._-]+$ while Decision Register 5.2 owns CTR-MOD-001 to A0 and CTR-SEC-001 to A0+A1, so a single-owner contract fixed the syntax of a jointly-owned one with no RFC. CTR-SEC-001 adopts that pattern as PRECEDENT, because two different handle syntaxes would stop the two contracts composing, and records the irregularity. The A1 owner is a required authority and must dispose of it; this author must not.",
+    "THE SECRET-HANDLE PATTERN IS NOT A CONTROL AND IS NOT CLAIMED AS ONE. It excludes mixed-case base64 and nothing else: lowercase hex, lowercase base32 and lowercase dashed token shapes all satisfy it. Independent security review further showed that scripts/scan-repository-secrets.mjs detects only strings the pattern already rejects, so schema and scanner compose to zero coverage against a credential smuggled inside a conforming handle body. No shape rule available to JSON Schema closes it and none was invented. A1 must specify a handle ISSUANCE format before freeze. Shipped as examples/accepted-gap-structureless-handle-body.json.",
+    "SEC-003 has not assigned the data class a credential handle carries, so CTR-SEC-001 enumerates the four classes and pins none and accepts a provider credential declared merely `internal`. Shipped as examples/accepted-gap-classification-below-restricted.json; A1 must assign the class before freeze.",
+    "SEC-016 has not defined the expiry, approver or revocation fields for break-glass access, so CTR-AUD-001 records that break-glass happened without showing it was time-bound. Shipped as examples/accepted-gap-break-glass-without-time-bound.json; A1 must specify those fields before freeze.",
+    "OB-006 requires bounded metric cardinality and CTR-OBS-001 does not achieve it: the label NAME set is closed but no numeric budget for label VALUES exists in the baseline, and a population property cannot be expressed in JSON Schema in any case. Shipped as examples/accepted-gap-unbounded-error-code-label.json; the A6 observability owner must set the budget before freeze.",
+    "The audit record has no immutability or tamper-evidence mechanism because no source specifies one; an audit trail that can be rewritten afterwards is not an audit trail. Declared in CTR-AUD-001 untestable_by_schema and open for A0+A6 and A1 before freeze.",
+    "Nothing binds the scope a CTR-SEC-001 document CLAIMS to the scope the registry recorded when the handle was issued, so a document, or a CTR-MOD-001 manifest listing the same handle string, may claim another tenant's scope and be accepted. JSON Schema cannot compare one property against another. Enforcement belongs to the PT-010 resolver and is not claimed as materialized.",
+    "PT-010 immediate revocation, SEC-005 encryption and masking, OB-001 correlation propagation across retry and worker, OBS-004 span joining, OB-003 readiness reflecting the real capability, and SEC-009 audit COMPLETENESS are all properties of a system over time rather than of a single document. All are declared in untestable_by_fixture and none is claimed as materialized; each needs a runtime harness before freeze. Decision Register 5.2 names redaction tests as a required freeze artifact for CTR-SEC-001 and they do not exist.",
+    "CTR-AUD-001 requires a full CTR-TEN-001 tenant context on every record, so a platform-scope administrative action belonging to no workspace is not modelled. Open before freeze.",
+    "The audit retention DURATION is not pinned: PDPA-006 is undelivered and the baseline states that Thai legal counsel must confirm retention periods before production.",
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "This package depends on WP-0A-CON-002, WP-0A-CON-003 and WP-0A-A0-002, all unmerged, and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range 64d9c65..17c63c5 covers 59 path(s) — 45 contract-catalog file(s), 1 script(s), 2 test file(s), 8 work-package manifest(s). Revert through a reviewed revert PR; removing the three contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "recommended_next_work_packages": [
+    "WP-0A-A0-003"
+  ],
+  "reviewer_instructions": [
+    "Read evidence/WP-0A-CON-004/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
+    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
+    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+  ],
+  "superseded_by": null
+}

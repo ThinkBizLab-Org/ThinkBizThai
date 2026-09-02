@@ -37,7 +37,7 @@
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
     "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (\u00a7 cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
   },
   "accountable_owners": [
     "A0"
@@ -73,6 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A0-002-contract-test-coverage",
     "writable_paths": [
       "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
       "package.json",
@@ -116,14 +117,14 @@
     ],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [
-      "work-packages/WP-0A-A0-001.json \u2014 remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
-      "work-packages/WP-0A-CON-001.json \u2014 replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
+      "work-packages/WP-0A-A0-001.json — remove package.json from writable_paths and outputs.files only (RFC-2026-003 decision 2)",
+      "work-packages/WP-0A-CON-001.json — replace the contract-catalog/shared-kernel/**, test-kits/contracts/**, and unused fixtures/contracts/** writable globs with the exact paths that package delivered (RFC-2026-003 decision 3)"
     ],
     "amended_by": [
       {
-        "work_package_id": "WP-0A-A0-004",
-        "decision_record": "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
-        "change": "A digest for test-kits/branch-scope.test.mjs was added to test-kits/integrity-manifest.json and the verification record re-run. The branch-scope guard and its test moved here from WP-0A-CON-008 because only the workflow, which this package owns, can supply a pull request's base ref.",
+        "work_package_id": "WP-0A-A0-005",
+        "decision_record": "architecture/decisions/RFC-2026-008-cardholder-data-scan.md",
+        "change": "Digests for scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs were recomputed in test-kits/integrity-manifest.json. Ownership stays with this package. Any package adding or editing a protected file must do this or the guard exits 87, so this amendment is structural, not discretionary.",
         "acknowledgement_required_from": "/claude/a0_atlas",
         "acknowledgement_status": "pending"
       },
@@ -131,6 +132,13 @@
         "work_package_id": "WP-0A-CON-007",
         "decision_record": "architecture/decisions/RFC-2026-009-reference-bounds.md",
         "change": "A digest for test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs was added to test-kits/integrity-manifest.json, and digests for four contract schemas recomputed. Ownership stays with this package.",
+        "acknowledgement_required_from": "/claude/a0_atlas",
+        "acknowledgement_status": "pending"
+      },
+      {
+        "work_package_id": "WP-0A-CON-008",
+        "decision_record": "evidence/WP-0A-CON-008/verification-record.md",
+        "change": "scripts/run-test-suite.mjs gained assertVerificationRecord, and three digests were added to test-kits/integrity-manifest.json. Ownership of both stays with this package. The runner is the only place that knows the executed test count after a run, which is why the check lives there.",
         "acknowledgement_required_from": "/claude/a0_atlas",
         "acknowledgement_status": "pending"
       }

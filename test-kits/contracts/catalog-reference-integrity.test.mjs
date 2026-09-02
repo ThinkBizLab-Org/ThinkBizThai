@@ -75,6 +75,13 @@ test('every external $ref in the catalog resolves to a FILE that exists', async 
 // $id. Identity is bound to LOCATION instead. Every external $ref anywhere must point at the
 // canonical schema.json of a catalog contract directory, and that file's $id must match the
 // directory it lives in — so a decoy is unreachable and a forged $id contradicts its path.
+// A contract directory the ratchets actually iterate: a direct child of a governed group.
+const GOVERNED_GROUP_ROOTS = ['contract-catalog/shared-kernel'];
+async function isGovernedContractDirectory(directory) {
+  const normalized = normalize(directory);
+  return GOVERNED_GROUP_ROOTS.some((root) => normalize(join(root, basename(normalized))) === normalized);
+}
+
 test('every $ref points at a canonical contract schema whose $id matches its directory', async () => {
   const wrong = [];
   for (const file of await catalogJsonFiles()) {
@@ -85,6 +92,23 @@ test('every $ref points at a canonical contract schema whose $id matches its dir
         continue;
       }
       const owningDirectory = basename(dirname(target));
+      // The target must be a TOP-LEVEL contract directory of a governed group, not merely some
+      // directory holding a file named schema.json. Independent review twelve created
+      // `ctr-api-001/vocab/schema.json` with `$id: "vocab"`, referenced it from the contract,
+      // declared it in `manifest.fixtures` to satisfy the undeclared-file check, and paid three
+      // one-time declaration edits. After that, EVERY later edit to that file was free: it
+      // added `maxProperties: 1` to every success payload, `allOf: []` -- the exact vacuous
+      // primitive this repository had just made impossible -- and `dependentRequired`, a keyword
+      // the validator does not implement, at exit 0 with no further edit anywhere.
+      //
+      // Nothing followed the $ref: contracts(), constraintSites, surfaceOf and
+      // assertSchemaSupported all iterate top-level directories only. A rule channel outside
+      // every ratchet is worse than an unmeasured rule, because it stays outside them forever.
+      if (!(await isGovernedContractDirectory(dirname(target)))) {
+        wrong.push(`${file} ${path}.$ref -> ${ref} — target is not a top-level contract directory of a governed group. `
+          + 'A $ref may only reach a contract the ratchets iterate; anything else is a rule channel no suite measures.');
+        continue;
+      }
       const targetSchema = await readFile(target, 'utf8').then(JSON.parse).catch(() => null);
       if (typeof targetSchema?.$id !== 'string') { wrong.push(`${file} ${path}.$ref -> ${ref} — target declares no $id`); continue; }
       if (targetSchema.$id.toLowerCase() !== owningDirectory) {
