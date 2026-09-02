@@ -433,11 +433,25 @@ test('package.json carries no field nobody declared', async () => {
 
 
 test('the behaviour ratchet puts enough reversals through each suite', async () => {
-  // A stub keeping one assertion survives one reversal. It cannot survive several unrelated ones
-  // without reimplementing the pins, at which point it is the suite. See REVERSAL_FLOOR.
+  // This counted `/^\s+\['/gm` over the source. Independent review twenty-one wrote
+  // `reversals.slice(0, 0)` into the loop that consumes them: the 23 tuples stayed in the file,
+  // this count still read 23, and **not one of them executed.**
+  //
+  // **A count over source text is satisfied by dead syntax.** The control now lives inside
+  // `mustNotice`, which asserts at RUNTIME that it was handed at least two reversals, and the
+  // registry case generates a cross-product rather than listing three. This test keeps only what
+  // a source count can honestly say: that the file still calls the helper that carries the
+  // runtime assertion, and that the helper still makes it.
   const { readFile } = await import('node:fs/promises');
-  const source = await readFile('test-kits/ratchets-bite.test.mjs', 'utf8');
-  const reversals = (source.match(/^\s+\['/gm) ?? []).length;
-  assert.ok(reversals >= REVERSAL_FLOOR,
-    `ratchets-bite declares ${reversals} reversal(s), floor ${REVERSAL_FLOOR}`);
+  const raw = await readFile('test-kits/ratchets-bite.test.mjs', 'utf8');
+  // Comments are prose, not code. The first version of the last assertion below matched the
+  // comment in that file describing the very bypass it forbids -- a guard tripping on its own
+  // explanation, which is the sixth wrong reason recorded in this package.
+  const source = raw.replace(/^\s*\/\/.*$/gm, '');
+  assert.match(source, /assert\.ok\(reversals\.length >= 2,/,
+    'mustNotice must assert its own reversal count at runtime, where dead syntax cannot satisfy it');
+  const calls = (source.match(/await mustNotice\(/g) ?? []).length;
+  assert.ok(calls >= 9, `ratchets-bite calls mustNotice ${calls} time(s), expected at least 9`);
+  assert.doesNotMatch(source, /reversals\.slice\(/,
+    'the reversal list must reach the loop intact');
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -47,8 +47,11 @@ async function repositoryCopy() {
 // `assert.notEqual(null, 0)` passes. Review twenty pointed out that every `after` assertion here
 // accepted a child that never ran.
 function assertFailed(result, message) {
-  assert.ok(Number.isInteger(result.status) && result.status !== 0,
-    `${message} (status ${result.status})\n${result.stdout}${result.stderr}`);
+  if (result.status === null) {
+    assert.fail(`${message}: the child never ran (signal ${result.signal ?? 'none'}). `
+      + 'This is not a guard failure — check disk space and process limits before reading it as one.');
+  }
+  assert.ok(result.status !== 0, `${message} (status ${result.status})\n${result.stdout}${result.stderr}`);
 }
 
 // SEVERAL reversals per suite, each on its own copy. Independent review twenty replaced three
@@ -65,6 +68,15 @@ function assertFailed(result, message) {
 // single mutated file from the original is exact -- each reversal touches one JSON document -- and
 // it keeps the property that matters: every reversal is applied to a clean tree.
 async function mustNotice(suite, reversals) {
+  // At least two, asserted HERE rather than by counting source lines. Independent review
+  // twenty-one wrote `reversals.slice(0, 0)` into the loop below: the 23 tuples stayed in the
+  // file, the source-line count still read 23, and **not one of them executed** -- twelve
+  // behaviour cases became no-ops that still printed a tick, and a hollowed
+  // `catalog-registry.test.mjs` then shipped CTR-SEC-001 as `Frozen` with its security co-owner
+  // dropped, at exit 0.
+  //
+  // A check inside the thing it constrains cannot be satisfied by dead syntax.
+  assert.ok(reversals.length >= 2, `${suite} must be probed with at least two reversals, got ${reversals.length}`);
   const root = await repositoryCopy();
   const before = runSuite(root, suite);
   assert.equal(before.status, 0, `${suite} must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
@@ -79,6 +91,12 @@ async function mustNotice(suite, reversals) {
     await writeFile(target, original);
     assertFailed(after, `${suite} must notice: ${description}`);
   }
+  // Independent review twenty-one filled a disk running this file four times: 35 whole-repository
+  // copies per run, ~840 MB, never removed. A guard that exhausts the machine it runs on is a
+  // guard that gets deleted, and the failure mode is `spawnSync` returning `status: null`, which
+  // this file used to report as "the suite must pass on an unmodified copy" -- a misleading reason
+  // for a disk-full condition.
+  await rm(root, { recursive: true, force: true });
 }
 
 const runSuite = (root, suite) => {
@@ -110,15 +128,37 @@ test('the conformance ratchet notices three unrelated reversals', async () => {
   ]);
 });
 
-test('the registry ratchet notices three unrelated reversals', async () => {
-  await mustNotice('test-kits/contracts/catalog-registry.test.mjs', [
-    ['a security caveat inverted', 'contract-catalog/shared-kernel/ctr-sec-001/manifest.json',
-      (m) => { m.untestable_by_fixture = 'Every claim this contract makes is demonstrated by its fixtures.'; }],
-    ['a contract promoted out of Draft', 'contract-catalog/shared-kernel/ctr-sec-001/manifest.json',
-      (m) => { m.status = 'Frozen'; }],
-    ['the freeze requirements emptied in the index', 'contract-catalog/shared-kernel/index.json',
-      (i) => { for (const e of i.contracts) if (e.id === 'CTR-SEC-001') e.required_before_freeze = []; }],
-  ]);
+// GENERATED, not listed. Independent review twenty-one reduced `catalog-registry.test.mjs` from
+// 803 lines to 90 -- fourteen tests carrying the original names, and exactly three real pins, the
+// three this case used to reverse -- and shipped A6 dropped as co-owner of CTR-AUD-001,
+// CTR-OBS-001 and CTR-USG-001, with CTR-MOD-001's freeze requirements emptied. **exit 0.**
+//
+// Reimplementing three named pins costs three lines. Reimplementing a cross-product over every
+// contract and every pinned field IS the suite, which is the property this file claims and did not
+// have. Reversal *diversity*, not reversal count.
+test('the registry ratchet notices a reversal in every contract it pins', async () => {
+  const contracts = (await readdir(join(REPOSITORY, 'contract-catalog/shared-kernel'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  assert.ok(contracts.length >= 14, `expected the shared-kernel catalog, found ${contracts.length} contract(s)`);
+
+  const reversals = [];
+  for (const contract of contracts) {
+    const manifestPath = `contract-catalog/shared-kernel/${contract}/manifest.json`;
+    reversals.push([`${contract} promoted out of its freeze level`, manifestPath,
+      (m) => { m.status = 'Frozen'; }]);
+    // `owner = 'A0'` was my first version and it is a no-op for the contracts A0 already owns --
+    // the case failed on `ctr-api-001` for that reason, which is the fifth time a reversal here
+    // has been aimed at something that was not a change. A value no contract can legitimately
+    // carry is a change for every one of them.
+    reversals.push([`${contract} reassigned to an owner that does not exist`, manifestPath,
+      (m) => { m.owner = 'nobody'; }]);
+  }
+  reversals.push(['the freeze requirements emptied in the index', 'contract-catalog/shared-kernel/index.json',
+    (i) => { for (const entry of i.contracts) entry.required_before_freeze = []; }]);
+  reversals.push(['a security caveat inverted', 'contract-catalog/shared-kernel/ctr-sec-001/manifest.json',
+    (m) => { m.untestable_by_fixture = 'Every claim this contract makes is demonstrated by its fixtures.'; }]);
+
+  await mustNotice('test-kits/contracts/catalog-registry.test.mjs', reversals);
 });
 
 test('the catalog-group ratchet notices three unrelated reversals', async () => {
@@ -193,6 +233,7 @@ test('the handoff ratchet fails when an author handoff claims another role appro
 
   const after = runSuite(root, suite);
   assertFailed(after, 'a fabricated approval must be reported by the handoff suite');
+  await rm(root, { recursive: true, force: true });
 });
 
 test('the repository ratchet fails when a second workflow appears', async () => {
@@ -206,6 +247,7 @@ test('the repository ratchet fails when a second workflow appears', async () => 
 
   const after = runSuite(root, suite);
   assertFailed(after, 'a workflow nobody declared must fail the repository suite');
+  await rm(root, { recursive: true, force: true });
 });
 
 test('the protocol-schema ratchet fails when a work package invents a normative field', async () => {
@@ -221,4 +263,5 @@ test('the protocol-schema ratchet fails when a work package invents a normative 
 
   const after = runSuite(root, suite);
   assertFailed(after, 'an invented normative field must fail the protocol-schema suite');
+  await rm(root, { recursive: true, force: true });
 });
