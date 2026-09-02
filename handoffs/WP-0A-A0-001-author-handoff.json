@@ -5,13 +5,22 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "423a1acf2aabc2bccea175c22c8a42eb52a42acc",
-  "head_revision_or_patch_checksum": "423a1acf2aabc2bccea175c22c8a42eb52a42acc",
+  "head_revision_or_patch_checksum": "a70455eb57bdf9ee44cfe852897806f3a9eb9cbc",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-011-repository-language.md"
+  ],
+  "files_modified": [
+    "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
+    "work-packages/WP-0A-A0-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
