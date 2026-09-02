@@ -58,7 +58,7 @@
     "test-kits/handoff-conformance.test.mjs": "f22089c2bb1dfda1a0ec3e79ee3764cea829d3e0be68eab9713d42c922ba6672",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
     "test-kits/protocol-schema-conformance.test.mjs": "53f75bb38d749c2383936a7c358e9c00c76b60bbcf80b671c5a31be1aaf90945",
-    "test-kits/ratchets-bite.test.mjs": "c5535437290b576d37942c698d955c7f6372f660c48712fec769c0bbd1b72302",
+    "test-kits/ratchets-bite.test.mjs": "77031d9bd67ff1ae693ed89aa515b1adae954b7f2d383f2430fa4304189f8e44",
     "test-kits/repository-json.test.mjs": "b18cb3d357ae42489dc9b4c2799be3b8e6a391654c6b4adfcaf7b616b9e294c0",
     "test-kits/role-separation.test.mjs": "e00a8c05ee43e01652b83fff1d1ac82039921f2db4149b48427a24e42aa3c756",
     "test-kits/secret-scan.test.mjs": "5a3fdf81619e93da6098747b793df98efb799484033daf4e48417dd88790f590",

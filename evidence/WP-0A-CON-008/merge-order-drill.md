@@ -195,3 +195,18 @@ Counts at this drill, measured rather than remembered:
 | test files / declared tests | 24 / 233 |
 | contracts / fixtures | 14 / 676 |
 | guard scripts | 16 |
+
+## Re-run at wave 62
+
+Fresh clone reset to `origin/main`, thirteen merges in PR order: **26 → 249**, `skipped 0` and
+`todo 0` at every step, no conflict in any file, exit 0.
+
+**And a cost measured while it ran.** CI went from ~30 s to 1 m 18 s, and the suite from ~2 s to
+30 s. `ratchets-bite.test.mjs` was **20.6 s of it** — it copied the whole repository once per
+reversal, 23 times. One copy per *case*, with the single mutated file restored between reversals,
+brings it to 14.2 s while keeping the property that matters: every reversal is applied to a clean
+tree.
+
+That is still the most expensive file in the repository by an order of magnitude, and it is worth
+saying why it stays: it is the only ratchet that cannot be satisfied by copying a number or a
+string. **A behaviour check costs what it costs.**

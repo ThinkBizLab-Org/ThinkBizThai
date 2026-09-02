@@ -60,18 +60,24 @@ function assertFailed(result, message) {
 // discriminate either: measured, most of these reversals fail one or two tests even against the
 // real suite. What a stub cannot do is notice SEVERAL UNRELATED reversals, because each one it
 // keeps is another pin it has to reimplement -- at which point it is the suite.
+// ONE copy per case, restored between reversals, rather than one copy per reversal. Measured: the
+// file was 20.6 s of a 30 s suite because it copied the repository 23 times over. Restoring the
+// single mutated file from the original is exact -- each reversal touches one JSON document -- and
+// it keeps the property that matters: every reversal is applied to a clean tree.
 async function mustNotice(suite, reversals) {
-  const clean = await repositoryCopy();
-  const before = runSuite(clean, suite);
+  const root = await repositoryCopy();
+  const before = runSuite(root, suite);
   assert.equal(before.status, 0, `${suite} must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
 
   for (const [description, path, mutate] of reversals) {
-    const root = await repositoryCopy();
     const target = join(root, path);
-    const document = JSON.parse(await readFile(target, 'utf8'));
+    const original = await readFile(target, 'utf8');
+    const document = JSON.parse(original);
     mutate(document);
     await writeFile(target, `${JSON.stringify(document, null, 2)}\n`);
-    assertFailed(runSuite(root, suite), `${suite} must notice: ${description}`);
+    const after = runSuite(root, suite);
+    await writeFile(target, original);
+    assertFailed(after, `${suite} must notice: ${description}`);
   }
 }
 
