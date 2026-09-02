@@ -79,3 +79,58 @@ test('the conformance ratchet fails when a negative fixture stops being rejected
   assert.notEqual(after.status, 0,
     'widening the secret-handle pattern to ^.*$ must fail the conformance suite');
 });
+
+// The two cases above cover the mutation walk and the conformance suite. The rest of the ratchets
+// -- the caveat and annotation digests, the fixture set, the index key sets, the reference
+// restriction, the approval check -- were still pinned only statically, so hollowing
+// `catalog-registry.test.mjs` alone switches off every pin it carries.
+//
+// One case per suite, each reversing something that suite exists to notice. They are written out
+// rather than generated from a table for the reason recorded two waves ago: a test generated in a
+// loop is one the declaration counter cannot see.
+
+test('the registry ratchet fails when a caveat is rewritten into its opposite', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/catalog-registry.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const manifestPath = join(root, 'contract-catalog/shared-kernel/ctr-sec-001/manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  manifest.untestable_by_fixture = 'Every claim this contract makes is demonstrated by its fixtures.';
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0,
+    'inverting CTR-SEC-001\'s admission that its fixtures cannot demonstrate a claim must fail the registry suite');
+});
+
+test('the catalog-group ratchet fails when a schema holds an empty combinator', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/catalog-groups.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const schemaPath = join(root, 'contract-catalog/shared-kernel/ctr-evt-001/schema.json');
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  schema.properties.causation_id.not = {};
+  await writeFile(schemaPath, `${JSON.stringify(schema)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0, '`not: {}` rejects every document at that location and must fail the group suite');
+});
+
+test('the reference ratchet fails when a $ref reaches outside a governed contract', async () => {
+  const root = await repositoryCopy();
+  const suite = 'test-kits/contracts/catalog-reference-integrity.test.mjs';
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `the suite must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  const schemaPath = join(root, 'contract-catalog/shared-kernel/ctr-api-001/schema.json');
+  const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+  schema.properties.data.$ref = './vocab/schema.json';
+  await writeFile(schemaPath, `${JSON.stringify(schema)}\n`);
+
+  const after = runSuite(root, suite);
+  assert.notEqual(after.status, 0, 'a $ref into a directory no ratchet iterates must fail the reference suite');
+});

@@ -81,3 +81,25 @@ Ratcheted like `architecture/decisions`: a declared set, and every file digested
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+## Extending the behaviour ratchet to the suites it did not cover
+
+`ratchets-bite.test.mjs` shipped covering two suites. The rest — the caveat and annotation digests,
+the fixture set, the index key sets, the reference restriction — were still pinned **only
+statically**, so hollowing `catalog-registry.test.mjs` alone switches off every pin it carries, and
+that file carries the most.
+
+Three more cases, one per suite, each reversing something that suite exists to notice:
+
+| suite | reversal | verdict |
+| --- | --- | --- |
+| `catalog-registry` | invert `CTR-SEC-001`'s admission that its fixtures cannot demonstrate a claim | must fail |
+| `catalog-groups` | `not: {}` on `CTR-EVT-001.causation_id` — rejects every document there | must fail |
+| `catalog-reference-integrity` | a `$ref` into a directory no ratchet iterates | must fail |
+
+Verified end to end: hollowing `catalog-registry.test.mjs` while keeping all fourteen test names
+and all sixteen assertions, then inverting the security caveat, now **exits 1** — *"inverting
+CTR-SEC-001's admission … must fail the registry suite"*.
+
+They are written out rather than generated from a table, for the reason recorded three waves ago:
+**a test generated in a loop is one the declaration counter cannot see.**
