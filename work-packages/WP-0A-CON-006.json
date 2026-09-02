@@ -1,0 +1,287 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-CON-006",
+  "title": "Usage/cost and notification contracts \u2014 completing the shared kernel",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "backlog",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "Not satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register permits a single-vendor fallback only as an explicit recorded exception. Five separate runs with distinct capability declarations, none reviewing its own work, is that fallback. It is not equivalent to cross-vendor review, and runs sharing a vendor and a model share a correlated blind spot."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-004 before the manual merge described in RFC-2026-002",
+    "A1 security owner disposition of the CTR-MOD-001 / CTR-SEC-001 secret-handle syntax ownership conflict, and of the handle issuance format that CTR-SEC-001 cannot specify"
+  ],
+  "purpose": "Materialize the last two Draft shared-kernel contracts, CTR-USG-001 and CTR-NTF-001, completing all 14 entries in the Sprint 0A contract catalog. Written schema-first with every rule carrying an x-source, following the method that WP-0A-CON-003 and WP-0A-CON-004 established after WP-0A-CON-002 was rejected twice for letting schema and test predicates drift apart.",
+  "scope": {
+    "include": [
+      "CTR-USG-001 schema, manifest and synthetic fixtures: OB-004's six usage dimensions, its attribution requirement, and decimal-string money",
+      "CTR-NTF-001 schema, manifest and synthetic fixtures: PT-007's command/result split, permission-checked deep link, ID-005 dedupe,",
+      "An x-source on every rule naming the baseline task, and a declared inference wherever a rule is derived rather than quoted",
+      "untestable_by_fixture and untestable_by_schema declarations for what neither can demonstrate"
+    ],
+    "exclude": [
+      "Contract freeze-level advancement, contract-catalog/shared-kernel/index.json, the provider price list, currency conversion, the OB-008 reconciliation algorithm, the OB-006 safe metric-label set, notification retry policy and dedupe window, email and LINE adapter shapes, the MOD-100 preference model, production schema, migrations, provider SDKs, credentials, customer data, network calls, Gate G0 approval and any merge authorization"
+    ]
+  },
+  "decisions_consumed": [
+    "DEC-021",
+    "DEC-022",
+    "DEC-023",
+    "DEC-025"
+  ],
+  "contracts_consumed": [
+    "CTR-TEN-001",
+    "CTR-ERR-001"
+  ],
+  "contracts_produced": [
+    "CTR-USG-001 and CTR-NTF-001 materialized at Draft only; no freeze-level advancement"
+  ],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-002",
+      "WP-0A-CON-002",
+      "WP-0A-CON-003",
+      "WP-0A-CON-004",
+      "WP-0A-CON-005"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "writable_paths": [
+      "contract-catalog/shared-kernel/ctr-usg-001/**",
+      "contract-catalog/shared-kernel/ctr-ntf-001/**",
+      "work-packages/WP-0A-CON-006.json",
+      "evidence/WP-0A-CON-006/**",
+      "handoffs/WP-0A-CON-006-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/README.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/**",
+      "contract-catalog/shared-kernel/ctr-err-001/**",
+      "contract-catalog/shared-kernel/ctr-mod-001/**",
+      "package.json",
+      "package-lock.json",
+      ".github/**",
+      "scripts/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "**/*.pem",
+      "**/*.key",
+      "**/*.p12",
+      "**/*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed because six manifests declared them while shipping outputs that matched, and the ownership validator could not see the contradiction until it began comparing outputs against forbidden_paths. An earlier version of this note was copied verbatim from WP-0A-CON-004 and asserted that this package 'materializes the secret-handle contract itself', which is FALSE here -- CON-004 has 25 such outputs and this package has none. Independent review found the copied falsehood. Replaced with the extensions that carry real key material.",
+    "module_ids": [
+      "MOD-000"
+    ],
+    "migration_reservations": [],
+    "authorized_cross_package_amendments": [
+      "test-kits/integrity-manifest.json \u2014 recompute digests only; this package adds no test file but the guard requires the manifest to match the tree.",
+      "contract-catalog/shared-kernel/ctr-evt-001/** and ctr-job-001/** \u2014 ADD negative fixtures only, and declare them in each manifest. No schema, version, status or freeze-level change. Both sat below the new per-contract mutation-coverage floor at 26.6% and 25.0%, with only three fixtures each, so constraints the Sprint 0A baseline states in sections 3.2 and 3.3 were exercised by nothing. Adding a counterexample cannot weaken a contract; it can only make an existing rule observable.",
+      "test-kits/contracts/shared-kernel-contract-catalog.test.mjs \u2014 validate each fixture against its shipped schema in addition to the hand-written predicate. The predicate does not implement additionalProperties, so an undeclared extra property carrying a secret passed it. This is the schema/predicate divergence the catalog has been rejected for twice.",
+      "test-kits/contracts/schema-mutation-coverage.test.mjs \u2014 a WP-0A-CON-003 output. Amended to count assertion keywords only, and to raise the floor. Independent review found this package had edited it while listing it in its own read_only_paths and omitting it here, so npm run check stayed green only because outputs.files did not admit the change: the same ship-past-the-control pattern an Integration Owner blocked earlier in this session, relocated into the manifest."
+    ]
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
+      "docs/plans/module-contracts-events-jobs-workstream-th.md",
+      "docs/plans/meta-security-production-ops-workstream-th.md",
+      "contract-catalog/shared-kernel/index.json",
+      "contract-catalog/shared-kernel/ctr-ten-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-err-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-mod-001/schema.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-channel-enum.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-command-carrying-delivery.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-command-without-deep-link.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-minlength.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-dedupe-key-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-omits-permission-flag.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-public-url.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-target-ref-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-deep-link-without-permission.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivered-with-failure-class.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-failure-class-enum.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-delivery-required.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-missing-class-only.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-failure-without-class.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-kind-enum.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-free-text.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-message-key-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-missing-tenant-context.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-notification-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-notification-id-type.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-required.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-unknown-delivery-state.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/invalid-unsupported-locale.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-command.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-delivered.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-failed-transient.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/examples/valid-result-suppressed-duplicate.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-ntf-001/schema.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-business-profile-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-business-profile-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-job-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-job-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-provider-key-pattern.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-provider-key-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-workspace-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-attribution-workspace-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-amount-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-basis-enum.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-magnitude-past-exact-range.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-supersedes-usage-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-cost-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dedupe-key-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dedupe-key-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-dimension-enum.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-float-cost.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-dedupe-key.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-provider-attribution.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-missing-tenant-context.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-negative-cost.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-occurred-at-format.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-occurred-at-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-additionalproperties.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-amount-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-leading-zero.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-required.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-quantity-unit-enum.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-unknown-currency.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-unknown-dimension.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-usage-id-minlength.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/invalid-usage-id-type.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-estimated-storage.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/examples/valid-provider-reported.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/manifest.json",
+      "contract-catalog/shared-kernel/ctr-usg-001/schema.json",
+      "evidence/WP-0A-CON-006/author-self-check.md",
+      "evidence/WP-0A-CON-006/review-contract-head.md",
+      "evidence/WP-0A-CON-006/review-contract.md",
+      "evidence/WP-0A-CON-006/test-verdict-generated-fixtures.md",
+      "evidence/WP-0A-CON-006/test-verdict.md",
+      "work-packages/WP-0A-CON-006.json"
+    ],
+    "contracts": [
+      "CTR-USG-001 (Draft)",
+      "CTR-NTF-001 (Draft)"
+    ]
+  },
+  "acceptance_criteria": [
+    "Every fixture is validated against its own shipped schema.json by the subset validator; both contracts passed conformance without a correction round.",
+    "Every rule carries an x-source naming the baseline task, and states whether it is quoted or a declared inference.",
+    "Money and quantity are decimal STRINGS, never numbers: Decision Register 4.2 MOD-130 forbids floating-point money.",
+    "A notification deep link requires a permission check as a const, and a delivery failure records that it did not roll back the domain result as a const -- both expressed in the contract rather than in prose.",
+    "All 14 shared-kernel contracts are now materialized; the index still reports 4 Candidate and 10 Draft, so materializing a Draft does not promote it.",
+    "npm run check passes on pinned Node 24.20.0 / npm 11.19.0 with skipped and todo both zero.",
+    "Every contract in the catalog reaches a per-contract mutation-coverage floor of 30%, computed rather than enumerated, so a contract added later by someone who never reads the guard is still measured.",
+    "The mutation-coverage metric counts assertion keywords only, so a schema cannot raise its score by deleting a rule or by adding a property that constrains nothing.",
+    "The coverage guard cannot be improved by deleting a rule: each contract declares both a floor on its constraint-site count and a ceiling on its unkilled sites, so removing a constraint lowers a number that must be edited deliberately."
+  ],
+  "required_tests": [
+    "Schema conformance for both contracts via the subset validator",
+    "Negative cases: floating-point cost notation, missing provider attribution, an unknown usage dimension, a metric label carrying user content",
+    "Negative cases: a deep link without a permission check, a public-URL deep link, a failure without a class, a command carrying delivery state, free text where a message key is required",
+    "Repository protocol, ownership, role-separation and secret-scan checks"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node --test test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
+      "node scripts/validate-work-package-ownership.mjs work-packages"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "open_blockers": [
+    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "CTR-NTF-001 SHOULD NOT HAVE BEEN AUTHORED BY THIS PACKAGE. Independent review graded it High: Decision Register 4.1 reserves proposing a contract to its owner and 4.3 makes A0's role 'producer submits proposal and fixture; A0 assigns version'. A5 is the sole owner and A0 wrote the proposal. Ratification after the fact is a weaker and different control. The '14 of 14 materialized' figure therefore counts an unratified non-owner draft as coverage and must not be cited as G0 evidence without that qualification.",
+    "CTR-NTF-001 is owned by A5, not A0. It is materialized here from the baseline and REQUIRES A5 ratification before freeze. This is the same class of ownership irregularity that CTR-MOD-001 created for CTR-SEC-001, and it is recorded rather than resolved because A5 is not in this session.",
+    "CTR-USG-001 is owned by A0+A6. A6 has not supplied an independently reviewed capability benchmark for billing-cost-ops (see WP-0A-A6-001), so the cost semantics here are materialized from the baseline and require A6 ratification.",
+    "OB-008 reconciliation -- detecting missing and duplicate usage against a provider statement -- and ID-005 dedupe suppression are properties of a ledger or a store across many events. Declared in untestable_by_fixture and NOT claimed as materialized.",
+    "metric_labels is held at maxProperties 0 because OB-006's safe label set does not exist yet. An open object would invite an unsafe one; this is a deliberate placeholder, not a modelled rule.",
+    "That a cost figure is arithmetically correct for its quantity is declared in untestable_by_schema. Only OB-008 can check it.",
+    "This package depends on five unmerged packages and inherits every open blocker recorded on them, including that the test-integrity guard is a tripwire with no self-anchor and that npm run check can be neutered by its own script.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
+    "The 30% mutation-coverage floor is a floor, not a target. The catalog sits at 42.4% and the weakest contract at 32.4%; a constraint below the floor is still a constraint no fixture exercises. Raising the floor is cheap and should be done as coverage rises.",
+    "Roughly 71% of the 441 generated counterexamples are MECHANICAL -- they violate a rule with a sentinel value (`zz not matching pattern`) rather than with a value a producer could plausibly emit. Independent testing measured it and the judgement is accepted: the 66 enum, pattern and format fixtures are the weakest, because those keywords are exactly where a contract encodes a specific hazard and a sentinel erases it. They are load-bearing -- each one is a real witness that kills exactly one site -- but they are not documentation, and 82% coverage should not be read as 82% of the catalog's hazards being illustrated.",
+    "Conditional constraint sites -- the allOf/if/then business rules -- sit at 57.6% against 88.8% for plain leaf assertions. The generator's naming scheme drops allOf/then/index segments, so 52 names would have collided and it SKIPPED those sites rather than misnaming them. That is why every generated name is correct and also why the conditional half stays uncovered. The naming scheme is the ceiling on this metric."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

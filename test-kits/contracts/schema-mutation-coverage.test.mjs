@@ -43,6 +43,20 @@ const PROTECTED = [
   ['ctr-sec-001', ['properties', 'redaction', 'properties', 'error_trace_safe', 'const']],
   ['ctr-aud-001', ['properties', 'action', 'properties', 'category', 'enum']],
   ['ctr-obs-001', ['properties', 'dependencies', 'items', 'properties', 'status', 'enum']],
+  // Independent testing measured CTR-USG-001 at 7.0% -- the lowest of the session -- and
+  // CTR-NTF-001 at 24.5%, and found neither contract had a single entry here. The guard
+  // built for exactly this defect had not been extended to the packages that followed it.
+  // These are the sites it named as carrying a guarantee and killed by nothing.
+  ['ctr-usg-001', ['properties', 'cost', 'properties', 'amount', 'pattern']],
+  ['ctr-usg-001', ['properties', 'quantity', 'properties', 'amount', 'pattern']],
+  ['ctr-usg-001', ['properties', 'cost', 'properties', 'currency', 'enum']],
+  ['ctr-usg-001', ['required']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'required']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'properties', 'requires_permission', 'const']],
+  ['ctr-ntf-001', ['properties', 'deep_link', 'properties', 'target_ref', 'pattern']],
+  ['ctr-ntf-001', ['properties', 'delivery', 'properties', 'state', 'enum']],
+  ['ctr-ntf-001', ['properties', 'locale', 'enum']],
+  ['ctr-ntf-001', ['required']],
 ];
 
 function without(schema, path) {
@@ -80,6 +94,119 @@ async function fixturesOf(dir) {
 const verdicts = (schema, bodies, resolve) =>
   bodies.map(({ body }) => validate(schema, body, { resolve }).length === 0).join(',');
 
+// A hand-maintained list of protected sites has a failure mode this Author demonstrated:
+// WP-0A-CON-006 shipped two contracts and added neither to the list, and independent testing
+// measured one of them at 7.0% -- the lowest of the session -- precisely because the guard
+// built for that defect was never extended to it. A list you must remember to extend is a
+// list you will forget to extend.
+//
+// So the floor is computed per contract instead of enumerated. Every contract must reach it,
+// including one added tomorrow by someone who never reads this file.
+// Set to bite, not to pass. Independent review showed the previous 30% floor failed nothing
+// -- the weakest contract cleared it by ONE killed site -- and that the metric it measured was
+// gameable in both directions. With the metric counting assertion keywords only, the true
+// catalog figure was 19.3%, not the 42.4% previously reported. 397 single-fault
+// counterexamples later the catalog is at 82.1% and the weakest contract at 72.4%, so a 70%
+// floor leaves roughly two sites of headroom on the weakest and fails anything that regresses.
+const COVERAGE_FLOOR = 0.70;
+// A RATIO always rewards shrinking its denominator. Independent testing deleted six real but
+// untested rules from ctr-mod-001 and the score ROSE 72.4% -> 77.8% with CI green, because a
+// rule nothing tests is a rule you are rewarded for removing.
+//
+// A ceiling on UNKILLED sites alone does not fix it either: deleting an untested rule lowers
+// that count too. What deletion cannot do is preserve the TOTAL. So each contract declares a
+// floor on its constraint-site count, and a rule can only leave the catalog by lowering a
+// number someone has to edit deliberately, in a diff a reviewer reads.
+const SITE_FLOOR = { 'ctr-api-001': 38, 'ctr-aud-001': 63, 'ctr-err-001': 23, 'ctr-evt-001': 42,
+  'ctr-flg-001': 74, 'ctr-idm-001': 36, 'ctr-job-001': 40, 'ctr-mod-001': 87, 'ctr-ntf-001': 39,
+  'ctr-obs-001': 83, 'ctr-pag-001': 38, 'ctr-sec-001': 76, 'ctr-ten-001': 23, 'ctr-usg-001': 37 };
+
+// Held at the measured actual, not at a round number above it. Slack in this ceiling is
+// room for coverage to regress without anything failing, so every fixture that closes a
+// site tightens it in the same commit.
+const UNKILLED_CEILING = { 'ctr-api-001': 6, 'ctr-aud-001': 12, 'ctr-err-001': 2, 'ctr-evt-001': 2,
+  'ctr-flg-001': 15, 'ctr-idm-001': 4, 'ctr-job-001': 4, 'ctr-mod-001': 21, 'ctr-ntf-001': 9,
+  'ctr-obs-001': 10, 'ctr-pag-001': 10, 'ctr-sec-001': 13, 'ctr-ten-001': 1, 'ctr-usg-001': 2 };
+
+// `$schema`, `$id`, `title` and `description` are metadata: deleting one cannot change any
+// verdict, so counting them as constraints would drag every ratio down and make the floor
+// measure documentation rather than enforcement.
+const METADATA = new Set(['$schema', '$id', 'title', 'description']);
+const STRUCTURAL = new Set(['properties', 'allOf', 'anyOf', 'oneOf', 'items', 'then', 'else', 'if', 'not']);
+// Every JSON Schema keyword that actually constrains an instance. Anything else in a schema
+// is a name, a container, or an annotation.
+const ASSERTIONS = new Set([
+  'type', 'enum', 'const', 'required', 'additionalProperties', 'minItems', 'maxItems',
+  'uniqueItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'maximum',
+  'maxProperties', 'minProperties', 'format', '$ref',
+]);
+
+// Independent review proved the earlier version gameable in BOTH directions on real copies
+// with CI green each time: deleting six untested constraints RAISED ctr-ten-001 from 32.4%
+// to 39.3%, and adding four zero-constraint properties raised it to 39.5%. The cause was
+// counting a bare property NAME as a site -- 55-91% of every contract's "kills" -- so a
+// schema was rewarded for having fewer rules and for having more names. It also counted
+// x-amended-by internals, which are unobservable by construction and permanently dead.
+//
+// Only assertion keywords count now. A property name is not a constraint; deleting one
+// removes whatever it contained, which is a different measurement entirely.
+function constraintSites(node, path = []) {
+  let found = [];
+  if (node && typeof node === 'object' && !Array.isArray(node)) {
+    for (const [key, value] of Object.entries(node)) {
+      if (path.some((segment) => typeof segment === 'string' && segment.startsWith('x-'))) continue;
+      if (ASSERTIONS.has(key) && !METADATA.has(key)) found.push([...path, key]);
+      if (!key.startsWith('x-')) found = found.concat(constraintSites(value, [...path, key]));
+    }
+  } else if (Array.isArray(node)) {
+    node.forEach((value, index) => { found = found.concat(constraintSites(value, [...path, index])); });
+  }
+  return found;
+}
+
+test('every contract reaches the mutation-coverage floor', async () => {
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  const weak = [];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let data;
+    try {
+      data = await fixturesOf(entry.name);
+    } catch (error) {
+      // A directory holding a schema but no manifest was silently exempt from the floor AND
+      // from conformance -- the quietest way to remove a contract from every check at once.
+      const hasSchema = await readFile(join(CATALOG, entry.name, 'schema.json'), 'utf8').then(() => true, () => false);
+      if (hasSchema) weak.push(`${entry.name} — carries a schema.json but no readable manifest.json, so it is exempt from this floor and from conformance. A contract cannot opt out by omission.`);
+      continue;
+    }
+    const { schema, bodies, resolve } = data;
+    const baseline = verdicts(schema, bodies, resolve);
+    const sites = constraintSites(schema);
+    let killed = 0;
+    for (const site of sites) {
+      const mutated = without(schema, site);
+      if (mutated && verdicts(mutated, bodies, resolve) !== baseline) killed += 1;
+    }
+    const ratio = sites.length === 0 ? 1 : killed / sites.length;
+    if (ratio < COVERAGE_FLOOR) {
+      weak.push(`${entry.name} — ${killed}/${sites.length} constraint sites killed by a fixture (${(ratio * 100).toFixed(1)}%), below the ${(COVERAGE_FLOOR * 100).toFixed(0)}% floor`);
+    }
+    const siteFloor = SITE_FLOOR[entry.name];
+    if (siteFloor === undefined) {
+      weak.push(`${entry.name} — no entry in SITE_FLOOR. A new contract must declare how many constraints it carries, or a later commit can delete rules and raise its score.`);
+    } else if (sites.length < siteFloor) {
+      weak.push(`${entry.name} — ${sites.length} constraint sites, below its declared floor of ${siteFloor}. A rule was removed; that is a deliberate act and must be a deliberate edit here, not a silent score improvement.`);
+    }
+    const unkilled = sites.length - killed;
+    const ceiling = UNKILLED_CEILING[entry.name];
+    if (ceiling === undefined) {
+      weak.push(`${entry.name} — no entry in UNKILLED_CEILING. A new contract must declare how many untested constraints it ships, so the number cannot drift upward unnoticed.`);
+    } else if (unkilled > ceiling) {
+      weak.push(`${entry.name} — ${unkilled} constraint sites killed by no fixture, above its ceiling of ${ceiling}. Deleting a rule does not improve this number; only writing a fixture does.`);
+    }
+  }
+  assert.deepEqual(weak, [], `contract(s) below the mutation-coverage floor:\n  ${weak.join('\n  ')}`);
+});
+
 test('deleting a protected constraint changes at least one fixture verdict', async () => {
   const unkilled = [];
   for (const [dir, path] of PROTECTED) {
@@ -115,4 +242,200 @@ test('every contract this package owns carries a fixture that kills its root req
     }
   }
   assert.deepEqual(weak, [], `contract(s) whose required list nothing tests:\n  ${weak.join('\n  ')}`);
+});
+
+// A ratio hides which HALF is untested. Measured per keyword class, the conditional rules --
+// the `if`/`then` business logic -- sat 30 points below the leaf constraints, and those are
+// exactly the failure, deny and leakage paths: an error envelope that also carries a result,
+// a permissioned-data module that is not tenant scoped, a managed secret rotated by a
+// workspace. The catalog had valid fixtures for the happy path of every contract and for the
+// failure path of almost none.
+//
+// Raising the ratio is not the goal; a ratio can be raised by deleting rules. This test
+// admits no ratio. Every conditional site is either killed by a fixture or PROVED
+// unkillable, and the proof is structural: the same obligation is already imposed at the
+// same instance location by a schema that applies unconditionally, so no single-fault
+// deletion can change any verdict. Anything else is a gap and must be named below.
+const CONDITIONAL = new Set(['allOf', 'anyOf', 'oneOf', 'if', 'then', 'else', 'not']);
+// Keywords whose meaning depends on their siblings, so an equal value elsewhere is not the
+// same obligation and proves nothing.
+const SIBLING_DEPENDENT = new Set(['additionalProperties', 'minProperties', 'maxProperties']);
+
+// Every schema node that constrains the SAME instance location as `path`, gathered on the
+// way down. An `allOf` branch and a `then` do not descend into the instance; they add
+// another obligation at the level they sit on. `if` and `not` are traversed but never
+// counted -- an `if` states a condition, not an obligation, and `not` inverts one.
+function scopesAlong(schema, path) {
+  // TWO things are tracked, and conflating them is what made the first version unsound.
+  //
+  // `cursor` walks the ACTUAL path to the site. `evidence` holds nodes that constrain the same
+  // instance location and apply whenever the site's branch applies.
+  //
+  // Descending through `properties`/`items` moves every evidence node in step: they all
+  // describe the same instance location, so they all descend into the same child.
+  //
+  // Stepping into `then`, `else` or an `allOf` branch does NOT. It selects one obligation out
+  // of many at the current level, so only the cursor moves and only the cursor is added.
+  // Independent review and independent testing each defeated a version that mapped these
+  // steps over the whole evidence list: a sibling `allOf` branch guarded by a DIFFERENT `if`
+  // was admitted as proof, and independent testing used exactly that to ship an untested
+  // business rule -- a percentage bucket that did not allocate the subject still returning
+  // allow -- past this suite with the whole check green.
+  let cursor = schema;
+  let evidence = [schema];
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const key = path[index];
+    if (key === 'properties' || key === 'items') {
+      const name = path[index + 1];
+      const step = key === 'properties' ? (node) => node?.properties?.[name] : (node) => node?.items;
+      if (key === 'properties') index += 1;
+      evidence = evidence.map(step).filter(Boolean);
+      cursor = step(cursor);
+    } else if (key === 'allOf' || key === 'anyOf' || key === 'oneOf') {
+      const branch = path[index + 1];
+      index += 1;
+      cursor = cursor?.[key]?.[branch];
+      // An `anyOf`/`oneOf` branch is an alternative, not a conjunct: that one of them holds
+      // says nothing about this one, so such a branch is walked and never cited.
+      if (cursor && key === 'allOf') evidence = [...evidence, cursor];
+    } else if (key === 'then' || key === 'else') {
+      cursor = cursor?.[key];
+      if (cursor) evidence = [...evidence, cursor];
+    } else if (key === 'if') {
+      // An `if` states a condition, not an obligation. Walked, never cited.
+      cursor = cursor?.if;
+    } else {
+      return null;
+    }
+    if (!cursor) return null;
+  }
+  return evidence;
+}
+
+// `not` inverts the meaning of everything under it: deleting a constraint inside a `not`
+// makes the schema STRICTER, not weaker, so the redundancy argument does not hold there and
+// this refuses to make it.
+function provablyRedundant(schema, path) {
+  if (path.includes('not')) return false;
+  const keyword = path.at(-1);
+  const scopes = scopesAlong(schema, path);
+  if (!scopes) return false;
+  const site = path.reduce((node, key) => node?.[key], schema);
+  // The node the site lives on is not evidence that the site is redundant. Without this the
+  // proof reads a constraint as its own justification and excuses every gap it is given.
+  const owner = path.slice(0, -1).reduce((node, key) => node?.[key], schema);
+  const elsewhere = scopes.filter((node) => node !== undefined && node !== owner);
+  if (keyword === 'required') {
+    const demanded = new Set(elsewhere.flatMap((node) => (Array.isArray(node.required) ? node.required : [])));
+    return Array.isArray(site) && site.every((key) => demanded.has(key));
+  }
+  // `additionalProperties: false` is not a self-contained assertion. It means "no key beyond
+  // THIS node's `properties`", so two nodes can carry a byte-identical value and forbid
+  // different key sets -- independent review distinguished exactly that with {kind:'P',b:'x'}.
+  // Every schema in this catalog carries root `additionalProperties: false`, so a future
+  // contract writing "in this state, only these fields may appear" -- the leakage-path rule
+  // class this whole test exists to cover -- would have been silently excused.
+  if (SIBLING_DEPENDENT.has(keyword)) return false;
+  const same = JSON.stringify(site);
+  return elsewhere.some((node) => node[keyword] !== undefined && JSON.stringify(node[keyword]) === same);
+}
+
+// Conditional sites this proof cannot account for. Listing one is a statement that the site
+// is untested, so the list is the thing a reviewer should read first.
+//
+// Both entries are CORRECTIONS to an earlier claim. They were reported as gaps belonging to
+// A5, and independent review and independent testing separately showed they are not gaps at
+// all: each guard is `required: ["delivery"]`, and each matching `then` constrains only
+// inside `properties.delivery`, which is vacuous when `delivery` is absent. No instance can
+// distinguish the schema from the schema without the guard -- independent testing put 150000
+// targeted instances against each and found none. They are unkillable for a reason this
+// proof does not model (a vacuous consequent, not a duplicated obligation), so they stay
+// listed rather than silently excused, and the earlier escalation to A5 is withdrawn.
+const UNPROVEN_CONDITIONAL_GAPS = [
+  'ctr-ntf-001 allOf.2.if.required',
+  'ctr-ntf-001 allOf.3.if.required',
+];
+
+// The proof decides whether an untested rule is reported or excused, so its soundness is the
+// whole guarantee. These are the counterexamples independent review and independent testing
+// each used to defeat an earlier version of it; every one is a schema where deleting the site
+// DOES change a real instance's verdict, so excusing it would hide a testable rule.
+const PROOF_MUST_NOT_EXCUSE = [
+  {
+    why: 'a sibling allOf branch, guarded by a different `if`, is not evidence about this one',
+    schema: {
+      type: 'object', required: ['kind'],
+      properties: { kind: { enum: ['P', 'Q'] }, a: { type: 'string' } },
+      if: { properties: { kind: { const: 'P' } }, required: ['kind'] }, then: { required: ['a'] },
+      allOf: [{ if: { properties: { kind: { const: 'Q' } }, required: ['kind'] }, then: { required: ['a'] } }],
+    },
+    site: ['allOf', 0, 'then', 'required'],
+    distinguishedBy: { kind: 'Q' },
+  },
+  {
+    why: '`additionalProperties: false` means "nothing beyond THIS node\'s properties", so an equal value elsewhere forbids a different key set',
+    schema: {
+      type: 'object', required: ['kind'],
+      properties: { kind: { enum: ['P', 'Q'] }, a: { type: 'string' }, b: { type: 'string' } },
+      additionalProperties: false,
+      allOf: [{
+        if: { properties: { kind: { const: 'P' } }, required: ['kind'] },
+        then: { properties: { kind: {}, a: {} }, additionalProperties: false },
+      }],
+    },
+    site: ['allOf', 0, 'then', 'additionalProperties'],
+    distinguishedBy: { kind: 'P', b: 'x' },
+  },
+  {
+    why: 'a rule nested under `then.allOf[i].then` must not be excused by an unrelated branch that happens to carry the same value',
+    schema: {
+      type: 'object', required: ['kind', 'effect'],
+      properties: { kind: { enum: ['P', 'Q'] }, effect: { enum: ['allow', 'deny'] } },
+      allOf: [
+        { if: { properties: { kind: { const: 'P' } }, required: ['kind'] }, then: { properties: { effect: { const: 'deny' } } } },
+        { if: { properties: { kind: { const: 'Q' } }, required: ['kind'] },
+          then: { allOf: [{}, { if: {}, then: { properties: { effect: { const: 'deny' } } } }] } },
+      ],
+    },
+    site: ['allOf', 1, 'then', 'allOf', 1, 'then', 'properties', 'effect', 'const'],
+    distinguishedBy: { kind: 'Q', effect: 'allow' },
+  },
+];
+
+test('the redundancy proof excuses nothing a real instance can distinguish', () => {
+  const wrong = [];
+  for (const { why, schema, site, distinguishedBy } of PROOF_MUST_NOT_EXCUSE) {
+    const full = { $schema: 'https://json-schema.org/draft/2020-12/schema', ...schema };
+    const mutated = without(full, site);
+    assert.ok(mutated, `${site.join('.')} does not exist — this counterexample is stale`);
+    // The case only means anything while the instance really does tell the two apart.
+    const before = validate(full, distinguishedBy, { resolve: () => null }).length === 0;
+    const after = validate(mutated, distinguishedBy, { resolve: () => null }).length === 0;
+    assert.notEqual(before, after,
+      `${site.join('.')}: ${JSON.stringify(distinguishedBy)} no longer distinguishes the two schemas — the counterexample needs rebuilding, not deleting`);
+    if (provablyRedundant(full, site)) wrong.push(`${site.join('.')} — ${why}`);
+  }
+  assert.deepEqual(wrong, [], `the proof excused a site a real instance distinguishes:\n  ${wrong.join('\n  ')}`);
+});
+
+test('every conditional constraint is killed by a fixture or proved unkillable', async () => {
+  const entries = await readdir(CATALOG, { withFileTypes: true });
+  const gaps = [];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    let data;
+    try { data = await fixturesOf(entry.name); } catch { continue; }
+    const { schema, bodies, resolve } = data;
+    const baseline = verdicts(schema, bodies, resolve);
+    for (const site of constraintSites(schema)) {
+      if (!site.some((key) => typeof key === 'string' && CONDITIONAL.has(key))) continue;
+      const mutated = without(schema, site);
+      if (!mutated || verdicts(mutated, bodies, resolve) !== baseline) continue;
+      if (provablyRedundant(schema, site)) continue;
+      gaps.push(`${entry.name} ${site.join('.')}`);
+    }
+  }
+  const surprises = gaps.filter((gap) => !UNPROVEN_CONDITIONAL_GAPS.includes(gap));
+  assert.deepEqual(surprises, [], `conditional rule(s) that no fixture exercises and no proof excuses:\n  ${surprises.join('\n  ')}`);
+  const closed = UNPROVEN_CONDITIONAL_GAPS.filter((gap) => !gaps.includes(gap));
+  assert.deepEqual(closed, [], `declared gap(s) that are no longer gaps — remove them from UNPROVEN_CONDITIONAL_GAPS:\n  ${closed.join('\n  ')}`);
 });
