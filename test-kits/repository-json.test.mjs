@@ -150,7 +150,15 @@ test('no decision record exists outside the directory that holds them', async ()
   //
   // Ratcheted on CONTENT and NAME, repo-wide, rather than on location: a document that calls
   // itself an RFC or declares an approved status is a decision record wherever it sits.
-  const RFC_NAME = /RFC-\d{4}-\d{3}/;
+  // Independent review nineteen walked through both signals. It labelled the document
+  // `# Decision Record DR-2026-011` -- not an RFC by name or heading, and outranking the Decision
+  // Register just the same -- and it pushed a genuine `# RFC-2026-011` heading past the
+  // 600-character window with an HTML-comment preamble. Both **exit 0**.
+  //
+  // The heading was decoration; **the status line is the load-bearing signal**, and it is now read
+  // over the whole file. `evidence/` is exempt because an evidence record quotes decisions
+  // constantly and flagging those would train a reader to ignore this.
+  const RFC_NAME = /\b(RFC|ADR|DR)-\d{4}-\d{3}\b/i;
   // TWO signals, because one is not enough in either direction. The first version matched
   // `evidence/WP-0A-A0-001/rfc-002-exact-commit-verification.md`, which opens
   // `# RFC-2026-002 exact-commit verification` — an evidence record ABOUT an RFC, not an RFC. A
@@ -158,7 +166,7 @@ test('no decision record exists outside the directory that holds them', async ()
   // has recorded that three times now.
   //
   // A decision record opens as one AND declares a status. An evidence file does neither.
-  const RFC_HEADING = /^#\s*RFC-\d{4}-\d{3}/m;
+  const RFC_HEADING = /^#+\s*((RFC|ADR|DR)-\d{4}-\d{3}\b|Decision Record\b|Amendment\b)/mi;
   const RFC_STATUS = /^\s*(\*\*)?Status(\*\*)?:\s*(Approved|Accepted|Proposed)/mi;
   // `architecture/decisions` is the declared home and is checked by the test above; skipping all
   // of `architecture` was my own first version, and it let `architecture/RFC-2026-011-exemption.md`
@@ -176,11 +184,41 @@ test('no decision record exists outside the directory that holds them', async ()
       if (RFC_NAME.test(entry.name)) { found.push(`${path} — named as a decision record`); continue; }
       const body = await readFile(path, 'utf8');
       // Evidence files quote RFCs constantly; only a document that OPENS as one counts.
-      const head = body.slice(0, 600);
-      if (RFC_HEADING.test(head) && RFC_STATUS.test(head)) found.push(`${path} — opens as a decision record`);
+      // The WHOLE file. A 600-character window is a window, and the review put the heading past
+      // it with an HTML comment.
+      if (path.startsWith('evidence/')) continue;
+      if (RFC_HEADING.test(body) && RFC_STATUS.test(body)) found.push(`${path} — reads as a decision record`);
     }
   };
   await walk('.');
   assert.deepEqual(found, [], `decision record(s) outside architecture/decisions:\n  ${found.join('\n  ')}\n`
     + 'An approved RFC outranks the Decision Register and CONTRIBUTING_AGENTS.md; where it sits does not change that.');
+});
+
+
+test('the workflow directory holds exactly the workflows nobody added to', async () => {
+  // Every CI assertion in this repository names `.github/workflows/ci.yml` and nothing else.
+  // Independent review nineteen added `.github/workflows/release.yml` -- `on: pull_request`, a job
+  // named `bootstrap` -- at **exit 0**, undigested and unratcheted. Locally that is inert; on
+  // GitHub a second workflow contributes a second check run under a colliding job name, and a
+  // `pull_request_target` workflow with elevated `permissions` is the one file here that can act
+  // with write credentials.
+  //
+  // Ratcheted like `architecture/decisions`: a declared set, and every file digested.
+  const DECLARED_WORKFLOWS = ['ci.yml'];
+  const present = (await readdir('.github/workflows')).sort();
+  const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));
+  const wrong = [];
+  for (const name of present.filter((n) => !DECLARED_WORKFLOWS.includes(n))) {
+    wrong.push(`.github/workflows/${name} is a workflow nobody declared`);
+  }
+  for (const name of DECLARED_WORKFLOWS.filter((n) => !present.includes(n))) {
+    wrong.push(`.github/workflows/${name} was deleted`);
+  }
+  for (const name of present) {
+    if (manifest.files?.[`.github/workflows/${name}`] === undefined) {
+      wrong.push(`.github/workflows/${name} carries no digest`);
+    }
+  }
+  assert.deepEqual(wrong, [], `workflow directory problem(s):\n  ${wrong.join('\n  ')}`);
 });

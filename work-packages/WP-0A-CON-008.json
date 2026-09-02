@@ -104,7 +104,8 @@
       "scripts/refresh-author-handoff.mjs",
       "test-kits/ci-guard-behaviour.test.mjs",
       "test-kits/protocol-schema-conformance.test.mjs",
-      "scripts/verify-clean-run.mjs"
+      "scripts/verify-clean-run.mjs",
+      "test-kits/ratchets-bite.test.mjs"
     ],
     "read_only_paths": [
       "README.md",

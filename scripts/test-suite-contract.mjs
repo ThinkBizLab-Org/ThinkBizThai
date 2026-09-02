@@ -11,7 +11,7 @@ export const MIN_DECLARED_TESTS = 30;
 // the contract suite -- the suite this repository's guards exist to protect -- and every
 // check stayed green. Floors are therefore per directory as well as global.
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
-  'test-kits': 32,
+  'test-kits': 33,
   'test-kits/contracts': 7,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
@@ -72,7 +72,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 10,
   'test-kits/integrity-manifest-rebuild.test.mjs': 3,
   'test-kits/protocol-schema-conformance.test.mjs': 4,
-  'test-kits/repository-json.test.mjs': 4,
+  'test-kits/ratchets-bite.test.mjs': 2,
+  'test-kits/repository-json.test.mjs': 6,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 45,
   'test-kits/test-coverage-floor.test.mjs': 31,
@@ -109,7 +110,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 19,
   'test-kits/integrity-manifest-rebuild.test.mjs': 10,
   'test-kits/protocol-schema-conformance.test.mjs': 6,
-  'test-kits/repository-json.test.mjs': 14,
+  'test-kits/ratchets-bite.test.mjs': 4,
+  'test-kits/repository-json.test.mjs': 16,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 86,
   'test-kits/test-coverage-floor.test.mjs': 89,
@@ -148,7 +150,8 @@ export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/handoff-conformance.test.mjs': 'e5d7f6d4e0426065',
   'test-kits/integrity-manifest-rebuild.test.mjs': '91b24d70c4ac8fcb',
   'test-kits/protocol-schema-conformance.test.mjs': 'dc9a77399529cead',
-  'test-kits/repository-json.test.mjs': 'c1b967354bd964a9',
+  'test-kits/ratchets-bite.test.mjs': '46343387aa10498c',
+  'test-kits/repository-json.test.mjs': 'e47612c15b1ae079',
   'test-kits/role-separation.test.mjs': '00a4c859fecdbbae',
   'test-kits/secret-scan.test.mjs': 'b522288e91824c97',
   'test-kits/test-coverage-floor.test.mjs': 'dbda7fd43692fb92',

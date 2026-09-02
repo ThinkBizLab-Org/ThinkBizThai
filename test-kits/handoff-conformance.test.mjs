@@ -308,7 +308,21 @@ async function knownRunIds() {
 // fabricated one, and three real handoffs say exactly that -- "requires an acknowledgement
 // countersigned by WP-0A-A0-001's Integration Owner". Flagging those would train a reader to
 // ignore this check, which is how a guard stops working without anyone editing it.
-const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|not|never|neither|nor|without|absent|lacks?|unsigned|cannot|must be|needs?|blocked|unresolved|no .{0,20}(approval|sign-?off))\b/i;
+// A CLOSED set, and `not`/`never`/`no` are out of it. Independent review nineteen executed the
+// weak point the previous comment predicted: "…approved the security review and … signed off on
+// the freeze, and nothing is not resolved" -- one clause, both ids, one `not`, **exit 0**.
+//
+// The three real handoff sentences that needed those words say an approval is *required* or
+// *not countersigned*; both still match this set through `required` and `countersign`. If a real
+// sentence ever needs a word that is not here, the honest fix is to rewrite the sentence, not to
+// widen the exemption -- a wider exemption is a wider bypass, one for one.
+const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|unresolved|blocked|uncountersigned|not countersigned|no .{0,20}(approval|sign-?off))\b/i;
+
+// A role NOUN carries the same claim as a run id and the check could not see it. The review wrote
+// "The independent Security/Privacy reviewer … cleared the freeze; the independent Tester signed
+// off … and the Integration Owner approved the merge" -- three fabricated approvals, no ids at
+// all, **exit 0**.
+const ROLE_NOUN = /\b(security[ /]?(and |&|\/)?\s*privacy reviewer|security reviewer|contract reviewer|independent reviewer|reviewer of record|tester|integration owner|product owner|product reviewer)\b/i;
 
 // `not` is deliberately in that list, and it is the weak point: a fabricated approval can include
 // the word. Clause-level evaluation narrows it -- "X approved this" and "Y is not countersigned"
@@ -356,8 +370,10 @@ test('an author handoff does not record an approval it has no authority to give'
       if (claimed.length === 0) continue;
       const mentioned = runIds.filter((id) => id !== author
         && claimed.some((clause) => clause.includes(id)));
-      if (mentioned.length === 0) continue;
-      wrong.push(`${name}.${path} attributes approval language to ${[...new Set(mentioned)].join(', ')}: `
+      const roles = claimed.filter((clause) => ROLE_NOUN.test(clause))
+        .map((clause) => clause.match(ROLE_NOUN)[0]);
+      if (mentioned.length === 0 && roles.length === 0) continue;
+      wrong.push(`${name}.${path} attributes approval language to ${[...new Set([...mentioned, ...roles])].join(', ')}: `
         + `${JSON.stringify(claimed[0].slice(0, 120))}`);
     }
   }
