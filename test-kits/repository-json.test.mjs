@@ -167,7 +167,24 @@ test('no decision record exists outside the directory that holds them', async ()
   //
   // A decision record opens as one AND declares a status. An evidence file does neither.
   const RFC_HEADING = /^#+\s*((RFC|ADR|DR)-\d{4}-\d{3}\b|Decision Record\b|Amendment\b)/mi;
-  const RFC_STATUS = /^\s*(\*\*)?Status(\*\*)?:\s*(Approved|Accepted|Proposed)/mi;
+  // NORMALISE, then match. Enumerating spellings is a vocabulary, and independent review
+  // twenty-one measured mine: **9 of 13 realistic spellings bypassed** -- `**Status:** Approved`
+  // (the bold marker after the colon rather than before), `Status: **Approved**`,
+  // `- Status: Approved`, `> Status: Approved`, a table row, `Status : Approved`, `__Status:__`,
+  // `*Status*:`. All render identically to a human, which is the only reader that matters for a
+  // document claiming authority.
+  //
+  // Emphasis, list bullets, quote markers and table pipes are stripped per line and whitespace
+  // collapsed; then one pattern matches all of them.
+  const normaliseLine = (line) => line
+    .replace(/[*_`>|]/g, ' ')
+    .replace(/^\s*[-+]\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // A table row normalises to `Status Approved` with the colon gone, so the separator is optional.
+  // Measured: this was the one spelling of thirteen still passing after the first fix.
+  const declaresStatus = (text) => text.split('\n')
+    .some((line) => /^status\s*:?\s+(approved|accepted|proposed)\b/i.test(normaliseLine(line)));
   // `architecture/decisions` is the declared home and is checked by the test above; skipping all
   // of `architecture` was my own first version, and it let `architecture/RFC-2026-011-exemption.md`
   // -- one directory up from the declared home, the likeliest place of all -- pass at exit 0.
@@ -180,7 +197,9 @@ test('no decision record exists outside the directory that holds them', async ()
       const path = directory === '.' ? entry.name : `${directory}/${entry.name}`;
       if (SKIP_PATHS.has(path)) continue;
       if (entry.isDirectory()) { await walk(path); continue; }
-      if (!entry.isFile() || !/\.(md|markdown|mdx|txt)$/i.test(entry.name)) continue;
+      // EVERY text-shaped file. `.rst` and `.adoc` decision records with a plain `Status:
+      // Approved` both shipped at exit 0 while this gated on four extensions.
+      if (!entry.isFile() || !/\.(md|markdown|mdx|txt|rst|adoc|asciidoc|org|textile|rdoc|wiki)$/i.test(entry.name)) continue;
       if (RFC_NAME.test(entry.name)) { found.push(`${path} — named as a decision record`); continue; }
       const body = await readFile(path, 'utf8');
       // Evidence files quote RFCs constantly; only a document that OPENS as one counts.
@@ -198,7 +217,7 @@ test('no decision record exists outside the directory that holds them', async ()
       // records in `architecture/decisions`. A tenth anywhere else is the finding, whatever it is
       // called — and `evidence/` is no longer exempt, because it is the one directory this package
       // writes freely and a fabricated amendment there outranked everything.
-      if (RFC_STATUS.test(body)) { found.push(`${path} — declares a decision status`); continue; }
+      if (declaresStatus(body)) { found.push(`${path} — declares a decision status`); continue; }
       // A record ABOUT a decision may carry its heading; it may not DECLARE a status. Four real
       // files matched the heading rule the moment `evidence/` stopped being skipped —
       // `review-security-verdict.md`, `rfc-002-exact-commit-verification.md`, `test-verdict.md`
@@ -228,6 +247,12 @@ test('the workflow directory holds exactly the workflows nobody added to', async
   // requires. It is inert here only because native branch protection is unavailable
   // (RFC-2026-002), which is a temporary condition a ratchet must not depend on. `dependabot.yml`
   // went the same way.
+  // GitHub honours CODEOWNERS in THREE places -- `.github/`, the repository root and `docs/` --
+  // and independent review twenty-one put `* @attacker` in the two this ratchet did not walk.
+  // Review twenty's fix relocated the finding rather than closing it, and the rationale it gave
+  // ("inert only because branch protection is unavailable, a temporary condition") applies
+  // identically to the paths it left out.
+  const CODEOWNERS_LOCATIONS = ['CODEOWNERS', 'docs/CODEOWNERS', '.github/CODEOWNERS'];
   const DECLARED_GITHUB_FILES = ['workflows/ci.yml'];
   const walkGithub = async (directory, prefix = '') => {
     const out = [];
@@ -259,6 +284,10 @@ test('the workflow directory holds exactly the workflows nobody added to', async
   }
   for (const relative of everything) {
     if (manifest.files?.[`.github/${relative}`] === undefined) wrong.push(`.github/${relative} carries no digest`);
+  }
+  for (const location of CODEOWNERS_LOCATIONS) {
+    const exists = await readFile(location, 'utf8').then(() => true).catch(() => false);
+    if (exists) wrong.push(`${location} exists and decides whose review GitHub requires; declare and digest it or remove it`);
   }
   assert.deepEqual(wrong, [], `.github problem(s):\n  ${wrong.join('\n  ')}`);
 });

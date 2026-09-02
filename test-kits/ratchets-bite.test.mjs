@@ -67,6 +67,33 @@ function assertFailed(result, message) {
 // file was 20.6 s of a 30 s suite because it copied the repository 23 times over. Restoring the
 // single mutated file from the original is exact -- each reversal touches one JSON document -- and
 // it keeps the property that matters: every reversal is applied to a clean tree.
+// The same shape for a suite whose enforcement lives in a SCRIPT: reverse a rule in the script
+// and require the suite that proves it to fail. Independent review twenty-one showed why the
+// distinction I drew two waves ago -- "hollowing these removes the proof, not the enforcement" --
+// was only half true: hollow the proof AND edit the script, and the enforcement goes with it.
+//
+// It turned the secret scanner off with one line (`if (isProsePath(relativePath)) return [];`,
+// extending a PII exemption to every credential rule), hollowed the two suites that would have
+// noticed, and committed an AWS key pair under `evidence/`. **exit 0.** "Never commit API keys,
+// tokens, passwords" is the first non-negotiable rule in CONTRIBUTING_AGENTS.md.
+async function mustNoticeSourceEdit(suite, edits) {
+  assert.ok(edits.length >= 2, `${suite} must be probed with at least two source edits, got ${edits.length}`);
+  const root = await repositoryCopy();
+  const before = runSuite(root, suite);
+  assert.equal(before.status, 0, `${suite} must pass on an unmodified copy:\n${before.stdout}${before.stderr}`);
+
+  for (const [description, path, find, replace] of edits) {
+    const target = join(root, path);
+    const original = await readFile(target, 'utf8');
+    assert.ok(original.includes(find), `${path} no longer contains ${JSON.stringify(find.slice(0, 60))}; the edit would be a no-op`);
+    await writeFile(target, original.replace(find, replace));
+    const after = runSuite(root, suite);
+    await writeFile(target, original);
+    assertFailed(after, `${suite} must notice: ${description}`);
+  }
+  await rm(root, { recursive: true, force: true });
+}
+
 async function mustNotice(suite, reversals) {
   // At least two, asserted HERE rather than by counting source lines. Independent review
   // twenty-one wrote `reversals.slice(0, 0)` into the loop below: the 23 tuples stayed in the
@@ -265,3 +292,45 @@ test('the protocol-schema ratchet fails when a work package invents a normative 
   assertFailed(after, 'an invented normative field must fail the protocol-schema suite');
   await rm(root, { recursive: true, force: true });
 });
+
+test('the secret-scan ratchet notices a rule removed from the scanner', async () => {
+  await mustNoticeSourceEdit('test-kits/secret-scan.test.mjs', [
+    ['the prose exemption widened from PII to every credential rule',
+      'scripts/scan-repository-secrets.mjs',
+      'function isProsePath(relativePath) {',
+      'function isProsePath(relativePath) {\n  if (relativePath) return true;'],
+    // Written as a filter rather than by rewriting the declaration: the scanner reads this file
+    // too, and an uppercase identifier followed by `=` and a literal is exactly what its
+    // `secret-named-assignment` rule matches. My first version made the scanner report the test
+    // that proves the scanner works.
+    ['every credential rule filtered out at the point of use',
+      'scripts/scan-repository-secrets.mjs',
+      '  ...CREDENTIAL_RULES.map((rule) => ({ ...rule, kind: \'credential\' })),',
+      '  ...[].map((rule) => ({ ...rule, kind: \'credential\' })),'],
+  ]);
+});
+
+test('the ci-guard ratchet notices a guard stubbed at its entry point', async () => {
+  await mustNoticeSourceEdit('test-kits/ci-guard-behaviour.test.mjs', [
+    ['the branch-scope guard stopped reporting stray paths',
+      'scripts/verify-branch-scope.mjs',
+      'const stray = undeclared(changed, declaredPaths(manifest));',
+      'const stray = [];'],
+    ['the branch-identity guard resolving every branch to one package',
+      'scripts/verify-branch-identity.mjs',
+      '  const report = reportFor(headRef, await claimantsOf(headRef));',
+      "  const report = { code: 0, message: 'WP-0A-A0-001' };"],
+  ]);
+});
+
+// `test-coverage-floor.test.mjs` has NO behaviour case, and the reason is worth writing down
+// rather than leaving as an omission. It cannot pass from a copy at all: macOS `$TMPDIR` is
+// `/var/folders/…`, a symlink to `/private/var/folders/…`, and that suite resolves realpaths and
+// compares them against the working directory -- three of its tests fail on an unmodified copy
+// before any mutation. Forcing it to pass would mean weakening exactly the path checks that make
+// it worth having.
+//
+// It is the one suite here whose enforcement lives in a script AND whose proof cannot be probed
+// this way. Its script is reached by every other case in this file, because `runSuite` runs
+// `node --test` and the guard runs in the chain; what is not covered is the proof. Recorded on the
+// "not closed" list rather than papered over.

@@ -65,3 +65,72 @@ sixth caught by running rather than reading.
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+## HIGH 3 — the secret scanner turned off with one line, and nothing noticed
+
+Two waves ago I wrote that suites whose enforcement lives in a script only lose their *proof* when
+hollowed, and that this was why they needed no behaviour case. **Half true**: hollow the proof *and*
+edit the script, and the enforcement goes with it.
+
+The review added `if (isProsePath(relativePath)) return [];` to `scanText` — extending an exemption
+that existed for PII rules to **every credential rule** — hollowed `secret-scan.test.mjs` and
+`ci-guard-behaviour.test.mjs` into named placeholders, and committed an AWS key pair under
+`evidence/`. `npm run scan:secrets` → exit 0. `npm run verify` → **exit 0, 249/249**.
+
+*"Never commit API keys, tokens, passwords"* is the first non-negotiable rule in
+`CONTRIBUTING_AGENTS.md`.
+
+`mustNoticeSourceEdit` closes it: reverse a rule **in the script**, require the suite that proves it
+to fail. Two edits each for the scanner and the CI guards. Verified: the review's exact attack now
+fails at *"the prose exemption widened from PII to every credential rule"* and *"the branch-scope
+guard stopped reporting stray paths"*.
+
+**And the scanner reported my own test file while I wrote it** — the string
+`CREDENTIAL_RULES = [` in a source edit matches its `secret-named-assignment` rule. Rewritten as a
+filter at the point of use. The control firing on the test that proves the control works is the
+fourth time that has happened here.
+
+### One suite still has no behaviour case, and the reason is recorded rather than omitted
+
+`test-coverage-floor.test.mjs` **cannot pass from a copy at all**: macOS `$TMPDIR` is
+`/var/folders/…`, a symlink to `/private/var/folders/…`, and that suite resolves realpaths against
+the working directory — three of its tests fail on an unmodified copy before any mutation. Forcing
+it to pass would mean weakening exactly the path checks that make it worth having. On the
+"not closed" list.
+
+## HIGH 4 — nine of thirteen spellings of a status line walked past
+
+`**Status:** Approved` — bold marker *after* the colon rather than before — bypassed, as did
+`Status: **Approved**`, a list bullet, a quote marker, a table row, `Status : Approved`,
+`__Status:__`, `*Status*:`. **All render identically to a human**, which is the only reader that
+matters for a document claiming authority. `.rst` and `.adoc` bypassed the extension gate entirely.
+
+Normalise, then match: emphasis, bullets, quote markers and table pipes stripped per line,
+whitespace collapsed, one pattern. Eleven text extensions instead of four. Verified: all thirteen
+spellings and both extensions now flag — **and the table row was the one that survived my first
+fix**, because normalising `| Status | Approved |` removes the colon, so the separator had to become
+optional.
+
+## MEDIUM 2 — CODEOWNERS lives in three places and the ratchet walked one
+
+GitHub honours it at `.github/`, the repository root and `docs/`. Review twenty's fix walked
+`.github/` only — **it relocated the finding rather than closing it**, and its own rationale
+("inert only because branch protection is unavailable — a temporary condition a ratchet must not
+depend on") applied identically to the two paths it left out. All three are checked now.
+
+## MEDIUM 1 — the approval vocabulary, and why it is not being widened again
+
+Nine of ten realistic phrasings still bypass: `granted clearance`, `given sign-off`, `confirmed`,
+`acknowledged`, `green-lit`, `okayed`, `concurred`, `attested`, `certified`. The review also found
+an inconsistency inside the list — `countersigned` is there and `countersigns` is not.
+
+**I am not widening it again.** This is the twelfth round on the same regex, and the review's
+recommendation is the right one: prose approval claims need a reader, and a typed field
+(`approvals: [{role, agent_run_id, artifact}]` validated against `role_assignments`) is the only
+mechanical answer. That is a protocol change to `.agents/handoff.schema.json`, which belongs to a
+package that can propose it, not to another regex in this one. **Item 9 on the "not closed" list,
+stated as a limit rather than approximated.**
+
+## Verification
+
+See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
