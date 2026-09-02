@@ -76,7 +76,7 @@ test('every branch in this repository resolves to exactly one package', async ()
     'agent/root/WP-0A-A0-001-repository-bootstrap',
     'agent/root/WP-0A-CON-001-contract-catalog',
     'agent/claude/WP-0A-A0-002-contract-test-coverage',
-    'agent/claude/WP-0A-CON-008-freeze-readiness',
+    'agent/claude/WP-0A-CON-008-disposition-branch-kind',
   ]) {
     const report = reportFor(ref, await claimantsOf(ref));
     assert.equal(report.code, 0, `${ref}: ${report.message}`);
@@ -123,7 +123,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
   'agent/claude/WP-0A-CON-006-usage-and-notification': 'WP-0A-CON-006',
   'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',
-  'agent/claude/WP-0A-CON-008-freeze-readiness': 'WP-0A-CON-008',
+  'agent/claude/WP-0A-CON-008-disposition-branch-kind': 'WP-0A-CON-008',
 };
 
 test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {

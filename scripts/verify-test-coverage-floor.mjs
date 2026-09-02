@@ -386,6 +386,7 @@ export async function assertIntegrityManifest(manifestPath = INTEGRITY_MANIFEST)
 // So the whole set is a ratchet, not just a named subset: a file that has ever been digested
 // stays digested. Adding is free; removing is a deliberate edit here, in a diff a reviewer reads.
 export const DIGESTED_FLOOR = [
+  'scripts/verify-disposition-branch.mjs',
   'scripts/commit-when-clean.mjs',
   'test-kits/ratchets-bite.test.mjs',
   'architecture/decisions/.gitkeep',
@@ -660,6 +661,7 @@ export const PROTECTED_KEYS = [
   'scripts/scan-repository-secrets.mjs',
   'scripts/verify-branch-scope.mjs',
   'scripts/verify-branch-identity.mjs',
+  'scripts/verify-disposition-branch.mjs',
   'scripts/refresh-author-handoff.mjs',
   'scripts/verify-clean-run.mjs',
   'scripts/commit-when-clean.mjs',

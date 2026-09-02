@@ -57,7 +57,18 @@ jobs:
           # rename to WP-0A-A0-001-anything and inherit the broadest writable paths in the
           # repository. A ref name is not evidence. The claim is made in the manifest, where it
           # appears in a diff, and this resolves the branch to the package that names it.
-          package_id="$(node scripts/verify-branch-identity.mjs "$HEAD_REF")" || exit $?
+          # A Product Owner disposition belongs to no work package -- disposing an RFC is not a
+          # package's act. CI found this the first time one was pushed. Such a branch is allowed
+          # only if it changes decision-record status lines and nothing else, which is checked
+          # before the package rules are reached.
+          if package_id="$(node scripts/verify-branch-identity.mjs "$HEAD_REF")"; then
+            :
+          else
+            identity_status=$?
+            node scripts/verify-disposition-branch.mjs "$BASE_SHA" || exit "$identity_status"
+            echo "branch scope: disposition branch, package rules do not apply"
+            exit 0
+          fi
           # `persist-credentials: false` means no fetch can authenticate, so the base has to
           # come from what the checkout already brought. With `fetch-depth: 0` the full history
           # is present and the merge-base of HEAD and the base branch is reachable by SHA --

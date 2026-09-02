@@ -36,7 +36,7 @@ test('verify-branch-identity exits 75 for a branch no package claims', () => {
 });
 
 test('verify-branch-identity resolves a real branch to its package and prints only that', () => {
-  const { code, out } = run('scripts/verify-branch-identity.mjs', ['agent/claude/WP-0A-CON-008-freeze-readiness']);
+  const { code, out } = run('scripts/verify-branch-identity.mjs', ['agent/claude/WP-0A-CON-008-disposition-branch-kind']);
   assert.equal(code, 0, out);
   // CI does `package_id="$(node …)"`, so stdout IS the package id. Anything else on stdout
   // becomes part of the id and the scope guard is then handed a manifest path that cannot exist.
@@ -334,4 +334,62 @@ test('scan-repository-secrets exits non-zero on a planted credential and zero on
   await writeFile(join(dirty, 'leak.env'), `AWS_SECRET_ACCESS_KEY=${'A'.repeat(20)}${'b7Kd'.repeat(5)}\n`);
   const bad = run(guard, [dirty]);
   assert.notEqual(bad.code, 0, `a planted credential must be reported, got ${bad.code}: ${bad.out}`);
+});
+
+// A Product Owner disposition belongs to no work package, and the branch-identity guard correctly
+// refuses it — CI found this the first time one was pushed, and there was no honest manifest to
+// add the branch to. Declaring it under some package to satisfy a guard would have been a lie.
+//
+// So the exemption exists, and it is narrow enough that it cannot be borrowed: decision-record
+// status lines and nothing else. These rows are what keep it narrow.
+const dispositionRepo = async (edits) => {
+  const root = await mkdtemp(join(tmpdir(), 'disposition-'));
+  const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('config', 'user.email', ['guard-test', 'example.invalid'].join('@'));
+  git('config', 'user.name', 'guard test');
+  spawnSync('mkdir', ['-p', join(root, 'architecture/decisions')]);
+  await writeFile(join(root, 'architecture/decisions/RFC-2026-001-x.md'),
+    '# RFC-2026-001 — x\n\nStatus: Proposed — awaiting disposition\n\nBody text that must not move.\n');
+  await writeFile(join(root, 'owned.txt'), 'base\n');
+  git('add', '-A');
+  git('commit', '-qm', 'base');
+  const base = git('rev-parse', 'HEAD').stdout.trim();
+  for (const [path, body] of edits) await writeFile(join(root, path), body);
+  git('add', '-A');
+  git('commit', '-qm', 'change');
+  return { root, base };
+};
+const dispositionGuard = join(process.cwd(), 'scripts/verify-disposition-branch.mjs');
+
+test('a disposition branch that changes only status lines is recognised', async () => {
+  const { root, base } = await dispositionRepo([
+    ['architecture/decisions/RFC-2026-001-x.md',
+      '# RFC-2026-001 — x\n\nStatus: Approved 2026-09-02 by the Product Owner — reason\n\nBody text that must not move.\n'],
+  ]);
+  const { code, out } = run(dispositionGuard, [base], { cwd: root });
+  assert.equal(code, 0, out);
+  assert.match(out, /only decision-record status lines changed/);
+});
+
+test('a branch that edits an RFC body is not a disposition', async () => {
+  // The exemption must not become a way to rewrite a decision under cover of disposing it.
+  const { root, base } = await dispositionRepo([
+    ['architecture/decisions/RFC-2026-001-x.md',
+      '# RFC-2026-001 — x\n\nStatus: Approved 2026-09-02 by the Product Owner — reason\n\nBody text that MAY now be skipped.\n'],
+  ]);
+  const { code, out } = run(dispositionGuard, [base], { cwd: root });
+  assert.equal(code, 78, `expected NOT_A_DISPOSITION, got ${code}: ${out}`);
+  assert.match(out, /changes a line that is not its status/);
+});
+
+test('a branch that touches anything outside the decision records is not a disposition', async () => {
+  const { root, base } = await dispositionRepo([
+    ['architecture/decisions/RFC-2026-001-x.md',
+      '# RFC-2026-001 — x\n\nStatus: Approved 2026-09-02 by the Product Owner — reason\n\nBody text that must not move.\n'],
+    ['owned.txt', 'changed\n'],
+  ]);
+  const { code, out } = run(dispositionGuard, [base], { cwd: root });
+  assert.equal(code, 78, `expected NOT_A_DISPOSITION, got ${code}: ${out}`);
+  assert.match(out, /owned\.txt is not a decision record/);
 });
