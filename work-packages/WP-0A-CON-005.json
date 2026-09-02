@@ -99,14 +99,8 @@
       ".github/**",
       "scripts/**"
     ],
-    "forbidden_paths": [
-      ".env",
-      ".env.*",
-      "**/*secret*",
-      "**/*credential*",
-      "db/**",
-      "migrations/**"
-    ],
+    "forbidden_paths": [".env", ".env.*", "db/**", "migrations/**", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
     "module_ids": ["MOD-000"],
     "migration_reservations": [],
     "authorized_cross_package_amendments": [

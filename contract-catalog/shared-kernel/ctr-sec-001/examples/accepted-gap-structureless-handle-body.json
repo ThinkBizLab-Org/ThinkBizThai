@@ -1,0 +1,23 @@
+{
+  "handle": "secret:0123456789abcdef0123456789abcdef01234567",
+  "scope": {
+    "workspace_id": "ws_synthetic_0011",
+    "capability_key": "ai.text.generate"
+  },
+  "ownership": "byok",
+  "classification": "restricted",
+  "state": "active",
+  "resolvable": true,
+  "rotation": {
+    "owner": { "kind": "workspace_owner", "id": "ws_synthetic_0011" },
+    "rotated_at": "2026-08-01T03:00:00Z"
+  },
+  "redaction": {
+    "browser_safe": true,
+    "log_safe": true,
+    "event_safe": true,
+    "job_safe": true,
+    "analytics_safe": true,
+    "error_trace_safe": true
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "correlation": {
+    "correlation_id": "corr_synthetic_0001",
+    "request_id": "req_synthetic_0001",
+    "trace_id": "trace_synthetic_0001"
+  },
+  "module": { "module_key": "ai-generation", "implementation_version": "1.4.0" },
+  "environment": "staging",
+  "liveness": { "status": "up", "depends_on_external_provider": false },
+  "readiness": {
+    "ready": true,
+    "capabilities": [
+      { "capability_key": "ai.text.generate", "ready": true },
+      { "capability_key": "ai.text.moderate", "ready": true }
+    ]
+  },
+  "dependencies": [
+    { "dependency_key": "module-registry", "kind": "module", "status": "healthy" },
+    { "dependency_key": "ai.provider.primary", "kind": "external_provider", "status": "healthy" }
+  ],
+  "sli_tags": {
+    "module_key": "ai-generation",
+    "environment": "staging",
+    "capability_key": "ai.text.generate",
+    "outcome": "success"
+  },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true }
+}

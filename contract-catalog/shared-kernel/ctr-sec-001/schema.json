@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "CTR-SEC-001",
+  "title": "Secret Reference / Handle",
+  "description": "An opaque, scoped REFERENCE to a credential held by the secret registry. This document is what a module manifest, a log line, an event, a job and an audit record are permitted to carry. It never carries credential material, and this schema declares no property that could hold any.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "handle",
+    "scope",
+    "ownership",
+    "classification",
+    "state",
+    "resolvable",
+    "rotation",
+    "redaction"
+  ],
+  "properties": {
+    "handle": {
+      "type": "string",
+      "pattern": "^secret:[a-z0-9._-]+$",
+      "maxLength": 128,
+      "x-source": "Decision Register 5.2 CTR-SEC-001 requires an 'opaque ref'; PT-010 requires that a manifest sees a REFERENCE only. The `secret:` prefix and body charset are ADOPTED FROM CTR-MOD-001 `secret_handles` as PRECEDENT, not as authority: a manifest reference and a registry handle must be the same string or the two contracts do not compose, and shipping a second, different pattern would be a worse defect than the irregularity recorded below. Decision Register 5.2 owns CTR-MOD-001 to A0 and CTR-SEC-001 to A0+A1, so a single-owner contract fixed the syntax of a jointly-owned one with no RFC. That is an OPEN OWNERSHIP CONFLICT for the A1 owner to resolve, recorded in the manifest freeze_boundary and in WP-0A-CON-004 open_blockers. This author must not resolve it.",
+      "x-maxlength-note": "DECLARED INFERENCE. The baseline states no length. 128 keeps a handle short enough to be an identifier in a log line; it is NOT a control against embedded credential material and must not be read as one.",
+      "x-opacity-limitation": "THIS PATTERN IS NOT A SECURITY CONTROL, AND MUST NOT BE CITED AS ONE. It excludes mixed-case base64 and nothing else: lowercase hex, lowercase base32 and lowercase dashed bot-token shapes all satisfy it. Independent security review further showed that the repository secret scanner (scripts/scan-repository-secrets.mjs) detects only strings this pattern ALREADY REJECTS, so the schema and the scanner compose to zero coverage for a credential smuggled inside a conforming handle body. JSON Schema cannot distinguish a reference from the thing it refers to, and no shape rule available here can, so none is invented. What would close it is a handle ISSUANCE format -- an issuer-assigned, non-secret, non-guessable identifier that a producer cannot mint from credential material -- which the baseline does not specify. A1 (CTR-SEC-001 co-owner) must specify it before freeze. Demonstrated by examples/accepted-gap-structureless-handle-body.json."
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "capability_key"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "business_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_context_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.]*$"
+        }
+      },
+      "x-source": "Decision Register 5.2 CTR-SEC-001 requires 'scope'; PT-010 produces a 'scoped credential resolver'; MR-004 produces a 'readiness result per capability/scope', which is why the scope is keyed by capability as well as tenant. The Workspace -> Business Profile -> Page Context nesting is DEC-010 and Workstream 3.1.",
+      "x-cross-tenant-limitation": "This object records the scope a handle CLAIMS. Nothing here binds the claim to the handle: JSON Schema cannot compare one property's value against another's, so a document -- or a CTR-MOD-001 manifest listing the same handle string -- may assert a scope belonging to a different tenant and this contract will accept it. Independent security review raised exactly this. Enforcement belongs to the resolver named in PT-010, which must reject a resolution whose caller scope does not match the scope the registry recorded when the handle was issued. Declared in untestable_by_schema; NOT claimed as materialized."
+    },
+    "ownership": {
+      "enum": [
+        "managed",
+        "byok"
+      ],
+      "x-source": "PT-010 inputs are 'managed/BYOK credentials'; DEC-014 opens Platform AI plus BYOK OpenAI; SEC-012 requires BYOK isolation and provider egress control."
+    },
+    "classification": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ],
+      "x-source": "SEC-003 requires a Public/Internal/Confidential/Restricted matrix in which token and API key are classified. SEC-003 names the four classes but has NOT yet assigned the class a credential handle carries, so this contract enumerates the four and pins none. See accepted_gaps in the manifest."
+    },
+    "state": {
+      "enum": [
+        "active",
+        "rotating",
+        "revoked"
+      ],
+      "x-source": "Decision Register 5.2 CTR-SEC-001 requires 'rotation/revoke'; SEC-005 requires a secret to be 'encrypted, masked, rotated'; PT-010 requires that revocation is possible immediately."
+    },
+    "resolvable": {
+      "type": "boolean",
+      "x-source": "DECLARED INFERENCE from PT-010 'revoke immediately' and MR-004 'missing secret/scope/entitlement does not activate'. The baseline states revocation as a runtime effect; the only contract-level expression of it is whether the registry will still resolve this handle to a credential. Inferred from PT-010 and MR-004; not a field named in either."
+    },
+    "rotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "rotated_at"
+      ],
+      "properties": {
+        "owner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "platform_role",
+                "workspace_owner"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "x-source": "INF-006 requires 'rotation owner/date complete'. The owner is a TYPED reference rather than a free string because Workstream 3.1 forbids a free-string actor. The two kinds are the two credential ownerships PT-010 names: platform-managed and BYOK."
+        },
+        "rotated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "next_rotation_due_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-source": "INF-006 'rotation owner/date complete'; SEC-005 requires the secret to be rotated."
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "browser_safe",
+        "log_safe",
+        "event_safe",
+        "job_safe",
+        "analytics_safe",
+        "error_trace_safe"
+      ],
+      "properties": {
+        "browser_safe": {
+          "const": true
+        },
+        "log_safe": {
+          "const": true
+        },
+        "event_safe": {
+          "const": true
+        },
+        "job_safe": {
+          "const": true
+        },
+        "analytics_safe": {
+          "const": true
+        },
+        "error_trace_safe": {
+          "const": true
+        }
+      },
+      "x-source": "PT-010 requires that logs, events and jobs contain no secret; SEC-005 requires that browser, job, event and log never see plaintext; SEC-012 requires that a key does not enter analytics or an error trace. Each surface is a separate const true, so a document asserting that any one of them is unsafe is not a valid secret handle. Decision Register 5.2 lists 'redaction tests' as a freeze artifact."
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revoked_at",
+        "actor",
+        "reason_key"
+      ],
+      "properties": {
+        "revoked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "user",
+                "system_actor"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "reason_key": {
+          "type": "string",
+          "pattern": "^secret\\.[a-z_.]+$"
+        }
+      },
+      "x-source": "PT-010 requires immediate revocation; SEC-009 requires that a CREDENTIAL action records actor and correlation. The reason is a stable key rather than prose because CTR-ERR-001 establishes Thai message keys for anything a person reads; that key-not-prose choice is a DECLARED INFERENCE from CTR-ERR-001 and CM-004."
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-source": "SEC-009 requires actor AND correlation on a credential action; OB-001 requires one trace across the workflow."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "revoked"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "revocation"
+        ],
+        "properties": {
+          "resolvable": {
+            "const": false
+          }
+        }
+      },
+      "x-rule": "PT-010 'revoke immediately' plus SEC-009 credential auditing: a revoked handle must no longer resolve, and must record when, by whom and why it was revoked."
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "active"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "resolvable": {
+            "const": true
+          }
+        },
+        "not": {
+          "required": [
+            "revocation"
+          ]
+        }
+      },
+      "x-rule": "PT-010 and MR-004: an active handle is one the resolver will still resolve, and a handle carrying a revocation record is not active. `rotating` is deliberately left unconstrained on `resolvable` because the baseline states no rotation-overlap rule; see freeze_boundary."
+    },
+    {
+      "if": {
+        "properties": {
+          "ownership": {
+            "const": "managed"
+          }
+        },
+        "required": [
+          "ownership"
+        ]
+      },
+      "then": {
+        "properties": {
+          "rotation": {
+            "properties": {
+              "owner": {
+                "properties": {
+                  "kind": {
+                    "const": "platform_role"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "owner"
+            ]
+          }
+        }
+      },
+      "x-rule": "PT-010 distinguishes managed from BYOK credentials and INF-006 requires a named rotation owner: a platform-managed credential is rotated by a platform role."
+    },
+    {
+      "if": {
+        "properties": {
+          "ownership": {
+            "const": "byok"
+          }
+        },
+        "required": [
+          "ownership"
+        ]
+      },
+      "then": {
+        "properties": {
+          "rotation": {
+            "properties": {
+              "owner": {
+                "properties": {
+                  "kind": {
+                    "const": "workspace_owner"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "owner"
+            ]
+          }
+        }
+      },
+      "x-rule": "PT-010 managed/BYOK split with SEC-012 BYOK isolation: a customer-supplied key is rotated by the workspace that supplied it, not by a platform role."
+    }
+  ]
+}

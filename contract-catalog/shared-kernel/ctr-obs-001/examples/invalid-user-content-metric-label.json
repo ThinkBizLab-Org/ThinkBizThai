@@ -1,0 +1,16 @@
+{
+  "correlation": { "correlation_id": "corr_synthetic_0009" },
+  "module": { "module_key": "meta-publisher", "implementation_version": "1.0.1" },
+  "environment": "production",
+  "liveness": { "status": "up", "depends_on_external_provider": false },
+  "readiness": {
+    "ready": true,
+    "capabilities": [ { "capability_key": "publish.meta.page", "ready": true } ]
+  },
+  "sli_tags": {
+    "module_key": "meta-publisher",
+    "environment": "production",
+    "page_name": "synthetic-page-name"
+  },
+  "redaction": { "secret_redacted": true, "content_redacted": true, "pii_redacted": true }
+}

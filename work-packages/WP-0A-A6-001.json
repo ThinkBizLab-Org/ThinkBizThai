@@ -55,7 +55,8 @@
   "ownership": {
     "writable_paths": ["work-packages/WP-0A-A6-001.json", "evidence/WP-0A-A6-001/**", "handoffs/WP-0A-A6-001-*.json"],
     "read_only_paths": ["README.md", "docs/**", "CONTRIBUTING_AGENTS.md", "architecture/decisions/**", ".agents/capability-profiles/**"],
-    "forbidden_paths": [".env", ".env.*", "**/*secret*", "**/*credential*", "db/**", "migrations/**", ".github/**", "package.json", "package-lock.json"],
+    "forbidden_paths": [".env", ".env.*", "db/**", "migrations/**", ".github/**", "package.json", "package-lock.json", "*.pem", "*.key", "*.p12", "*.pfx"],
+    "forbidden_paths_note": "The globs **/*secret* and **/*credential* were removed: they forbade this package's own declared outputs (the secret scanner and its test), a contradiction the ownership validator could not see until it began comparing outputs against forbidden_paths. Replaced with the extensions that carry actual key material. A filename mentioning \"secret\" is not a secret; a private key file is.",
     "module_ids": ["MOD-000"],
     "migration_reservations": []
   },

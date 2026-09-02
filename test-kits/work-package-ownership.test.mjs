@@ -78,3 +78,24 @@ test('rejects a writable path that captures another package output', () => {
     (error) => error instanceof OwnershipValidationError && error.code === 70,
   );
 });
+
+// Five manifests declared **/*secret* forbidden while shipping declared outputs that matched
+// it -- including WP-0A-A0-001, whose own outputs are the secret scanner and its test. The
+// validator compared outputs against writable and read-only paths but never against
+// forbidden_paths, so a manifest could contradict its own rule and stay green for the whole
+// session. Found by the run authoring WP-0A-CON-004.
+test('rejects an output that its own forbidden_paths forbid', () => {
+  assert.throws(() => validateManifestOwnership([{
+    work_package_id: 'WP-TEST-001',
+    ownership: { writable_paths: ['src/**'], read_only_paths: [], forbidden_paths: ['**/*secret*'] },
+    outputs: { files: ['src/read-secret.mjs'] },
+  }]), (error) => error.code === 72 && /forbidden_paths forbid/.test(error.message));
+});
+
+test('accepts an output that no forbidden path matches', () => {
+  assert.doesNotThrow(() => validateManifestOwnership([{
+    work_package_id: 'WP-TEST-002',
+    ownership: { writable_paths: ['src/**'], read_only_paths: [], forbidden_paths: ['*.pem', '*.key'] },
+    outputs: { files: ['src/read-secret.mjs'] },
+  }]));
+});
