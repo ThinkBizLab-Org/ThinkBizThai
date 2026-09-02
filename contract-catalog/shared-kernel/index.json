@@ -1,0 +1,21 @@
+{
+  "catalog_version": "1.0.0",
+  "source": "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md#5.2",
+  "freeze_boundary": "This index materializes baseline metadata only. It does not change Candidate/Draft status or freeze any contract.",
+  "contracts": [
+    {"id":"CTR-TEN-001","version":"1.0.0","name":"Trusted Tenant Context","owner":"A0+A1","consumers":["all modules","API","Job","Event"],"status":"Candidate","required_before_freeze":["schema","valid/invalid fixtures","scope matrix"]},
+    {"id":"CTR-ERR-001","version":"1.0.0","name":"Stable Error + Thai action key","owner":"A0","consumers":["all modules","UI"],"status":"Candidate","required_before_freeze":["taxonomy","retry class","safe detail","Thai mapping key"]},
+    {"id":"CTR-API-001","version":"1.0.0","name":"API command/query envelope","owner":"A0","consumers":["BFF","application modules"],"status":"Draft","required_before_freeze":["success/error examples","correlation","auth rules"]},
+    {"id":"CTR-PAG-001","version":"1.0.0","name":"Keyset pagination/filter/sort","owner":"A0","consumers":["list APIs","UI"],"status":"Draft","required_before_freeze":["opaque cursor fixture","stable ordering tests"]},
+    {"id":"CTR-IDM-001","version":"1.0.0","name":"Command idempotency","owner":"A0","consumers":["create","generate","upload","schedule","connect"],"status":"Draft","required_before_freeze":["scope","payload hash","conflict/replay examples"]},
+    {"id":"CTR-EVT-001","version":"1.0.0","name":"Domain Event Envelope","owner":"A0","consumers":["all event producer/consumer"],"status":"Candidate","required_before_freeze":["version/name/tenant/trace/subject fixtures"]},
+    {"id":"CTR-JOB-001","version":"1.0.0","name":"Background Job Envelope + receipt","owner":"A0","consumers":["Research","AI","Media","Publish","Metrics"],"status":"Candidate","required_before_freeze":["lifecycle","retry","lease","progress","cancel fixtures"]},
+    {"id":"CTR-USG-001","version":"1.0.0","name":"Usage/Cost Event","owner":"A0+A6","consumers":["AI","Research","Storage","Media","Publish","Billing"],"status":"Draft","required_before_freeze":["dimensions","attribution","decimal money","dedupe"]},
+    {"id":"CTR-SEC-001","version":"1.0.0","name":"Secret Reference/Handle","owner":"A0+A1","consumers":["AI","Meta","Notification","Storage adapters"],"status":"Draft","required_before_freeze":["opaque ref","scope","rotation/revoke","redaction tests"]},
+    {"id":"CTR-MOD-001","version":"1.0.0","name":"Module Manifest/Lifecycle","owner":"A0","consumers":["composition root","all modules"],"status":"Draft","required_before_freeze":["capabilities","dependencies","health","flags","owner"]},
+    {"id":"CTR-FLG-001","version":"1.0.0","name":"Feature Policy Decision","owner":"A0","consumers":["router","UI","jobs","modules"],"status":"Draft","required_before_freeze":["platform→plan→workspace→business precedence"]},
+    {"id":"CTR-AUD-001","version":"1.0.0","name":"Audit Event","owner":"A0+A6","consumers":["security","admin","external actions"],"status":"Draft","required_before_freeze":["actor/scope/action/reason/ref/redaction"]},
+    {"id":"CTR-OBS-001","version":"1.0.0","name":"Correlation/health/readiness","owner":"A0+A6","consumers":["all runtime modules"],"status":"Draft","required_before_freeze":["propagation","SLI tags","bounded cardinality"]},
+    {"id":"CTR-NTF-001","version":"1.0.0","name":"Notification command/deep-link","owner":"A5","consumers":["Job","UI","Email adapter"],"status":"Draft","required_before_freeze":["locale","dedupe","permission-checked deep link"]}
+  ]
+}

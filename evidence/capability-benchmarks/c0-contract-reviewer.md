@@ -3,48 +3,43 @@
 **Recorded:** 2026-08-31
 **Exact agent run ID:** `/root/c0_contract_reviewer`
 **Runtime disclosed to this agent:** OpenAI Codex, GPT-5
-**Proposed capability use:** Independent reviewer for a future, separately assigned `architecture-contracts` / canonical-contract work package only. This record accepts no implementation package and grants no status transition.
+**Routing scope:** Pre-assignment evidence for the `architecture-contracts` reviewer role of backlog `WP-0A-CON-001`. No package has been accepted or assigned to this run.
 
-## Declared tools and boundaries
+## Declared tools and authority boundary
 
-| Capability | Observed value | Boundary |
+| Capability | Declared value | Limit |
 |---|---|---|
-| Read repository files | Yes | Read `CONTRIBUTING_AGENTS.md`, Decision Register §9.3–§10.7, RFC-2026-001, validators, schemas, tests, and the existing A0 manifest. |
-| Write files | Yes | This benchmark creates only this evidence file through `apply_patch`. |
-| Shell commands | Yes | Used `sed`, `find`, `git status`, and `node`/`npm` read-only validation attempt. |
-| Run deterministic tests | Conditional | The available runtime is Node `v26.7.0`; the repository requires Node `v24.20.0`, so `npm run check` correctly stopped at the version guard before tests. No substitute runtime was used. |
-| Network / browser / external credentials | Not used | No network, browser, external account, secret, production credential, customer data, or provider was accessed. External-secret access is declared **false**. |
-| Create branch or worktree | Not used | Not needed for a read-only benchmark. |
+| Repository read / synthetic-file edit | Yes | This preparation changed only this benchmark and its matching capability declaration. |
+| Shell and deterministic repository tests | Yes | Use only repository-declared commands and the pinned runtime; no global tool or dependency is required. |
+| Network, browser, external secrets or provider credentials | No declared use | `can_access_external_secrets` is false. No external account, credential, provider, customer data, or production system was used. |
+| Branch/worktree creation | No declared use | This reviewer preparation does not create or integrate a branch. |
+| Approval authority | None standing | This run may issue a reviewer verdict only after a distinct-author package assignment and evidence review; it has no Author, Security/Privacy, Product/UX, Tester, Integration, Release, or Product Owner authority. |
 
-## Benchmark exercise
+## Synthetic, read-only benchmark exercise
 
-Review the existing bootstrap decision and role-separation controls as a contract reviewer. The exercise was to establish whether the controls make the following claims traceable without changing them:
+Read the declared inputs for `WP-0A-CON-001` and trace the shared-kernel baseline
+catalog rows without creating a contract, fixture, schema, provider call, or
+customer-data artifact. The exercise checked whether the baseline exposes the
+minimum routing metadata a contract reviewer needs:
 
-1. RFC-2026-001 remains an in-review local bootstrap decision and cannot be mistaken for an approved production decision.
-2. A ready-or-later work package requires four non-empty, pairwise-distinct primary role run IDs.
-3. Each non-null assigned role has a capability declaration, including conditional security/product reviewers.
-4. The observed validator behavior and test coverage align with the Sprint 0A role-separation and review-gate baseline.
-
-## Observed evidence
-
-| Check | Evidence observed | Result |
+| Baseline check | Read-only evidence | Outcome |
 |---|---|---|
-| Decision lifecycle | RFC-2026-001 header says `Status: In review`; its required-evidence section requires independent review, security, test, integration, and CI before merge. `CONTRIBUTING_AGENTS.md` repeats that it is local-only until those evidence types complete. | Pass for local bootstrap lifecycle; no approval inferred. |
-| Four-role independence | `scripts/validate-work-package-role-separation.mjs` checks `author`, `reviewer`, `tester`, and `integration_owner` for non-empty and pairwise-distinct IDs for `ready` or later statuses. | Pass for the four primary roles specified by Decision Register §9.3.1. |
-| Negative cases | `test-kits/role-separation.test.mjs` covers duplicate role ID, empty role ID, unsupported status, and malformed manifest rejection. | Pass by inspection; execution deferred because the pinned Node runtime is unavailable in this agent session. |
-| Conditional role declaration | `scripts/validate-capability-profiles.mjs` checks every non-null `*_agent_run_id`, including conditional reviewer IDs, against a unique capability profile; `test-kits/capability-profile.test.mjs` covers undeclared security and product reviewer IDs. | Pass by inspection. |
-| Existing manifest consistency | `work-packages/WP-0A-A0-001.json` is `in_review` and names distinct `/root`, `/root/a1_bastion`, `/root/q0_sentinel`, and `/root/r0_steward` primary roles. It does not name this C0 run. | No conflict; this run was not retroactively assigned. |
-| Exact toolchain guard | `npm run check` under observed Node `v26.7.0` / npm `11.19.0` exited before validation with: `Expected Node v24.20.0 and npm 11.19.0; received node=v26.7.0.` | Expected safe failure; no test result is claimed. |
+| Candidate contract identity and version | Decision Register §5.1 lists `CTR-TEN-001`, `CTR-ERR-001`, `CTR-EVT-001`, and `CTR-JOB-001`, each at `1.0.0`. | Traceable. |
+| Ownership and consumer routing | The same catalog row identifies A0/A1 or A0 owner/producer and its stated consumer set. | Traceable; no ownership is changed. |
+| Freeze and fixture boundary | The four shared-kernel contracts are `Candidate`; the table specifies minimum schema/taxonomy/lifecycle and valid/invalid fixture artifacts before freeze. | Traceable; no freeze advancement is claimed. |
+| G0 implementation boundary | G0 readiness report permits contract tests/fixtures/reversible foundation while G0 remains externally pending. | Compatible with a synthetic, catalog-only future package. |
 
-## Review observations and limits
+## Limitations and outcome
 
-- The RFC body uses the imperative “Approve option 1,” while its header is `In review`. The header and required-evidence clauses must remain the operative lifecycle signal; a future canonical-contract package should avoid language that could be read as granting approval before the listed evidence exists.
-- The primary role validator intentionally validates identity separation, not skill-to-required-profile matching. The companion capability validator validates existence and secret-access denial, but it does not prove that a declared run has actually demonstrated every requested skill. This benchmark itself is the limited evidence for `architecture-contracts` review; a future manifest must still assign the exact run ID and apply the relevant independence rules.
-- The test suite was not executed in this run because no Node `24.20.0` runtime was available. The version guard prevented an invalid substitute run, which is the correct behavior under RFC-2026-001.
-- This agent did not review production schema, RLS, billing, Meta, storage, product UX, legal/PDPA, or any external-provider behavior. It cannot act as Product Owner, Security/Privacy approver, Independent Tester, Integration Owner, or a substitute for a qualified domain reviewer.
+This is a narrow, synthetic/read-only sample of catalog traceability. It does not
+prove a future contract implementation, compatibility runner, schema semantics,
+RLS behavior, production provider behavior, or cross-vendor execution. A future
+`WP-0A-CON-001` assignment must name this exact run separately from Author,
+Tester, and Integration Owner, preserve Candidate/Draft freeze levels, and supply
+its own deterministic test evidence.
 
-## Outcome
-
-**Capability outcome: conditionally suitable** as an independent `architecture-contracts` reviewer for a future canonical-contract package, provided that package names `/root/c0_contract_reviewer` in its manifest, assigns a separate Author/Tester/Integration Owner, and provides the pinned Node toolchain for deterministic verification. This is a narrow sample contract review, not a standing approval.
-
-This evidence is **not** cross-vendor evidence, a Gate G0 result, Product Owner approval, implementation approval, security approval, test verification, integration verification, or authorization to change contracts, schemas, CI, credentials, or production settings.
+**Capability outcome:** Conditionally suitable for independent
+`architecture-contracts` review only. This benchmark is not a package approval,
+G0 result, RFC/contract approval, Security/Product/UX approval, test verification,
+integration verification, merge authorization, or authorization to change
+contracts, schemas, CI, credentials, or production settings.
