@@ -146,3 +146,35 @@ My glob was `valid-*.json`. **The measurement was wrong, not the repository** �
 this package a probe has measured something other than what it claimed, and the first time I caught
 it before writing it up. The rule that saved it is the one already recorded: run the thing, and
 when the result is surprising, suspect the probe first.
+
+## Three more probes in the same layer, and a rule of mine I broke
+
+| probe | result |
+| --- | --- |
+| a digested path replaced by a **directory** | **exit 91** — held, by the `lstat` check added the same day |
+| `NPM_CONFIG_SCRIPT_SHELL=/usr/bin/true npm run verify` | **exit 0, 66 bytes of output** — the environment variant of `.npmrc`, and not closeable from inside the repository |
+| a case-variant filename on a case-insensitive filesystem | **exit 86** — held, but see below |
+
+### The environment variant
+
+`NPM_CONFIG_SCRIPT_SHELL` does to `npm run` exactly what `.npmrc` did, and no file in this
+repository can stop it — npm reads environment variables above every config file. **The
+containment is that CI invokes `node scripts/verify-test-coverage-floor.mjs` directly**, and an
+npm environment variable does not touch `node`: with the variable set, the guard invoked directly
+still runs and still reports. That is the same structural answer as RFC-2026-007, arrived at from a
+different direction, and it belongs with `NODE_OPTIONS` on the "not closed" list.
+
+### The case-insensitive filesystem, and the rule I broke
+
+On macOS's default filesystem, writing `test-kits/Repository-Json.test.mjs` **overwrites**
+`test-kits/repository-json.test.mjs`. The digest tripwire catches it — *"content does not match its
+recorded digest"*, exit 86, confirmed in a copy — so the repository is protected.
+
+**I confirmed that by destroying the real file.** My own working rules say *"run every destructive
+probe in a copy outside the repository"*, written after two earlier incidents, and I ran this one
+in the live tree; `rm` of the case-variant name deleted the real suite. `git checkout` recovered it
+and `npm run verify` is clean, so nothing was lost — but the rule exists because recovery is not
+always available, and I re-ran the probe properly in a copy afterwards to get the result above.
+
+Written down rather than quietly corrected, for the same reason every other mistake in these files
+is: the pattern is the finding.
