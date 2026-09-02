@@ -178,7 +178,7 @@ flowchart TD
 ### Approval and external evidence
 
 - [ ] Product Owner อนุมัติ DEC-01..16
-- [ ] Repository มี canonical guide, thin Codex/Claude adapters และ protected CI
+- [x] Repository มี canonical guide, thin Codex/Claude adapters และ protected CI — ปิดเมื่อ 2026-09-02; หลักฐานและข้อจำกัดที่รู้ตัวอยู่ใน `evidence/g0-tracker-th.md`
 - [ ] เลือก agent IDs ตาม capability benchmark และกรอกทุก Ready package
 - [ ] Meta app, pages, IG accounts และ permissions ถูกทดสอบด้วย credentials จริง
 - [ ] Stripe Thai account/sandbox, products/prices, webhook endpoint และ Portal ถูกทดสอบจริง
