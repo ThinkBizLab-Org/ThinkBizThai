@@ -4,26 +4,14 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "423a1acf2aabc2bccea175c22c8a42eb52a42acc",
-  "head_revision_or_patch_checksum": "2dd6f1235884cc029fe6e0851e4deff5223b62c3",
+  "base_revision": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
+  "head_revision_or_patch_checksum": "5fb5950bd26d0e78ce8d0da34a9d33c842d4cbe3",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
-  "files_added": [
-    "architecture/decisions/RFC-2026-011-repository-language.md",
-    "architecture/decisions/RFC-2026-012-client-database-boundary.md",
-    "evidence/WP-0A-A0-001/open-015-client-database-boundary.md"
-  ],
-  "files_modified": [
-    "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md",
-    "evidence/g0-tracker-th.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-A0-001.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",

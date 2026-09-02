@@ -144,6 +144,13 @@
       "test-kits/work-package-ownership.test.mjs",
       "work-packages/WP-0A-A0-001.json"
     ],
+    "amends_without_owning": {
+      "paths": [
+        "docs/sprint-0a/sprint-0a-g0-readiness-report-th.md"
+      ],
+      "rationale": "One literal path, owned by no package. The readiness report's checklist box for canonical guide, adapters and protected CI is now objectively satisfiable: all three exist and the third was verified by a probe that pushed directly to main and was rejected. Ticking the box is a statement about the repository this package built, and the evidence for it lives in this package's own tracker.",
+      "recorded_on": []
+    },
     "read_only_paths": [
       "README.md",
       "docs/**"
