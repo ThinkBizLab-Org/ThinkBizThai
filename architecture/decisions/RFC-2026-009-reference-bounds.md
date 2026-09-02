@@ -1,6 +1,6 @@
 # RFC-2026-009 — A reference must be named and bounded
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — schema_ref is bounded and shaped as a contract id and semantic version, not as a resource reference. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before CTR-EVT-001 leaves Candidate
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`

@@ -1,6 +1,6 @@
 # RFC-2026-005 — Secret-scan strengthening, fail-closed reads, and a privacy dimension
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — the thirty credential rules are live; entropy remains a second-stage filter and never a detector. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before any package handles permissioned data, a real credential, or customer content
 Owner: A0 Architecture/Security tooling
 Protocol version: `1.0.0`

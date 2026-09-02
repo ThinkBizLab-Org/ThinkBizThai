@@ -1,6 +1,6 @@
 # RFC-2026-007 — CI must invoke the test-integrity guard as its own step
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — CI invokes the guard as its own step; this is the step that survived the .npmrc bypass. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before any package relies on `npm run check` as evidence that tests ran
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`

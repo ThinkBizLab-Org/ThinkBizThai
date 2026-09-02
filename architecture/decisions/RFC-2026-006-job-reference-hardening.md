@@ -1,6 +1,6 @@
 # RFC-2026-006 — CTR-JOB-001 reference-field hardening
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — the allow-listed scheme replaced the deny-list and a well-formed reference is still accepted. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before CTR-JOB-001 advances past Candidate, and before any module consumes the job envelope
 Owner: A0 Architecture/Contracts
 Protocol version: `1.0.0`

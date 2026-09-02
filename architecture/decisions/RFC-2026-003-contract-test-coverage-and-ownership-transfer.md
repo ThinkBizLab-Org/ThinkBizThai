@@ -1,6 +1,6 @@
 # RFC-2026-003 — Contract-test CI coverage and ownership boundary transfer
 
-Status: Proposed — awaiting independent review, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — the test glob, the ownership transfer and the argv-passed pattern are live on main and the suite has been green at every step since. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before any further shared-kernel contract package becomes Ready
 Owner: A0 Architecture/Integration
 Protocol version: `1.0.0`

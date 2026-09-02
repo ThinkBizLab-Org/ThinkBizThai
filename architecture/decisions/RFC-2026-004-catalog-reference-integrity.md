@@ -1,6 +1,6 @@
 # RFC-2026-004 — Catalog $ref integrity and the shared-kernel envelope contracts
 
-Status: Proposed — awaiting independent review, security, test, integration, and Product Owner disposition
+Status: Approved 2026-09-02 by the Product Owner — the $ref integrity guard is live and no freeze level moved. Limitations and Rollback in this document stand unchanged.
 Decision needed by: before any module contract package consumes the shared kernel
 Owner: A0 Architecture/Contracts
 Protocol version: `1.0.0`
