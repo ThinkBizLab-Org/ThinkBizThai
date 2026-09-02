@@ -15,6 +15,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          # The branch-scope guard diffs against the pull request's base, so the base commit
+          # must be in the clone. A shallow checkout has only the head.
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.20.0
@@ -25,5 +28,40 @@ jobs:
           test "$(npm --version)" = "11.19.0"
       - name: Clean install
         run: npm ci --ignore-scripts
+      # Invoked BY THE WORKFLOW, not by the script it audits. `npm run check` can be
+      # neutered by its own scripts.check string -- a trailing `&` backgrounds the chain so
+      # the shell returns 0 before any exit code matters, and replacing every `&&` with `||`
+      # short-circuits at step 1; the guard runs and rejects with exit 81, and `||` discards that exit code. A guard invoked by a
+      # command cannot constrain the command that invokes it. See RFC-2026-007.
+      - name: Verify test-integrity guard
+        run: node scripts/verify-test-coverage-floor.mjs
       - name: Validate repository bootstrap
         run: npm run check
+      # `validate-work-package-ownership.mjs` checks what a manifest DECLARES. This checks what
+      # the branch CHANGED. Both failures it exists for came through that gap: a rebase resolved
+      # with `--theirs` on a file the base had just changed silently reverted it, and work done
+      # while answering review findings accumulated twenty-six undeclared paths on one branch.
+      #
+      # It lives here rather than in `npm run check` for the reason RFC-2026-007 gives about the
+      # guard above it: only the workflow knows the pull request's base. A script the repository
+      # invokes on itself cannot.
+      - name: Verify branch scope
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          package_id="$(printf '%s' "$HEAD_REF" | sed -n 's|.*/\(WP-0A-[A-Z0-9]*-[0-9]*\)-.*|\1|p')"
+          if [ -z "$package_id" ]; then
+            echo "branch $HEAD_REF does not name a work package; nothing to scope"
+            exit 0
+          fi
+          if [ ! -f "work-packages/$package_id.json" ]; then
+            echo "branch names $package_id but work-packages/$package_id.json does not exist"
+            exit 73
+          fi
+          # `persist-credentials: false` means no fetch can authenticate, so the base has to
+          # come from what the checkout already brought. With `fetch-depth: 0` the full history
+          # is present and the merge-base of HEAD and the base branch is reachable by SHA --
+          # which the pull_request event supplies directly.
+          node scripts/verify-branch-scope.mjs "$BASE_SHA" "$package_id"

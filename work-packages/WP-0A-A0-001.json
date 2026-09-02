@@ -47,18 +47,34 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "amended_by": {
-      "work_package_id": "WP-0A-A0-002",
-      "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
-      "change": "package.json was removed from writable_paths and outputs.files and transferred to WP-0A-A0-002. This package did author package.json; the removal is forced by scripts/validate-work-package-ownership.mjs, which exits 70 while two packages hold the same path. No status, role, gate, or delivered output of this package changed.",
-      "acknowledgement_required_from": "/root/r0_steward",
-      "acknowledgement_status": "pending"
-    },
+    "amended_by": [
+          {
+                "work_package_id": "WP-0A-A0-002",
+                "decision_record": "architecture/decisions/RFC-2026-003-contract-test-coverage-and-ownership-transfer.md",
+                "change": "package.json was removed from writable_paths and outputs.files and transferred to WP-0A-A0-002. This package did author package.json; the removal is forced by scripts/validate-work-package-ownership.mjs, which exits 70 while two packages hold the same path. No status, role, gate, or delivered output of this package changed.",
+                "acknowledgement_required_from": "/root/r0_steward",
+                "acknowledgement_status": "pending"
+          },
+          {
+                "work_package_id": "WP-0A-A0-003",
+                "decision_record": "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
+                "change": "scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs were removed from writable_paths and outputs.files and transferred to WP-0A-A0-003. No status, role, gate or delivered output of this package changed.",
+                "acknowledgement_required_from": "/root/r0_steward",
+                "acknowledgement_status": "pending"
+          },
+          {
+                "work_package_id": "WP-0A-A0-004",
+                "decision_record": "architecture/decisions/RFC-2026-007-ci-independent-guard-step.md",
+                "change": ".github/workflows/ci.yml was removed from writable_paths and outputs.files and transferred to WP-0A-A0-004, so the workflow can invoke the test-integrity guard as its own step. No status, role, gate or delivered output of this package changed.",
+                "acknowledgement_required_from": "/root/r0_steward",
+                "acknowledgement_status": "pending"
+          }
+    ],
+    "amended_by_shape_note": "An array, because this package now carries three amendments and JSON cannot hold a duplicate key. The first element is the original WP-0A-A0-002 record, unchanged. Independent review found the RFC-2026-005 and RFC-2026-007 amendments were both unrecorded while RFC-2026-007 asserted as present fact that the record existed.",
     "writable_paths": [
       "CONTRIBUTING_AGENTS.md",
       "AGENTS.md",
       "CLAUDE.md",
-      ".github/workflows/ci.yml",
       ".node-version",
       ".agents/capabilities.schema.json",
       ".agents/handoff.schema.json",
@@ -155,7 +171,6 @@
       ".node-version",
       "ownership/README.md",
       "package-lock.json",
-      ".github/workflows/ci.yml",
       "scripts/validate-work-package-role-separation.mjs",
       "scripts/validate-capability-profiles.mjs",
       "scripts/validate-work-packages.mjs",
