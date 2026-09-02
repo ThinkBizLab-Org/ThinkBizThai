@@ -186,8 +186,26 @@ test('no decision record exists outside the directory that holds them', async ()
       // Evidence files quote RFCs constantly; only a document that OPENS as one counts.
       // The WHOLE file. A 600-character window is a window, and the review put the heading past
       // it with an HTML comment.
-      if (path.startsWith('evidence/')) continue;
-      if (RFC_HEADING.test(body) && RFC_STATUS.test(body)) found.push(`${path} — reads as a decision record`);
+      // The STATUS LINE ALONE, over the whole file. My previous version required a heading AND
+      // a status, and independent review twenty walked through the AND-gate twice:
+      // `# Decision: internal service callers are exempt…` + `Status: Approved` in `docs/`, and a
+      // fully-matching `# Amendment 1` + `Status: Approved` in `evidence/`, which was skipped
+      // outright. Both exit 0.
+      //
+      // My own evidence said "the status line is the load-bearing signal" while the code still
+      // required the heading. It is load-bearing now: measured across the whole repository,
+      // exactly nine files declare an Approved/Accepted/Proposed status and all nine are decision
+      // records in `architecture/decisions`. A tenth anywhere else is the finding, whatever it is
+      // called — and `evidence/` is no longer exempt, because it is the one directory this package
+      // writes freely and a fabricated amendment there outranked everything.
+      if (RFC_STATUS.test(body)) { found.push(`${path} — declares a decision status`); continue; }
+      // A record ABOUT a decision may carry its heading; it may not DECLARE a status. Four real
+      // files matched the heading rule the moment `evidence/` stopped being skipped —
+      // `review-security-verdict.md`, `rfc-002-exact-commit-verification.md`, `test-verdict.md`
+      // and an integration verdict — and flagging those would train a reader to ignore this,
+      // which is the failure mode recorded three times in this package already.
+      if (path.startsWith('evidence/') || path.startsWith('handoffs/')) continue;
+      if (RFC_HEADING.test(body)) found.push(`${path} — reads as a decision record`);
     }
   };
   await walk('.');
@@ -205,6 +223,21 @@ test('the workflow directory holds exactly the workflows nobody added to', async
   // with write credentials.
   //
   // Ratcheted like `architecture/decisions`: a declared set, and every file digested.
+  // ALL of `.github/`, not only `workflows/`. Independent review twenty added
+  // `.github/CODEOWNERS` with `* @attacker` at exit 0 — the file that decides whose review GitHub
+  // requires. It is inert here only because native branch protection is unavailable
+  // (RFC-2026-002), which is a temporary condition a ratchet must not depend on. `dependabot.yml`
+  // went the same way.
+  const DECLARED_GITHUB_FILES = ['workflows/ci.yml'];
+  const walkGithub = async (directory, prefix = '') => {
+    const out = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const relative = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) out.push(...await walkGithub(join(directory, entry.name), `${relative}/`));
+      else out.push(relative);
+    }
+    return out.sort();
+  };
   const DECLARED_WORKFLOWS = ['ci.yml'];
   const present = (await readdir('.github/workflows')).sort();
   const manifest = JSON.parse(await readFile('test-kits/integrity-manifest.json', 'utf8'));
@@ -220,5 +253,12 @@ test('the workflow directory holds exactly the workflows nobody added to', async
       wrong.push(`.github/workflows/${name} carries no digest`);
     }
   }
-  assert.deepEqual(wrong, [], `workflow directory problem(s):\n  ${wrong.join('\n  ')}`);
+  const everything = await walkGithub('.github');
+  for (const relative of everything.filter((r) => !DECLARED_GITHUB_FILES.includes(r))) {
+    wrong.push(`.github/${relative} is a file nobody declared`);
+  }
+  for (const relative of everything) {
+    if (manifest.files?.[`.github/${relative}`] === undefined) wrong.push(`.github/${relative} carries no digest`);
+  }
+  assert.deepEqual(wrong, [], `.github problem(s):\n  ${wrong.join('\n  ')}`);
 });

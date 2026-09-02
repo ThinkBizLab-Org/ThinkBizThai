@@ -277,11 +277,15 @@ test('a fixture change counts as contract impact', async () => {
 //
 // The vocabulary is still a vocabulary and cannot be the control on its own. It is widened, and
 // the limitation stays on the "not closed" list.
-const APPROVAL_LANGUAGE = new RegExp(
-  '\\b(approv\\w*|sign-?off|signed off|signs off|countersign\\w*|cleared|clears|concurs?|'
-  + 'no objections?|accepted|ratifi\\w*|authoris\\w*|authoriz\\w*|endorse\\w*|verified this|attests?)\\b',
-  'i',
-);
+// VERB FORMS ONLY, and only ones that say the thing was DONE. Independent review twenty showed
+// the cost of a broader list: `"A1 and A6 sign-off is outstanding"` and `"the judgement is
+// accepted"` are honest sentences in real handoffs, and flagging them would train a reader to
+// ignore this check -- the failure mode this package has recorded four times.
+//
+// The noun `sign-off` is out, and so is `accepted`, which in these handoffs means the author
+// accepting a finding rather than a role approving a package. What remains is the shape a
+// fabricated approval actually takes: somebody APPROVED, SIGNED OFF, CLEARED or RATIFIED it.
+const APPROVAL_LANGUAGE = /\b(approved|approves|signed off|signs off|cleared|clears|countersigned|ratified|authoris(ed|es)|authoriz(ed|es)|endorsed)\b/i;
 // The ids are ENUMERATED from the repository -- every capability profile and every role
 // assignment -- rather than pattern-matched. The first version used a `/x/y` shape and reported
 // `contract-catalog/shared-kernel/ctr-api-001/examples/valid-accepted.json` as an agent run id,
@@ -318,11 +322,29 @@ async function knownRunIds() {
 // widen the exemption -- a wider exemption is a wider bypass, one for one.
 const OUTSTANDING = /\b(requires?|required|outstanding|pending|awaits?|unresolved|blocked|uncountersigned|not countersigned|no .{0,20}(approval|sign-?off))\b/i;
 
+// ORDER, not vocabulary. `"requires an acknowledgement countersigned by …"` and `"signed off …
+// and nothing is pending"` contain the same two kinds of word; what separates them is which comes
+// first. An exempting word BEFORE the approval verb governs it -- the approval is being asked for.
+// After it, the exemption is a trailing clause bolted onto a claim, which is exactly how review
+// twenty smuggled three of them.
+const exemptionGovernsApproval = (clause) => {
+  const outstanding = clause.search(OUTSTANDING);
+  const approval = clause.search(APPROVAL_LANGUAGE);
+  return outstanding !== -1 && outstanding < approval;
+};
+
 // A role NOUN carries the same claim as a run id and the check could not see it. The review wrote
 // "The independent Security/Privacy reviewer … cleared the freeze; the independent Tester signed
 // off … and the Integration Owner approved the merge" -- three fabricated approvals, no ids at
 // all, **exit 0**.
-const ROLE_NOUN = /\b(security[ /]?(and |&|\/)?\s*privacy reviewer|security reviewer|contract reviewer|independent reviewer|reviewer of record|tester|integration owner|product owner|product reviewer)\b/i;
+// Widened after independent review twenty walked past every gap in the first list: a bare
+// `reviewer`, `security review` rather than `security reviewer`, and the OWNER CODES this
+// repository actually uses -- `A1 and A6 have signed off` names neither a run id nor a role noun,
+// and A1/A6 are exactly who RFC-2026-010 is waiting on.
+// The owner code must not match inside an identifier: `A0` sits in `WP-0A-A0-001` in every
+// handoff, and the first version of this list reported those as approvals -- a guard reporting a
+// wrong reason, for the sixth time in this package, caught by running it.
+const ROLE_NOUN = /\b(reviewer\w*|review|tester|testing|integration owner|product owner|steward)\b|(?<![\w-])A[0-6](?![\w-])/i;
 
 // `not` is deliberately in that list, and it is the weak point: a fabricated approval can include
 // the word. Clause-level evaluation narrows it -- "X approved this" and "Y is not countersigned"
@@ -366,7 +388,15 @@ test('an author handoff does not record an approval it has no authority to give'
       //
       // An exemption in a neighbouring clause must not cover an affirmative approval in this one.
       const clauses = value.split(/(?<=[.;!?])\s+/).filter((clause) => clause.trim().length > 0);
-      const claimed = clauses.filter((clause) => APPROVAL_LANGUAGE.test(clause) && !OUTSTANDING.test(clause));
+      // An exempting word no longer rescues a clause that also ATTRIBUTES the approval. Review
+      // twenty's `"The independent Tester signed off on the freeze and nothing is pending."`
+      // carried `pending` and an attribution in the same clause and passed.
+      //
+      // The real handoff sentences that need an exemption -- `"requires an acknowledgement
+      // countersigned by … /root/r0_steward"` -- attribute nothing: they say an approval is
+      // MISSING. That is the discriminator, and it is structural rather than lexical.
+      const claimed = clauses.filter((clause) => APPROVAL_LANGUAGE.test(clause)
+        && !exemptionGovernsApproval(clause));
       if (claimed.length === 0) continue;
       const mentioned = runIds.filter((id) => id !== author
         && claimed.some((clause) => clause.includes(id)));
@@ -379,4 +409,42 @@ test('an author handoff does not record an approval it has no authority to give'
   }
   assert.deepEqual(wrong, [], `handoff(s) speaking for a role they do not hold:\n  ${wrong.join('\n  ')}\n`
     + 'A handoff that lies about its own work is not caught by anything here — that needs a reader.');
+});
+
+
+test('no file under handoffs records an approval its author cannot give', async () => {
+  // The check above reads only `*-author-handoff.json`. `handoffs/` already holds `.md` files --
+  // integration verdicts -- and independent review twenty put a fabricated approval in one:
+  // "The independent Reviewer approved this package and the Integration Owner merged it."
+  // **exit 0.** The control was entirely absent for the file shape a reviewer or integration
+  // handoff actually uses.
+  const runIds = await knownRunIds();
+  const wrong = [];
+  // AUTHOR artifacts only, whatever their extension. My first version scanned every file under
+  // `handoffs/` and immediately reported four real ones -- an integration verdict recording the
+  // Integration Owner's own approval, which is precisely the artifact where that belongs. A guard
+  // that flags the correct use of the protocol teaches people to ignore it, and this package has
+  // recorded that failure five times now.
+  //
+  // What review twenty actually found is narrower: the check read `*-author-handoff.json` and an
+  // author could write `WP-…-author-note.md` beside it. That is the hole; this is its size.
+  for (const name of (await readdir(HANDOFFS)).sort()) {
+    if (!name.includes('author')) continue;
+    if (name.endsWith('-author-handoff.json')) continue;
+    const body = await readFile(join(HANDOFFS, name), 'utf8');
+    for (const clause of body.split(/(?<=[.;!?])\s+/)) {
+      if (!APPROVAL_LANGUAGE.test(clause) || exemptionGovernsApproval(clause)) continue;
+      const named = [
+        ...runIds.filter((id) => clause.includes(id)),
+        ...(ROLE_NOUN.test(clause) ? [clause.match(ROLE_NOUN)[0]] : []),
+      ];
+      if (named.length === 0) continue;
+      wrong.push(`${name} attributes approval to ${[...new Set(named)].join(', ')}: ${JSON.stringify(clause.slice(0, 110))}`);
+    }
+  }
+  assert.deepEqual(wrong, [], `handoff file(s) recording an approval:\n  ${wrong.join('\n  ')}\n`
+    + 'An approval is the approving role\'s own artifact, and an author writes none of them. '
+    + 'A reviewer\'s or integration owner\'s record of their OWN approval is legitimate and is not '
+    + 'checked here — telling a true one from a fabricated one needs a reader, which is item 9 on '
+    + 'the not-closed list.');
 });

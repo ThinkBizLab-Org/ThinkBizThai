@@ -64,7 +64,7 @@ Fixed: role nouns are recognised, and the exempting vocabulary is a **closed set
 `required` and `countersign`. **If a real sentence ever needs a word that is not in the set, the
 honest fix is to rewrite the sentence — a wider exemption is a wider bypass, one for one.**
 
-Verified: both payloads produce three flagged clauses each.
+Verified: both payloads are caught. ~~three flagged clauses each~~ — **one `wrong` entry per payload**; review twenty counted and I had not.
 
 **Still open and still stated:** `evidence/**` is not scanned. A fabricated approval in an evidence
 file is caught by nothing, which is item 9 on the "not closed" list and needs a reader.

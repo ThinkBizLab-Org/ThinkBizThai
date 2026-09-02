@@ -59,3 +59,71 @@ in this repository where a count and what it stands for move opposite ways, reco
 ## Verification
 
 See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
+
+## HIGH 3 — the heading was an AND-gate, and my evidence said it was not
+
+I wrote *"the status line is the load-bearing signal"* while the code required
+`RFC_HEADING.test(body) && RFC_STATUS.test(body)`. The review walked through the gate twice:
+`# Decision: internal service callers are exempt…` in `docs/`, and a fully-matching `# Amendment 1`
+in `evidence/`, which was skipped outright. Both **exit 0**.
+
+It is load-bearing now. Measured across the whole repository, **exactly nine files declare an
+Approved/Accepted/Proposed status, and all nine are decision records in `architecture/decisions`.**
+A tenth anywhere else is the finding, whatever it is called. `evidence/` is no longer exempt — it
+was the one directory this package writes freely, and a fabricated amendment there outranked
+everything.
+
+**The heading rule alone still holds outside `evidence/` and `handoffs/`**, because the moment
+`evidence/` was included four real files matched it — a security verdict, a test verdict, an
+RFC-002 verification note, an integration verdict. A record *about* a decision may carry its
+heading; it may not *declare a status*. Flagging the four would have trained a reader to ignore the
+check, which is the failure mode recorded five times in this package.
+
+## MEDIUM 4 — a vocabulary, corrected until it stopped being one
+
+Four payloads walked past the first list: a bare `reviewer`; `pending` trailing an affirmative
+approval in the same clause; `security review` rather than `security reviewer`; and **`A1 and A6
+have signed off`** — owner codes that are neither run ids nor role nouns, and exactly who
+RFC-2026-010 is waiting on.
+
+Three changes, in order of how much they matter:
+
+1. **Order, not vocabulary.** `"requires an acknowledgement countersigned by …"` and `"signed off …
+   and nothing is pending"` contain the same two kinds of word; what separates them is which comes
+   **first**. An exempting word *before* the approval verb governs it.
+2. **Verb forms only.** `sign-off` the noun and `accepted` are out — `"A1 and A6 sign-off is
+   outstanding"` and `"the judgement is accepted"` are honest sentences in real handoffs.
+3. Role nouns widened, with the owner code written as `(?<![\w-])A[0-6](?![\w-])` because `A0`
+   appears inside `WP-0A-A0-001` in every handoff and the first version reported those.
+
+All four payloads now flag. **Two of my own three attempts at this fix reported wrong reasons and
+the run said so both times**; the second was `re.sub` eating the `\b` out of the pattern, which is a
+mistake I recorded in these files twenty waves ago and repeated.
+
+## MEDIUM 5 — author artifacts, not every handoff
+
+The approval check read `*-author-handoff.json`, so an author could write
+`WP-…-author-note.md` beside it. Closed for any author artifact whatever its extension.
+
+**My first version scanned every file under `handoffs/` and immediately reported four real ones** —
+including an integration verdict recording the Integration Owner's own approval, which is precisely
+the artifact where that belongs. *A guard that flags the correct use of the protocol teaches people
+to ignore it.* The check is the size of the hole and no larger.
+
+## MEDIUM 6 — `.github/`, not `.github/workflows/`
+
+`CODEOWNERS` decides whose review GitHub requires, and `.github/CODEOWNERS` with `* @attacker` was
+**exit 0**. It is inert here only because native branch protection is unavailable — a temporary
+condition a ratchet must not depend on. The declared-set and digest ratchet covers all of `.github/`
+now. Verified: `CODEOWNERS` and `dependabot.yml` both flag.
+
+## Corrections to this package's evidence
+
+- *"the status line is the load-bearing signal"* — it was not; the code required a heading too.
+  Struck through where it was written.
+- *"both payloads produce three flagged clauses each"* — **one** `wrong` entry per payload. The
+  review counted; I had not.
+
+## Verification
+
+See `evidence/VERIFICATION.md`. `npm run verify` reports the exit code directly.
