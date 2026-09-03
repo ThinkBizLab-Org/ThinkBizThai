@@ -132,3 +132,47 @@ Author added must not be removed by anyone but the authority that disposes of it
 
 `OPEN-016`'s Product Owner review of all fourteen formulas, sources, owners and targets
 remains outstanding and is closable by no agent.
+
+---
+
+## A seventh required change, found by the benchmark assessor — 2026-09-03
+
+The forward-scoped `billing-cost-ops` benchmark
+(`evidence/capability-benchmarks/a6-relay-billing-cost-ops.md`) found a defect that neither
+the Author nor the independent reviewer found, and it is the most serious one in the
+artifact.
+
+**No cost metric defines its population.** The reviewer had found the pre-/post-dedupe
+silence introduced by RFC-2026-014. **Supersession is a separate, older mechanism, and the
+dictionary does not mention it in any population at all.**
+
+Demonstrated with two documents that are **both valid** against the committed schema,
+re-verified by A0 with the repository's own validator: an `estimated` 20.00 THB record and
+a `provider_reported` 22.00 THB record that supersedes it.
+
+`C-01`'s formula as written — `decimal_sum(CTR-USG-001 cost.amount) grouped by
+cost.currency` — returns **42.00**. The settled cost is **22.00**. Nearly double, in the
+money direction, from a formula that passes the author's own checker.
+
+`C-02` states *"the partition is exhaustive and the shares sum to one by construction —
+which is what makes this **the one cost metric with no population gap**."* The first half is
+true. The second is the false sentence, and it sits one entry away from `C-04`, which the
+same author wrote **about `cost.supersedes_usage_id`** and described correctly as
+restatement. The consequence was not carried back one entry.
+
+Across a month boundary a closed period restates in either direction, and `C-04` counts
+corrections by the month they arrive rather than the month they correct, so it cannot
+surface that either.
+
+**A fourth hole in the checker**, beyond the three the reviewer named: it never checks that
+a formula's population is bounded. All of the above passes a green run.
+
+**Required change 7:** every cost aggregate states its population boundary explicitly —
+superseded records in or out, pre- or post-dedupe, and whether a closed period can restate
+— and `C-02`'s "no population gap" sentence is withdrawn.
+
+**A dispatch observation for A0, not an author defect:**
+`docs/sprint-0a/sprint-0a-stripe-billing-contract-th.md` is not among this package's
+declared inputs and the dictionary cites it nowhere, although the VAT and currency
+decisions in it bear directly on `C-01`. The author's currency caveat is correct without
+it. The billing contract belongs in the inputs of any future `billing-cost-ops` package.

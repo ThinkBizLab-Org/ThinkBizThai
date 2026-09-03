@@ -21,8 +21,8 @@
   },
   "limitations": {
     "declaration_origin": "Declared on 2026-09-02 to correct a misattribution by the Author. A0 dispatched three A6 SRE/Billing assessments of CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 and told each of them its agent_run_id was /root/a6_relay. That is the OpenAI Codex run declared separately in this directory, whose profile records vendor openai and can_create_branch_or_worktree false. The runs that actually performed those assessments were Anthropic Claude Code sessions. This profile declares the run that did the work, and the evidence has been corrected to cite it.",
-    "role_scope": "SRE, observability and billing review only. This run holds NO Author, Contract Reviewer, Tester, Integration Owner, Product Owner, merge, or Gate G0 authority, and it did not author any part of the work it assesses.",
-    "benchmark_outcome": "No independent or external capability benchmark exists for this run. Its verdicts are evidence produced by a run distinct from the Author's, which is what the protocol's separation of duties requires; they are not a substitute for a benchmark and are not a Product Owner disposition.",
+    "role_scope": "SRE, observability and billing REVIEW, and -- from 2026-09-03 and FORWARD ONLY -- Author for the billing-cost-ops skill profile, under every condition in evidence/capability-benchmarks/a6-relay-billing-cost-ops.md. That benchmark recommends WITH CONDITIONS and states that no package may be staffed on its strength alone. This run holds NO Contract Reviewer, Tester, Integration Owner, Product Owner, merge, or Gate G0 authority, and no Author authority outside billing-cost-ops. It must not review, test or integrate its own authored work.",
+    "benchmark_outcome": "An independent capability benchmark now exists: evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, produced 2026-09-03 by /claude/q0_sentinel, a run distinct from this one, from its reviewer /claude/c0_contract_reviewer, and from the dispatcher /claude/a0_atlas. Verdict: recommend WITH CONDITIONS, forward-looking only. It explicitly does not cure the withdrawn WP-0A-A6-001 assignment, and it withdraws rather than re-conditions if a second sample repeats the adjacent-contract over-claim. Its own assessor records that no benchmark exists for the assessor either.",
     "unavailable_tools": [
       "browser control",
       "Meta test app or account",
@@ -32,7 +32,16 @@
     ],
     "network_note": "Network tools are present in the session. The three assessments performed to date used none: each read the repository and executed probes against the repository's own validator from a scratch directory outside the tree.",
     "verification_scope": "Repository-local reading and deterministic probes against shipped schemas and fixtures. Worktree isolation is available to this run but was not used for the assessments to date, which were read-only by instruction.",
-    "evidence": "evidence/WP-0A-CON-004/co-owner-review-sec-aud-obs-usg.md"
+    "evidence": "evidence/WP-0A-CON-004/co-owner-review-sec-aud-obs-usg.md",
+    "authoring_conditions": [
+      "C1 declaration before assignment: this profile cites the benchmark; no package may be staffed on the benchmark alone.",
+      "C2 population is a required element of every aggregate: supersession in or out, pre- or post-dedupe, and whether a closed period can restate.",
+      "C3 no negative claim about another contract without a constructed document that fails to validate, or downgrade it to 'not defined by any contract'.",
+      "C4 a request to widen another contract's control surface leaves the artifact and goes to that contract's owner and to Security, separately reviewed.",
+      "C5 Author only; no self-review, self-test, integration or gate advance.",
+      "C6 author on a base current with main, and enumerate the decisions approved since that base against the claims each touches.",
+      "C7 scope is billing-cost-ops measurement and cost-operations artifacts only -- not pricing, VAT, refund policy, grace period or entitlement, and not this run's other declared profiles."
+    ]
   },
   "accepted_work_package": null
 }
