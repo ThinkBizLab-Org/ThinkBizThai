@@ -146,13 +146,15 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".agents/capability-profiles/cc-a6-relay.json",
-        "evidence/WP-0A-A6-001/**",
-        "evidence/capability-benchmarks/a6-relay-billing-cost-ops.md"
+        "work-packages/WP-0A-A6-001.json",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "scripts/test-suite-contract.mjs"
       ],
-      "rationale": "The forward-scoped billing-cost-ops benchmark the Product Owner's remedy called for is now recorded, produced by /claude/q0_sentinel -- a run distinct from the assessed run, from its reviewer, and from A0. cc-a6-relay.json is amended because the benchmark makes one of its sentences false -- it said no independent benchmark existed for the run -- and evidence/capability-benchmarks/ holds only the one pre-existing file, declared by no package. A0 transcribes the assessor's text under the route .agents/capability-profiles/README.md allows, and changes nothing the assessor did not write. The one amended path is WP-0A-A6-001's evidence, because the assessor found a seventh required change that neither the Author nor the reviewer found, and it is the most serious in the artifact: no cost metric defines its population, so C-01 returns 42.00 for a settled cost of 22.00 from two documents that both validate. A finding of that weight belongs beside the review it extends, not in a separate file a reader has to know to look for. A0 re-verified it against the shipped schema before recording it.",
+      "rationale": "Re-staffing WP-0A-A6-001 is the dispatcher's act and so is A0's, and it means editing that package's manifest. C1 of the benchmark says no package may be staffed on the benchmark alone, so C2-C7 are reproduced into the manifest to bind this assignment rather than merely existing in an evidence file. branch-identity.test.mjs pins the declared branch set to a map, so a newly declared branch must be pinned there in the same change or the guard correctly reports a branch nobody pinned. The last two paths are the digest and per-file floors that move with any protected-file edit.",
       "recorded_on": [
-        "work-packages/WP-0A-A6-001.json"
+        "work-packages/WP-0A-A6-001.json",
+        "work-packages/WP-0A-A0-002.json"
       ]
     },
     "read_only_paths": [

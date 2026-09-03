@@ -5,7 +5,7 @@
   "title": "Product KPI catalog dispatch backlog — G0-003",
   "gate": "G0",
   "priority": "P0",
-  "status": "backlog",
+  "status": "ready",
   "required_skill_profiles": {
     "author": [
       "billing-cost-ops"
@@ -22,7 +22,7 @@
     ]
   },
   "role_assignments": {
-    "author_agent_run_id": null,
+    "author_agent_run_id": "/claude/a6_relay",
     "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
     "tester_agent_run_id": "/claude/q0_sentinel",
     "integration_owner_agent_run_id": "/claude/r0_steward",
@@ -78,6 +78,7 @@
     ]
   },
   "ownership": {
+    "branch": "agent/claude/WP-0A-A6-001-metric-dictionary",
     "writable_paths": [
       "work-packages/WP-0A-A6-001.json",
       "evidence/WP-0A-A6-001/**",
@@ -154,7 +155,9 @@
     "OPEN-016 requires Product Owner review for every metric formula, source, owner and any target before G0-003 can close; targets remain pending.",
     "Product Owner is the G0-003 reviewer. Accountant, Privacy/Legal and Security authorities are mandatory for applicable later A6 subscopes and cannot be represented by an agent skill-profile placeholder.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
-    "DISPOSITION 2026-09-03, by the Product Owner, of the staffing defect this package recorded. The assignment of /claude/a6_relay as Author was INVALID and is withdrawn; the Author slot is null and the package returns to backlog, because the protocol requires real distinct run ids before a package leaves backlog and this one no longer has an Author. The defect is A0's, not the Author's: A0 assigned against blockers[0] in this very manifest, and the Author noticed, refused to paper over it, recorded it, and did the work under protest. RFC-2026-013 settles the principle -- role legitimacy is keyed to what a capability profile declares an agent may hold, and cc-a6-relay.json declares review only. The artifact on branch agent/claude/WP-0A-A6-001-product-kpi-catalog is REVIEWED INPUT, not an author-attested deliverable, and /claude/a6_relay is credited as its source. Re-staffing requires: a forward-scoped billing-cost-ops capability benchmark for that run, produced by a run distinct from it and from its reviewer; the six changes the independent review required; and a fresh authorship act that addresses them. Evidence: evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md. The branch declaration is withdrawn with the assignment: a package declares a branch to own the work on it as its own attested output, and this package does not. The commits are not deleted -- they are the input the next authorship act starts from. There is no protocol state for 'work exists, authorship withdrawn', and backlog with no branch is the closest honest one. This entry disposes of blockers[0] and [4] for the FUTURE only -- neither is deleted, because a benchmark written after an assignment cannot un-perform it."
+    "DISPOSITION 2026-09-03, by the Product Owner, of the staffing defect this package recorded. The assignment of /claude/a6_relay as Author was INVALID and is withdrawn; the Author slot is null and the package returns to backlog, because the protocol requires real distinct run ids before a package leaves backlog and this one no longer has an Author. The defect is A0's, not the Author's: A0 assigned against blockers[0] in this very manifest, and the Author noticed, refused to paper over it, recorded it, and did the work under protest. RFC-2026-013 settles the principle -- role legitimacy is keyed to what a capability profile declares an agent may hold, and cc-a6-relay.json declares review only. The artifact on branch agent/claude/WP-0A-A6-001-product-kpi-catalog is REVIEWED INPUT, not an author-attested deliverable, and /claude/a6_relay is credited as its source. Re-staffing requires: a forward-scoped billing-cost-ops capability benchmark for that run, produced by a run distinct from it and from its reviewer; the six changes the independent review required; and a fresh authorship act that addresses them. Evidence: evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md. The branch declaration is withdrawn with the assignment: a package declares a branch to own the work on it as its own attested output, and this package does not. The commits are not deleted -- they are the input the next authorship act starts from. There is no protocol state for 'work exists, authorship withdrawn', and backlog with no branch is the closest honest one. This entry disposes of blockers[0] and [4] for the FUTURE only -- neither is deleted, because a benchmark written after an assignment cannot un-perform it.",
+    "RE-STAFFED 2026-09-03. /claude/a6_relay is assigned Author under evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, which recommends WITH CONDITIONS and forward only. Its condition C1 says no package may be staffed on the benchmark alone, so C2-C7 bind THIS assignment and are reproduced here: C2 every cost aggregate states its population boundary -- superseded records in or out, pre- or post-dedupe, and whether a closed period can restate; C3 no claim that another contract cannot express something without a constructed document that fails to validate, else downgrade it to 'not defined by any contract'; C4 any request to widen another contract's control surface leaves this artifact and goes to that contract's owner and to Security separately; C5 Author only, no self-review, self-test, integration or gate advance; C6 author on a base current with main and enumerate the decisions approved since that base against the claims each touches; C7 scope is billing-cost-ops measurement only -- not pricing, VAT, refund policy, grace period or entitlement. The seven required changes in evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md must all be addressed. The branch declared here is NEW: agent/claude/WP-0A-A6-001-product-kpi-catalog holds the withdrawn increment and is READ-ONLY INPUT, credited to /claude/a6_relay as its source, authored eleven commits behind main and before RFC-2026-014 was approved.",
+    "NEITHER REVIEWER IS A FRESH PAIR OF EYES, recorded rather than left for a reader to notice. /claude/c0_contract_reviewer reviewed the withdrawn increment and returned changes-required, so it is demonstrably not a rubber stamp, but it is not independent of that draft. /claude/q0_sentinel produced the Author's capability benchmark and therefore has an interest in the Author performing well -- balanced only by that benchmark's own term that it is WITHDRAWN rather than re-conditioned if a second sample repeats the adjacent-contract over-claim. The benchmark states that moving to an unconditional recommendation requires a second sample reviewed by a run distinct from BOTH. This staffing does not meet that bar and does not claim to; the recommendation stays conditional."
   ],
   "review_and_test_gates": [
     "author_complete",
