@@ -93,22 +93,6 @@
       "evidence/WP-0A-CON-004/**",
       "handoffs/WP-0A-CON-004-*.json"
     ],
-    "amends_without_owning": {
-      "paths": [
-        "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
-        "contract-catalog/shared-kernel/ctr-usg-001/**",
-        "test-kits/contracts/catalog-registry.test.mjs",
-        "test-kits/contracts/schema-mutation-coverage.test.mjs",
-        "test-kits/integrity-manifest.json"
-      ],
-      "rationale": "Recorded after scripts/verify-branch-scope.mjs reported this branch out of scope. A1 and A6 reviewed CTR-SEC-001, CTR-AUD-001, CTR-OBS-001 and CTR-USG-001 together, because they are the four contracts a co-owner must sign before A0 can propose promoting any of them. Three are this package's; CTR-USG-001 is WP-0A-CON-006's, and A6 REFUSED it, so its three named defects are fixed here rather than left open while a second package is opened to carry one reviewer's refusal. The other three paths are not new work: a schema edit in this package cannot leave the tree green without them. catalog-registry.test.mjs (WP-0A-CON-008) pins every contract's fixture set, annotation count and caveat digests; schema-mutation-coverage.test.mjs (WP-0A-CON-003) pins the constraint surface and the untested-site declarations; integrity-manifest.json (WP-0A-A0-002) digests both. Those pins exist precisely so a contract cannot change quietly, and updating them IS the writing-down they demand. The ctr-usg-001 glob covers 47 files, well inside AMENDMENT_BREADTH_CAP, and no pattern here is a tree.",
-      "recorded_on": [
-        "work-packages/WP-0A-A0-002.json",
-        "work-packages/WP-0A-CON-003.json",
-        "work-packages/WP-0A-CON-006.json",
-        "work-packages/WP-0A-CON-008.json"
-      ]
-    },
     "read_only_paths": [
       "README.md",
       "docs/**",
