@@ -5,16 +5,18 @@
   "agent_run_id": "/claude/a6_relay",
   "final_status": "in_review",
   "base_revision": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
-  "head_revision_or_patch_checksum": "85d6f7a7ccc51dcb08383bb81eaec8a7582f190f",
+  "head_revision_or_patch_checksum": "6ccee28762f8e43a29cdd8ab4d4a3700b6aa2d21",
   "task_ids": [
     "G0-003",
     "G0-023"
   ],
   "files_added": [
     "evidence/WP-0A-A6-001/author-self-check.md",
+    "evidence/WP-0A-A6-001/integration-verdict.md",
     "evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
     "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json",
     "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.md",
+    "evidence/WP-0A-A6-001/transcribed-role-verdicts.md",
     "evidence/WP-0A-A6-001/verify-source-fields.mjs",
     "handoffs/WP-0A-A6-001-author-handoff.json"
   ],

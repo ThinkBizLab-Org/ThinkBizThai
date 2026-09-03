@@ -271,3 +271,70 @@ preference in the manifest and it is unmet; recorded, not waived.
 I observed **no GitHub pull request, no remote CI run and no branch-protection configuration**,
 because none exists for this branch. This is local verification only. I did not push, did not
 open a pull request and did not merge into `main`.
+
+## 5. The handoff guard, my wrong first answer, and the reason it is not merely advisory
+
+Advancing the status is a change to `work-packages/WP-0A-A6-001.json`, and that is substantive
+drift to the handoff guard:
+
+```
+$ npm run check:handoff                                                     # exit 91
+handoffs/WP-0A-A6-001-author-handoff.json cites a head 85d6f7a with 1 substantive change(s) after it:
+  work-packages/WP-0A-A6-001.json
+The cited range is true and does not describe the branch. Run `npm run refresh:handoff`.
+```
+
+**My first answer was to refuse the remedy, and it was wrong. I am recording the reversal rather
+than the conclusion.** `refresh-author-handoff.mjs` rewrites the **Author's** handoff, and
+running it here puts `evidence/WP-0A-A6-001/integration-verdict.md` and
+`transcribed-role-verdicts.md` — files I wrote — into `/claude/a6_relay`'s `files_added`. That
+looked like one run signing another's work, so I declined it and wrote this section saying a red
+guard was better than a false attestation.
+
+**Then I found out the guard is not advisory.** It is in the test suite as *"the handoff for this
+branch describes this branch"*, so a stale handoff is a **red `npm run verify`** and
+`npm run commit` refuses the tree. It had not fired on my first two commits for a reason worth
+knowing: the check compares against `branchTipBefore()`, the branch as it stood **before the
+current commit**. My status advance was therefore invisible to the guard at the moment it was
+committed and surfaced one commit later, on the next thing I tried to commit.
+
+```
+$ npm run test:bootstrap
+✖ the handoff for this branch describes this branch
+  AssertionError: WP-0A-A6-001's handoff cites head 85d6f7a, after which 1 substantive path(s) changed
+✖ the handoff ratchet fails when an author handoff claims another role approved something
+  AssertionError: the suite must pass on an unmodified copy
+ℹ fail 2
+```
+
+That leaves exactly two outcomes: refresh the handoff, or leave the branch tip red. **A red tip
+cannot be `integration_verified`** — verifying the final state is the whole of my role — and
+refusing the transition the protocol requires at this point would make that transition
+unimplementable. So I refreshed:
+
+```
+$ npm run refresh:handoff
+handoffs/WP-0A-A6-001-author-handoff.json now cites d5defb1..6ccee28 — 8 added, 1 modified, 0 deleted
+```
+
+**Exactly what changed, so nobody has to take my word for it:**
+`head_revision_or_patch_checksum` `85d6f7a` → `6ccee28`, and two paths appended to `files_added`.
+Nothing else. **`agent_run_id` is still `/claude/a6_relay` and `final_status` is still
+`in_review`** — the tool touches no attestation field, and I touched none by hand. The Author's
+own handoff instructs this: *"The revisions above are this branch's base and the tip it was cut
+from. Re-derive them with `npm run refresh:handoff` after each commit."* The fields are
+machine-derived facts about a commit range, enforced against git by the same test, and the
+Author asked for them to be re-derived.
+
+**The defect this exposes, which is neither mine nor the Author's.** The repository keeps **one
+handoff per package** and names it `-author-handoff.json`, while **four roles commit to the
+package branch.** The consequence is now visible in the file: `/claude/a6_relay`'s handoff lists
+under `files_added` three files it did not write, beside a `final_status` of `in_review` that is
+no longer the package's status. `handoffs/` and `evidence/` are already classified
+written-afterwards; `work-packages/` is not, and it is the one file the protocol requires the
+Integration Owner to change. **Every package that reaches integration will hit this.** It goes to
+whoever owns `scripts/refresh-author-handoff.mjs` and `.agents/handoff.schema.json`, and the fix
+is either to classify a status-only manifest change as incidental or to give each role its own
+handoff the guard can see. My own attestation is in
+`handoffs/WP-0A-A6-001-integration-handoff.json`, written separately rather than folded into
+someone else's — which is the part of my first answer that was right.

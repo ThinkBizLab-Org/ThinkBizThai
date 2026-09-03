@@ -147,7 +147,8 @@
       "evidence/WP-0A-A6-001/author-self-check.md",
       "handoffs/WP-0A-A6-001-author-handoff.json",
       "evidence/WP-0A-A6-001/transcribed-role-verdicts.md",
-      "evidence/WP-0A-A6-001/integration-verdict.md"
+      "evidence/WP-0A-A6-001/integration-verdict.md",
+      "handoffs/WP-0A-A6-001-integration-handoff.json"
     ],
     "contracts": []
   },
