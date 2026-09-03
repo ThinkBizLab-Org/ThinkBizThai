@@ -94,6 +94,23 @@ $ npm run verify
 clean: exit 0 — tests 260, pass 260, fail 0, skipped 0, todo 0
 ```
 
+### `npm run verify` — after
+
+`scripts/commit-when-clean.mjs` runs the verifier itself and refuses to stage unless it
+reports clean, so the "after" line below is the one the commit gate read, on the tree that
+was actually committed:
+
+```
+$ npm run commit -- <message-file>
+[agent/claude/WP-0A-A0-003-review-c0 3fc4232] review(WP-0A-A0-003): …
+ 1 file changed, 619 insertions(+)
+ create mode 100644 evidence/WP-0A-A0-003/review-contract-c0.md
+clean: exit 0 — tests 260, pass 260, fail 0, skipped 0, todo 0
+```
+
+Identical to the before line: 260 tests, 260 passing, nothing skipped, nothing todo. This
+review changed no behaviour, and the count confirms it.
+
 ### The package's own declared evidence commands
 
 ```
