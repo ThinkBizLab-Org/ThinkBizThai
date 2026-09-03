@@ -45,11 +45,47 @@ export function globToRegExp(glob) {
   return new RegExp(`${out}$`);
 }
 
+// A package may record a cross-package write in either of two fields, and until 2026-09-04 this
+// function read only one of them. `amends_without_owning.paths` is a machine field;
+// `authorized_cross_package_amendments` is a list of prose entries, each beginning with the path
+// it authorises. Five packages use the first, six use only the second, and one uses both.
+//
+// So for six of fourteen packages this guard reported "all changed paths are declared" or
+// "undeclared" against a declaration it could not see. A1's security review of WP-0A-CON-005
+// measured it by running these exports directly: 9 of that package's 14 changed paths came back
+// undeclared, exit 73, against a manifest that authorises every one of them in prose.
+//
+// A guard that cannot read half the declarations it exists to check is not a lenient guard, it is
+// a guard reporting a conclusion it did not reach. Both fields are read now.
+//
+// An unparseable prose entry THROWS rather than being skipped. Skipping is how the hole formed:
+// a declaration the guard cannot understand must stop the run, not quietly become an undeclared
+// path or, worse, a declared one.
+export function amendmentPathsFromProse(entries, packageId = '<unknown>') {
+  return entries.map((entry, index) => {
+    if (typeof entry !== 'string') {
+      throw new Error(`${packageId} authorized_cross_package_amendments[${index}] is not a string. `
+        + 'An amendment the guard cannot read is an amendment nobody checks.');
+    }
+    const path = entry.trim().split(/[\s(]/)[0];
+    if (!path || !path.includes('/')) {
+      throw new Error(`${packageId} authorized_cross_package_amendments[${index}] does not begin with a path: `
+        + `"${entry.slice(0, 60)}". Each entry must start with the repository path it authorises, `
+        + 'because that leading token is what this guard matches against the diff.');
+    }
+    return path;
+  });
+}
+
 export function declaredPaths(manifest) {
   const ownership = manifest.ownership ?? {};
+  const prose = ownership.authorized_cross_package_amendments
+    ?? manifest.authorized_cross_package_amendments
+    ?? [];
   return [
     ...(ownership.writable_paths ?? []),
     ...(ownership.amends_without_owning?.paths ?? []),
+    ...amendmentPathsFromProse(prose, manifest.work_package_id),
   ];
 }
 

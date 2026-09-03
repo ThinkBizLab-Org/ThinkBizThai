@@ -42,7 +42,7 @@
     "scripts/validate-work-package-role-separation.mjs": "26246bbb0c7fdc1db58b2772b7c3ad59fb33541d73784e5b6eb087f48e6704c6",
     "scripts/validate-work-packages.mjs": "f7ed640515a72295a28aeac2b3c26907fa88b30e1f4ab4e95f8cc084f1f094df",
     "scripts/verify-branch-identity.mjs": "1dd48beb70ba37670c19686940784d96ba6b15c14f0cdb90d08e90011266049b",
-    "scripts/verify-branch-scope.mjs": "efd1feb45e2ffba7e0127ddd55daa11f62b135a8a8ef7a74151b627c1a942d21",
+    "scripts/verify-branch-scope.mjs": "8b38a55111ffc1f1b8a1ab872b4ac761f33521758400a426bb493cea555c64b2",
     "scripts/verify-clean-run.mjs": "b1e699cc243d1aed20cf1b56667d426c1beb78d733b88daffb22d372d8c11578",
     "scripts/verify-disposition-branch.mjs": "a101071191026875bc75762d6bde1cc17b9d00af6dc63eee19337c94fd4194fa",
     "scripts/verify-test-coverage-floor.mjs": "cc1180f3da78ac65263663f20b505edd6bf1f7013b7ff585f383d98364505fca",
