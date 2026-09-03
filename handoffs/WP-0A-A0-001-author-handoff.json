@@ -5,12 +5,13 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "50c886570452c64e17fd72cb139ca5d026b64a8f",
-  "head_revision_or_patch_checksum": "3e32d3408455754a36f72146538d127332889b07",
+  "head_revision_or_patch_checksum": "d1fdeef17b6f813107ffcd5683cb5066b5854b14",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/a0-staffing-defect-disposition.md",
     "evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md"
   ],
   "files_modified": [
@@ -24,10 +25,12 @@
     "scripts/commit-when-clean.mjs",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
     "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-A0-001.json"
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-A6-001.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [

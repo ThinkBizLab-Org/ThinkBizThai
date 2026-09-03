@@ -123,7 +123,6 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
   'agent/claude/WP-0A-CON-006-usage-and-notification': 'WP-0A-CON-006',
   'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',
-  'agent/claude/WP-0A-A6-001-product-kpi-catalog': 'WP-0A-A6-001',
   'agent/claude/WP-0A-CON-008-guard-self-coverage': 'WP-0A-CON-008',
 };
 
