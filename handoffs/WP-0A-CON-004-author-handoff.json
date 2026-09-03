@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5151bac3c6938ee96b171548839a0b1ff82f9d37",
-  "head_revision_or_patch_checksum": "e7b8c4b80906e65f73ca2922a96601be0a8f0910",
+  "head_revision_or_patch_checksum": "1b541cad0da94742bd30c8953684c9bc3b9616f3",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -13,6 +13,7 @@
     "contract-catalog/shared-kernel/ctr-sec-001/schema.json",
     "handoffs/WP-0A-CON-004-author-handoff.json",
     "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-CON-004.json"
   ],

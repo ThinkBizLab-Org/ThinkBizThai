@@ -127,12 +127,11 @@
     "migration_reservations": [],
     "amends_without_owning": {
       "paths": [
-        "scripts/test-suite-contract.mjs",
         "test-kits/contracts/catalog-registry.test.mjs",
         "test-kits/handoff-conformance.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "handoff-conformance.test.mjs (WP-0A-CON-008) accepted only two compatibility positions, additive and breaking. This increment's change is neither: it replaces four sentences that stated a measured falsehood and moves no rule, enum, requiredness or freeze level. The only accepted wordings would have required this handoff to call the change additive, which it is not, or breaking, which it is not either -- so the guard would have forced a false statement into evidence, which is the defect class it was widened once already to stop. Corrective is added as a third position; silence still fails, verified in a copy. The other two paths are the per-file floors and digest that move with any protected-file edit. catalog-registry.test.mjs (WP-0A-CON-008) pins every contract's annotation digests, so correcting a false sentence in an annotation moves three of them; a pin not moved with the text it pins is a pin that stops meaning anything.",
+      "rationale": "handoff-conformance.test.mjs (WP-0A-CON-008) accepted only two compatibility positions, additive and breaking. This increment's change is neither: it replaces four sentences that stated a measured falsehood and moves no rule, enum, requiredness or freeze level. The only accepted wordings would have required this handoff to call the change additive, which it is not, or breaking, which it is not either -- so the guard would have forced a false statement into evidence, which is the defect class it was widened once already to stop. Corrective is added as a third position; silence still fails, verified in a copy. The remaining path is the digest that moves with any protected-file edit. catalog-registry.test.mjs (WP-0A-CON-008) pins every contract's annotation digests, so correcting a false sentence in an annotation moves three of them; a pin not moved with the text it pins is a pin that stops meaning anything.",
       "recorded_on": [
         "work-packages/WP-0A-CON-008.json",
         "work-packages/WP-0A-A0-002.json"
