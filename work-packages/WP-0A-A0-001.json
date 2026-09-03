@@ -146,14 +146,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "work-packages/WP-0A-A6-001.json",
-        "test-kits/branch-identity.test.mjs",
+        "evidence/WP-0A-A6-001/**",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The Product Owner disposed of A0's staffing defect and chose remedy path (a): withdraw the invalid Author assignment, benchmark forward, and let the artifact enter as reviewed input. Withdrawing an assignment A0 made means editing the manifest A0 damaged, which is WP-0A-A6-001's file. The branch declaration goes with the assignment -- a package declares a branch to own that work as its own attested output -- so branch-identity.test.mjs, which pins the declared set to a map, must drop the same entry or the guard correctly reports a pin nobody declares. The last path is the digest that moves with any protected-file edit. Neither open blocker is deleted.",
+      "rationale": "The forward-scoped billing-cost-ops benchmark the Product Owner's remedy called for is now recorded, produced by /claude/q0_sentinel -- a run distinct from the assessed run, from its reviewer, and from A0. The benchmark and the capability profile it amends are this package's own files. The one amended path is WP-0A-A6-001's evidence, because the assessor found a seventh required change that neither the Author nor the reviewer found, and it is the most serious in the artifact: no cost metric defines its population, so C-01 returns 42.00 for a settled cost of 22.00 from two documents that both validate. A finding of that weight belongs beside the review it extends, not in a separate file a reader has to know to look for. A0 re-verified it against the shipped schema before recording it.",
       "recorded_on": [
-        "work-packages/WP-0A-A6-001.json",
-        "work-packages/WP-0A-A0-002.json"
+        "work-packages/WP-0A-A6-001.json"
       ]
     },
     "read_only_paths": [
