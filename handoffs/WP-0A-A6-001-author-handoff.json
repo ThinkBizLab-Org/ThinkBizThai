@@ -5,13 +5,22 @@
   "agent_run_id": "/claude/a6_relay",
   "final_status": "in_review",
   "base_revision": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
-  "head_revision_or_patch_checksum": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
+  "head_revision_or_patch_checksum": "85d6f7a7ccc51dcb08383bb81eaec8a7582f190f",
   "task_ids": [
     "G0-003",
     "G0-023"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A6-001/author-self-check.md",
+    "evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
+    "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json",
+    "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.md",
+    "evidence/WP-0A-A6-001/verify-source-fields.mjs",
+    "handoffs/WP-0A-A6-001-author-handoff.json"
+  ],
+  "files_modified": [
+    "work-packages/WP-0A-A6-001.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "OPEN-016",
@@ -103,6 +112,12 @@
       "command": "node scripts/validate-work-package-ownership.mjs work-packages",
       "exit_code": 0,
       "result": "the seven declared outputs sit inside writable_paths, outside read_only_paths and forbidden_paths, and overlap no other package's outputs",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs main WP-0A-A6-001",
+      "exit_code": 0,
+      "result": "all 7 changed path(s) are declared, and every amendment explains one. Run AFTER the commit: it diffs committed history, so on an uncommitted tree it reports 0 changed paths, which means \"nothing to check\" and not \"checked and clean\". Run with no arguments it exits 2 with a usage message, which an earlier draft of the self-check recorded as 0 before this Author caught it.",
       "toolchain": "node v24.20.0"
     },
     {
