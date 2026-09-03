@@ -124,7 +124,19 @@
     "module_ids": [
       "MOD-000"
     ],
-    "migration_reservations": []
+    "migration_reservations": [],
+    "amends_without_owning": {
+      "paths": [
+        "test-kits/handoff-conformance.test.mjs",
+        "scripts/test-suite-contract.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "handoff-conformance.test.mjs (WP-0A-CON-008) accepted only two compatibility positions, additive and breaking. This increment's change is neither: it replaces four sentences that stated a measured falsehood and moves no rule, enum, requiredness or freeze level. The only accepted wordings would have required this handoff to call the change additive, which it is not, or breaking, which it is not either -- so the guard would have forced a false statement into evidence, which is the defect class it was widened once already to stop. Corrective is added as a third position; silence still fails, verified in a copy. The other two paths are the per-file floors and digest that move with any protected-file edit.",
+      "recorded_on": [
+        "work-packages/WP-0A-CON-008.json",
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
   },
   "inputs": {
     "files": [
