@@ -4,27 +4,14 @@
   "work_package_id": "WP-0A-CON-005",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "4874b527a78815db01cadc2fbdb5ba05ec01c882",
-  "head_revision_or_patch_checksum": "64d9c65c7ef00f072d742d83646fba571b2466fa",
+  "base_revision": "8558bc85790dc221e2dcf79e7681f7ffd8e97384",
+  "head_revision_or_patch_checksum": "fdcade12beeea3599437ff6ac780ad6ab414239b",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-006-job-reference-hardening.md",
-    "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-public-input-ref.json",
-    "evidence/WP-0A-CON-005/author-self-check.md",
-    "evidence/WP-0A-CON-005/test-verdict.md",
-    "test-kits/contracts/ctr-job-001-reference-hardening.test.mjs",
-    "work-packages/WP-0A-CON-005.json"
+    "evidence/WP-0A-CON-005/review-security-a1.md",
+    "evidence/WP-0A-CON-005/review-contract-c0.md"
   ],
-  "files_modified": [
-    "contract-catalog/shared-kernel/ctr-api-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-job-001/examples/invalid-max-attempts.json",
-    "contract-catalog/shared-kernel/ctr-job-001/examples/valid.json",
-    "contract-catalog/shared-kernel/ctr-job-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-job-001/schema.json",
-    "test-kits/contracts/shared-kernel-contract-catalog.test.mjs",
-    "test-kits/integrity-manifest.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021"
@@ -109,7 +96,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "compatibility_impact": "No contract changes. This increment adds the two role verdicts WP-0A-CON-005 was missing -- Security and Reviewer -- and touches no contract-catalog file, schema or fixture. Both verdicts name conditions that DO require contract-catalog and manifest changes; those are the Author's to make in a later increment and are not carried here.",
   "known_limitations": [
     "The /root/r0_steward acknowledgement of this cross-package amendment is PENDING. It is recorded in x-amended-by with acknowledgement_status: pending and is not countersigned here.",
     "No script, test or CI job in this repository reads acknowledgement_status. Nothing prevents `pending` surviving to merge; the only control is human review of the diff under RFC-2026-002. Carried forward unresolved from the WP-0A-CON-002 contract review (N-C1).",
