@@ -5,7 +5,7 @@
   "title": "Product KPI catalog dispatch backlog — G0-003",
   "gate": "G0",
   "priority": "P0",
-  "status": "ready",
+  "status": "in_review",
   "required_skill_profiles": {
     "author": [
       "billing-cost-ops"
@@ -56,9 +56,27 @@
     ]
   },
   "decisions_consumed": [
-    "OPEN-016"
+    "OPEN-016",
+    "OPEN-001",
+    "OPEN-002",
+    "OPEN-010",
+    "OPEN-014",
+    "OPEN-019",
+    "RFC-2026-011",
+    "RFC-2026-012",
+    "RFC-2026-013",
+    "RFC-2026-014"
   ],
-  "contracts_consumed": [],
+  "contracts_consumed": [
+    "CTR-USG-001",
+    "CTR-AUD-001",
+    "CTR-OBS-001",
+    "CTR-JOB-001",
+    "CTR-NTF-001",
+    "CTR-EVT-001",
+    "CTR-ERR-001",
+    "CTR-TEN-001"
+  ],
   "contracts_produced": [],
   "dependencies": {
     "required_work_packages": [],
@@ -121,7 +139,13 @@
   },
   "outputs": {
     "files": [
-      "work-packages/WP-0A-A6-001.json"
+      "work-packages/WP-0A-A6-001.json",
+      "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json",
+      "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.md",
+      "evidence/WP-0A-A6-001/verify-source-fields.mjs",
+      "evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
+      "evidence/WP-0A-A6-001/author-self-check.md",
+      "handoffs/WP-0A-A6-001-author-handoff.json"
     ],
     "contracts": []
   },
@@ -141,7 +165,9 @@
     ],
     "package_evidence": [
       "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A6-001.json",
-      "node scripts/validate-work-package-ownership.mjs work-packages"
+      "node scripts/validate-work-package-ownership.mjs work-packages",
+      "node evidence/WP-0A-A6-001/verify-source-fields.mjs",
+      "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs"
     ]
   },
   "security_privacy": {
@@ -149,7 +175,7 @@
     "secrets_required": false,
     "network_policy": "deny-unless-declared"
   },
-  "rollback_or_forward_fix": "Revert the dispatch-manifest-only commit or issue a reviewed correction. This backlog record creates no production, provider, schema or customer-data state.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package range covers work-packages/WP-0A-A6-001.json, five files under evidence/WP-0A-A6-001/ and one handoff: a specification document, its reading view and two read-only checkers. Reverting removes the G0-003 metric dictionary and returns the CTR-OBS-001 per-label cardinality budget to having no home, and removes nothing else -- no target was set to un-set, no contract artifact was changed to restore, and no event, schema, migration, provider call or customer record exists to roll back. A forward fix is preferable for any single wrong metric entry, because the entries are independent of one another. The withdrawn increment on agent/claude/WP-0A-A6-001-product-kpi-catalog is unaffected by either: it is read-only input and is not on this branch.",
   "open_blockers": [
     "A6 has not yet supplied an independently reviewed capability benchmark for billing-cost-ops; it must not be assigned as Author from its current declaration.",
     "OPEN-016 requires Product Owner review for every metric formula, source, owner and any target before G0-003 can close; targets remain pending.",
@@ -157,7 +183,8 @@
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
     "DISPOSITION 2026-09-03, by the Product Owner, of the staffing defect this package recorded. The assignment of /claude/a6_relay as Author was INVALID and is withdrawn; the Author slot is null and the package returns to backlog, because the protocol requires real distinct run ids before a package leaves backlog and this one no longer has an Author. The defect is A0's, not the Author's: A0 assigned against blockers[0] in this very manifest, and the Author noticed, refused to paper over it, recorded it, and did the work under protest. RFC-2026-013 settles the principle -- role legitimacy is keyed to what a capability profile declares an agent may hold, and cc-a6-relay.json declares review only. The artifact on branch agent/claude/WP-0A-A6-001-product-kpi-catalog is REVIEWED INPUT, not an author-attested deliverable, and /claude/a6_relay is credited as its source. Re-staffing requires: a forward-scoped billing-cost-ops capability benchmark for that run, produced by a run distinct from it and from its reviewer; the six changes the independent review required; and a fresh authorship act that addresses them. Evidence: evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md. The branch declaration is withdrawn with the assignment: a package declares a branch to own the work on it as its own attested output, and this package does not. The commits are not deleted -- they are the input the next authorship act starts from. There is no protocol state for 'work exists, authorship withdrawn', and backlog with no branch is the closest honest one. This entry disposes of blockers[0] and [4] for the FUTURE only -- neither is deleted, because a benchmark written after an assignment cannot un-perform it.",
     "RE-STAFFED 2026-09-03. /claude/a6_relay is assigned Author under evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, which recommends WITH CONDITIONS and forward only. Its condition C1 says no package may be staffed on the benchmark alone, so C2-C7 bind THIS assignment and are reproduced here: C2 every cost aggregate states its population boundary -- superseded records in or out, pre- or post-dedupe, and whether a closed period can restate; C3 no claim that another contract cannot express something without a constructed document that fails to validate, else downgrade it to 'not defined by any contract'; C4 any request to widen another contract's control surface leaves this artifact and goes to that contract's owner and to Security separately; C5 Author only, no self-review, self-test, integration or gate advance; C6 author on a base current with main and enumerate the decisions approved since that base against the claims each touches; C7 scope is billing-cost-ops measurement only -- not pricing, VAT, refund policy, grace period or entitlement. The seven required changes in evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md must all be addressed. The branch declared here is NEW: agent/claude/WP-0A-A6-001-product-kpi-catalog holds the withdrawn increment and is READ-ONLY INPUT, credited to /claude/a6_relay as its source, authored eleven commits behind main and before RFC-2026-014 was approved.",
-    "NEITHER REVIEWER IS A FRESH PAIR OF EYES, recorded rather than left for a reader to notice. /claude/c0_contract_reviewer reviewed the withdrawn increment and returned changes-required, so it is demonstrably not a rubber stamp, but it is not independent of that draft. /claude/q0_sentinel produced the Author's capability benchmark and therefore has an interest in the Author performing well -- balanced only by that benchmark's own term that it is WITHDRAWN rather than re-conditioned if a second sample repeats the adjacent-contract over-claim. The benchmark states that moving to an unconditional recommendation requires a second sample reviewed by a run distinct from BOTH. This staffing does not meet that bar and does not claim to; the recommendation stays conditional."
+    "NEITHER REVIEWER IS A FRESH PAIR OF EYES, recorded rather than left for a reader to notice. /claude/c0_contract_reviewer reviewed the withdrawn increment and returned changes-required, so it is demonstrably not a rubber stamp, but it is not independent of that draft. /claude/q0_sentinel produced the Author's capability benchmark and therefore has an interest in the Author performing well -- balanced only by that benchmark's own term that it is WITHDRAWN rather than re-conditioned if a second sample repeats the adjacent-contract over-claim. The benchmark states that moving to an unconditional recommendation requires a second sample reviewed by a run distinct from BOTH. This staffing does not meet that bar and does not claim to; the recommendation stays conditional.",
+    "AUTHOR-RECORDED 2026-09-03, second authorship act, by /claude/a6_relay. Four things remain open that this package cannot close and that a reader should not have to reconstruct. (1) A-03 STATUS IS A DECISION, NOT A FACT. The Author chose absent and recorded the benchmark assessor derivable_with_caveat reading in full inside the entry; what settles it is a Product Owner ruling on whether the status column describes the contract surface or describes whether a metric can be computed and by whom. (2) M-10, THE POPULATION QUESTION THE CORRECTION SURFACED. Nothing states whether a superseding CTR-USG-001 record reuses the superseded records occurred_at or carries its own, and the two readings give different monthly totals for C-01, C-02, C-03 and C-05. The populations are stated in a form correct under both; the question belongs to CTR-USG-001 owner, A0 with A6 per RFC-2026-014. (3) THE CONTRACT-WIDENING ASK IS ROUTED AND NOT MADE. Per C4 the correct request -- an event_type vocabulary and a subject.type convention for CTR-EVT-001, and expressly NOT a payload widening -- leaves this artifact and goes to that contract owner and to Security separately. Recording where it goes is not the request having been made. (4) THE BENCHMARK RECOMMENDATION REMAINS CONDITIONAL. Its own term is that it is WITHDRAWN rather than re-conditioned if a second sample repeats the adjacent-contract over-claim; this increment is that second sample, and whether it repeated the over-claim is for the reviewer to find and not for the Author to assert. The Author records that he audited every negative claim in the document under C3 and found one repeat in A-02 that neither prior review named, corrected it, and is reporting it rather than leaving it to be discovered."
   ],
   "review_and_test_gates": [
     "author_complete",

@@ -1,0 +1,162 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A6-001",
+  "agent_run_id": "/claude/a6_relay",
+  "final_status": "in_review",
+  "base_revision": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
+  "head_revision_or_patch_checksum": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
+  "task_ids": [
+    "G0-003",
+    "G0-023"
+  ],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "OPEN-016",
+    "OPEN-001",
+    "OPEN-002",
+    "OPEN-010",
+    "OPEN-014",
+    "OPEN-019",
+    "RFC-2026-011",
+    "RFC-2026-012",
+    "RFC-2026-013",
+    "RFC-2026-014"
+  ],
+  "contracts_consumed": [
+    "CTR-USG-001",
+    "CTR-AUD-001",
+    "CTR-OBS-001",
+    "CTR-JOB-001",
+    "CTR-NTF-001",
+    "CTR-EVT-001",
+    "CTR-ERR-001",
+    "CTR-TEN-001"
+  ],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "This is the SECOND authorship act on this package. The first, on branch agent/claude/WP-0A-A6-001-product-kpi-catalog, was withdrawn as an author-attested deliverable by the Product Owner and preserved as READ-ONLY INPUT credited to this run. This branch was cut fresh from main and is not built on that one; the material was brought forward and corrected, not rebased.",
+    "The assignment stands on evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, which recommends WITH CONDITIONS and forward only. Its C1 -- the capability profile declares billing-cost-ops authoring scope and cites the benchmark -- was satisfied BEFORE this assignment, in .agents/capability-profiles/cc-a6-relay.json, which this package did not write and must not write. C2 through C7 bind this increment and are reproduced in the manifest's open_blockers.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. Everything here is a specification document plus two read-only checkers; nothing is instrumented, no schema is defined, no provider is called and no customer data is read.",
+    "OPEN-016 reserves every activation, cost and support KPI target to the Product Owner. This package supplies formula, source, POPULATION and owner for fourteen metrics and supplies no number: all fourteen targets are null, each with its own recorded reason, and A-02's cohort parameter N is null for the same reason.",
+    "The eight contracts listed are consumed READ-ONLY. test-kits/contracts/json-schema-subset.mjs is IMPORTED read-only by the probe script and is not modified; the probes deliberately assert against the repository's own validator rather than a second opinion written by this package.",
+    "Cross-vendor independence is NOT satisfied. This run is Anthropic claude-opus-5, as is every named role on the manifest; that is carried as a recorded exception rather than as an equivalent. The manifest additionally records that neither reviewer is a fresh pair of eyes.",
+    "The revisions above are this branch's base and the tip it was cut from. Re-derive them with npm run refresh:handoff after each commit."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The backlog packet preserves the source-defined WP-0A-A6-001 scope and maps G0-003 to a synthetic-only first slice.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-A6-001/product-kpi-metric-dictionary.json — fourteen metrics across the activation, cost and support areas OPEN-016 names, every one a specification with no instrumentation attached; data_classification synthetic-only, unchanged. Six now carry an explicit population boundary, which the first increment lacked entirely."
+    },
+    {
+      "criterion": "No role is assigned or package status advanced until a real capability declaration and distinct author, reviewer, tester and integration IDs are independently verified.",
+      "result": "pass",
+      "evidence": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A6-001.json exits 0: four named IDs, present and distinct. The capability half — which was the FAILING half on the withdrawn increment and the reason its Author assignment was invalid — is now satisfied: .agents/capability-profiles/cc-a6-relay.json declares billing-cost-ops authoring scope from 2026-09-03 forward and cites evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, produced by /claude/q0_sentinel, a run distinct from this one, from its reviewer and from the dispatcher. That profile was written before this assignment and by another run; this package did not touch it and could not, since .agents/capability-profiles/** is read_only_paths here."
+    },
+    {
+      "criterion": "Every KPI target remains pending Product Owner approval; no instrumentation, schema, provider or customer-data change is authorized.",
+      "result": "pass",
+      "evidence": "node evidence/WP-0A-A6-001/verify-source-fields.mjs exits 0 and asserts, among eight other things, that all fourteen targets are null and that every null carries a stated reason. No event, schema, migration, metric backend, provider call, credential or customer record was touched. A-02's parameter N is null too."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run verify",
+      "exit_code": 0,
+      "result": "baseline at main (d5defb1, detached): clean, tests 260, pass 260, fail 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run verify",
+      "exit_code": 1,
+      "result": "baseline on this branch BEFORE any edit: tests 260, pass 258, fail 2. Recorded rather than omitted. Both failures are handoff-conformance reporting ENOENT on handoffs/WP-0A-A6-001-author-handoff.json: the branch-identity guard requires an author handoff for a branch a package claims, and the branch existed before its handoff did. Not a defect in the tree and not caused by this package's content; it clears the moment the handoff exists.",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node evidence/WP-0A-A6-001/verify-source-fields.mjs",
+      "exit_code": 0,
+      "result": "14 metrics, 63 field paths resolved against committed schemas (PINNED at 63), 2 recorded as having no source at all, 6 carrying a stated population, 14 of 14 targets null. Five holes independent review demonstrated in the previous version are closed and each was mutation-tested: a zero-field non-absent metric, an unpinned count, an enforced budget line whose number is never compared to the enum, an unresolvable $ref reported as a missing field, and a formula naming a field it does not declare. A sixth check requires every stated population to cover all three C2 axes.",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
+      "exit_code": 0,
+      "result": "NEW. Constructs documents and validates them with the repository's own JSON Schema subset validator. Every EXPECT-VALID document validated, every EXPECT-INVALID document was rejected FOR ITS STATED REASON, and every absence assertion held. It found two defects in its own fixtures on its first runs, both caught by the deliberate AUD-BASELINE probe (reason_key and retention.policy_ref patterns) — without that baseline, AUD-INTERVAL would have passed while failing for a malformed fixture rather than for the closed property set it claims to demonstrate.",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/validate-work-packages.mjs",
+      "exit_code": 0,
+      "result": "manifest schema conformance",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A6-001.json",
+      "exit_code": 0,
+      "result": "four named role IDs present and distinct",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/validate-work-package-ownership.mjs work-packages",
+      "exit_code": 0,
+      "result": "the seven declared outputs sit inside writable_paths, outside read_only_paths and forbidden_paths, and overlap no other package's outputs",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "npm run verify",
+      "exit_code": 0,
+      "result": "final, recorded in the self-check and refreshed here after the commit",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "Data classification synthetic-only; secrets_required false; network policy deny-unless-declared and no network was used. No credential, provider call, migration or customer record is touched, and no fixture carries a real value — the constructed probe documents use ws_synthetic_/usr_synthetic_/usg_synthetic_ identifiers and a `synthetic` provider_key. Cost impact none: no metered resource exists yet, which is why the cost metrics specify what would be computed rather than reporting anything. TWO security-relevant positions are recorded rather than assumed. First, the withdrawn increment asked in two places for CTR-EVT-001.payload to be widened; that ask is WITHDRAWN ENTIRELY. payload at maxProperties 0 is a deliberately closed control of the same family as CTR-AUD-001.details, whose annotation calls a free-form bag 'how a secret or a page of user content reaches an audit log', and the metric never needed it — a step identifier validates today through event_type and subject. Second, one privacy-adjacent position is recorded and not decided: four metrics read CTR-AUD-001, whose retention.policy_ref deliberately pins no duration because PDPA-006 is undelivered, so any window set here must be re-checked against a retention period Privacy/Legal has yet to state.",
+  "migration_and_data_impact": "None. No schema, migration, table, index or stored record is defined or altered; the dictionary specifies how existing contract fields would be aggregated, and specifying an aggregation creates no data. Two shapes this package deliberately did NOT define: a job lifecycle (CTR-JOB-001 declares no terminal-state field, executed as probe JOB-NO-TERMINAL-STATE, so S-05 is a count rather than an invented rate) and an onboarding step vocabulary (which belongs to CTR-EVT-001's owner).",
+  "compatibility_impact": "Every file under contract-catalog/ was read and none was written. The eight contracts cited are consumed as the source column of a metric dictionary, not implemented, extended or reinterpreted, so no consumer's compatibility surface moves. The probe script IMPORTS test-kits/contracts/json-schema-subset.mjs and modifies nothing in test-kits/. The one place this package touches a contract's concern is the CTR-OBS-001 per-label cardinality budget, which is RECORDED here and remains unenforced there; that contract's standing constraint against emitting sli_tags to a real metric backend before the budget lands is restated rather than relaxed.",
+  "known_limitations": [
+    "A dictionary is not instrumentation. Twelve of fourteen metrics name a field that exists; none has ever been computed, because no usage, audit, job or notification record has been emitted by anything. Every 'derivable' verdict is a statement about the schema, not about data.",
+    "A-03's STATUS IS A DECISION, NOT A FACT, and the Author was instructed to make it and to record both readings. The reason the withdrawn increment gave was false and is corrected: CTR-EVT-001's event_type is an OPEN grammar admitting onboarding.step.completed, and subject is REQUIRED with free-text type and id, so a step-identifying event validates unmodified (probe EVT-CARRIER). The Author nonetheless keeps `absent`, because the status routes work: absent routes to a contract owner to DEFINE, derivable_with_caveat routes to A6 to COMPUTE, and A6 cannot define another contract's values; and because A-03 has no closed enum under any part of it, so it returns the empty set rather than a coarser number. The benchmark assessor's competing reading — a validating carrier makes derivable_with_caveat arguable — is recorded IN FULL inside the entry. What settles it is a Product Owner ruling on what the status column is for.",
+    "Keeping `absent` required AMENDING this document's own definition of `absent`, which spoke only of a missing FIELD. The amendment is declared in source_status_vocabulary.vocabulary_amendment_note rather than made quietly, and the note says plainly that a reader may suspect a definition bent to fit an answer.",
+    "M-10 IS THE POPULATION QUESTION THE CORRECTION SURFACED AND CANNOT ANSWER. Nothing states whether a superseding CTR-USG-001 record reuses the superseded record's occurred_at — in which case it falls in the SAME window — or carries its own, in which case it falls in a LATER one. Monthly totals differ between the readings. The populations are stated in a form correct under both; the question belongs to CTR-USG-001's owner (A0 with A6, per RFC-2026-014). It also weakens one premise of a finding made against the withdrawn increment, that C-04 'counts corrections by the month they arrive rather than the month they correct' — true under one reading only. The finding survives in a form that does not depend on the reading and is recorded that way: C-04 cannot distinguish the two, and the withdrawn increment never said which it assumed.",
+    "The multi-hop supersession rule and the double-supersession case are DECLARED INFERENCES; no source states either. CTR-USG-001's own annotation records both, and self-reference, as resolver obligations its validator cannot express — and a self-superseding document VALIDATES today (probe USG-SELF-SUPERSESSION-VALIDATES).",
+    "Four metrics are proxies with a stated bias direction rather than the metric they resemble: A-02 (cohort start biases upward), A-04 (counts metered attempts, not successes), S-01 (auditability proxy for 'active workspace'), C-04 (blind to a usage record that was never emitted). M-06 named two of the four in the withdrawn increment while its own self-check named four; four is right and all four are now in the canonical file.",
+    "There is no single-number cost per workspace. CTR-USG-001 admits THB and USD and its own freeze boundary states currency conversion is not in the contract, so C-01 reports per currency until an FX policy has a rate source, a rate-date convention and an owner. Every cost figure is also GROSS: cost.amount carries no sign, so a superseded record is EXCLUDED rather than netted (probe USG-NO-NEGATIVE-AMOUNT).",
+    "Window boundaries are UTC because that is the instant the records carry. CTR-TEN-001.timezone is const Asia/Bangkok and required — not per-tenant and not a guess, which is the M-01 correction — so whether a reporting month is cut on that timezone or on UTC is a FORMULA decision for the Product Owner under OPEN-016 and not a contract gap. The withdrawn increment's citation of OPEN-002 for this is withdrawn.",
+    "Four of the five cardinality-budget lines are unenforced, and one of those cannot be enforced at all until CTR-ERR-001.code has a vocabulary. capability_key's per-module ceiling is not expressible in JSON Schema in any case.",
+    "Whether these are the right fourteen metrics is a product judgement this run cannot make. They were chosen from what the contracts can support, which is a source constraint.",
+    "NEITHER CHECKER IS WIRED INTO npm run check, so nothing runs them automatically when a contract changes under this dictionary. Making them a suite would put test files in test-kits/, which this package does not own. They are package evidence, not repository guards.",
+    "One new branch in the strengthened checker is NOT mutation-covered and is named rather than implied: the unresolvedRef path fires only for a $ref this script cannot follow, and every $ref in the shared kernel is the followable sibling form. Exercising it would require a schema edit this package must not make."
+  ],
+  "open_risks_or_blockers": [
+    "OPEN-016 requires Product Owner review of every metric formula, source, owner and target before G0-003 can close. Fourteen targets and A-02's parameter N are outstanding and this package sets none. It is closable by no agent.",
+    "A-03's status needs a Product Owner ruling. Two defensible readings are recorded with what would settle them.",
+    "M-10 needs CTR-USG-001's owner to state whether a supersession is a re-emission for the purpose of occurred_at. Until then no monthly cost figure from C-01, C-02, C-03 or C-05 should be published.",
+    "The contract-widening ask is ROUTED, NOT MADE. Per C4 the correct request — an event_type vocabulary and a subject.type convention for CTR-EVT-001, and expressly NOT a payload widening — leaves this artifact and goes to that contract's owner and to Security as a separately-reviewed item. This package does not make it.",
+    "The benchmark recommendation stays CONDITIONAL and its own term is that it is withdrawn rather than re-conditioned if a second sample repeats the adjacent-contract over-claim. This increment is that second sample. Whether it repeated the over-claim is for the reviewer to find. The Author records that he audited every negative claim in the document under C3, found one repeat in A-02 that NEITHER prior review named, corrected it, and is reporting it rather than leaving it to be discovered.",
+    "Neither reviewer is a fresh pair of eyes and the manifest says so: /claude/c0_contract_reviewer reviewed the withdrawn draft, and /claude/q0_sentinel wrote this run's benchmark. Cross-vendor independence is satisfied for no role.",
+    "OPEN-001 requires Product plus Accountant before any money figure from C-01 leaves engineering, and the pricing model it will settle also determines what coverage level C-05 actually needs.",
+    "OPEN-002 and PDPA-006 must state an audit retention period before the CTR-AUD-001 windows in A-01, A-02, S-01 and S-02 can be trusted.",
+    "OPEN-014 has not fixed support hours, the response target or the emergency boundary, which is why S-03 is absent on both halves.",
+    "OPEN-010 must settle the email provider and sender domain before S-04 measures the product rather than an unfinished setup.",
+    "OPEN-019 must settle the queue implementation and the job lifecycle before S-05 can become a rate.",
+    "The error_code cardinality line needs CTR-ERR-001 to define a code vocabulary. The number is A6's to propose and the vocabulary is that contract's to define; the budget's implied ceiling of 524288 label combinations per metric name is recorded so a reviewer can argue the 64 down."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range covers work-packages/WP-0A-A6-001.json, five files under evidence/WP-0A-A6-001/ and this handoff — a specification document, its reading view and two read-only checkers. Reverting removes the G0-003 metric dictionary and returns the CTR-OBS-001 per-label cardinality budget to having no home, and removes nothing else: no target was set to un-set, no contract artifact was changed to restore, and no event, schema, migration, provider call or customer record exists to roll back. A forward fix is preferable for any single wrong metric entry, because the entries are independent of one another. Neither path affects the withdrawn increment on agent/claude/WP-0A-A6-001-product-kpi-catalog, which is read-only input and is not on this branch.",
+  "recommended_next_work_packages": [
+    "A CTR-EVT-001 EVENT VOCABULARY package, owned by that contract's owner with Security as a separately-reviewed party. It defines event_type values for a named onboarding step (started and completed) and a workspace lifecycle fact, plus a subject.type convention identifying the step, so that step S has one spelling more than one consumer can agree on. IT DOES NOT WIDEN payload. The withdrawn increment asked for 'an event vocabulary and a payload shape'; the payload half is withdrawn, because a step identifier validates today through event_type and subject and payload at maxProperties 0 is a control held deliberately closed. This unblocks A-03 and removes A-02's cohort-start bias rather than merely documenting it.",
+    "A CTR-USG-001 SUPERSESSION SEMANTICS clarification, owned by A0 with A6, settling M-10: whether a superseding record reuses the superseded record's occurred_at, and whether a chain of supersessions collapses to its terminal record. It is the smallest change that makes any monthly cost figure publishable, and RFC-2026-014 explicitly did not settle it.",
+    "A CTR-ERR-001 error-code vocabulary package. It is the single dependency that unblocks the largest factor in the cardinality budget, and until it exists no consumer may emit sli_tags to a real metric backend under CTR-OBS-001's own standing constraint."
+  ],
+  "reviewer_instructions": [
+    "Run BOTH checkers first, and read the header of verify-source-fields.mjs before treating its exit 0 as coverage. It validates PRESENCE and structurally cannot validate an ABSENCE claim — which is exactly how a false `absent` reason shipped on a green run last time. population-and-carrier-probes.mjs is the half that executes the absence claims.",
+    "THE HIGHEST-VALUE OBJECTION IS THE ONE THE BENCHMARK NAMES: another over-claim about an adjacent contract. Its own term is that the Author's recommendation is WITHDRAWN rather than re-conditioned if this second sample repeats it. Every negative claim in the document was audited under C3 and either ships with a constructed failing document or was downgraded to 'no contract defines this' — so the way to find a remaining one is to look for a sentence that asserts a limitation WITHOUT a probe id next to it.",
+    "The second-highest is A-03's status. Do not accept it because the Author argued for it; the entry records the competing reading in full and states what would settle it. If you think derivable_with_caveat is right, say so — the Product Owner has both readings either way.",
+    "Attack the populations. Six metrics now state one, and the whole class of defect is that a population sounds right and is not. C-04's exception (superseded records IN) and C-03's meaning change (a reconciled estimate stops voting) are the two most likely to be wrong.",
+    "M-10 is the Author's own unresolved question and the place where an assumption would be most tempting. Check that the populations really are correct under BOTH readings, because that is what is claimed.",
+    "Search the dictionary for any number that is not a field count, an enum size, the cardinality budget, or the 20.00/22.00/42.00 of the population demonstration. A leaked target is still the failure this package exists to prevent.",
+    "The Author is /claude/a6_relay. Reviewer, tester and integration verification are outstanding and must be distinct runs. NEITHER NAMED REVIEWER IS A FRESH PAIR OF EYES and the manifest records why; cross-vendor independence is satisfied for no role. Read open_blockers before anything else — none was deleted, including the two the Product Owner disposed of for the future only."
+  ],
+  "superseded_by": null
+}
