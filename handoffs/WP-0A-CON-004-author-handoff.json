@@ -5,10 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "03c584b2652c74219dabca15e39a2b9c0bd487b6",
-  "head_revision_or_patch_checksum": "03c584b2652c74219dabca15e39a2b9c0bd487b6",
+  "head_revision_or_patch_checksum": "ec20e8b5561201f76c4c823949d3b8825f43704b",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-sec-001/schema.json",
+    "handoffs/WP-0A-CON-004-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/integrity-manifest.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-010",
@@ -103,7 +108,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "compatibility_impact": "Contract-catalog changes are corrective: one sentence in CTR-SEC-001's schema, broken by the author's own string splice in the previous correction, is repaired. No rule, pattern, enum, requiredness or freeze level moves.",
   "known_limitations": [
     "SECRET-HANDLE OWNERSHIP CONFLICT, unresolved by this package. CTR-MOD-001 `secret_handles` already fixed the pattern ^secret:[a-z0-9._-]+$ while Decision Register 5.2 owns CTR-MOD-001 to A0 and CTR-SEC-001 to A0+A1, so a single-owner contract fixed the syntax of a jointly-owned one with no RFC. CTR-SEC-001 adopts that pattern as PRECEDENT, because two different handle syntaxes would stop the two contracts composing, and records the irregularity. The A1 owner is a required authority and must dispose of it; this author must not.",
     "THE SECRET-HANDLE PATTERN IS NOT A CONTROL AND IS NOT CLAIMED AS ONE. It excludes mixed-case base64 and nothing else: lowercase hex, lowercase base32 and lowercase dashed token shapes all satisfy it. Independent security review further showed that scripts/scan-repository-secrets.mjs detects only strings the pattern already rejects, so schema and scanner compose to zero coverage against a credential smuggled inside a conforming handle body. No shape rule available to JSON Schema closes it and none was invented. A1 must specify a handle ISSUANCE format before freeze. Shipped as examples/accepted-gap-structureless-handle-body.json.",
