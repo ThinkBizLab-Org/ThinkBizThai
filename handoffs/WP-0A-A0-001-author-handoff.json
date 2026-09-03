@@ -4,36 +4,14 @@
   "work_package_id": "WP-0A-A0-001",
   "agent_run_id": "/root",
   "final_status": "in_review",
-  "base_revision": "50c886570452c64e17fd72cb139ca5d026b64a8f",
-  "head_revision_or_patch_checksum": "7a8368bee8cd6ad3f652235bf2d3e282c7e6b08f",
+  "base_revision": "226ecdbde9d8dc3820fb3a0ffa1b492a3466708f",
+  "head_revision_or_patch_checksum": "226ecdbde9d8dc3820fb3a0ffa1b492a3466708f",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
-  "files_added": [
-    "evidence/WP-0A-A0-001/a0-staffing-defect-disposition.md",
-    "evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md",
-    "evidence/capability-benchmarks/a6-relay-billing-cost-ops.md"
-  ],
-  "files_modified": [
-    ".agents/capability-profiles/cc-a6-relay.json",
-    ".gitignore",
-    "architecture/decisions/RFC-2026-011-repository-language.md",
-    "architecture/decisions/RFC-2026-012-client-database-boundary.md",
-    "architecture/decisions/RFC-2026-013-agent-signature-scope.md",
-    "architecture/decisions/RFC-2026-014-usage-measurement-identity.md",
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-A0-001-author-handoff.json",
-    "scripts/commit-when-clean.mjs",
-    "scripts/test-suite-contract.mjs",
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/handoff-conformance.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-A0-001.json",
-    "work-packages/WP-0A-A6-001.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -95,7 +73,7 @@
   ],
   "security_privacy_cost_impact": "No secrets, personal data, customer content, provider integration, billable provider call, or production configuration was added. CI has read-only contents permission and disables persisted checkout credentials. The scanner is a deterministic guardrail, not the only secret-control measure.",
   "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation, data retention operation, or external state change was made.",
-  "compatibility_impact": "No contract changes. RFC-2026-011 is disposed Approved and the guard it said belonged with an approval lands in the same change; no contract-catalog file, schema or fixture is touched.",
+  "compatibility_impact": "No contract changes. This increment re-staffs WP-0A-A6-001 under the conditions of a capability benchmark and pins its new branch; no contract-catalog file, schema or fixture is touched.",
   "known_limitations": [
     "This handoff describes an exact staged candidate, not a committed, pushed, merged, or remote-CI-verified candidate.",
     "Secret scanner detects only documented common patterns and does not replace secret management or platform controls.",
