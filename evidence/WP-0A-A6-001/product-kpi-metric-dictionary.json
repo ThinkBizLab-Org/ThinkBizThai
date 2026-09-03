@@ -1,0 +1,675 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A6-001",
+  "artifact": "G0-003 product KPI metric dictionary",
+  "gate": "G0",
+  "decision_consumed": "OPEN-016",
+  "authored_by": "/claude/a6_relay",
+  "authoring_conditions": "Authored under evidence/capability-benchmarks/a6-relay-billing-cost-ops.md, which recommends WITH CONDITIONS. C2 (population is a required element), C3 (no negative claim about another contract without an executed demonstration), C4 (contract-widening requests leave this artifact), C5 (Author only), C6 (current base plus a decision delta) and C7 (billing-cost-ops measurement only) bind this document and are reproduced in the manifest's open_blockers.",
+  "supersedes": "The increment on branch agent/claude/WP-0A-A6-001-product-kpi-catalog, which the Product Owner withdrew as an author-attested deliverable and preserved as READ-ONLY INPUT credited to this run. This document is a fresh authorship act on a base current with main, not an edit of that branch.",
+  "data_classification": "synthetic-only",
+  "target_policy": "Every metric in this dictionary carries target: null. OPEN-016 reserves every activation, cost and support KPI target to the Product Owner, and its guardrail forbids a metric without a formula, a source and an owner. This dictionary supplies the formula, the source, the population and the owner; it supplies no number. A target written here would be the vanity target OPEN-016 exists to prevent.",
+  "source_status_vocabulary": {
+    "derivable": "Every field the formula names exists in a shared-kernel contract, every value the formula selects on is defined by a contract, and both carry the meaning the formula assumes.",
+    "derivable_with_caveat": "Every field exists and the metric returns a number, but a stated property of the formula -- the window boundary, the population, the grouping key, or the outcome the metric claims to measure -- is weaker than the metric's plain-language definition. The caveat states which.",
+    "absent": "The formula requires something no shared-kernel contract supplies, so the metric returns nothing at all rather than something coarser. That missing thing is a FIELD in some entries and a defined VALUE VOCABULARY in others; both are recorded as absent because both leave the metric uncomputable and both route to a contract owner rather than to A6.",
+    "vocabulary_amendment_note": "The `absent` definition above is AMENDED from the withdrawn increment, and the amendment is declared rather than made quietly. That version read 'at least one field the formula requires exists in no shared-kernel contract'. Independent review and the capability benchmark both established that A-03's fields DO exist -- see A-03's own entry -- so the old sentence was false of the entry it was written for. The amendment widens the definition to cover a missing value vocabulary as well as a missing field. A reader is entitled to note that the author amended a definition in the same document in which its old form embarrassed him; the A-03 entry therefore records the competing reading in full and hands the choice to the Product Owner rather than resolving it by definition."
+  },
+  "method_notes": [
+    {
+      "id": "M-01",
+      "note": "CORRECTED. The withdrawn increment called `CTR-TEN-001.timezone` a per-tenant value and Asia/Bangkok 'plausible'. It is neither. `timezone` is `{\"const\": \"Asia/Bangkok\"}` and is in the contract's `required` list, and `locale` is `{\"const\": \"th-TH\"}` beside it: every Trusted Tenant Context in this system carries exactly that one timezone, there is no per-tenant variation, and nothing about the value is a guess. What is actually open is narrower and is NOT a contract gap: no source states whether a reporting calendar month is cut on Asia/Bangkok or on UTC. Both clocks exist in the kernel -- `occurred_at` is a UTC instant on every contract that carries one, and the tenant timezone is fixed at Asia/Bangkok -- and nothing says which one bounds a reporting month. Windows in this dictionary are stated in UTC on `occurred_at` because that is the instant the records themselves carry; cutting them on Asia/Bangkok instead moves every calendar-month boundary by seven hours, moving records near the boundary between months, which changes A-04, C-01, C-02, C-03, C-04 and C-05. The withdrawn increment also attributed this to OPEN-002; that citation is withdrawn. OPEN-002 is region, per-data-class retention, legal basis and DPA, and says nothing about a reporting calendar. A KPI's window is part of its formula, so this belongs to the Product Owner under OPEN-016. Because the timezone is `const`, adopting tenant-local reporting later needs no contract change at all; it is a reporting convention, and recording it as a contract gap -- which the withdrawn increment did -- overstated it."
+    },
+    {
+      "id": "M-02",
+      "note": "Four metrics read CTR-AUD-001. Its `retention.policy_ref` names a policy and deliberately pins no duration: PDPA-006 is undelivered and the baseline requires Thai legal counsel to confirm retention before production. A metric window longer than the eventual retention period truncates silently and reports a smaller denominator as an improvement. Whoever sets a window here must check it against the retention period once one exists."
+    },
+    {
+      "id": "M-03",
+      "note": "OB-006 forbids a per-workspace metric LABEL, and CTR-OBS-001 leaves `workspace_id` out of `sli_tags` for exactly that reason. Every per-workspace figure in this dictionary is therefore computed from stored RECORDS (CTR-USG-001 attribution, CTR-AUD-001 tenant_context), never from a time-series label. This is a computation-path constraint, not a preference: implementing any of these as a metric-backend dimension violates OB-006."
+    },
+    {
+      "id": "M-04",
+      "note": "CTR-USG-001 carries money and quantity as decimal STRINGS because MOD-130 forbids floating-point money. Every sum in the cost area is a decimal sum. Parsing these to a binary float to aggregate them is a defect, not an implementation detail. CTR-USG-001's own annotation records that the 16-digit integer bound is a sane maximum and NOT a float-safety guarantee: `9999999999999999.99999999` is a valid amount and parses past 2^53-1 as a double."
+    },
+    {
+      "id": "M-05",
+      "note": "This package instruments nothing. It emits no event, defines no schema, chooses no metric backend, calls no provider and touches no customer data. Every metric below is a specification of what would be computed once a source exists and the Product Owner has fixed the numbers."
+    },
+    {
+      "id": "M-06",
+      "note": "CORRECTED AND RECONCILED. Where a metric's plain definition cannot be met by an existing field, this dictionary records the nearest computable proxy AND the direction of its bias, rather than silently substituting the proxy for the metric. The withdrawn increment's version of this note said 'A-02 and A-04 are the two cases' while its own self-check and handoff named FOUR. Four is right, and all four are named here so the canonical file and its derived documents cannot disagree again: A-02 (cohort start is the earliest audit record, which biases the ratio UPWARD), A-04 (counts metered attempts rather than successes, which overstates activation by exactly the failure rate), S-01 (an auditability proxy stands in for 'active workspace', which deflates the denominator and inflates the metric), and C-04 (a usage record that was never emitted produces no superseding record, so a systematic under-count reads as zero restatement). A-02 and A-04 are proxies for the metric NAMED; S-01 is a proxy for a term in its own denominator; C-04 is exact as written and blind to what it does not measure. The four are not the same kind of imprecision and the difference is recorded rather than flattened."
+    },
+    {
+      "id": "M-07",
+      "note": "The `tenant_context.workspace_id` cited by A-01, A-02 and S-01 reaches CTR-AUD-001 through a cross-contract $ref to CTR-TEN-001, where it is required; it is not a property of CTR-AUD-001's own schema. This is recorded because the first run of verify-source-fields.mjs reported all three as MISSING and was right about the file and wrong about the field. Anyone re-deriving these metrics from CTR-AUD-001 alone will reach the same wrong conclusion."
+    },
+    {
+      "id": "M-08",
+      "note": "Every field citation in this dictionary is executed rather than asserted, by `node evidence/WP-0A-A6-001/verify-source-fields.mjs`. READ THAT SCRIPT'S HEADER BEFORE TREATING ITS EXIT 0 AS COVERAGE: it validates PRESENCE and cannot validate an ABSENCE claim, and an absence claim is the highest-consequence statement in this dictionary because it generates a request to another contract's owner. The absence claims are executed separately, by `node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs`, which constructs documents and validates them with the repository's own JSON Schema subset validator. Both commands must pass; neither alone is coverage of this document."
+    },
+    {
+      "id": "M-09",
+      "note": "NEW, and it is the correction the capability benchmark's T2 probe forced. Every aggregate over CTR-USG-001 in this dictionary now carries an explicit `population` block, because a formula without a stated population is not a specification. Three axes are stated separately because they are three separate mechanisms and settling one settles none of the others: (a) DEDUPE, governed by RFC-2026-014, Approved 2026-09-02 -- `dedupe_key` identifies one MEASUREMENT and two records carrying it are the same measurement seen twice, so every population below is POST-DEDUPE on `dedupe_key`; (b) SUPERSESSION, governed by `cost.supersedes_usage_id` and older than the RFC -- a `provider_reported` record replaces an `estimated` one, and because `cost.basis` is IN the dedupe key the two records carry DIFFERENT keys and BOTH survive dedupe, so dedupe does not solve supersession and a population that is silent on it double-counts; (c) RESTATEMENT -- whether a period that has already been reported can change afterwards. See `population_boundary_demonstration` below for the executed proof of (b)."
+    },
+    {
+      "id": "M-10",
+      "note": "NEW, and recorded as an open question rather than resolved by assumption, because the two readings give different monthly totals. `CTR-USG-001.occurred_at` is annotated as 'the instant the measurement was TAKEN, stamped once and reused verbatim on every re-emission of that measurement', and RFC-2026-014 keeps `cost.basis` in the dedupe key so that 'a provider_reported correction is distinguishable from a duplicated estimate'. Read together, those suggest a superseding record REUSES the superseded record's `occurred_at` and therefore falls in the SAME window. But nothing states that a supersession IS a re-emission, and a producer that stamps the correction with the instant the provider statement arrived would put it in a LATER window. The difference is load-bearing: under the first reading a month's set of records is fixed and only its contents settle; under the second a record migrates between months. This dictionary does not choose. It states the population boundary in a form that is correct under both readings -- a settled month is the post-dedupe, supersession-resolved corpus AS AT the moment of computation -- and records that whichever reading is adopted must be stated by CTR-USG-001's owner (A0 Architecture/Integration with A6 SRE/Billing, per RFC-2026-014's own owner line) before any of these figures is published. Note that this ambiguity also weakens one premise of a finding made against the withdrawn increment: C-04 was said to count corrections 'by the month they arrive rather than the month they correct', which is true only under the second reading. The finding survives the ambiguity in a different form and is recorded that way in C-04's own entry: C-04 cannot distinguish the two readings, and the withdrawn increment never said which it assumed."
+    }
+  ],
+  "population_boundary_demonstration": {
+    "why": "C2 of the authoring benchmark requires every cost aggregate to state its population boundary. This is the executed demonstration of why, reproduced from the benchmark's own T2 probe and re-run by this package's probe script rather than quoted.",
+    "documents": "Two synthetic CTR-USG-001 documents, BOTH VALID against the committed schema by the repository's own validator: an `estimated` 20.00 THB record, and a `provider_reported` 22.00 THB record whose `cost.supersedes_usage_id` names the first.",
+    "naive_result": "42.00",
+    "settled_result": "22.00",
+    "reading": "C-01's formula as the withdrawn increment wrote it -- decimal_sum(cost.amount) grouped by cost.currency -- returns 42.00 for a settled cost of 22.00. The error is nearly 2x and it is in the money direction. It is not caught by dedupe: the two records differ in `cost.basis`, which is part of `dedupe_key`, so they carry different keys and both survive. It is not caught by verify-source-fields.mjs either, because every field both records cite exists. A green run on the withdrawn increment's checker is exactly what this defect produced.",
+    "command": "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs"
+  },
+  "metrics": [
+    {
+      "key": "activation.credential_connection_success_rate",
+      "id": "A-01",
+      "area": "activation",
+      "definition": "Of the credential actions a workspace performs, the share that the audit trail records as succeeding.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(CTR-AUD-001 where action.category == \"credential\" and outcome == \"succeeded\")",
+        "denominator": "count(CTR-AUD-001 where action.category == \"credential\")",
+        "window": "rolling 7 days on occurred_at, UTC (see M-01)",
+        "grouping": "tenant_context.workspace_id"
+      },
+      "source": {
+        "contract": "CTR-AUD-001",
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "caveat": "`action.category` is a closed six-value enum, so the denominator is exact at CATEGORY level. `action.name` has a dotted grammar and no vocabulary, so connect, rotate and revoke are indistinguishable and all three land in the denominator. Narrowing this metric to first-time connection requires an `action.name` registry, which no source states. See also M-02: the 7-day window is not yet known to sit inside audit retention.",
+      "owner": {
+        "computes": "A6 (SRE / production readiness)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves every activation target to the Product Owner and directs that events are collected before a target is set. No baseline observation of this ratio exists, synthetic or otherwise."
+    },
+    {
+      "key": "activation.workspace_first_publish_success",
+      "id": "A-02",
+      "area": "activation",
+      "definition": "Share of workspaces in a cohort that record at least one successful publish action within N days of first being observed.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(distinct tenant_context.workspace_id having at least one CTR-AUD-001 record where action.category == \"publish\" and outcome == \"succeeded\" and occurred_at <= first_observed_at + N days)",
+        "denominator": "count(distinct tenant_context.workspace_id with any CTR-AUD-001 record whose occurred_at falls in the cohort window)",
+        "window": "cohort, N days from first_observed_at, UTC",
+        "parameter_N": null
+      },
+      "source": {
+        "contract": "CTR-AUD-001",
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "caveat": "PROXY, and the bias has a direction. `first_observed_at` is the workspace's earliest audit record, because NO CONTRACT DEFINES A WORKSPACE-CREATION EVENT. A workspace that is created and then does nothing auditable for a week enters the cohort a week late, which shortens its measured time-to-publish and biases this ratio UPWARD. The correction is a defined workspace-lifecycle event type, not a change to this formula.",
+      "caveat_correction": "The withdrawn increment justified this proxy with the same false claim A-03 carried: that CTR-EVT-001 'bounds event_type to a three-segment grammar and enumerates no vocabulary, and its payload is fixed at maxProperties 0, so no product event can name or carry a creation'. That is wrong in the same way and for the same reason. `event_type` is an OPEN grammar -- `^[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9]+$` admits `workspace.lifecycle.created` today -- and `subject` is REQUIRED with free-text `type` and `id`, so a creation fact validates against CTR-EVT-001 unmodified. This defect was found by the author while applying C3 to A-03; it was named in neither review. The proxy and its upward bias are unchanged, because what is missing is not a carrier but a DEFINITION: no contract states which `event_type` value means 'workspace created' or reserves a `subject.type` for a workspace, so nothing exists for this formula to select on.",
+      "owner": {
+        "computes": "A6 (SRE / production readiness)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target to the Product Owner. N is null for the same reason and is listed separately because it is a target in disguise: choosing N is choosing how fast activation is expected to be, which is a product commitment and not an SRE parameter."
+    },
+    {
+      "key": "activation.onboarding_step_completion_rate",
+      "id": "A-03",
+      "area": "activation",
+      "definition": "Share of workspaces that complete each named onboarding step, per step.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(distinct workspace_id emitting the step-completed event for step S)",
+        "denominator": "count(distinct workspace_id emitting the step-started event for step S)",
+        "window": "cohort, aligned to A-02",
+        "grouping": "step identifier S"
+      },
+      "source": {
+        "contract": null,
+        "fields": [],
+        "status": "absent"
+      },
+      "caveat": "NO CONTRACT DEFINES AN ONBOARDING STEP. That is the whole of the gap, and it is a definition gap and not a carrier gap. The formula selects on three things -- a value meaning 'step started', a value meaning 'step completed', and an identifier for the step S it groups by -- and no shared-kernel contract states any of them. There is nothing here for a query to match, so the metric returns the empty set rather than a coarser number.",
+      "withdrawn_claim": "The withdrawn increment asserted, in this entry and twice more, that CTR-EVT-001 'can carry no step identifier at all' because `payload` is `maxProperties: 0` and `event_type` 'enumerates nothing'. BOTH HALVES ARE WITHDRAWN AS REASONING. `event_type` is `^[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9]+$`, an OPEN grammar that admits `onboarding.step.completed` today; `subject` is a REQUIRED block whose `type` and `id` are free text bounded at 64 and 128 characters; and `tenant_context` $refs CTR-TEN-001, where `workspace_id` is required. A step-identifying event therefore VALIDATES against CTR-EVT-001 unmodified, and this is demonstrated by construction rather than argued -- see population-and-carrier-probes.mjs, probe EVT-CARRIER. The one true fragment of the old claim is that `payload` is closed at `maxProperties: 0`, which is also demonstrated; it is not load-bearing, because a step identifier does not need `payload`.",
+      "nearest_validating_carrier": {
+        "contract": "CTR-EVT-001",
+        "shape": "event_type carrying a step verb in its own grammar (e.g. `onboarding.step.completed`), subject.type naming the step class and subject.id naming step S, tenant_context.workspace_id supplying the grouping key",
+        "validates_today": true,
+        "why_this_is_not_a_source": "A carrier that would accept the values is not a contract that defines them. Nothing reserves `onboarding.step.*` as an `event_type`, nothing states a `subject.type` convention for a step, and nothing enumerates the steps S the metric groups by. An implementer who computed this today would be inventing all three, and a number computed from an invented vocabulary is not comparable to anything and has no owner. This field is recorded so a reader is not left with the impression that no carrier exists -- the old entry did leave that impression, and it was wrong."
+      },
+      "status_decision": {
+        "chosen": "absent",
+        "decided_by": "/claude/a6_relay, as Author, on the Product Owner's instruction to choose and to record both readings",
+        "reasoning": [
+          "The status is a routing decision, and the two candidates route to different owners. `absent` routes to a contract owner to DEFINE something. `derivable_with_caveat` routes to A6 to COMPUTE something with a stated weakness. A6 cannot define another contract's values, so the second routing sends the work to a run that cannot do it.",
+          "`derivable_with_caveat` is defined in this document as a metric that still returns a number, of narrower meaning than its plain definition. A-01 is the model: `action.category` is a closed enum, so the ratio computes exactly at category level and only the NARROWING by `action.name` is unavailable. A-03 has no closed enum underneath any part of it. Numerator, denominator and grouping key all select on undefined values, so the result is the empty set, not a coarser ratio. Calling that 'derivable with a caveat' would misdescribe what an implementer gets.",
+          "The reviewer's ground -- that no contract RESERVES a step vocabulary -- is the ground I am adopting, and it survives the correction to the reason. The old reason was 'the contract forbids the shape'; the new reason is 'no contract defines the values'. Both yield `absent`; only the second is true.",
+          "This choice costs something and the cost is recorded: it required amending this document's own definition of `absent`, because the old definition spoke only of missing FIELDS and A-03's fields exist. See source_status_vocabulary.vocabulary_amendment_note. A reader who thinks the definition was bent to fit the answer should read the competing reading below and decide for themselves; that is why it is here."
+        ],
+        "competing_reading": "The capability benchmark's assessor holds that `derivable_with_caveat` is arguable, on the ground that a validating carrier exists: CTR-EVT-001 accepts the document today, so the metric's obstacle is an unwritten convention rather than a missing capability, and a status of `absent` may overstate the gap to a reader who does not read the caveat. That reading has real force. Under it the entry would say: derivable once an `event_type` value and a `subject.type` convention are agreed, with the caveat that the agreement does not exist and any figure computed before it is uncomparable.",
+        "what_would_settle_it": "A Product Owner ruling on what the status column is FOR: if it describes the contract surface, the assessor is right and this is `derivable_with_caveat`; if it describes whether the metric can be computed and by whom, the reviewer is right and it is `absent`. This document takes the second reading, states it here, and does not claim the question is closed.",
+        "unaffected_either_way": "The instrumentation request is the same under both readings, and it is NOT a payload widening. See recommended_request."
+      },
+      "recommended_request": {
+        "what": "An `event_type` value (or small set of values) meaning that a named onboarding step was started and completed, and a `subject.type` convention identifying the step, so that step S has one spelling that more than one consumer can agree on.",
+        "what_it_is_not": "It is NOT a request to widen `CTR-EVT-001.payload`. The withdrawn increment asked for 'an event vocabulary and a payload shape' in two places; the payload half is withdrawn entirely. `payload` at `maxProperties: 0` is a control held deliberately closed, of the same family as `CTR-AUD-001.details`, whose own annotation calls a free-form bag 'how a secret or a page of user content reaches an audit log'. This metric does not need it, and asking for it would have traded a security control for a convenience.",
+        "routing": "Per C4 this request LEAVES this artifact. It is recorded here only as a pointer to where the work goes: to CTR-EVT-001's contract owner, and to Security as a separately-reviewed item. This package does not make the request, does not open the RFC, and its recording here is not the request having been made."
+      },
+      "owner": {
+        "computes": "A6 (SRE / production readiness) once a vocabulary exists",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "Blocked twice. OPEN-016 reserves the target, and there is no defined vocabulary from which any baseline could be measured to inform one."
+    },
+    {
+      "key": "activation.publish_operation_volume_per_workspace",
+      "id": "A-04",
+      "area": "activation",
+      "definition": "Metered publish operations per workspace per month.",
+      "unit": "operations per workspace",
+      "formula": {
+        "numerator": "count(CTR-USG-001 where dimension == \"publish_operation\")",
+        "denominator": "count(distinct attribution.workspace_id in the same window)",
+        "window": "calendar month on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "dimension",
+          "attribution.workspace_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014 (Approved 2026-09-02). Records sharing a `dedupe_key` are one measurement seen twice; one is kept. Redelivery of one event is a different problem with a different key -- ID-002's inbox is keyed on `usage_id` -- and is not this population's business.",
+        "supersession": "SUPERSEDED RECORDS EXCLUDED. A record R is superseded when some other record in the corpus carries `cost.supersedes_usage_id == R.usage_id`; R leaves the population and the record that replaced it stays. This matters for a COUNT and not only for a sum: a provider_reported correction of a metered publish operation is a second record for one operation, so counting both inflates the volume.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE. A correction arriving after a month is first reported removes the record it supersedes from that month's population, so the month's figure changes. Any published figure must carry the date it was computed.",
+        "declared_not_sourced": "The multi-hop rule -- if A is superseded by B and B by C, only C survives -- is this dictionary's DECLARED INFERENCE. No source states it. So is the treatment of a record superseded by two others, which CTR-USG-001's own annotation records as a resolver obligation its validator cannot express, alongside a self-superseding document that VALIDATES today."
+      },
+      "caveat": "PROXY. A usage record states what was METERED, and CTR-USG-001 carries no outcome field of any kind -- a failed publish that consumed a provider call still produces a usage record. This counts attempts, and it is NOT a substitute for A-02. Reading it as publishing success overstates activation by exactly the failure rate, which no field here reveals.",
+      "owner": {
+        "computes": "A6 (SRE / production readiness)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves activation targets to the Product Owner. A volume target additionally interacts with the pilot quota limits, which OPEN-011 has not fixed."
+    },
+    {
+      "key": "cost.usage_cost_per_workspace_per_currency",
+      "id": "C-01",
+      "area": "cost",
+      "definition": "Provider cost attributed to a workspace over a month, reported separately for each currency.",
+      "unit": "decimal money string, per currency",
+      "formula": {
+        "numerator": "decimal_sum(CTR-USG-001 cost.amount over the population below) grouped by cost.currency",
+        "denominator": "count(distinct attribution.workspace_id in the same population, window and currency group)",
+        "window": "calendar month on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "cost.amount",
+          "cost.currency",
+          "attribution.workspace_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "fields_mentioned_not_read": [
+        "cost.basis"
+      ],
+      "fields_mentioned_not_read_note": "`cost.basis` appears in this entry's population only to explain why dedupe does not resolve supersession -- the basis is part of `dedupe_key`, which is what makes an estimate and its correction carry different keys. C-01 does not read it. The distinction is declared rather than left implicit because the checker now fails on any field a formula or population names and does not declare, and an escape hatch that nobody can see is a hole.",
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014 (Approved 2026-09-02). Two records carrying one key are one measurement seen twice and are collapsed to one. Two measurements of the same job and dimension at different instants carry different keys and are SUMMED, not collapsed -- that is the rule A6 refused to sign twice before it said so, and summing them is correct.",
+        "supersession": "SUPERSEDED RECORDS EXCLUDED, and this is the correction the withdrawn increment most needed. Dedupe does NOT do this job: `cost.basis` is part of `dedupe_key`, so an `estimated` record and the `provider_reported` record that supersedes it carry DIFFERENT keys and both survive dedupe. Summing the survivors returns 42.00 for a settled cost of 22.00 on the two documents in population_boundary_demonstration. A record R is excluded when some other record carries `cost.supersedes_usage_id == R.usage_id`.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE, in the DOWNWARD direction when an estimate is replaced by a smaller provider figure and upward when it is replaced by a larger one. There is no freeze: the corpus for a month grows whenever a provider statement lands. Any figure published from this metric must carry the instant it was computed, and a month reported twice at different instants may legitimately differ. See M-10 for the unresolved question of which window a superseding record falls into.",
+        "declared_not_sourced": "Excluding a superseded record rather than netting it against its replacement is this dictionary's reading of `cost.supersedes_usage_id`'s own annotation -- 'a reported event and the estimate it replaces are two events for one cost'. It is a DECLARED INFERENCE; no source states the aggregation rule. Netting is not available in any case: `cost.amount` carries NO SIGN, deliberately, because a credit would materialise OPEN-001 and BILL-DEC-013, which are open."
+      },
+      "caveat": "THERE IS NO SINGLE-NUMBER COST PER WORKSPACE, and there cannot be one yet. `cost.currency` admits THB and USD, and CTR-USG-001's freeze boundary states that the conversion between currencies is deliberately NOT in the contract. Summing across currencies requires an FX policy with a rate source, a rate date convention and an owner, none of which exists. Reporting per currency is the honest shape until it does. See M-04: the sum is decimal.",
+      "owner": {
+        "computes": "A6 (SRE / billing ops)",
+        "defines_and_targets": "Product Owner; any money figure leaving engineering additionally requires Accountant review under OPEN-001"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target. A cost-per-workspace ceiling is also a pricing input, and OPEN-001 (Beta price, VAT treatment, refund, grace period) requires Product plus Accountant before any such number is stated."
+    },
+    {
+      "key": "cost.cost_share_by_usage_dimension",
+      "id": "C-02",
+      "area": "cost",
+      "definition": "Share of monthly cost attributable to each of the six metered usage dimensions.",
+      "unit": "ratio, per dimension",
+      "formula": {
+        "numerator": "decimal_sum(cost.amount where dimension == D, over the population below)",
+        "denominator": "decimal_sum(cost.amount over all dimensions, same population, same currency, same window)",
+        "window": "calendar month on occurred_at, UTC (see M-01)",
+        "grouping": "dimension D in {ai_tokens, research_search, storage_bytes, egress_bytes, media_processing, publish_operation}"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "dimension",
+          "cost.amount",
+          "cost.currency",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014, identically to C-01.",
+        "supersession": "SUPERSEDED RECORDS EXCLUDED, identically to C-01. This is what the withdrawn increment's 'no population gap' sentence denied.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE, and here it restates in a way that is easy to misread: a correction to ONE dimension moves that dimension's share AND every other dimension's share, because the denominator moved. A share that changed without its dimension changing is not an anomaly.",
+        "declared_not_sourced": "As C-01."
+      },
+      "caveat": "Computed within one currency group, for the reason C-01 records. `dimension` is a closed six-value enum, so the PARTITION is exhaustive and the shares sum to one by construction.",
+      "withdrawn_claim": "The withdrawn increment's caveat continued '-- which is what makes this the one cost metric with no population gap.' THAT SENTENCE IS WITHDRAWN. It was false, and it was the most confident sentence in the document. An exhaustive partition of the dimension axis says nothing about which RECORDS are in the population being partitioned: the same superseded estimate that inflates C-01 by 20.00 also inflates whichever dimension it carries, and the shares still sum to one while every one of them is wrong. The status is downgraded from `derivable` to `derivable_with_caveat` accordingly -- the exactness claimed was exactness of the partition, which never covered the population. This entry sits one place from C-04, which this same author wrote ABOUT `cost.supersedes_usage_id`; the consequence was not carried back one entry, and that is the defect, not an oversight in reading the schema.",
+      "owner": {
+        "computes": "A6 (SRE / billing ops)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target. A share target here is also a statement about the AI provider mix, which OPEN-004 and OPEN-005 have not settled."
+    },
+    {
+      "key": "cost.estimated_cost_basis_ratio",
+      "id": "C-03",
+      "area": "cost",
+      "definition": "Share of the reported cost total that is an internal estimate rather than a provider-reported figure. This is the confidence qualifier on C-01 and C-02.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "decimal_sum(cost.amount where cost.basis == \"estimated\", over the population below)",
+        "denominator": "decimal_sum(cost.amount over the same population), same currency, same window",
+        "window": "calendar month on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "cost.basis",
+          "cost.amount",
+          "cost.currency",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014.",
+        "supersession": "SUPERSEDED RECORDS EXCLUDED, and here the exclusion changes the metric's MEANING rather than only its value. A superseded estimate is one that reconciliation has already resolved. Counting it keeps every successfully reconciled estimate voting in the numerator for ever, so the ratio would report low confidence in a total that is in fact settled -- it would measure how much estimating was ever done, not how much of the current total rests on an estimate. Excluding it makes the metric say what its definition says: the share of the total AS IT NOW STANDS that is still an estimate.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE, and this metric restates MONOTONICALLY DOWNWARD for a given month in the ordinary case, because each arriving provider statement removes an estimate from the numerator and cannot add one. A month whose value rises is a signal worth investigating rather than a reading.",
+        "declared_not_sourced": "That a superseded estimate should stop voting is this dictionary's reading of what the metric is FOR. No source states it, and the opposite reading -- an estimation-effort metric that keeps every estimate -- is a defensible different metric. It is not this one, and if the Product Owner wants it, it is a separate entry rather than a change to this population."
+      },
+      "caveat": "`cost.basis` is a closed two-value enum, so this is exact WITHIN its population. What it does not tell anyone is how WRONG the estimates are; that is OB-008's reconciliation against provider statements, which is P1 and undelivered. A low ratio here means little of the current total is estimated, not that the total is right.",
+      "field_correction": "The withdrawn increment's window named `occurred_at` and its `source.fields` did not declare it -- the only such case in fourteen entries, and precisely the class its own checker was structurally blind to. `occurred_at` is now declared, and the checker now fails when a formula's window or grouping names a field the entry does not declare, so this class cannot ship again silently.",
+      "owner": {
+        "computes": "A6 (SRE / billing ops)",
+        "defines_and_targets": "A6 would own an operational threshold; Product Owner owns it as a published KPI"
+      },
+      "target": null,
+      "target_null_reason": "No number exists to anchor one. OB-008 cost reconciliation and its variance threshold are P1 and undelivered, so there is no measured relationship between estimate and provider statement. OPEN-016 additionally reserves anything published on the product KPI sheet to the Product Owner."
+    },
+    {
+      "key": "cost.superseded_usage_record_ratio",
+      "id": "C-04",
+      "area": "cost",
+      "definition": "Share of usage records that restate an earlier record's cost.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(CTR-USG-001 where cost.supersedes_usage_id is present, over the population below)",
+        "denominator": "count(CTR-USG-001 records in the same population and window)",
+        "window": "calendar month on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "cost.supersedes_usage_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014. A duplicated correction would otherwise report as two restatements of one thing.",
+        "supersession": "SUPERSEDED RECORDS ARE IN, and this is the ONE metric where they must be. This metric is ABOUT supersession; a population that excluded superseded records would remove exactly the records the metric counts against and report a number that is not the one asked for. Stated explicitly rather than left as the obvious exception, because C2 requires every cost aggregate to state the boundary and an exception that goes unstated reads as an omission.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE, UPWARD ONLY: a correction arriving later adds to the numerator and to the denominator of the month it lands in, and nothing removes one. So this month's value is a floor, not a reading, until enough time has passed for corrections to arrive -- and NO SOURCE STATES how long that is. A reader comparing a recent month to an old one is comparing a partial count to a settled one.",
+        "unresolved": "WHICH month a correction lands in is undecided; see M-10. A finding against the withdrawn increment held that this metric 'counts corrections by the month they arrive rather than the month they correct', which is true under one of the two readings of `occurred_at` and false under the other. The finding survives in a form that does not depend on the reading, and that form is the defect: C-04 CANNOT DISTINGUISH the two, and the withdrawn increment never said which it assumed. It is recorded here as an open question for CTR-USG-001's owner rather than answered by this dictionary. Under either reading the metric does not identify WHICH earlier month was restated, only that a restatement happened; a metric that attributes a correction to the period it corrects is a different metric and nobody has asked for one.",
+        "declared_not_sourced": "As C-01, for the multi-hop and double-supersession cases. Note that under a multi-hop chain this metric counts each hop, which is the intended reading of 'records that restate an earlier record' and is stated so a reader does not take the value as a count of corrected measurements."
+      },
+      "caveat": "This measures RESTATEMENT, not correctness, and it is blind in the direction that matters most. A cost record that was never emitted produces no superseding record, so a systematic under-count of usage leaves this metric at zero. Detecting a missing record is OB-008's reconciliation report, which is P1 and undelivered. Do not read a low value here as evidence that the cost data is complete.",
+      "owner": {
+        "computes": "A6 (SRE / billing ops)",
+        "defines_and_targets": "A6 for the operational reading; Product Owner for any published target"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves published targets. There is also no baseline: no usage record has ever been emitted, so the natural restatement rate of this system is unknown."
+    },
+    {
+      "key": "cost.sub_workspace_attribution_coverage",
+      "id": "C-05",
+      "area": "cost",
+      "definition": "Share of usage records that carry an attribution below the workspace, so that cost can be split per business profile.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(CTR-USG-001 where attribution.business_profile_id is present, over the population below)",
+        "denominator": "count(CTR-USG-001 records in the same population and window)",
+        "window": "calendar month on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-USG-001",
+        "fields": [
+          "attribution.business_profile_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "fields_mentioned_not_read": [
+        "attribution"
+      ],
+      "fields_mentioned_not_read_note": "The `attribution` block as a whole is named in this entry's population to record that a superseding record may carry a different one, which is how a correction can move this ratio with no new measurement. C-05 reads only `attribution.business_profile_id`.",
+      "population": {
+        "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014.",
+        "supersession": "SUPERSEDED RECORDS EXCLUDED, so the ratio describes the corpus that C-01 actually sums. Nothing in CTR-USG-001 requires a superseding record to carry the same `attribution` as the record it supersedes, so a correction can change this ratio without any new measurement occurring. That is a consequence of the exclusion and it is recorded rather than smoothed over.",
+        "restatement": "A CLOSED PERIOD CAN RESTATE, in either direction, for the reason immediately above.",
+        "declared_not_sourced": "As C-01."
+      },
+      "caveat": "`attribution.business_profile_id` is OPTIONAL in CTR-USG-001 while `workspace_id`, `job_id` and `provider_key` are required. That is a deliberate contract position, not an omission -- but it means per-profile cost is only as complete as this ratio, and any price that is charged per business profile (OPEN-001) needs this at a level nobody has yet stated.",
+      "owner": {
+        "computes": "A6 (SRE / billing ops)",
+        "defines_and_targets": "Product Owner, with Accountant input where it bears on pricing granularity"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target, and the coverage level actually required is a function of the pricing model, which OPEN-001 has not decided."
+    },
+    {
+      "key": "support.support_action_volume_per_workspace",
+      "id": "S-01",
+      "area": "support",
+      "definition": "Support actions recorded per workspace over a rolling four-week window.",
+      "unit": "actions per workspace",
+      "formula": {
+        "numerator": "count(CTR-AUD-001 where action.category == \"support\")",
+        "denominator": "count(distinct tenant_context.workspace_id appearing in any CTR-AUD-001 record in the same window)",
+        "window": "rolling 28 days on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-AUD-001",
+        "fields": [
+          "action.category",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "caveat": "The denominator says ACTIVE workspace and no source defines that term. What is implemented is \"workspace with any audit record in the window\", which is an auditability proxy: a workspace using the product without performing an auditable action is invisible and deflates the denominator, inflating the metric. Also M-02 applies -- a 28-day window must be checked against audit retention once one is set.",
+      "owner": {
+        "computes": "A6 (SRE / support ops)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target and OPEN-014 has not fixed support hours, the response target or the emergency boundary. The master plan's guardrail is explicit that 24/7 support must not be advertised; a support-load target set before OPEN-014 closes would imply a service level nobody has committed to."
+    },
+    {
+      "key": "support.support_action_denied_ratio",
+      "id": "S-02",
+      "area": "support",
+      "definition": "Share of support actions that the authorization path denied.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(CTR-AUD-001 where action.category == \"support\" and outcome == \"denied\")",
+        "denominator": "count(CTR-AUD-001 where action.category == \"support\")",
+        "window": "rolling 28 days on occurred_at, UTC (see M-01)"
+      },
+      "source": {
+        "contract": "CTR-AUD-001",
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at"
+        ],
+        "status": "derivable"
+      },
+      "caveat": "Exact as a ratio -- both `action.category` and `outcome` are closed enums. It cannot be broken down by cause: `reason_key` is a required stable key with no vocabulary, so grouping denials by reason needs a `reason_key` registry that no source states. A rising value is a signal to read the records, not a diagnosis.",
+      "owner": {
+        "computes": "A6 (SRE / support ops)",
+        "defines_and_targets": "Product Owner, with Security/Privacy input because a denial ratio bears on the read-only-first admin support posture"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target. The correct value is also not obviously low: denials are the control working. Setting a direction for this metric needs Security/Privacy as well as Product."
+    },
+    {
+      "key": "support.first_response_time",
+      "id": "S-03",
+      "area": "support",
+      "definition": "Elapsed time between a customer support request arriving and the first human response to it, at the 50th and 90th percentiles.",
+      "unit": "seconds",
+      "formula": {
+        "numerator": "percentile_p(first_response_at - request_received_at) over requests closed in the window",
+        "denominator": "not a ratio; a distribution over support requests",
+        "window": "rolling 28 days on request_received_at",
+        "percentiles": [
+          "p50",
+          "p90"
+        ]
+      },
+      "source": {
+        "contract": null,
+        "fields": [],
+        "status": "absent"
+      },
+      "caveat": "THE SOURCE FIELDS FOR THIS DO NOT EXIST, and unlike A-03 this is a missing FIELD and not a missing vocabulary. No shared-kernel contract carries a support request: no request-received timestamp and no first-response timestamp. A single CTR-AUD-001 record cannot carry the pair -- it declares one `occurred_at` and closes its property set with `additionalProperties: false`, so a document carrying a second timestamp FAILS VALIDATION, demonstrated by construction in probe AUD-INTERVAL rather than asserted. CTR-NTF-001 records outbound delivery, not inbound requests, and carries no timestamp on its envelope at all (probe NTF-NO-TIMESTAMP). Using two audit records as the two endpoints is the remaining route and it is a DEFINITION gap of A-03's kind, not a structural one: it needs an `action.name` vocabulary marking a request and a response, and no contract defines one. This is the metric OPEN-014 most directly implies and it is the one with the least behind it; recording it as absent is the point of the entry.",
+      "owner": {
+        "computes": "A6 (SRE / support ops) once a source exists",
+        "defines_and_targets": "Product Owner via OPEN-014"
+      },
+      "target": null,
+      "target_null_reason": "Blocked twice, and the second block is the harder one. OPEN-014 has not set a response target, and there is no record from which any response time could be measured even if it had."
+    },
+    {
+      "key": "support.notification_delivery_failure_rate",
+      "id": "S-04",
+      "area": "support",
+      "definition": "Share of terminal notification deliveries that failed, split by failure class.",
+      "unit": "ratio",
+      "formula": {
+        "numerator": "count(CTR-NTF-001 where kind == \"result\" and delivery.state == \"failed\")",
+        "denominator": "count(CTR-NTF-001 where kind == \"result\" and delivery.state in {delivered, failed, suppressed_duplicate})",
+        "window": "rolling 7 days",
+        "grouping": "delivery.failure_class in {transient, permanent}; channel where present"
+      },
+      "source": {
+        "contract": "CTR-NTF-001",
+        "fields": [
+          "kind",
+          "delivery.state",
+          "delivery.failure_class",
+          "channel"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "caveat": "`queued` is excluded from the denominator because it is not terminal, which makes the value sensitive to where the window is cut: a burst of still-queued notifications at the boundary shrinks the denominator and moves the ratio. `channel` is OPTIONAL in the schema, so some failures cannot be attributed to a channel and the per-channel split does not sum to the total. There is also NO TIMESTAMP anywhere on the CTR-NTF-001 envelope -- executed as probe NTF-NO-TIMESTAMP, which asserts that no property in that schema carries `format: date-time` -- so the window has to be cut on whatever the storing module records, which is not a contract field and must be stated by that module's owner.",
+      "owner": {
+        "computes": "A6 (SRE / support ops)",
+        "defines_and_targets": "Product Owner"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target, and measuring this before OPEN-010 closes would measure the absence of an email provider rather than the product: no sender domain, SPF, DKIM or DMARC exists, so an email failure rate today is a property of the unfinished setup."
+    },
+    {
+      "key": "support.job_attempt_exhaustion_count",
+      "id": "S-05",
+      "area": "support",
+      "definition": "Count of jobs that have consumed every permitted attempt and carry an error code -- the population that generates support contacts.",
+      "unit": "count",
+      "formula": {
+        "numerator": "count(CTR-JOB-001 where attempt >= max_attempts and last_error_code is present)",
+        "denominator": "none; see caveat",
+        "window": "stated by the storing module, not by the contract; see caveat",
+        "grouping": "job_type, last_error_code"
+      },
+      "source": {
+        "contract": "CTR-JOB-001",
+        "fields": [
+          "attempt",
+          "max_attempts",
+          "last_error_code",
+          "job_type"
+        ],
+        "status": "derivable_with_caveat"
+      },
+      "caveat": "A COUNT AND NOT A RATE, deliberately. CTR-JOB-001 declares NO terminal-state field -- executed as probe JOB-NO-TERMINAL-STATE, which asserts that no property of that schema is named for a lifecycle state and that no enum in it carries one -- and its manifest records that lifecycle state names and transition policy remain subject to owner review. So there is no completed-or-failed population to divide by, and inventing one here would be inventing the lifecycle. The record is also a current-state row rather than an event, and carries no completion timestamp: `available_at` is a schedule time and `lease_expires_at` is a lease time, so neither cuts an honest completion window. Grouping by `last_error_code` inherits the CTR-ERR-001 vocabulary gap recorded in the cardinality budget below. This becomes a rate when OPEN-019 settles the queue implementation and the job lifecycle states.",
+      "owner": {
+        "computes": "A6 (SRE / support ops)",
+        "defines_and_targets": "Product Owner for the published KPI; A0 plus A6 for the job lifecycle it depends on"
+      },
+      "target": null,
+      "target_null_reason": "OPEN-016 reserves the target, and a count target is meaningless without the volume denominator that the missing job lifecycle would supply."
+    }
+  ],
+  "metric_label_cardinality_budget": {
+    "applies_to": "CTR-OBS-001 sli_tags",
+    "provenance": "Raised by A6 in the CTR-OBS-001 SRE co-owner review and recorded in that contract's manifest as \"recorded for the metric dictionary and is NOT enforced here\". This dictionary is the home that record was pointing at. Recording it here does not enforce it either; enforcement is a schema change to CTR-OBS-001, which this package does not own and did not make.",
+    "requirement_source": "OB-006: no user content, token or page name in a metric label, and bounded cardinality.",
+    "why_a_budget_is_needed": "CTR-OBS-001 closes the set of label NAMES with additionalProperties false, which is what makes OB-006's own example, page_name, rejected rather than merely discouraged. Cardinality is a property of the VALUE space, and JSON Schema cannot bound how many distinct values a field takes across a population of documents. The contract's own accepted-gap fixture carries an error_code label embedding an attempt number and a correlation id, so every failure becomes a distinct time series -- the exact degradation OB-006 exists to prevent, accepted by the contract because no numeric budget existed to check against.",
+    "budget": [
+      {
+        "label": "environment",
+        "max_distinct_values": 4,
+        "enforced": true,
+        "enforcement": "Closed at the VALUE level in the CTR-OBS-001 schema to the four Track INF environments (local, preview, staging, production). This is the one line of the budget that is already a control rather than an intention; it was closed after an open pattern accepted a workspace id as an environment label. The checker now asserts that this line's number EQUALS the schema enum's length, not merely that the line claims enforcement -- set the budget to 99 and the old checker printed `budget 99 ... enum(4)` and then reported no problems.",
+        "blocked_on": null
+      },
+      {
+        "label": "outcome",
+        "max_distinct_values": 4,
+        "enforced": false,
+        "enforcement": "Open pattern. Closing it needs an SLI outcome vocabulary and no source states one. CTR-AUD-001's succeeded/failed/denied is the WRONG set and was tried and reverted: AUD's outcome is the result of an actor's action, while this label is the result of a health probe, and the contract's own fixtures use success, down and provider_unavailable. Borrowing AUD's words rejects CTR-OBS-001's own valid documents.",
+        "blocked_on": "an SLI outcome vocabulary, owner A6, no source states one"
+      },
+      {
+        "label": "error_code",
+        "max_distinct_values": 64,
+        "enforced": false,
+        "enforcement": "Open pattern, and this one CANNOT BE CLOSED YET on a dependency rather than on effort: CTR-ERR-001.code is typed `string` with `minLength: 1` and carries no enum and no registry. A budget of 64 enumerated codes cannot be enforced against a vocabulary that does not exist, and enumerating one here would be inventing another contract's field values. This is the honest statement of the gap: the number is A6's to propose, the vocabulary is CTR-ERR-001's to define, and neither half works without the other.",
+        "blocked_on": "CTR-ERR-001.code vocabulary"
+      },
+      {
+        "label": "capability_key",
+        "max_distinct_values": 16,
+        "scope": "per module",
+        "enforced": false,
+        "enforcement": "Open pattern bounded only in charset and length. A per-module ceiling is not expressible in JSON Schema at all -- it is a cross-document population property -- so this one is enforceable only in the emitting library or at the metric backend, wherever that lands.",
+        "blocked_on": "a metric backend decision and an emitting-library control point; neither exists"
+      },
+      {
+        "label": "module_key",
+        "max_distinct_values": 32,
+        "enforced": false,
+        "enforcement": "Open pattern bounded only in charset and length. This is the one budget line with a natural anchor: the module ownership registry enumerates the modules, so the ceiling can be checked against a registry rather than asserted. It is not checked against it today.",
+        "blocked_on": "a check against the module ownership registry"
+      }
+    ],
+    "implied_series_ceiling": {
+      "value": 524288,
+      "derivation": "4 environments x 4 outcomes x 64 error codes x (32 modules x 16 capabilities per module) = 524288 label combinations per metric name, if every dimension crosses freely.",
+      "reading": "This is an UPPER BOUND on the cross product, not a forecast -- real label combinations are sparse, and most metric names will never carry an error_code at all. It is recorded because it is the number an SRE has to look at before agreeing the budget: half a million series per metric name is a large ceiling for a pilot of five to ten workspaces, and if it is too large the fix is to cut a factor, which needs the metric backend choice that has not been made. Whoever reviews this budget should challenge the 64 first: it contributes the largest factor and is the one line blocked on another contract."
+    },
+    "standing_constraint": "CTR-OBS-001's manifest states that no consumer built under that contract may emit sli_tags to a real metric backend before this budget lands. That constraint is restated here, not relaxed. This dictionary records the budget; it does not enforce it, and it does not lift the constraint."
+  },
+  "deliberately_not_defined": [
+    {
+      "metric_family": "revenue, MRR, ARPU, churn",
+      "reason": "OPEN-001 has not fixed the Beta price, VAT treatment, refund policy or grace period, and requires Product plus Accountant. A revenue metric defined before that fixes a commercial meaning in engineering that neither authority has stated. Payment entitlement also derives only from a verified provider webhook projection, which does not exist at Gate G0. This is also outside the authoring scope C7 permits: pricing, VAT, refund policy, grace period and entitlement are Product plus an accountant, not billing-cost-ops measurement."
+    },
+    {
+      "metric_family": "net cost, credits, refunds",
+      "reason": "`cost.amount` carries NO SIGN, deliberately: CTR-USG-001's own annotation records that an earlier draft allowed a leading `-` and that permitting it would have materialised an explicitly OPEN decision, since NG-006 makes automated refund a non-goal, OPEN-001 leaves refund policy to Product and an accountant, and BILL-DEC-013 is Proposed. Every cost metric here is therefore a GROSS figure and says so. Netting a superseded estimate against its replacement is impossible for the same reason, which is why C-01's population EXCLUDES the superseded record rather than subtracting it."
+    },
+    {
+      "metric_family": "publish success rate against an SLA, availability against an SLO, error budget",
+      "reason": "An SLO target is a number, and OPEN-016 reserves numbers. The error-budget arithmetic is OBS-009 and is undelivered, and the aggregation and probe protocol is OB-003. Claiming an SLA is additionally forbidden until the restore drill passes (OPEN-003)."
+    },
+    {
+      "metric_family": "any per-workspace or per-page metric-backend dimension",
+      "reason": "OB-006 forbids it and CTR-OBS-001 deliberately omits workspace_id from sli_tags. Per-workspace figures in this dictionary are computed from stored records instead; see M-03. This is recorded as a non-goal so that a later implementer does not read the per-workspace metrics above as permission to add the label."
+    },
+    {
+      "metric_family": "content quality, model output scoring",
+      "reason": "Requires the Golden Set, whose license, retention and reviewer agreement are OPEN-012, and a platform model choice, which is OPEN-005. Neither exists and both carry customer-content constraints this package is forbidden to touch."
+    }
+  ],
+  "decision_delta_since_withdrawn_base": {
+    "why": "C6 requires authoring on a base current with main and enumerating the decisions approved since the withdrawn increment's base against the claims each touches.",
+    "withdrawn_base": "50c886570452c64e17fd72cb139ca5d026b64a8f",
+    "this_base": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9 (main at the time of authoring; HEAD equalled main exactly)",
+    "method": "git diff 50c8865..main over architecture/, contract-catalog/ and docs/. FOUR files changed, all of them a Status line, and NO contract schema, fixture, manifest or source document changed at all. So the whole decision delta is four RFCs moving Proposed to Approved on 2026-09-02.",
+    "decisions": [
+      {
+        "id": "RFC-2026-014",
+        "title": "A usage key identifies a measurement, not a job",
+        "change": "Proposed -> Approved 2026-09-02 by the Product Owner.",
+        "touches": "C-01, C-02, C-03, C-04, C-05 and A-04 -- every aggregate over CTR-USG-001 in this dictionary. It is the reason each now states POST-DEDUPE on `dedupe_key`, and it settles what a duplicate is: two records with one key are one measurement seen twice, and two measurements of one job and dimension at different instants are SUMMED rather than collapsed. Its absence from the withdrawn increment was purely a stale-base artifact and it cost that document its own author's best prior finding: this run refused the earlier `dedupe_key` composition TWICE, and the second refusal caught that the fix for the first 'instructed a consumer to DISCARD a second legitimate charge for one job'. Five cost metrics sat on top of that rule and none of them mentioned it.",
+        "does_not_touch": "Supersession. This is the trap the withdrawn increment would have fallen into even on a current base, and it is recorded because it is easy to assume the RFC closed the population question. It did not. `cost.basis` is IN the dedupe key, so an estimate and the provider_reported record superseding it carry DIFFERENT keys, both survive dedupe, and both are summed. RFC-2026-014 settles duplicate identity and settles nothing about supersession; the 42.00-for-22.00 result is post-dedupe."
+      },
+      {
+        "id": "RFC-2026-013",
+        "title": "An agent run can sign; it cannot become the Product Owner",
+        "change": "Proposed -> Approved 2026-09-02 by the Product Owner.",
+        "touches": "This document's admissibility rather than any metric. It keys role legitimacy to what a capability profile declares, which is why the withdrawn increment's Author assignment was invalid and why this one is not: `.agents/capability-profiles/cc-a6-relay.json` now declares Author for the billing-cost-ops profile, forward only, citing the benchmark. It also decides who may close what here: no agent run closes OPEN-016, and the Product Owner's own role is not delegated by it.",
+        "does_not_touch": "Any formula, source, population or target in this dictionary."
+      },
+      {
+        "id": "RFC-2026-012",
+        "title": "Which tier issues the statement: the client/server database boundary",
+        "change": "Proposed -> Approved 2026-09-02 by the Product Owner. Server-only mutation for every table family at G0; direct client reads only through named security_invoker views on an allowlist that starts empty.",
+        "touches": "Nothing in this dictionary today, and the reason is worth stating rather than leaving as silence. Every metric here is a specification of an aggregation over stored records, and this package chooses no computation tier, no view and no query path. It becomes relevant the moment anyone IMPLEMENTS one of these metrics: M-03 already forbids the metric-backend-label route, and RFC-2026-012 now constrains the remaining route, so an implementation reads through a server tier or a named view and never from a client. Recorded as a forward constraint on a later package, not as a change to any entry."
+      },
+      {
+        "id": "RFC-2026-011",
+        "title": "The repository's language",
+        "change": "Proposed -> Approved 2026-09-02 by the Product Owner. The repository tooling tier is JavaScript ESM; the application tier's language stays open to G1.",
+        "touches": "The two checkers in this package, which are JavaScript ESM and therefore now conform to an approved decision rather than to a convention. No metric claim."
+      }
+    ],
+    "contracts_unchanged": "No file under contract-catalog/ changed between the withdrawn base and this one. Every schema quotation in this document was nevertheless re-read from the tree at this base rather than carried over, and two of them turned out to be wrong at BOTH bases: `CTR-EVT-001.event_type`/`subject` (A-03, A-02) and `CTR-TEN-001.timezone` (M-01). Those were never stale-base defects; a current base would not have caught either."
+  },
+  "verification": {
+    "commands": [
+      "node evidence/WP-0A-A6-001/verify-source-fields.mjs",
+      "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs"
+    ],
+    "coverage_warning": "NEITHER COMMAND IS COVERAGE OF THIS DOCUMENT AND EXIT 0 FROM BOTH IS NOT AN APPROVAL. The first validates that cited fields are PRESENT and that declared invariants hold; it structurally cannot validate an absence claim. The second executes the absence and population claims that ARE constructible and says which claims it does not reach. What neither reaches: whether these are the right fourteen metrics, whether a formula means what its plain-language definition says, and every target -- all of which are the Product Owner's under OPEN-016.",
+    "checker_limitations_found_by_independent_testing": "Three holes in verify-source-fields.mjs, ruled non-blocking by the Tester and recorded in that script's header so the next author does not rediscover them. (A) source.status is never validated against this document's own source_status_vocabulary, so a metric whose status reads \"obviously_derivable\" exits 0 -- the sharpest of the three, because the three defined statuses ROUTE work and the whole A-03 argument turns on what a status word means. (B) The field-versus-formula check runs one way only: it fails on a formula naming an undeclared field and never on an entry declaring a field its formula does not name, and it treats an unresolvable token as prose -- so a MISSPELLED occurred_at would have passed the very check built for C-03's omission of it. (C) EXPECTED_RESOLVED_PATHS is a COUNT and not a checksum: one citation removed and another added keeps it at 63."
+  }
+}

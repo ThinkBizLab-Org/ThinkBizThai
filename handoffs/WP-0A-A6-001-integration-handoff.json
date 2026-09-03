@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A6-001",
+  "agent_run_id": "/claude/r0_steward",
+  "role": "independent Integration Owner",
+  "vendor": "Anthropic",
+  "model": "claude-opus-5",
+  "final_status": "integration_verified",
+  "base_revision": "d5defb151d10826c08dc12dfbb7df80b1a9e41f9",
+  "head_revision_or_patch_checksum": "6ccee28762f8e43a29cdd8ab4d4a3700b6aa2d21",
+  "branch": "agent/claude/WP-0A-A6-001-metric-dictionary",
+  "task_ids": [
+    "WP-0A-A6-001-integration-verification",
+    "G0-003"
+  ],
+  "files_added": [
+    "evidence/WP-0A-A6-001/integration-verdict.md",
+    "evidence/WP-0A-A6-001/transcribed-role-verdicts.md",
+    "handoffs/WP-0A-A6-001-integration-handoff.json"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-A6-001-author-handoff.json",
+    "work-packages/WP-0A-A6-001.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "OPEN-016",
+    "RFC-2026-002",
+    "RFC-2026-013",
+    "RFC-2026-014"
+  ],
+  "contracts_consumed": [
+    "CTR-USG-001",
+    "CTR-TEN-001"
+  ],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "The head under integration is 0647a39 on agent/claude/WP-0A-A6-001-metric-dictionary, as assigned. Every verification command was run on a THROWAWAY CLONE under the session scratchpad, never in the working repository, and the trial merge was performed there and discarded. This run's own commits change the manifest's status field, add two evidence files and this handoff, and re-derive two machine-generated range fields in the author handoff with npm run refresh:handoff -- see tests and known_limitations. No dictionary entry, formula, population, source status or target was touched by this run, and no attestation field in another run's handoff was edited. The merge and the full command set were re-run on the resulting tip and are green.",
+    "`zsh -lc` was NOT refused for this run. node v24.20.0 and npm 11.19.0 resolved through it, matching .node-version and package.json exactly. No substitution to a system Node was made and none was needed.",
+    "This run authored, reviewed, security-reviewed and tested no part of the package. .agents/capability-profiles/cc-r0-steward.json declares it Integration Owner only, with no Author, Reviewer, Security, Tester, Product Owner, merge, release or Gate G0 authority. It did not edit a single dictionary entry, formula, population, status word or target.",
+    "Cross-vendor independence is NOT satisfied. Author, Reviewer, Tester and Integration Owner on this package are all Anthropic claude-opus-5 runs. `independence.prefer_cross_vendor_review` is unmet; recorded as an exception, not waived.",
+    "This run observed no GitHub pull request, no remote CI run and no protected-branch configuration, because none exists for this branch. Remote CI status is unverified and unverifiable by this run. It did not push, did not open a pull request and did not merge into main."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Trial-merge the branch onto current main and verify the result rather than the branch in isolation.",
+      "result": "pass",
+      "evidence": "git merge --no-ff onto main d5defb1 in a throwaway clone: clean, no conflicts, 7 files changed, 1903 insertions, 7 deletions. `git merge-base HEAD <branch>` returns d5defb1, the current main tip, so the branch has NOT diverged -- it is commits directly on top of main. C6 (author on a base current with main) therefore holds as a fact about the commit graph, not only as a claim in the author handoff. Re-run on 6ccee28: clean."
+    },
+    {
+      "criterion": "Every changed path is inside ownership.writable_paths.",
+      "result": "pass",
+      "evidence": "node scripts/verify-branch-scope.mjs d5defb151d10826c08dc12dfbb7df80b1a9e41f9 WP-0A-A6-001 exits 0: `all 9 changed path(s) are declared, and every amendment explains one` (7 at the assigned head, 9 after this run's two commits). Confirmed by hand against the three declared globs. Nothing under docs/, contract-catalog/, .agents/, scripts/, .github/, package.json or package-lock.json is touched."
+    },
+    {
+      "criterion": "No open_blocker was deleted or edited.",
+      "result": "pass",
+      "evidence": "Compared element-by-element between d5defb1:work-packages/WP-0A-A6-001.json and the branch: all 7 pre-existing blockers byte-identical, exactly 1 appended by the Author, 2 appended by this run. role_assignments, acceptance_criteria, review_and_test_gates, writable_paths, read_only_paths and forbidden_paths all unchanged. The two disclosed-conflict blockers -- the ones an eager package would prune -- are intact."
+    },
+    {
+      "criterion": "No target value leaked in.",
+      "result": "pass",
+      "evidence": "All 14 metrics carry target: null, each with its own target_null_reason; A-02's cohort parameter N is null as well. Checked directly against the JSON rather than by trusting the checker line that asserts it."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run verify",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 260, pass 260, fail 0, skipped 0, todo 0 — on the merge result, and again on 6ccee28",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "tests 260, pass 260, fail 0, cancelled 0, skipped 0, todo 0",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run validate:protocol",
+      "exit_code": 0,
+      "result": "work-packages, capability-profiles and ownership validators, all silent",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/validate-work-package-role-separation.mjs work-packages/WP-0A-A6-001.json",
+      "exit_code": 0,
+      "result": "four named role IDs present and distinct",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs d5defb151d10826c08dc12dfbb7df80b1a9e41f9 WP-0A-A6-001",
+      "exit_code": 0,
+      "result": "all 9 changed path(s) are declared, and every amendment explains one",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "npm run scan:secrets",
+      "exit_code": 0,
+      "result": "silent. NOT treated as evidence of secret coverage: the no-secret statement rests on this run's own reading of the diff, whose entire corpus is two synthetic CTR-USG-001 documents at 20.00 and 22.00 THB.",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node evidence/WP-0A-A6-001/verify-source-fields.mjs",
+      "exit_code": 0,
+      "result": "14 metrics, 63 field paths resolved against a committed schema (pinned at 63), 2 with no source at all, 6 carrying a stated population, 14 of 14 targets null",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
+      "exit_code": 0,
+      "result": "every EXPECT-VALID document validated, every EXPECT-INVALID document was rejected for its stated reason, every absence assertion held",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "npm run check:handoff",
+      "exit_code": 0,
+      "result": "RED FIRST, THEN RESOLVED, AND THE REVERSAL IS THE POINT. Advancing the status changes work-packages/WP-0A-A6-001.json, which is substantive drift: exit 91, `cites a head 85d6f7a with 1 substantive change(s) after it`. This run's FIRST answer was to refuse the remedy, because refresh-author-handoff.mjs rewrites the AUTHOR's handoff and would list this run's evidence files under /claude/a6_relay's files_added. That answer was wrong, and it is recorded rather than quietly dropped. The guard is NOT advisory: it is in the suite as `the handoff for this branch describes this branch`, so a stale handoff is a RED npm run verify and npm run commit refuses the tree. It had not fired on this run's first two commits because it compares against branchTipBefore() -- the branch as it stood BEFORE the current commit -- so a status advance is invisible at the moment it is committed and surfaces one commit later. A red tip cannot be integration_verified, and refusing the transition the protocol requires here would make that transition unimplementable. So the handoff was refreshed: head 85d6f7a -> 6ccee28 and two paths appended to files_added, NOTHING ELSE. agent_run_id remains /claude/a6_relay and final_status remains in_review; the tool touches no attestation field and none was touched by hand. The Author's own handoff instructs the re-derivation: `Re-derive them with npm run refresh:handoff after each commit.` Exit 0 after the refresh.",
+      "toolchain": "node v24.20.0"
+    },
+    {
+      "command": "node evidence/WP-0A-A6-001/verify-source-fields.mjs (guard probe, scratch copy)",
+      "exit_code": 0,
+      "result": "ADVERSARIAL, and it found a hole. With C-03's entire `population` block deleted -- C-03 being a decimal_sum(cost.amount) aggregate over CTR-USG-001, exactly the class condition C2 governs -- both this checker and population-and-carrier-probes.mjs still exit 0 reporting `no problems`. Recorded as an open_blocker.",
+      "toolchain": "node v24.20.0"
+    }
+  ],
+  "rfc_2026_002_pre_merge_evidence": {
+    "pull_request_url": null,
+    "head_sha": "6ccee28762f8e43a29cdd8ab4d4a3700b6aa2d21",
+    "required_ci_run": null,
+    "author_evidence": "handoffs/WP-0A-A6-001-author-handoff.json, evidence/WP-0A-A6-001/author-self-check.md",
+    "reviewer_evidence": "evidence/WP-0A-A6-001/transcribed-role-verdicts.md — TRANSCRIBED BY THIS RUN, NOT COMMITTED BY THE REVIEWER. See known_limitations.",
+    "tester_evidence": "evidence/WP-0A-A6-001/transcribed-role-verdicts.md — TRANSCRIBED BY THIS RUN, NOT COMMITTED BY THE TESTER. See known_limitations.",
+    "security_evidence": null,
+    "integration_evidence": "evidence/WP-0A-A6-001/integration-verdict.md",
+    "note": "RFC-2026-002 requires a green required CI run and linked evidence from each role on the head commit before the Product Owner merges. No pull request, CI run or branch protection exists for this branch, and two of the four role evidences are transcriptions rather than attested reports. This handoff does not assert that the RFC-2026-002 pre-merge bar is met; it records exactly which parts of it are and are not."
+  },
+  "security_privacy_cost_impact": "None. data_classification synthetic-only, unchanged. No event is emitted, no schema defined, no migration written, no metric backend chosen, no provider called, no credential handled and no customer record read. All 14 KPI targets are null, so no cost or pricing figure is stated. The only money values in the package are the two synthetic THB amounts in the population-boundary demonstration.",
+  "migration_and_data_impact": "None. No migration, no schema, no table, no reserved migration range. The package's migration_reservations list is empty and unchanged.",
+  "compatibility_impact": "None. No contract is produced or changed. Eight contracts are consumed read-only, and test-kits/contracts/json-schema-subset.mjs is imported read-only by the probe script and not modified.",
+  "known_limitations": [
+    "TWO OF THE FOUR ROLE VERDICTS ARE TRANSCRIPTIONS, NOT ATTESTED REPORTS. The Reviewer's and Tester's verdicts reached this run as a relayed summary from the dispatching orchestrator; this run did not read either report in full and holds no copy of either. evidence/WP-0A-A6-001/transcribed-role-verdicts.md says so in its own opening. /claude/c0_contract_reviewer and /claude/q0_sentinel should each commit their own report under evidence/WP-0A-A6-001/. A transcription by a fourth party does not substitute for one, and until they land, half this package's role evidence is in someone else's handwriting.",
+    "THE REPOSITORY KEEPS ONE HANDOFF PER PACKAGE AND FOUR ROLES COMMIT TO THE BRANCH, AND THE TWO ASSUMPTIONS ARE NOW VISIBLY IN CONFLICT. handoffs/WP-0A-A6-001-author-handoff.json now lists under files_added three files /claude/a6_relay did not write -- this run's two evidence files and this handoff -- beside a final_status of in_review that is no longer the package's status. That is not a claim by the Author and not a choice by this run: refresh-author-handoff.mjs derives those fields from the commit range, the suite enforces them against git, and the Author's own handoff instructs the re-derivation after each commit. The guard classifies handoffs/ and evidence/ as written-afterwards and does NOT classify work-packages/, which is the one file the protocol requires the Integration Owner to change at exactly this point -- so EVERY package that reaches integration will hit this, and it will surface one commit late, because the check compares against the branch as it stood before the current commit. It goes to whoever owns scripts/refresh-author-handoff.mjs and .agents/handoff.schema.json. The fix is either to classify a status-only manifest change as incidental or to give each role a handoff the guard can see. This run wrote its own attestation as a separate file rather than folding it into the Author's, which is as far as it could go from inside the package's writable paths.",
+    ".agents/capability-profiles/cc-r0-steward.json still records accepted_work_package WP-0A-A0-002, not this package. The manifest names this run as integration_owner_agent_run_id so the assignment is real and the validators pass, but the profile through which this run holds the role was written for a different package and never updated. .agents/capability-profiles/** is read_only_paths for this package, so it was not fixed here and no attempt was made. It goes to whoever owns .agents/.",
+    "No external or independent capability benchmark exists for /claude/r0_steward. That limitation is declared in its profile and applies to this verdict.",
+    "Local verification only. No pull request, no remote CI, no branch protection observed, because none exists for this branch."
+  ],
+  "open_risks_or_blockers": [
+    "C-01 states two different formulas -- a fleet mean in its formula, a per-workspace figure in its definition -- and BLOCKS done until it states one. Recorded as an open_blocker on the manifest. It does not block integration: nothing is instrumented, the target is null, and OPEN-016 already routes every formula through Product Owner review. Closing it is a corrective authorship act and this run holds no Author authority.",
+    "M-10 leaves open which window a superseding record falls into, and C-01's and A-04's restatement prose lean in opposite directions on that question while M-10 claims the populations are correct under both readings. The population blocks are; those two sentences are not. Recorded as an open_blocker; not blocking integration.",
+    "A cost aggregate that omits its population block entirely passes both checkers green. Recorded as an open_blocker and as a fourth entry on the Tester's list of checker limitations; not blocking integration, because every entry in the tree does carry its population.",
+    "OPEN-016 Product Owner review of all fourteen formulas, sources, owners and targets is CLOSABLE BY NO AGENT. So are A-03's status choice (whether `status` describes the contract surface or whether a metric is computable, and by whom) and the M-01 reporting-calendar question (whether a reporting month is cut on UTC or on Asia/Bangkok, which moves every calendar boundary by seven hours and changes A-04, C-01, C-02, C-03, C-04 and C-05). All three are the Product Owner's.",
+    "The CTR-EVT-001 contract-widening request -- an event_type vocabulary and a subject.type convention, expressly NOT a payload widening -- is ROUTED AND NOT MADE, per condition C4. Recording where it goes is not the request having been made. It goes to that contract's owner and to Security separately.",
+    "Neither reviewer is a fresh pair of eyes, and the Author's capability benchmark recommendation remains CONDITIONAL. The benchmark's own bar for an unconditional recommendation -- a second sample reviewed by a run distinct from both the Author and the Tester -- is still not met. This integration does not meet it either: this run is a fourth Anthropic run and reviewed the increment for integrability, not for billing-cost-ops authoring quality."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR, never a force-push. This run's own two commits (57da8d7, 6ccee28) are separable from the Author's three: they change only the manifest's status field and add two evidence files and this handoff, so reverting them alone returns the package to in_review with the deliverable intact. Reverting the whole branch removes the G0-003 metric dictionary and returns the CTR-OBS-001 per-label cardinality budget to having no home, and removes nothing else -- no target was set to un-set, no contract artifact was changed to restore, and no event, schema, migration, provider call or customer record exists to roll back. A forward fix is preferable for C-01 and for any single wrong metric entry, because the entries are independent of one another.",
+  "recommended_next_work_packages": [
+    "A corrective authorship act on WP-0A-A6-001 by /claude/a6_relay: resolve C-01 to one formula, make the C-01 and A-04 restatement sentences neutral on M-10, and close the population guard gap in verify-source-fields.mjs together with the three checker limitations the Tester already recorded.",
+    "/claude/c0_contract_reviewer and /claude/q0_sentinel each commit their own report under evidence/WP-0A-A6-001/, replacing this run's transcription.",
+    "Product Owner: OPEN-016 review of all fourteen formulas, sources, owners and targets; A-03's status choice; and the M-01 reporting-calendar decision. None is closable by any agent.",
+    "CTR-USG-001 owner (A0 with A6, per RFC-2026-014): answer M-10.",
+    "CTR-EVT-001 owner and Security, separately: receive the routed event_type vocabulary and subject.type request.",
+    "Owner of scripts/refresh-author-handoff.mjs: the drift guard cannot distinguish an Integration Owner's required status advance from author drift, and its remedy misattributes."
+  ],
+  "reviewer_instructions": "Do not read integration_verified as content approval. It attests that the branch merges cleanly onto current main, verifies green at 260/260, stays inside its writable paths, deleted no blocker and leaked no target. It does not attest that a formula means what its definition says -- C-01 demonstrably does not, and that is recorded as blocking `done`. The status was NOT advanced to done: that is the Product Owner's, and OPEN-016 is open."
+}
