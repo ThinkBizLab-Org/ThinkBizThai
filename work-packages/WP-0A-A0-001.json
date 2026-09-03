@@ -148,10 +148,9 @@
       "paths": [
         "work-packages/WP-0A-A6-001.json",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "scripts/test-suite-contract.mjs"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The Product Owner disposed of A0's staffing defect and chose remedy path (a): withdraw the invalid Author assignment, benchmark forward, and let the artifact enter as reviewed input. Withdrawing an assignment A0 made means editing the manifest A0 damaged, which is WP-0A-A6-001's file. The branch declaration goes with the assignment -- a package declares a branch to own that work as its own attested output -- so branch-identity.test.mjs, which pins the declared set to a map, must drop the same entry or the guard correctly reports a pin nobody declares. The last two paths are the digest and per-file floors that move with any protected-file edit. Neither open blocker is deleted.",
+      "rationale": "The Product Owner disposed of A0's staffing defect and chose remedy path (a): withdraw the invalid Author assignment, benchmark forward, and let the artifact enter as reviewed input. Withdrawing an assignment A0 made means editing the manifest A0 damaged, which is WP-0A-A6-001's file. The branch declaration goes with the assignment -- a package declares a branch to own that work as its own attested output -- so branch-identity.test.mjs, which pins the declared set to a map, must drop the same entry or the guard correctly reports a pin nobody declares. The last path is the digest that moves with any protected-file edit. Neither open blocker is deleted.",
       "recorded_on": [
         "work-packages/WP-0A-A6-001.json",
         "work-packages/WP-0A-A0-002.json"
