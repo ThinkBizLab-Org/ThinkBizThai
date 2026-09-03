@@ -110,10 +110,9 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "scripts/test-suite-contract.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This increment closes a hole in this package's own guard: verify-branch-scope.mjs could not read authorized_cross_package_amendments, the field six of fourteen packages use to declare cross-package writes. The two amended paths are the per-file floors and the digest, which move with any protected-file edit. The previous amendment block belonged to a merged increment and is cleared rather than carried.",
+      "rationale": "This increment closes a hole in this package's own guard: verify-branch-scope.mjs could not read authorized_cross_package_amendments, the field six of fourteen packages use to declare cross-package writes. The one amended path is the digest, which moves with any protected-file edit. The previous amendment block belonged to a merged increment and is cleared rather than carried.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
