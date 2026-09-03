@@ -5,7 +5,7 @@
   "title": "Product KPI catalog dispatch backlog — G0-003",
   "gate": "G0",
   "priority": "P0",
-  "status": "in_review",
+  "status": "test_verified",
   "required_skill_profiles": {
     "author": [
       "billing-cost-ops"
@@ -145,7 +145,8 @@
       "evidence/WP-0A-A6-001/verify-source-fields.mjs",
       "evidence/WP-0A-A6-001/population-and-carrier-probes.mjs",
       "evidence/WP-0A-A6-001/author-self-check.md",
-      "handoffs/WP-0A-A6-001-author-handoff.json"
+      "handoffs/WP-0A-A6-001-author-handoff.json",
+      "evidence/WP-0A-A6-001/transcribed-role-verdicts.md"
     ],
     "contracts": []
   },
