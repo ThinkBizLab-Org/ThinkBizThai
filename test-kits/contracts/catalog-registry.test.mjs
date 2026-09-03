@@ -313,7 +313,7 @@ const CAVEAT_DIGESTS = {
   'ctr-ntf-001': { freeze_boundary: '0d7a35df9e223055', untestable_by_fixture: '0b3a2ecd0bb8fa68', untestable_by_schema: 'd97d8cb30f2c4735' },
   'ctr-obs-001': { freeze_boundary: '23991f04c65fefc7', untestable_by_fixture: 'bbdf43f4298434e5', untestable_by_schema: '5f8f6304b630de9e' },
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
-  'ctr-sec-001': { freeze_boundary: 'bb9ed12a3f70f374', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
+  'ctr-sec-001': { freeze_boundary: '5a5bd1954efaabed', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
   'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '39a25de940d47258', untestable_by_schema: '64599f030c306f60' },
 };
@@ -369,7 +369,7 @@ const ACCEPTED_GAP_DIGESTS = {
   },
   'ctr-sec-001': {
     'examples/accepted-gap-classification-below-restricted.json': 'e21de50c52685457',
-    'examples/accepted-gap-structureless-handle-body.json': '4a59065e1aac7016',
+    'examples/accepted-gap-structureless-handle-body.json': '133f3a80720e236f',
   },
 };
 
@@ -437,7 +437,7 @@ const ANNOTATION_DIGESTS = {
   'ctr-ntf-001': { count: 15, digest: 'b2ad9b8499a8fce6' },
   'ctr-obs-001': { count: 19, digest: '117d7f1aa91e5d10' },
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
-  'ctr-sec-001': { count: 21, digest: 'e34025a0d11d5e37' },
+  'ctr-sec-001': { count: 21, digest: '2573c16848017dde' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
   'ctr-usg-001': { count: 14, digest: 'cb3bf23e846b1426' },
 };
