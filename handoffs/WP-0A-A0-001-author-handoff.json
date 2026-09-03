@@ -5,16 +5,18 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "50c886570452c64e17fd72cb139ca5d026b64a8f",
-  "head_revision_or_patch_checksum": "d1fdeef17b6f813107ffcd5683cb5066b5854b14",
+  "head_revision_or_patch_checksum": "7a8368bee8cd6ad3f652235bf2d3e282c7e6b08f",
   "task_ids": [
     "REP-00",
     "WP-0A-A0-001"
   ],
   "files_added": [
     "evidence/WP-0A-A0-001/a0-staffing-defect-disposition.md",
-    "evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md"
+    "evidence/WP-0A-A6-001/independent-review-and-staffing-defect.md",
+    "evidence/capability-benchmarks/a6-relay-billing-cost-ops.md"
   ],
   "files_modified": [
+    ".agents/capability-profiles/cc-a6-relay.json",
     ".gitignore",
     "architecture/decisions/RFC-2026-011-repository-language.md",
     "architecture/decisions/RFC-2026-012-client-database-boundary.md",
