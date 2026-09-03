@@ -100,9 +100,17 @@ test('a handoff describes its own package, not a template', async () => {
     // impact. Reusing one flag made that sentence trip the opposite check. They are separated
     // below: an assertion of impact is checked against whether contracts really changed; a
     // stated position, positive or negative, satisfies the requirement to say something.
+    // Widened a second time, and for the reason the first widening recorded: a handoff must be
+    // able to state its real position truthfully. "Corrective" is a third position, distinct
+    // from additive and from breaking -- a change that replaces a false sentence with a true one
+    // and moves no rule, enum, requiredness or freeze level. Caught when CTR-SEC-001's
+    // zero-coverage claim was corrected and the only accepted wordings would have called that
+    // change either additive, which it is not, or breaking, which it is not either. The set is
+    // POSITIONS, not blessed phrases; silence still fails, and that is the half that matters.
     const ASSERTS_CONTRACT_IMPACT = [
       /contract-catalog changes are additive/i,
       /\bBREAKING\b/,
+      /contract-catalog changes are corrective/i,
     ];
     const NEGATIVE_POSITIONS = [
       /no contract (?:changes|interface changes)/i,
