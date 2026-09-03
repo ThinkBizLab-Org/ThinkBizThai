@@ -4,26 +4,14 @@
   "work_package_id": "WP-0A-A0-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "17c63c5731eeb38a91c97ec4117b1bf005f66b3c",
-  "head_revision_or_patch_checksum": "7cdd4198dfb43f6a51a49ca7482182f73c68d5c5",
+  "base_revision": "8558bc85790dc221e2dcf79e7681f7ffd8e97384",
+  "head_revision_or_patch_checksum": "317f8b76221f7f8583c4fb19a9fc229cd8f8d8b2",
   "task_ids": [],
   "files_added": [
-    "OVERNIGHT-SUMMARY.md",
-    "architecture/decisions/RFC-2026-005-secret-scan-strengthening.md",
-    "evidence/WP-0A-A0-003/author-self-check.md",
-    "evidence/WP-0A-A0-003/review-security-head.md",
-    "work-packages/WP-0A-A0-003.json"
+    "evidence/WP-0A-A0-003/review-contract-c0.md",
+    "evidence/WP-0A-A0-003/test-verdict-q0.md"
   ],
-  "files_modified": [
-    "package.json",
-    "scripts/scan-repository-secrets.mjs",
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/secret-scan.test.mjs",
-    "test-kits/test-coverage-floor.test.mjs",
-    "work-packages/WP-0A-A0-001.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -100,7 +88,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract-catalog file is changed by this package, so no consumer contract is affected.",
+  "compatibility_impact": "No contract changes. This increment adds the two role verdicts WP-0A-A0-003 was missing -- Reviewer and Tester -- and touches no contract-catalog file, schema or fixture. Both are NEGATIVE: changes_required and test_failed. The fixes they require land in scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs, which are the Author's, in a later increment.",
   "known_limitations": [
     "A fresh UNCORRELATED probe -- families the reviewer had not named in the previous round -- detected 8 of 56, and 3 of those 8 are not real coverage (one coincidental prefix hit, five re-detections of existing prefixes in a different file format). Against the 12 families it HAD named, 12 of 12. The improvement is real but NARROW: it fixed exactly what was named and did not generalize. Each round of this measurement fixes the round before it and misses the next.",
     "The coverage guard cannot constrain a check script that never invokes it. Independent testing replaced every `&&` with `||`: step 1 succeeded, the chain short-circuited, and npm run check exited 0 having run neither the guard nor a single test. Requiring the guard to be the first step (exit 81) catches demotion but not non-invocation, and a trailing `&` is the same class. The remedy is for ci.yml to run the guard as its own workflow step; that file is owned by WP-0A-A0-001 and is read-only here, so it is referred to the Integration Owner under the RFC path. Recorded rather than claimed closed: this Author has twice declared a class closed and been falsified.",
