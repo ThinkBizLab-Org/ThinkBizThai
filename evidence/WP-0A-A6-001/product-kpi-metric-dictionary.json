@@ -81,7 +81,12 @@
       },
       "source": {
         "contract": "CTR-AUD-001",
-        "fields": ["action.category", "outcome", "occurred_at", "tenant_context.workspace_id"],
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "caveat": "`action.category` is a closed six-value enum, so the denominator is exact at CATEGORY level. `action.name` has a dotted grammar and no vocabulary, so connect, rotate and revoke are indistinguishable and all three land in the denominator. Narrowing this metric to first-time connection requires an `action.name` registry, which no source states. See also M-02: the 7-day window is not yet known to sit inside audit retention.",
@@ -106,7 +111,12 @@
       },
       "source": {
         "contract": "CTR-AUD-001",
-        "fields": ["action.category", "outcome", "occurred_at", "tenant_context.workspace_id"],
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "caveat": "PROXY, and the bias has a direction. `first_observed_at` is the workspace's earliest audit record, because NO CONTRACT DEFINES A WORKSPACE-CREATION EVENT. A workspace that is created and then does nothing auditable for a week enters the cohort a week late, which shortens its measured time-to-publish and biases this ratio UPWARD. The correction is a defined workspace-lifecycle event type, not a change to this formula.",
@@ -181,7 +191,14 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["dimension", "attribution.workspace_id", "occurred_at", "dedupe_key", "usage_id", "cost.supersedes_usage_id"],
+        "fields": [
+          "dimension",
+          "attribution.workspace_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "population": {
@@ -211,10 +228,20 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["cost.amount", "cost.currency", "attribution.workspace_id", "occurred_at", "dedupe_key", "usage_id", "cost.supersedes_usage_id"],
+        "fields": [
+          "cost.amount",
+          "cost.currency",
+          "attribution.workspace_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
-      "fields_mentioned_not_read": ["cost.basis"],
+      "fields_mentioned_not_read": [
+        "cost.basis"
+      ],
       "fields_mentioned_not_read_note": "`cost.basis` appears in this entry's population only to explain why dedupe does not resolve supersession -- the basis is part of `dedupe_key`, which is what makes an estimate and its correction carry different keys. C-01 does not read it. The distinction is declared rather than left implicit because the checker now fails on any field a formula or population names and does not declare, and an escape hatch that nobody can see is a hole.",
       "population": {
         "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014 (Approved 2026-09-02). Two records carrying one key are one measurement seen twice and are collapsed to one. Two measurements of the same job and dimension at different instants carry different keys and are SUMMED, not collapsed -- that is the rule A6 refused to sign twice before it said so, and summing them is correct.",
@@ -244,7 +271,15 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["dimension", "cost.amount", "cost.currency", "occurred_at", "dedupe_key", "usage_id", "cost.supersedes_usage_id"],
+        "fields": [
+          "dimension",
+          "cost.amount",
+          "cost.currency",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "population": {
@@ -275,7 +310,15 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["cost.basis", "cost.amount", "cost.currency", "occurred_at", "dedupe_key", "usage_id", "cost.supersedes_usage_id"],
+        "fields": [
+          "cost.basis",
+          "cost.amount",
+          "cost.currency",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "population": {
@@ -306,7 +349,12 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["cost.supersedes_usage_id", "occurred_at", "dedupe_key", "usage_id"],
+        "fields": [
+          "cost.supersedes_usage_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "population": {
@@ -337,10 +385,18 @@
       },
       "source": {
         "contract": "CTR-USG-001",
-        "fields": ["attribution.business_profile_id", "occurred_at", "dedupe_key", "usage_id", "cost.supersedes_usage_id"],
+        "fields": [
+          "attribution.business_profile_id",
+          "occurred_at",
+          "dedupe_key",
+          "usage_id",
+          "cost.supersedes_usage_id"
+        ],
         "status": "derivable_with_caveat"
       },
-      "fields_mentioned_not_read": ["attribution"],
+      "fields_mentioned_not_read": [
+        "attribution"
+      ],
       "fields_mentioned_not_read_note": "The `attribution` block as a whole is named in this entry's population to record that a superseding record may carry a different one, which is how a correction can move this ratio with no new measurement. C-05 reads only `attribution.business_profile_id`.",
       "population": {
         "dedupe": "POST-DEDUPE on `dedupe_key`, per RFC-2026-014.",
@@ -369,7 +425,11 @@
       },
       "source": {
         "contract": "CTR-AUD-001",
-        "fields": ["action.category", "occurred_at", "tenant_context.workspace_id"],
+        "fields": [
+          "action.category",
+          "occurred_at",
+          "tenant_context.workspace_id"
+        ],
         "status": "derivable_with_caveat"
       },
       "caveat": "The denominator says ACTIVE workspace and no source defines that term. What is implemented is \"workspace with any audit record in the window\", which is an auditability proxy: a workspace using the product without performing an auditable action is invisible and deflates the denominator, inflating the metric. Also M-02 applies -- a 28-day window must be checked against audit retention once one is set.",
@@ -393,7 +453,11 @@
       },
       "source": {
         "contract": "CTR-AUD-001",
-        "fields": ["action.category", "outcome", "occurred_at"],
+        "fields": [
+          "action.category",
+          "outcome",
+          "occurred_at"
+        ],
         "status": "derivable"
       },
       "caveat": "Exact as a ratio -- both `action.category` and `outcome` are closed enums. It cannot be broken down by cause: `reason_key` is a required stable key with no vocabulary, so grouping denials by reason needs a `reason_key` registry that no source states. A rising value is a signal to read the records, not a diagnosis.",
@@ -414,7 +478,10 @@
         "numerator": "percentile_p(first_response_at - request_received_at) over requests closed in the window",
         "denominator": "not a ratio; a distribution over support requests",
         "window": "rolling 28 days on request_received_at",
-        "percentiles": ["p50", "p90"]
+        "percentiles": [
+          "p50",
+          "p90"
+        ]
       },
       "source": {
         "contract": null,
@@ -443,7 +510,12 @@
       },
       "source": {
         "contract": "CTR-NTF-001",
-        "fields": ["kind", "delivery.state", "delivery.failure_class", "channel"],
+        "fields": [
+          "kind",
+          "delivery.state",
+          "delivery.failure_class",
+          "channel"
+        ],
         "status": "derivable_with_caveat"
       },
       "caveat": "`queued` is excluded from the denominator because it is not terminal, which makes the value sensitive to where the window is cut: a burst of still-queued notifications at the boundary shrinks the denominator and moves the ratio. `channel` is OPTIONAL in the schema, so some failures cannot be attributed to a channel and the per-channel split does not sum to the total. There is also NO TIMESTAMP anywhere on the CTR-NTF-001 envelope -- executed as probe NTF-NO-TIMESTAMP, which asserts that no property in that schema carries `format: date-time` -- so the window has to be cut on whatever the storing module records, which is not a contract field and must be stated by that module's owner.",
@@ -468,7 +540,12 @@
       },
       "source": {
         "contract": "CTR-JOB-001",
-        "fields": ["attempt", "max_attempts", "last_error_code", "job_type"],
+        "fields": [
+          "attempt",
+          "max_attempts",
+          "last_error_code",
+          "job_type"
+        ],
         "status": "derivable_with_caveat"
       },
       "caveat": "A COUNT AND NOT A RATE, deliberately. CTR-JOB-001 declares NO terminal-state field -- executed as probe JOB-NO-TERMINAL-STATE, which asserts that no property of that schema is named for a lifecycle state and that no enum in it carries one -- and its manifest records that lifecycle state names and transition policy remain subject to owner review. So there is no completed-or-failed population to divide by, and inventing one here would be inventing the lifecycle. The record is also a current-state row rather than an event, and carries no completion timestamp: `available_at` is a schedule time and `lease_expires_at` is a lease time, so neither cuts an honest completion window. Grouping by `last_error_code` inherits the CTR-ERR-001 vocabulary gap recorded in the cardinality budget below. This becomes a rate when OPEN-019 settles the queue implementation and the job lifecycle states.",
@@ -592,6 +669,7 @@
       "node evidence/WP-0A-A6-001/verify-source-fields.mjs",
       "node evidence/WP-0A-A6-001/population-and-carrier-probes.mjs"
     ],
-    "coverage_warning": "NEITHER COMMAND IS COVERAGE OF THIS DOCUMENT AND EXIT 0 FROM BOTH IS NOT AN APPROVAL. The first validates that cited fields are PRESENT and that declared invariants hold; it structurally cannot validate an absence claim. The second executes the absence and population claims that ARE constructible and says which claims it does not reach. What neither reaches: whether these are the right fourteen metrics, whether a formula means what its plain-language definition says, and every target -- all of which are the Product Owner's under OPEN-016."
+    "coverage_warning": "NEITHER COMMAND IS COVERAGE OF THIS DOCUMENT AND EXIT 0 FROM BOTH IS NOT AN APPROVAL. The first validates that cited fields are PRESENT and that declared invariants hold; it structurally cannot validate an absence claim. The second executes the absence and population claims that ARE constructible and says which claims it does not reach. What neither reaches: whether these are the right fourteen metrics, whether a formula means what its plain-language definition says, and every target -- all of which are the Product Owner's under OPEN-016.",
+    "checker_limitations_found_by_independent_testing": "Three holes in verify-source-fields.mjs, ruled non-blocking by the Tester and recorded in that script's header so the next author does not rediscover them. (A) source.status is never validated against this document's own source_status_vocabulary, so a metric whose status reads \"obviously_derivable\" exits 0 -- the sharpest of the three, because the three defined statuses ROUTE work and the whole A-03 argument turns on what a status word means. (B) The field-versus-formula check runs one way only: it fails on a formula naming an undeclared field and never on an entry declaring a field its formula does not name, and it treats an unresolvable token as prose -- so a MISSPELLED occurred_at would have passed the very check built for C-03's omission of it. (C) EXPECTED_RESOLVED_PATHS is a COUNT and not a checksum: one citation removed and another added keeps it at 63."
   }
 }

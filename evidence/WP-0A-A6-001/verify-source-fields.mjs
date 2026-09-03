@@ -47,6 +47,33 @@
 //  6. Every metric's `population` block, where it has one, is checked for all three axes C2
 //     requires: supersession, dedupe and restatement.
 //
+// ============================================================================================
+// WHAT THIS STILL DOES NOT CATCH. Found by independent testing, ruled non-blocking, and written
+// here rather than left for the next author to rediscover. Each is a hole in THIS script, not a
+// defect in the dictionary, and each is a smaller version of the mistake that produced the last
+// increment: a check that looks like coverage from the outside.
+//
+//  A. `source.status` IS NEVER CHECKED AGAINST `source_status_vocabulary`. A metric whose status
+//     reads `obviously_derivable` -- a word the dictionary defines nowhere -- exits 0. This is
+//     the one to close first: the three defined statuses ROUTE work (`absent` to a contract
+//     owner, `derivable_with_caveat` to A6), so a status outside the vocabulary routes nothing
+//     and nothing says so. Close it against Object.keys(source_status_vocabulary) MINUS
+//     `vocabulary_amendment_note`, which is prose living in that object.
+//  B. THE FIELD/FORMULA CHECK RUNS ONE WAY ONLY. It fails when a formula NAMES a field the entry
+//     does not declare; it never fails when an entry DECLARES a field its formula does not name,
+//     so a formula gutted to one word passes with seven declared fields. And a token that does
+//     not resolve is treated as prose -- so if C-03's defect had been a MISSPELLING of
+//     `occurred_at` instead of an omission, hole 5 as built would have missed it, because a
+//     misspelling and an English word are indistinguishable to this check. The backtick
+//     convention below could carry that distinction and does not yet.
+//  C. THE PIN IS A COUNT, NOT A CHECKSUM. A compensating pair -- one citation removed, one added
+//     -- keeps the total at 63 and stays green. A digest of the sorted field list would close it.
+//
+// And one branch here is closed by inspection and NOT by execution: `unresolvedRef` fires only
+// for a `$ref` this script cannot follow, and every `$ref` in the shared kernel is the followable
+// sibling form, so no mutation available to this package reaches it without a schema edit that
+// this package must not make.
+//
 // Read-only. It parses committed schemas and the dictionary; it writes nothing and calls nothing.
 // Usage: node evidence/WP-0A-A6-001/verify-source-fields.mjs   (from the repository root)
 import { readFile, readdir } from 'node:fs/promises';

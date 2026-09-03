@@ -173,6 +173,8 @@ The second constructs documents and runs them through the repository's own JSON 
 
 **What neither reaches**, stated so exit 0 is not mistaken for approval: whether these are the right fourteen metrics; whether a formula means what its plain-language definition says; every target; and the open question in M-10 about which window a superseding record falls into, where both readings validate and the contract does not choose.
 
+**Three holes independent testing found in the first checker**, ruled non-blocking and written into its header so the next author does not rediscover them. `source.status` is never validated against this document's own `source_status_vocabulary`, so `"obviously_derivable"` exits 0 — which matters most here, because the whole A-03 argument turns on what a status word means and the statuses *route work*. The field-versus-formula check runs one way only, so a gutted formula passes, and an unresolvable token is treated as prose — meaning a **misspelled** `occurred_at` would have slipped through the very check built for C-03's omission of it. And the pin is a **count**, not a checksum: one citation removed and another added keeps it at 63.
+
 ## What still needs a human authority
 
 | Who | What |
