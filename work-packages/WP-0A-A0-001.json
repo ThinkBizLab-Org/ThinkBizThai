@@ -148,10 +148,9 @@
       "paths": [
         "work-packages/WP-0A-A6-001.json",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "scripts/test-suite-contract.mjs"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "Re-staffing WP-0A-A6-001 is the dispatcher's act and so is A0's, and it means editing that package's manifest. C1 of the benchmark says no package may be staffed on the benchmark alone, so C2-C7 are reproduced into the manifest to bind this assignment rather than merely existing in an evidence file. branch-identity.test.mjs pins the declared branch set to a map, so a newly declared branch must be pinned there in the same change or the guard correctly reports a branch nobody pinned. The last two paths are the digest and per-file floors that move with any protected-file edit.",
+      "rationale": "Re-staffing WP-0A-A6-001 is the dispatcher's act and so is A0's, and it means editing that package's manifest. C1 of the benchmark says no package may be staffed on the benchmark alone, so C2-C7 are reproduced into the manifest to bind this assignment rather than merely existing in an evidence file. branch-identity.test.mjs pins the declared branch set to a map, so a newly declared branch must be pinned there in the same change or the guard correctly reports a branch nobody pinned. The last path is the digest that moves with any protected-file edit.",
       "recorded_on": [
         "work-packages/WP-0A-A6-001.json",
         "work-packages/WP-0A-A0-002.json"
