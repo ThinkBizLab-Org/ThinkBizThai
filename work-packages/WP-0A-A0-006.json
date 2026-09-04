@@ -96,7 +96,19 @@
       "*.pfx",
       "db/**",
       "migrations/**"
-    ]
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "test-kits/repository-json.test.mjs"
+      ],
+      "rationale": "The four registries that must move when a package, a branch or a decision record is added, and which exist precisely so that adding one is a deliberate act in a diff rather than something that happens quietly. RFC-2026-015 is added to the protected-file list and to the pinned set of decision records, and digested; this branch is added to the branch-to-package mapping. None of the four is edited in any other way: no floor is lowered, no existing row is changed, and nothing is removed.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
   },
   "inputs": {
     "files": [
