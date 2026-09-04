@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "d50592a1e6f72f550fd645219b0001149884e4f9",
-  "head_revision_or_patch_checksum": "0ffc655a1702d7b7ee63bb09207ae2d3546b735a",
+  "head_revision_or_patch_checksum": "963990ff920c341899c408846e33e38b4cff6800",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -13,6 +13,8 @@
     "handoffs/WP-0A-CON-008-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-clean-run.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/ci-guard-behaviour.test.mjs",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/ratchets-bite.test.mjs",
@@ -79,7 +81,8 @@
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
-    "CTR-NTF-001 remains unassessed; A5 owns it."
+    "CTR-NTF-001 remains unassessed; A5 owns it.",
+    "This record was repaired after the fact: it cited the pre-squash branch tip, which the squash merge of PR #44 orphaned. The commit no longer exists in any clone, so the handoff conformance guard failed in CI while passing locally, where the orphaned object was still reachable. The range now names the squashed commit on main. This will recur for every package merged by squash and needs a protocol fix, not another repair."
   ],
   "open_risks_or_blockers": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
