@@ -5,19 +5,26 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "d50592a1e6f72f550fd645219b0001149884e4f9",
-  "head_revision_or_patch_checksum": "963990ff920c341899c408846e33e38b4cff6800",
+  "head_revision_or_patch_checksum": "1a9f5894ac78d865e67b477ff2c294bb4b8a45b3",
   "task_ids": [],
-  "files_added": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+    "evidence/WP-0A-A0-006/blocker-re-audit.md",
+    "handoffs/WP-0A-A0-006-author-handoff.json",
+    "work-packages/WP-0A-A0-006.json"
+  ],
   "files_modified": [
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "scripts/verify-clean-run.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/ci-guard-behaviour.test.mjs",
     "test-kits/contracts/catalog-registry.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/ratchets-bite.test.mjs",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],

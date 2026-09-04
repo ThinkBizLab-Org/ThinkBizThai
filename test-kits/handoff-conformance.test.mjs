@@ -483,3 +483,52 @@ test('no file under handoffs records an approval its author cannot give', async 
     + 'checked here — telling a true one from a fabricated one needs a reader, which is item 9 on '
     + 'the not-closed list.');
 });
+
+// The guard above says a cited revision must exist. It resolves against the LOCAL object store,
+// and that is why it kept passing here while failing in CI: a squash merge orphans every commit on
+// the branch, and the orphans stay reachable in the clone that made them. A fresh clone has only
+// what is on `main`.
+//
+// It has now happened twice in a row — WP-0A-CON-008 after PR #44, WP-0A-A0-006 after PR #45 —
+// each caught by CI, each repaired by hand. The repair is not the fix. Every squash merge from here
+// would do it again.
+//
+// So the stronger condition is asserted: a cited revision must be an ANCESTOR OF `main`, not merely
+// present somewhere locally. That fails on the machine that made the orphan, at the moment it is
+// made, instead of one push later on someone else's clone.
+//
+// The operational consequence is recorded here because it belongs with the check that enforces it:
+// **merge with a merge commit, not a squash.** A squash rewrites the branch into a new commit and
+// discards the ones every handoff on that branch cites. `--merge` keeps them reachable from `main`
+// and this test stays green without anything being regenerated.
+test('a handoff cites revisions reachable from main, not just from this clone', async () => {
+  const mainRef = await run('git', ['rev-parse', '--verify', 'origin/main'])
+    .then(() => 'origin/main', () => 'main');
+  const unreachable = [];
+  for (const [name, body] of await authorHandoffs()) {
+    for (const field of ['base_revision', 'head_revision_or_patch_checksum']) {
+      const value = body[field];
+      if (!/^[0-9a-f]{40}$/.test(value ?? '')) continue;
+      // A handoff on an unmerged branch legitimately cites commits not yet on main. Only a
+      // revision that exists locally AND is absent from main's history is the orphan case: the
+      // commit was made, then rewritten away.
+      let reachable = false;
+      try {
+        await run('git', ['merge-base', '--is-ancestor', value, mainRef]);
+        reachable = true;
+      } catch { reachable = false; }
+      if (reachable) continue;
+      let onThisBranch = false;
+      try {
+        await run('git', ['merge-base', '--is-ancestor', value, 'HEAD']);
+        onThisBranch = true;
+      } catch { onThisBranch = false; }
+      if (!onThisBranch) {
+        unreachable.push(`${name}.${field} names ${value.slice(0, 12)}…, which is on neither ${mainRef} nor this branch`);
+      }
+    }
+  }
+  assert.deepEqual(unreachable, [], `handoff(s) citing an orphaned revision:\n  ${unreachable.join('\n  ')}\n`
+    + 'A squash merge rewrites the branch and discards the commits its handoffs cite. Merge with a merge '
+    + 'commit instead, or regenerate the handoff against the commit that survived.');
+});

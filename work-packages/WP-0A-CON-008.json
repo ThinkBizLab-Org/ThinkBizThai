@@ -85,7 +85,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-CON-008-required-list-enforcement",
+    "branch": "agent/claude/WP-0A-CON-008-squash-orphans-handoffs",
     "writable_paths": [
       "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
       "work-packages/WP-0A-CON-008.json",
@@ -129,10 +129,11 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "handoffs/WP-0A-A0-006-author-handoff.json",
         "scripts/test-suite-contract.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The per-file floors and the digest, which move with any protected-file edit. This increment pins verify-clean-run.mjs and commit-when-clean.mjs behaviourally for the first time -- the verifier was pinned only by assert.match against its own source, and the commit gate by nothing at all -- so the declared test and assertion counts for ratchets-bite.test.mjs move with them.",
+      "rationale": "Regenerates WP-0A-A0-006's author handoff, whose cited commits the squash merge of PR #45 orphaned, plus the two floors that move with any protected-file edit. A0-006 is merged and has no branch left to regenerate itself from. No claim in that handoff is changed; only the range it cites and the file lists derived from it.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]

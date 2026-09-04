@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "963990ff920c341899c408846e33e38b4cff6800",
-  "head_revision_or_patch_checksum": "2bac2956e8939a303a7bff4e6da9132d16239f05",
+  "head_revision_or_patch_checksum": "1a9f5894ac78d865e67b477ff2c294bb4b8a45b3",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
@@ -14,6 +14,7 @@
     "work-packages/WP-0A-A0-006.json"
   ],
   "files_modified": [
+    "handoffs/WP-0A-CON-008-author-handoff.json",
     "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/integrity-manifest.json",
@@ -77,7 +78,8 @@
   "known_limitations": [
     "DATA-DEC-03 is referred to A1 and deliberately unanswered. A0 co-owns it but must not close it alone; proposing it would repeat the ownership irregularity graded High twice in this repository (CTR-NTF-001 by A0 for A5, CTR-MOD-001 against CTR-SEC-001).",
     "The nine stale blockers this audit identified are NOT cleared from their manifests. Each belongs to the package that recorded it; removing those lines is that package's act.",
-    "CON-006 #12 and #13 are reported as unknown, not closed. Re-measuring them with a different definition and presenting it as an update would be the same defect the audit exists to catch."
+    "CON-006 #12 and #13 are reported as unknown, not closed. Re-measuring them with a different definition and presenting it as an update would be the same defect the audit exists to catch.",
+    "This record was regenerated after its branch was squash-merged. The squash orphaned every commit it originally cited, so the range now names the squashed commit on main. The repository stops squash-merging for this reason."
   ],
   "open_risks_or_blockers": [
     "RFC-2026-015 is Proposed. DB-00 must not start coding (DATA-DEC-02) or merge (DATA-DEC-01) until the Product Owner disposes it.",
