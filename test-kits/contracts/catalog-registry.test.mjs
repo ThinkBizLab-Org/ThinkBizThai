@@ -801,3 +801,80 @@ test('the normative manifest fields cannot be rewritten or invented', async () =
   assert.deepEqual(wrong, [], `normative manifest field(s) that changed without being written down:\n  ${wrong.join('\n  ')}\n`
     + 'agreement_witnesses records who has signed off; a contract must not be able to write its own sign-off.');
 });
+
+// A `required` list nothing exercises is a list that can be emptied without a single test going
+// red, and the fixtures shipped beside these contracts do not exercise it.
+//
+// Measured across the catalog: of 101 root `required` entries, exactly 8 are isolated by a
+// negative fixture -- one that becomes valid the moment the missing key is restored. Eight of the
+// fourteen contracts isolate none at all. Every other negative fixture fails for some other reason
+// first, so it would keep failing with the `required` list deleted and keep passing with a key
+// silently dropped from it.
+//
+// RFC-2026-010 assesses freeze-readiness partly on "schema and fixtures present". They are present.
+// This is what they were proving, which on the root `required` list of eight contracts was nothing.
+//
+// Rather than land 101 fixture files that can themselves rot, the property is asserted directly and
+// generated from the catalog: drop each declared key from a VALID example and the schema must
+// reject it, naming that key. A key added to `required` later is covered the day it is added; a key
+// deleted from `required` fails here rather than passing quietly.
+async function validExamples(dir) {
+  const base = join(CATALOG, dir);
+  const names = (await readdir(join(base, 'examples')).catch(() => []))
+    .filter((name) => name.startsWith('valid') && name.endsWith('.json'));
+  const out = [];
+  for (const name of names) out.push({ name, body: await readJson(join(base, 'examples', name)) });
+  return out;
+}
+
+test('every root required key is enforced, and a valid example proves it by losing that key', async () => {
+  const { assertSchemaSupported, validate } = await import('./json-schema-subset.mjs');
+  const unenforced = [];
+  const unproven = [];
+  let checked = 0;
+
+  for (const dir of Object.keys(CATALOG_REGISTRY)) {
+    const base = join(CATALOG, dir);
+    const schema = await readJson(join(base, 'schema.json'));
+    assertSchemaSupported(schema);
+    const required = schema.required ?? [];
+    if (required.length === 0) continue;
+
+    // Resolve the same way the conformance suite does: a $ref this test cannot follow would make
+    // every drop below "fail" for an unrelated reason and read as coverage.
+    const resolved = new Map();
+    const walk = async (node) => {
+      if (Array.isArray(node)) { for (const item of node) await walk(item); return; }
+      if (!node || typeof node !== 'object') return;
+      for (const [key, value] of Object.entries(node)) {
+        if (key === '$ref' && typeof value === 'string' && !value.startsWith('#')) {
+          resolved.set(value, await readJson(join(base, value)));
+        } else await walk(value);
+      }
+    };
+    await walk(schema);
+    const resolve = (ref) => resolved.get(ref) ?? null;
+
+    const examples = await validExamples(dir);
+    for (const key of required) {
+      // The example must carry the key and must itself be valid, or dropping it proves nothing.
+      const witness = examples.find(({ body }) =>
+        body && typeof body === 'object' && !Array.isArray(body)
+        && Object.hasOwn(body, key) && validate(schema, body, { resolve }).length === 0);
+      if (!witness) { unproven.push(`${dir}.${key}`); continue; }
+
+      const { [key]: _dropped, ...without } = witness.body;
+      const errors = validate(schema, without, { resolve });
+      checked += 1;
+      if (!errors.some((message) => message.includes(`missing required property '${key}'`))) {
+        unenforced.push(`${dir}.${key} — dropping it from ${witness.name} raised ${JSON.stringify(errors)}`);
+      }
+    }
+  }
+
+  assert.deepEqual(unproven, [], `no valid example carries these declared-required key(s), so nothing here can show the requirement has force:\n  ${unproven.join('\n  ')}\n`
+    + 'A contract whose own valid example omits a key it declares required is inconsistent with itself before any consumer sees it.');
+  assert.deepEqual(unenforced, [], `root required key(s) a schema does not actually enforce:\n  ${unenforced.join('\n  ')}\n`);
+  assert.ok(checked >= 101, `only ${checked} root required key(s) were exercised; the catalog declares at least 101. `
+    + 'A drop in this number means keys left a required list without anyone saying so.');
+});
