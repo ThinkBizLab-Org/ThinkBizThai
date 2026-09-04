@@ -57,7 +57,7 @@ export const INTEGRITY_MANIFEST = 'test-kits/integrity-manifest.json';
 // reads.
 export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 8,
-  'test-kits/branch-scope.test.mjs': 7,
+  'test-kits/branch-scope.test.mjs': 10,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 17,
   'test-kits/contracts/catalog-groups.test.mjs': 7,
@@ -101,7 +101,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // point in opposite directions.
 export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/branch-identity.test.mjs': 15,
-  'test-kits/branch-scope.test.mjs': 37,
+  'test-kits/branch-scope.test.mjs': 41,
   'test-kits/capability-profile.test.mjs': 4,
   'test-kits/ci-guard-behaviour.test.mjs': 33,
   'test-kits/contracts/catalog-groups.test.mjs': 9,
@@ -142,7 +142,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
-  'test-kits/branch-scope.test.mjs': '4153a9a5088a9ec7',
+  'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
   'test-kits/ci-guard-behaviour.test.mjs': 'cc42f80046d803e9',
   'test-kits/contracts/catalog-groups.test.mjs': '401597be61929abb',

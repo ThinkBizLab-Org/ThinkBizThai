@@ -4,16 +4,11 @@
   "work_package_id": "WP-0A-A0-004",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1478f34edc8c61a5a004610e5cb9f298b5562e98",
-  "head_revision_or_patch_checksum": "69574e459135056aa1445ec58036e22fe9f83eb5",
+  "base_revision": "1a76c5d31b73ff95a9244c11f8ecd2b2ddabd18f",
+  "head_revision_or_patch_checksum": "1a76c5d31b73ff95a9244c11f8ecd2b2ddabd18f",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [
-    "handoffs/WP-0A-A0-004-author-handoff.json",
-    "scripts/verify-branch-scope.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-A0-004.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -70,7 +65,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract changes. This increment closes a hole in verify-branch-scope.mjs that made it unable to read one of the two fields packages use to declare cross-package writes.",
+  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
   "known_limitations": [
     "RFC-2026-007 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
     "This does NOT make the guard unbypassable. Someone who can edit ci.yml can delete the step. It moves the bypass from a place no control can see into a place a reviewer reads, and no further.",

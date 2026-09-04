@@ -192,3 +192,58 @@ test('a glob may not stand in for any file the integrity manifest digests', asyn
   assert.doesNotThrow(() => validateManifestOwnership(manifest(['test-kits/contracts/catalog-registry.test.mjs']), [], digested),
     'naming the suite is what the rule asks for');
 });
+
+// Two guards disagreed about which declarations exist, and the disagreement was exploitable.
+// verify-branch-scope.mjs was taught on 2026-09-04 to read `authorized_cross_package_amendments`
+// -- the prose field six of fourteen packages use -- because for those six it had been reporting
+// a conclusion it never reached. The independent reviewer of this package then showed the fix
+// reopened review thirteen's `["**"]` defect on the field beside the one it closed: the scope
+// guard honoured the prose field while validate-work-package-ownership.mjs, which enforces shape
+// and breadth, still saw only the machine one. A single entry `"**/* — …"` made the scope guard
+// report every path declared for a branch that gutted a guard script.
+//
+// The reviewer also found the fix was pinned by NOTHING: reverting the prose read left the suite
+// byte-identical. These three tests are that pin.
+test('the scope guard reads the prose amendment field, not only the machine one', () => {
+  const manifest = {
+    work_package_id: 'WP-TEST',
+    ownership: {
+      writable_paths: ['owned/**'],
+      authorized_cross_package_amendments: ['other/thing.mjs (WP-OTHER output) - permitted change: a reason'],
+    },
+  };
+  const declared = declaredPaths(manifest);
+  assert.ok(declared.includes('other/thing.mjs'),
+    'a package that records its cross-package write in prose must have that write seen; six of fourteen packages use only this field');
+  assert.deepEqual(undeclared(['other/thing.mjs'], declared), [],
+    'the guard must not report a path as undeclared against a manifest that authorises it');
+});
+
+test('an unparseable prose amendment stops the run instead of being skipped', () => {
+  const shapes = [
+    ['a note with no path at all'],
+    [42],
+    [''],
+  ];
+  for (const paths of shapes) {
+    assert.throws(
+      () => declaredPaths({ work_package_id: 'WP-TEST', ownership: { authorized_cross_package_amendments: paths } }),
+      /authorized_cross_package_amendments/,
+      `${JSON.stringify(paths)} must throw: skipping is how the hole formed, and a declaration the guard cannot read must not become silently declared`);
+  }
+});
+
+test('the ownership validator sees the same field the scope guard now honours', async () => {
+  const { validateManifestOwnership } = await import('../scripts/validate-work-package-ownership.mjs');
+  const blanket = {
+    work_package_id: 'WP-TEST',
+    ownership: {
+      writable_paths: ['owned/**'],
+      read_only_paths: [],
+      authorized_cross_package_amendments: ['**/* - blanket'],
+    },
+    outputs: { files: [] },
+  };
+  assert.throws(() => validateManifestOwnership([blanket]), /names no path at all/,
+    'a prose entry that matches everything must be refused here too; a guard that reads a declaration and a validator that checks declarations must not disagree about which declarations exist');
+});
