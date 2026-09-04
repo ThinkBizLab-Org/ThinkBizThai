@@ -37,8 +37,19 @@ export function dispositionProblems(base, head = 'HEAD') {
 
   for (const path of records) {
     const diff = git('diff', '--no-renames', '-U0', `${base}..${head}`, '--', path);
+    // `/^[+-][^+-]/` was meant to skip the `+++ b/path` and `--- a/path` headers, and it did.
+    // It also skipped every CONTENT line whose first character is `-` or `+` -- which is every
+    // markdown bullet. So a branch belonging to no package could add bullets to an Approved
+    // decision record, or write a whole new one in bullets, and this check would examine none of
+    // them and call it a disposition. Demonstrated end to end by the independent reviewer of
+    // WP-0A-A0-004: three "superseding rules" injected into RFC-2026-007 itself, the digest
+    // regenerated with a declared script, and every step of `npm run check` at exit 0.
+    //
+    // The headers are recognised by what they ARE -- `+++ ` and `--- ` at the start of a line
+    // with `-U0` -- rather than by a shape that a content line can accidentally match.
+    const DIFF_HEADER = /^(\+\+\+ |--- |@@ |diff |index |new file|deleted file|similarity|rename )/;
     const touched = diff.split('\n')
-      .filter((line) => /^[+-][^+-]/.test(line))
+      .filter((line) => (line.startsWith('+') || line.startsWith('-')) && !DIFF_HEADER.test(line))
       .map((line) => line.slice(1));
     for (const line of touched) {
       if (!/^\s*(\*\*)?Status(\*\*)?\s*:/.test(line)) {

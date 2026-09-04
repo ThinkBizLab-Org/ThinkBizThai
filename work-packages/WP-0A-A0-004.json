@@ -110,10 +110,16 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
+        "scripts/validate-work-package-ownership.mjs",
+        "scripts/verify-disposition-branch.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This increment closes a hole in this package's own guard: verify-branch-scope.mjs could not read authorized_cross_package_amendments, the field six of fourteen packages use to declare cross-package writes. The one amended path is the digest, which moves with any protected-file edit. The previous amendment block belonged to a merged increment and is cleared rather than carried.",
+      "rationale": "Two High defects the independent reviewer of this package found, both in guards, both mine. validate-work-package-ownership.mjs (WP-0A-A0-001) had to change in the same commit as the scope-guard fix that reopened the defect: the scope guard began honouring a field that validator did not validate, so a blanket prose entry silenced it. Splitting those two edits across packages would leave the exploit open in main while paperwork moved. verify-disposition-branch.mjs (WP-0A-CON-008) skipped every markdown bullet, so a branch belonging to no package could inject content into an Approved decision record and be accepted as a disposition -- proven end to end by the reviewer. The remaining three paths are the per-file floors, the generated verification record and the digest, which move with any protected-file edit.",
       "recorded_on": [
+        "work-packages/WP-0A-A0-001.json",
+        "work-packages/WP-0A-CON-008.json",
         "work-packages/WP-0A-A0-002.json"
       ]
     }

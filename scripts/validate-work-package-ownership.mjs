@@ -110,6 +110,44 @@ export function validateManifestOwnership(manifests, repositoryFiles = null, dig
   for (const manifest of manifests) {
     const ownership = manifest.ownership ?? {};
     const label = manifest.work_package_id ?? '<unknown>';
+    // `authorized_cross_package_amendments` is the OTHER field a package may declare a
+    // cross-package write in -- prose entries, each beginning with the path it authorises. Six of
+    // fourteen packages use only that one. On 2026-09-04 verify-branch-scope.mjs was taught to
+    // read it, because for those six it had been reporting a conclusion it never reached.
+    //
+    // That fix reopened review thirteen's `["**"]` defect on the field beside the one it closed:
+    // the scope guard now HONOURS the prose field while this validator, which enforces shape,
+    // breadth, the protected-file rule and the rationale minimum, still saw only the machine one.
+    // The independent reviewer of WP-0A-A0-004 demonstrated it -- a single entry `"**/* — …"`
+    // made the scope guard print "all 3 changed path(s) are declared", exit 0, for a branch that
+    // gutted verify-test-coverage-floor.mjs and edited a contract it does not own, with this
+    // validator exiting 0 beside it.
+    //
+    // Both fields are validated now, under the identical rules. A guard that reads a declaration
+    // and a validator that checks declarations must not disagree about which declarations exist.
+    const prose = ownership.authorized_cross_package_amendments
+      ?? manifest.authorized_cross_package_amendments;
+    if (prose !== undefined) {
+      if (!Array.isArray(prose)) {
+        throw new OwnershipValidationError(74, `work package ${label} declares authorized_cross_package_amendments that is not an array`);
+      }
+      for (const [index, entry] of prose.entries()) {
+        if (typeof entry !== 'string' || entry.trim() === '') {
+          throw new OwnershipValidationError(74, `work package ${label} authorized_cross_package_amendments[${index}] is not a non-empty string. `
+            + 'An amendment the guards cannot read is an amendment nobody checks.');
+        }
+        const pattern = entry.trim().split(/[\s(]/)[0];
+        if (!pattern.includes('/')) {
+          throw new OwnershipValidationError(74, `work package ${label} authorized_cross_package_amendments[${index}] does not begin with a path: `
+            + `${JSON.stringify(entry.slice(0, 60))}. The leading token is what verify-branch-scope matches against the diff.`);
+        }
+        if (!namesSomething(pattern)) {
+          throw new OwnershipValidationError(74, `work package ${label} authorized_cross_package_amendments[${index}] begins with ${JSON.stringify(pattern)}, `
+            + 'which names no path at all. A pattern matching everything records nothing and silences the branch-scope guard entirely.');
+        }
+      }
+    }
+
     const amendment = ownership.amends_without_owning;
     if (amendment === undefined) continue;
     const amendedPaths = amendment?.paths;
