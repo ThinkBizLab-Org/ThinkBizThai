@@ -109,6 +109,7 @@ const DECISION_RECORDS = [
   'RFC-2026-012-client-database-boundary.md',
   'RFC-2026-013-agent-signature-scope.md',
   'RFC-2026-014-usage-measurement-identity.md',
+  'RFC-2026-015-db00-data-foundation-decisions.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
