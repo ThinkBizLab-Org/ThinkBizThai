@@ -5,10 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "d50592a1e6f72f550fd645219b0001149884e4f9",
-  "head_revision_or_patch_checksum": "d50592a1e6f72f550fd645219b0001149884e4f9",
+  "head_revision_or_patch_checksum": "0ffc655a1702d7b7ee63bb09207ae2d3546b735a",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "scripts/verify-clean-run.mjs",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/ratchets-bite.test.mjs",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",

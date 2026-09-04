@@ -48,10 +48,10 @@
     "scripts/verify-test-coverage-floor.mjs": "cc1180f3da78ac65263663f20b505edd6bf1f7013b7ff585f383d98364505fca",
     "scripts/verify-toolchain.mjs": "3ee3fb3492df132acb50a6cdbebccddea02d07ef7f800d8d5da55cf3befba633",
     "test-kits/authority-dispositions.test.mjs": "1113110b0ce469f041104f13ce68178ae9b66877361ee0ba2bd01fcad10d269c",
-    "test-kits/branch-identity.test.mjs": "c685983d48037c86948d3b3ac57d771f9e9ac096af63814db263e1dac8097361",
+    "test-kits/branch-identity.test.mjs": "31a527c02dd8a58efabe3d8e8ad946de62fbb9251b52bbd211217b2adcdd989b",
     "test-kits/branch-scope.test.mjs": "74e41676f3a95ceb741031cb5c000835bce54672a342a1e53a4a12f8873e36d6",
     "test-kits/capability-profile.test.mjs": "f1b5204abebcc3558c5f6eac23a968a814eed135d6ea5f11bfa4e827ebb5421e",
-    "test-kits/ci-guard-behaviour.test.mjs": "6c2d35582e37efeac069c899d151a01b743973bdd6425af9f7b451eb11463c0d",
+    "test-kits/ci-guard-behaviour.test.mjs": "4aad84700a302b72a6f2eb0967e7cef047ae5b60dee40316aa19983c87550948",
     "test-kits/contracts/catalog-groups.test.mjs": "98d740f69ffb890a6092a1453430f1e0bf83da56f967806a68e8e7569246b9c8",
     "test-kits/contracts/catalog-reference-integrity.test.mjs": "8c6a843db46f2435ae1c87cd87de0a5e2390319f6ca69ebfa6f7d6de4cd3de19",
     "test-kits/contracts/catalog-registry.test.mjs": "e9589221bddd4c172acb6daa4eebe9748c4edd8eeff58603f93b89c22b412e1c",
@@ -74,7 +74,7 @@
     "test-kits/verification-record.test.mjs": "b4bfae315b847ca26ac4d1020e1b27400965a13ee6e2f8bf3fdd154981470ff2",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
     "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
-    "work-packages/WP-0A-CON-008.json": "8b6e28c73dcfdd1365333493782e7b40a6a4c4f46f1c9ab06df39e5411dbe847"
+    "work-packages/WP-0A-CON-008.json": "952e6007e038158083d6c19eae3153ef6009708fef58252251c335322107cbd9"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."
 }
