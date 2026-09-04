@@ -1,6 +1,6 @@
 # RFC-2026-015 — DB-00 data foundation decisions
 
-Status: Proposed — awaiting Product Owner disposition
+Status: Approved 2026-09-04 by the Product Owner — DATA-DEC-01 is `app` and DATA-DEC-02 is the wrapper command contract, both as proposed. DATA-DEC-03 stays open and referred to A1, due before G1.
 Date: 2026-09-04
 Author: /claude/a0_atlas (A0)
 Supersedes: nothing
