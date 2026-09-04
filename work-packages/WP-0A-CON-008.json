@@ -129,15 +129,11 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/ci-guard-behaviour.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This branch gives the two guards nobody executed a behaviour case. test-suite-contract.mjs belongs to WP-0A-A0-002 and carries the per-file floors; the guard functions being probed are edited only inside a throwaway copy, never here; branch-identity.test.mjs and ci-guard-behaviour.test.mjs pin this package’s own branch name, which changes with every branch; the manifest and the verification record are rebuilt by their own commands. Independent review twenty-two found that assertNoPackageManagerConfig and assertDigestedFilesAreRegular were executed by no test at all — one line disabled the .npmrc guard at exit 0, reopening review seventeen’s finding in full with both CI steps green and zero tests run.",
+      "rationale": "The per-file floors and the digest, which move with any protected-file edit. This increment pins verify-clean-run.mjs and commit-when-clean.mjs behaviourally for the first time -- the verifier was pinned only by assert.match against its own source, and the commit gate by nothing at all -- so the declared test and assertion counts for ratchets-bite.test.mjs move with them.",
       "recorded_on": [
-        "work-packages/WP-0A-A0-001.json",
         "work-packages/WP-0A-A0-002.json"
       ]
     }
