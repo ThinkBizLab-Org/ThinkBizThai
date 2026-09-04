@@ -5,10 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
-  "head_revision_or_patch_checksum": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
+  "head_revision_or_patch_checksum": "53d7d2e9c0a47d9792ebf5f4e921c9d51eba56f5",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md",
+    "handoffs/WP-0A-A0-007-author-handoff.json",
+    "work-packages/WP-0A-A0-007.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-03",
