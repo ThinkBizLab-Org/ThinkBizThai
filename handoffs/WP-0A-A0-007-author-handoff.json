@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-007",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
+  "head_revision_or_patch_checksum": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
+  "task_ids": [],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DATA-DEC-03",
+    "RFC-2026-012",
+    "RFC-2026-015"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. A decision record in Proposed state is reversible, synthetic-only work and binds nothing.",
+    "The data package's rule governs: an open decision does not authorise an agent to choose it. Both decisions are therefore PROPOSED, not taken."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "known_limitations": [
+    "The A1 security analysis behind sections 4 and 5 was spawned from this A0 session. It began from empty context and read the sources itself, but a run created by the author is not independent in the sense independence.no_self_approval intends, and it does not satisfy prefer_cross_vendor_review. Recorded as A0-solicited analysis, not as an independent A1 review.",
+    "DATA-DEC-03 is NOT closed. The service path is undecided and on Supabase the service-role key bypasses RLS, so claiming the control would record one that does not exist.",
+    "The two verification queries A1 recommends were not run: no database is provisioned and this host has no psql, pg_ctl or docker. The platform role attributes are therefore taken from documentation, not from the instance."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-016 is Proposed. Batch 000 must not be written against the authenticated-only policy shape until it is disposed."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-016 is a Proposed decision record and binds nothing until disposed; no schema, migration, policy, contract, persisted data, provider state or credential is touched, and no database exists yet for it to affect.",
+  "recommended_next_work_packages": [
+    "Product Owner disposition of RFC-2026-016.",
+    "A decision on the service path, due before G1.",
+    "DB-00 dispatch, which RFC-2026-015 already unblocked."
+  ],
+  "reviewer_instructions": [
+    "Check the contradiction claim directly against the data package: the TO authenticated rule and the service-only matrix rows.",
+    "Check that the RFC nowhere claims forced RLS constrains the service path.",
+    "Check the provenance section states the A1 run was spawned from the author session."
+  ],
+  "superseded_by": null
+}

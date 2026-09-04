@@ -1,0 +1,171 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-007",
+  "title": "The RLS policy set denies every service operation",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-016.",
+    "A0 countersignature on the service-path half of DATA-DEC-03; A1 proposed the security half and declined to close alone.",
+    "Product Owner and A0 to decide the service path (supabase-js with the service-role key, or a direct driver with per-request SET LOCAL role), due before G1."
+  ],
+  "purpose": "The data package specifies tenant policies TO authenticated only, and marks a long list of operations service-only. RFC-2026-012 is approved and commits the client/database boundary to FORCE ROW LEVEL SECURITY. Under forced RLS with a policy set naming one role, every service operation is denied, so the only way to run the specification as written is for the service path to bypass RLS -- the precise thing forcing prevents. Found by the A1 analysis solicited for DATA-DEC-03, before any migration exists. This package records the defect, its fix, the database platform the Product Owner decided, and how far DATA-DEC-03 can close.",
+  "scope": {
+    "include": [
+      "RFC-2026-016 recording the policy-set defect and the amendment that fixes it",
+      "The Product Owner's decision that the platform is Supabase, which the register never carried",
+      "The part of DATA-DEC-03 that closes independently of the undecided service path",
+      "The acceptance-test gaps DB-00 must close, named specifically"
+    ],
+    "exclude": [
+      "Closing DATA-DEC-03. The service path is undecided, and on Supabase the service-role key bypasses RLS, so claiming the control now would record one that does not exist.",
+      "Any migration, schema or lint implementation. This package records decisions; DB-00 implements them.",
+      "Disposing this RFC. That is the Product Owner's act on a disposition branch."
+    ]
+  },
+  "decisions_consumed": [
+    "DATA-DEC-03",
+    "RFC-2026-012",
+    "RFC-2026-015"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-0A-A0-007-rls-service-policy-defect",
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md",
+      "work-packages/WP-0A-A0-007.json",
+      "evidence/WP-0A-A0-007/**",
+      "handoffs/WP-0A-A0-007-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "test-kits/repository-json.test.mjs"
+      ],
+      "rationale": "The four registries that must move when a branch or a decision record is added, and which exist so that adding one is a deliberate act in a diff. RFC-2026-016 is added to the protected-file list and the pinned decision-record set, and digested; this branch is added to the branch-to-package mapping. No floor is lowered and no existing row is changed.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md",
+      "architecture/decisions/RFC-2026-012-client-database-boundary.md",
+      "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md",
+      "work-packages/WP-0A-A0-007.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "The RFC states the contradiction between the TO authenticated policy rule and the service-only matrix rows, and shows why forced RLS denies every service operation.",
+    "The fix adds no permission the matrix does not already grant, and says so.",
+    "The platform decision is recorded as the Product Owner's, dated, with the reason it had to be recorded at all.",
+    "DATA-DEC-03 closes only as far as the undecided service path allows, and the RFC refuses to claim the control beyond that.",
+    "The provenance section states plainly that the A1 analysis was spawned from the A0 session and is not independent in the sense no_self_approval intends.",
+    "The RFC is committed with status Proposed."
+  ],
+  "required_tests": [
+    "npm run check",
+    "The work-package and ownership validators accept this manifest"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/validate-work-package-role-separation.mjs"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. One Proposed decision record; no schema, migration, contract, persisted data, provider state or credential touched.",
+  "open_blockers": [
+    "RFC-2026-016 is Proposed. Until disposed, batch 000 must not be written against the authenticated-only policy shape.",
+    "The service path is undecided. On Supabase the service-role key bypasses RLS, so DATA-DEC-03 cannot close as scoped and no document may state that forced RLS constrains the service path.",
+    "The A1 analysis was spawned from the A0 session and does not satisfy no_self_approval or prefer_cross_vendor_review. Recorded as A0-solicited analysis.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a Proposed decision record is reversible, synthetic-only work."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
