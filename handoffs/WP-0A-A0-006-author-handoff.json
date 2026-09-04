@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "963990ff920c341899c408846e33e38b4cff6800",
-  "head_revision_or_patch_checksum": "60a197d17b86374c0db0210878fa0991ee29fc4f",
+  "head_revision_or_patch_checksum": "2bac2956e8939a303a7bff4e6da9132d16239f05",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
