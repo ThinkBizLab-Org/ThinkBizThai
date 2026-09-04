@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-006",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "963990ff920c341899c408846e33e38b4cff6800",
+  "head_revision_or_patch_checksum": "2bac2956e8939a303a7bff4e6da9132d16239f05",
+  "task_ids": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+    "evidence/WP-0A-A0-006/blocker-re-audit.md",
+    "handoffs/WP-0A-A0-006-author-handoff.json",
+    "work-packages/WP-0A-A0-006.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DATA-DEC-01",
+    "DATA-DEC-02",
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending. A decision record in Proposed state is reversible, synthetic-only work and binds nothing.",
+    "The data package's rule governs: an open decision does not authorise an agent to choose it. Both decisions are therefore PROPOSED, not taken."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "known_limitations": [
+    "DATA-DEC-03 is referred to A1 and deliberately unanswered. A0 co-owns it but must not close it alone; proposing it would repeat the ownership irregularity graded High twice in this repository (CTR-NTF-001 by A0 for A5, CTR-MOD-001 against CTR-SEC-001).",
+    "The nine stale blockers this audit identified are NOT cleared from their manifests. Each belongs to the package that recorded it; removing those lines is that package's act.",
+    "CON-006 #12 and #13 are reported as unknown, not closed. Re-measuring them with a different definition and presenting it as an update would be the same defect the audit exists to catch."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-015 is Proposed. DB-00 must not start coding (DATA-DEC-02) or merge (DATA-DEC-01) until the Product Owner disposes it.",
+    "prefer_cross_vendor_review is not satisfied; recorded as an exception, not waived."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. One Proposed decision record and one evidence file; no schema, migration, contract, persisted data, provider state or credential touched.",
+  "recommended_next_work_packages": [
+    "Product Owner disposition of RFC-2026-015 on a disposition branch.",
+    "A1 to answer DATA-DEC-03 before G1.",
+    "DB-00 dispatch with exact allowed paths, once RFC-2026-015 is Approved.",
+    "Each of CON-002, CON-003 and CON-006 to clear its own stale blocker lines using this audit as input."
+  ],
+  "reviewer_instructions": [
+    "Check that RFC-2026-015 proposes only DATA-DEC-01 and DATA-DEC-02, and that DATA-DEC-03 carries a question and no answer.",
+    "Check that the RFC status line reads Proposed. An agent writing Approved is the failure this package exists to avoid.",
+    "Spot-check any row of evidence/WP-0A-A0-006/blocker-re-audit.md by running the claim yourself; the audit's whole premise is that the recorded text is not evidence."
+  ],
+  "superseded_by": null
+}

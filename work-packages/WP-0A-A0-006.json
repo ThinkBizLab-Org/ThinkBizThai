@@ -1,0 +1,174 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-006",
+  "title": "Data foundation decisions gating DB-00",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-015: DATA-DEC-01 and DATA-DEC-02 are A0-owned but the data package states that an open decision does not authorise an agent to choose it.",
+    "A1 (security) to own and answer DATA-DEC-03 (force RLS service path), due before G1. A0 must not answer it alone."
+  ],
+  "purpose": "The Sprint 0A data package names ten open DATA-DEC decisions and states the order plainly: close DATA-DEC-01..03, dispatch DB-00 with exact allowed paths, run the declared verify command, then DB-01 and DB-02. Nothing in that sequence waits on further scaffolding work. An audit of all 36 blockers recorded across WP-0A-CON-002, -003 and -006, each re-checked by opening the code or running the claim rather than by reading the recorded text, found nine no longer true and not one of the twenty-seven still true that can be closed by writing code: eighteen await a named human or agent authority, seven await a system that only exists once there is an application, two need re-measuring with their owner's own instrument. This package proposes the two DATA decisions A0 owns and refers the third to A1, because the data package states that an open decision does not authorise an agent to choose it.",
+  "scope": {
+    "include": [
+      "RFC-2026-015 proposing DATA-DEC-01 (exposed application schema name) and DATA-DEC-02 (migration, test and runtime tooling), both owned by A0",
+      "A referral of DATA-DEC-03 to A1 stating the question and what turns on it, with no answer proposed",
+      "The blocker re-audit that establishes nothing else gates DB-00, recorded as evidence"
+    ],
+    "exclude": [
+      "Any answer to DATA-DEC-03: the decision is A0+A1 and RLS is a security surface. Proposing it alone would repeat the ownership irregularity WP-0A-CON-006 records as High against CTR-NTF-001.",
+      "DATA-DEC-04..10: they gate Pilot, Paid Beta and real providers, not DB-00, and their owners are Product, Security, Finance, Legal, Research and Ops.",
+      "Any migration, schema file or DB-00 implementation work. This package proposes decisions; it does not act on them.",
+      "Disposing either RFC. Disposition is the Product Owner's act on a disposition branch, not a package's."
+    ]
+  },
+  "decisions_consumed": [
+    "DATA-DEC-01",
+    "DATA-DEC-02",
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-0A-A0-006-db00-data-decisions",
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+      "work-packages/WP-0A-A0-006.json",
+      "evidence/WP-0A-A0-006/**",
+      "handoffs/WP-0A-A0-006-*.json"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "handoffs/WP-0A-CON-008-author-handoff.json",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "test-kits/repository-json.test.mjs"
+      ],
+      "rationale": "The four registries that must move when a package, a branch or a decision record is added, and which exist precisely so that adding one is a deliberate act in a diff rather than something that happens quietly. RFC-2026-015 is added to the protected-file list and to the pinned set of decision records, and digested; this branch is added to the branch-to-package mapping. None of the four is edited in any other way: no floor is lowered, no existing row is changed, and nothing is removed. Also repairs WP-0A-CON-008's author handoff, which cited the pre-squash branch tip that the squash merge of PR #44 orphaned. That commit exists in no clone, so the conformance guard failed in CI while passing locally where the object was still reachable. The range is repointed at the squashed commit on main and the two files missing from its list are added; no claim in that handoff is changed. Repairing another package's record is normally that package's act, but the record names a commit that does not exist and CON-008 is merged, so there is no branch left to repair it from.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
+  },
+  "inputs": {
+    "files": [
+      "CONTRIBUTING_AGENTS.md",
+      "docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md",
+      "work-packages/WP-0A-CON-002.json",
+      "work-packages/WP-0A-CON-003.json",
+      "work-packages/WP-0A-CON-006.json"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+      "work-packages/WP-0A-A0-006.json",
+      "evidence/WP-0A-A0-006/blocker-re-audit.md"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "RFC-2026-015 proposes DATA-DEC-01 and DATA-DEC-02 only, states the default the data package already carries for each, and says what changes if the Product Owner picks otherwise.",
+    "The RFC refers DATA-DEC-03 to A1 with the question stated and no answer proposed, and says plainly that A0 alone must not close it.",
+    "The RFC is committed with status Proposed. An agent must not write Approved.",
+    "The re-audit records a verdict for each of the 36 blockers with the evidence that produced it, and marks the two it could not re-measure as unknown rather than closed.",
+    "npm run check stays green with no test skipped and no declared floor lowered."
+  ],
+  "required_tests": [
+    "npm run check",
+    "The work-package validators accept this manifest",
+    "The ownership and role-separation validators accept the role assignments"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs",
+      "node scripts/validate-work-package-role-separation.mjs"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. The package adds one decision record in Proposed state and one evidence file. No schema, migration, contract, persisted data, provider state or credential is touched, and a Proposed RFC binds nothing until the Product Owner disposes it.",
+  "open_blockers": [
+    "RFC-2026-015 is Proposed. DB-00 coding must not start on DATA-DEC-02 and DB-00 must not merge on DATA-DEC-01 until the Product Owner disposes it.",
+    "DATA-DEC-03 is referred to A1 and unanswered. It is due before G1, not before DB-00, so it does not gate the DB-00 dispatch — but it must be answered by A1, not inferred here.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work, which a Proposed decision record is."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

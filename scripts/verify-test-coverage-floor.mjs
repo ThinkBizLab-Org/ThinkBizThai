@@ -413,6 +413,7 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-012-client-database-boundary.md',
   'architecture/decisions/RFC-2026-013-agent-signature-scope.md',
   'architecture/decisions/RFC-2026-014-usage-measurement-identity.md',
+  'architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
