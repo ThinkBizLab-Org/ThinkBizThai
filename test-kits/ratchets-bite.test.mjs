@@ -29,7 +29,36 @@ const REPOSITORY = process.cwd();
 // This repository's own contract file already says it: *anything the running tests can emit, the
 // running tests can forge*. I wrote that sentence's lesson into a test and then broke it.
 // `.git` is 4.9 MB and copies in 0.15 s. **Every case asserts an exit code now.**
+// A ratchet that fills the disk it runs on is a ratchet someone turns off.
+//
+// Every case here copies the repository and removes it in a `finally`. That is correct while the
+// process lives, and useless when it does not: a timeout, a Ctrl-C or an OOM kill leaves the copy
+// behind. Measured after one session of iterating on a single case: 597 copies in the system
+// temporary directory and 463 MB free on a 228 GB disk. Each copy had also been dragging ten agent
+// worktrees, so they were 95 MB rather than 14 -- two independent defects compounding, and the
+// timing numbers taken during that period were inflated by both, not by the recursion alone.
+//
+// So: sweep this suite's own leftovers before making another, and refuse to start when the sweep
+// cannot get the count down. Refusing is the point. A silent accumulation is what turned a slow
+// test into an unusable machine.
+const COPY_PREFIX = 'ratchet-bite-';
+const MAX_LEFTOVER_COPIES = 8;
+
+async function sweepLeftoverCopies() {
+  const dir = await realpath(tmpdir());
+  const mine = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
+  for (const name of mine) {
+    await rm(join(dir, name), { recursive: true, force: true }).catch(() => {});
+  }
+  const left = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
+  assert.ok(left.length <= MAX_LEFTOVER_COPIES,
+    `${left.length} leftover repository copies remain under ${dir} after sweeping, above the ${MAX_LEFTOVER_COPIES} this suite tolerates. `
+    + 'Each is a full checkout. They accumulate when a run is killed before its cleanup, and they will fill the disk; '
+    + 'remove them before running this suite again rather than letting it add more.');
+}
+
 async function repositoryCopy() {
+  await sweepLeftoverCopies();
   // `realpath` the copy root. `$TMPDIR` on macOS is `/var/folders/…`, a symlink to
   // `/private/var/folders/…`, and `test-coverage-floor.test.mjs` resolves realpaths against the
   // working directory — so three of its tests failed on an unmodified copy and it was the one
@@ -37,9 +66,23 @@ async function repositoryCopy() {
   // removable and it was: one call, and the suite passes from a copy.
   const root = await realpath(await mkdtemp(join(tmpdir(), 'ratchet-bite-')));
   for (const entry of await readdir(REPOSITORY)) {
-    if (entry === 'node_modules') continue;
+    // `node_modules` was the only exclusion, and that was enough until the agent harness began
+    // creating linked git worktrees under `.claude/worktrees/` -- each a full checkout of this
+    // repository. Ten of them stood at once: 80 MB of a 95 MB tree. Every copy this function makes
+    // dragged them along, and a test that copies the repository and runs the whole check inside it
+    // ran for 2.3 hours instead of seconds.
+    //
+    // Skipping `.claude` is safe and checked rather than assumed: the repository tracks no file
+    // under it -- `git ls-files .claude` is empty -- and `.gitignore` excludes the worktrees. It is
+    // harness state, not repository content. The assertion below is what stops this exclusion from
+    // quietly becoming a hole.
+    if (entry === 'node_modules' || entry === '.claude') continue;
     await cp(join(REPOSITORY, entry), join(root, entry), { recursive: true });
   }
+  // A copy that lost the repository would make every reversal below pass over nothing.
+  const copied = await readdir(root);
+  assert.ok(copied.includes('contract-catalog') && copied.includes('scripts') && copied.includes('test-kits'),
+    `the repository copy is missing top-level directories the reversals need: ${copied.join(', ')}`);
   return root;
 }
 
@@ -389,4 +432,100 @@ test('the coverage-floor ratchet notices a guard stopped being enforced', async 
       'export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MANIFEST, floor = DIGESTED_FLOOR) {',
       'export async function assertDigestedSetNeverShrinks(manifestPath = INTEGRITY_MANIFEST, floor = DIGESTED_FLOOR) {\n  if (floor) return;'],
   ]);
+});
+
+// THE VERIFIER ITSELF, and the commit gate that believes it.
+//
+// `verify-clean-run.mjs` was pinned by two `assert.match` calls against its own SOURCE. The
+// independent reviewer of this package gutted it while leaving both pinned substrings present but
+// unreachable: it printed `clean: exit 0 — tests 260, pass 260, fail 0` while `npm run check`
+// reported eight failing tests and a reversed contract rule. And the forged line satisfies
+// `commit-when-clean.mjs`'s own clean-line regex, so ONE edit defeats the verifier and the commit
+// gate together.
+//
+// That is the static-property class this file exists to retire -- "every static property of a file
+// can be reproduced by a file that does nothing" -- never applied to the verifier itself. It is
+// applied here.
+//
+// `commit-when-clean.mjs` was executed by NO test at all: its only appearances in the repository
+// were two digest entries. Two one-line edits made it commit a tree with CTR-SEC-001's handle
+// pattern widened to `^.*$`, at exit 0.
+// The same environment the suite runner uses: NODE_TEST_CONTEXT makes a nested `node --test`
+// report as a subtest and exit 0 whatever happens inside, and a probe that silently fails to
+// observe looks exactly like a guard that does not fire.
+const CHILD_ENV = (() => {
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  delete env.NODE_OPTIONS;
+  return env;
+})();
+
+async function reverseContractRule(root) {
+  const path = join(root, 'contract-catalog/shared-kernel/ctr-sec-001/schema.json');
+  const schema = JSON.parse(await readFile(path, 'utf8'));
+  schema.properties.handle.pattern = '^.*$';
+  await writeFile(path, `${JSON.stringify(schema, null, 2)}\n`);
+}
+
+test('the verifier cannot report clean over a failing check, and the gate refuses what it reports', async () => {
+  // THE DEFECT. `verify-clean-run.mjs` was pinned by two `assert.match` calls against its own
+  // SOURCE. The independent reviewer of this package gutted it while leaving both pinned
+  // substrings present but unreachable: it printed `clean: exit 0 — tests 260, pass 260, fail 0`
+  // over a check reporting eight failures and a reversed contract rule. The forged line also
+  // satisfies `commit-when-clean.mjs`'s clean-line regex, so ONE edit defeated the verifier and
+  // the commit gate together. Static properties again -- the class this file exists to retire,
+  // never applied to the verifier itself.
+  //
+  // WHY THIS CALLS A FUNCTION INSTEAD OF RUNNING THE SCRIPT. `verify-clean-run.mjs` runs the WHOLE
+  // check, and the check contains this suite, so a behaviour test that runs it re-enters itself.
+  // Measured before that was understood: 2.3 hours, then 74 seconds after two narrowings, still
+  // recursing and still red on its own control. The decision the script makes is pure -- given a
+  // status and an output, is this clean -- so it is now separated into `decide()` and pinned here
+  // with synthetic inputs. No copy, no recursion, milliseconds.
+  const { decide } = await import('../scripts/verify-clean-run.mjs');
+  const cleanOutput = ['ℹ tests 260', 'ℹ pass 260', 'ℹ fail 0', 'ℹ skipped 0', 'ℹ todo 0'].join('\n');
+
+  const clean = decide(0, cleanOutput);
+  assert.equal(clean.exit, 0, 'a check that exited 0 having run tests is clean');
+  assert.ok(clean.stdout.some((line) => /^clean: exit 0/.test(line)), 'and says so in the line the commit gate reads');
+
+  // The exact shape the gutted reporter produced: output that looks clean, status that is not.
+  const liar = decide(1, cleanOutput);
+  assert.notEqual(liar.exit, 0, 'a failing status must not be reported clean however clean the output looks');
+  assert.ok(!liar.stdout.some((line) => /^clean: exit 0/.test(line)),
+    'and the clean line must not be printed — that line is what commit-when-clean reads, and forging it defeats both');
+
+  // The `.npmrc` case: exit 0 with nothing having run. Review seventeen turned every `npm run`
+  // into a no-op with one line and this reporter called it clean.
+  const ranNothing = decide(0, '');
+  assert.equal(ranNothing.exit, 90, 'exit 0 with no passing test reported is not clean; something ran nothing');
+
+  // A failing count is not a failing test, and quoting the wrong one is how this went unnoticed twice.
+  const countFailure = decide(88, ['ℹ tests 260', 'ℹ pass 260', 'ℹ fail 0'].join('\n'));
+  assert.equal(countFailure.exit, 88, 'the check\'s own code is passed through unchanged');
+  assert.ok(countFailure.stderr.some((line) => /every test passed and the run still failed/.test(line)),
+    'and the shape needs saying in words, because the numbers look clean');
+});
+
+test('the commit gate refuses a red tree, and is executed rather than digested', async () => {
+  // `commit-when-clean.mjs` appeared in the repository only as two digest entries -- no test of
+  // any kind executed it, and a digest pins bytes while only running the thing pins behaviour. Two
+  // one-line edits made it commit a tree with CTR-SEC-001's handle pattern widened to `^.*$`.
+  //
+  // The copy is made red by a synthetic credential built here and never written into this
+  // repository: `scan:secrets` is an early step of the check chain, so it fails in seconds without
+  // the suite running, and nothing any guard pins is touched.
+  const root = await repositoryCopy();
+  try {
+    const planted = ['AKIA', 'Q'.repeat(16)].join('');
+    await writeFile(join(root, 'docs/planted-for-a-ratchet.md'), `key = ${planted}\n`);
+    const message = join(root, 'commit-message.txt');
+    await writeFile(message, 'probe: this commit must be refused\n');
+
+    const gate = spawnSync('node', ['scripts/commit-when-clean.mjs', message], { cwd: root, encoding: 'utf8', env: CHILD_ENV });
+    assertFailed(gate, 'the commit gate must refuse a tree the verifier reports NOT clean');
+    assert.doesNotMatch(`${gate.stdout}${gate.stderr}`, /^\[.* [0-9a-f]{7}\]/m, 'and it must not have produced a commit');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
