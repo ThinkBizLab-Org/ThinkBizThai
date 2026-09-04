@@ -5,10 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "963990ff920c341899c408846e33e38b4cff6800",
-  "head_revision_or_patch_checksum": "963990ff920c341899c408846e33e38b4cff6800",
+  "head_revision_or_patch_checksum": "60a197d17b86374c0db0210878fa0991ee29fc4f",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
+    "evidence/WP-0A-A0-006/blocker-re-audit.md",
+    "handoffs/WP-0A-A0-006-author-handoff.json",
+    "work-packages/WP-0A-A0-006.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
