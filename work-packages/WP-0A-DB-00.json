@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-service-roles",
+    "branch": "agent/claude/WP-0A-DB-00-rls-helpers",
     "writable_paths": [
       "db/foundation/**",
       "scripts/db/**",
@@ -106,6 +106,7 @@
       "paths": [
         "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
