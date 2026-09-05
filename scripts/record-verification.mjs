@@ -54,7 +54,10 @@ be stale is a claim about the tree as it stands, and that claim lives only here.
 }
 
 async function main() {
-  const child = spawn(process.execPath, ['--test', TEST_PATTERN], { stdio: ['inherit', 'pipe', 'inherit'] });
+  // TEST_PATTERN is a list of roots. Passing the array itself makes node stringify it into one
+  // glob that matches nothing, and this script would then RECORD a clean run of zero tests —
+  // a verification record stating the suite passed while nothing ran. Spread it.
+  const child = spawn(process.execPath, ['--test', ...(Array.isArray(TEST_PATTERN) ? TEST_PATTERN : [TEST_PATTERN])], { stdio: ['inherit', 'pipe', 'inherit'] });
   let output = '';
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', (chunk) => { output += chunk; });

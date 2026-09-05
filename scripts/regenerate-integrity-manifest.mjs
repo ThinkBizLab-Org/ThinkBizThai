@@ -4,6 +4,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 
+import { TEST_ROOTS } from './test-suite-contract.mjs';
+
 // Four places in this repository tell someone to "rebuild the digests" and none of them said
 // how, because there was no command. Every rebuild so far was an inline script written from
 // memory at the moment it was needed -- during a rebase, under a conflict, which is exactly when
@@ -54,7 +56,12 @@ export async function rebuild(manifest, discovered) {
 
 async function main() {
   const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
-  const discovered = await discoverTestFiles('test-kits');
+  // Both roots. The runner globs `test-kits/**` and `tests/**`, and a manifest that walks only
+  // the first would DROP every module test on the next regeneration — which the ratchet then
+  // reports as protection being removed, correctly. Discovery here has to match discovery there,
+  // or the two disagree about what exists.
+  const discovered = (await Promise.all(TEST_ROOTS.map((root) => discoverTestFiles(root).catch(() => []))))
+    .flat().sort();
   const { manifest: rebuilt, added, dropped } = await rebuild(manifest, discovered);
   await writeFile(MANIFEST_PATH, `${JSON.stringify(rebuilt, null, 2)}\n`);
   const count = Object.keys(rebuilt.files).length;

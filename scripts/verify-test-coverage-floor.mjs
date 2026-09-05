@@ -14,6 +14,7 @@ import {
   MIN_TEST_FILES,
   RUNNER_SCRIPT,
   TEST_PATTERN,
+  TEST_ROOTS,
   TEST_ROOT,
 } from './test-suite-contract.mjs';
 import { createHash } from 'node:crypto';
@@ -288,10 +289,17 @@ export function assertCoverage(pattern, files, floor = DEFAULT_FLOOR) {
   if (files.length < floor) {
     throw new CoverageFloorError(75, `expected at least ${floor} test files under test-kits/, found ${files.length}. A green run that executes nothing is the defect this guard exists to prevent.`);
   }
-  const matcher = globToRegExp(pattern);
-  const unmatched = files.filter((file) => !matcher.test(posix.normalize(file.split('\\').join('/'))));
+    // The runner takes a LIST of patterns now — `test-kits/**` for the protocol and foundation
+    // suites, `tests/**` for a module's own tests, which the data package's ownership contract puts
+    // in its own directory. A file must match at least one, and every discovered file must still
+    // match SOMETHING: a test the pattern misses is a test the runner never executes. That is how
+    // A1's fourteen isolation tests came to be green by hand and absent from `npm run check`.
+    const patterns = Array.isArray(pattern) ? pattern : [pattern];
+    const matchers = patterns.map(globToRegExp);
+    const unmatched = files.filter((file) =>
+      !matchers.some((m) => m.test(posix.normalize(file.split('\\').join('/')))));
   if (unmatched.length > 0) {
-    throw new CoverageFloorError(76, `test:bootstrap pattern '${pattern}' does not match ${unmatched.length} discovered test file(s): ${unmatched.join(', ')}. These would silently never run.`);
+    throw new CoverageFloorError(76, `test:bootstrap pattern(s) '${patterns.join("', '")}' do not match ${unmatched.length} discovered test file(s): ${unmatched.join(', ')}. These would silently never run.`);
   }
   const directories = new Set(files.map((file) => file.split('/').slice(0, -1).join('/')));
   if (directories.size < MIN_TEST_DIRECTORIES) {
@@ -446,6 +454,7 @@ export const DIGESTED_FLOOR = [
   'test-kits/contracts/catalog-registry.test.mjs',
   'test-kits/db/foundation-contract.test.mjs',
   'test-kits/db/rls-assertions.test.mjs',
+  'tests/db/identity/identity-isolation.test.mjs',
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs',
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs',
   'test-kits/contracts/json-schema-subset.mjs',
@@ -627,7 +636,7 @@ export async function verifyTestCoverageFloor(packageJsonPath = 'package.json', 
   await assertIntegrityManifest();
   let files;
   try {
-    files = await discoverTestFiles(testDirectory);
+    files = (await Promise.all(TEST_ROOTS.map((r) => discoverTestFiles(r).catch(() => [])))).flat().sort();
   } catch (error) {
     if (error instanceof CoverageFloorError) throw error;
     // A missing or relocated test root must fail as this guard's own error, not as an
