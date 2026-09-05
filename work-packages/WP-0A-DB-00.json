@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-blockers-measured",
+    "branch": "agent/claude/WP-0A-DB-00-a1-countersignature",
     "writable_paths": [
       "Makefile",
       "db/foundation/**",
@@ -109,7 +109,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This branch changes two open_blockers in this package's own manifest and the handoff that cites them -- both owned outright. The branch-to-package mapping is pinned in a test, so renaming this package's branch moves one row there; the mapping is asserted whole, which is why the row cannot be added quietly. The integrity manifest moves because the manifest and handoff are protected files and their digests are recorded there; no floor is lowered and nothing leaves the protected set.\n\nThe seven paths declared here for the previous increment were removed. They were accurate for the CI-container branch merged in #57 and describe nothing this branch touches, and a declaration matching none of the diff is a standing permission nobody reviewed."
+      "rationale": "This branch records A1's countersignature as evidence and rewrites this package's own open_blockers around it -- both owned outright. The branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row there, where it appears in a diff. The integrity manifest records the digests of the protected files this branch edits."
     }
   },
   "inputs": {
@@ -163,7 +163,12 @@
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. The migration has never been applied to any database -- no instance is provisioned -- so there is no deployed schema to roll back, and the command contract and lint are inert without one.",
   "open_blockers": [
     "The live half runs in CI and nowhere else. A Postgres service container gives db-migrate-clean, db-schema-lint and db-rls-smoke a real database on every pull request; all five migration batches apply and the schema lint passes. This DEVELOPMENT HOST still has no psql, pg_ctl or docker, so the targets refuse locally and every live change is proven by a CI round, not from a shell. db-migrate-upgrade and db-seed-replay remain unproven for a different reason: neither has a fixture to run against, and both say so rather than reporting a pass.",
-    "A1's countersignature on the role topology is outstanding. DATA-DEC-03 is owned A0+A1; the Product Owner disposed RFC-2026-017, which closes the RFC but does not stand in for the co-owner.",
+    "open_blockers[1] asked for the co-owner's signature on the role topology. A1 wrote its own record at evidence/WP-0A-DB-00/a1-countersignature-role-topology.md. READ THE VERDICT THERE: this manifest is written by A0 and does not speak for another role, so it does not restate it here.\n\nWhat A0 can state, because it is a property of that document rather than a judgement about it: A1 re-measured the provisioned instance itself through ten read-only catalog queries rather than accepting A0's record, three of its findings contradict a record A0 wrote, and it declares in its own §0 that it is a subagent run in A0's vendor and model family assessing files it authored. It therefore does not satisfy independence.prefer_cross_vendor_review and does not lift the cross_vendor_exception this package already carries -- a second reading, not a second opinion.\n\nThe reservations that record raises are carried as the five blockers below, and they are open.",
+    "RESERVATION 1 (A1 §5.1). RFC-2026-016 §4 retired 'force RLS where compatible' and made an EXEMPTION REGISTER the control that replaces it. No such register exists anywhere in the repository. The phrase was retired for being unfalsifiable; its replacement is unfalsifiable by absence. Owner: A0, with RFC-2026-016's author.",
+    "RESERVATION 2 (A1 §5.2). scripts/db/run.mjs implements half of RFC-2026-016 §6's check: it asserts no service role holds BYPASSRLS and never asserts none is SUPERUSER. A superuser bypasses row level security whatever rolbypassrls says, so the half that is missing is the half that cannot be worked around. The snapshot's service_roles entries carry no super field at all, and its login_roles block, which does carry one, is read by no rule.",
+    "RESERVATION 3 (A1 §5.3/§5.4). The record does not describe the tree in two places. 010_identity.sql:14 cites 'batch 004 corrects the record' and no 004_*.sql exists, so batch 000's pgcrypto claim is still wrong on both counts (pgcrypto is in `extensions`; gen_random_uuid is in pg_catalog). 000_foundation.sql:12 still calls an approved RFC 'Proposed'.",
+    "RESERVATION 4 (A1 §5.5). tests/db/identity/fixtures/010-identity-fixture.sql:72,76 and isolation-cases.mjs:143 call public.digest(), which does not exist on the provisioned instance -- the same defect A0 fixed in the migration and left in the tests. The suite passes in CI only because the shim happens to make batch 000's wrong record true there. As committed it cannot run against the platform it describes.",
+    "RESERVATION 5 (A1 §5.6). deniedBy is declared on four isolation cases and asserted by nothing. It matters because RFC-2026-017 §7 is entirely about WHICH LAYER refused: a missing grant and a policy both raise 42501, and a case that does not distinguish them cannot tell a working policy from a forgotten grant.",
     "Tenant isolation is proven against the CI container and measured once against a provisioned Supabase instance, and the two prove different things. In CI, 28 isolation cases pass on every run and a NEGATIVE CONTROL disables row level security on app.workspaces and requires the suite to fail -- it reports 10 of 28, so the suite is not blind. What CI cannot establish is the platform: its roles come from db/foundation/ci/supabase-shim.sql and were created by us, so a green run means the policies still do what they did, never that this holds on Supabase. The BYPASSRLS measurement behind DATA-DEC-03 came from the provisioned instance and has no CI equivalent. Batches 020 and above own the assertions SMOKE_COVERAGE names as uncovered.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
