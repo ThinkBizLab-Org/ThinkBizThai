@@ -5,7 +5,7 @@
     ".agents/handoff.schema.json": "d0e9f77f2f0fa88c868083ce65326edd2cf5b96d65c99f5f97fa9572594c9c57",
     ".agents/status.schema.json": "384c4f232c6bc44df35ea45f232199322f5e1e1efaa9339611ceecadd49e8944",
     ".agents/work-package.schema.json": "58c2479c152acccae957ed61d932f84a1f685306ec823a8b8bee74006168c440",
-    ".github/workflows/ci.yml": "df5ffd4d102013dedef90b185ae4da9fa3b300a06b606673d2eda1a924786c2a",
+    ".github/workflows/ci.yml": "c70b685f1ba58c58c0d2210dba42288caa1440a9a6dbf8aab029130cb9a28f6f",
     ".node-version": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800",
     "CONTRIBUTING_AGENTS.md": "7da1710fbb5cb82120e73a21d6a7b35f90b198b8d5dc1a58835a8f801f8cb5b2",
     "architecture/decisions/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",

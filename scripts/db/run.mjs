@@ -289,16 +289,17 @@ async function runLive(target) {
   }
 
   if (target === 'rls-smoke' || target === 'test-foundation') {
-    const suite = target === 'rls-smoke' ? 'tests/db/identity/run-isolation.mjs' : null;
-    if (!suite) {
-      const { code } = await new Promise((done) => {
-        const child = spawn(process.execPath, ['--test', 'tests/**/*.test.mjs'], { stdio: 'inherit' });
-        child.on('close', (code) => done({ code }));
-      });
-      return code === 0 ? 0 : 1;
-    }
+    // rls-smoke goes through the adapter that binds A1's cases to psql. test-foundation runs the
+    // module suites under tests/, which are the static half and need no database — they are here
+    // because §12.5 names the target, and running them twice is cheaper than a target that lies.
+    const entry = target === 'rls-smoke'
+      ? ['scripts/db/rls-smoke.mjs']
+      : ['--test', 'tests/**/*.test.mjs'];
     const { code } = await new Promise((done) => {
-      const child = spawn(process.execPath, [suite], { stdio: 'inherit', env: { ...env, LC_ALL: 'C', TZ: 'UTC' } });
+      const child = spawn(process.execPath, entry, {
+        stdio: 'inherit',
+        env: { ...env, LC_ALL: 'C', TZ: 'UTC' },
+      });
       child.on('close', (code) => done({ code }));
     });
     return code === 0 ? 0 : 1;

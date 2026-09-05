@@ -117,3 +117,8 @@ jobs:
           psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql
           LC_ALL=C TZ=UTC make db-migrate-clean
           LC_ALL=C TZ=UTC make db-schema-lint
+          # The isolation cases. This is the step that turns "we measured it once" into "a
+          # regression fails the build", which is the difference between a measurement and a
+          # control. Read its output with the shim's header in mind: it proves the POLICIES, not
+          # the platform.
+          LC_ALL=C TZ=UTC make db-rls-smoke
