@@ -218,3 +218,33 @@ test('the driver strips every part of the connection string, not a format it rec
   // And an unparseable URL still gets the scheme rule rather than silently redacting nothing.
   assert.match(redactConnection('see postgresql://whatever/here', 'not-a-url'), /\[redacted\]/);
 });
+
+// SQLSTATE parsing, pinned on the exact text CI reported rather than on what psql's manual says.
+//
+// The driver first looked only for a separate `SQLSTATE:` line. psql in verbose mode puts the code
+// INLINE — `ERROR:  42501: permission denied ...` — so every real refusal came back with code null
+// and expectDenied refused it as unclassifiable. That was the guard behaving correctly on a driver
+// that was lying to it, and it cost three CI rounds because the code was visible in the previous
+// round's output and I read past it.
+test('a refusal is parsed as a refusal, from the text psql actually emits', async () => {
+  const { parseError } = await import('../../scripts/db/psql-driver.mjs');
+
+  // Verbatim from the CI log.
+  assert.deepEqual(
+    parseError('psql:<stdin>:3: ERROR:  42501: permission denied for table workspace_invitations'),
+    { code: '42501', message: 'permission denied for table workspace_invitations' });
+  assert.deepEqual(
+    parseError('psql:<stdin>:4: ERROR:  42501: new row violates row-level security policy for table "workspaces"'),
+    { code: '42501', message: 'new row violates row-level security policy for table "workspaces"' });
+
+  // The separate-line form, kept because another psql version may emit it.
+  assert.equal(parseError('ERROR:  permission denied\nSQLSTATE: 42501').code, '42501');
+
+  // A different error must keep its own code — folding everything into 42501 would let a
+  // constraint violation read as a working policy, which is what expectDenied exists to stop.
+  assert.equal(parseError('psql:<stdin>:1: ERROR:  23505: duplicate key value').code, '23505');
+
+  // And an outcome with no code stays without one, so expectDenied refuses it rather than
+  // guessing. A guessed code is worse than none: it turns "we do not know" into "RLS worked".
+  assert.equal(parseError('psql: error: connection to server failed').code, null);
+});

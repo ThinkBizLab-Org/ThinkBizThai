@@ -47,11 +47,19 @@ export function redactConnection(text, url) {
   return out;
 }
 
-function parseError(stderr) {
-  const code = stderr.match(/SQLSTATE[:\s]+([0-9A-Z]{5})/)?.[1]
-    ?? stderr.match(/^psql:.*?:\s*ERROR:\s.*\n.*?([0-9A-Z]{5})/m)?.[1]
+export function parseError(stderr) {
+  // psql in verbose mode prints the SQLSTATE INLINE — `ERROR:  42501: permission denied ...` —
+  // not on a separate `SQLSTATE:` line. The first version looked only for the separate line, so
+  // every real refusal came back with code null, and expectDenied correctly refused an outcome it
+  // could not classify: "an error with no code, which is not an RLS refusal".
+  //
+  // That is the guard behaving properly on a driver that was not telling it the truth. The
+  // evidence was in the run before, printed as "42501: permission denied for schema private",
+  // with the code sitting at the front of the message.
+  const code = stderr.match(/ERROR:\s+([0-9A-Z]{5}):/)?.[1]
+    ?? stderr.match(/SQLSTATE[:\s]+([0-9A-Z]{5})/)?.[1]
     ?? null;
-  const message = stderr.match(/ERROR:\s+(.*)/)?.[1]?.trim() ?? stderr.trim();
+  const message = stderr.match(/ERROR:\s+(?:[0-9A-Z]{5}:\s*)?(.*)/)?.[1]?.trim() ?? stderr.trim();
   return { code, message };
 }
 

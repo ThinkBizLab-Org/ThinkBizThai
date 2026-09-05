@@ -25,7 +25,7 @@ export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
   'test-kits': 33,
   'test-kits/contracts': 7,
   'tests/db/identity': 14,
-  'test-kits/db': 28,
+  'test-kits/db': 29,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
 // when its pattern matches nothing, so the count is asserted after the run -- and it is
@@ -77,7 +77,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 15,
   'test-kits/db/foundation-contract.test.mjs': 16,
-  'test-kits/db/rls-assertions.test.mjs': 12,
+  'test-kits/db/rls-assertions.test.mjs': 13,
   'tests/db/identity/identity-isolation.test.mjs': 14,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
@@ -124,7 +124,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
   'test-kits/db/foundation-contract.test.mjs': 66,
-  'test-kits/db/rls-assertions.test.mjs': 49,
+  'test-kits/db/rls-assertions.test.mjs': 54,
   'tests/db/identity/identity-isolation.test.mjs': 62,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
@@ -161,7 +161,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/foundation-contract.test.mjs': '248e6605283dde53',
-  'test-kits/db/rls-assertions.test.mjs': 'a2b7a260b218b719',
+  'test-kits/db/rls-assertions.test.mjs': 'f8e0179c04665afd',
   'tests/db/identity/identity-isolation.test.mjs': 'ef28fd583f9655f2',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',

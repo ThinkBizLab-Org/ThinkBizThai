@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
-  "head_revision_or_patch_checksum": "2dc931b4215722314e3acc3860673dd30ea763b8",
+  "head_revision_or_patch_checksum": "71715f2d63cca170f8f181784289161064c69272",
   "task_ids": [],
   "files_added": [
     "db/foundation/ci/supabase-shim.sql",
