@@ -410,23 +410,36 @@ test('a case that names the object refused is held to that object, not just to t
 
   // The object under test: accepted, and reported.
   const onTable = refusal('permission denied for table workspace_invitations');
-  assert.equal(expectDeniedBy(onTable, 'grant', 'x', 'workspace_invitations').deniedOn, 'workspace_invitations');
+  const invitations = { kind: 'table', name: 'workspace_invitations' };
+  assert.deepEqual(expectDeniedBy(onTable, 'grant', 'x', invitations).deniedOn, invitations);
 
   // The exact failure of the finding: the harness could not reach `private`, the case claimed the
   // privilege layer refused it on a table, and it passed. It does not now.
-  const onSchema = refusal('permission denied for schema private');
-  assert.throws(() => expectDeniedBy(onSchema, 'grant', 'the case', 'workspace_invitations'), AssertionOutcome);
-  assert.throws(() => expectDeniedBy(refusal('permission denied for function private.as_user'), 'grant', 'the case', 'workspaces'),
-    AssertionOutcome);
+  const onPrivate = refusal('permission denied for schema private');
+  assert.throws(() => expectDeniedBy(onPrivate, 'grant', 'the case', invitations), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(refusal('permission denied for function private.as_user'), 'grant', 'the case',
+    { kind: 'table', name: 'workspaces' }), AssertionOutcome);
   // A refusal on the wrong TABLE is the same defect, one step closer to home.
-  assert.throws(() => expectDeniedBy(onTable, 'grant', 'the case', 'workspaces'), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(onTable, 'grant', 'the case', { kind: 'table', name: 'workspaces' }), AssertionOutcome);
   // A refusal naming nothing at all cannot be attributed to the object the case names.
-  assert.throws(() => expectDeniedBy(refusal('permission denied'), 'grant', 'the case', 'workspaces'), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(refusal('permission denied'), 'grant', 'the case',
+    { kind: 'table', name: 'workspaces' }), AssertionOutcome);
+
+  // The KIND is part of the claim, not decoration. `anon` holds no USAGE on schema app and PUBLIC
+  // holds none either (measured), so an anonymous read is refused during name resolution, on the
+  // SCHEMA -- it never reaches a table. A case declaring that is accepted; the same case declaring
+  // a table refusal is not, which is what makes it notice the day anon is granted a privilege.
+  const onAppSchema = refusal('permission denied for schema app');
+  const appSchema = { kind: 'schema', name: 'app' };
+  assert.deepEqual(expectDeniedBy(onAppSchema, 'grant', 'x', appSchema).deniedOn, appSchema);
+  assert.throws(() => expectDeniedBy(onAppSchema, 'grant', 'the case', { kind: 'table', name: 'workspaces' }),
+    AssertionOutcome);
+  assert.throws(() => expectDeniedBy(onTable, 'grant', 'the case', appSchema), AssertionOutcome);
 
   // Silence is still not a claim: a case that declares no object is not held to one, and the layer
   // check it DID declare is unaffected.
-  assert.equal(expectDeniedBy(onSchema, 'grant', 'x').deniedBy, 'grant');
-  assert.equal(expectDeniedBy(onSchema, 'grant', 'x').deniedOn, 'private');
+  assert.equal(expectDeniedBy(onPrivate, 'grant', 'x').deniedBy, 'grant');
+  assert.deepEqual(expectDeniedBy(onPrivate, 'grant', 'x').deniedOn, { kind: 'schema', name: 'private' });
 });
 
 // C0's review D9. `LC_ALL=C` is set by the driver and by CI and it does NOT fix the language of

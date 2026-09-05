@@ -211,9 +211,20 @@ export function denialLayer(result) {
 // cases. The layer was attributed; the object was not, so the attribution named a layer of
 // something nobody had identified.
 //
-// A case therefore declares `deniedOn` beside `deniedBy`, and the refusal must name that relation.
-// A refusal naming a schema or a function is refused as evidence: it is the harness failing, and it
-// raises the same SQLSTATE the case is claiming.
+// A case therefore declares `deniedOn: { kind, name }` beside `deniedBy`, and the refusal must name
+// that exact object. The KIND is declared and not inferred, because which object a refusal lands on
+// is a real property of the privilege topology rather than a detail:
+//
+//   an `authenticated` identity holds USAGE on schema app (010:390), so a read it may not make is
+//   refused on the TABLE -- { kind: 'table', name: 'workspace_invitations' };
+//   `anon` is granted NOTHING anywhere (010:386) and PUBLIC holds no USAGE on app either (measured,
+//   catalog-snapshot public_grants.usage_on_app false), so an anonymous read never reaches a table
+//   at all: name resolution refuses it on the SCHEMA -- { kind: 'schema', name: 'app' }.
+//
+// Declaring the kind is what makes the second case say something. If a later batch ever grants anon
+// USAGE on app, that refusal moves from the schema to the table and the case FAILS -- which is the
+// notice A1 wrote the case for. And `private` is the harness's own schema: a case refused there was
+// never refused on anything it was testing.
 const DENIAL_OBJECT = [
   [/permission denied for column\s+"?[^\s",]+"?\s+of relation\s+"?([^\s",]+)"?/i, 'table'],
   [/permission denied for (?:table|relation|view|materialized view|sequence)\s+"?([^\s",]+)"?/i, 'table'],
@@ -255,22 +266,22 @@ export function expectDeniedBy(result, expected, what, on) {
       { expected, actual });
   }
   const object = denialObject(result);
-  if (!on) return { ...outcome, deniedBy: actual, deniedOn: object?.name ?? null };
+  if (!on) return { ...outcome, deniedBy: actual, deniedOn: object };
   if (object === null) {
     throw new AssertionOutcome(
-      `${what}: the case declares it is refused on app.${on}, and the message names no object at all, so `
-      + 'there is nothing to attribute the refusal to: '
+      `${what}: the case declares it is refused on the ${on.kind} ${on.name}, and the message names no `
+      + 'object at all, so there is nothing to attribute the refusal to: '
       + `${JSON.stringify(result?.error?.message ?? '')}`, { expected, on, object: null });
   }
-  if (object.kind !== 'table' || object.name !== on) {
+  if (object.kind !== on.kind || object.name !== on.name) {
     throw new AssertionOutcome(
-      `${what}: the case is about app.${on} and the database refused the ${object.kind} ${object.name}. `
-      + 'A refusal on something other than the object under test is evidence about the harness rather than '
-      + 'about the policy or the grant this case exists to prove -- a missing schema or function privilege '
-      + 'in the scaffolding raises the same 42501, which is how seven cases once failed at the identity '
-      + 'call and would have read as the identity being denied.', { expected, on, object });
+      `${what}: the case declares it is refused on the ${on.kind} ${on.name} and the database refused the `
+      + `${object.kind} ${object.name}. A refusal on a different object is evidence about something other `
+      + 'than what the case says -- a missing schema or function privilege in the scaffolding raises the '
+      + 'same 42501, which is how seven cases once failed at the identity call and would have read as the '
+      + 'identity being denied.', { expected, on, object });
   }
-  return { ...outcome, deniedBy: actual, deniedOn: object.name };
+  return { ...outcome, deniedBy: actual, deniedOn: object };
 }
 
 export function expectRows(result, what, atLeast = 1) {

@@ -112,8 +112,16 @@ test('a case that names the layer refusing it also names the object refused', ()
       `${testCase.id}: deniedBy and deniedOn are declared together or not at all. A layer with no object `
       + 'is what `permission denied for schema private` satisfies, and that is the harness failing rather '
       + 'than the object under test being refused.');
-    assert.match(testCase.sql, new RegExp(`\\bapp\\.${testCase.deniedOn}\\b`),
-      `${testCase.id}: declares deniedOn '${testCase.deniedOn}', which its own statement never names`);
+    const { kind, name } = testCase.deniedOn;
+    assert.ok(['table', 'schema'].includes(kind), `${testCase.id}: unknown deniedOn kind '${kind}'`);
+    // The declared object must be one the case's own statement reaches. A case cannot claim a
+    // refusal on something it never touches.
+    const named = kind === 'table' ? new RegExp(`\\bapp\\.${name}\\b`) : new RegExp(`\\b${name}\\.`);
+    assert.match(testCase.sql, named,
+      `${testCase.id}: declares deniedOn ${kind} '${name}', which its own statement never names`);
+    // And `private` is the harness's own schema, never an object under test: a case refused there
+    // is the scaffolding failing, which is exactly the shape D6 was about.
+    assert.notEqual(name, 'private', `${testCase.id}: private is the harness's schema, not a subject`);
   }
 });
 
