@@ -120,6 +120,7 @@ export async function schemaLint(files) {
 
 
 const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
+const EXEMPTIONS = 'db/foundation/lint/rls-exemption-register.json';
 
 // The text lint reads migration files. This reads what the database actually BECAME.
 //
@@ -137,9 +138,10 @@ export async function migrationSetDigest(files) {
   return createHash('sha256').update(each.join('\n') + '\n').digest('hex').slice(0, 16);
 }
 
-export async function catalogLint(snapshot, digest) {
+export async function catalogLint(snapshot, digest, exemptions) {
   const problems = [];
   const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));
+  const register = exemptions ?? JSON.parse(await readFile(EXEMPTIONS, 'utf8'));
   const expected = digest ?? await migrationSetDigest();
 
   if (snap.taken_against_migrations !== expected) {
@@ -156,11 +158,49 @@ export async function catalogLint(snapshot, digest) {
   if (c.public_grants?.create_on_app !== false) problems.push('PUBLIC may CREATE in app');
 
   // The rule the specified lint misses, now asserted against the catalog column rather than text.
+  //
+  // An unforced or unenabled table is a finding UNLESS the exemption register carries a row for it.
+  // That is RFC-2026-016 §4's replacement for "force where compatible": the condition was retired
+  // for being unfalsifiable, and a register is the falsifiable form — an exemption either has a row
+  // or it does not exist.
+  const exempt = (table) => (register.exemptions ?? []).filter((e) => e.table === table);
   for (const t of c.tenant_tables ?? []) {
-    if (!t.rls_enabled) problems.push(`app.${t.table}: relrowsecurity is false`);
-    if (!t.rls_forced) problems.push(`app.${t.table}: relforcerowsecurity is false — ENABLE alone leaves the table owner exempt`);
+    const rows = exempt(t.table);
+    if (!t.rls_enabled && rows.length === 0) problems.push(`app.${t.table}: relrowsecurity is false and no exemption is registered`);
+    if (!t.rls_forced && rows.length === 0) problems.push(`app.${t.table}: relforcerowsecurity is false and no exemption is registered — ENABLE alone leaves the table owner exempt`);
     if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
     if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
+  }
+
+  // And the other direction, which is what makes it a control rather than a list. A row here claims
+  // an exemption was taken; if the catalog does not show it, the register is describing a database
+  // that does not exist — and a register nobody can trust to be complete cannot be read as evidence
+  // that the tables NOT in it are forced.
+  const OPERATIONS = ['select', 'insert', 'update', 'delete', 'all'];
+  const known = new Map((c.tenant_tables ?? []).map((t) => [t.table, t]));
+  for (const [index, e] of (register.exemptions ?? []).entries()) {
+    const where = `rls-exemption-register.exemptions[${index}]`;
+    for (const field of ['role', 'table', 'operation', 'reason', 'owner', 'review_date']) {
+      if (!e[field]) problems.push(`${where}: no ${field} — RFC-2026-016 §4 requires role, table, operation, reason, owner and review date`);
+    }
+    if (e.operation && !OPERATIONS.includes(e.operation)) {
+      problems.push(`${where}: operation ${JSON.stringify(e.operation)} is not one of ${OPERATIONS.join(', ')}`);
+    }
+    const table = known.get(e.table);
+    if (e.table && table === undefined) {
+      problems.push(`${where}: app.${e.table} is not in the catalog — the exemption is for a table that does not exist`);
+    } else if (table && table.rls_enabled && table.rls_forced) {
+      problems.push(`${where}: app.${e.table} is enabled AND forced, so the exemption this row records was not taken. `
+        + 'Remove the row: a register carrying exemptions nobody took cannot be read as complete, and completeness '
+        + 'is the whole of what it proves about the tables that are NOT in it.');
+    }
+    // An exemption past its review date is a finding rather than a grandfathered fact. Dates are
+    // compared against the snapshot's own measurement date, not against now(): the register is
+    // judged against the database state it is being read with.
+    if (e.review_date && snap.taken_at && String(e.review_date) < String(snap.taken_at)) {
+      problems.push(`${where}: review date ${e.review_date} is before the snapshot was taken (${snap.taken_at}). `
+        + 'An expired exemption is a finding, not a fact that ages into permanence.');
+    }
   }
   for (const v of c.exposed_views ?? []) {
     if (!(v.reloptions ?? []).some((o) => /^security_invoker=(true|on)$/i.test(o))) {

@@ -1,0 +1,17 @@
+{
+  "_what": "The exemption register RFC-2026-016 §4 made the replacement for \"force RLS where compatible\".",
+  "_why": [
+    "\"Where compatible\" was retired for being unfalsifiable: no artefact could be pointed at to decide whether a table met it. A register is the falsifiable form -- an exemption either has a row here or it does not exist.",
+    "It is read in BOTH directions, which is what makes it a control rather than a list. A table that is not forced and has no row is refused. A row whose exemption is not visible in the catalog is refused too, because a register that keeps rows for exemptions nobody took is a register nobody can trust to be complete.",
+    "It was mandated on 2026-09-05 and did not exist until 2026-09-06. A1's countersignature §5.1 found the gap: the phrase was retired for being unfalsifiable and its replacement was unfalsifiable by absence."
+  ],
+  "_shape": {
+    "role": "the role the exemption is for -- a role name, or \"*\" when the exemption is the table not being forced at all",
+    "table": "unqualified table name in the app schema",
+    "operation": "select | insert | update | delete | all",
+    "reason": "why the general rule cannot hold here, in a sentence someone can disagree with",
+    "owner": "the run or human accountable for removing it",
+    "review_date": "ISO date. An exemption past its review date is a finding, not a grandfathered fact."
+  },
+  "exemptions": []
+}

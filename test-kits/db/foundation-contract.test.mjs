@@ -338,3 +338,80 @@ test('the managed-schema rule flags DDL targets and allows a call inside a predi
   assert.equal(await flagged('create policy p on auth.users for select to authenticated using (true);'), true);
   assert.equal(await flagged('create index i on storage.objects (name);'), true);
 });
+
+// The exemption register, read in BOTH directions -- which is the difference between a control and
+// a list, and it is RFC-2026-016 §4's own wording.
+//
+// "Force where compatible" was retired for being unfalsifiable: nothing could be pointed at to
+// decide whether a table met it. The register is the falsifiable form. It was mandated on
+// 2026-09-05 and did not exist until A1's countersignature §5.1 observed that the replacement for
+// an unfalsifiable phrase was unfalsifiable by absence.
+//
+// It is empty today, and empty only MEANS anything if a non-empty register would be checked. So
+// every case below constructs the situation rather than asserting on the file.
+test('an unforced table with no registered exemption is refused', async () => {
+  const base = await snapshot();
+  const unforced = structuredClone(base);
+  unforced.catalog.tenant_tables[0].rls_forced = false;
+
+  const problems = await catalogLint(unforced, unforced.taken_against_migrations, { exemptions: [] });
+  assert.ok(problems.some((p) => /relforcerowsecurity is false and no exemption is registered/.test(p)),
+    `an unforced table must be refused when nothing registers it:\n${problems.join('\n')}`);
+
+  // And accepted when it IS registered -- otherwise the register is decoration and the rule is
+  // just "never unforced", which is not what the RFC decided.
+  const registered = await catalogLint(unforced, unforced.taken_against_migrations, {
+    exemptions: [{
+      role: '*', table: unforced.catalog.tenant_tables[0].table, operation: 'all',
+      reason: 'constructed by this test', owner: '/claude/a0_atlas', review_date: '2099-01-01',
+    }],
+  });
+  assert.deepEqual(registered, [], `a registered exemption must be accepted:\n${registered.join('\n')}`);
+});
+
+test('a registered exemption the catalog does not show is refused too', async () => {
+  const base = await snapshot();
+  // Every table is forced, so ANY row is a claim about a state that was not taken.
+  const stale = await catalogLint(base, base.taken_against_migrations, {
+    exemptions: [{
+      role: '*', table: base.catalog.tenant_tables[0].table, operation: 'all',
+      reason: 'an exemption nobody took', owner: '/claude/a0_atlas', review_date: '2099-01-01',
+    }],
+  });
+  assert.ok(stale.some((p) => /is enabled AND forced, so the exemption this row records was not taken/.test(p)),
+    `a row with no matching catalog state must be refused:\n${stale.join('\n')}`);
+
+  // A row for a table that does not exist at all is the same defect, one step further.
+  const absent = await catalogLint(base, base.taken_against_migrations, {
+    exemptions: [{
+      role: '*', table: 'a_table_that_does_not_exist', operation: 'all',
+      reason: 'x', owner: 'y', review_date: '2099-01-01',
+    }],
+  });
+  assert.ok(absent.some((p) => /is not in the catalog/.test(p)), absent.join('\n'));
+});
+
+test('an exemption is refused when it is incomplete, mis-typed, or past its review date', async () => {
+  const base = await snapshot();
+  const unforced = structuredClone(base);
+  const table = unforced.catalog.tenant_tables[0].table;
+  unforced.catalog.tenant_tables[0].rls_forced = false;
+  const lint = (row) => catalogLint(unforced, unforced.taken_against_migrations, { exemptions: [row] });
+
+  // RFC-2026-016 §4 names six fields. A row missing one is not a weaker exemption, it is an
+  // exemption nobody can review.
+  for (const field of ['role', 'operation', 'reason', 'owner', 'review_date']) {
+    const row = { role: '*', table, operation: 'all', reason: 'r', owner: 'o', review_date: '2099-01-01' };
+    delete row[field];
+    const problems = await lint(row);
+    assert.ok(problems.some((p) => p.includes(`no ${field}`)), `a row missing ${field} must be refused:\n${problems.join('\n')}`);
+  }
+
+  const badOperation = await lint({ role: '*', table, operation: 'everything', reason: 'r', owner: 'o', review_date: '2099-01-01' });
+  assert.ok(badOperation.some((p) => /is not one of select, insert, update, delete, all/.test(p)), badOperation.join('\n'));
+
+  // The date is compared against the snapshot's own measurement date, so an exemption cannot age
+  // into permanence while the database it describes stands still.
+  const expired = await lint({ role: '*', table, operation: 'all', reason: 'r', owner: 'o', review_date: '2000-01-01' });
+  assert.ok(expired.some((p) => /is a finding, not a fact that ages into permanence/.test(p)), expired.join('\n'));
+});
