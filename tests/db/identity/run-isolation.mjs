@@ -22,7 +22,7 @@
 import { readFile } from 'node:fs/promises';
 
 import {
-  expectDenied, expectNoRows, expectRows,
+  expectDenied, expectDeniedBy, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
 
 export const FIXTURE_CATALOG = 'db/foundation/seeds/fixture-catalog.json';
@@ -145,6 +145,15 @@ async function runOne(testCase, driver) {
       const assertion = ASSERTION_FOR[testCase.expect];
       if (!assertion) throw new Error(`${testCase.id}: unknown outcome kind '${testCase.expect}'`);
       assertion(outcome, testCase.id);
+      // A case that names the layer that must refuse it is held to it. Four cases declare
+      // `deniedBy: 'grant'` and, until A1's countersignature §5.6 said so, nothing checked them --
+      // and a missing grant and a missing policy raise the same 42501, so a case that cannot tell
+      // them apart passes just as happily when the policy it exists to prove was never written.
+      //
+      // Silence is not a claim: a case declaring no layer is not checked here.
+      if (testCase.expect === 'denied' && testCase.deniedBy) {
+        expectDeniedBy(outcome, testCase.deniedBy, testCase.id);
+      }
       return { ...base, ok: true };
     } finally {
       // Always. Two cases are permitted writes and both must vanish.

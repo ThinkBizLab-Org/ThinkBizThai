@@ -67,13 +67,29 @@ on conflict (workspace_id, user_id) do nothing;
 -- invited_email is left NULL. It is nullable precisely so it can be absent or anonymized (§11.2),
 -- an isolation fixture has no use for a contact address, and the repository's own secret scan
 -- fails on any address literal — which is the correct outcome for a fixture file.
+-- The digest is taken with pg_catalog's sha256(bytea), NOT with pgcrypto's digest().
+--
+-- A1's countersignature (evidence/WP-0A-DB-00/a1-countersignature-role-topology.md §5.5) measured
+-- that `public.digest` does not exist on the provisioned instance: pgcrypto is installed there in
+-- the `extensions` schema, so batch 000's claim that it was installed `with schema public` was
+-- wrong -- the same wrong record that produced the gen_random_uuid failure in batch 010, fixed in
+-- the migration and left standing here.
+--
+-- This suite therefore ran green in CI and could not run at all against the platform it describes,
+-- because the shim happens to make the wrong record true in the container. A test that passes only
+-- where the record is wrong is worse than a failing one.
+--
+-- sha256() has been in pg_catalog since PostgreSQL 11 and needs no extension and no schema
+-- qualification, so it resolves identically in both places. The VALUE is unchanged:
+-- digest(text,'sha256') and sha256(convert_to(text,'utf8')) are the same 32 bytes, so no fixture
+-- identity moves.
 insert into app.workspace_invitations (workspace_id, role, token_hash, expires_at, created_by, updated_by) values
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'editor',
-   public.digest('thinkbizthai.fixture.invitation_a1', 'sha256'),
+   sha256(convert_to('thinkbizthai.fixture.invitation_a1', 'utf8')),
    now() + interval '7 days',
    '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'editor',
-   public.digest('thinkbizthai.fixture.invitation_b1', 'sha256'),
+   sha256(convert_to('thinkbizthai.fixture.invitation_b1', 'utf8')),
    now() + interval '7 days',
    '297ad853-58a6-5e83-87e1-f936f9c3ddff', '297ad853-58a6-5e83-87e1-f936f9c3ddff')
 on conflict (token_hash) do nothing;
