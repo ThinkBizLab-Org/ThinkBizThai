@@ -1,0 +1,40 @@
+-- The prerequisite of the migration set, applied by `make db-migrate-clean` before batch 000.
+--
+-- NOT a migration. It is deliberately outside db/foundation/migrations/ so that it carries no
+-- batch number, joins no digest, and reserves nothing in the migration registry. It is the state
+-- the set requires to EXIST before the first batch runs, on every database the set is applied to.
+--
+-- WHY IT EXISTS.
+--
+--   000_foundation.sql:24  `create extension if not exists pgcrypto with schema public;`
+--   004_correct_the_batch_000_record.sql  raises if pgcrypto is installed in `public`.
+--
+-- Both are applied and migration invariant 1 forbids rewriting either. So the set is applicable
+-- only to a database where pgcrypto ALREADY exists somewhere other than `public`, because that is
+-- the only arrangement in which 000's statement is the no-op it was on the provisioned instance.
+-- On a bare Postgres it is not a no-op: 000 installs pgcrypto into `public` and 004 then refuses
+-- the set, with a correct message about a state 000 itself created.
+--
+-- That prerequisite used to exist as ONE LINE INSIDE A GITHUB WORKFLOW -- `psql -f
+-- db/foundation/ci/supabase-shim.sql` before `make db-migrate-clean`. C0's review D3: the
+-- repository's own declared command could no longer apply its own migration set to a clean
+-- Postgres, and nothing recorded the cost. A prerequisite that lives in a workflow is a
+-- prerequisite the command does not have.
+--
+-- So it lives here and `db-migrate-clean` applies it, which also means CI now EXERCISES it rather
+-- than satisfying it in advance: the shim no longer places pgcrypto, so the container reaching
+-- batch 000 with pgcrypto in `extensions` is this file's doing and nothing else's.
+--
+-- WHY THESE TWO STATEMENTS AND NOT THE SHIM.
+--
+-- This is not Supabase emulation. `db/foundation/ci/supabase-shim.sql` creates an `auth` schema,
+-- an `auth.uid()` and three platform roles; applying THAT to a managed instance would replace the
+-- platform's own `auth.uid()`, which is why the shim stays a CI-only file that says so in its own
+-- header. Both statements below are `if not exists` and are no-ops on the provisioned instance,
+-- where `extensions` exists and pgcrypto is already in it (measured 2026-09-06,
+-- pg_extension.extnamespace on xtvtflkntpqfvflvdbwk).
+--
+-- pgcrypto is a trusted extension from PostgreSQL 13, so a database owner can install it without
+-- being superuser.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;

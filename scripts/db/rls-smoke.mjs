@@ -21,7 +21,9 @@ import { fixtureResolver, runCases, formatReport, FIXTURE_SQL } from '../../test
 // Statements are accumulated and flushed as one psql invocation per case, because a transaction
 // cannot survive psql exiting. `begin` opens a buffer; `exec` appends and, for the statement whose
 // result is needed, runs the buffer so far and returns that result; `rollback` discards.
-function bufferedDriver() {
+// `runQuery` is a seam, not a convenience: the `reset role;` decision below is a privilege
+// decision, and a test that cannot see the SQL this driver actually assembles cannot check one.
+export function bufferedDriver(runQuery = queryFinal) {
   let buffer = [];
   const run = async (statement, params) => {
     // psql has no bind parameters through --command, so values are inlined as SQL literals.
@@ -49,7 +51,6 @@ function bufferedDriver() {
     async begin() { buffer = ['begin;']; },
     async rollback() { buffer = []; },
     async exec(statement, params) {
-      const sql = await run(statement, params);
       // Assuming an identity means calling into `private`, and only the connection role can reach
       // it — `authenticated` cannot, exactly as batch 000 intends. A case that has already switched
       // role therefore cannot switch again, and the witness read (which runs as a DIFFERENT
@@ -61,13 +62,23 @@ function bufferedDriver() {
       // before any identity call. It is scoped by the surrounding transaction like everything else,
       // and it is not a loosening — the privilege boundary is untouched; the caller simply steps
       // back to its own role before asking to become someone else.
-      if (/\bprivate\.as_/.test(sql)) buffer.push('reset role;');
+      //
+      // IT IS DECIDED FROM THE STATEMENT, NEVER FROM THE STATEMENT WITH VALUES IN IT. The first
+      // version tested this pattern after parameters had been inlined, so a case passing the literal
+      // text `private.as_` as a VALUE — and the cases do pass free-text names like 'renamed by the
+      // service' — would have made its own statement run as the connection role instead of the
+      // identity under test (C0's review D7). No fixture value triggered it and the escalation was
+      // confined to a rolled-back transaction, but a control over a privilege decision must not be
+      // reachable from data at all. The statement is the code; the parameters are not.
+      const assumesIdentity = /\bprivate\.as_/.test(statement);
+      const sql = await run(statement, params);
+      if (assumesIdentity) buffer.push('reset role;');
       const final = sql.trim().endsWith(';') ? sql : `${sql};`;
       // Everything so far is replayed as the prelude, and only THIS statement's result is read
       // back. Running the buffer as one script and parsing all of its output is what made a
       // `set_config` row and a header line indistinguishable from a visible tenant row; the driver
       // marks the boundary because only the driver knows what psql prints.
-      const outcome = await queryFinal({ prelude: [...buffer], statement: final, epilogue: ['rollback;'] });
+      const outcome = await runQuery({ prelude: [...buffer], statement: final, epilogue: ['rollback;'] });
       buffer.push(final);
       return outcome;
     },

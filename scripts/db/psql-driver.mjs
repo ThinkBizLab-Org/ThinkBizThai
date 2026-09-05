@@ -158,16 +158,68 @@ export async function query(sql, options = {}) {
 // for a no-effect case a second identity and a witness read. Counting lines across all of that is
 // how a `set_config` row ends up counted as a visible tenant row.
 //
-// So a boundary row is selected immediately before the statement whose outcome is wanted, and only
-// what follows it is parsed. The marker is a constant this driver chooses; a value in the data
-// that happened to contain it would be read as a boundary, which is why it is not a word.
+// So the statement's result is FENCED: a marker row is selected immediately before it and another
+// immediately after it, and only what lies between them is parsed.
+//
+// Two markers rather than one, and counted rather than searched, because of C0's review D8. The
+// first version selected one marker before the statement and parsed everything after the LAST
+// occurrence of it. Both halves of that were movable:
+//
+//   * The result boundary could be moved FORWARD by data. A marker appearing in the statement's own
+//     output won the `lastIndexOf`, so the tail became a suffix of the real result whose first line
+//     was then eaten as a header — and a single occurrence in the final row yielded ZERO ROWS.
+//     Zero rows is a PASS for `expectNoRows` and for half one of `expectNoEffect`, so the failure
+//     mode was silent. It is not reachable from today's fixture, and it becomes reachable the
+//     moment an isolation case reads a column carrying user content, which SMOKE_COVERAGE says
+//     batches 020, 040 and 080 owe.
+//   * The EPILOGUE was inside the parsed region. Anything it printed was parsed as extra rows of
+//     the statement's result, its header read as a data row. That was safe only because the sole
+//     caller passes `rollback;`, which prints nothing under --quiet, and nothing in the signature
+//     or in a test said an epilogue must be silent. The closing marker makes it structural: the
+//     epilogue is now outside the region, whatever it prints.
+//
+// Each marker select prints its marker exactly twice — once as the column name, once as the value —
+// so 2 and 2 is the only shape this driver emits. Any other count means output somewhere carried a
+// marker, and the driver refuses rather than choosing an occurrence: a boundary a value can move is
+// a result boundary decided by the data.
+//
+// Still true and still by convention rather than by construction: a `statement` containing two
+// statements has both outputs folded into one region, and a statement returning no result set at
+// all parses to `[]`, indistinguishable from a header with no rows. `identity-isolation.test.mjs`
+// asserts statically that every mutation case carries RETURNING, which is what makes the second
+// safe.
 export const RESULT_BOUNDARY = '__psql_driver_result_boundary__';
+export const RESULT_END = '__psql_driver_result_end__';
 
-export function afterBoundary(stdout) {
-  const at = String(stdout).lastIndexOf(RESULT_BOUNDARY);
-  if (at === -1) return null;
-  const newline = String(stdout).indexOf('\n', at);
-  return newline === -1 ? '' : String(stdout).slice(newline + 1);
+const occurrencesOf = (text, marker) => text.split(marker).length - 1;
+
+// `{ tail }` — the statement's own output — or `{ error }` saying why there is no such region.
+export function resultRegion(stdout) {
+  const text = String(stdout);
+  const opens = occurrencesOf(text, RESULT_BOUNDARY);
+  const closes = occurrencesOf(text, RESULT_END);
+  // The opening boundary is selected before the statement, so its absence means psql stopped
+  // earlier without a non-zero exit. Reporting that as an empty result would be a pass nobody
+  // earned.
+  if (opens === 0) {
+    return { error: 'the result boundary never printed: psql produced no output for the statement under test' };
+  }
+  if (closes === 0) {
+    return { error: 'the closing result boundary never printed: psql stopped at or inside the statement under '
+      + 'test, so what it did print cannot be read as that statement\'s whole result' };
+  }
+  if (opens !== 2 || closes !== 2) {
+    return { error: `the result boundary printed ${opens} time(s) and its close ${closes}, where each marker `
+      + 'select prints exactly twice — its column name and its value. Output somewhere carries a marker, so the '
+      + 'result boundary would be decided by the data rather than by the driver, and this driver will not choose '
+      + 'an occurrence and call the answer a result.' };
+  }
+  const start = text.indexOf('\n', text.lastIndexOf(RESULT_BOUNDARY));
+  const end = text.indexOf(RESULT_END);
+  if (start === -1 || end < start) {
+    return { error: 'the result boundaries printed out of order, so no region of this output is the statement\'s result' };
+  }
+  return { tail: text.slice(start + 1, end) };
 }
 
 export async function queryFinal({ prelude = [], statement, epilogue = [] }, options = {}) {
@@ -175,17 +227,14 @@ export async function queryFinal({ prelude = [], statement, epilogue = [] }, opt
     ...prelude,
     `select '${RESULT_BOUNDARY}' as ${RESULT_BOUNDARY};`,
     statement,
+    `select '${RESULT_END}' as ${RESULT_END};`,
     ...epilogue,
   ].join('\n');
   const out = await invoke(sql, options);
   if (out.error) return out;
-  const tail = afterBoundary(out.stdout);
-  if (tail === null) {
-    // The boundary is selected before the statement, so its absence means psql stopped earlier
-    // without a non-zero exit. Reporting it as an empty result would be a pass nobody earned.
-    return { error: { code: null, message: 'the result boundary never printed: psql produced no output for the statement under test' } };
-  }
-  return { rows: rowsFromCsv(tail) };
+  const region = resultRegion(out.stdout);
+  if (region.error) return { error: { code: null, message: region.error } };
+  return { rows: rowsFromCsv(region.tail) };
 }
 
 // Several statements as one transaction, for fixtures and migrations. Deliberately separate from

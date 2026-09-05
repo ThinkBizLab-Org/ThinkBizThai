@@ -280,25 +280,74 @@ test('csv rows are keyed by column name, and a header alone is zero rows', async
 // `set_config` row from assuming an identity as a visible tenant row — a false pass on exactly the
 // assertion that matters.
 test('the result boundary separates the statement under test from everything before it', async () => {
-  const { afterBoundary, rowsFromCsv, RESULT_BOUNDARY } = await import('../../scripts/db/psql-driver.mjs');
+  const { resultRegion, rowsFromCsv, RESULT_BOUNDARY, RESULT_END } = await import('../../scripts/db/psql-driver.mjs');
 
   // Shaped like a real no-effect case: assume the owner, run the filtered update, assume the
-  // witness, read the row back.
+  // witness, read the row back, then roll back.
   const output = [
     'set_config,set_config', 'authenticated,authenticated',   // private.as_user(...)
     'id',                                                     // the update: RETURNING, zero rows
     RESULT_BOUNDARY, RESULT_BOUNDARY,                         // the boundary: header, then value
     'name', 'fixture workspace a',                            // the witness read
+    RESULT_END, RESULT_END,                                   // the close: header, then value
   ].join('\n');
 
-  assert.deepEqual(rowsFromCsv(afterBoundary(output)), [{ name: 'fixture workspace a' }]);
+  assert.deepEqual(rowsFromCsv(resultRegion(output).tail), [{ name: 'fixture workspace a' }]);
 
-  // A statement that returns nothing at all after the boundary is an empty result, not a row.
-  assert.deepEqual(rowsFromCsv(afterBoundary(`x\n1\n${RESULT_BOUNDARY}\n${RESULT_BOUNDARY}\nid\n`)), []);
+  // A statement that returns nothing at all inside the region is an empty result, not a row.
+  const empty = `x\n1\n${RESULT_BOUNDARY}\n${RESULT_BOUNDARY}\nid\n${RESULT_END}\n${RESULT_END}\n`;
+  assert.deepEqual(rowsFromCsv(resultRegion(empty).tail), []);
 
   // No boundary means psql stopped before reaching it. The caller turns this into an error rather
   // than an empty result, because "nothing printed" is not "the write was filtered".
-  assert.equal(afterBoundary('some output with no marker'), null);
+  assert.match(resultRegion('some output with no marker').error, /never printed/);
+  assert.equal(resultRegion('some output with no marker').tail, undefined);
+  // And no CLOSE means it stopped at or inside the statement, which is not an empty result either.
+  assert.match(resultRegion(`${RESULT_BOUNDARY}\n${RESULT_BOUNDARY}\nname\n`).error, /closing result boundary never printed/);
+});
+
+// C0's review D8: the boundary could be moved by DATA, and moving it forward was silent.
+//
+// The first version searched for the LAST occurrence of one marker, so a marker appearing in the
+// statement's own output won -- the region became a suffix of the real result whose first line was
+// then eaten as a header, and a single occurrence in the final row yielded ZERO ROWS. Zero rows is
+// a PASS for `expectNoRows` and for half one of `expectNoEffect`. Not reachable from today's
+// fixture; reachable the moment a case reads a column carrying user content, which SMOKE_COVERAGE
+// says batches 020, 040 and 080 owe.
+test('a marker in the data moves no boundary: the driver refuses instead of choosing', async () => {
+  const { resultRegion, rowsFromCsv, RESULT_BOUNDARY, RESULT_END } = await import('../../scripts/db/psql-driver.mjs');
+
+  // A workspace whose NAME carries the marker. Under the old rule this returned zero rows and the
+  // case passed; under this one there is no region and the caller reports an error.
+  const forged = [
+    RESULT_BOUNDARY, RESULT_BOUNDARY,
+    'name', `a workspace called ${RESULT_BOUNDARY}`,
+    RESULT_END, RESULT_END,
+  ].join('\n');
+  const region = resultRegion(forged);
+  assert.equal(region.tail, undefined, 'a forged marker must not produce a region at all');
+  assert.match(region.error, /decided by the data rather than by the driver/);
+
+  // The close marker is no more forgeable than the open one.
+  const forgedClose = [
+    RESULT_BOUNDARY, RESULT_BOUNDARY,
+    'name', `a workspace called ${RESULT_END}`,
+    RESULT_END, RESULT_END,
+  ].join('\n');
+  assert.equal(resultRegion(forgedClose).tail, undefined);
+  assert.match(resultRegion(forgedClose).error, /decided by the data/);
+
+  // And the epilogue is OUTSIDE the region rather than trusted to be silent. `rollback;` prints
+  // nothing under --quiet today; nothing in the signature said it had to, and anything it printed
+  // used to be parsed as extra rows of the statement's result with its header read as a data row.
+  const chatty = [
+    RESULT_BOUNDARY, RESULT_BOUNDARY,
+    'name', 'fixture workspace a',
+    RESULT_END, RESULT_END,
+    'notice', 'an epilogue that prints',
+  ].join('\n');
+  assert.deepEqual(rowsFromCsv(resultRegion(chatty).tail), [{ name: 'fixture workspace a' }],
+    'what the epilogue prints is not part of the statement it follows');
 });
 
 // WHICH layer refused. A missing grant and a missing policy both raise 42501, so a suite that
@@ -334,4 +383,94 @@ test('a case that names the layer refusing it is held to that layer', async () =
   // Declaring no layer is not a claim, so it is not checked -- but the refusal itself still is.
   assert.equal(expectDeniedBy(grant, undefined, 'x').kind, 'denied');
   assert.throws(() => expectDeniedBy({ rows: [] }, undefined, 'x'), AssertionOutcome);
+});
+
+// WHICH OBJECT, which is the other half of an attribution (C0's review D6).
+//
+// `permission denied` is a catch-all: `permission denied for schema private` -- the failure this
+// harness actually produced on all seven no-effect cases -- is 42501 and classified as the same
+// 'grant' layer as a refusal on the table under test. So a case declaring `deniedBy: 'grant'`
+// passed when the refusal came from a privilege problem in the scaffolding.
+test('a case that names the object refused is held to that object, not just to the layer', async () => {
+  const { expectDeniedBy, denialObject, AssertionOutcome } = await import('../../db/foundation/test-helpers/rls-assertions.mjs');
+  const refusal = (message) => ({ error: { code: '42501', message } });
+
+  // The four shapes, and what each one is EVIDENCE about.
+  assert.deepEqual(denialObject(refusal('permission denied for table workspace_invitations')),
+    { kind: 'table', name: 'workspace_invitations' });
+  assert.deepEqual(denialObject(refusal('permission denied for column token_hash of relation workspace_invitations')),
+    { kind: 'table', name: 'workspace_invitations' });
+  assert.deepEqual(denialObject(refusal('new row violates row-level security policy for table "workspaces"')),
+    { kind: 'table', name: 'workspaces' });
+  assert.deepEqual(denialObject(refusal('permission denied for schema private')),
+    { kind: 'schema', name: 'private' });
+  assert.deepEqual(denialObject(refusal('permission denied for function private.as_user')),
+    { kind: 'function', name: 'as_user' });
+  assert.equal(denialObject(refusal('permission denied')), null);
+
+  // The object under test: accepted, and reported.
+  const onTable = refusal('permission denied for table workspace_invitations');
+  assert.equal(expectDeniedBy(onTable, 'grant', 'x', 'workspace_invitations').deniedOn, 'workspace_invitations');
+
+  // The exact failure of the finding: the harness could not reach `private`, the case claimed the
+  // privilege layer refused it on a table, and it passed. It does not now.
+  const onSchema = refusal('permission denied for schema private');
+  assert.throws(() => expectDeniedBy(onSchema, 'grant', 'the case', 'workspace_invitations'), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(refusal('permission denied for function private.as_user'), 'grant', 'the case', 'workspaces'),
+    AssertionOutcome);
+  // A refusal on the wrong TABLE is the same defect, one step closer to home.
+  assert.throws(() => expectDeniedBy(onTable, 'grant', 'the case', 'workspaces'), AssertionOutcome);
+  // A refusal naming nothing at all cannot be attributed to the object the case names.
+  assert.throws(() => expectDeniedBy(refusal('permission denied'), 'grant', 'the case', 'workspaces'), AssertionOutcome);
+
+  // Silence is still not a claim: a case that declares no object is not held to one, and the layer
+  // check it DID declare is unaffected.
+  assert.equal(expectDeniedBy(onSchema, 'grant', 'x').deniedBy, 'grant');
+  assert.equal(expectDeniedBy(onSchema, 'grant', 'x').deniedOn, 'private');
+});
+
+// C0's review D9. `LC_ALL=C` is set by the driver and by CI and it does NOT fix the language of
+// these messages: they are server-generated, so their language is the server's `lc_messages`, which
+// is SUSET and which a client's environment does not reach. That makes the module's old guarantee
+// wrong -- and the reason it was not also unsafe is asserted here rather than assumed.
+test('a server that does not speak English fails the layer check closed, and never open', async () => {
+  const { expectDenied, expectDeniedBy, denialLayer, AssertionOutcome } = await import('../../db/foundation/test-helpers/rls-assertions.mjs');
+
+  // The same refusal, from a server with a localised lc_messages. SQLSTATE is locale-independent,
+  // so the refusal itself is still classified...
+  const localised = { error: { code: '42501', message: 'droit refuse pour la table workspaces' } };
+  assert.equal(expectDenied(localised, 'x').kind, 'denied');
+  // ...and the LAYER is not, so it is refused rather than guessed at. A case declaring a layer
+  // fails; it does not quietly pass with the catch-all arm.
+  assert.equal(denialLayer(localised), null);
+  assert.throws(() => expectDeniedBy(localised, 'grant', 'the case'), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(localised, 'policy', 'the case'), AssertionOutcome);
+});
+
+// C0's review D7. `reset role;` steps the connection back to its own role before a case asks to
+// become someone else, and the decision to emit it is a privilege decision. It was made by matching
+// a pattern against the SQL AFTER parameter values had been inlined into it -- so a case passing
+// the literal text `private.as_` as a value, and the cases do pass free-text names, would have run
+// its own statement as the connection role instead of the identity under test.
+test('the reset-role decision is made from the statement and never from its parameters', async () => {
+  const { bufferedDriver } = await import('../../scripts/db/rls-smoke.mjs');
+  const sent = [];
+  const driver = bufferedDriver(async (call) => { sent.push(call); return { rows: [] }; });
+
+  await driver.begin();
+  // An ordinary statement whose PARAMETER carries the marker text. Nothing here asks to assume an
+  // identity, so nothing may step back to the connection role.
+  await driver.exec('update app.workspaces set name = $2 where id = $1 returning id',
+    ['00000000-0000-0000-0000-000000000001', 'renamed by private.as_service']);
+  assert.equal(sent.length, 1);
+  assert.ok(!sent[0].prelude.includes('reset role;'),
+    `a parameter value must not inject a privilege statement:\n${sent[0].prelude.join('\n')}`);
+  // The value still reaches the statement, escaped -- this is not the shape-restricting rule that
+  // blocked seven legitimate cases, it is the same escaping with the control moved off the data.
+  assert.match(sent[0].statement, /renamed by private\.as_service/);
+
+  // And the statement that really does assume an identity still gets its reset.
+  await driver.exec('select private.as_user($1::uuid)', ['00000000-0000-0000-0000-000000000001']);
+  assert.ok(sent[1].prelude.includes('reset role;'),
+    `an identity call must still step back to the connection role first:\n${sent[1].prelude.join('\n')}`);
 });

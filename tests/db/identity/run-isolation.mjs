@@ -150,9 +150,14 @@ async function runOne(testCase, driver) {
       // and a missing grant and a missing policy raise the same 42501, so a case that cannot tell
       // them apart passes just as happily when the policy it exists to prove was never written.
       //
+      // A0 CORRECTION, on C0's review D6: the layer alone was not an attribution. `permission
+      // denied for schema private` -- the failure this harness produced on all seven no-effect
+      // cases -- is 42501 and classifies as the same 'grant' layer as a refusal on the table under
+      // test, so `deniedOn` is passed too and the refusal must name that relation.
+      //
       // Silence is not a claim: a case declaring no layer is not checked here.
       if (testCase.expect === 'denied' && testCase.deniedBy) {
-        expectDeniedBy(outcome, testCase.deniedBy, testCase.id);
+        expectDeniedBy(outcome, testCase.deniedBy, testCase.id, testCase.deniedOn);
       }
       return { ...base, ok: true };
     } finally {
