@@ -125,7 +125,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-003-stale-blockers': 'WP-0A-CON-003',
   'agent/claude/WP-0A-CON-004-security-audit-observability': 'WP-0A-CON-004',
   'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
-  'agent/claude/WP-0A-CON-006-usage-and-notification': 'WP-0A-CON-006',
+  'agent/claude/WP-0A-CON-006-stale-blockers': 'WP-0A-CON-006',
   'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',
   'agent/claude/WP-0A-A6-001-metric-dictionary': 'WP-0A-A6-001',
   'agent/claude/WP-0A-CON-008-handoff-base': 'WP-0A-CON-008',
