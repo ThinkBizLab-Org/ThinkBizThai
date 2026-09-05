@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "478cd9b59f73c24cd1c5d6c8056e087921b66449",
-  "head_revision_or_patch_checksum": "c50868f6422f6ed059c58a6b3a0581ff434aa66a",
+  "base_revision": "037054a132393f28e7f9e2bdb381bd565919f2ff",
+  "head_revision_or_patch_checksum": "da1428f0b6605bdd84deb27164fd3a86542261c8",
   "task_ids": [],
   "files_added": [
     "db/foundation/prerequisites.sql",
