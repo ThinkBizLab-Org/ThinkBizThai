@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
-  "head_revision_or_patch_checksum": "1e4228ddaa74dce5ceeaa92c5940980f9ceeddd1",
+  "head_revision_or_patch_checksum": "7bea2aa6566803863463eeaa1a3bd52fb47e38bd",
   "task_ids": [],
   "files_added": [
     "db/foundation/ci/supabase-shim.sql",
@@ -22,6 +22,8 @@
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/rls-assertions.test.mjs",
     "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
