@@ -149,6 +149,27 @@ export async function catalogLint(snapshot, digest) {
     }
   }
 
+  // The service roles RFC-2026-017 created. Every property here was a deliberate decision, so
+  // every one is asserted rather than assumed to hold.
+  //
+  // `has_password` is read from `pg_authid` in the snapshot, NOT `pg_roles`: `pg_roles` replaces
+  // rolpassword with the literal '********', so the obvious query reports a password on every role
+  // including ones that have none. The first measurement taken here made exactly that mistake.
+  const SERVICE_ROLES = ['app_command', 'app_maintenance', 'app_worker'];
+  const present = (c.service_roles ?? []).map((r) => r.role).sort();
+  if (c.service_roles !== undefined) {
+    for (const name of SERVICE_ROLES) {
+      if (!present.includes(name)) problems.push(`service role ${name} is missing from the catalog — RFC-2026-017 created it`);
+    }
+    for (const r of c.service_roles ?? []) {
+      // The one that matters. A service role that bypasses RLS is the exact defect this whole
+      // decision exists to prevent, and it would look identical to a working one from the outside.
+      if (r.bypassrls) problems.push(`${r.role} holds BYPASSRLS — RFC-2026-017 requires that RLS apply to it, and every policy written for it is inert while this is true`);
+      if (r.canlogin && !r.has_password) problems.push(`${r.role} can log in with no password`);
+      if (r.can_use_private) problems.push(`${r.role} has USAGE on private, which no service role is granted`);
+    }
+  }
+
   // The measurement that answers DATA-DEC-03's decisive question, kept as a standing assertion
   // rather than a one-off: these are the roles that bypass RLS on this platform today. A new one
   // appearing is a security event, not a detail.

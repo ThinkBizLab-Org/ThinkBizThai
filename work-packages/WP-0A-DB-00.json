@@ -61,7 +61,8 @@
   },
   "decisions_consumed": [
     "DATA-DEC-01",
-    "DATA-DEC-02"
+    "DATA-DEC-02",
+    "DATA-DEC-03"
   ],
   "contracts_consumed": [],
   "contracts_produced": [],
@@ -72,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-catalog-truth",
+    "branch": "agent/claude/WP-0A-DB-00-service-roles",
     "writable_paths": [
       "db/foundation/**",
       "scripts/db/**",
@@ -164,10 +165,10 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. The migration has never been applied to any database -- no instance is provisioned -- so there is no deployed schema to roll back, and the command contract and lint are inert without one.",
   "open_blockers": [
-    "The live half of the harness is unproven. This host has no psql, pg_ctl or docker and the repository forbids a dependency, so migrate, seed replay and RLS smoke have never executed. They are wired to refuse, not to pass.",
-    "No tenant table exists yet, so the ENABLE-vs-FORCE lint rule is pinned against synthetic SQL rather than a real one. That is deliberate: the rule has to bite before the first tenant table is written.",
-    "No tenant table or RLS policy is written here. WP-0A-A0-007 carries a Proposed decision on the policy shape every later batch would inherit, and migration invariant 1 forbids rewriting a merged migration, so batch 000 stays free of it until that is disposed.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is reversible foundation binding no production schema and no external provider."
+    "The live half of the harness is still unproven from a shell. This host has no psql, pg_ctl or docker and the repository forbids a dependency, so migrate, seed replay and RLS smoke remain wired to refuse. Batch 000 and 001 were applied through the Supabase connector, which is not the same as db-migrate-clean having run.",
+    "A1's countersignature on the role topology is outstanding. DATA-DEC-03 is owned A0+A1; the Product Owner disposed RFC-2026-017, which closes the RFC but does not stand in for the co-owner.",
+    "Tenant isolation is NOT proven. No tenant table exists, so no cross-tenant assertion has run, and the assertion that would detect a regression -- the service identity denied with an error rather than an empty result -- does not exist yet.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
   "review_and_test_gates": [
     "author_complete",
