@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -41,20 +42,50 @@ const REPOSITORY = process.cwd();
 // So: sweep this suite's own leftovers before making another, and refuse to start when the sweep
 // cannot get the count down. Refusing is the point. A silent accumulation is what turned a slow
 // test into an unusable machine.
+//
+// And it must sweep only ITS OWN. The first version deleted every `ratchet-bite-*` directory it
+// found, which is correct for one runner and wrong the moment there are two: four agent worktrees
+// running this suite at once deleted each other's copies mid-run, and the cases then failed with
+// ENOENT and `must pass on an unmodified copy` -- a guard reporting a wrong reason, which this
+// package has already recorded as worse than a guard that stays silent. Three separate runs hit it
+// within an hour and two of them diagnosed it independently before the cause was found.
+//
+// So the owning process id is IN THE NAME, and a copy is swept only when its owner is gone.
+// `process.kill(pid, 0)` signals nothing and throws ESRCH when no such process exists; EPERM means
+// it exists and belongs to someone else, which is still alive and still must not be touched.
 const COPY_PREFIX = 'ratchet-bite-';
 const MAX_LEFTOVER_COPIES = 8;
 
-async function sweepLeftoverCopies() {
+// `ratchet-bite-<pid>-<random>`; anything without a parseable pid is from an older revision of this
+// file and is treated as abandoned, which it is.
+export function ownerOf(name) {
+  const pid = Number(name.slice(COPY_PREFIX.length).split('-')[0]);
+  return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
+export function stillRunning(pid) {
+  if (pid === null) return false;
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code === 'EPERM'; }
+}
+
+export async function sweepLeftoverCopies() {
   const dir = await realpath(tmpdir());
-  const mine = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
-  for (const name of mine) {
+  const all = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
+  const abandoned = all.filter((name) => !stillRunning(ownerOf(name)));
+  for (const name of abandoned) {
     await rm(join(dir, name), { recursive: true, force: true }).catch(() => {});
   }
-  const left = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
+  // Count only what this sweep was entitled to remove. A concurrent run's copies are not leftovers,
+  // and refusing to start because a colleague is working is a guard that punishes parallelism.
+  const left = (await readdir(dir))
+    .filter((name) => name.startsWith(COPY_PREFIX))
+    .filter((name) => !stillRunning(ownerOf(name)));
   assert.ok(left.length <= MAX_LEFTOVER_COPIES,
-    `${left.length} leftover repository copies remain under ${dir} after sweeping, above the ${MAX_LEFTOVER_COPIES} this suite tolerates. `
+    `${left.length} abandoned repository copies remain under ${dir} after sweeping, above the ${MAX_LEFTOVER_COPIES} this suite tolerates. `
     + 'Each is a full checkout. They accumulate when a run is killed before its cleanup, and they will fill the disk; '
-    + 'remove them before running this suite again rather than letting it add more.');
+    + 'remove them before running this suite again rather than letting it add more. '
+    + 'Copies belonging to a running process are not counted and are never removed.');
 }
 
 async function repositoryCopy() {
@@ -64,7 +95,7 @@ async function repositoryCopy() {
   // working directory — so three of its tests failed on an unmodified copy and it was the one
   // suite left without a behaviour case. Independent review twenty-two said the obstacle was
   // removable and it was: one call, and the suite passes from a copy.
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'ratchet-bite-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), `${COPY_PREFIX}${process.pid}-`)));
   for (const entry of await readdir(REPOSITORY)) {
     // `node_modules` was the only exclusion, and that was enough until the agent harness began
     // creating linked git worktrees under `.claude/worktrees/` -- each a full checkout of this
@@ -528,4 +559,42 @@ test('the commit gate refuses a red tree, and is executed rather than digested',
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+// The sweeper's own case, added after it deleted four concurrent runs' repository copies.
+//
+// It is not testing tidiness. A sweep that removes a copy another process is executing inside makes
+// that process fail with ENOENT and `must pass on an unmodified copy` -- a guard reporting a reason
+// that is not the reason, which is the failure mode this whole file exists to prevent in others.
+test('the sweep removes an abandoned copy and never one a live process owns', async () => {
+  const dir = await realpath(tmpdir());
+
+  // A pid that is certainly gone: spawn something trivial and wait for it to exit.
+  const dead = spawnSync(process.execPath, ['-e', 'process.exit(0)']);
+  assert.equal(dead.status, 0);
+  const deadPid = dead.pid;
+  assert.equal(stillRunning(deadPid), false, 'a process that has exited must not read as running');
+  assert.equal(stillRunning(process.pid), true, 'this process must read as running');
+
+  const mine = join(dir, `${COPY_PREFIX}${process.pid}-live-case`);
+  const theirs = join(dir, `${COPY_PREFIX}${deadPid}-abandoned-case`);
+  await mkdir(mine, { recursive: true });
+  await mkdir(theirs, { recursive: true });
+
+  try {
+    await sweepLeftoverCopies();
+    // The half that was broken: a copy owned by a running process survives a sweep.
+    assert.ok(existsSync(mine), 'the sweep removed a copy owned by a live process — this is what deleted '
+      + "four concurrent runs' repositories mid-test");
+    // The half that already worked, and must keep working: an abandoned copy is removed, because
+    // the reason this sweep exists is 597 leftovers and a full disk.
+    assert.ok(!existsSync(theirs), 'the sweep left behind a copy whose owner is gone');
+  } finally {
+    await rm(mine, { recursive: true, force: true });
+    await rm(theirs, { recursive: true, force: true });
+  }
+
+  // A name from before pids were in it has no owner, so it is abandoned by definition.
+  assert.equal(ownerOf(`${COPY_PREFIX}Ab3xY9`), null);
+  assert.equal(ownerOf(`${COPY_PREFIX}${process.pid}-Ab3xY9`), process.pid);
 });

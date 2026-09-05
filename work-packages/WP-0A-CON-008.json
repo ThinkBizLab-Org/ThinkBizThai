@@ -85,7 +85,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-CON-008-handoff-base",
+    "branch": "agent/claude/WP-0A-CON-008-concurrent-sweep",
     "writable_paths": [
       "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
       "work-packages/WP-0A-CON-008.json",
@@ -129,13 +129,13 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/ci-guard-behaviour.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The two floors that move with any protected-file edit. This increment adds three cases to test-kits/handoff-conformance.test.mjs, which raises that suite's declared-test and assertion floors and changes its test-name digest in scripts/test-suite-contract.mjs, and changes the digests of every file it edits in test-kits/integrity-manifest.json. Neither file is edited for any other reason and no floor is lowered. The previous increment's amendment of handoffs/WP-0A-A0-006-author-handoff.json is removed: that work is merged, this branch does not touch that file, and a declaration matching none of the diff is a standing permission over another package's files.",
-      "recorded_on": [
-        "work-packages/WP-0A-A0-002.json"
-      ]
+      "rationale": "test-kits/ratchets-bite.test.mjs is this package's own file. The four paths here are the registries that move whenever a package adds a test or renames its branch: the per-file floors and name digests, the branch-to-package mapping (pinned whole, so a row cannot be added quietly), the integrity digests, and the machine-written verification record. A floor is raised by the new case; none is lowered.\n\ntest-kits/ci-guard-behaviour.test.mjs names this package's branch as its live example when it checks that verify-branch-identity resolves a real branch, so renaming the branch moves that line too. It is a fixture reference, not a rule: the assertion it feeds is unchanged."
     }
   },
   "inputs": {
