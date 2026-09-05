@@ -77,6 +77,7 @@ test('every branch in this repository resolves to exactly one package', async ()
     'agent/root/WP-0A-CON-001-contract-catalog',
     'agent/claude/WP-0A-A0-002-contract-test-coverage',
     'agent/claude/WP-0A-CON-008-squash-orphans-handoffs',
+    'agent/claude/WP-0A-A0-007-rls-service-policy-defect',
     'agent/claude/WP-0A-A0-006-db00-data-decisions',
   ]) {
     const report = reportFor(ref, await claimantsOf(ref));
@@ -126,6 +127,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-007-reference-bounds': 'WP-0A-CON-007',
   'agent/claude/WP-0A-A6-001-metric-dictionary': 'WP-0A-A6-001',
   'agent/claude/WP-0A-CON-008-squash-orphans-handoffs': 'WP-0A-CON-008',
+  'agent/claude/WP-0A-A0-007-rls-service-policy-defect': 'WP-0A-A0-007',
   'agent/claude/WP-0A-A0-006-db00-data-decisions': 'WP-0A-A0-006',
 };
 
