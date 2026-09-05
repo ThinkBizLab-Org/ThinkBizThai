@@ -17,6 +17,24 @@
 -- So: read a green CI run as "the policies still do what they did", never as "this works on
 -- Supabase". The two claims are different sizes and the smaller one is the one CI makes.
 
+-- pgcrypto, in `extensions`, BEFORE the migrations run -- because that is where the managed
+-- platform already has it, measured (`pg_extension.extnamespace` = `extensions` on
+-- xtvtflkntpqfvflvdbwk, 2026-09-06).
+--
+-- This one line is the difference between CI catching a defect and CI hiding it. Batch 000 says
+-- `create extension if not exists pgcrypto with schema public`. On the platform that is a NO-OP,
+-- because the extension already exists elsewhere -- so `public.digest` does not exist there. On a
+-- bare container it SUCCEEDS, so `public.digest` did exist here, and the isolation fixture called
+-- it for two invitation digests. The suite was green in CI and could not run at all against the
+-- platform it describes. A1's countersignature §5.5 found it by reading the instance.
+--
+-- A shim that is more permissive than production turns CI into a machine for confirming wrong
+-- records. Installing it where the platform has it makes batch 000's statement the same no-op here
+-- that it is there, and any code reaching for `public.digest` now fails in CI, which is what CI is
+-- for.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 create schema if not exists auth;
 
 -- The platform roles our grants and policies name. NOLOGIN: the harness assumes them with SET ROLE

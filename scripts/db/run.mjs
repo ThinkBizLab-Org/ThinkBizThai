@@ -198,6 +198,12 @@ export async function catalogLint(snapshot, digest) {
       // The one that matters. A service role that bypasses RLS is the exact defect this whole
       // decision exists to prevent, and it would look identical to a working one from the outside.
       if (r.bypassrls) problems.push(`${r.role} holds BYPASSRLS — RFC-2026-017 requires that RLS apply to it, and every policy written for it is inert while this is true`);
+      // The other half of RFC-2026-016 §6, missing until A1's countersignature §5.2 pointed at it.
+      // A SUPERUSER bypasses row level security whatever rolbypassrls says, so a service role that
+      // acquired superuser would satisfy the check above and defeat the decision entirely. The
+      // cheaper half was implemented and the half that cannot be worked around was not.
+      if (r.superuser) problems.push(`${r.role} is a SUPERUSER — a superuser bypasses row level security whatever rolbypassrls says, so every policy written for this role is inert`);
+      if (r.superuser === undefined) problems.push(`${r.role} carries no superuser field in the snapshot — the property RFC-2026-016 §6 requires cannot be checked, and an unmeasured property must not read as a passing one`);
       if (r.canlogin && !r.has_password) problems.push(`${r.role} can log in with no password`);
       if (r.can_use_private) problems.push(`${r.role} has USAGE on private, which no service role is granted`);
       // Two different switches, and batch 002 confused them. `assumable` is what lets a test or a
@@ -213,6 +219,13 @@ export async function catalogLint(snapshot, digest) {
   // appearing is a security event, not a detail.
   const KNOWN_BYPASS = ['postgres', 'service_role', 'supabase_admin', 'supabase_etl_admin', 'supabase_read_only_user'];
   const unexpected = (c.roles_bypassing_rls ?? []).filter((r) => !KNOWN_BYPASS.includes(r));
+  // And the superuser set, pinned the same way and for the same reason: superuser is the wider
+  // property. Measured 2026-09-06 — `supabase_admin` is the only rolsuper on the instance. A second
+  // one appearing is a platform change with security consequences, not a detail.
+  const KNOWN_SUPERUSERS = ['supabase_admin'];
+  for (const role of (c.roles_superuser ?? []).filter((r) => !KNOWN_SUPERUSERS.includes(r))) {
+    problems.push(`${role} is a SUPERUSER and was not when this was measured — a superuser bypasses row level security, so every policy in this database is advisory for it`);
+  }
   for (const r of unexpected) problems.push(`role ${r} bypasses RLS and is not in the known platform set — every policy is inert for it`);
 
   return problems;
