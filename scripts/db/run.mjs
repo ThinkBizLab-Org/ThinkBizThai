@@ -18,6 +18,7 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 
 const MIGRATIONS = 'db/foundation/migrations';
@@ -238,14 +239,89 @@ function refuseLive(target) {
   return 1;
 }
 
+// The live half, wired. Each target does its job or fails saying why; none has a mode that
+// reports a pass without a database, which is what `refuseLive` exists to enforce.
+async function runLive(target) {
+  const { query, script } = await import('./psql-driver.mjs');
+  const migrations = await migrationFiles();
+
+  if (target === 'reset-test') {
+    // §12.5: reset must refuse any host or database outside an explicit test allowlist. The
+    // allowlist is deliberately narrow — a local container or the CI service — because this target
+    // DROPS things, and the cost of a wrong match is someone's data.
+    const url = env[TEST_URL] ?? '';
+    const allowed = /@(localhost|127\.0\.0\.1|postgres)[:/]/.test(url);
+    if (!allowed) {
+      stderr.write('db-reset-test refuses this host: it is not localhost, 127.0.0.1 or the CI service container.\n'
+        + '  This target drops and recreates. It does not run against a host it cannot recognise as a test instance.\n');
+      return 1;
+    }
+    const out = await script('drop schema if exists app cascade;\ndrop schema if exists private cascade;');
+    if (out.error) { stderr.write(`  ${out.error.message}\n`); return 1; }
+    return 0;
+  }
+
+  if (target === 'migrate-clean') {
+    for (const { name, sql } of migrations) {
+      const out = await script(sql);
+      if (out.error) { stderr.write(`  ${name}: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return 1; }
+      stdout.write(`  applied ${name}\n`);
+    }
+    return 0;
+  }
+
+  if (target === 'migrate-upgrade') {
+    // An upgrade path needs a previous-release fixture to upgrade FROM, and none is declared yet.
+    // Saying so is the honest outcome; re-running migrate-clean and calling it an upgrade would be
+    // a target reporting a check it did not perform.
+    stderr.write('db-migrate-upgrade has no previous-release fixture to upgrade from.\n'
+      + '  §12.5 asks for FIXTURE=previous-release; none is declared, so there is nothing to verify.\n'
+      + '  This is a missing fixture, not a passing upgrade.\n');
+    return 1;
+  }
+
+  if (target === 'seed-replay') {
+    // Idempotence is the claim: applying twice leaves the same counts. Nothing seeds yet beyond
+    // the identity fixture, which is a test fixture rather than a global seed, so there is no
+    // global seed runner to replay.
+    stderr.write('db-seed-replay has no global seed to replay. §12.3 item 4 is not implemented, and an empty replay is not a passing one.\n');
+    return 1;
+  }
+
+  if (target === 'rls-smoke' || target === 'test-foundation') {
+    const suite = target === 'rls-smoke' ? 'tests/db/identity/run-isolation.mjs' : null;
+    if (!suite) {
+      const { code } = await new Promise((done) => {
+        const child = spawn(process.execPath, ['--test', 'tests/**/*.test.mjs'], { stdio: 'inherit' });
+        child.on('close', (code) => done({ code }));
+      });
+      return code === 0 ? 0 : 1;
+    }
+    const { code } = await new Promise((done) => {
+      const child = spawn(process.execPath, [suite], { stdio: 'inherit', env: { ...env, LC_ALL: 'C', TZ: 'UTC' } });
+      child.on('close', (code) => done({ code }));
+    });
+    return code === 0 ? 0 : 1;
+  }
+
+  return 1;
+}
+
 async function runTarget(target) {
   const startedAt = hrtime.bigint();
   if (LIVE.has(target)) {
     if (!env[TEST_URL]) { const code = refuseLive(target); summarise(target, startedAt, false, 'no test database configured'); return code; }
-    stderr.write(`db-${target}: ${TEST_URL} is set, but no migration runner is wired yet.\n`
-      + '  DATA-DEC-02 fixes the contract, not the tool; choosing and wiring one is DB-00 implementation work.\n');
-    summarise(target, startedAt, false, 'runner not wired');
-    return 1;
+    let code;
+    try {
+      code = await runLive(target);
+    } catch (failure) {
+      // A missing psql, or anything else that stopped the target from doing its job, is a failure
+      // reported as itself. It is never folded into the database's own vocabulary.
+      stderr.write(`db-${target}: ${failure.message}\n`);
+      code = 1;
+    }
+    summarise(target, startedAt, code === 0, code === 0 ? '' : 'see above');
+    return code;
   }
   if (!STATIC.has(target)) { stderr.write(`unknown target '${target}'\n`); return 2; }
   const problems = target === 'schema-lint' ? [...await schemaLint(), ...await catalogLint()]

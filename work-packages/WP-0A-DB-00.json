@@ -73,10 +73,11 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-lint-targets-ddl",
+    "branch": "agent/claude/WP-0A-DB-00-ci-postgres",
     "writable_paths": [
       "Makefile",
       "db/foundation/**",
+      "db/foundation/ci/**",
       "db/foundation/migrations/010_identity.sql",
       "docs/handoffs/db-00/**",
       "evidence/WP-0A-DB-00/**",
@@ -105,6 +106,7 @@
     ],
     "amends_without_owning": {
       "paths": [
+        ".github/workflows/ci.yml",
         "evidence/VERIFICATION.md",
         "scripts/record-verification.mjs",
         "scripts/regenerate-integrity-manifest.mjs",
@@ -119,7 +121,7 @@
         "tests/db/identity/isolation-cases.mjs",
         "tests/db/identity/run-isolation.mjs"
       ],
-      "rationale": "Two groups, and they are different in kind.\n\nThe scripts and test-coverage-floor.test.mjs are the seven places that assumed exactly one test root. TEST_PATTERN became a list so a module's own tests under tests/db/<module>/ are discovered, and each place had to learn it: the runner's spawn and its discovery, the coverage guard's glob and its discovery, the manifest walk (which was DROPPING A1's file from the digested set), the glob test that pinned one root, and record-verification, which passed the array as one value, matched nothing, and wrote a record saying pass 0 fail 0 — a clean run with nothing executed. No floor is lowered and nothing is removed from protection.\n\nThe tests/db/identity/** files are A1 Identity's, authored by A1 and CARRIED here, not written by DB-00. They are listed so the diff does not look like DB-00 wrote another package's tests. DB-00's only change to them is none: they are byte-identical to what A1 produced. db/foundation/migrations/010_identity.sql is A1's too, and carries one A0 correction recorded in its own header — public.gen_random_uuid() to gen_random_uuid(), because batch 000's record was wrong about where pgcrypto lives and A1 wrote correct SQL against it.",
+      "rationale": "Two groups, and they are different in kind.\n\nThe scripts and test-coverage-floor.test.mjs are the seven places that assumed exactly one test root. TEST_PATTERN became a list so a module's own tests under tests/db/<module>/ are discovered, and each place had to learn it: the runner's spawn and its discovery, the coverage guard's glob and its discovery, the manifest walk (which was DROPPING A1's file from the digested set), the glob test that pinned one root, and record-verification, which passed the array as one value, matched nothing, and wrote a record saying pass 0 fail 0 — a clean run with nothing executed. No floor is lowered and nothing is removed from protection.\n\nThe tests/db/identity/** files are A1 Identity's, authored by A1 and CARRIED here, not written by DB-00. They are listed so the diff does not look like DB-00 wrote another package's tests. DB-00's only change to them is none: they are byte-identical to what A1 produced. db/foundation/migrations/010_identity.sql is A1's too, and carries one A0 correction recorded in its own header — public.gen_random_uuid() to gen_random_uuid(), because batch 000's record was wrong about where pgcrypto lives and A1 wrote correct SQL against it.\n\nAlso the CI workflow, which is A0-only root configuration and A0 is the author here. It gains a postgres:17 service container and one step that applies the shim, runs the migrations and lints the catalog. No existing step is changed or reordered, and the guard steps RFC-2026-007 requires still run before it.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]

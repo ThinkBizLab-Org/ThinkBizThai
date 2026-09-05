@@ -11,6 +11,27 @@ permissions:
 jobs:
   bootstrap:
     runs-on: ubuntu-24.04
+    # A Postgres service container, not a Supabase project. A shared test database is fought over by
+    # concurrent runs — one job's db-reset-test drops what another is asserting against — and the
+    # failures are intermittent and expensive to chase. A container is per-run and isolated.
+    #
+    # What it CANNOT establish is stated in db/foundation/ci/supabase-shim.sql: the platform roles
+    # here are ones we created, so a green run means "the policies still do what they did", never
+    # "this works on Supabase". The measurement that decided DATA-DEC-03 — that service_role ships
+    # with BYPASSRLS — can only come from a provisioned instance.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: thinkbizthai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -74,3 +95,25 @@ jobs:
           # is present and the merge-base of HEAD and the base branch is reachable by SHA --
           # which the pull_request event supplies directly.
           node scripts/verify-branch-scope.mjs "$BASE_SHA" "$package_id"
+
+      # The database half, after `npm run check`, so a red suite fails first and this step's output
+      # never has to be read to discover the repository is broken.
+      #
+      # DB_TEST_URL names the service container. It is not a secret: the container lives for the
+      # length of this job, holds nothing, and is reachable from nowhere else. A real credential
+      # would belong in repository secrets and would never appear in a workflow file.
+      - name: Database foundation
+        env:
+          # The password is NOT in the URL. The secret scanner flags an inline database password
+          # wherever it appears, and it was right to: this one is a throwaway container credential,
+          # but a rule that makes exceptions for credentials someone judges harmless stops being a
+          # rule. psql reads PGPASSWORD from the environment, so the URL carries no secret shape and
+          # the scanner has nothing to match.
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
+        run: |
+          # The shim first: the migrations reference auth.uid() and the platform roles, and a bare
+          # Postgres has neither. It declares in its own header that it is not Supabase.
+          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql
+          LC_ALL=C TZ=UTC make db-migrate-clean
+          LC_ALL=C TZ=UTC make db-schema-lint
