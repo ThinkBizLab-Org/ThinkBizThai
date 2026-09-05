@@ -5,10 +5,23 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
-  "head_revision_or_patch_checksum": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
+  "head_revision_or_patch_checksum": "084bfce91ffbef8bd6b42cbf1a21c2040cb2f616",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/ci/supabase-shim.sql",
+    "scripts/db/psql-driver.mjs"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/rls-assertions.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
