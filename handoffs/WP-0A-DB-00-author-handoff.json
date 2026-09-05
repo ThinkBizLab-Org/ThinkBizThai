@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-DB-00",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
+  "head_revision_or_patch_checksum": "c1b8a53b57f793de098b129cba33fd6b5f2529d1",
+  "task_ids": [],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DATA-DEC-01",
+    "DATA-DEC-02"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "DATA-DEC-01 and DATA-DEC-02 are Approved, which is what the data package says gates the DB-00 merge and the start of DB-00 coding.",
+    "A migration never applied to any database is reversible foundation under the G0 constraint."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "known_limitations": [
+    "The live half of the harness has never executed. This host has no psql, pg_ctl or docker and the repository forbids adding a dependency, so migrate-clean, migrate-upgrade, seed-replay, rls-smoke, reset-test and test-foundation are wired to refuse and name DB_TEST_URL. They are proven to REFUSE, not proven to work.",
+    "The ENABLE-vs-FORCE lint rule is pinned against synthetic SQL because batch 000 creates no tenant table. That is deliberate: the rule must bite before the first tenant table is written, not after.",
+    "Batch 000 writes no RLS policy. The policy shape is under a Proposed decision in WP-0A-A0-007, and migration invariant 1 forbids rewriting a merged migration."
+  ],
+  "open_risks_or_blockers": [
+    "Six of nine db targets cannot be exercised until a Postgres test instance exists. Until then no claim may be made that the migration applies cleanly or that RLS behaves."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. The migration has never been applied to any database, so there is no deployed schema to roll back, and the command contract and lint are inert without one.",
+  "recommended_next_work_packages": [
+    "Provision a Postgres test instance and wire a runner, which turns six refusing targets into real checks.",
+    "Disposition of the policy-shape decision in WP-0A-A0-007, which unblocks the first tenant table.",
+    "DB-01 once batch 000 is merged and the live harness runs."
+  ],
+  "reviewer_instructions": [
+    "Run LC_ALL=C TZ=UTC make db-verify and confirm it FAILS, naming six targets and DB_TEST_URL.",
+    "Confirm no live target has a no-database mode that could report a pass.",
+    "Gut any one lint rule in scripts/db/run.mjs and confirm the suite turns red."
+  ],
+  "superseded_by": null
+}
