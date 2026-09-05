@@ -24,17 +24,24 @@ import { fixtureResolver, runCases, formatReport, FIXTURE_SQL } from '../../test
 function bufferedDriver() {
   let buffer = [];
   const run = async (statement, params) => {
-    // psql has no bind parameters through --command, so params are inlined. They are UUIDs from the
-    // fixture catalog and nothing else — the catalog is the only source, and every value it holds
-    // is a v5 UUID that a test recomputes. Anything not matching that shape is refused rather than
-    // interpolated, so this path cannot become a way to build SQL from arbitrary input.
+    // psql has no bind parameters through --command, so values are inlined as SQL literals.
+    //
+    // The first version permitted only fixture UUIDs, on the theory that restricting the SHAPE
+    // prevented SQL being assembled from arbitrary text. It refused legitimate values instead —
+    // the cases pass token seeds and ordinary strings like 'renamed by the service' — so the rule
+    // blocked the suite rather than an attacker, and CI said so on seven cases.
+    //
+    // Escaping is the right control; shape is not. A single quote is doubled, which is the whole of
+    // SQL string-literal escaping under standard_conforming_strings — on by default since 9.1, and
+    // a backslash is therefore an ordinary character. A NUL byte cannot appear in a Postgres text
+    // value at all, so it is refused rather than truncated silently somewhere downstream.
     let sql = statement;
     (params ?? []).forEach((value, index) => {
       const text = String(value);
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
-        throw new Error(`refusing to inline a parameter that is not a fixture UUID: ${JSON.stringify(text)}`);
+      if (text.includes('\u0000')) {
+        throw new Error('refusing to inline a parameter containing a NUL byte: Postgres text cannot hold one');
       }
-      sql = sql.split(`$${index + 1}`).join(`'${text}'`);
+      sql = sql.split(`$${index + 1}`).join(`'${text.split("'").join("''")}'`);
     });
     return sql;
   };
