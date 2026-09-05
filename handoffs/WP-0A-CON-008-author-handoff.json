@@ -4,23 +4,11 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e674d4e7e7be2bfa3b03b52e22af78f7ae16006d",
-  "head_revision_or_patch_checksum": "24014c8281ed1c0addb5c1b51d913169f3228c60",
+  "base_revision": "becb96314347b34329e3c6192385d4ab669fb376",
+  "head_revision_or_patch_checksum": "becb96314347b34329e3c6192385d4ab669fb376",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-CON-008/handoff-base-revision.md"
-  ],
-  "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/refresh-author-handoff.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/ci-guard-behaviour.test.mjs",
-    "test-kits/handoff-conformance.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-CON-008.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -76,17 +64,13 @@
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "No contract-catalog file is changed by this increment: it touches one script, one test suite, the test-suite contract floors, the integrity manifest, this package manifest and this handoff. The behaviour change is to scripts/refresh-author-handoff.mjs, which now reads a handoff's base_revision from history (git merge-base against the integration branch) instead of from the record it is rewriting. A handoff whose stored base is already its branch point is written exactly as before.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None. One guard suite's temporary-directory handling. The sweep now removes only copies whose owning process is gone, so a run no longer deletes a concurrent run's repository mid-test.",
   "known_limitations": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
-    "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "This record was repaired after the fact: it cited the pre-squash branch tip, which the squash merge of PR #44 orphaned. The commit no longer exists in any clone, so the handoff conformance guard failed in CI while passing locally, where the orphaned object was still reachable. The range now names the squashed commit on main. This will recur for every package merged by squash and needs a protocol fix, not another repair.",
-    "Moving base_revision forward to the branch point drops the commits between the old base and that point. After a normal merge they remain in main's history and in the earlier increment's own handoff; after a SQUASH merge the individual commits are gone and that earlier handoff is the only surviving record of them. This is why the refresher rewrites only the handoff of the branch it is run on and never regenerates one whose branch has been merged.",
-    "If part of a branch is merged into main while work on it continues, the branch point moves onto the branch and the recomputed range describes LESS than the branch did. Nothing detects that: the drift check looks past the cited head, never before the cited base. A range narrower than the pull request should be read as this case.",
-    "npm run check:handoff now reports a stale base, but it is not in the npm run check chain, so a handoff hand-edited to a stale base and a matching file list still passes CI. See evidence/WP-0A-CON-008/handoff-base-revision.md."
+    "CTR-NTF-001 remains unassessed; A5 owns it."
   ],
   "open_risks_or_blockers": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
@@ -94,7 +78,7 @@
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
     "CTR-NTF-001 remains unassessed; A5 owns it."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Nothing in this increment is load-bearing at runtime: reverting scripts/refresh-author-handoff.mjs restores the previous base handling, and the three cases in test-kits/handoff-conformance.test.mjs revert with it. No contract, schema, migration or status is touched.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a sweep that deletes any ratchet-bite directory it finds, which fails concurrent runs with a reason that is not the reason.",
   "recommended_next_work_packages": [
     "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
   ],
