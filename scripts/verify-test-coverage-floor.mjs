@@ -445,6 +445,7 @@ export const DIGESTED_FLOOR = [
   'test-kits/contracts/catalog-reference-integrity.test.mjs',
   'test-kits/contracts/catalog-registry.test.mjs',
   'test-kits/db/foundation-contract.test.mjs',
+  'test-kits/db/rls-assertions.test.mjs',
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs',
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs',
   'test-kits/contracts/json-schema-subset.mjs',
