@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-008",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "8df25e82a417598b736279d17db454c713df19ae",
+  "head_revision_or_patch_checksum": "8df25e82a417598b736279d17db454c713df19ae",
+  "task_ids": [],
+  "files_added": [],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "RFC-2026-016 is Approved and left the service path open, explicitly forbidding any document from claiming forced RLS constrains it until answered.",
+    "A decision record in Proposed state creates no role and applies no migration."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "No contract status changes anywhere in the repository.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "CTR-NTF-001 is not assessed.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    },
+    {
+      "criterion": "npm run check stays green with no test skipped.",
+      "result": "pass",
+      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
+  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "known_limitations": [
+    "Tenant isolation is NOT proven by this package. No tenant table exists, so no cross-tenant assertion has ever run.",
+    "The data package smoke set would not detect a regression in this decision: assertions 1 to 7 run as client roles, which FORCE never affected, and assertion 8 asserts only that the server helper succeeds -- indistinguishable from succeeding via BYPASSRLS.",
+    "The roles this RFC names do not exist. Creating them is a migration and belongs to the batch A0 owns, not to a decision record."
+  ],
+  "open_risks_or_blockers": [
+    "RFC-2026-017 is Proposed. No role is created and no policy written until it is disposed, and A1 must countersign the topology because DATA-DEC-03 is owned A0+A1."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-017 is a Proposed decision record: no role created, no policy written, no migration applied, and nothing on the provisioned instance touched.",
+  "recommended_next_work_packages": [
+    "Product Owner disposition of RFC-2026-017.",
+    "A1 countersignature on the role topology.",
+    "An A0-owned migration creating app_worker, app_command and app_maintenance.",
+    "Batch 010 by A1 Identity, writing tables and their policies together."
+  ],
+  "reviewer_instructions": [
+    "Re-run the two role queries against the instance and confirm the table in section 2.",
+    "Confirm the RFC nowhere claims tenant isolation is proven.",
+    "Confirm section 7 names the missing negative assertion rather than implying the smoke set covers it."
+  ],
+  "superseded_by": null
+}
