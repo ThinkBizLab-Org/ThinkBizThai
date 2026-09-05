@@ -5,10 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
-  "head_revision_or_patch_checksum": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
+  "head_revision_or_patch_checksum": "c463c411d31f9e251110a238ebef300c231c17c6",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/handoff-base-revision.md"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/refresh-author-handoff.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/ci-guard-behaviour.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-008.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
