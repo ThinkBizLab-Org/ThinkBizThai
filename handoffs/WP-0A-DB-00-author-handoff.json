@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
-  "head_revision_or_patch_checksum": "7ecfb5905ee5607ac46cba7c77bfd9bd085fca5b",
+  "head_revision_or_patch_checksum": "1e4228ddaa74dce5ceeaa92c5940980f9ceeddd1",
   "task_ids": [],
   "files_added": [
     "db/foundation/ci/supabase-shim.sql",
@@ -14,6 +14,7 @@
   ],
   "files_modified": [
     ".github/workflows/ci.yml",
+    "db/foundation/test-helpers/auth-context.sql",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/run.mjs",

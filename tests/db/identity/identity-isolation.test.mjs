@@ -244,11 +244,22 @@ test('assuming an identity is transaction-scoped and its failure is never read a
   for (const helper of ['as_user', 'as_suspended_user', 'as_anonymous', 'as_service']) {
     const statements = assumeIdentity({ helper, subject: id('user_owner_a') });
     assert.match(statements.join('\n'), new RegExp(`private\\.${helper}\\b`));
-    assert.match(statements[0], /set local/i, 'SET LOCAL only. A session-level SET survives the '
-      + 'transaction on a pooled connection and is inherited by whatever request lands on it next — '
-      + "possibly another tenant's, evaluated against a wrong but entirely valid identity.");
-    assert.match(statements.join('\n'), /assert_in_transaction/,
-      'the foundation supplies the guard; a suite that never calls it leaves SET LOCAL a silent no-op');
+    // A0 CORRECTION during integration, not by A1.
+    //
+    // A1 pinned the right PROPERTY — a failure to assume must never read as a denial, and the
+    // setting must be transaction-scoped — but pinned it to the MECHANISM the foundation supplied
+    // at the time: a GUC that worked around a guard, and an explicit call to that guard. Both were
+    // rituals a proxy imposed on its callers, and A1 said so while writing them.
+    //
+    // The guard is no longer a proxy: each helper reads its own setting back and raises if
+    // SET LOCAL did not take. So the property is pinned where it now lives, in the helpers, and
+    // the caller is asserted to perform nothing — because a caller that has to perform something
+    // is a caller that will eventually forget.
+    assert.equal(statements.length, 1,
+      'assuming an identity is ONE statement. Anything more is a ritual the guard imposes, and the '
+      + 'previous two — a GUC and an explicit guard call — are exactly what that looks like.');
+    assert.doesNotMatch(statements.join('\n'), /in_test_txn|assert_in_transaction/,
+      'the workarounds the old proxy guard required must not come back');
   }
   assert.equal(assumeIdentity({ helper: 'as_anonymous' }).some((s) => s.includes('$1')), false,
     'the anonymous helper takes no subject; passing one would be an authenticated identity wearing '
