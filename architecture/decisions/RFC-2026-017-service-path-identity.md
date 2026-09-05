@@ -1,6 +1,6 @@
 # RFC-2026-017 — The service path runs under a role that RLS still applies to
 
-Status: Proposed — awaiting Product Owner disposition
+Status: Approved 2026-09-05 by the Product Owner — the service path runs under app_worker, app_command and app_maintenance, none holding BYPASSRLS; service_role and postgres are reserved for migration and platform administration. DATA-DEC-03 closes with RFC-2026-016 §4. Isolation remains unproven until the negative assertion in §7 exists.
 Date: 2026-09-05
 Author: /claude/a0_atlas (A0)
 Closes: the half of `DATA-DEC-03` that `RFC-2026-016` left open
