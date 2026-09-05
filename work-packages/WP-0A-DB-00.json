@@ -75,14 +75,15 @@
   "ownership": {
     "branch": "agent/claude/WP-0A-DB-00-lint-targets-ddl",
     "writable_paths": [
-      "db/foundation/**",
-      "scripts/db/**",
-      "test-kits/db/**",
       "Makefile",
-      "work-packages/WP-0A-DB-00.json",
+      "db/foundation/**",
+      "db/foundation/migrations/010_identity.sql",
+      "docs/handoffs/db-00/**",
       "evidence/WP-0A-DB-00/**",
       "handoffs/WP-0A-DB-00-*.json",
-      "docs/handoffs/db-00/**"
+      "scripts/db/**",
+      "test-kits/db/**",
+      "work-packages/WP-0A-DB-00.json"
     ],
     "read_only_paths": [
       "README.md",
@@ -105,11 +106,20 @@
     "amends_without_owning": {
       "paths": [
         "evidence/VERIFICATION.md",
+        "scripts/record-verification.mjs",
+        "scripts/regenerate-integrity-manifest.mjs",
+        "scripts/run-test-suite.mjs",
         "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json"
+        "test-kits/integrity-manifest.json",
+        "test-kits/test-coverage-floor.test.mjs",
+        "tests/db/identity/fixtures/010-identity-fixture.sql",
+        "tests/db/identity/identity-isolation.test.mjs",
+        "tests/db/identity/isolation-cases.mjs",
+        "tests/db/identity/run-isolation.mjs"
       ],
-      "rationale": "The branch-to-package mapping, and the floors and digest that move when a test file is added. A0 assigns Makefile and scripts/db/ to this package: the data package marks scripts/db as A0-assignable and the root Makefile as A0-only, and A0 is the author here, so the assignment is recorded rather than assumed. Also the verification record every commit regenerates, and the coverage-floor guard, which carries the registries a new test file must join before it counts: the digested set that makes a protected file undeletable, and the per-file and per-directory floors. Adding test-kits/db/foundation-contract.test.mjs required an entry in each. No existing entry is changed and no floor is lowered.",
+      "rationale": "Two groups, and they are different in kind.\n\nThe scripts and test-coverage-floor.test.mjs are the seven places that assumed exactly one test root. TEST_PATTERN became a list so a module's own tests under tests/db/<module>/ are discovered, and each place had to learn it: the runner's spawn and its discovery, the coverage guard's glob and its discovery, the manifest walk (which was DROPPING A1's file from the digested set), the glob test that pinned one root, and record-verification, which passed the array as one value, matched nothing, and wrote a record saying pass 0 fail 0 — a clean run with nothing executed. No floor is lowered and nothing is removed from protection.\n\nThe tests/db/identity/** files are A1 Identity's, authored by A1 and CARRIED here, not written by DB-00. They are listed so the diff does not look like DB-00 wrote another package's tests. DB-00's only change to them is none: they are byte-identical to what A1 produced. db/foundation/migrations/010_identity.sql is A1's too, and carries one A0 correction recorded in its own header — public.gen_random_uuid() to gen_random_uuid(), because batch 000's record was wrong about where pgcrypto lives and A1 wrote correct SQL against it.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
