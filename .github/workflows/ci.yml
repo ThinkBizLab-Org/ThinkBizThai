@@ -122,3 +122,37 @@ jobs:
           # control. Read its output with the shim's header in mind: it proves the POLICIES, not
           # the platform.
           LC_ALL=C TZ=UTC make db-rls-smoke
+
+      # The negative control. A green isolation suite is not evidence until the suite can be made
+      # to go red, and everything this branch found was a case passing for a reason nobody had
+      # checked: a driver that could not name a column, and a parser counting the `set_config` row
+      # from assuming an identity as a visible tenant row. Twenty-one cases were "passing" through
+      # both.
+      #
+      # So the last thing the job does is switch row level security OFF on one table and require
+      # the suite to FAIL, naming a failed case rather than merely exiting non-zero -- a fixture
+      # that did not load also exits non-zero, and would let this control pass while proving
+      # nothing.
+      #
+      # It runs last because it mutates the database. The container is discarded with the job.
+      - name: Negative control - the suite must fail when RLS is off
+        env:
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
+        run: |
+          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q \
+            -c 'alter table app.workspaces disable row level security;'
+          if LC_ALL=C TZ=UTC make db-rls-smoke > control.log 2>&1; then
+            echo "The isolation suite PASSED against a database with row level security DISABLED on"
+            echo "app.workspaces. A suite that cannot detect that cannot detect anything it claims to."
+            cat control.log
+            exit 1
+          fi
+          if ! grep -q 'db-rls-smoke: FAILED' control.log; then
+            echo "The suite exited non-zero without reporting a failed isolation case. That is a"
+            echo "broken run, not a detected regression, and it must not be read as this control passing."
+            cat control.log
+            exit 1
+          fi
+          echo "negative control: the suite failed with RLS off, as it must."
+          grep 'db-rls-smoke: FAILED' control.log | sed 's/^/  /'
