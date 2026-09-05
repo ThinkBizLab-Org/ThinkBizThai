@@ -80,6 +80,7 @@ test('every branch in this repository resolves to exactly one package', async ()
     'agent/claude/WP-0A-A0-007-rls-service-policy-defect',
     'agent/claude/WP-0A-A0-006-db00-data-decisions',
     'agent/claude/WP-0A-DB-00-catalog-truth',
+    'agent/claude/WP-0A-A0-008-service-path',
   ]) {
     const report = reportFor(ref, await claimantsOf(ref));
     assert.equal(report.code, 0, `${ref}: ${report.message}`);
@@ -131,6 +132,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-A0-007-rls-service-policy-defect': 'WP-0A-A0-007',
   'agent/claude/WP-0A-A0-006-db00-data-decisions': 'WP-0A-A0-006',
   'agent/claude/WP-0A-DB-00-catalog-truth': 'WP-0A-DB-00',
+  'agent/claude/WP-0A-A0-008-service-path': 'WP-0A-A0-008',
 };
 
 test('the whole branch-to-package mapping is pinned, not four rows of it', async () => {
