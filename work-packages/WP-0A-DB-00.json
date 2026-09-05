@@ -103,11 +103,13 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The branch-to-package mapping, and the floors and digest that move when a test file is added. A0 assigns Makefile and scripts/db/ to this package: the data package marks scripts/db as A0-assignable and the root Makefile as A0-only, and A0 is the author here, so the assignment is recorded rather than assumed.",
+      "rationale": "The branch-to-package mapping, and the floors and digest that move when a test file is added. A0 assigns Makefile and scripts/db/ to this package: the data package marks scripts/db as A0-assignable and the root Makefile as A0-only, and A0 is the author here, so the assignment is recorded rather than assumed. Also the verification record every commit regenerates, and the coverage-floor guard, which carries the registries a new test file must join before it counts: the digested set that makes a protected file undeletable, and the per-file and per-directory floors. Adding test-kits/db/foundation-contract.test.mjs required an entry in each. No existing entry is changed and no floor is lowered.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
