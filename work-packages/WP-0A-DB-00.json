@@ -106,6 +106,7 @@
       "paths": [
         "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
