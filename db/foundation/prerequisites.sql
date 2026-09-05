@@ -36,5 +36,13 @@
 --
 -- pgcrypto is a trusted extension from PostgreSQL 13, so a database owner can install it without
 -- being superuser.
+--
+-- WHAT THIS FILE DOES NOT MAKE SELF-SUFFICIENT, so the claim is not read wider than it is. It
+-- covers everything the REPOSITORY introduced. It does not cover the PLATFORM's own surface: batch
+-- 010 writes policies over `auth.uid()` and grants to `anon`, `authenticated` and `service_role`,
+-- and a Postgres with none of those is one the migration set cannot apply to at all. Supabase
+-- provides them; the shim emulates them for CI. They stay out of here because a `create or replace
+-- function auth.uid()` running against a managed instance would be a worse defect than the one
+-- this file repairs.
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
