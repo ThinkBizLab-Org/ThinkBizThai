@@ -123,7 +123,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
-  'test-kits/db/foundation-contract.test.mjs': 66,
+  'test-kits/db/foundation-contract.test.mjs': 67,
   'test-kits/db/rls-assertions.test.mjs': 74,
   'tests/db/identity/identity-isolation.test.mjs': 62,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,

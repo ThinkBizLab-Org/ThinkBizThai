@@ -273,7 +273,12 @@ test('the service roles exist and RLS still applies to every one of them', async
     assert.equal(r.bypassrls, false, `${r.role} must not bypass RLS — that is the entire decision`);
     assert.equal(r.canlogin, false, `${r.role} is not reachable until something grants it deliberately`);
     assert.equal(r.has_password, false, `${r.role} has nothing to authenticate as, so nothing to leak`);
-    assert.equal(r.memberships, 0, `${r.role} has no members yet; granting one picks the connection method`);
+    // Measured in the direction that matters. The old field counted roles the service role is a
+    // MEMBER OF -- trivially zero, and true no matter who could become app_worker. What the rule
+    // means is that nothing can become it except the administrative role the suite uses to SET
+    // ROLE, and granting anything else picks the connection method RFC-2026-017 left open.
+    assert.equal(r.members_besides_admin, 0, `${r.role} has no members besides the administrative role; granting one picks the connection method`);
+    assert.equal(r.superuser, false, `${r.role} must not be a superuser — a superuser bypasses RLS whatever rolbypassrls says`);
     // Two switches PostgreSQL keeps separate and batch 002 conflated. Without SET, every
     // service-path assertion dies at the assume-identity step — and dies with 42501, the same code
     // an RLS refusal raises, so a suite checking only the code would read isolation it never
