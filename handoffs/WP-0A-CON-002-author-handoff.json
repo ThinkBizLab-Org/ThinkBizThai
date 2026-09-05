@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
-  "head_revision_or_patch_checksum": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
+  "base_revision": "478cd9b59f73c24cd1c5d6c8056e087921b66449",
+  "head_revision_or_patch_checksum": "478cd9b59f73c24cd1c5d6c8056e087921b66449",
   "task_ids": [],
   "files_added": [],
   "files_modified": [],
@@ -110,7 +110,7 @@
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect.",
   "compatibility_impact": "None. This increment changes four open_blockers on this package's own manifest and the record that mirrors them. No contract, schema, fixture or freeze level is touched.",
   "known_limitations": [
-    "RFC-2026-002 manual merge is no longer the control. Branch protection on main became real on 2026-09-02 -- required status check, admins included -- and RFC-2026-004 was approved the same day, so the disposition this blocker was waiting for has happened. What remains, and is recorded on every package rather than only here, is that no REQUIRED REVIEW exists: the Product Owner opens the pull requests and GitHub forbids approving your own.",
+    "RFC-2026-004 was dispositioned on 2026-09-02, so the disposition this blocker waited for has happened. Branch protection on main became real the same day -- a strict required check with enforce_admins, verified by a direct admin push rejected with GH006 (evidence/g0-tracker-th.md).\n\nRFC-2026-002 STILL STANDS and this manifest does not touch it. Its own status line still reads 'provisional manual control; native protection/G0 not satisfied', and CONTRIBUTING_AGENTS.md still directs every proposed merge into main through it. An earlier rewrite of this blocker declared it 'no longer the control' on the strength of the branch-protection fact. An independent review refused that, correctly, on three grounds: a work-package manifest cannot retire a standing RFC; CONTRIBUTING_AGENTS.md ranks above a manifest in the repository's own conflict order; and branch protection is not what RFC-2026-002 is for. RFC-2026-002 is a separation-of-duties rule: an author never signs off, test-verifies, integrates or authorises their own work. The same sentence that declared it retired conceded in its next clause that no required review exists. It declared a control retired while admitting nothing had replaced it.\n\nWhat is open, then: no required review exists, because the Product Owner opens the pull requests and GitHub forbids self-approval. Retiring RFC-2026-002 needs an RFC, which is the path CONTRIBUTING_AGENTS.md reserves for a change to gate rules.",
     "The cross-package correction to two WP-0A-CON-001 outputs requires an acknowledgement countersigned by that package Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session. Both schemas record acknowledgement_status pending.",
     "CTR-PAG-001 accepts a forgeable cursor. API-003 calls it \"opaque/tamper-safe\" but no integrity mechanism exists in the baseline and none is invented here; independent security review demonstrated that base64 of an offset satisfies opacity by inspection. A MAC or signature MUST be specified by the contract owner before freeze. Recorded in accepted_gaps.",
     "CTR-PAG-001 has no page-size bound. None exists in the baseline; an earlier draft invented 100 and it was removed as unsourced. An upper bound is a real enumeration-risk control and is referred to the contract owner.",
@@ -125,7 +125,7 @@
     "A JWT placed in the declared field tenant_context.actor.id passes every check: it is a string in a declared slot, and the repository secret scanner has no pattern for it. CTR-TEN-001 is owned by WP-0A-CON-001; escalated rather than changed here."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-002 manual merge is no longer the control. Branch protection on main became real on 2026-09-02 -- required status check, admins included -- and RFC-2026-004 was approved the same day, so the disposition this blocker was waiting for has happened. What remains, and is recorded on every package rather than only here, is that no REQUIRED REVIEW exists: the Product Owner opens the pull requests and GitHub forbids approving your own.",
+    "RFC-2026-004 was dispositioned on 2026-09-02, so the disposition this blocker waited for has happened. Branch protection on main became real the same day -- a strict required check with enforce_admins, verified by a direct admin push rejected with GH006 (evidence/g0-tracker-th.md).\n\nRFC-2026-002 STILL STANDS and this manifest does not touch it. Its own status line still reads 'provisional manual control; native protection/G0 not satisfied', and CONTRIBUTING_AGENTS.md still directs every proposed merge into main through it. An earlier rewrite of this blocker declared it 'no longer the control' on the strength of the branch-protection fact. An independent review refused that, correctly, on three grounds: a work-package manifest cannot retire a standing RFC; CONTRIBUTING_AGENTS.md ranks above a manifest in the repository's own conflict order; and branch protection is not what RFC-2026-002 is for. RFC-2026-002 is a separation-of-duties rule: an author never signs off, test-verifies, integrates or authorises their own work. The same sentence that declared it retired conceded in its next clause that no required review exists. It declared a control retired while admitting nothing had replaced it.\n\nWhat is open, then: no required review exists, because the Product Owner opens the pull requests and GitHub forbids self-approval. Retiring RFC-2026-002 needs an RFC, which is the path CONTRIBUTING_AGENTS.md reserves for a change to gate rules.",
     "The cross-package correction to two WP-0A-CON-001 outputs requires an acknowledgement countersigned by that package Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session. Both schemas record acknowledgement_status pending.",
     "CTR-PAG-001 accepts a forgeable cursor. API-003 calls it \"opaque/tamper-safe\" but no integrity mechanism exists in the baseline and none is invented here; independent security review demonstrated that base64 of an offset satisfies opacity by inspection. A MAC or signature MUST be specified by the contract owner before freeze. Recorded in accepted_gaps.",
     "CTR-PAG-001 has no page-size bound. None exists in the baseline; an earlier draft invented 100 and it was removed as unsourced. An upper bound is a real enumeration-risk control and is referred to the contract owner.",
@@ -139,14 +139,14 @@
     "The subset validator FAILS CLOSED on any format it does not enforce (test-kits/contracts/json-schema-subset.mjs:123): a schema declaring format 'uri', 'email' or 'uuid' is now rejected rather than silently accepted. Independent review sixteen executed the bypass -- 'uri' accepted 'not a uri at all' -- and the repair was to refuse the keyword, not to implement it. A future schema needing another format must extend the validator in the same commit.",
     "A JWT placed in the declared field tenant_context.actor.id passes every check: it is a string in a declared slot, and the repository secret scanner has no pattern for it. CTR-TEN-001 is owned by WP-0A-CON-001; escalated rather than changed here."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This increment changes only the manifest's open_blockers, this handoff, the pinned branch row and the integrity digests; reverting it restores the previous blocker text, which was accurate when written and is no longer.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a blocker that declares a standing merge-control RFC retired from inside a work-package manifest, which is the finding an independent review graded HIGH.",
   "recommended_next_work_packages": [
     "WP-0A-CON-003",
     "WP-0A-CON-006"
   ],
   "reviewer_instructions": [
-    "Check each rewritten blocker against the tree rather than against this record: RFC-2026-004's Status line, the merge of WP-0A-A0-002 into main, the input_ref/result_ref patterns in contract-catalog/shared-kernel/ctr-job-001/schema.json, and the format branch at test-kits/contracts/json-schema-subset.mjs:123.",
-    "A blocker that has stopped being true is the thing being removed. A blocker that is merely inconvenient is not."
+    "Check the restored blocker against RFC-2026-002's own status line and CONTRIBUTING_AGENTS.md rather than against this record. The point of the correction is that those two rank above a manifest.",
+    "The phrase 'no longer the control' still appears in the blocker, inside quotation marks, attributed to the rewrite being corrected. That is deliberate: deleting the wrong sentence would leave nobody able to see what was wrong with it."
   ],
   "superseded_by": null
 }
