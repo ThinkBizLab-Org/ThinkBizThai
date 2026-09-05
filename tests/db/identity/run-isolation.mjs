@@ -63,6 +63,19 @@ export const ASSERTION_FOR = {
 // on a read-only transaction: it looks for an assigned xid, which a transaction that has not
 // written does not have. Recorded in the handoff as a foundation observation, not patched here —
 // the helper belongs to DB-00.
+// The role each helper must leave behind, so the caller can CHECK rather than trust. These are the
+// values db/foundation/test-helpers/auth-context.sql sets, and the check below reads them back in a
+// SEPARATE statement, which is the whole point.
+export const ROLE_FOR_HELPER = {
+  as_anonymous: 'anon',
+  as_user: 'authenticated',
+  as_suspended_user: 'authenticated',
+  as_service: 'app_worker',
+};
+
+// The statement that verifies it, kept beside the map so the two cannot drift apart.
+export const VERIFY_IDENTITY_SQL = "select current_setting('role', true) as role";
+
 export function assumeIdentity(identity) {
   // A0 CORRECTION during integration, not by A1.
   //
@@ -91,6 +104,37 @@ export function assumeIdentity(identity) {
  *                             in its own transaction and every transaction is rolled back, so a
  *                             permitted write (there are two) cannot make a later case pass.
  */
+// Did the identity actually take, in a statement AFTER the one that assumed it?
+//
+// The helpers each read their own setting back and raise if it did not take. That check cannot fail:
+// a helper call is ONE statement, so it is its own implicit transaction when there is no explicit
+// one, and `set_config(..., true)` applies for exactly that statement -- measured on the provisioned
+// instance 2026-09-06:
+//
+//   select set_config('probe.a','applied',true), current_setting('probe.a', true);
+//   -> set_config: applied | read_back_in_same_statement: applied
+//
+// and then, in a LATER statement of a later transaction, `current_setting('probe.a', true)` is null.
+// So the read-back inside the helper always sees the value, including in the case the helper's own
+// error message describes, and the guard is inert exactly where it claims to protect. C0's review
+// D4 called it a third proxy protected by a grep; it is worse than that -- it cannot fire.
+//
+// What the caller CAN check is what it actually depends on: the role is still held one statement
+// later. That is true only inside a transaction block, which is what the whole design turns on, and
+// it fails loudly when a driver forgets to open one.
+export async function verifyIdentity(driver, identity) {
+  const expected = ROLE_FOR_HELPER[identity.helper];
+  if (expected === undefined) return `unknown identity helper '${identity.helper}'`;
+  const seen = await driver.exec(VERIFY_IDENTITY_SQL, []);
+  if (seen?.error) return `could not read the role back after assuming it: ${seen.error.message}`;
+  const role = seen?.rows?.[0]?.role ?? null;
+  if (role === expected) return null;
+  return `the identity did not survive the statement that set it: role is ${JSON.stringify(role)} `
+    + `and ${identity.helper} sets ${JSON.stringify(expected)}. SET LOCAL is scoped to a transaction, `
+    + 'so this is what a driver that did not open one looks like — and every assertion after it would '
+    + 'have run as the connection role rather than as the identity under test.';
+}
+
 export async function runCases(cases, driver) {
   const results = [];
   for (const testCase of cases) {
@@ -116,6 +160,8 @@ async function runOne(testCase, driver) {
           return { ...base, ok: false, phase: 'assume-identity', detail: setup.error.message };
         }
       }
+      const held = await verifyIdentity(driver, testCase.as);
+      if (held !== null) return { ...base, ok: false, phase: 'assume-identity', detail: held };
 
       const outcome = await driver.exec(testCase.sql, testCase.params);
 
@@ -130,6 +176,8 @@ async function runOne(testCase, driver) {
           const setup = await driver.exec(statement, witness.as.subject ? [witness.as.subject] : []);
           if (setup?.error) return { ...base, ok: false, phase: 'assume-witness', detail: setup.error.message };
         }
+        const witnessHeld = await verifyIdentity(driver, witness.as);
+        if (witnessHeld !== null) return { ...base, ok: false, phase: 'assume-witness', detail: witnessHeld };
         const seen = await driver.exec(witness.sql, witness.params);
         expectRows(seen, `${testCase.id}: the witness must still see the target row`);
         const actual = seen.rows[0][witness.column];
