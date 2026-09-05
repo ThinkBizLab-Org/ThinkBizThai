@@ -22,6 +22,31 @@ const CONNECTION = 'DB_TEST_URL';
 
 // psql prints `ERROR:  message` then, under verbose, a line containing `SQLSTATE`. Both forms have
 // been seen depending on version and locale, so both are matched.
+// psql prints the host, the user and the database name in its own error text — "could not
+// translate host name \"db.example.invalid\"" and friends. The password it keeps to itself, but
+// §12.5 requires the connection URL redacted, and a host is half of one. The first version of this
+// driver passed psql's stderr through untouched, and the test asserting a connection string never
+// reaches the output caught it the moment the live targets were actually wired.
+//
+// Redaction works from the URL we were given rather than by guessing psql's phrasing: every
+// component of the connection string is removed from anything on its way out. A format this driver
+// has not seen cannot defeat it, because it is not matching formats.
+export function redactConnection(text, url) {
+  let out = String(text).replace(/(postgres(?:ql)?:\/\/)[^\s"']*/gi, '$1[redacted]');
+  if (!url) return out;
+  const parts = new Set();
+  try {
+    const parsed = new URL(url);
+    for (const part of [parsed.hostname, parsed.username, parsed.password, parsed.port, parsed.pathname.replace(/^\//, '')]) {
+      if (part && part.length > 2) parts.add(part);
+    }
+  } catch { /* an unparseable URL still gets the scheme rule above */ }
+  for (const part of parts) {
+    out = out.split(part).join('[redacted]');
+  }
+  return out;
+}
+
 function parseError(stderr) {
   const code = stderr.match(/SQLSTATE[:\s]+([0-9A-Z]{5})/)?.[1]
     ?? stderr.match(/^psql:.*?:\s*ERROR:\s.*\n.*?([0-9A-Z]{5})/m)?.[1]
@@ -72,7 +97,7 @@ export async function query(sql, { env = process.env, url = null } = {}) {
       error.code = 'NO_PSQL';
       throw error;
     }
-    return { error: parseError(String(failure.stderr ?? failure.message ?? '')) };
+    return { error: parseError(redactConnection(String(failure.stderr ?? failure.message ?? ''), connection)) };
   }
 }
 

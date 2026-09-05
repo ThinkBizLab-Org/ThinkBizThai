@@ -165,3 +165,39 @@ test('the transaction guard is called by every identity helper and explains itse
       `${fn} must assert it is in a transaction — SET LOCAL outside one silently assumes nothing, and the test then exercises whatever identity the connection already had`);
   }
 });
+
+// Redaction, proven on the function rather than through psql — this host has no psql, so a test
+// that drove the driver end to end would pass without ever reaching the code it claims to check.
+//
+// The defect this closes was invisible until the live targets were actually wired: psql prints the
+// HOST in its own error text ("could not translate host name ..."), and the driver passed stderr
+// through untouched. The test asserting a connection string never reaches the output caught it on
+// the first CI run that had a database to fail against.
+test('the driver strips every part of the connection string, not a format it recognises', async () => {
+  const { redactConnection } = await import('../../scripts/db/psql-driver.mjs');
+  const url = 'postgresql://appuser:hunter2@db.example.invalid:5432/prodstore';
+
+  // psql's actual phrasing, and two others it has never printed — the point is that the redaction
+  // does not depend on knowing any of them.
+  const messages = [
+    'psql: error: could not translate host name "db.example.invalid" to address',
+    'connection to server at "db.example.invalid" (10.0.0.1), port 5432 failed',
+    'FATAL: password authentication failed for user "appuser" on database "prodstore"',
+    'retrying postgresql://appuser:hunter2@db.example.invalid:5432/prodstore',
+  ];
+  for (const message of messages) {
+    const out = redactConnection(message, url);
+    for (const secret of ['hunter2', 'db.example.invalid', 'appuser', 'prodstore']) {
+      assert.ok(!out.includes(secret),
+        `${JSON.stringify(secret)} survived redaction in ${JSON.stringify(out)} — redaction must work from the URL we hold, not from psql's phrasing`);
+    }
+  }
+
+  // It must not blank out ordinary text: a message with nothing sensitive in it stays readable,
+  // or the operator loses the diagnosis along with the secret.
+  assert.equal(redactConnection('relation "app.workspaces" does not exist', url),
+    'relation "app.workspaces" does not exist');
+
+  // And an unparseable URL still gets the scheme rule rather than silently redacting nothing.
+  assert.match(redactConnection('see postgresql://whatever/here', 'not-a-url'), /\[redacted\]/);
+});
