@@ -4,14 +4,11 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "9e0c20c9486fe19913137b0ab0dc0ae0e7677aa6",
-  "head_revision_or_patch_checksum": "769ddfd9f26d2853954304bff7824085fb4f418c",
+  "base_revision": "f1da8b8495f7db195489f2193171d580cb906645",
+  "head_revision_or_patch_checksum": "f1da8b8495f7db195489f2193171d580cb906645",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
@@ -64,26 +61,39 @@
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "migration_and_data_impact": "None. No migration is added or altered. The five reservations A1 raised against the migrations and the test fixture are recorded as open blockers, not repaired here.",
+  "compatibility_impact": "None. This increment adds one evidence file and rewrites this package's own open_blockers. No migration, schema, policy, contract or test behaviour changes.",
   "known_limitations": [
-    "CI runs against a postgres:17 service container with a shim that creates the auth schema, auth.uid() and the platform roles. That proves OUR policies still behave as written; it proves nothing about Supabase. service_role in the shim is a role we created WITHOUT bypassrls, while on the platform it ships WITH it -- the measurement that decided DATA-DEC-03 can only come from a provisioned instance.",
-    "db-migrate-upgrade and db-seed-replay fail rather than pass: there is no previous-release fixture and no global seed runner. An empty replay is not a passing replay.",
-    "The driver shells out to psql, present on the CI runner. No dependency was added; RFC-2026-001 forbids one and a test asserts it."
+    "The live half runs in CI and nowhere else. A Postgres service container gives db-migrate-clean, db-schema-lint and db-rls-smoke a real database on every pull request; all five migration batches apply and the schema lint passes. This DEVELOPMENT HOST still has no psql, pg_ctl or docker, so the targets refuse locally and every live change is proven by a CI round, not from a shell. db-migrate-upgrade and db-seed-replay remain unproven for a different reason: neither has a fixture to run against, and both say so rather than reporting a pass.",
+    "open_blockers[1] asked for the co-owner's signature on the role topology. A1 wrote its own record at evidence/WP-0A-DB-00/a1-countersignature-role-topology.md. READ THE VERDICT THERE: this manifest is written by A0 and does not speak for another role, so it does not restate it here.\n\nWhat A0 can state, because it is a property of that document rather than a judgement about it: A1 re-measured the provisioned instance itself through ten read-only catalog queries rather than accepting A0's record, three of its findings contradict a record A0 wrote, and it declares in its own §0 that it is a subagent run in A0's vendor and model family assessing files it authored. It therefore does not satisfy independence.prefer_cross_vendor_review and does not lift the cross_vendor_exception this package already carries -- a second reading, not a second opinion.\n\nThe reservations that record raises are carried as the five blockers below, and they are open.",
+    "RESERVATION 1 (A1 §5.1). RFC-2026-016 §4 retired 'force RLS where compatible' and made an EXEMPTION REGISTER the control that replaces it. No such register exists anywhere in the repository. The phrase was retired for being unfalsifiable; its replacement is unfalsifiable by absence. Owner: A0, with RFC-2026-016's author.",
+    "RESERVATION 2 (A1 §5.2). scripts/db/run.mjs implements half of RFC-2026-016 §6's check: it asserts no service role holds BYPASSRLS and never asserts none is SUPERUSER. A superuser bypasses row level security whatever rolbypassrls says, so the half that is missing is the half that cannot be worked around. The snapshot's service_roles entries carry no super field at all, and its login_roles block, which does carry one, is read by no rule.",
+    "RESERVATION 3 (A1 §5.3/§5.4). The record does not describe the tree in two places. 010_identity.sql:14 cites 'batch 004 corrects the record' and no 004_*.sql exists, so batch 000's pgcrypto claim is still wrong on both counts (pgcrypto is in `extensions`; gen_random_uuid is in pg_catalog). 000_foundation.sql:12 still calls an approved RFC 'Proposed'.",
+    "RESERVATION 4 (A1 §5.5). tests/db/identity/fixtures/010-identity-fixture.sql:72,76 and isolation-cases.mjs:143 call public.digest(), which does not exist on the provisioned instance -- the same defect A0 fixed in the migration and left in the tests. The suite passes in CI only because the shim happens to make batch 000's wrong record true there. As committed it cannot run against the platform it describes.",
+    "RESERVATION 5 (A1 §5.6). deniedBy is declared on four isolation cases and asserted by nothing. It matters because RFC-2026-017 §7 is entirely about WHICH LAYER refused: a missing grant and a policy both raise 42501, and a case that does not distinguish them cannot tell a working policy from a forgotten grant.",
+    "Tenant isolation is proven against the CI container and measured once against a provisioned Supabase instance, and the two prove different things. In CI, 28 isolation cases pass on every run and a NEGATIVE CONTROL disables row level security on app.workspaces and requires the suite to fail -- it reports 10 of 28, so the suite is not blind. What CI cannot establish is the platform: its roles come from db/foundation/ci/supabase-shim.sql and were created by us, so a green run means the policies still do what they did, never that this holds on Supabase. The BYPASSRLS measurement behind DATA-DEC-03 came from the provisioned instance and has no CI equivalent. Batches 020 and above own the assertions SMOKE_COVERAGE names as uncovered.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
   "open_risks_or_blockers": [
-    "Six of nine db targets cannot be exercised until a Postgres test instance exists. Until then no claim may be made that the migration applies cleanly or that RLS behaves."
+    "The live half runs in CI and nowhere else. A Postgres service container gives db-migrate-clean, db-schema-lint and db-rls-smoke a real database on every pull request; all five migration batches apply and the schema lint passes. This DEVELOPMENT HOST still has no psql, pg_ctl or docker, so the targets refuse locally and every live change is proven by a CI round, not from a shell. db-migrate-upgrade and db-seed-replay remain unproven for a different reason: neither has a fixture to run against, and both say so rather than reporting a pass.",
+    "open_blockers[1] asked for the co-owner's signature on the role topology. A1 wrote its own record at evidence/WP-0A-DB-00/a1-countersignature-role-topology.md. READ THE VERDICT THERE: this manifest is written by A0 and does not speak for another role, so it does not restate it here.\n\nWhat A0 can state, because it is a property of that document rather than a judgement about it: A1 re-measured the provisioned instance itself through ten read-only catalog queries rather than accepting A0's record, three of its findings contradict a record A0 wrote, and it declares in its own §0 that it is a subagent run in A0's vendor and model family assessing files it authored. It therefore does not satisfy independence.prefer_cross_vendor_review and does not lift the cross_vendor_exception this package already carries -- a second reading, not a second opinion.\n\nThe reservations that record raises are carried as the five blockers below, and they are open.",
+    "RESERVATION 1 (A1 §5.1). RFC-2026-016 §4 retired 'force RLS where compatible' and made an EXEMPTION REGISTER the control that replaces it. No such register exists anywhere in the repository. The phrase was retired for being unfalsifiable; its replacement is unfalsifiable by absence. Owner: A0, with RFC-2026-016's author.",
+    "RESERVATION 2 (A1 §5.2). scripts/db/run.mjs implements half of RFC-2026-016 §6's check: it asserts no service role holds BYPASSRLS and never asserts none is SUPERUSER. A superuser bypasses row level security whatever rolbypassrls says, so the half that is missing is the half that cannot be worked around. The snapshot's service_roles entries carry no super field at all, and its login_roles block, which does carry one, is read by no rule.",
+    "RESERVATION 3 (A1 §5.3/§5.4). The record does not describe the tree in two places. 010_identity.sql:14 cites 'batch 004 corrects the record' and no 004_*.sql exists, so batch 000's pgcrypto claim is still wrong on both counts (pgcrypto is in `extensions`; gen_random_uuid is in pg_catalog). 000_foundation.sql:12 still calls an approved RFC 'Proposed'.",
+    "RESERVATION 4 (A1 §5.5). tests/db/identity/fixtures/010-identity-fixture.sql:72,76 and isolation-cases.mjs:143 call public.digest(), which does not exist on the provisioned instance -- the same defect A0 fixed in the migration and left in the tests. The suite passes in CI only because the shim happens to make batch 000's wrong record true there. As committed it cannot run against the platform it describes.",
+    "RESERVATION 5 (A1 §5.6). deniedBy is declared on four isolation cases and asserted by nothing. It matters because RFC-2026-017 §7 is entirely about WHICH LAYER refused: a missing grant and a policy both raise 42501, and a case that does not distinguish them cannot tell a working policy from a forgotten grant.",
+    "Tenant isolation is proven against the CI container and measured once against a provisioned Supabase instance, and the two prove different things. In CI, 28 isolation cases pass on every run and a NEGATIVE CONTROL disables row level security on app.workspaces and requires the suite to fail -- it reports 10 of 28, so the suite is not blind. What CI cannot establish is the platform: its roles come from db/foundation/ci/supabase-shim.sql and were created by us, so a green run means the policies still do what they did, never that this holds on Supabase. The BYPASSRLS measurement behind DATA-DEC-03 came from the provisioned instance and has no CI equivalent. Batches 020 and above own the assertions SMOKE_COVERAGE names as uncovered.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. The migration has never been applied to any database, so there is no deployed schema to roll back, and the command contract and lint are inert without one.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting removes A1's countersignature from the record and restores open_blockers[1] to 'outstanding', which would be false: the signature exists whether or not this commit does.",
   "recommended_next_work_packages": [
     "Provision a Postgres test instance and wire a runner, which turns six refusing targets into real checks.",
     "Disposition of the policy-shape decision in WP-0A-A0-007, which unblocks the first tenant table.",
     "DB-01 once batch 000 is merged and the live harness runs."
   ],
   "reviewer_instructions": [
-    "Run LC_ALL=C TZ=UTC make db-verify and confirm it FAILS, naming six targets and DB_TEST_URL.",
-    "Confirm no live target has a no-database mode that could report a pass.",
-    "Gut any one lint rule in scripts/db/run.mjs and confirm the suite turns red."
+    "Read evidence/WP-0A-DB-00/a1-countersignature-role-topology.md yourself. It is A1's record, not A0's, and this handoff deliberately does not restate its verdict: an author does not speak for another role. Its §0 states its own provenance before its conclusion.",
+    "Every reservation is recorded as its own open blocker rather than folded into a summary. Reservation 4 is the one that changes what a green CI run means: the fixture calls public.digest(), which does not exist on the provisioned instance."
   ],
   "superseded_by": null
 }
