@@ -50,6 +50,18 @@ function bufferedDriver() {
     async rollback() { buffer = []; },
     async exec(statement, params) {
       const sql = await run(statement, params);
+      // Assuming an identity means calling into `private`, and only the connection role can reach
+      // it — `authenticated` cannot, exactly as batch 000 intends. A case that has already switched
+      // role therefore cannot switch again, and the witness read (which runs as a DIFFERENT
+      // identity, on purpose) failed with `permission denied for schema private` on all seven
+      // no-effect cases.
+      //
+      // The reset has to happen OUTSIDE the helper: reaching the function at all requires the
+      // privilege the helper would restore. So it is emitted here, in the adapter, immediately
+      // before any identity call. It is scoped by the surrounding transaction like everything else,
+      // and it is not a loosening — the privilege boundary is untouched; the caller simply steps
+      // back to its own role before asking to become someone else.
+      if (/\bprivate\.as_/.test(sql)) buffer.push('reset role;');
       buffer.push(sql.trim().endsWith(';') ? sql : `${sql};`);
       // Run everything so far, then roll back, so the result reflects the case's state without
       // leaving any of it behind.
