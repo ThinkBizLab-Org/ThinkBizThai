@@ -4,7 +4,23 @@
 // blurs:
 //
 //   * A SELECT that RLS filters returns ZERO ROWS. It is not an error.
-//   * An INSERT, UPDATE or DELETE that RLS refuses raises an ERROR (SQLSTATE 42501).
+//   * A write REJECTED BY A `WITH CHECK` CLAUSE raises an ERROR (SQLSTATE 42501). That is an
+//     INSERT, or an UPDATE whose resulting row fails the check.
+//   * A write FILTERED BY A `USING` CLAUSE raises NOTHING. The UPDATE or DELETE simply matches no
+//     row, reports zero rows affected, and succeeds.
+//
+// The first version of this comment said flatly that a refused write raises 42501. **That is only
+// true of WITH CHECK.** A1 found it while writing the first real isolation suite, and the error
+// matters in both directions: a suite demanding `expectDenied` on every mutation FAILS against a
+// correct database wherever the rule is expressed with USING -- which is most of the negative cases
+// in the access matrix -- and the obvious repair, downgrading those to `expectNoRows`, walks
+// straight into the trap this module exists to close.
+//
+// So there are three outcomes for a write, not two, and the third needs its own assertion:
+// `expectNoEffect`, which pairs the empty result with a WITNESS READ proving the target row still
+// exists and still carries its original value. That is strictly stronger than `expectNoRows`: it
+// fails when RLS is off (the write lands and the witness sees the change) and it fails when the
+// fixture never loaded (the witness sees nothing).
 //
 // So "the query came back empty" and "the database refused" are different outcomes, and only one
 // of them is evidence. A helper that treats an empty result as denial passes identically when:
@@ -85,6 +101,52 @@ export function expectNoRows(result, what) {
   throw new AssertionOutcome(
     `${what}: expected an empty read, got ${outcome.kind}${outcome.code ? ` (${outcome.code})` : ''}. `
     + 'A read that errors is not a read that was filtered.', outcome);
+}
+
+
+// A write that a USING clause filtered: nothing was raised, nothing was changed, and the target
+// row is still there unchanged. All three have to hold. The witness is what separates this from
+// `expectNoRows`, which cannot tell "the policy filtered it" from "the row was never there".
+//
+// `witness` is the result of re-reading the target row as an identity that CAN see it — the
+// fixture loader or an owner — not as the identity under test, which by construction cannot.
+export function expectNoEffect(result, witness, expected, what) {
+  const outcome = classify(result);
+  if (outcome.kind === 'denied') {
+    // Not a failure of the rule, but not this assertion either: a WITH CHECK refusal is a
+    // stronger outcome and belongs to expectDenied. Saying so keeps the two from blurring.
+    throw new AssertionOutcome(
+      `${what}: the write was refused with ${outcome.code} rather than filtered. That is a WITH CHECK `
+      + 'rejection and is asserted with expectDenied; using the weaker assertion here would hide which '
+      + 'clause is doing the work.', outcome);
+  }
+  if (outcome.kind === 'rows') {
+    throw new AssertionOutcome(`${what}: the write affected ${outcome.rows} row(s). It was not filtered.`, outcome);
+  }
+  if (outcome.kind === 'errored') {
+    throw new AssertionOutcome(
+      `${what}: the write raised ${outcome.code ?? 'an error with no code'}, which is neither a filter nor an `
+      + `RLS refusal: ${outcome.message}`, outcome);
+  }
+
+  // The empty result is necessary and not sufficient. The witness carries the rest.
+  const witnessOutcome = classify(witness);
+  if (witnessOutcome.kind !== 'rows') {
+    throw new AssertionOutcome(
+      `${what}: the write affected nothing, but the witness read cannot see the target row either `
+      + `(${witnessOutcome.kind}). An empty write against a row that does not exist proves nothing — `
+      + 'the fixture did not load, and every assertion in this suite is vacuous.', witnessOutcome);
+  }
+  const actual = witness.rows[0];
+  for (const [column, value] of Object.entries(expected ?? {})) {
+    if (actual[column] !== value) {
+      throw new AssertionOutcome(
+        `${what}: the write reported zero rows, but ${column} is now ${JSON.stringify(actual[column])} `
+        + `and should still be ${JSON.stringify(value)}. The row changed, so the write was not filtered — `
+        + 'this is what an assertion sees when RLS is off.', { column, actual: actual[column], expected: value });
+    }
+  }
+  return { kind: 'no-effect', witnessed: Object.keys(expected ?? {}).length };
 }
 
 export function expectRows(result, what, atLeast = 1) {

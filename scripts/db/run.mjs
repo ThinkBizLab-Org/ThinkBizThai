@@ -199,6 +199,11 @@ export async function catalogLint(snapshot, digest) {
       if (r.bypassrls) problems.push(`${r.role} holds BYPASSRLS — RFC-2026-017 requires that RLS apply to it, and every policy written for it is inert while this is true`);
       if (r.canlogin && !r.has_password) problems.push(`${r.role} can log in with no password`);
       if (r.can_use_private) problems.push(`${r.role} has USAGE on private, which no service role is granted`);
+      // Two different switches, and batch 002 confused them. `assumable` is what lets a test or a
+      // maintenance path deliberately become this role; `inherited` would hand its privileges to
+      // the admin role ambiently, which is how a path ends up running with more than it declared.
+      if (r.assumable_by_admin === false) problems.push(`${r.role} cannot be assumed by the administrative role — every service-path assertion fails at the assume-identity step, and with SQLSTATE 42501, the same code an RLS refusal raises`);
+      if (r.inherited_by_admin === true) problems.push(`${r.role} is inherited ambiently by the administrative role; it must be taken by an explicit SET ROLE`);
     }
   }
 

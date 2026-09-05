@@ -274,6 +274,13 @@ test('the service roles exist and RLS still applies to every one of them', async
     assert.equal(r.canlogin, false, `${r.role} is not reachable until something grants it deliberately`);
     assert.equal(r.has_password, false, `${r.role} has nothing to authenticate as, so nothing to leak`);
     assert.equal(r.memberships, 0, `${r.role} has no members yet; granting one picks the connection method`);
+    // Two switches PostgreSQL keeps separate and batch 002 conflated. Without SET, every
+    // service-path assertion dies at the assume-identity step — and dies with 42501, the same code
+    // an RLS refusal raises, so a suite checking only the code would read isolation it never
+    // tested. With INHERIT, the admin role holds these privileges ambiently, which is the property
+    // the topology exists to deny.
+    assert.equal(r.assumable_by_admin, true, `${r.role} must be assumable by an explicit SET ROLE`);
+    assert.equal(r.inherited_by_admin, false, `${r.role} must not be inherited ambiently`);
   }
 
   const withCatalog = (patch) => catalogLint({ ...base, catalog: { ...base.catalog, ...patch } }, digest);
@@ -291,6 +298,11 @@ test('the service roles exist and RLS still applies to every one of them', async
     .some((p) => /can log in with no password/.test(p)));
   assert.ok((await withCatalog({ service_roles: roles.map((r) => (r.role === 'app_worker' ? { ...r, can_use_private: true } : r)) }))
     .some((p) => /USAGE on private/.test(p)));
+  // Both switches must bite, and separately.
+  const notAssumable = roles.map((r) => (r.role === 'app_worker' ? { ...r, assumable_by_admin: false } : r));
+  assert.ok((await withCatalog({ service_roles: notAssumable })).some((p) => /cannot be assumed/.test(p)));
+  const ambient = roles.map((r) => (r.role === 'app_worker' ? { ...r, inherited_by_admin: true } : r));
+  assert.ok((await withCatalog({ service_roles: ambient })).some((p) => /inherited ambiently/.test(p)));
 });
 
 // The managed-schema rule, pinned by cases rather than by the shape of its regex.

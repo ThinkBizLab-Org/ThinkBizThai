@@ -2,33 +2,118 @@
   "_what": "The live catalog state, read from the provisioned Postgres. The text lint reads migration files; this is what the database actually became. A rule asserted against text and a rule asserted against the catalog are different rules, and only the second one is true.",
   "_staleness": "taken_against_migrations must equal the digest of db/foundation/migrations/*.sql. If a migration changes and this file is not retaken, db-schema-lint FAILS. A snapshot that can silently describe a database that no longer exists is the same defect class as a blocker list nobody re-checks.",
   "_measurement_note": "service_roles.has_password is read from pg_authid, NOT pg_roles. pg_roles is a view that replaces rolpassword with the literal '********', so the obvious query reports a password on every role including ones that have none. The first attempt here made exactly that mistake and reported has_password: true for all three.",
-  "taken_against_migrations": "4f27acc9ddcb52a5",
+  "taken_against_migrations": "03c7c343fdc68f9d",
   "taken_at": "2026-09-05",
   "project_ref": "xtvtflkntpqfvflvdbwk",
   "catalog": {
-    "roles_bypassing_rls": ["postgres", "service_role", "supabase_admin", "supabase_etl_admin", "supabase_read_only_user"],
+    "roles_bypassing_rls": [
+      "postgres",
+      "service_role",
+      "supabase_admin",
+      "supabase_etl_admin",
+      "supabase_read_only_user"
+    ],
     "login_roles": [
-      { "role": "authenticator", "super": false, "bypassrls": false },
-      { "role": "pgbouncer", "super": false, "bypassrls": false },
-      { "role": "postgres", "super": false, "bypassrls": true },
-      { "role": "supabase_admin", "super": true, "bypassrls": true },
-      { "role": "supabase_auth_admin", "super": false, "bypassrls": false },
-      { "role": "supabase_etl_admin", "super": false, "bypassrls": true },
-      { "role": "supabase_read_only_user", "super": false, "bypassrls": true },
-      { "role": "supabase_replication_admin", "super": false, "bypassrls": false },
-      { "role": "supabase_storage_admin", "super": false, "bypassrls": false }
+      {
+        "role": "authenticator",
+        "super": false,
+        "bypassrls": false
+      },
+      {
+        "role": "pgbouncer",
+        "super": false,
+        "bypassrls": false
+      },
+      {
+        "role": "postgres",
+        "super": false,
+        "bypassrls": true
+      },
+      {
+        "role": "supabase_admin",
+        "super": true,
+        "bypassrls": true
+      },
+      {
+        "role": "supabase_auth_admin",
+        "super": false,
+        "bypassrls": false
+      },
+      {
+        "role": "supabase_etl_admin",
+        "super": false,
+        "bypassrls": true
+      },
+      {
+        "role": "supabase_read_only_user",
+        "super": false,
+        "bypassrls": true
+      },
+      {
+        "role": "supabase_replication_admin",
+        "super": false,
+        "bypassrls": false
+      },
+      {
+        "role": "supabase_storage_admin",
+        "super": false,
+        "bypassrls": false
+      }
     ],
     "service_roles": [
-      { "role": "app_command",     "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false },
-      { "role": "app_maintenance", "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false },
-      { "role": "app_worker",      "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false }
+      {
+        "role": "app_command",
+        "bypassrls": false,
+        "canlogin": false,
+        "has_password": false,
+        "memberships": 0,
+        "can_use_app": false,
+        "can_use_private": false,
+        "assumable_by_admin": true,
+        "inherited_by_admin": false
+      },
+      {
+        "role": "app_maintenance",
+        "bypassrls": false,
+        "canlogin": false,
+        "has_password": false,
+        "memberships": 0,
+        "can_use_app": false,
+        "can_use_private": false,
+        "assumable_by_admin": true,
+        "inherited_by_admin": false
+      },
+      {
+        "role": "app_worker",
+        "bypassrls": false,
+        "canlogin": false,
+        "has_password": false,
+        "memberships": 0,
+        "can_use_app": false,
+        "can_use_private": false,
+        "assumable_by_admin": true,
+        "inherited_by_admin": false
+      }
     ],
-    "our_schemas": ["app", "private"],
+    "our_schemas": [
+      "app",
+      "private"
+    ],
     "tenant_tables": [],
     "exposed_views": [],
     "security_definer_functions": [
-      { "function": "private.set_updated_at", "config": ["search_path=\"\""], "owner": "postgres" }
+      {
+        "function": "private.set_updated_at",
+        "config": [
+          "search_path=\"\""
+        ],
+        "owner": "postgres"
+      }
     ],
-    "public_grants": { "usage_on_private": false, "create_on_app": false }
-  }
+    "public_grants": {
+      "usage_on_private": false,
+      "create_on_app": false
+    }
+  },
+  "_membership_note": "assumable_by_admin / inherited_by_admin are read from pg_auth_members, and they are two different switches. Batch 002 confused `alter role r noinherit` (whether r inherits from roles it belongs to) with the grant's inherit_option (whether the grantee inherits from r), and left postgres holding these roles ambiently while its own comment said the opposite. Batch 003 corrected it. Both are asserted here because the record claiming one thing while the database did another is the defect, not the privilege itself."
 }

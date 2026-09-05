@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import {
   AssertionOutcome, INSUFFICIENT_PRIVILEGE, classify,
-  expectDenied, expectNoRows, expectRows, expectVisibleOnly,
+  expectDenied, expectNoEffect, expectNoRows, expectRows, expectVisibleOnly,
 } from '../../db/foundation/test-helpers/rls-assertions.mjs';
 
 // These helpers are the instrument the cross-tenant assertions will be written with, and an
@@ -107,4 +107,61 @@ test('every auth context helper scopes its setting to the transaction', async ()
   assert.match(sql, /app_worker/);
   assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'service_role'/);
   assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'postgres'/);
+});
+
+// A write filtered by a USING clause raises nothing and changes nothing. The module's opening
+// comment originally claimed every refused write raises 42501 — true only of WITH CHECK — and A1
+// found it while writing the first real isolation suite. The correction needed a third assertion,
+// because neither of the existing two is right for that outcome: expectDenied fails against a
+// correct database, and expectNoRows cannot tell a filtered write from a row that was never there.
+const witnessed = { rows: [{ id: 'w-1', name: 'original' }] };
+
+test('expectNoEffect requires the empty write AND a witness that the row is unchanged', () => {
+  assert.deepEqual(
+    expectNoEffect(empty, witnessed, { name: 'original' }, 'viewer update'),
+    { kind: 'no-effect', witnessed: 1 });
+
+  // RLS off: the write landed, so the witness sees the new value. This is the case expectNoRows
+  // would have passed.
+  const changed = { rows: [{ id: 'w-1', name: 'edited' }] };
+  const rewritten = caught(() => expectNoEffect(empty, changed, { name: 'original' }, 'viewer update'));
+  assert.match(rewritten.message, /The row changed, so the write was not filtered/);
+  assert.match(rewritten.message, /what an assertion sees when RLS is off/);
+
+  // The fixture never loaded: an empty write against a row that does not exist proves nothing,
+  // and every assertion in the suite beside it is vacuous.
+  const missing = caught(() => expectNoEffect(empty, empty, { name: 'original' }, 'viewer update'));
+  assert.match(missing.message, /the fixture did not load/i);
+
+  // A write that was actually permitted.
+  assert.throws(() => expectNoEffect(oneRow, witnessed, { name: 'original' }, 'viewer update'),
+    /It was not filtered/);
+});
+
+test('expectNoEffect refuses to absorb a WITH CHECK refusal, which is a stronger outcome', () => {
+  const thrown = caught(() => expectNoEffect(denied, witnessed, { name: 'original' }, 'viewer insert'));
+  assert.match(thrown.message, /refused with 42501 rather than filtered/);
+  assert.match(thrown.message, /would hide which clause is doing the work/);
+});
+
+// The guard the auth helpers depend on, and the helpers' use of it.
+test('the transaction guard is called by every identity helper and explains itself', async () => {
+  const sql = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
+
+  // Its first version required a transaction id, which a read-only transaction never has — so it
+  // raised inside a legitimate read block and had to be worked around with a GUC. A guard that has
+  // to be worked around is a guard on its way to being deleted.
+  assert.doesNotMatch(sql, /txid_current_if_assigned\(\)\s*is not null/,
+    'the transaction-id check was the hole; it must not still be doing the work');
+  assert.match(sql, /transaction_timestamp\(\) = statement_timestamp\(\)/);
+
+  // Every identity helper must call it. A guard nothing invokes protects nothing.
+  const callers = [...sql.matchAll(/create or replace function private\.(as_\w+)\(/g)].map((m) => m[1]);
+  assert.ok(callers.length >= 3, 'the identity helpers are present');
+  for (const fn of ['as_anonymous', 'as_user', 'as_service']) {
+    const body = sql.slice(sql.indexOf(`function private.${fn}(`));
+    const end = body.indexOf('$$;');
+    assert.match(body.slice(0, end), /perform private\.assert_in_transaction\(\)/,
+      `${fn} must assert it is in a transaction — SET LOCAL outside one silently assumes nothing, and the test then exercises whatever identity the connection already had`);
+  }
 });
