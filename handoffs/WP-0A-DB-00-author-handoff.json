@@ -5,10 +5,21 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "fc7904596e3b089e41185812961c21f2c069ac6e",
-  "head_revision_or_patch_checksum": "fc7904596e3b089e41185812961c21f2c069ac6e",
+  "head_revision_or_patch_checksum": "b5ec797e67d723eca99b07443f4ddeb57772565c",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/lint/rls-exemption-register.json"
+  ],
+  "files_modified": [
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
