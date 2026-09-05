@@ -1,6 +1,6 @@
 # RFC-2026-016 — The RLS policy set denies every service operation, and the platform it runs on
 
-Status: Proposed — awaiting Product Owner disposition and A0 countersignature
+Status: Approved 2026-09-05 by the Product Owner — the policy set is amended to carry service-role policies for every operation the matrix marks `S`; the platform is Supabase; DATA-DEC-03 closes only as far as §4 states and the service path remains undecided.
 Date: 2026-09-04
 Author: /claude/a0_atlas (A0), on A1's security analysis of DATA-DEC-03
 Affects: the data package §8.5 RLS baseline; records the database platform; advances `DATA-DEC-03`

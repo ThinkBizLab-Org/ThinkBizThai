@@ -24,7 +24,7 @@
     "architecture/decisions/RFC-2026-013-agent-signature-scope.md": "b0eeee8a8c1b8f4367fea41150f6b8ebef5fecc8769f350ff3cec5c3ec32da20",
     "architecture/decisions/RFC-2026-014-usage-measurement-identity.md": "a3f191f3e3753e4eff9d1e030060fe1b6226e0c3ed38d9d109f270743d1ea3d2",
     "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md": "76d9276d9f73ac4a8d7496474f40b3e9a3a42983d1c2be7420303fd6ab8e4aab",
-    "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md": "2e5915675295ffeb7fcd35534ae496b5d6d5ec9d0c6b76bf99eb4f8111eddaaf",
+    "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md": "a1e914e3ab78ee394a55629b248794bb9e8119697f122b3450570a58cd35b987",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md": "0a7656abb31f25ba5107cf304951b6fbaefca67bb607415250ea3a4d400056c4",
