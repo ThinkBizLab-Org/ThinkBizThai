@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MIN_EXECUTED_TESTS, TEST_PATTERN } from './test-suite-contract.mjs';
+import { MIN_EXECUTED_TESTS, TEST_PATTERN, TEST_ROOTS } from './test-suite-contract.mjs';
 import {
   assertEveryTestFileProtected,
   assertIntegrityManifest,
@@ -100,7 +100,9 @@ export function assertExecuted(executed, floor = MIN_EXECUTED_TESTS) {
 // fewer -- and the literal also breaks on any legitimate added test. Only here are both
 // numbers real, so compare them to each other instead of to a constant.
 export async function assertDeclarationsMatchExecution(pass) {
-  const files = await discoverTestFiles('test-kits');
+  // Both roots, matching TEST_PATTERN. Walking one while the runner globs two makes the
+  // declaration check compare against a file list the runner never used.
+  const files = (await Promise.all(TEST_ROOTS.map((r) => discoverTestFiles(r).catch(() => [])))).flat().sort();
   // Independent security review rewrote a test file 150 ms into the run -- after node had
   // read its module body, so only this post-run count changed -- then restored the digested
   // bytes afterwards. The run went green with six assertions never executed and the tree
@@ -120,7 +122,7 @@ export async function assertDeclarationsMatchExecution(pass) {
 }
 
 async function main() {
-  const child = spawn(process.execPath, ['--test', TEST_PATTERN], { stdio: ['inherit', 'pipe', 'inherit'] });
+  const child = spawn(process.execPath, ['--test', ...(Array.isArray(TEST_PATTERN) ? TEST_PATTERN : [TEST_PATTERN])], { stdio: ['inherit', 'pipe', 'inherit'] });
   let output = '';
   // Decode before concatenating. Buffer concatenation lets a chunk boundary inside the
   // summary's 3-byte `ℹ` corrupt it, which hands the parser an earlier forged match --

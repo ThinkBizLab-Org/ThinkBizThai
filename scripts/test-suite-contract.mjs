@@ -1,8 +1,19 @@
 // Single source of truth for what the repository's test suite must execute.
 // The pattern is handed to node's test runner as an argv string and never reaches a
 // shell, so shell quoting, `globstar` support, and `script-shell` cannot change what runs.
-export const TEST_PATTERN = 'test-kits/**/*.test.mjs';
+// Two roots, not one. `test-kits/` holds the protocol and foundation suites; `tests/db/<module>/`
+// is where the data package's §6 ownership contract puts a module's own tests, and A1's batch-010
+// isolation suite landed there correctly rather than reaching into DB-00's directory.
+//
+// It was invisible to the runner. Fourteen tests existed, were green when run by hand, and `npm run
+// check` did not execute one of them — which is the same thing as their not existing. A suite the
+// runner cannot see is not a suite; it is a file that happens to contain assertions.
+//
+// Both roots are globbed, and both carry the same floors, digests and registry obligations. A
+// module cannot escape the ratchets by living in its own directory.
+export const TEST_PATTERN = ['test-kits/**/*.test.mjs', 'tests/**/*.test.mjs'];
 export const TEST_ROOT = 'test-kits';
+export const TEST_ROOTS = ['test-kits', 'tests'];
 export const MIN_TEST_FILES = 8;
 export const MIN_TEST_DIRECTORIES = 2;
 export const MIN_DECLARED_TESTS = 30;
@@ -13,7 +24,8 @@ export const MIN_DECLARED_TESTS = 30;
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
   'test-kits': 33,
   'test-kits/contracts': 7,
-  'test-kits/db': 23,
+  'tests/db/identity': 14,
+  'test-kits/db': 27,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
 // when its pattern matches nothing, so the count is asserted after the run -- and it is
@@ -64,8 +76,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 15,
-  'test-kits/db/foundation-contract.test.mjs': 15,
-  'test-kits/db/rls-assertions.test.mjs': 8,
+  'test-kits/db/foundation-contract.test.mjs': 16,
+  'test-kits/db/rls-assertions.test.mjs': 11,
+  'tests/db/identity/identity-isolation.test.mjs': 14,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -110,8 +123,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
-  'test-kits/db/foundation-contract.test.mjs': 50,
-  'test-kits/db/rls-assertions.test.mjs': 30,
+  'test-kits/db/foundation-contract.test.mjs': 66,
+  'test-kits/db/rls-assertions.test.mjs': 41,
+  'tests/db/identity/identity-isolation.test.mjs': 62,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -125,7 +139,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/repository-json.test.mjs': 18,
   'test-kits/role-separation.test.mjs': 8,
   'test-kits/secret-scan.test.mjs': 88,
-  'test-kits/test-coverage-floor.test.mjs': 92,
+  'test-kits/test-coverage-floor.test.mjs': 95,
   'test-kits/toolchain-contract.test.mjs': 3,
   'test-kits/verification-record.test.mjs': 14,
   'test-kits/work-package-discovery.test.mjs': 2,
@@ -146,8 +160,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '6cff5fcfbb8a2dca',
-  'test-kits/db/rls-assertions.test.mjs': 'a57d8a019c522843',
+  'test-kits/db/foundation-contract.test.mjs': '248e6605283dde53',
+  'test-kits/db/rls-assertions.test.mjs': '03e145fb249e7894',
+  'tests/db/identity/identity-isolation.test.mjs': 'ef28fd583f9655f2',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

@@ -183,7 +183,15 @@ test('the repository suite clears the declared-test floor', async () => {
 });
 
 test('globstar spans nested directories without escaping the test root', () => {
-  const matcher = globToRegExp(CURRENT);
+  // TEST_PATTERN is a LIST now: test-kits/** for the protocol and foundation suites, tests/** for
+  // a module's own tests, which the data package's ownership contract puts in its own directory.
+  // Each pattern is still checked on its own terms — a second root must not become a way to reach
+  // outside either one.
+  const matchers = (Array.isArray(CURRENT) ? CURRENT : [CURRENT]).map(globToRegExp);
+  const matcher = { test: (path) => matchers.some((m) => m.test(path)) };
+  assert.equal(matchers.length, 2, 'both roots are globbed; a module cannot hide tests in its own directory');
+  assert.ok(matcher.test('tests/db/identity/a.test.mjs'), 'a module suite under tests/ is discovered');
+  assert.equal(matcher.test('other/a.test.mjs'), false, 'and nothing outside either root is');
   assert.ok(matcher.test('test-kits/a.test.mjs'));
   assert.ok(matcher.test('test-kits/contracts/b.test.mjs'));
   assert.ok(matcher.test('test-kits/contracts/deep/c.test.mjs'));
