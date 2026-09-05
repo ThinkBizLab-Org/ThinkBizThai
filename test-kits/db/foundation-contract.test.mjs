@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import test from 'node:test';
 
-import { contractCheck, schemaLint } from '../../scripts/db/run.mjs';
+import { LIVE, ORDER, contractCheck, schemaLint } from '../../scripts/db/run.mjs';
 
 const run = promisify(execFile);
 
@@ -107,7 +107,23 @@ test('db-verify fails as a whole, and its summary names what is missing', async 
   const result = await run('node', ['scripts/db/run.mjs', 'verify'], { env })
     .then((ok) => ({ code: 0, ...ok }), (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '' }));
   assert.notEqual(result.code, 0, 'db-verify must not report clean while six of its targets cannot run');
-  assert.match(result.stdout, /db-verify: FAILED — 6 of 9 target\(s\)/);
+  // The counts are DERIVED, not remembered. The first version of this test hard-coded
+  // "6 of 9", so it broke the moment A1 added the first real migration — a test asserting a
+  // number that legitimately changes, which fails for the wrong reason and teaches its reader
+  // to edit the number rather than read the failure.
+  // What must be true is that EVERY live target is among the failures and the summary names the
+  // variable. The exact total is not the assertion: a static target can also fail for its own
+  // reason — a stale snapshot, a lint violation — and that is a different fact, not this one.
+  //
+  // The first version hard-coded "6 of 9". It broke the moment a real migration was added, which
+  // is a test failing for the wrong reason and teaching its reader to edit the number instead of
+  // reading the failure.
+  assert.match(result.stdout, /db-verify: FAILED — \d+ of \d+ target\(s\)/);
+  for (const target of LIVE) {
+    assert.match(result.stdout, new RegExp(`db-${target}: FAILED`),
+      `db-${target} needs a database and none is configured, so it must be reported as failing`);
+  }
+  assert.equal(ORDER.length >= LIVE.size, true, 'every live target is part of the verify order');
   assert.match(result.stdout, /need DB_TEST_URL, which is unset/);
   // The three that CAN run must actually have run and passed, or the failure is uninformative.
   for (const target of ['schema-lint', 'contract-check', 'generated-drift-check']) {
@@ -275,4 +291,33 @@ test('the service roles exist and RLS still applies to every one of them', async
     .some((p) => /can log in with no password/.test(p)));
   assert.ok((await withCatalog({ service_roles: roles.map((r) => (r.role === 'app_worker' ? { ...r, can_use_private: true } : r)) }))
     .some((p) => /USAGE on private/.test(p)));
+});
+
+// The managed-schema rule, pinned by cases rather than by the shape of its regex.
+//
+// Its first version matched any `create|alter|drop` within 200 characters of `auth.`, so it read
+// `create policy p on app.t using ((select auth.uid()) = user_id)` as this file creating something
+// in the `auth` schema — and §8.5 MANDATES that call in every tenant policy. The rule rejected the
+// shape the specification requires, and did it inconsistently: only the policies whose `create`
+// fell inside the window were flagged. A1 hit it on the first real migration.
+//
+// What §3.1 forbids is the managed schema being the TARGET of the DDL. These cases say so directly,
+// so a future rewrite of the pattern is judged on what it decides rather than on how it looks.
+test('the managed-schema rule flags DDL targets and allows a call inside a predicate', async () => {
+  const flagged = async (sql) =>
+    (await schemaLint([{ name: 't.sql', sql }])).some((p) => /Supabase-managed/.test(p));
+
+  // Allowed: §8.5's mandated policy shape, at any distance, and reading a managed table.
+  assert.equal(await flagged("create policy p on app.workspaces for select to authenticated using ((select auth.uid()) = owner_id);"), false);
+  assert.equal(await flagged("create policy a_very_long_policy_name_indeed on app.workspace_members for select to authenticated using (workspace_id in (select workspace_id from app.workspace_members m where m.user_id = (select auth.uid()) and m.status = 'active' and m.deleted_at is null));"), false);
+  assert.equal(await flagged("create policy p on app.user_profiles for select to authenticated using (user_id in (select id from auth.users));"), false);
+
+  // Flagged: the managed schema as the target, in either position it can appear.
+  assert.equal(await flagged('create table auth.shadow (id uuid primary key);'), true);
+  assert.equal(await flagged('create table if not exists storage.extra (id uuid primary key);'), true);
+  assert.equal(await flagged('alter table realtime.messages add column x text;'), true);
+  assert.equal(await flagged('drop function auth.uid();'), true);
+  assert.equal(await flagged('create or replace view auth.v as select 1;'), true);
+  assert.equal(await flagged('create policy p on auth.users for select to authenticated using (true);'), true);
+  assert.equal(await flagged('create index i on storage.objects (name);'), true);
 });

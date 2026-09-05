@@ -26,9 +26,9 @@ const MIGRATIONS = 'db/foundation/migrations';
 // requires a separate test instance and forbids a production URL, so the name says test.
 const TEST_URL = 'DB_TEST_URL';
 
-const LIVE = new Set(['reset-test', 'migrate-clean', 'migrate-upgrade', 'seed-replay', 'rls-smoke', 'test-foundation']);
+export const LIVE = new Set(['reset-test', 'migrate-clean', 'migrate-upgrade', 'seed-replay', 'rls-smoke', 'test-foundation']);
 const STATIC = new Set(['schema-lint', 'contract-check', 'generated-drift-check']);
-const ORDER = ['reset-test', 'migrate-clean', 'migrate-upgrade', 'seed-replay', 'schema-lint',
+export const ORDER = ['reset-test', 'migrate-clean', 'migrate-upgrade', 'seed-replay', 'schema-lint',
   'rls-smoke', 'contract-check', 'generated-drift-check', 'test-foundation'];
 
 const redact = (text) => String(text).replace(/(postgres(?:ql)?:\/\/)[^\s"']*/gi, '$1[redacted]');
@@ -53,9 +53,41 @@ export async function schemaLint(files) {
   const problems = [];
   for (const { name, sql } of files ?? await migrationFiles()) {
     const stripped = sql.replace(/--[^\n]*/g, '');
-    // §3.1 forbids creating or altering an object in a Supabase-managed schema.
-    for (const m of stripped.matchAll(/\b(?:create|alter|drop)\b[^;]{0,200}?\b(auth|storage|realtime)\./gi)) {
-      problems.push(`${name}: touches the Supabase-managed schema '${m[1]}' — §3.1 forbids it`);
+    // §3.1 forbids creating or altering an OBJECT in a Supabase-managed schema.
+    //
+    // The first version of this rule matched any `create|alter|drop` within 200 characters of
+    // `auth.`, `storage.` or `realtime.`. That reads `create policy p on app.t using
+    // ((select auth.uid()) = user_id)` as this file creating something in the `auth` schema —
+    // and §8.5 MANDATES that exact call in every tenant policy, so the rule rejected the shape
+    // the specification requires. A1 hit it on the first real migration and, correctly, did not
+    // contort the SQL to dodge it.
+    //
+    // It was also formatting-dependent: only the policies whose `create` fell inside the
+    // 200-character window matched, so four of ten were flagged and six identical ones were not.
+    // A rule whose verdict depends on where a line wraps is not a rule.
+    //
+    // What §3.1 actually forbids is the managed schema being the TARGET of the DDL. A target
+    // appears in exactly two places: straight after the object kind (`create table auth.x`,
+    // `alter function auth.f`), or after `on` for the objects that attach to a table
+    // (`create policy p on auth.users`, `create index i on storage.objects`). A schema-qualified
+    // call inside a predicate is in neither position.
+    //
+    // Out of scope, deliberately: `grant`/`revoke` naming a managed schema. That alters
+    // privileges, not an object, and widening this rule to cover it is a separate decision with
+    // its own false-positive surface.
+    const MANAGED = '(auth|storage|realtime)';
+    const KIND = '(?:table|schema|view|materialized\\s+view|function|procedure|type|domain|sequence|extension|publication|subscription)';
+    const ATTACHED = '(?:policy|index|trigger|rule)';
+    const targets = [
+      // create/alter/drop <kind> [if [not] exists] <managed>.<name>
+      new RegExp(`\\b(?:create|alter|drop)\\s+(?:or\\s+replace\\s+)?${KIND}\\s+(?:if\\s+(?:not\\s+)?exists\\s+)?${MANAGED}\\.`, 'gi'),
+      // create/alter/drop policy|index|trigger <name> on [only] <managed>.<table>
+      new RegExp(`\\b(?:create|alter|drop)\\s+${ATTACHED}\\b[^;]{0,120}?\\bon\\s+(?:only\\s+)?${MANAGED}\\.`, 'gi'),
+    ];
+    for (const pattern of targets) {
+      for (const m of stripped.matchAll(pattern)) {
+        problems.push(`${name}: creates or alters an object in the Supabase-managed schema '${m[1]}' — §3.1 forbids it`);
+      }
     }
     // §8.5: a SECURITY DEFINER function pins an empty search_path.
     for (const m of stripped.matchAll(/create\s+(?:or\s+replace\s+)?function\s+([\w.]+)[\s\S]*?\$\$/gi)) {

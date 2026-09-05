@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-rls-helpers",
+    "branch": "agent/claude/WP-0A-DB-00-lint-targets-ddl",
     "writable_paths": [
       "db/foundation/**",
       "scripts/db/**",
