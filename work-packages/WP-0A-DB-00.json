@@ -106,14 +106,16 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json",
+        "tests/db/identity/fixtures/010-identity-fixture.sql",
         "tests/db/identity/identity-isolation.test.mjs",
         "tests/db/identity/isolation-cases.mjs",
-        "tests/db/identity/run-isolation.mjs",
-        "tests/db/identity/fixtures/010-identity-fixture.sql"
+        "tests/db/identity/run-isolation.mjs"
       ],
-      "rationale": "The four files under tests/db/identity are A1's, carried by this package since the batch 010 increment. Three of the five reservations A1 raised are IN those files -- the fixture's public.digest() calls, the runner not asserting deniedBy, and the assertion that pinned the very call that cannot run on the platform -- so repairing them means editing them. Each edit is the repair A1's own record asks for, and its countersignature is cited at every site.\\n\\nThe branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row there. The integrity manifest records the digests of the protected files this branch edits."
+      "rationale": "The four files under tests/db/identity are A1's, carried by this package since the batch 010 increment. Three of the five reservations A1 raised are IN those files -- the fixture's public.digest() calls, the runner not asserting deniedBy, and the assertion that pinned the very call that cannot run on the platform -- so repairing them means editing them. Each edit is the repair A1's own record asks for, and its countersignature is cited at every site.\\n\\nThe branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row there. The integrity manifest records the digests of the protected files this branch edits.\n\nTwo registries move whenever a test file changes and were missing from this declaration until CI refused the branch: scripts/test-suite-contract.mjs carries the per-file test and assertion floors and the name digests, and evidence/VERIFICATION.md is the machine-written record every commit regenerates. Adding a test raises a floor there; no floor is lowered. This is the same under-declaration this repository has caught on nearly every branch, and the reason is always the same -- the list is maintained by hand against a diff that changes with every commit."
     }
   },
   "inputs": {
