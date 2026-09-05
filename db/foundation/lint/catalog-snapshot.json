@@ -1,0 +1,28 @@
+{
+  "_what": "The live catalog state, read from the provisioned Postgres. The text lint reads migration files; this is what the database actually became. A rule asserted against text and a rule asserted against the catalog are different rules, and only the second one is true.",
+  "_staleness": "taken_against_migrations must equal the digest of db/foundation/migrations/*.sql. If a migration changes and this file is not retaken, db-schema-lint FAILS. A snapshot that can silently describe a database that no longer exists is the same defect class as a blocker list nobody re-checks.",
+  "taken_against_migrations": "882b94b238ebe3b2",
+  "taken_at": "2026-09-05",
+  "project_ref": "xtvtflkntpqfvflvdbwk",
+  "catalog": {
+    "roles_bypassing_rls": ["postgres", "service_role", "supabase_admin", "supabase_etl_admin", "supabase_read_only_user"],
+    "login_roles": [
+      { "role": "authenticator", "super": false, "bypassrls": false },
+      { "role": "pgbouncer", "super": false, "bypassrls": false },
+      { "role": "postgres", "super": false, "bypassrls": true },
+      { "role": "supabase_admin", "super": true, "bypassrls": true },
+      { "role": "supabase_auth_admin", "super": false, "bypassrls": false },
+      { "role": "supabase_etl_admin", "super": false, "bypassrls": true },
+      { "role": "supabase_read_only_user", "super": false, "bypassrls": true },
+      { "role": "supabase_replication_admin", "super": false, "bypassrls": false },
+      { "role": "supabase_storage_admin", "super": false, "bypassrls": false }
+    ],
+    "our_schemas": ["app", "private"],
+    "tenant_tables": [],
+    "exposed_views": [],
+    "security_definer_functions": [
+      { "function": "private.set_updated_at", "config": ["search_path=\"\""], "owner": "postgres" }
+    ],
+    "public_grants": { "usage_on_private": false, "create_on_app": false }
+  }
+}

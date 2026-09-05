@@ -13,7 +13,7 @@ export const MIN_DECLARED_TESTS = 30;
 export const MIN_DECLARED_TESTS_BY_DIRECTORY = {
   'test-kits': 33,
   'test-kits/contracts': 7,
-  'test-kits/db': 9,
+  'test-kits/db': 13,
 };
 // A green run must never mean "executed nothing". node --test exits 0 reporting `tests 0`
 // when its pattern matches nothing, so the count is asserted after the run -- and it is
@@ -64,7 +64,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 15,
-  'test-kits/db/foundation-contract.test.mjs': 9,
+  'test-kits/db/foundation-contract.test.mjs': 13,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -109,7 +109,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
-  'test-kits/db/foundation-contract.test.mjs': 22,
+  'test-kits/db/foundation-contract.test.mjs': 35,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -144,7 +144,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '8c443e892c03006d',
+  'test-kits/db/foundation-contract.test.mjs': '181fcb96f393d07b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

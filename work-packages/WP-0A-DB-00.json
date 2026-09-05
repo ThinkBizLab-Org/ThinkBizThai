@@ -72,7 +72,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-schema-foundation",
+    "branch": "agent/claude/WP-0A-DB-00-catalog-truth",
     "writable_paths": [
       "db/foundation/**",
       "scripts/db/**",

@@ -123,3 +123,75 @@ test('a connection string never reaches the output', async () => {
   assert.doesNotMatch(output, /hunter2/, '§12.5 requires the connection URL to be redacted');
   assert.doesNotMatch(output, /db\.example\.invalid/, 'the host is part of the URL and must not leak either');
 });
+
+// ---------------------------------------------------------------------------
+// The catalog half. Batch 000 is applied to a real Postgres now, so the lint can
+// assert what the database BECAME rather than what a migration file says.
+//
+// The snapshot is committed evidence, and committed evidence is exactly what this
+// repository keeps catching itself trusting after it went stale. So the snapshot
+// names the migration set it was taken against, and drifting from it fails.
+
+import { catalogLint, migrationSetDigest } from '../../scripts/db/run.mjs';
+
+const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
+const snapshot = async () => JSON.parse(await readFile(SNAPSHOT, 'utf8'));
+
+test('the committed catalog snapshot matches the migrations it claims to describe', async () => {
+  const snap = await snapshot();
+  assert.equal(snap.taken_against_migrations, await migrationSetDigest(),
+    'the snapshot describes a different migration set than the one in the tree — retake it');
+  assert.deepEqual(await catalogLint(snap), [], 'the live catalog satisfies every rule asserted against it');
+});
+
+test('a snapshot that no longer matches the migrations is refused, not read', async () => {
+  const stale = { ...(await snapshot()), taken_against_migrations: '0'.repeat(16) };
+  const problems = await catalogLint(stale);
+  assert.equal(problems.length, 1, 'a stale snapshot produces one refusal, not a list of stale findings');
+  assert.match(problems[0], /Retake it/);
+  // And it refuses BEFORE reading the catalog, so a stale file cannot report a clean database.
+  const staleAndBroken = { ...stale, catalog: { ...stale.catalog, our_schemas: [] } };
+  assert.deepEqual(await catalogLint(staleAndBroken), problems,
+    'a stale snapshot must refuse on staleness alone, never report on contents it cannot vouch for');
+});
+
+test('the catalog rules reject what the text rules cannot see', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+  const withCatalog = (catalog) => catalogLint({ ...base, catalog: { ...base.catalog, ...catalog } }, digest);
+
+  // ENABLE without FORCE — the difference the specified lint rule cannot express, because
+  // relrowsecurity and relforcerowsecurity are different catalog columns.
+  const enabledOnly = [{ table: 'workspace', rls_enabled: true, rls_forced: false, has_pk: true, comment: 'owner: A1' }];
+  assert.ok((await withCatalog({ tenant_tables: enabledOnly })).some((p) => /relforcerowsecurity is false/.test(p)));
+  const forced = [{ ...enabledOnly[0], rls_forced: true }];
+  assert.deepEqual(await withCatalog({ tenant_tables: forced }), []);
+
+  // A table whose RLS was turned off after the migration ran. No file changes; the catalog does.
+  assert.ok((await withCatalog({ tenant_tables: [{ ...forced[0], rls_enabled: false }] }))
+    .some((p) => /relrowsecurity is false/.test(p)));
+
+  // A view created without security_invoker, and a definer function whose search_path was widened.
+  assert.ok((await withCatalog({ exposed_views: [{ view: 'page_v', reloptions: null }] }))
+    .some((p) => /not security_invoker/.test(p)));
+  assert.ok((await withCatalog({ security_definer_functions: [{ function: 'private.helper', config: ['search_path=public'], owner: 'app_owner' }] }))
+    .some((p) => /without an empty search_path/.test(p)));
+
+  // A grant that opens `private` to every client role.
+  assert.ok((await withCatalog({ public_grants: { usage_on_private: true, create_on_app: false } }))
+    .some((p) => /USAGE on private/.test(p)));
+});
+
+// The measurement that answers DATA-DEC-03's decisive question, kept as a standing assertion.
+// A new role gaining BYPASSRLS makes every policy inert for it, forced or not, and no RLS test
+// written against client roles would notice.
+test('a role gaining BYPASSRLS is a finding, not a detail', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+  const withRole = [...base.catalog.roles_bypassing_rls, 'app_worker'];
+  const problems = await catalogLint({ ...base, catalog: { ...base.catalog, roles_bypassing_rls: withRole } }, digest);
+  assert.ok(problems.some((p) => /app_worker bypasses RLS/.test(p)),
+    'a role outside the known platform set that bypasses RLS must be reported');
+  // The platform's own five are known and must not be reported as findings every run.
+  assert.deepEqual(await catalogLint(base, digest), []);
+});
