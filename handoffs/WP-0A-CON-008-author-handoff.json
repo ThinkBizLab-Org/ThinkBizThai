@@ -4,27 +4,21 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d50592a1e6f72f550fd645219b0001149884e4f9",
-  "head_revision_or_patch_checksum": "1a9f5894ac78d865e67b477ff2c294bb4b8a45b3",
+  "base_revision": "e674d4e7e7be2bfa3b03b52e22af78f7ae16006d",
+  "head_revision_or_patch_checksum": "24014c8281ed1c0addb5c1b51d913169f3228c60",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
-    "evidence/WP-0A-A0-006/blocker-re-audit.md",
-    "handoffs/WP-0A-A0-006-author-handoff.json",
-    "work-packages/WP-0A-A0-006.json"
+    "evidence/WP-0A-CON-008/handoff-base-revision.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/refresh-author-handoff.mjs",
     "scripts/test-suite-contract.mjs",
-    "scripts/verify-clean-run.mjs",
-    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/ci-guard-behaviour.test.mjs",
-    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
-    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
@@ -39,7 +33,7 @@
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
     "RFC-2026-002 reserves the merge for the Product Owner. This package was never merged and main was never touched.",
     "Cross-vendor review is NOT satisfied. Every run against this package is Anthropic claude-opus-5, carried as the recorded exception rather than as an equivalent.",
-    "The revisions above are the branch's CURRENT base and head. This stack has been rebased repeatedly; an earlier version of this handoff cited SHAs that no longer exist in any branch, which independent review caught. Re-derive them if the stack is rebased again."
+    "The revisions above are the branch's CURRENT base and head, and the base is now derived rather than carried: git merge-base HEAD against main, origin/main or origin/HEAD, whichever resolves latest. It is no longer copied forward from the previous increment, which is what made WP-0A-CON-002's handoff claim 861 files its branch never wrote."
   ],
   "acceptance_results": [
     {
@@ -83,13 +77,16 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "compatibility_impact": "No contract-catalog file is changed by this increment: it touches one script, one test suite, the test-suite contract floors, the integrity manifest, this package manifest and this handoff. The behaviour change is to scripts/refresh-author-handoff.mjs, which now reads a handoff's base_revision from history (git merge-base against the integration branch) instead of from the record it is rewriting. A handoff whose stored base is already its branch point is written exactly as before.",
   "known_limitations": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
     "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "This record was repaired after the fact: it cited the pre-squash branch tip, which the squash merge of PR #44 orphaned. The commit no longer exists in any clone, so the handoff conformance guard failed in CI while passing locally, where the orphaned object was still reachable. The range now names the squashed commit on main. This will recur for every package merged by squash and needs a protocol fix, not another repair."
+    "This record was repaired after the fact: it cited the pre-squash branch tip, which the squash merge of PR #44 orphaned. The commit no longer exists in any clone, so the handoff conformance guard failed in CI while passing locally, where the orphaned object was still reachable. The range now names the squashed commit on main. This will recur for every package merged by squash and needs a protocol fix, not another repair.",
+    "Moving base_revision forward to the branch point drops the commits between the old base and that point. After a normal merge they remain in main's history and in the earlier increment's own handoff; after a SQUASH merge the individual commits are gone and that earlier handoff is the only surviving record of them. This is why the refresher rewrites only the handoff of the branch it is run on and never regenerates one whose branch has been merged.",
+    "If part of a branch is merged into main while work on it continues, the branch point moves onto the branch and the recomputed range describes LESS than the branch did. Nothing detects that: the drift check looks past the cited head, never before the cited base. A range narrower than the pull request should be read as this case.",
+    "npm run check:handoff now reports a stale base, but it is not in the npm run check chain, so a handoff hand-edited to a stale base and a matching file list still passes CI. See evidence/WP-0A-CON-008/handoff-base-revision.md."
   ],
   "open_risks_or_blockers": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
@@ -97,7 +94,7 @@
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
     "CTR-NTF-001 remains unassessed; A5 owns it."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range 653f699..ae5864d covers 49 path(s) — 11 contract-catalog file(s), 3 script(s), 5 test file(s), 1 decision record(s), 3 work-package manifest(s). Revert through a reviewed revert PR. One decision record and one manifest; no code, no contract, no schema and no status changed.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Nothing in this increment is load-bearing at runtime: reverting scripts/refresh-author-handoff.mjs restores the previous base handling, and the three cases in test-kits/handoff-conformance.test.mjs revert with it. No contract, schema, migration or status is touched.",
   "recommended_next_work_packages": [
     "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
   ],
@@ -105,7 +102,8 @@
     "Read evidence/WP-0A-CON-008/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
     "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
     "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
-    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception.",
+    "For this increment read evidence/WP-0A-CON-008/handoff-base-revision.md, then restore scripts/refresh-author-handoff.mjs from an earlier revision and run node --test test-kits/handoff-conformance.test.mjs: two of the three new cases must fail and the in-progress case must pass against both implementations. A test that cannot be made to fail is not evidence."
   ],
   "superseded_by": null
 }
