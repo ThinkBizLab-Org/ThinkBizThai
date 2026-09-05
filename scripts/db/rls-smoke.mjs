@@ -14,7 +14,7 @@
 import { readFile } from 'node:fs/promises';
 import { argv, env, exit, stdout, stderr } from 'node:process';
 
-import { query, connectionString } from './psql-driver.mjs';
+import { query, queryFinal, connectionString } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL } from '../../tests/db/identity/run-isolation.mjs';
 
@@ -62,10 +62,13 @@ function bufferedDriver() {
       // and it is not a loosening — the privilege boundary is untouched; the caller simply steps
       // back to its own role before asking to become someone else.
       if (/\bprivate\.as_/.test(sql)) buffer.push('reset role;');
-      buffer.push(sql.trim().endsWith(';') ? sql : `${sql};`);
-      // Run everything so far, then roll back, so the result reflects the case's state without
-      // leaving any of it behind.
-      const outcome = await query([...buffer, 'rollback;'].join('\n'));
+      const final = sql.trim().endsWith(';') ? sql : `${sql};`;
+      // Everything so far is replayed as the prelude, and only THIS statement's result is read
+      // back. Running the buffer as one script and parsing all of its output is what made a
+      // `set_config` row and a header line indistinguishable from a visible tenant row; the driver
+      // marks the boundary because only the driver knows what psql prints.
+      const outcome = await queryFinal({ prelude: [...buffer], statement: final, epilogue: ['rollback;'] });
+      buffer.push(final);
       return outcome;
     },
   };

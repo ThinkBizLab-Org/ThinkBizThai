@@ -248,3 +248,55 @@ test('a refusal is parsed as a refusal, from the text psql actually emits', asyn
   // guessing. A guessed code is worse than none: it turns "we do not know" into "RLS worked".
   assert.equal(parseError('psql: error: connection to server failed').code, null);
 });
+
+// Rows must arrive keyed by column name, and a header must never count as a row.
+//
+// The first driver returned `{ _: line }` — one anonymous field per output line — and the seven
+// no-effect cases failed with `name is undefined and should still be "fixture workspace a"`, which
+// is what this suite prints when RLS is OFF and the witness sees a changed row. The database was
+// right; the driver could not name a column. A failure that reads like the disaster it is supposed
+// to detect is the worst kind, so the parsing is pinned here on psql's actual output.
+test('csv rows are keyed by column name, and a header alone is zero rows', async () => {
+  const { rowsFromCsv, parseCsv } = await import('../../scripts/db/psql-driver.mjs');
+
+  assert.deepEqual(rowsFromCsv('name\nfixture workspace a\n'), [{ name: 'fixture workspace a' }]);
+  assert.deepEqual(rowsFromCsv('id,name\n1,a\n2,b\n'), [{ id: '1', name: 'a' }, { id: '2', name: 'b' }]);
+
+  // The trap the old `--tuples-only` form was avoiding, now closed the other way: a result with no
+  // rows still prints its header, and counting that as one row would make `expectNoRows` fail on a
+  // correctly filtered read — and `expectRows` PASS on an empty table.
+  assert.deepEqual(rowsFromCsv('name\n'), []);
+  assert.deepEqual(rowsFromCsv(''), []);
+
+  // Quoting, because a workspace name may contain a comma or a quote and a naive split would turn
+  // one row into two fields of nonsense.
+  assert.deepEqual(parseCsv('a,b\n"x,y","he said ""no"""\n'), [['a', 'b'], ['x,y', 'he said "no"']]);
+});
+
+// Only the statement under test may be read back.
+//
+// psql prints every result set in a script one after another with no marker between them, and a
+// case IS a script: identity, statement, second identity, witness. Parsing all of it counts the
+// `set_config` row from assuming an identity as a visible tenant row — a false pass on exactly the
+// assertion that matters.
+test('the result boundary separates the statement under test from everything before it', async () => {
+  const { afterBoundary, rowsFromCsv, RESULT_BOUNDARY } = await import('../../scripts/db/psql-driver.mjs');
+
+  // Shaped like a real no-effect case: assume the owner, run the filtered update, assume the
+  // witness, read the row back.
+  const output = [
+    'set_config,set_config', 'authenticated,authenticated',   // private.as_user(...)
+    'id',                                                     // the update: RETURNING, zero rows
+    RESULT_BOUNDARY, RESULT_BOUNDARY,                         // the boundary: header, then value
+    'name', 'fixture workspace a',                            // the witness read
+  ].join('\n');
+
+  assert.deepEqual(rowsFromCsv(afterBoundary(output)), [{ name: 'fixture workspace a' }]);
+
+  // A statement that returns nothing at all after the boundary is an empty result, not a row.
+  assert.deepEqual(rowsFromCsv(afterBoundary(`x\n1\n${RESULT_BOUNDARY}\n${RESULT_BOUNDARY}\nid\n`)), []);
+
+  // No boundary means psql stopped before reaching it. The caller turns this into an error rather
+  // than an empty result, because "nothing printed" is not "the write was filtered".
+  assert.equal(afterBoundary('some output with no marker'), null);
+});
