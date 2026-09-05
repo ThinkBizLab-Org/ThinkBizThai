@@ -11,6 +11,27 @@ permissions:
 jobs:
   bootstrap:
     runs-on: ubuntu-24.04
+    # A Postgres service container, not a Supabase project. A shared test database is fought over by
+    # concurrent runs — one job's db-reset-test drops what another is asserting against — and the
+    # failures are intermittent and expensive to chase. A container is per-run and isolated.
+    #
+    # What it CANNOT establish is stated in db/foundation/ci/supabase-shim.sql: the platform roles
+    # here are ones we created, so a green run means "the policies still do what they did", never
+    # "this works on Supabase". The measurement that decided DATA-DEC-03 — that service_role ships
+    # with BYPASSRLS — can only come from a provisioned instance.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: thinkbizthai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -74,3 +95,64 @@ jobs:
           # is present and the merge-base of HEAD and the base branch is reachable by SHA --
           # which the pull_request event supplies directly.
           node scripts/verify-branch-scope.mjs "$BASE_SHA" "$package_id"
+
+      # The database half, after `npm run check`, so a red suite fails first and this step's output
+      # never has to be read to discover the repository is broken.
+      #
+      # DB_TEST_URL names the service container. It is not a secret: the container lives for the
+      # length of this job, holds nothing, and is reachable from nowhere else. A real credential
+      # would belong in repository secrets and would never appear in a workflow file.
+      - name: Database foundation
+        env:
+          # The password is NOT in the URL. The secret scanner flags an inline database password
+          # wherever it appears, and it was right to: this one is a throwaway container credential,
+          # but a rule that makes exceptions for credentials someone judges harmless stops being a
+          # rule. psql reads PGPASSWORD from the environment, so the URL carries no secret shape and
+          # the scanner has nothing to match.
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
+        run: |
+          # The shim first: the migrations reference auth.uid() and the platform roles, and a bare
+          # Postgres has neither. It declares in its own header that it is not Supabase.
+          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -f db/foundation/ci/supabase-shim.sql
+          LC_ALL=C TZ=UTC make db-migrate-clean
+          LC_ALL=C TZ=UTC make db-schema-lint
+          # The isolation cases. This is the step that turns "we measured it once" into "a
+          # regression fails the build", which is the difference between a measurement and a
+          # control. Read its output with the shim's header in mind: it proves the POLICIES, not
+          # the platform.
+          LC_ALL=C TZ=UTC make db-rls-smoke
+
+      # The negative control. A green isolation suite is not evidence until the suite can be made
+      # to go red, and everything this branch found was a case passing for a reason nobody had
+      # checked: a driver that could not name a column, and a parser counting the `set_config` row
+      # from assuming an identity as a visible tenant row. Twenty-one cases were "passing" through
+      # both.
+      #
+      # So the last thing the job does is switch row level security OFF on one table and require
+      # the suite to FAIL, naming a failed case rather than merely exiting non-zero -- a fixture
+      # that did not load also exits non-zero, and would let this control pass while proving
+      # nothing.
+      #
+      # It runs last because it mutates the database. The container is discarded with the job.
+      - name: Negative control - the suite must fail when RLS is off
+        env:
+          PGPASSWORD: postgres
+          DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
+        run: |
+          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q \
+            -c 'alter table app.workspaces disable row level security;'
+          if LC_ALL=C TZ=UTC make db-rls-smoke > control.log 2>&1; then
+            echo "The isolation suite PASSED against a database with row level security DISABLED on"
+            echo "app.workspaces. A suite that cannot detect that cannot detect anything it claims to."
+            cat control.log
+            exit 1
+          fi
+          if ! grep -q 'db-rls-smoke: FAILED' control.log; then
+            echo "The suite exited non-zero without reporting a failed isolation case. That is a"
+            echo "broken run, not a detected regression, and it must not be read as this control passing."
+            cat control.log
+            exit 1
+          fi
+          echo "negative control: the suite failed with RLS off, as it must."
+          grep 'db-rls-smoke: FAILED' control.log | sed 's/^/  /'

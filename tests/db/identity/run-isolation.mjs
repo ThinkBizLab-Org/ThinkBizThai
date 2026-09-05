@@ -64,7 +64,17 @@ export const ASSERTION_FOR = {
 // written does not have. Recorded in the handoff as a foundation observation, not patched here —
 // the helper belongs to DB-00.
 export function assumeIdentity(identity) {
-  const statements = ["set local private.in_test_txn = 'on'", 'select private.assert_in_transaction()'];
+  // A0 CORRECTION during integration, not by A1.
+  //
+  // These two statements were here because the auth-context guard demanded them: a GUC to work
+  // around a check that refused read-only transactions, and an explicit call to the guard itself.
+  // Both were rituals a proxy imposed on its callers, and A1 named that problem while writing them.
+  //
+  // The guard is no longer a proxy. Each helper now reads its own setting back and raises if
+  // SET LOCAL did not take, which is the property anyone actually cares about, so the caller has
+  // nothing left to perform. Removing them is not loosening the check; it is deleting the
+  // workaround the check used to require.
+  const statements = [];
   if (identity.helper === 'as_anonymous') statements.push('select private.as_anonymous()');
   else if (identity.helper === 'as_service') statements.push('select private.as_service()');
   else statements.push(`select private.${identity.helper}($1::uuid)`);

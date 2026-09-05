@@ -4,36 +4,26 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d88b0ce13fd99b3353aec86b8432d9eec93e64e9",
-  "head_revision_or_patch_checksum": "f454efde1a61f4e31ee440872f94a22e64c83032",
+  "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
+  "head_revision_or_patch_checksum": "399f828e6ff8dffd5cf39e7b41d438d7693cb81f",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/002_service_role_assumption.sql",
-    "db/foundation/migrations/003_service_role_no_ambient_inherit.sql",
-    "db/foundation/migrations/010_identity.sql",
-    "evidence/WP-0A-DB-00/tenant-isolation-2026-09-05.md",
-    "tests/db/identity/fixtures/010-identity-fixture.sql",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs",
-    "tests/db/identity/run-isolation.mjs"
+    "db/foundation/ci/supabase-shim.sql",
+    "scripts/db/psql-driver.mjs",
+    "scripts/db/rls-smoke.mjs"
   ],
   "files_modified": [
-    "db/foundation/lint/catalog-snapshot.json",
+    ".github/workflows/ci.yml",
     "db/foundation/test-helpers/auth-context.sql",
-    "db/foundation/test-helpers/rls-assertions.mjs",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/run.mjs",
-    "scripts/record-verification.mjs",
-    "scripts/regenerate-integrity-manifest.mjs",
-    "scripts/run-test-suite.mjs",
     "scripts/test-suite-contract.mjs",
-    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/db/rls-assertions.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/test-coverage-floor.test.mjs",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -91,9 +81,9 @@
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
   "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
   "known_limitations": [
-    "The live half of the harness has never executed. This host has no psql, pg_ctl or docker and the repository forbids adding a dependency, so migrate-clean, migrate-upgrade, seed-replay, rls-smoke, reset-test and test-foundation are wired to refuse and name DB_TEST_URL. They are proven to REFUSE, not proven to work.",
-    "The ENABLE-vs-FORCE lint rule is pinned against synthetic SQL because batch 000 creates no tenant table. That is deliberate: the rule must bite before the first tenant table is written, not after.",
-    "Batch 000 writes no RLS policy. The policy shape is under a Proposed decision in WP-0A-A0-007, and migration invariant 1 forbids rewriting a merged migration."
+    "CI runs against a postgres:17 service container with a shim that creates the auth schema, auth.uid() and the platform roles. That proves OUR policies still behave as written; it proves nothing about Supabase. service_role in the shim is a role we created WITHOUT bypassrls, while on the platform it ships WITH it -- the measurement that decided DATA-DEC-03 can only come from a provisioned instance.",
+    "db-migrate-upgrade and db-seed-replay fail rather than pass: there is no previous-release fixture and no global seed runner. An empty replay is not a passing replay.",
+    "The driver shells out to psql, present on the CI runner. No dependency was added; RFC-2026-001 forbids one and a test asserts it."
   ],
   "open_risks_or_blockers": [
     "Six of nine db targets cannot be exercised until a Postgres test instance exists. Until then no claim may be made that the migration applies cleanly or that RLS behaves."

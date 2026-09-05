@@ -145,23 +145,158 @@ test('expectNoEffect refuses to absorb a WITH CHECK refusal, which is a stronger
 });
 
 // The guard the auth helpers depend on, and the helpers' use of it.
-test('the transaction guard is called by every identity helper and explains itself', async () => {
+test('every identity helper verifies its own setting took effect', async () => {
   const sql = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
 
-  // Its first version required a transaction id, which a read-only transaction never has — so it
-  // raised inside a legitimate read block and had to be worked around with a GUC. A guard that has
-  // to be worked around is a guard on its way to being deleted.
-  assert.doesNotMatch(sql, /txid_current_if_assigned\(\)\s*is not null/,
-    'the transaction-id check was the hole; it must not still be doing the work');
-  assert.match(sql, /transaction_timestamp\(\) = statement_timestamp\(\)/);
+  // Two earlier guards were PROXIES for "are we in a transaction", and both were wrong in their
+  // own way: one required a transaction id, which a read-only transaction never has, so it refused
+  // inside a legitimate read block; the other compared transaction and statement timestamps, which
+  // are equal on the FIRST statement after BEGIN — exactly how these helpers are called — so it
+  // forced every caller to insert a dummy statement. Each had to be worked around, and a guard
+  // that has to be worked around is on its way to being deleted.
+  //
+  // What actually matters is whether SET LOCAL took effect. That is now tested directly.
+  assert.doesNotMatch(sql, /transaction_timestamp\(\) = statement_timestamp\(\)/,
+    'the timestamp proxy refused the first statement after BEGIN');
+  assert.doesNotMatch(sql, /txid_current_if_assigned/,
+    'the transaction-id proxy refused inside a read-only transaction');
+  // The check is inline, not a call: a helper switches role and then verifies, so a call into
+  // `private` at that point is evaluated as the NEW role — which has no USAGE there, exactly as
+  // batch 000 intends. CI reported 42501 on all 28 cases before this was inlined.
+  assert.doesNotMatch(sql, /perform private\.assert_local_setting_took/,
+    'the verification must not be a cross-schema CALL made after the role switch — the comment\n'
+    + 'naming the old function is history and may stay; an actual call may not');
 
-  // Every identity helper must call it. A guard nothing invokes protects nothing.
-  const callers = [...sql.matchAll(/create or replace function private\.(as_\w+)\(/g)].map((m) => m[1]);
-  assert.ok(callers.length >= 3, 'the identity helpers are present');
   for (const fn of ['as_anonymous', 'as_user', 'as_service']) {
     const body = sql.slice(sql.indexOf(`function private.${fn}(`));
     const end = body.indexOf('$$;');
-    assert.match(body.slice(0, end), /perform private\.assert_in_transaction\(\)/,
-      `${fn} must assert it is in a transaction — SET LOCAL outside one silently assumes nothing, and the test then exercises whatever identity the connection already had`);
+    assert.match(body.slice(0, end), /SET LOCAL role did not take effect/,
+      `${fn} must read its own setting back — SET LOCAL outside a transaction is a no-op, and a helper that assumes nothing leaves the test running as whatever identity the connection already had`);
   }
+
+  // Still load-bearing: transaction-local, and never a role that bypasses RLS.
+  const setConfigCalls = [...sql.matchAll(/set_config\(\s*'[^']+'\s*,[\s\S]*?,\s*(true|false)\s*\)/g)];
+  assert.ok(setConfigCalls.length >= 6, 'each identity sets both the role and the JWT claims');
+  for (const call of setConfigCalls) assert.equal(call[1], 'true', 'set_config must be transaction-local');
+  assert.match(sql, /app_worker/);
+  assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'service_role'/);
+  assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'postgres'/);
+});
+
+// Redaction, proven on the function rather than through psql — this host has no psql, so a test
+// that drove the driver end to end would pass without ever reaching the code it claims to check.
+//
+// The defect this closes was invisible until the live targets were actually wired: psql prints the
+// HOST in its own error text ("could not translate host name ..."), and the driver passed stderr
+// through untouched. The test asserting a connection string never reaches the output caught it on
+// the first CI run that had a database to fail against.
+test('the driver strips every part of the connection string, not a format it recognises', async () => {
+  const { redactConnection } = await import('../../scripts/db/psql-driver.mjs');
+  const url = 'postgresql://appuser:hunter2@db.example.invalid:5432/prodstore';
+
+  // psql's actual phrasing, and two others it has never printed — the point is that the redaction
+  // does not depend on knowing any of them.
+  const messages = [
+    'psql: error: could not translate host name "db.example.invalid" to address',
+    'connection to server at "db.example.invalid" (10.0.0.1), port 5432 failed',
+    'FATAL: password authentication failed for user "appuser" on database "prodstore"',
+    'retrying postgresql://appuser:hunter2@db.example.invalid:5432/prodstore',
+  ];
+  for (const message of messages) {
+    const out = redactConnection(message, url);
+    for (const secret of ['hunter2', 'db.example.invalid', 'appuser', 'prodstore']) {
+      assert.ok(!out.includes(secret),
+        `${JSON.stringify(secret)} survived redaction in ${JSON.stringify(out)} — redaction must work from the URL we hold, not from psql's phrasing`);
+    }
+  }
+
+  // It must not blank out ordinary text: a message with nothing sensitive in it stays readable,
+  // or the operator loses the diagnosis along with the secret.
+  assert.equal(redactConnection('relation "app.workspaces" does not exist', url),
+    'relation "app.workspaces" does not exist');
+
+  // And an unparseable URL still gets the scheme rule rather than silently redacting nothing.
+  assert.match(redactConnection('see postgresql://whatever/here', 'not-a-url'), /\[redacted\]/);
+});
+
+// SQLSTATE parsing, pinned on the exact text CI reported rather than on what psql's manual says.
+//
+// The driver first looked only for a separate `SQLSTATE:` line. psql in verbose mode puts the code
+// INLINE — `ERROR:  42501: permission denied ...` — so every real refusal came back with code null
+// and expectDenied refused it as unclassifiable. That was the guard behaving correctly on a driver
+// that was lying to it, and it cost three CI rounds because the code was visible in the previous
+// round's output and I read past it.
+test('a refusal is parsed as a refusal, from the text psql actually emits', async () => {
+  const { parseError } = await import('../../scripts/db/psql-driver.mjs');
+
+  // Verbatim from the CI log.
+  assert.deepEqual(
+    parseError('psql:<stdin>:3: ERROR:  42501: permission denied for table workspace_invitations'),
+    { code: '42501', message: 'permission denied for table workspace_invitations' });
+  assert.deepEqual(
+    parseError('psql:<stdin>:4: ERROR:  42501: new row violates row-level security policy for table "workspaces"'),
+    { code: '42501', message: 'new row violates row-level security policy for table "workspaces"' });
+
+  // The separate-line form, kept because another psql version may emit it.
+  assert.equal(parseError('ERROR:  permission denied\nSQLSTATE: 42501').code, '42501');
+
+  // A different error must keep its own code — folding everything into 42501 would let a
+  // constraint violation read as a working policy, which is what expectDenied exists to stop.
+  assert.equal(parseError('psql:<stdin>:1: ERROR:  23505: duplicate key value').code, '23505');
+
+  // And an outcome with no code stays without one, so expectDenied refuses it rather than
+  // guessing. A guessed code is worse than none: it turns "we do not know" into "RLS worked".
+  assert.equal(parseError('psql: error: connection to server failed').code, null);
+});
+
+// Rows must arrive keyed by column name, and a header must never count as a row.
+//
+// The first driver returned `{ _: line }` — one anonymous field per output line — and the seven
+// no-effect cases failed with `name is undefined and should still be "fixture workspace a"`, which
+// is what this suite prints when RLS is OFF and the witness sees a changed row. The database was
+// right; the driver could not name a column. A failure that reads like the disaster it is supposed
+// to detect is the worst kind, so the parsing is pinned here on psql's actual output.
+test('csv rows are keyed by column name, and a header alone is zero rows', async () => {
+  const { rowsFromCsv, parseCsv } = await import('../../scripts/db/psql-driver.mjs');
+
+  assert.deepEqual(rowsFromCsv('name\nfixture workspace a\n'), [{ name: 'fixture workspace a' }]);
+  assert.deepEqual(rowsFromCsv('id,name\n1,a\n2,b\n'), [{ id: '1', name: 'a' }, { id: '2', name: 'b' }]);
+
+  // The trap the old `--tuples-only` form was avoiding, now closed the other way: a result with no
+  // rows still prints its header, and counting that as one row would make `expectNoRows` fail on a
+  // correctly filtered read — and `expectRows` PASS on an empty table.
+  assert.deepEqual(rowsFromCsv('name\n'), []);
+  assert.deepEqual(rowsFromCsv(''), []);
+
+  // Quoting, because a workspace name may contain a comma or a quote and a naive split would turn
+  // one row into two fields of nonsense.
+  assert.deepEqual(parseCsv('a,b\n"x,y","he said ""no"""\n'), [['a', 'b'], ['x,y', 'he said "no"']]);
+});
+
+// Only the statement under test may be read back.
+//
+// psql prints every result set in a script one after another with no marker between them, and a
+// case IS a script: identity, statement, second identity, witness. Parsing all of it counts the
+// `set_config` row from assuming an identity as a visible tenant row — a false pass on exactly the
+// assertion that matters.
+test('the result boundary separates the statement under test from everything before it', async () => {
+  const { afterBoundary, rowsFromCsv, RESULT_BOUNDARY } = await import('../../scripts/db/psql-driver.mjs');
+
+  // Shaped like a real no-effect case: assume the owner, run the filtered update, assume the
+  // witness, read the row back.
+  const output = [
+    'set_config,set_config', 'authenticated,authenticated',   // private.as_user(...)
+    'id',                                                     // the update: RETURNING, zero rows
+    RESULT_BOUNDARY, RESULT_BOUNDARY,                         // the boundary: header, then value
+    'name', 'fixture workspace a',                            // the witness read
+  ].join('\n');
+
+  assert.deepEqual(rowsFromCsv(afterBoundary(output)), [{ name: 'fixture workspace a' }]);
+
+  // A statement that returns nothing at all after the boundary is an empty result, not a row.
+  assert.deepEqual(rowsFromCsv(afterBoundary(`x\n1\n${RESULT_BOUNDARY}\n${RESULT_BOUNDARY}\nid\n`)), []);
+
+  // No boundary means psql stopped before reaching it. The caller turns this into an error rather
+  // than an empty result, because "nothing printed" is not "the write was filtered".
+  assert.equal(afterBoundary('some output with no marker'), null);
 });
