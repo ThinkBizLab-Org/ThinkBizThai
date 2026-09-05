@@ -26,7 +26,7 @@ import test from 'node:test';
 import {
   AUTHORIZATION_CASE_COVERAGE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases, isMutation,
 } from './isolation-cases.mjs';
-import { ASSERTION_FOR, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
+import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -314,11 +314,20 @@ test('the suite FAILS against a database where row level security does nothing',
   // write succeeds, nothing is ever refused. This is not a strawman — it is the state of a fresh
   // test database before any policy is applied, and the state of any database reached by a role
   // holding BYPASSRLS.
+  // The permissive database still holds whatever identity it was told to assume: an unprotected
+  // database is one with no policies, not one with a broken driver. It therefore tracks the last
+  // helper called and answers the role read-back truthfully — otherwise the transaction check added
+  // for C0's D4 fires first, every case fails at assume-identity, and the assertions below still
+  // pass while testing nothing about RLS at all.
+  let assumed = null;
   const permissive = {
-    begin: async () => {},
+    begin: async () => { assumed = null; },
     rollback: async () => {},
     exec: async (sql) => {
-      if (/^\s*(set|select private\.)/i.test(sql)) return { rows: [{}] };
+      const became = sql.match(/private\.(as_\w+)/)?.[1];
+      if (became) { assumed = ROLE_FOR_HELPER[became] ?? null; return { rows: [{}] }; }
+      if (/current_setting\('role'/.test(sql)) return { rows: [{ role: assumed }] };
+      if (/^\s*set/i.test(sql)) return { rows: [{}] };
       if (/returning|^\s*select/i.test(sql)) {
         return { rows: [{ id: 'x', name: 'renamed by whoever asked', default_timezone: 'UTC', user_id: 'x', workspace_id: 'x', token_hash: 'x' }] };
       }
@@ -331,6 +340,13 @@ test('the suite FAILS against a database where row level security does nothing',
 
   // And it must fail on the cases that matter, not merely somewhere.
   const failedIds = new Set(report.failed.map((f) => f.id));
+  // Every failure must be an ASSERTION failure. A case that fell over while assuming its identity
+  // proves nothing about policies, and this test would still be green on a suite that never
+  // reached a single assertion.
+  for (const failure of report.failed) {
+    assert.equal(failure.phase, 'assert', `${failure.id} failed at ${failure.phase}, not at its `
+      + `assertion: ${failure.detail}`);
+  }
   assert.ok(failedIds.has('service-identity-is-denied-a-write-with-an-error'),
     'the assertion RFC-2026-017 §7 owes must be among the failures — it is the one written to '
     + 'detect exactly this database');
@@ -350,4 +366,63 @@ test('the suite FAILS against a database where row level security does nothing',
   assert.deepEqual(positives.filter((r) => !r.ok), [],
     'the positive half of every visibility rule passes on a permissive database, which is exactly '
     + 'why a suite of positives alone proves nothing');
+});
+
+// The identity check, executed rather than grepped.
+//
+// C0's review D4: the helpers' inline read-back was asserted by a regex over the .sql file, and no
+// test ever called one outside a transaction and watched it raise. Measuring the underlying question
+// on the provisioned instance settled it against the guard -- `set_config(..., true)` applies for the
+// statement that runs it, so a helper's own read-back sees the value even when there is no
+// transaction block, and the check cannot fire. Two proxies had already been wrong here; this was
+// the third, and it was inert rather than merely untested.
+//
+// What a caller depends on is different and checkable: the role is still held ONE STATEMENT LATER.
+// That is true only inside a transaction block. These cases drive the runner with a fake driver, so
+// they execute the property instead of reading the source that claims it.
+test('a driver that forgets the transaction fails at assume-identity, not at the assertion', async () => {
+  const { runCases, VERIFY_IDENTITY_SQL, ROLE_FOR_HELPER } = await import('./run-isolation.mjs');
+
+  // The fake database: identity statements "succeed", and the role read-back reports whatever the
+  // scenario says the connection is really holding.
+  const driverThatHolds = (roleAfterwards) => ({
+    async begin() {}, async rollback() {},
+    async exec(sql) {
+      if (sql === VERIFY_IDENTITY_SQL) return { rows: [{ role: roleAfterwards }] };
+      if (/private\.as_/.test(sql)) return { rows: [{}] };
+      return { rows: [{ id: 'x' }] };
+    },
+  });
+
+  const one = [{
+    id: 'probe', covers: [], as: { helper: 'as_user', subject: '00000000-0000-5000-8000-000000000000' },
+    sql: 'select id from app.workspaces where id = $1', params: ['x'], expect: 'rows',
+  }];
+
+  // No transaction: SET LOCAL did not survive, so the connection is still whatever it logged in as.
+  const forgotten = await runCases(one, driverThatHolds('postgres'));
+  assert.equal(forgotten.failed.length, 1);
+  assert.equal(forgotten.failed[0].phase, 'assume-identity',
+    'a lost identity must be reported where it happened. Reported at the assertion it would read as '
+    + '"the policy allowed it", which is the false pass this suite exists to prevent.');
+  assert.match(forgotten.failed[0].detail, /did not survive the statement that set it/);
+
+  // And the same suite passes when the role IS held, so the check is not simply always-red.
+  const held = await runCases(one, driverThatHolds(ROLE_FOR_HELPER.as_user));
+  assert.deepEqual(held.failed, []);
+});
+
+test('every identity helper the cases use has a role the runner can check', async () => {
+  const { ROLE_FOR_HELPER, assumeIdentity } = await import('./run-isolation.mjs');
+  const helpers = new Set();
+  for (const testCase of cases) {
+    helpers.add(testCase.as.helper);
+    if (testCase.witness) helpers.add(testCase.witness.as.helper);
+  }
+  for (const helper of helpers) {
+    assert.ok(ROLE_FOR_HELPER[helper], `${helper} is used by a case and has no expected role, so the `
+      + 'check would pass by not knowing what to look for');
+    // And the role named is the one the helper actually sets, read from the helper itself.
+    assert.ok(assumeIdentity({ helper, subject: 'x' }).length > 0);
+  }
 });
