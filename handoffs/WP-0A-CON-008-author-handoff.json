@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
-  "head_revision_or_patch_checksum": "a4d0a1f9961c01593c11813bf9540ddb0a4ee598",
+  "base_revision": "e674d4e7e7be2bfa3b03b52e22af78f7ae16006d",
+  "head_revision_or_patch_checksum": "24014c8281ed1c0addb5c1b51d913169f3228c60",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-008/handoff-base-revision.md"
