@@ -148,7 +148,7 @@ test('a connection string never reaches the output', async () => {
 // repository keeps catching itself trusting after it went stale. So the snapshot
 // names the migration set it was taken against, and drifting from it fails.
 
-import { catalogLint, migrationSetDigest } from '../../scripts/db/run.mjs';
+import { PREREQUISITE, catalogLint, migrateCleanSteps, migrationSetDigest } from '../../scripts/db/run.mjs';
 
 const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
 const snapshot = async () => JSON.parse(await readFile(SNAPSHOT, 'utf8'));
@@ -355,7 +355,7 @@ test('an unforced table with no registered exemption is refused', async () => {
   unforced.catalog.tenant_tables[0].rls_forced = false;
 
   const problems = await catalogLint(unforced, unforced.taken_against_migrations, { exemptions: [] });
-  assert.ok(problems.some((p) => /relforcerowsecurity is false and no exemption is registered/.test(p)),
+  assert.ok(problems.some((p) => /relforcerowsecurity is false and no table-wide exemption/.test(p)),
     `an unforced table must be refused when nothing registers it:\n${problems.join('\n')}`);
 
   // And accepted when it IS registered -- otherwise the register is decoration and the rule is
@@ -378,7 +378,7 @@ test('a registered exemption the catalog does not show is refused too', async ()
       reason: 'an exemption nobody took', owner: '/claude/a0_atlas', review_date: '2099-01-01',
     }],
   });
-  assert.ok(stale.some((p) => /is enabled AND forced, so the exemption this row records was not taken/.test(p)),
+  assert.ok(stale.some((p) => /is FORCED, so the exemption this row records was not taken/.test(p)),
     `a row with no matching catalog state must be refused:\n${stale.join('\n')}`);
 
   // A row for a table that does not exist at all is the same defect, one step further.
@@ -414,4 +414,143 @@ test('an exemption is refused when it is incomplete, mis-typed, or past its revi
   // into permanence while the database it describes stands still.
   const expired = await lint({ role: '*', table, operation: 'all', reason: 'r', owner: 'o', review_date: '2000-01-01' });
   assert.ok(expired.some((p) => /is a finding, not a fact that ages into permanence/.test(p)), expired.join('\n'));
+});
+
+// The granularity the register DECLARES against the granularity the catalog can CORROBORATE.
+//
+// C0's review D2: rows were matched to a table by name alone, so `{role: 'app_worker', operation:
+// 'select'}` -- the narrowest shape the register allows -- bought its table a blanket pass, and the
+// same row suppressed `rls_enabled` as well as `rls_forced`. `role` and `operation` were validated
+// for presence and vocabulary and then never consulted, so the two dimensions RFC-2026-016 §4 names
+// were untested precisely because they were unenforced.
+//
+// What the catalog can corroborate is written out in scripts/db/run.mjs and in the register's own
+// `_what_the_catalog_can_corroborate`. These cases hold the lint to it, and the row ACCEPTED below
+// is not the maximal `role: '*', operation: 'all'`.
+test('a row narrower than the catalog can corroborate suppresses nothing', async () => {
+  const base = await snapshot();
+  const unforced = structuredClone(base);
+  const table = unforced.catalog.tenant_tables[0].table;
+  unforced.catalog.tenant_tables[0].rls_forced = false;
+  const lint = (row) => catalogLint(unforced, unforced.taken_against_migrations, { exemptions: [row] });
+
+  // The exact row from the finding. `relforcerowsecurity` is one value for the whole table, so
+  // nothing in the catalog says this exemption was taken for one role and one command.
+  const narrow = await lint({
+    role: 'app_worker', table, operation: 'select',
+    reason: 'the shape the finding used', owner: '/claude/a0_atlas', review_date: '2099-01-01',
+  });
+  assert.ok(narrow.some((p) => /relforcerowsecurity is false and no table-wide exemption/.test(p)),
+    `a narrow row must not suppress the table-wide finding:\n${narrow.join('\n')}`);
+  assert.ok(narrow.some((p) => /narrower than anything this catalog records/.test(p)),
+    `a per-operation exemption must be refused as uncorroborable:\n${narrow.join('\n')}`);
+
+  // Operation alone is enough to make it uncorroborable, even scoped to the whole table.
+  const perOperation = await lint({
+    role: '*', table, operation: 'update', reason: 'r', owner: 'o', review_date: '2099-01-01',
+  });
+  assert.ok(perOperation.some((p) => /relforcerowsecurity is false and no table-wide exemption/.test(p)),
+    perOperation.join('\n'));
+
+  // And role alone is too: a role-scoped row is a claim about the ROLE, which a table's FORCE
+  // column is not evidence about in either direction.
+  const perRole = await lint({
+    role: 'app_worker', table, operation: 'all', reason: 'r', owner: 'o', review_date: '2099-01-01',
+  });
+  assert.ok(perRole.some((p) => /relforcerowsecurity is false and no table-wide exemption/.test(p)),
+    perRole.join('\n'));
+});
+
+test('a role-scoped row is corroborated against the role, not against the table', async () => {
+  const base = await snapshot();
+  const table = base.catalog.tenant_tables[0].table;
+  const row = (role) => ({
+    role,
+    table,
+    operation: 'all',
+    reason: 'the platform ships this role with BYPASSRLS, which is the measurement behind DATA-DEC-03',
+    owner: '/claude/a0_atlas',
+    review_date: '2099-01-01',
+  });
+
+  // ACCEPTED, and it is not `role: '*'`. `service_role` is in the catalog's measured
+  // roles_bypassing_rls, so the exemption this row records is one the catalog shows -- on every
+  // table at once, which is why naming a table in it narrows nothing and suppresses nothing.
+  assert.deepEqual(await catalogLint(base, base.taken_against_migrations, { exemptions: [row('service_role')] }), [],
+    'a row naming a role the catalog shows bypassing must be accepted');
+
+  // REFUSED. app_worker holds neither rolbypassrls nor rolsuper, so this row claims an exemption
+  // no field in the snapshot shows -- and under the previous rule it was accepted on any table that
+  // was not enabled-and-forced, with no catalog evidence about app_worker at all.
+  const unshown = await catalogLint(base, base.taken_against_migrations, { exemptions: [row('app_worker')] });
+  assert.ok(unshown.some((p) => /app_worker is exempt from row level security nowhere in this catalog/.test(p)),
+    `a role the catalog does not show bypassing must be refused:\n${unshown.join('\n')}`);
+});
+
+test('no register row excuses a tenant table having no row level security at all', async () => {
+  const base = await snapshot();
+  const off = structuredClone(base);
+  const table = off.catalog.tenant_tables[0].table;
+  off.catalog.tenant_tables[0].rls_enabled = false;
+  off.catalog.tenant_tables[0].rls_forced = false;
+
+  // The maximal exemption, which is the one that used to suppress both columns. §4 retired the
+  // FORCE condition and replaced it with this register; RFC-2026-012 commits the whole boundary to
+  // row level security, and nothing here was ever authorised to excuse relrowsecurity.
+  const problems = await catalogLint(off, off.taken_against_migrations, {
+    exemptions: [{
+      role: '*', table, operation: 'all', reason: 'r', owner: 'o', review_date: '2099-01-01',
+    }],
+  });
+  assert.ok(problems.some((p) => /relrowsecurity is false — the exemption register replaces the FORCE condition only/.test(p)),
+    `an unenabled table must be refused whatever the register says:\n${problems.join('\n')}`);
+  // ...and the same row still does its own job, so this is a narrowing and not a blanket refusal.
+  assert.ok(!problems.some((p) => /relforcerowsecurity is false/.test(p)), problems.join('\n'));
+});
+
+// ---------------------------------------------------------------------------
+// db-migrate-clean applies its own prerequisite (C0's review D3).
+//
+// Batch 000 installs pgcrypto into `public` on a database where nothing has installed it anywhere,
+// and batch 004 refuses a database with pgcrypto in `public`. Both are applied and migration
+// invariant 1 forbids rewriting either, so the set is applicable only where pgcrypto already exists
+// outside `public` -- which was true of the provisioned instance by the platform's doing, and of CI
+// by one line inside a GitHub workflow. `make db-migrate-clean` could not apply this repository's
+// own migration set to a bare Postgres.
+test('db-migrate-clean applies the prerequisite the migration set needs, before batch 000', async () => {
+  const steps = await migrateCleanSteps();
+  assert.equal(steps[0].name, PREREQUISITE, 'the prerequisite runs first or it is not a prerequisite');
+  assert.match(steps[0].sql, /create schema if not exists extensions/i);
+  assert.match(steps[0].sql, /create extension if not exists pgcrypto with schema extensions/i,
+    'the prerequisite is the pgcrypto placement batch 004 asserts and batch 000 would otherwise get wrong');
+
+  // Every batch still runs, in order, after it. The prerequisite is added to the command, not
+  // substituted for anything.
+  const batches = steps.slice(1).map((s) => s.name);
+  assert.deepEqual(batches, [...batches].sort(), 'batches apply in lexical order');
+  assert.ok(batches.every((n) => n.endsWith('.sql')));
+  assert.ok(batches.includes('000_foundation.sql') && batches.includes('004_correct_the_batch_000_record.sql'),
+    `both halves of the contradiction must still be applied: ${batches.join(', ')}`);
+
+  // And it is NOT a migration: it carries no batch number, joins no digest, and reserves nothing in
+  // the migration registry, so the committed snapshot does not go stale because the command grew a
+  // step.
+  assert.doesNotMatch(PREREQUISITE, /\/migrations\//);
+  assert.equal(await migrationSetDigest(), (await snapshot()).taken_against_migrations,
+    'adding the prerequisite must not move the migration set digest');
+});
+
+test('the CI shim no longer satisfies the prerequisite behind the command', async () => {
+  const shim = await readFile('db/foundation/ci/supabase-shim.sql', 'utf8');
+  // While the placement lived here, CI prepared the container BEFORE db-migrate-clean ran, so the
+  // step that would exercise the prerequisite never exercised it. If it comes back, the command's
+  // self-sufficiency stops being observed by anything.
+  assert.doesNotMatch(shim, /create\s+extension[^;]*pgcrypto/i,
+    'pgcrypto placement belongs to db/foundation/prerequisites.sql, which db-migrate-clean applies itself');
+  // The shim keeps saying what it is not.
+  assert.match(shim, /A SHIM, not Supabase/);
+  assert.match(shim, /It proves NOTHING about the platform/);
+  // And it keeps the parts that really are platform emulation and really are CI-only.
+  assert.match(shim, /create schema if not exists auth/i);
+  assert.match(shim, /create or replace function auth\.uid\(\)/i);
 });

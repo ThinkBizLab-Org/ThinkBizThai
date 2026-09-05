@@ -13,5 +13,12 @@
     "owner": "the run or human accountable for removing it",
     "review_date": "ISO date. An exemption past its review date is a finding, not a grandfathered fact."
   },
+  "_what_the_catalog_can_corroborate": [
+    "The shape above is the RFC's. What db/foundation/lint/catalog-snapshot.json can CORROBORATE is narrower, and the lint enforces the narrower thing rather than declaring the wider one. C0's review D2 found the granularity declared and unenforced: a row scoped to one role and one operation was matched to its table by name alone and bought that table a blanket pass.",
+    "role \"*\" is a claim about the TABLE. relforcerowsecurity is one value for the whole table -- every role and every operation at once -- so this is the only scope an unforced table corroborates, and the only scope that suppresses the unforced-table finding. It requires operation \"all\".",
+    "A named role is a claim about the ROLE. rolbypassrls and rolsuper hold for every table at once, so such a row is checked against that role's own attributes, and naming a table in it narrows nothing. It suppresses no table finding, because a table's FORCE state is not evidence about a role.",
+    "An operation other than \"all\" is refused. No field in the snapshot says which command a policy is for, so a per-operation exemption can be corroborated in neither direction -- the same unfalsifiable shape \"where compatible\" was retired for.",
+    "rls_enabled is not exemptible at all. RFC-2026-012 commits the whole client/database boundary to row level security; §4 retired only the FORCE condition, and this register replaces that condition and nothing else."
+  ],
   "exemptions": []
 }

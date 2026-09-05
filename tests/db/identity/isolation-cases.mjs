@@ -46,6 +46,30 @@
 //   'no-effect' a WRITE that RLS filtered. Empty result plus a witness. Never used for an INSERT,
 //               where a refusal is available and is the stronger claim.
 //
+// A 'denied' case may additionally name WHICH LAYER refused it and WHICH OBJECT was refused:
+//
+//   deniedBy    'grant' or 'policy'. Both raise 42501 and only the message tells them apart, so a
+//               case that cannot distinguish them passes just as happily when the policy it exists
+//               to prove was never written.
+//   deniedOn    { kind, name } -- the exact object the refusal must name. A0 CORRECTION, on C0's
+//               review D6: `permission denied` is a catch-all, and `permission denied for schema
+//               private` -- the failure this harness actually produced -- classified as the same
+//               'grant' layer as `permission denied for table workspace_invitations`. The layer was
+//               attributed and the object was not, so a case could be satisfied by a privilege
+//               problem in the scaffolding rather than on the object it names.
+//
+//               The kind is DECLARED, not inferred, because which object a refusal lands on is a
+//               property of the privilege topology. `authenticated` holds USAGE on schema app
+//               (010:390), so a read it may not make is refused on the TABLE. `anon` is granted
+//               nothing anywhere (010:386) and PUBLIC holds no USAGE on app either (measured:
+//               catalog-snapshot public_grants.usage_on_app is false), so an anonymous read never
+//               reaches a table -- name resolution refuses it on the SCHEMA. Writing that down is
+//               what makes the anonymous cases notice the day anon is granted a privilege, which
+//               is the thing their own `why` says they exist to notice.
+//
+// Both are optional and both are checked when present: silence is not a claim, but a declaration
+// is. `identity-isolation.test.mjs` asserts statically that no case declares one without the other.
+//
 // No case contains a uuid. Identities and rows are named by their fixture SYMBOL and resolved
 // from db/foundation/seeds/fixture-catalog.json at run time, which is what makes the cross-tenant
 // assertion mean anything: tenant A's identity attacks tenant B while HOLDING B's exact id.
@@ -219,6 +243,7 @@ export function buildCases(id) {
       params: [A],
       expect: 'denied',
       deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspace_invitations' },
       why: '§9.3 stores the hash only and §9.2 says a token is never returned after write. The '
          + 'client role holds INSERT on token_hash and not SELECT, so this is refused at the '
          + 'column-privilege layer even for the owner of the row.',
@@ -280,6 +305,7 @@ export function buildCases(id) {
       params: [A],
       expect: 'denied',
       deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspace_invitations' },
       why: '§8.5: there is no broad user delete. No table in batch 010 carries a DELETE policy for '
          + 'any client role and none grants the privilege, so this is refused before RLS is '
          + 'consulted — which is why deniedBy records the layer.',
@@ -369,6 +395,7 @@ export function buildCases(id) {
       params: [A],
       expect: 'denied',
       deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
       why: '§8.5: anonymous has no tenant policy, and batch 010 grants anon nothing at all — so the '
          + 'refusal comes from the privilege system before RLS is reached. That is stronger than '
          + '§12.6/6 asks for, and the layer is recorded rather than blurred: if a later batch ever '
@@ -383,6 +410,7 @@ export function buildCases(id) {
       params: [A],
       expect: 'denied',
       deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
       why: 'Membership is the table that answers "who is in this tenant". It is the one an '
          + 'unauthenticated caller most wants.',
     },

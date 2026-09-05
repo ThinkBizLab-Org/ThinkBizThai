@@ -17,23 +17,21 @@
 -- So: read a green CI run as "the policies still do what they did", never as "this works on
 -- Supabase". The two claims are different sizes and the smaller one is the one CI makes.
 
--- pgcrypto, in `extensions`, BEFORE the migrations run -- because that is where the managed
--- platform already has it, measured (`pg_extension.extnamespace` = `extensions` on
--- xtvtflkntpqfvflvdbwk, 2026-09-06).
+-- pgcrypto USED TO BE PLACED HERE, and it is not any more. It moved to
+-- `db/foundation/prerequisites.sql`, which `make db-migrate-clean` applies itself.
 --
--- This one line is the difference between CI catching a defect and CI hiding it. Batch 000 says
--- `create extension if not exists pgcrypto with schema public`. On the platform that is a NO-OP,
--- because the extension already exists elsewhere -- so `public.digest` does not exist there. On a
--- bare container it SUCCEEDS, so `public.digest` did exist here, and the isolation fixture called
--- it for two invitation digests. The suite was green in CI and could not run at all against the
--- platform it describes. A1's countersignature §5.5 found it by reading the instance.
+-- The reason it mattered is unchanged and is recorded in that file: batch 000 says `create
+-- extension if not exists pgcrypto with schema public`, which is a NO-OP on the platform (pgcrypto
+-- is already in `extensions` there, measured 2026-09-06) and SUCCEEDS on a bare container, so
+-- `public.digest` existed in CI and nowhere else and the isolation fixture called it. A shim more
+-- permissive than production turns CI into a machine for confirming wrong records.
 --
--- A shim that is more permissive than production turns CI into a machine for confirming wrong
--- records. Installing it where the platform has it makes batch 000's statement the same no-op here
--- that it is there, and any code reaching for `public.digest` now fails in CI, which is what CI is
--- for.
-create schema if not exists extensions;
-create extension if not exists pgcrypto with schema extensions;
+-- What changed is WHOSE JOB IT IS. Batch 004 refuses a database with pgcrypto in `public`, so
+-- placing it elsewhere is not CI scaffolding: it is a precondition of applying the migration set
+-- to ANY database, and while it lived in this file the repository's own declared command could not
+-- apply its own migrations to a bare Postgres (C0's review D3). Moving it also means CI exercises
+-- the prerequisite instead of satisfying it in advance -- if `db-migrate-clean` stops applying it,
+-- batch 004 fails the build here rather than passing on a container someone else prepared.
 
 create schema if not exists auth;
 

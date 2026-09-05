@@ -47,6 +47,26 @@ async function migrationFiles() {
   return out;
 }
 
+// What `db-migrate-clean` applies, in order, and the reason it is a function rather than a loop
+// inside the target: the prerequisite is part of the declared command, so it has to be visible to
+// a test without reading this file as text.
+//
+// Batch 000 installs pgcrypto into `public` when nothing has installed it anywhere, and batch 004
+// refuses a database with pgcrypto in `public`. Both are applied and migration invariant 1 forbids
+// rewriting either, so the set is applicable only where pgcrypto already exists outside `public`.
+// That was true of the provisioned instance by the platform's doing and of CI by a line inside a
+// GitHub workflow — which meant `make db-migrate-clean` could not apply this repository's own
+// migration set to a bare Postgres (C0's review D3). PREREQUISITE is that line, moved into the
+// command, where it is applied on every database rather than on the two that were prepared.
+export const PREREQUISITE = 'db/foundation/prerequisites.sql';
+
+export async function migrateCleanSteps() {
+  return [
+    { name: PREREQUISITE, sql: await readFile(PREREQUISITE, 'utf8') },
+    ...await migrationFiles(),
+  ];
+}
+
 // STATIC: the lint rules §12.3 item 8 lists that can be decided from the migration text without
 // connecting anywhere. The rules that need the live catalog — every FK has a supporting index,
 // every role's attributes — are asserted by the live targets and are NOT silently claimed here.
@@ -159,15 +179,56 @@ export async function catalogLint(snapshot, digest, exemptions) {
 
   // The rule the specified lint misses, now asserted against the catalog column rather than text.
   //
-  // An unforced or unenabled table is a finding UNLESS the exemption register carries a row for it.
-  // That is RFC-2026-016 §4's replacement for "force where compatible": the condition was retired
-  // for being unfalsifiable, and a register is the falsifiable form — an exemption either has a row
-  // or it does not exist.
-  const exempt = (table) => (register.exemptions ?? []).filter((e) => e.table === table);
+  // An unforced table is a finding UNLESS the exemption register carries a row for it. That is
+  // RFC-2026-016 §4's replacement for "force where compatible": the condition was retired for being
+  // unfalsifiable, and a register is the falsifiable form — an exemption either has a row or it
+  // does not exist.
+  //
+  // WHAT THIS CATALOG CAN AND CANNOT CORROBORATE. §4 names the register role × table × operation
+  // and requires the lint to read it in BOTH directions. Reading a row in the second direction
+  // means finding, in this snapshot, the state the row claims — so the granularity the lint can
+  // ENFORCE is bounded by the granularity the snapshot RECORDS, and it records exactly two kinds of
+  // exemption, neither of which has three dimensions:
+  //
+  //   * `relrowsecurity` / `relforcerowsecurity` are properties of a TABLE. Each is one value for
+  //     the whole table, for every role and every operation at once; FORCE changes exactly one
+  //     thing, whether the table OWNER is subject to the policies. So an unforced table corroborates
+  //     one row and one only: role `*`, operation `all`.
+  //   * `rolbypassrls` / `rolsuper` are properties of a ROLE. Each holds for every table in the
+  //     database at once. So a row naming a role is corroborated against that role's own
+  //     attributes, and naming a table in such a row narrows nothing — the bypass is not confined
+  //     to the table the row names.
+  //   * NOTHING here is per-operation. The snapshot counts a table's policies; no field says which
+  //     command any policy is FOR. An `operation` other than `all` therefore asserts a state
+  //     nothing in this file can show, which is exactly the unfalsifiable shape §4 retired "force
+  //     where compatible" for being. It is refused rather than accepted on trust. Corroborating it
+  //     would need a per-policy `cmd` measurement this snapshot does not carry.
+  //
+  // The previous version declared that granularity and enforced none of it: rows were matched to a
+  // table by NAME alone, so `{role: 'app_worker', operation: 'select'}` bought the whole table a
+  // blanket pass, and the same row suppressed `rls_enabled` as well as `rls_forced` — one register
+  // row excusing a tenant table carrying no row level security at all. C0's review D2.
+  //
+  // The direction "a role bypass without a row cannot pass" is NOT carried by the register: a
+  // service role holding BYPASSRLS or SUPERUSER is refused unconditionally below, and the platform
+  // roles that hold it are pinned in KNOWN_BYPASS. A role-scoped row is therefore corroborative
+  // only — it records and dates a bypass that exists, and is refused when the catalog stops showing
+  // it — and it suppresses no table finding, because a table's FORCE state is not evidence about a
+  // role.
+  const TABLE_WIDE = (e) => e.role === '*' && e.operation === 'all';
+  const forceExemptions = (table) => (register.exemptions ?? []).filter((e) => e.table === table && TABLE_WIDE(e));
   for (const t of c.tenant_tables ?? []) {
-    const rows = exempt(t.table);
-    if (!t.rls_enabled && rows.length === 0) problems.push(`app.${t.table}: relrowsecurity is false and no exemption is registered`);
-    if (!t.rls_forced && rows.length === 0) problems.push(`app.${t.table}: relforcerowsecurity is false and no exemption is registered — ENABLE alone leaves the table owner exempt`);
+    // ENABLE is not exemptible and no row can make it so. RFC-2026-012 commits the whole
+    // client/database boundary to row level security, and §4 retired only the FORCE condition; the
+    // register replaces that condition and nothing else.
+    if (!t.rls_enabled) {
+      problems.push(`app.${t.table}: relrowsecurity is false — the exemption register replaces the FORCE `
+        + 'condition only (RFC-2026-016 §4), and no row excuses a tenant table carrying no row level security at all');
+    }
+    if (!t.rls_forced && forceExemptions(t.table).length === 0) {
+      problems.push(`app.${t.table}: relforcerowsecurity is false and no table-wide exemption `
+        + "(role '*', operation 'all') is registered — ENABLE alone leaves the table owner exempt");
+    }
     if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
     if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
   }
@@ -178,6 +239,13 @@ export async function catalogLint(snapshot, digest, exemptions) {
   // that the tables NOT in it are forced.
   const OPERATIONS = ['select', 'insert', 'update', 'delete', 'all'];
   const known = new Map((c.tenant_tables ?? []).map((t) => [t.table, t]));
+  // Every role this snapshot shows exempt from row level security, from either attribute that
+  // produces one. It is the only evidence a row naming a role can be read against.
+  const bypassing = new Set([
+    ...(c.roles_bypassing_rls ?? []),
+    ...(c.roles_superuser ?? []),
+    ...(c.service_roles ?? []).filter((r) => r.bypassrls || r.superuser).map((r) => r.role),
+  ]);
   for (const [index, e] of (register.exemptions ?? []).entries()) {
     const where = `rls-exemption-register.exemptions[${index}]`;
     for (const field of ['role', 'table', 'operation', 'reason', 'owner', 'review_date']) {
@@ -185,18 +253,40 @@ export async function catalogLint(snapshot, digest, exemptions) {
     }
     if (e.operation && !OPERATIONS.includes(e.operation)) {
       problems.push(`${where}: operation ${JSON.stringify(e.operation)} is not one of ${OPERATIONS.join(', ')}`);
+    } else if (e.operation && e.operation !== 'all') {
+      problems.push(`${where}: operation ${JSON.stringify(e.operation)} is narrower than anything this catalog `
+        + 'records. relforcerowsecurity is table-wide and rolbypassrls is role-wide, and no field in the snapshot '
+        + 'says which command a policy is for, so a per-operation exemption can be corroborated in neither '
+        + "direction. Register the exemption that was actually taken, with operation 'all'.");
     }
     const table = known.get(e.table);
     if (e.table && table === undefined) {
       problems.push(`${where}: app.${e.table} is not in the catalog — the exemption is for a table that does not exist`);
-    } else if (table && table.rls_enabled && table.rls_forced) {
-      problems.push(`${where}: app.${e.table} is enabled AND forced, so the exemption this row records was not taken. `
-        + 'Remove the row: a register carrying exemptions nobody took cannot be read as complete, and completeness '
-        + 'is the whole of what it proves about the tables that are NOT in it.');
+    } else if (table && e.role === '*') {
+      // A table-wide row is a claim about the TABLE, and the table's own FORCE column answers it.
+      if (table.rls_forced) {
+        problems.push(`${where}: app.${e.table} is FORCED, so the exemption this row records was not taken. `
+          + 'Remove the row: a register carrying exemptions nobody took cannot be read as complete, and completeness '
+          + 'is the whole of what it proves about the tables that are NOT in it.');
+      }
+    } else if (table && e.role) {
+      // A row naming a role is a claim about the ROLE, and only the role's own attributes answer
+      // it. Nothing about app.<table> being forced or unforced is evidence either way, which is
+      // why the previous version — which read the table's state for every row — could accept a
+      // role-scoped row with no catalog evidence about that role at all.
+      if (!bypassing.has(e.role)) {
+        problems.push(`${where}: ${e.role} is exempt from row level security nowhere in this catalog — it holds `
+          + 'neither rolbypassrls nor rolsuper. A row naming a role is corroborated against that role, because a '
+          + `bypass is role-wide and app.${e.table} being forced or unforced says nothing about it. This row `
+          + 'records an exemption the catalog does not show.');
+      }
     }
     // An exemption past its review date is a finding rather than a grandfathered fact. Dates are
     // compared against the snapshot's own measurement date, not against now(): the register is
-    // judged against the database state it is being read with.
+    // judged against the database state it is being read with. The limitation of that choice,
+    // stated rather than hidden (C0 §6.1): `taken_at` only has to move when the migration digest
+    // does, so against a still snapshot an exemption does not expire on its own. The comparison is
+    // lexicographic and is correct only for zero-padded YYYY-MM-DD on both sides.
     if (e.review_date && snap.taken_at && String(e.review_date) < String(snap.taken_at)) {
       problems.push(`${where}: review date ${e.review_date} is before the snapshot was taken (${snap.taken_at}). `
         + 'An expired exemption is a finding, not a fact that ages into permanence.');
@@ -295,8 +385,7 @@ function refuseLive(target) {
 // The live half, wired. Each target does its job or fails saying why; none has a mode that
 // reports a pass without a database, which is what `refuseLive` exists to enforce.
 async function runLive(target) {
-  const { query, script } = await import('./psql-driver.mjs');
-  const migrations = await migrationFiles();
+  const { script } = await import('./psql-driver.mjs');
 
   if (target === 'reset-test') {
     // §12.5: reset must refuse any host or database outside an explicit test allowlist. The
@@ -315,7 +404,10 @@ async function runLive(target) {
   }
 
   if (target === 'migrate-clean') {
-    for (const { name, sql } of migrations) {
+    // The prerequisite first, then every batch. It is applied here rather than assumed of the
+    // caller for the reason the file itself gives: a prerequisite that lives in a workflow is a
+    // prerequisite the command does not have.
+    for (const { name, sql } of await migrateCleanSteps()) {
       const out = await script(sql);
       if (out.error) { stderr.write(`  ${name}: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return 1; }
       stdout.write(`  applied ${name}\n`);

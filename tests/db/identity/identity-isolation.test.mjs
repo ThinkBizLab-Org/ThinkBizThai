@@ -85,10 +85,44 @@ test('the fixture materialises exactly the catalog identities and invents no oth
   // pin `public.digest(` -- which is exactly the call A1's countersignature §5.5 measured as absent
   // on the provisioned instance, where pgcrypto lives in `extensions`. The test was holding the
   // fixture to the shape that could not run against the platform, so it would have refused the fix.
+  //
+  // A0 CORRECTION, on C0's review D12: the reason this assertion used to give was false in both of
+  // its halves, and became so in the increment that wrote it. `db/foundation/prerequisites.sql`
+  // (formerly the CI shim's first two lines) installs pgcrypto in `extensions` before the batches
+  // run, so `extensions.digest` DOES exist in the CI container now and `public.digest` exists in
+  // neither place. The assertion is right and stays; only what it claimed about the two
+  // environments was describing the arrangement the shim change replaced.
   assert.doesNotMatch(fixture, /\b(public|extensions)\.digest\s*\(/,
-    'the digest must not be taken through a schema-qualified pgcrypto call: `public.digest` does not '
-    + 'exist on the provisioned instance and `extensions.digest` does not exist in the CI container. '
-    + 'sha256() has been in pg_catalog since PostgreSQL 11 and resolves in both.');
+    'the digest must not be taken through a schema-qualified pgcrypto call. Where pgcrypto lives is '
+    + 'an environment fact -- `extensions` on the provisioned instance and in CI, `public` on a '
+    + 'database nobody prepared -- and a fixture that names a schema is a fixture that runs in one '
+    + 'of them. sha256() has been in pg_catalog since PostgreSQL 11 and resolves in all of them.');
+});
+
+// C0's review D6 again, as a static ratchet rather than as a runtime one. `expectDeniedBy` checks
+// `deniedOn` when a case declares it and does not invent one when a case does not -- silence is not
+// a claim -- so nothing at run time stops a future 'denied' case from naming a layer and no object,
+// which is the exact shape that let `permission denied for schema private` satisfy a claim about a
+// table. The pairing is asserted here, where `npm run check` sees it without a database.
+test('a case that names the layer refusing it also names the object refused', () => {
+  for (const testCase of cases) {
+    if (!testCase.deniedBy && !testCase.deniedOn) continue;
+    assert.equal(testCase.expect, 'denied', `${testCase.id}: only a 'denied' case can name a refusal`);
+    assert.ok(testCase.deniedBy && testCase.deniedOn,
+      `${testCase.id}: deniedBy and deniedOn are declared together or not at all. A layer with no object `
+      + 'is what `permission denied for schema private` satisfies, and that is the harness failing rather '
+      + 'than the object under test being refused.');
+    const { kind, name } = testCase.deniedOn;
+    assert.ok(['table', 'schema'].includes(kind), `${testCase.id}: unknown deniedOn kind '${kind}'`);
+    // The declared object must be one the case's own statement reaches. A case cannot claim a
+    // refusal on something it never touches.
+    const named = kind === 'table' ? new RegExp(`\\bapp\\.${name}\\b`) : new RegExp(`\\b${name}\\.`);
+    assert.match(testCase.sql, named,
+      `${testCase.id}: declares deniedOn ${kind} '${name}', which its own statement never names`);
+    // And `private` is the harness's own schema, never an object under test: a case refused there
+    // is the scaffolding failing, which is exactly the shape D6 was about.
+    assert.notEqual(name, 'private', `${testCase.id}: private is the harness's schema, not a subject`);
+  }
 });
 
 test('no write is asserted with a read assertion, and every filtered write carries a witness', () => {

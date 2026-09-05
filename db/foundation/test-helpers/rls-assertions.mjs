@@ -163,13 +163,28 @@ export function expectNoEffect(result, witness, expected, what) {
 //   permission denied for column token_hash of relation ...    -- the privilege layer, column-scoped
 //   new row violates row-level security policy for table "..." -- the policy layer
 //
-// LC_ALL=C is set by the driver and by CI, so the English text is the text. A message that matches
-// neither is UNCLASSIFIED and fails: an outcome nobody can attribute is not evidence about a layer.
-// Order matters, and it is the whole discriminator. A policy refusal ALWAYS names the policy --
-// `new row violates row-level security policy for table "x"` -- so it is matched first; anything
-// else saying `permission denied` is the privilege layer, including the bare form Postgres emits
-// for some operations with no object named. Nothing else classifies, and an outcome that classifies
-// as nothing fails rather than guessing: `expectDeniedBy` refuses it.
+// WHAT FIXES THE LANGUAGE OF THAT TEXT, stated correctly. These are SERVER-generated messages, so
+// the language is the server's `lc_messages` GUC. `LC_ALL=C` -- which the driver sets
+// (psql-driver.mjs) and CI sets on each make line -- governs libpq's own CLIENT-side text, which is
+// a different set of messages, and it does not reach `lc_messages`; nor can the driver set it, as
+// `lc_messages` is SUSET and PGOPTIONS from a non-superuser cannot change it. C0's review D9: the
+// previous sentence here read "LC_ALL=C is set by the driver and by CI, so the English text is the
+// text", which is a true premise and an inference that does not follow.
+//
+// It is a wrong guarantee rather than an unsafe one, and the reason is the fail-closed rule below.
+// In CI the `postgres:17` image initdbs under `en_US.utf8`, so the English text is what arrives.
+// Against a server with a localised `lc_messages`, `denialLayer` returns null and `expectDeniedBy`
+// THROWS naming the message it could not attribute -- it never silently degrades to a pass. And
+// `expectDenied` is unaffected either way, because SQLSTATE is locale-independent. So the layer
+// discriminator is available where the server speaks English and refuses to answer where it does
+// not, which is the honest shape for a check built on message text.
+//
+// A message that matches neither pattern is UNCLASSIFIED and fails: an outcome nobody can attribute
+// is not evidence about a layer. Order matters, and it is the whole discriminator. A policy refusal
+// ALWAYS names the policy -- `new row violates row-level security policy for table "x"` -- so it is
+// matched first; anything else saying `permission denied` is the privilege layer, including the
+// bare form Postgres emits for some operations with no object named. Nothing else classifies, and
+// an outcome that classifies as nothing fails rather than guessing: `expectDeniedBy` refuses it.
 const DENIAL_LAYER = [
   [/violates row-level security policy/i, 'policy'],
   [/permission denied/i, 'grant'],
@@ -181,9 +196,59 @@ export function denialLayer(result) {
   return null;
 }
 
-// `expected` is the case's declared `deniedBy`. A case that declares nothing is not checked here --
-// silence is not a claim -- but a case that declares a layer must be refused by that layer.
-export function expectDeniedBy(result, expected, what) {
+// WHICH OBJECT was refused, which is the other half of an attribution and was missing.
+//
+// C0's review D6: `permission denied` is a catch-all, and every one of these is 42501 and every one
+// classified as 'grant':
+//
+//   permission denied for table workspace_invitations   -- the object the case is about
+//   permission denied for schema private                -- the harness failing to reach a helper
+//   permission denied for function private.as_user      -- the same, one level in
+//
+// So a case declaring `deniedBy: 'grant'` passed when the refusal came from a privilege problem in
+// the SCAFFOLDING rather than on the object under test -- and `permission denied for schema
+// private` is not hypothetical, it is the failure this harness produced on all seven no-effect
+// cases. The layer was attributed; the object was not, so the attribution named a layer of
+// something nobody had identified.
+//
+// A case therefore declares `deniedOn: { kind, name }` beside `deniedBy`, and the refusal must name
+// that exact object. The KIND is declared and not inferred, because which object a refusal lands on
+// is a real property of the privilege topology rather than a detail:
+//
+//   an `authenticated` identity holds USAGE on schema app (010:390), so a read it may not make is
+//   refused on the TABLE -- { kind: 'table', name: 'workspace_invitations' };
+//   `anon` is granted NOTHING anywhere (010:386) and PUBLIC holds no USAGE on app either (measured,
+//   catalog-snapshot public_grants.usage_on_app false), so an anonymous read never reaches a table
+//   at all: name resolution refuses it on the SCHEMA -- { kind: 'schema', name: 'app' }.
+//
+// Declaring the kind is what makes the second case say something. If a later batch ever grants anon
+// USAGE on app, that refusal moves from the schema to the table and the case FAILS -- which is the
+// notice A1 wrote the case for. And `private` is the harness's own schema: a case refused there was
+// never refused on anything it was testing.
+const DENIAL_OBJECT = [
+  [/permission denied for column\s+"?[^\s",]+"?\s+of relation\s+"?([^\s",]+)"?/i, 'table'],
+  [/permission denied for (?:table|relation|view|materialized view|sequence)\s+"?([^\s",]+)"?/i, 'table'],
+  [/violates row-level security policy[^"]*for table\s+"([^"]+)"/i, 'table'],
+  [/permission denied for schema\s+"?([^\s",]+)"?/i, 'schema'],
+  [/permission denied for function\s+"?([^\s",(]+)"?/i, 'function'],
+];
+
+export function denialObject(result) {
+  const message = result?.error?.message ?? '';
+  for (const [pattern, kind] of DENIAL_OBJECT) {
+    const found = message.match(pattern);
+    // Postgres names the relation unqualified in these messages; a schema qualification, if one
+    // ever appears, is dropped so the comparison is against the name the case declares.
+    if (found) return { kind, name: found[1].replace(/^.*\./, '').replace(/[.;,]$/, '') };
+  }
+  return null;
+}
+
+// `expected` is the case's declared `deniedBy` and `on` its declared `deniedOn`. A case that
+// declares nothing is not checked here -- silence is not a claim -- but a case that declares a
+// layer must be refused by that layer, and a case that declares an object must be refused ON that
+// object.
+export function expectDeniedBy(result, expected, what, on) {
   const outcome = expectDenied(result, what);
   if (!expected) return outcome;
   const actual = denialLayer(result);
@@ -200,7 +265,23 @@ export function expectDeniedBy(result, expected, what) {
       + 'privilege that was never granted both raise 42501, and only the message tells them apart.',
       { expected, actual });
   }
-  return { ...outcome, deniedBy: actual };
+  const object = denialObject(result);
+  if (!on) return { ...outcome, deniedBy: actual, deniedOn: object };
+  if (object === null) {
+    throw new AssertionOutcome(
+      `${what}: the case declares it is refused on the ${on.kind} ${on.name}, and the message names no `
+      + 'object at all, so there is nothing to attribute the refusal to: '
+      + `${JSON.stringify(result?.error?.message ?? '')}`, { expected, on, object: null });
+  }
+  if (object.kind !== on.kind || object.name !== on.name) {
+    throw new AssertionOutcome(
+      `${what}: the case declares it is refused on the ${on.kind} ${on.name} and the database refused the `
+      + `${object.kind} ${object.name}. A refusal on a different object is evidence about something other `
+      + 'than what the case says -- a missing schema or function privilege in the scaffolding raises the '
+      + 'same 42501, which is how seven cases once failed at the identity call and would have read as the '
+      + 'identity being denied.', { expected, on, object });
+  }
+  return { ...outcome, deniedBy: actual, deniedOn: object };
 }
 
 export function expectRows(result, what, atLeast = 1) {
