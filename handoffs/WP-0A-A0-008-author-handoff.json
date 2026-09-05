@@ -5,10 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "8df25e82a417598b736279d17db454c713df19ae",
-  "head_revision_or_patch_checksum": "8df25e82a417598b736279d17db454c713df19ae",
+  "head_revision_or_patch_checksum": "e95957c97798254b205d9eef45fc52a832bfffd1",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-017-service-path-identity.md",
+    "handoffs/WP-0A-A0-008-author-handoff.json",
+    "work-packages/WP-0A-A0-008.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-03"
