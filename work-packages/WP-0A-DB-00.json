@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-DB-00",
+  "title": "DB-00 schema foundation and test harness",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner and A0 to decide the service path (supabase-js with the service-role key, or a direct driver with per-request SET LOCAL role), due before G1."
+  ],
+  "purpose": "The first application code in this repository. RFC-2026-015 closed DATA-DEC-01 (`app`) and DATA-DEC-02 (a wrapper command contract, no tool named), which is exactly what the data package says gates the DB-00 merge and the start of DB-00 coding. This increment lands the batch 000 migration, the deterministic command contract, and the half of the schema lint decidable from the repository. The half needing a live Postgres is wired to REFUSE: this host has no psql, pg_ctl or docker and the repository forbids adding a dependency, so a harness that printed a pass would be the largest false clean run this repository has produced -- on the one surface where a false pass means tenant data.",
+  "scope": {
+    "include": [
+      "Batch 000: the app and private schemas, the approved extension set, and the updated_at helper",
+      "The Makefile command contract with every target the data package names, and the wrapper behind it",
+      "The schema lint rules decidable from migration text, including the ENABLE-vs-FORCE rule the specified lint misses",
+      "Behaviour tests: each lint rule shown to reject before it is trusted, and every live target shown to refuse without a database"
+    ],
+    "exclude": [
+      "Any tenant table, and therefore any RLS policy. WP-0A-A0-007 carries a Proposed decision on the policy shape every later batch would inherit; migration invariant 1 forbids rewriting a merged migration, so writing the shape now would commit batches 010..180 to it.",
+      "Choosing a migration runner. DATA-DEC-02 fixes the contract, not the tool.",
+      "The live half of the harness: seed replay, RLS smoke and the acceptance tests. They need a provisioned test database."
+    ]
+  },
+  "decisions_consumed": [
+    "DATA-DEC-01",
+    "DATA-DEC-02"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-006"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-0A-DB-00-schema-foundation",
+    "writable_paths": [
+      "db/foundation/**",
+      "scripts/db/**",
+      "test-kits/db/**",
+      "Makefile",
+      "work-packages/WP-0A-DB-00.json",
+      "evidence/WP-0A-DB-00/**",
+      "handoffs/WP-0A-DB-00-*.json",
+      "docs/handoffs/db-00/**"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      ".env",
+      ".env.*"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json"
+      ],
+      "rationale": "The branch-to-package mapping, and the floors and digest that move when a test file is added. A0 assigns Makefile and scripts/db/ to this package: the data package marks scripts/db as A0-assignable and the root Makefile as A0-only, and A0 is the author here, so the assignment is recorded rather than assumed. Also the verification record every commit regenerates, and the coverage-floor guard, which carries the registries a new test file must join before it counts: the digested set that makes a protected file undeletable, and the per-file and per-directory floors. Adding test-kits/db/foundation-contract.test.mjs required an entry in each. No existing entry is changed and no floor is lowered.",
+      "recorded_on": [
+        "work-packages/WP-0A-A0-002.json"
+      ]
+    }
+  },
+  "inputs": {
+    "files": [
+      "docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md",
+      "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "db/foundation/migrations/000_foundation.sql",
+      "Makefile",
+      "scripts/db/run.mjs",
+      "test-kits/db/foundation-contract.test.mjs",
+      "work-packages/WP-0A-DB-00.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "Batch 000 creates the app and private schemas with DATA-DEC-01's approved name, grants nothing to a client role, and touches no Supabase-managed schema.",
+    "Every target the data package names is reachable through make, sets LC_ALL=C and TZ=UTC, and prints a stable summary line whether it passes or fails.",
+    "Every target needing a database exits non-zero without one and names DB_TEST_URL. None reports a pass it cannot earn.",
+    "A connection string never reaches stdout or stderr.",
+    "Each schema lint rule is shown to REJECT a violating input, not merely to pass batch 000.",
+    "The lint rejects ENABLE ROW LEVEL SECURITY without FORCE, which the lint rule the data package specifies would pass.",
+    "npm run check stays green with no test skipped and no declared floor lowered."
+  ],
+  "required_tests": [
+    "Each lint rule rejects a violating input",
+    "Every live target refuses without a database",
+    "db-verify fails as a whole and names what is missing",
+    "A connection string is redacted",
+    "npm run check"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node --test test-kits/db/foundation-contract.test.mjs",
+      "LC_ALL=C TZ=UTC make db-verify"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. The migration has never been applied to any database -- no instance is provisioned -- so there is no deployed schema to roll back, and the command contract and lint are inert without one.",
+  "open_blockers": [
+    "The live half of the harness is unproven. This host has no psql, pg_ctl or docker and the repository forbids a dependency, so migrate, seed replay and RLS smoke have never executed. They are wired to refuse, not to pass.",
+    "No tenant table exists yet, so the ENABLE-vs-FORCE lint rule is pinned against synthetic SQL rather than a real one. That is deliberate: the rule has to bite before the first tenant table is written.",
+    "No tenant table or RLS policy is written here. WP-0A-A0-007 carries a Proposed decision on the policy shape every later batch would inherit, and migration invariant 1 forbids rewriting a merged migration, so batch 000 stays free of it until that is disposed.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is reversible foundation binding no production schema and no external provider."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}
