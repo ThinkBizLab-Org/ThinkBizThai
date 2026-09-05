@@ -4,24 +4,22 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "25811129d860873a1f3a3404907fba765b8b7a9d",
-  "head_revision_or_patch_checksum": "506f6e5641cef2ab6b9d2873d12f6c6a84840bda",
+  "base_revision": "8c70be76f895184f8d130ac151534479f03ddab8",
+  "head_revision_or_patch_checksum": "dab9637802196a34aa2585fa0df34b5b6df6400b",
   "task_ids": [],
   "files_added": [
-    "Makefile",
-    "db/foundation/lint/catalog-snapshot.json",
-    "db/foundation/migrations/000_foundation.sql",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/run.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
-    "work-packages/WP-0A-DB-00.json"
+    "db/foundation/migrations/001_service_roles.sql"
   ],
   "files_modified": [
+    "db/foundation/lint/catalog-snapshot.json",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
-    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json"
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [

@@ -1,7 +1,8 @@
 {
   "_what": "The live catalog state, read from the provisioned Postgres. The text lint reads migration files; this is what the database actually became. A rule asserted against text and a rule asserted against the catalog are different rules, and only the second one is true.",
   "_staleness": "taken_against_migrations must equal the digest of db/foundation/migrations/*.sql. If a migration changes and this file is not retaken, db-schema-lint FAILS. A snapshot that can silently describe a database that no longer exists is the same defect class as a blocker list nobody re-checks.",
-  "taken_against_migrations": "882b94b238ebe3b2",
+  "_measurement_note": "service_roles.has_password is read from pg_authid, NOT pg_roles. pg_roles is a view that replaces rolpassword with the literal '********', so the obvious query reports a password on every role including ones that have none. The first attempt here made exactly that mistake and reported has_password: true for all three.",
+  "taken_against_migrations": "4f27acc9ddcb52a5",
   "taken_at": "2026-09-05",
   "project_ref": "xtvtflkntpqfvflvdbwk",
   "catalog": {
@@ -16,6 +17,11 @@
       { "role": "supabase_read_only_user", "super": false, "bypassrls": true },
       { "role": "supabase_replication_admin", "super": false, "bypassrls": false },
       { "role": "supabase_storage_admin", "super": false, "bypassrls": false }
+    ],
+    "service_roles": [
+      { "role": "app_command",     "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false },
+      { "role": "app_maintenance", "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false },
+      { "role": "app_worker",      "bypassrls": false, "canlogin": false, "has_password": false, "memberships": 0, "can_use_app": false, "can_use_private": false }
     ],
     "our_schemas": ["app", "private"],
     "tenant_tables": [],

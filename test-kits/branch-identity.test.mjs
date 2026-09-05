@@ -79,7 +79,7 @@ test('every branch in this repository resolves to exactly one package', async ()
     'agent/claude/WP-0A-CON-008-squash-orphans-handoffs',
     'agent/claude/WP-0A-A0-007-rls-service-policy-defect',
     'agent/claude/WP-0A-A0-006-db00-data-decisions',
-    'agent/claude/WP-0A-DB-00-catalog-truth',
+    'agent/claude/WP-0A-DB-00-service-roles',
     'agent/claude/WP-0A-A0-008-service-path',
   ]) {
     const report = reportFor(ref, await claimantsOf(ref));
@@ -131,7 +131,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-008-squash-orphans-handoffs': 'WP-0A-CON-008',
   'agent/claude/WP-0A-A0-007-rls-service-policy-defect': 'WP-0A-A0-007',
   'agent/claude/WP-0A-A0-006-db00-data-decisions': 'WP-0A-A0-006',
-  'agent/claude/WP-0A-DB-00-catalog-truth': 'WP-0A-DB-00',
+  'agent/claude/WP-0A-DB-00-service-roles': 'WP-0A-DB-00',
   'agent/claude/WP-0A-A0-008-service-path': 'WP-0A-A0-008',
 };
 
