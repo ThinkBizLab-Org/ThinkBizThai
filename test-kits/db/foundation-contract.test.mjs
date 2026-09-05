@@ -195,3 +195,50 @@ test('a role gaining BYPASSRLS is a finding, not a detail', async () => {
   // The platform's own five are known and must not be reported as findings every run.
   assert.deepEqual(await catalogLint(base, digest), []);
 });
+
+// ---------------------------------------------------------------------------
+// The fixture catalog. §12.6 fixes the symbolic identities and says the real UUIDs
+// live here and are never generated per test.
+//
+// Every UUID is uuid5 of its own symbol, so this file states nothing that cannot be
+// recomputed. A random UUID pasted in would be an unverifiable constant — true only
+// because it is written down, which is the shape of evidence this repository keeps
+// removing.
+const FIXTURES = 'db/foundation/seeds/fixture-catalog.json';
+const REQUIRED_SYMBOLS = [
+  'user_owner_a', 'user_editor_a', 'user_approver_a', 'user_viewer_a', 'user_suspended_a',
+  'user_owner_b', 'workspace_a', 'workspace_b', 'business_a1', 'business_a2', 'business_b1',
+  'page_a1', 'page_a2', 'page_b1',
+];
+
+test('every identity the data package names is in the catalog, and each id is derived not invented', async () => {
+  const { createHash } = await import('node:crypto');
+  const catalog = JSON.parse(await readFile(FIXTURES, 'utf8'));
+  const identities = catalog.identities ?? {};
+
+  assert.deepEqual(Object.keys(identities).sort(), [...REQUIRED_SYMBOLS].sort(),
+    'the catalog carries exactly the identities §12.6 names — no more, no fewer');
+
+  // Recompute uuid5(namespace, name) here. If a value was edited by hand, this fails.
+  const uuid5 = (namespace, name) => {
+    const ns = Buffer.from(namespace.replace(/-/g, ''), 'hex');
+    const hash = createHash('sha1').update(Buffer.concat([ns, Buffer.from(name, 'utf8')])).digest();
+    hash[6] = (hash[6] & 0x0f) | 0x50;
+    hash[8] = (hash[8] & 0x3f) | 0x80;
+    const h = hash.subarray(0, 16).toString('hex');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+  };
+
+  for (const symbol of REQUIRED_SYMBOLS) {
+    const entry = identities[symbol];
+    assert.match(entry.uuid, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      `${symbol} must be a v5 UUID — a v4 would mean it was generated rather than derived`);
+    assert.equal(entry.uuid, uuid5(catalog.namespace, `thinkbizthai.fixture.${symbol}`),
+      `${symbol} does not match its own recipe — the value was edited by hand and is no longer reproducible`);
+    assert.ok(entry.role && entry.role.length > 8, `${symbol} states what it is for`);
+  }
+
+  // Two identities sharing an id would make every cross-tenant assertion vacuous.
+  const ids = REQUIRED_SYMBOLS.map((s) => identities[s].uuid);
+  assert.equal(new Set(ids).size, ids.length, 'no two identities share a UUID');
+});
