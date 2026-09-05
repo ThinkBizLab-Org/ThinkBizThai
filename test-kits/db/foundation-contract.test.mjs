@@ -123,3 +123,122 @@ test('a connection string never reaches the output', async () => {
   assert.doesNotMatch(output, /hunter2/, '§12.5 requires the connection URL to be redacted');
   assert.doesNotMatch(output, /db\.example\.invalid/, 'the host is part of the URL and must not leak either');
 });
+
+// ---------------------------------------------------------------------------
+// The catalog half. Batch 000 is applied to a real Postgres now, so the lint can
+// assert what the database BECAME rather than what a migration file says.
+//
+// The snapshot is committed evidence, and committed evidence is exactly what this
+// repository keeps catching itself trusting after it went stale. So the snapshot
+// names the migration set it was taken against, and drifting from it fails.
+
+import { catalogLint, migrationSetDigest } from '../../scripts/db/run.mjs';
+
+const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
+const snapshot = async () => JSON.parse(await readFile(SNAPSHOT, 'utf8'));
+
+test('the committed catalog snapshot matches the migrations it claims to describe', async () => {
+  const snap = await snapshot();
+  assert.equal(snap.taken_against_migrations, await migrationSetDigest(),
+    'the snapshot describes a different migration set than the one in the tree — retake it');
+  assert.deepEqual(await catalogLint(snap), [], 'the live catalog satisfies every rule asserted against it');
+});
+
+test('a snapshot that no longer matches the migrations is refused, not read', async () => {
+  const stale = { ...(await snapshot()), taken_against_migrations: '0'.repeat(16) };
+  const problems = await catalogLint(stale);
+  assert.equal(problems.length, 1, 'a stale snapshot produces one refusal, not a list of stale findings');
+  assert.match(problems[0], /Retake it/);
+  // And it refuses BEFORE reading the catalog, so a stale file cannot report a clean database.
+  const staleAndBroken = { ...stale, catalog: { ...stale.catalog, our_schemas: [] } };
+  assert.deepEqual(await catalogLint(staleAndBroken), problems,
+    'a stale snapshot must refuse on staleness alone, never report on contents it cannot vouch for');
+});
+
+test('the catalog rules reject what the text rules cannot see', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+  const withCatalog = (catalog) => catalogLint({ ...base, catalog: { ...base.catalog, ...catalog } }, digest);
+
+  // ENABLE without FORCE — the difference the specified lint rule cannot express, because
+  // relrowsecurity and relforcerowsecurity are different catalog columns.
+  const enabledOnly = [{ table: 'workspace', rls_enabled: true, rls_forced: false, has_pk: true, comment: 'owner: A1' }];
+  assert.ok((await withCatalog({ tenant_tables: enabledOnly })).some((p) => /relforcerowsecurity is false/.test(p)));
+  const forced = [{ ...enabledOnly[0], rls_forced: true }];
+  assert.deepEqual(await withCatalog({ tenant_tables: forced }), []);
+
+  // A table whose RLS was turned off after the migration ran. No file changes; the catalog does.
+  assert.ok((await withCatalog({ tenant_tables: [{ ...forced[0], rls_enabled: false }] }))
+    .some((p) => /relrowsecurity is false/.test(p)));
+
+  // A view created without security_invoker, and a definer function whose search_path was widened.
+  assert.ok((await withCatalog({ exposed_views: [{ view: 'page_v', reloptions: null }] }))
+    .some((p) => /not security_invoker/.test(p)));
+  assert.ok((await withCatalog({ security_definer_functions: [{ function: 'private.helper', config: ['search_path=public'], owner: 'app_owner' }] }))
+    .some((p) => /without an empty search_path/.test(p)));
+
+  // A grant that opens `private` to every client role.
+  assert.ok((await withCatalog({ public_grants: { usage_on_private: true, create_on_app: false } }))
+    .some((p) => /USAGE on private/.test(p)));
+});
+
+// The measurement that answers DATA-DEC-03's decisive question, kept as a standing assertion.
+// A new role gaining BYPASSRLS makes every policy inert for it, forced or not, and no RLS test
+// written against client roles would notice.
+test('a role gaining BYPASSRLS is a finding, not a detail', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+  const withRole = [...base.catalog.roles_bypassing_rls, 'app_worker'];
+  const problems = await catalogLint({ ...base, catalog: { ...base.catalog, roles_bypassing_rls: withRole } }, digest);
+  assert.ok(problems.some((p) => /app_worker bypasses RLS/.test(p)),
+    'a role outside the known platform set that bypasses RLS must be reported');
+  // The platform's own five are known and must not be reported as findings every run.
+  assert.deepEqual(await catalogLint(base, digest), []);
+});
+
+// ---------------------------------------------------------------------------
+// The fixture catalog. §12.6 fixes the symbolic identities and says the real UUIDs
+// live here and are never generated per test.
+//
+// Every UUID is uuid5 of its own symbol, so this file states nothing that cannot be
+// recomputed. A random UUID pasted in would be an unverifiable constant — true only
+// because it is written down, which is the shape of evidence this repository keeps
+// removing.
+const FIXTURES = 'db/foundation/seeds/fixture-catalog.json';
+const REQUIRED_SYMBOLS = [
+  'user_owner_a', 'user_editor_a', 'user_approver_a', 'user_viewer_a', 'user_suspended_a',
+  'user_owner_b', 'workspace_a', 'workspace_b', 'business_a1', 'business_a2', 'business_b1',
+  'page_a1', 'page_a2', 'page_b1',
+];
+
+test('every identity the data package names is in the catalog, and each id is derived not invented', async () => {
+  const { createHash } = await import('node:crypto');
+  const catalog = JSON.parse(await readFile(FIXTURES, 'utf8'));
+  const identities = catalog.identities ?? {};
+
+  assert.deepEqual(Object.keys(identities).sort(), [...REQUIRED_SYMBOLS].sort(),
+    'the catalog carries exactly the identities §12.6 names — no more, no fewer');
+
+  // Recompute uuid5(namespace, name) here. If a value was edited by hand, this fails.
+  const uuid5 = (namespace, name) => {
+    const ns = Buffer.from(namespace.replace(/-/g, ''), 'hex');
+    const hash = createHash('sha1').update(Buffer.concat([ns, Buffer.from(name, 'utf8')])).digest();
+    hash[6] = (hash[6] & 0x0f) | 0x50;
+    hash[8] = (hash[8] & 0x3f) | 0x80;
+    const h = hash.subarray(0, 16).toString('hex');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+  };
+
+  for (const symbol of REQUIRED_SYMBOLS) {
+    const entry = identities[symbol];
+    assert.match(entry.uuid, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      `${symbol} must be a v5 UUID — a v4 would mean it was generated rather than derived`);
+    assert.equal(entry.uuid, uuid5(catalog.namespace, `thinkbizthai.fixture.${symbol}`),
+      `${symbol} does not match its own recipe — the value was edited by hand and is no longer reproducible`);
+    assert.ok(entry.role && entry.role.length > 8, `${symbol} states what it is for`);
+  }
+
+  // Two identities sharing an id would make every cross-tenant assertion vacuous.
+  const ids = REQUIRED_SYMBOLS.map((s) => identities[s].uuid);
+  assert.equal(new Set(ids).size, ids.length, 'no two identities share a UUID');
+});

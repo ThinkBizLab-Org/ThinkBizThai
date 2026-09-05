@@ -1,0 +1,64 @@
+{
+  "_what": "The fixture identities the data package names, with their UUIDs fixed. §12.6: the real UUIDs are defined in the fixture catalog and a test must never generate them.",
+  "_why_derived": "Each UUID is uuid5(DNS, 'thinkbizthai.fixture.<symbol>') — a pure function of the symbol. Anyone can recompute them; nobody has to trust this file to be the original. A random UUID pasted here would be an unverifiable constant, and a test that generates its own is a test whose failures cannot be reproduced. The cross-tenant assertion in particular needs workspace_b's id to be KNOWN to the attacker's side of the test: proving A cannot reach B by guessing is worthless, proving A cannot reach B while holding B's exact id is the actual control.",
+  "namespace": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "recipe": "uuid5(namespace, 'thinkbizthai.fixture.' || symbol)",
+  "identities": {
+    "user_owner_a": {
+      "uuid": "5c460eb8-0710-557a-b423-f9b12c76834f",
+      "role": "active owner of workspace_a"
+    },
+    "user_editor_a": {
+      "uuid": "a324d4a6-15a3-5e15-9193-eed9d50b5d91",
+      "role": "editor scoped to business_a1 and page_a1"
+    },
+    "user_approver_a": {
+      "uuid": "fecceb8f-d60b-54bc-97cd-fccee216e34b",
+      "role": "approver scoped to business_a1"
+    },
+    "user_viewer_a": {
+      "uuid": "d884d3c1-89a0-5600-ae81-c368f6574821",
+      "role": "viewer of workspace_a"
+    },
+    "user_suspended_a": {
+      "uuid": "9b10ac91-406b-5322-9755-bfb16b0b4aa3",
+      "role": "suspended member of workspace_a"
+    },
+    "user_owner_b": {
+      "uuid": "297ad853-58a6-5e83-87e1-f936f9c3ddff",
+      "role": "active owner of workspace_b, the other tenant"
+    },
+    "workspace_a": {
+      "uuid": "c4840acc-0323-5e13-b1d3-c18d7eb615cb",
+      "role": "tenant A — the workspace every A-side identity belongs to"
+    },
+    "workspace_b": {
+      "uuid": "43fd5c24-ebea-528f-9ce9-eedf1f8f9765",
+      "role": "tenant B — the workspace nothing on the A side may ever reach"
+    },
+    "business_a1": {
+      "uuid": "dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a",
+      "role": "business under workspace_a, inside the editor and approver scope"
+    },
+    "business_a2": {
+      "uuid": "0a5bed73-2981-5699-b2a1-e1c1663127f4",
+      "role": "second business under workspace_a, deliberately OUTSIDE the editor scope"
+    },
+    "business_b1": {
+      "uuid": "3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3",
+      "role": "business under workspace_b, reachable only by user_owner_b"
+    },
+    "page_a1": {
+      "uuid": "da6409df-9541-5346-9d2e-447be2a649af",
+      "role": "page under business_a1, inside the editor scope"
+    },
+    "page_a2": {
+      "uuid": "b96b06c3-e9b1-5133-b96e-08561e6f966f",
+      "role": "page under business_a2, deliberately outside the editor scope"
+    },
+    "page_b1": {
+      "uuid": "9f06926b-4de1-5bcb-9199-3206f7c3f2ad",
+      "role": "page under business_b1, on the far side of the tenant boundary"
+    }
+  }
+}

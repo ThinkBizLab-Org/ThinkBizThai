@@ -15,6 +15,7 @@
 //     command contract itself). These run anywhere and really check.
 //   * LIVE   — require a Postgres test instance (migrate, seed replay, RLS smoke). These refuse,
 //     naming the environment variable that would let them run.
+import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
@@ -84,6 +85,80 @@ export async function schemaLint(files) {
   return problems;
 }
 
+
+const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
+
+// The text lint reads migration files. This reads what the database actually BECAME.
+//
+// They are not the same rule. `alter table ... force row level security` appearing in a file says
+// somebody wrote it; `relforcerowsecurity` in the catalog says the database is in that state. A
+// migration that failed halfway, a later one that undid it, or a hand-run statement in the
+// dashboard all break the first without touching the second.
+//
+// The snapshot is committed evidence, and committed evidence goes stale — this repository has
+// spent its whole history on exactly that failure. So the snapshot names the migration set it was
+// taken against, and a mismatch FAILS. It cannot quietly describe a database that no longer exists.
+export async function migrationSetDigest(files) {
+  const each = (files ?? await migrationFiles()).map(({ sql }) =>
+    createHash('sha256').update(sql).digest('hex'));
+  return createHash('sha256').update(each.join('\n') + '\n').digest('hex').slice(0, 16);
+}
+
+export async function catalogLint(snapshot, digest) {
+  const problems = [];
+  const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));
+  const expected = digest ?? await migrationSetDigest();
+
+  if (snap.taken_against_migrations !== expected) {
+    return [`the catalog snapshot was taken against migration set ${snap.taken_against_migrations}, `
+      + `but the migrations now digest to ${expected}. Retake it — a snapshot describing a database `
+      + 'that no longer exists is not evidence.'];
+  }
+
+  const c = snap.catalog ?? {};
+  for (const name of ['app', 'private']) {
+    if (!(c.our_schemas ?? []).includes(name)) problems.push(`schema ${name} is not in the live catalog`);
+  }
+  if (c.public_grants?.usage_on_private !== false) problems.push('PUBLIC holds USAGE on private — no client role may reach it');
+  if (c.public_grants?.create_on_app !== false) problems.push('PUBLIC may CREATE in app');
+
+  // The rule the specified lint misses, now asserted against the catalog column rather than text.
+  for (const t of c.tenant_tables ?? []) {
+    if (!t.rls_enabled) problems.push(`app.${t.table}: relrowsecurity is false`);
+    if (!t.rls_forced) problems.push(`app.${t.table}: relforcerowsecurity is false — ENABLE alone leaves the table owner exempt`);
+    if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
+    if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
+  }
+  for (const v of c.exposed_views ?? []) {
+    if (!(v.reloptions ?? []).some((o) => /^security_invoker=(true|on)$/i.test(o))) {
+      problems.push(`app.${v.view}: not security_invoker`);
+    }
+  }
+  for (const f of c.security_definer_functions ?? []) {
+    if (!(f.config ?? []).some((o) => /^search_path=""$/.test(o))) {
+      problems.push(`${f.function}: SECURITY DEFINER without an empty search_path`);
+    }
+    // A SECURITY DEFINER function owned by a role that bypasses RLS is exempt from every policy
+    // written for it, forced or not. Recorded, not yet failing: batch 000's helper is owned by
+    // `postgres` because that is the only role the platform gives us today, and the role topology
+    // that fixes it is A1's to create. Failing here would fail the repository for a defect it
+    // cannot fix yet; naming it keeps it visible until it can.
+    if ((c.roles_bypassing_rls ?? []).includes(f.owner)) {
+      stderr.write(`  note: ${f.function} is owned by ${f.owner}, which bypasses RLS. `
+        + 'It is exempt from every policy regardless of FORCE. Tracked for the role topology.\n');
+    }
+  }
+
+  // The measurement that answers DATA-DEC-03's decisive question, kept as a standing assertion
+  // rather than a one-off: these are the roles that bypass RLS on this platform today. A new one
+  // appearing is a security event, not a detail.
+  const KNOWN_BYPASS = ['postgres', 'service_role', 'supabase_admin', 'supabase_etl_admin', 'supabase_read_only_user'];
+  const unexpected = (c.roles_bypassing_rls ?? []).filter((r) => !KNOWN_BYPASS.includes(r));
+  for (const r of unexpected) problems.push(`role ${r} bypasses RLS and is not in the known platform set — every policy is inert for it`);
+
+  return problems;
+}
+
 // STATIC: the command contract describes itself honestly — every target §12.5 names is reachable.
 export async function contractCheck(makefileText) {
   const makefile = makefileText ?? await readFile('Makefile', 'utf8');
@@ -115,7 +190,7 @@ async function runTarget(target) {
     return 1;
   }
   if (!STATIC.has(target)) { stderr.write(`unknown target '${target}'\n`); return 2; }
-  const problems = target === 'schema-lint' ? await schemaLint()
+  const problems = target === 'schema-lint' ? [...await schemaLint(), ...await catalogLint()]
     : target === 'contract-check' ? await contractCheck()
     : await generatedDriftCheck();
   for (const p of problems) stderr.write(`  ${p}\n`);
