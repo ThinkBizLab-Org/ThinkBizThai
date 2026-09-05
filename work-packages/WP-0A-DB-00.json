@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-a1-countersignature",
+    "branch": "agent/claude/WP-0A-DB-00-reservations",
     "writable_paths": [
       "Makefile",
       "db/foundation/**",
@@ -107,9 +107,13 @@
     "amends_without_owning": {
       "paths": [
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json"
+        "test-kits/integrity-manifest.json",
+        "tests/db/identity/identity-isolation.test.mjs",
+        "tests/db/identity/isolation-cases.mjs",
+        "tests/db/identity/run-isolation.mjs",
+        "tests/db/identity/fixtures/010-identity-fixture.sql"
       ],
-      "rationale": "This branch records A1's countersignature as evidence and rewrites this package's own open_blockers around it -- both owned outright. The branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row there, where it appears in a diff. The integrity manifest records the digests of the protected files this branch edits."
+      "rationale": "The four files under tests/db/identity are A1's, carried by this package since the batch 010 increment. Three of the five reservations A1 raised are IN those files -- the fixture's public.digest() calls, the runner not asserting deniedBy, and the assertion that pinned the very call that cannot run on the platform -- so repairing them means editing them. Each edit is the repair A1's own record asks for, and its countersignature is cited at every site.\\n\\nThe branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row there. The integrity manifest records the digests of the protected files this branch edits."
     }
   },
   "inputs": {
@@ -165,10 +169,10 @@
     "The live half runs in CI and nowhere else. A Postgres service container gives db-migrate-clean, db-schema-lint and db-rls-smoke a real database on every pull request; all five migration batches apply and the schema lint passes. This DEVELOPMENT HOST still has no psql, pg_ctl or docker, so the targets refuse locally and every live change is proven by a CI round, not from a shell. db-migrate-upgrade and db-seed-replay remain unproven for a different reason: neither has a fixture to run against, and both say so rather than reporting a pass.",
     "open_blockers[1] asked for the co-owner's signature on the role topology. A1 wrote its own record at evidence/WP-0A-DB-00/a1-countersignature-role-topology.md. READ THE VERDICT THERE: this manifest is written by A0 and does not speak for another role, so it does not restate it here.\n\nWhat A0 can state, because it is a property of that document rather than a judgement about it: A1 re-measured the provisioned instance itself through ten read-only catalog queries rather than accepting A0's record, three of its findings contradict a record A0 wrote, and it declares in its own §0 that it is a subagent run in A0's vendor and model family assessing files it authored. It therefore does not satisfy independence.prefer_cross_vendor_review and does not lift the cross_vendor_exception this package already carries -- a second reading, not a second opinion.\n\nThe reservations that record raises are carried as the five blockers below, and they are open.",
     "RESERVATION 1 (A1 §5.1). RFC-2026-016 §4 retired 'force RLS where compatible' and made an EXEMPTION REGISTER the control that replaces it. No such register exists anywhere in the repository. The phrase was retired for being unfalsifiable; its replacement is unfalsifiable by absence. Owner: A0, with RFC-2026-016's author.",
-    "RESERVATION 2 (A1 §5.2). scripts/db/run.mjs implements half of RFC-2026-016 §6's check: it asserts no service role holds BYPASSRLS and never asserts none is SUPERUSER. A superuser bypasses row level security whatever rolbypassrls says, so the half that is missing is the half that cannot be worked around. The snapshot's service_roles entries carry no super field at all, and its login_roles block, which does carry one, is read by no rule.",
+    "RESERVATION 2 (A1 §5.2) — REPAIRED, and the repair is what is now asserted. scripts/db/run.mjs asserts no service role is SUPERUSER as well as no service role holds BYPASSRLS, refuses a snapshot whose service_roles carry no superuser field at all (an unmeasured property must not read as a passing one), and pins the instance's superuser set the way it already pinned the bypass set. Measured 2026-09-06 on xtvtflkntpqfvflvdbwk: all three service roles rolsuper false; supabase_admin is the only rolsuper on the instance.",
     "RESERVATION 3 (A1 §5.3/§5.4). The record does not describe the tree in two places. 010_identity.sql:14 cites 'batch 004 corrects the record' and no 004_*.sql exists, so batch 000's pgcrypto claim is still wrong on both counts (pgcrypto is in `extensions`; gen_random_uuid is in pg_catalog). 000_foundation.sql:12 still calls an approved RFC 'Proposed'.",
-    "RESERVATION 4 (A1 §5.5). tests/db/identity/fixtures/010-identity-fixture.sql:72,76 and isolation-cases.mjs:143 call public.digest(), which does not exist on the provisioned instance -- the same defect A0 fixed in the migration and left in the tests. The suite passes in CI only because the shim happens to make batch 000's wrong record true there. As committed it cannot run against the platform it describes.",
-    "RESERVATION 5 (A1 §5.6). deniedBy is declared on four isolation cases and asserted by nothing. It matters because RFC-2026-017 §7 is entirely about WHICH LAYER refused: a missing grant and a policy both raise 42501, and a case that does not distinguish them cannot tell a working policy from a forgotten grant.",
+    "RESERVATION 4 (A1 §5.5) — REPAIRED at the call sites AND at the cause. The fixture and the invitation case now take the digest with pg_catalog's sha256(convert_to(...)), which resolves with no extension and no schema qualification; measured 2026-09-06 that it produces byte-identical output to extensions.digest(...,'sha256'), so no fixture identity moved. The cause was that the CI shim was MORE PERMISSIVE than the platform: batch 000's `create extension ... with schema public` is a no-op on the instance and succeeded in the container, so public.digest existed only in CI. The shim now installs pgcrypto in `extensions` where the platform has it, and the test that used to pin `public.digest(` now refuses any schema-qualified pgcrypto call.",
+    "RESERVATION 5 (A1 §5.6) — REPAIRED. expectDeniedBy holds a case to the layer it declares, and the runner applies it to every case carrying deniedBy. A policy refusal always names the policy; anything else saying permission denied is the privilege layer; anything that classifies as neither fails rather than guessing. Silence stays silence: a case declaring no layer is not checked.",
     "Tenant isolation is proven against the CI container and measured once against a provisioned Supabase instance, and the two prove different things. In CI, 28 isolation cases pass on every run and a NEGATIVE CONTROL disables row level security on app.workspaces and requires the suite to fail -- it reports 10 of 28, so the suite is not blind. What CI cannot establish is the platform: its roles come from db/foundation/ci/supabase-shim.sql and were created by us, so a green run means the policies still do what they did, never that this holds on Supabase. The BYPASSRLS measurement behind DATA-DEC-03 came from the provisioned instance and has no CI equivalent. Batches 020 and above own the assertions SMOKE_COVERAGE names as uncovered.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
