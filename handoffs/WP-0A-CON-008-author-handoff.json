@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
-  "head_revision_or_patch_checksum": "c463c411d31f9e251110a238ebef300c231c17c6",
+  "head_revision_or_patch_checksum": "a4d0a1f9961c01593c11813bf9540ddb0a4ee598",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-008/handoff-base-revision.md"

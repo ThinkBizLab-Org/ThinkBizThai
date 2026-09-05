@@ -129,11 +129,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "handoffs/WP-0A-A0-006-author-handoff.json",
         "scripts/test-suite-contract.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "Regenerates WP-0A-A0-006's author handoff, whose cited commits the squash merge of PR #45 orphaned, plus the two floors that move with any protected-file edit. A0-006 is merged and has no branch left to regenerate itself from. No claim in that handoff is changed; only the range it cites and the file lists derived from it.",
+      "rationale": "The two floors that move with any protected-file edit. This increment adds three cases to test-kits/handoff-conformance.test.mjs, which raises that suite's declared-test and assertion floors and changes its test-name digest in scripts/test-suite-contract.mjs, and changes the digests of every file it edits in test-kits/integrity-manifest.json. Neither file is edited for any other reason and no floor is lowered. The previous increment's amendment of handoffs/WP-0A-A0-006-author-handoff.json is removed: that work is merged, this branch does not touch that file, and a declaration matching none of the diff is a standing permission over another package's files.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
