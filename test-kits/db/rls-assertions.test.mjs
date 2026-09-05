@@ -160,12 +160,17 @@ test('every identity helper verifies its own setting took effect', async () => {
     'the timestamp proxy refused the first statement after BEGIN');
   assert.doesNotMatch(sql, /txid_current_if_assigned/,
     'the transaction-id proxy refused inside a read-only transaction');
-  assert.match(sql, /assert_local_setting_took/);
+  // The check is inline, not a call: a helper switches role and then verifies, so a call into
+  // `private` at that point is evaluated as the NEW role — which has no USAGE there, exactly as
+  // batch 000 intends. CI reported 42501 on all 28 cases before this was inlined.
+  assert.doesNotMatch(sql, /perform private\.assert_local_setting_took/,
+    'the verification must not be a cross-schema CALL made after the role switch — the comment\n'
+    + 'naming the old function is history and may stay; an actual call may not');
 
   for (const fn of ['as_anonymous', 'as_user', 'as_service']) {
     const body = sql.slice(sql.indexOf(`function private.${fn}(`));
     const end = body.indexOf('$$;');
-    assert.match(body.slice(0, end), /perform private\.assert_local_setting_took\('role',/,
+    assert.match(body.slice(0, end), /SET LOCAL role did not take effect/,
       `${fn} must read its own setting back — SET LOCAL outside a transaction is a no-op, and a helper that assumes nothing leaves the test running as whatever identity the connection already had`);
   }
 

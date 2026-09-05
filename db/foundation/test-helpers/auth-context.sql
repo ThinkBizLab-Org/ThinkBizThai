@@ -31,21 +31,14 @@
 -- BEGIN, so it refused the very call pattern the helpers are used with and forced every caller to
 -- insert a dummy statement first. A guard that has to be worked around is a guard on its way to
 -- being deleted, and that is A1's line, earned twice.
-create or replace function private.assert_local_setting_took(setting text, expected text)
-returns void
-language plpgsql
-as $$
-declare actual text;
-begin
-  actual := current_setting(setting, true);
-  if actual is distinct from expected then
-    raise exception 'SET LOCAL % did not take effect', setting
-      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and '
-                   'the test would have run as whatever identity the connection already had. Wrap the case in '
-                   'BEGIN ... ROLLBACK.';
-  end if;
-end;
-$$;
+-- The check is INLINE in each helper, not a function call, and that is not a style choice.
+--
+-- The first attempt put it in `private.assert_local_setting_took(...)`. Every helper switches the
+-- role before verifying, so the verification call was evaluated AS THE NEW ROLE — and `authenticated`
+-- has no USAGE on `private`, exactly as batch 000 intends. CI reported
+-- `42501: permission denied for schema private` on all 28 cases, at assume-identity.
+--
+-- The privilege boundary was doing its job. The check was on the wrong side of it.
 
 -- Anonymous: the `anon` role, no subject claim. §12.6 assertion 6 requires it to see zero tenant rows.
 create or replace function private.as_anonymous()
@@ -55,7 +48,11 @@ as $$
 begin
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   perform set_config('role', 'anon', true);
-  perform private.assert_local_setting_took('role', 'anon');
+  if current_setting('role', true) is distinct from 'anon' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
 end;
 $$;
 
@@ -73,7 +70,11 @@ begin
   perform set_config('request.jwt.claims',
     json_build_object('role', 'authenticated', 'sub', subject::text)::text, true);
   perform set_config('role', 'authenticated', true);
-  perform private.assert_local_setting_took('role', 'authenticated');
+  if current_setting('role', true) is distinct from 'authenticated' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
 end;
 $$;
 
@@ -98,11 +99,14 @@ as $$
 begin
   perform set_config('request.jwt.claims', '{"role":"app_worker"}', true);
   perform set_config('role', 'app_worker', true);
-  perform private.assert_local_setting_took('role', 'app_worker');
+  if current_setting('role', true) is distinct from 'app_worker' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
 end;
 $$;
 
-revoke all on function private.assert_local_setting_took(text, text) from public;
 revoke all on function private.as_anonymous() from public;
 revoke all on function private.as_user(uuid) from public;
 revoke all on function private.as_suspended_user(uuid) from public;

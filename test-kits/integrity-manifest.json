@@ -66,7 +66,7 @@
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "4c303b5f22885eda04975ccf135b3a2ec44879acc7b3b74fb6fbb652467fa555",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
     "test-kits/db/foundation-contract.test.mjs": "6037c14a5251add0f5765787788cea46fcff8c7ddcf81ce6bba0e548d62f92b0",
-    "test-kits/db/rls-assertions.test.mjs": "bc54652b1df1187fcf4c75232658e7f7eeb0beb76232ed6b732eea9588e3ccd8",
+    "test-kits/db/rls-assertions.test.mjs": "367e9e7eeb83fd3f0c5f079cf7f9255ae324f6428feedaaf4765da20c9ce0144",
     "test-kits/handoff-conformance.test.mjs": "ec2012192288a1cbeb0bcc551b5fb1e39b2d464da804386a96aa5977cea34e52",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
     "test-kits/protocol-schema-conformance.test.mjs": "53f75bb38d749c2383936a7c358e9c00c76b60bbcf80b671c5a31be1aaf90945",
