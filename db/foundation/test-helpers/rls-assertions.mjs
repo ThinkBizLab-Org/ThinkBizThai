@@ -149,6 +149,60 @@ export function expectNoEffect(result, witness, expected, what) {
   return { kind: 'no-effect', witnessed: Object.keys(expected ?? {}).length };
 }
 
+// WHICH LAYER refused, not just that something did.
+//
+// A1 declared `deniedBy: 'grant'` on four cases and nothing asserted it (its countersignature §5.6).
+// It matters more than it looks: a missing grant and a policy both raise 42501, so a case that
+// cannot tell them apart passes identically when the policy it is supposed to be proving was never
+// written and the privilege simply was not granted. That is the same false-pass shape as reading an
+// empty result as a denial, one layer down.
+//
+// Postgres says which, in the message rather than in the code:
+//
+//   permission denied for table workspace_invitations          -- the privilege layer
+//   permission denied for column token_hash of relation ...    -- the privilege layer, column-scoped
+//   new row violates row-level security policy for table "..." -- the policy layer
+//
+// LC_ALL=C is set by the driver and by CI, so the English text is the text. A message that matches
+// neither is UNCLASSIFIED and fails: an outcome nobody can attribute is not evidence about a layer.
+// Order matters, and it is the whole discriminator. A policy refusal ALWAYS names the policy --
+// `new row violates row-level security policy for table "x"` -- so it is matched first; anything
+// else saying `permission denied` is the privilege layer, including the bare form Postgres emits
+// for some operations with no object named. Nothing else classifies, and an outcome that classifies
+// as nothing fails rather than guessing: `expectDeniedBy` refuses it.
+const DENIAL_LAYER = [
+  [/violates row-level security policy/i, 'policy'],
+  [/permission denied/i, 'grant'],
+];
+
+export function denialLayer(result) {
+  const message = result?.error?.message ?? '';
+  for (const [pattern, layer] of DENIAL_LAYER) if (pattern.test(message)) return layer;
+  return null;
+}
+
+// `expected` is the case's declared `deniedBy`. A case that declares nothing is not checked here --
+// silence is not a claim -- but a case that declares a layer must be refused by that layer.
+export function expectDeniedBy(result, expected, what) {
+  const outcome = expectDenied(result, what);
+  if (!expected) return outcome;
+  const actual = denialLayer(result);
+  if (actual === null) {
+    throw new AssertionOutcome(
+      `${what}: the database refused with ${outcome.code}, but the message attributes the refusal to no `
+      + `layer this suite recognises, so the case's deniedBy: '${expected}' claim cannot be checked: `
+      + `${JSON.stringify(result?.error?.message ?? '')}`, { expected, actual: null });
+  }
+  if (actual !== expected) {
+    throw new AssertionOutcome(
+      `${what}: the case declares it is refused by the ${expected} layer and the database refused it at `
+      + `the ${actual} layer. These are not interchangeable: a policy that was never written and a `
+      + 'privilege that was never granted both raise 42501, and only the message tells them apart.',
+      { expected, actual });
+  }
+  return { ...outcome, deniedBy: actual };
+}
+
 export function expectRows(result, what, atLeast = 1) {
   const outcome = classify(result);
   if (outcome.kind === 'rows' && outcome.rows >= atLeast) return outcome;

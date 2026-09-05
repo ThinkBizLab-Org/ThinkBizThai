@@ -80,7 +80,15 @@ test('the fixture materialises exactly the catalog identities and invents no oth
     assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
   }
   // §9.3 and §9.2: a digest, and no plaintext token to hash.
-  assert.match(fixture, /public\.digest\(/, 'invitation tokens are stored as a digest (§9.3)');
+  assert.match(fixture, /sha256\(convert_to\(/, 'invitation tokens are stored as a digest (§9.3)');
+  // And taken from pg_catalog, not through a schema-qualified pgcrypto call. This assertion used to
+  // pin `public.digest(` -- which is exactly the call A1's countersignature §5.5 measured as absent
+  // on the provisioned instance, where pgcrypto lives in `extensions`. The test was holding the
+  // fixture to the shape that could not run against the platform, so it would have refused the fix.
+  assert.doesNotMatch(fixture, /\b(public|extensions)\.digest\s*\(/,
+    'the digest must not be taken through a schema-qualified pgcrypto call: `public.digest` does not '
+    + 'exist on the provisioned instance and `extensions.digest` does not exist in the CI container. '
+    + 'sha256() has been in pg_catalog since PostgreSQL 11 and resolves in both.');
 });
 
 test('no write is asserted with a read assertion, and every filtered write carries a witness', () => {

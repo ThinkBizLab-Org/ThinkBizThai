@@ -300,3 +300,38 @@ test('the result boundary separates the statement under test from everything bef
   // than an empty result, because "nothing printed" is not "the write was filtered".
   assert.equal(afterBoundary('some output with no marker'), null);
 });
+
+// WHICH layer refused. A missing grant and a missing policy both raise 42501, so a suite that
+// cannot tell them apart passes just as happily when the policy it exists to prove was never
+// written and the privilege simply was not granted. Four cases declared `deniedBy: 'grant'` and
+// nothing checked them until A1's countersignature §5.6 said so.
+test('a case that names the layer refusing it is held to that layer', async () => {
+  const { expectDeniedBy, denialLayer, AssertionOutcome } = await import('../../db/foundation/test-helpers/rls-assertions.mjs');
+
+  // Verbatim Postgres message shapes, under LC_ALL=C, which the driver and CI both set.
+  const grant = { error: { code: '42501', message: 'permission denied for table workspace_invitations' } };
+  const column = { error: { code: '42501', message: 'permission denied for column token_hash of relation workspace_invitations' } };
+  const policy = { error: { code: '42501', message: 'new row violates row-level security policy for table "workspaces"' } };
+
+  assert.equal(denialLayer(grant), 'grant');
+  assert.equal(denialLayer(column), 'grant');
+  assert.equal(denialLayer(policy), 'policy');
+
+  assert.equal(expectDeniedBy(grant, 'grant', 'x').deniedBy, 'grant');
+  assert.equal(expectDeniedBy(policy, 'policy', 'x').deniedBy, 'policy');
+
+  // The whole point: a case claiming the privilege layer refused it, refused by a policy instead,
+  // is a case whose evidence is about something other than what it says.
+  assert.throws(() => expectDeniedBy(policy, 'grant', 'the case'), AssertionOutcome);
+  assert.throws(() => expectDeniedBy(grant, 'policy', 'the case'), AssertionOutcome);
+
+  // Fails closed. An outcome nobody can attribute to a layer is not evidence about a layer.
+  const unattributable = { error: { code: '42501', message: 'permission denied' } };
+  assert.equal(denialLayer({ error: { code: '42501', message: 'something new' } }), null);
+  assert.throws(() => expectDeniedBy({ error: { code: '42501', message: 'something new' } }, 'grant', 'x'), AssertionOutcome);
+  assert.equal(expectDeniedBy(unattributable, 'grant', 'x').deniedBy, 'grant');
+
+  // Declaring no layer is not a claim, so it is not checked -- but the refusal itself still is.
+  assert.equal(expectDeniedBy(grant, undefined, 'x').kind, 'denied');
+  assert.throws(() => expectDeniedBy({ rows: [] }, undefined, 'x'), AssertionOutcome);
+});

@@ -138,9 +138,12 @@ export function buildCases(id) {
     equals: 'fixture workspace b',
   };
 
+  // sha256() from pg_catalog rather than pgcrypto's digest(): `public.digest` does not exist on the
+  // provisioned instance, where pgcrypto lives in `extensions`. See the fixture's note; the two
+  // produce the same bytes, so the invitation identities are unchanged.
   const invite = (workspace, tokenSymbol, createdBy) => ({
     sql: 'insert into app.workspace_invitations (workspace_id, role, token_hash, expires_at, created_by)'
-       + " values ($1, 'editor', public.digest($2, 'sha256'), now() + interval '1 day', $3)"
+       + " values ($1, 'editor', sha256(convert_to($2, 'utf8')), now() + interval '1 day', $3)"
        + ' returning id',
     params: [workspace, tokenSymbol, createdBy],
   });
