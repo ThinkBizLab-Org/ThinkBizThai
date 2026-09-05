@@ -5,11 +5,12 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2cee063157fdf0ed303ecbaa14f27f27895e0e7d",
-  "head_revision_or_patch_checksum": "084bfce91ffbef8bd6b42cbf1a21c2040cb2f616",
+  "head_revision_or_patch_checksum": "7ecfb5905ee5607ac46cba7c77bfd9bd085fca5b",
   "task_ids": [],
   "files_added": [
     "db/foundation/ci/supabase-shim.sql",
-    "scripts/db/psql-driver.mjs"
+    "scripts/db/psql-driver.mjs",
+    "scripts/db/rls-smoke.mjs"
   ],
   "files_modified": [
     ".github/workflows/ci.yml",

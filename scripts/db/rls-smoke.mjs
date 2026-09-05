@@ -58,6 +58,23 @@ async function main() {
     return 1;
   }
 
+  // The auth-context helpers are TEST scaffolding, not a migration: they exist so a test can assume
+  // an identity, and shipping them in db/foundation/migrations would put test-only functions in
+  // every deployed database. So the smoke target applies them, and db-migrate-clean does not.
+  //
+  // Leaving this out is what the first CI run found: all 28 cases failed with
+  // `42883: function private.assert_in_transaction does not exist`, reported at the
+  // ASSUME-IDENTITY phase. That phase separation is A1's, and it earned itself here — the same
+  // failure folded into the assertion phase would have read as "the identity was denied", which is
+  // what a passing isolation suite looks like from the outside.
+  const helpers = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
+  const installed = await query(helpers);
+  if (installed.error) {
+    stderr.write(`db-rls-smoke: the auth-context helpers did not install: ${installed.error.message}\n`
+      + '  Without them every case fails at assume-identity, which is not the same as being denied.\n');
+    return 1;
+  }
+
   const fixture = await readFile(FIXTURE_SQL, 'utf8');
   const loaded = await query(fixture);
   if (loaded.error) {
