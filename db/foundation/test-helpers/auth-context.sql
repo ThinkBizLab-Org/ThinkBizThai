@@ -13,33 +13,36 @@
 -- rather than by application code. SET LOCAL is scoped to the transaction and cannot escape it.
 --
 -- Each function is called inside an explicit transaction. Outside one, SET LOCAL is a no-op with
--- a warning, so `assert_in_transaction` refuses rather than letting a test silently assume nothing.
+-- a warning, so each helper reads its setting back and raises rather than letting a test silently
+-- assume nothing and run as whatever identity the connection already had.
 
-create or replace function private.assert_in_transaction()
+-- What matters is not "are we in a transaction" — that is a proxy. What matters is whether
+-- SET LOCAL will actually stick, because a helper that silently sets nothing leaves the test
+-- running as whatever identity the connection already had.
+--
+-- So the property is tested DIRECTLY: set the value, read it back, and raise if it did not take.
+-- Outside a transaction block SET LOCAL is a no-op with a warning, so the read-back returns the
+-- previous value and this raises. Inside one it takes, and this passes.
+--
+-- Two earlier versions were proxies and both were wrong in their own way. The first required a
+-- transaction id, which a read-only transaction never has, so it refused inside a legitimate read
+-- block and had to be worked around with a GUC — A1 found that. The second compared
+-- transaction_timestamp() with statement_timestamp(), which are equal on the FIRST statement after
+-- BEGIN, so it refused the very call pattern the helpers are used with and forced every caller to
+-- insert a dummy statement first. A guard that has to be worked around is a guard on its way to
+-- being deleted, and that is A1's line, earned twice.
+create or replace function private.assert_local_setting_took(setting text, expected text)
 returns void
 language plpgsql
 as $$
+declare actual text;
 begin
-  -- The first version required `txid_current_if_assigned()` to be non-null. A1 found the hole
-  -- while writing the first isolation suite: a transaction that has only READ is assigned no
-  -- transaction id, so the check raised inside a perfectly legitimate explicit read transaction,
-  -- and every read-only case had to set a GUC to work around it. A guard that has to be worked
-  -- around is a guard on its way to being deleted.
-  --
-  -- What actually distinguishes an explicit block from an implicit single-statement transaction is
-  -- the statement count within it: in an implicit one, the transaction and the current statement
-  -- began at the same instant. In a `BEGIN` block, any statement after the first one started
-  -- later. So the helper is called after `BEGIN`, and the two timestamps have diverged.
-  --
-  -- This is still not perfect: the FIRST statement inside a BEGIN block has equal timestamps too,
-  -- and would be refused. That is the safe direction to be wrong in -- a caller adds one statement,
-  -- rather than a test silently assuming no identity at all -- and it is stated here rather than
-  -- discovered.
-  if transaction_timestamp() = statement_timestamp() then
-    raise exception 'auth context helpers must run inside an explicit transaction, at least one statement in'
-      using hint = 'SET LOCAL is a no-op outside a transaction block, so the identity would not be assumed at all '
-                   'and the test would exercise whatever identity the connection already had. '
-                   'Issue BEGIN, then one statement (SELECT 1 will do), then call this helper.';
+  actual := current_setting(setting, true);
+  if actual is distinct from expected then
+    raise exception 'SET LOCAL % did not take effect', setting
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and '
+                   'the test would have run as whatever identity the connection already had. Wrap the case in '
+                   'BEGIN ... ROLLBACK.';
   end if;
 end;
 $$;
@@ -50,9 +53,9 @@ returns void
 language plpgsql
 as $$
 begin
-  perform private.assert_in_transaction();
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   perform set_config('role', 'anon', true);
+  perform private.assert_local_setting_took('role', 'anon');
 end;
 $$;
 
@@ -64,13 +67,13 @@ returns void
 language plpgsql
 as $$
 begin
-  perform private.assert_in_transaction();
   if subject is null then
     raise exception 'as_user(null) would leave auth.uid() null, which is the anonymous case wearing a user''s name';
   end if;
   perform set_config('request.jwt.claims',
     json_build_object('role', 'authenticated', 'sub', subject::text)::text, true);
   perform set_config('role', 'authenticated', true);
+  perform private.assert_local_setting_took('role', 'authenticated');
 end;
 $$;
 
@@ -93,13 +96,13 @@ returns void
 language plpgsql
 as $$
 begin
-  perform private.assert_in_transaction();
   perform set_config('request.jwt.claims', '{"role":"app_worker"}', true);
   perform set_config('role', 'app_worker', true);
+  perform private.assert_local_setting_took('role', 'app_worker');
 end;
 $$;
 
-revoke all on function private.assert_in_transaction() from public;
+revoke all on function private.assert_local_setting_took(text, text) from public;
 revoke all on function private.as_anonymous() from public;
 revoke all on function private.as_user(uuid) from public;
 revoke all on function private.as_suspended_user(uuid) from public;

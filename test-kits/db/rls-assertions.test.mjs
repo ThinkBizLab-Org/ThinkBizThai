@@ -145,25 +145,37 @@ test('expectNoEffect refuses to absorb a WITH CHECK refusal, which is a stronger
 });
 
 // The guard the auth helpers depend on, and the helpers' use of it.
-test('the transaction guard is called by every identity helper and explains itself', async () => {
+test('every identity helper verifies its own setting took effect', async () => {
   const sql = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
 
-  // Its first version required a transaction id, which a read-only transaction never has — so it
-  // raised inside a legitimate read block and had to be worked around with a GUC. A guard that has
-  // to be worked around is a guard on its way to being deleted.
-  assert.doesNotMatch(sql, /txid_current_if_assigned\(\)\s*is not null/,
-    'the transaction-id check was the hole; it must not still be doing the work');
-  assert.match(sql, /transaction_timestamp\(\) = statement_timestamp\(\)/);
+  // Two earlier guards were PROXIES for "are we in a transaction", and both were wrong in their
+  // own way: one required a transaction id, which a read-only transaction never has, so it refused
+  // inside a legitimate read block; the other compared transaction and statement timestamps, which
+  // are equal on the FIRST statement after BEGIN — exactly how these helpers are called — so it
+  // forced every caller to insert a dummy statement. Each had to be worked around, and a guard
+  // that has to be worked around is on its way to being deleted.
+  //
+  // What actually matters is whether SET LOCAL took effect. That is now tested directly.
+  assert.doesNotMatch(sql, /transaction_timestamp\(\) = statement_timestamp\(\)/,
+    'the timestamp proxy refused the first statement after BEGIN');
+  assert.doesNotMatch(sql, /txid_current_if_assigned/,
+    'the transaction-id proxy refused inside a read-only transaction');
+  assert.match(sql, /assert_local_setting_took/);
 
-  // Every identity helper must call it. A guard nothing invokes protects nothing.
-  const callers = [...sql.matchAll(/create or replace function private\.(as_\w+)\(/g)].map((m) => m[1]);
-  assert.ok(callers.length >= 3, 'the identity helpers are present');
   for (const fn of ['as_anonymous', 'as_user', 'as_service']) {
     const body = sql.slice(sql.indexOf(`function private.${fn}(`));
     const end = body.indexOf('$$;');
-    assert.match(body.slice(0, end), /perform private\.assert_in_transaction\(\)/,
-      `${fn} must assert it is in a transaction — SET LOCAL outside one silently assumes nothing, and the test then exercises whatever identity the connection already had`);
+    assert.match(body.slice(0, end), /perform private\.assert_local_setting_took\('role',/,
+      `${fn} must read its own setting back — SET LOCAL outside a transaction is a no-op, and a helper that assumes nothing leaves the test running as whatever identity the connection already had`);
   }
+
+  // Still load-bearing: transaction-local, and never a role that bypasses RLS.
+  const setConfigCalls = [...sql.matchAll(/set_config\(\s*'[^']+'\s*,[\s\S]*?,\s*(true|false)\s*\)/g)];
+  assert.ok(setConfigCalls.length >= 6, 'each identity sets both the role and the JWT claims');
+  for (const call of setConfigCalls) assert.equal(call[1], 'true', 'set_config must be transaction-local');
+  assert.match(sql, /app_worker/);
+  assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'service_role'/);
+  assert.doesNotMatch(sql, /set_config\(\s*'role'\s*,\s*'postgres'/);
 });
 
 // Redaction, proven on the function rather than through psql — this host has no psql, so a test
