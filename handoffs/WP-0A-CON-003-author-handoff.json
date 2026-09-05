@@ -4,50 +4,15 @@
   "work_package_id": "WP-0A-CON-003",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "c9dd4b776b877b05349b2ccd6cc9c8560a7e869c",
-  "head_revision_or_patch_checksum": "4874b527a78815db01cadc2fbdb5ba05ec01c882",
+  "base_revision": "c7deac18f974989431b0ca66556d824f4a548e32",
+  "head_revision_or_patch_checksum": "1e4a1625ee2559b02d1eec4874137dbecc919b7e",
   "task_ids": [],
-  "files_added": [
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-business-overrides-kill-switch.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-default-deny-allows.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-kill-switch-allows.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-missing-required-reason-key.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-over-100.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-percentage-without-bucket.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-reason-key-free-text.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-scopes-out-of-order.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-owner.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-write-disabled-without-history.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-default-deny.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-explicit-allow.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-kill-switch-preserves-history.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-percentage-bucket.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/examples/valid-temporary-with-expiry.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-flg-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-blocked-without-missing.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-data-policy.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-required-permissions.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-missing-unknown-reason.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-permissioned-without-declarations.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-ready-without-activation.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-secret-handle-shape.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-semver.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/invalid-unknown-classification.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-blocked-missing-secret.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/examples/valid-ready.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-mod-001/schema.json",
-    "evidence/WP-0A-CON-003/author-self-check.md",
-    "evidence/WP-0A-CON-003/review-contract.md",
-    "evidence/WP-0A-CON-003/review-security.md",
-    "evidence/WP-0A-CON-003/test-verdict.md",
-    "test-kits/contracts/schema-mutation-coverage.test.mjs",
-    "work-packages/WP-0A-CON-003.json"
-  ],
+  "files_added": [],
   "files_modified": [
-    "test-kits/integrity-manifest.json"
+    "handoffs/WP-0A-CON-003-author-handoff.json",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-003.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
@@ -61,7 +26,7 @@
     "CTR-ERR-001"
   ],
   "contracts_produced_or_changed": [
-    "CTR-MOD-001 and CTR-FLG-001 materialized at Draft only; no freeze-level advancement"
+    "None. This increment produces and changes no contract. CTR-MOD-001 and CTR-FLG-001 stand exactly as this package materialized them and were since promoted to Candidate under RFC-2026-010; no schema, fixture, manifest or index file under contract-catalog/ is touched here."
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
@@ -130,41 +95,42 @@
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "migration_and_data_impact": "None. No migration, production schema, provider call, credential, fixture or customer-data effect. The increment edits one work-package manifest, this handoff, one row of the branch-to-package mapping and the digest that covers it. Gate G0 forbids every one of the effects listed above and this increment has none of them.",
+  "compatibility_impact": "None. This increment changes no contract-catalog file: no schema, no example fixture, no contract manifest and not the index, so there are no contract changes and no consumer surface moves. What changed is a record ABOUT contracts -- four of the ten open_blockers on this package described a state the tree no longer has -- together with this package branch declaration and the mapping row that pins it.",
   "known_limitations": [
-    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "RFC-2026-004 was recorded here as Proposed and awaiting disposition before the RFC-2026-002 manual merge. That is no longer the state of the tree: its Status line in architecture/decisions/ now reads Approved 2026-09-02, the $ref integrity guard is live, and no freeze level moved. What remains is narrower and unchanged in kind: RFC-2026-004 records that its own Limitations and Rollback stand unchanged despite the disposition, so this package still inherits them; and RFC-2026-002, itself only provisional manual control rather than native branch protection, still reserves every merge into main for the Product Owner, so nothing dispositioned here lets this package merge itself.",
     "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
-    "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
-    "Not one of the nine catalog contracts has a fixture that kills its root required list — every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "This said secret_handles and the repository secret scanner \"compose into zero coverage\" -- independent security review had probed four handle-shaped payloads and found the only one the scanner catches is the one the schema already rejects. A1 re-measured it as disposition condition C4 (commit e7b8c4b) against 15 credential bodies the pattern admits, and scripts/scan-repository-secrets.mjs detected 12. The zero-coverage claim was false in the alarming direction, which is as wrong as understating a surface. What remains is narrower and differently shaped, and is now carried verbatim in CTR-SEC-001 x-opacity-limitation: the residual is 5 of 5 lowercase-canonical forms -- bare 32-hex, a UUID, an HMAC hex digest, a passphrase and a dotted-label password -- and the real limitation is one of REACH rather than of coverage, because the scanner walks repository files at commit time and has none over a handle in a log, an event or a job, which is the surface PT-010 is actually about. The pattern is still NOT a control and must not be cited as one; A1 must specify a handle ISSUANCE format before freeze.",
+    "This said not one of the nine catalog contracts had a fixture that killed its root required list, that CON-003 enforced it for the two contracts it owns, and that the other seven were escalated to their packages. The escalation was taken up and closed catalog-wide by WP-0A-CON-008 (merged as 963990f, PR #44). It remeasured across all fourteen contracts -- 8 of 101 root required entries isolated by a negative fixture, eight contracts isolating none -- and, rather than land 101 fixtures that can rot the same way, asserts the property generatively: test-kits/contracts/catalog-registry.test.mjs drops each declared root required key from a valid example and requires the schema to reject it by name, with a floor of 101 keys exercised so a key cannot leave a required list quietly. What remains is narrower: that guard reads schema.required at the ROOT and nowhere else. A required list nested inside a subschema is outside it, and is defended only where test-kits/contracts/schema-mutation-coverage.test.mjs names one by hand -- ctr-ntf-001 deep_link.required is the single nested entry -- so nested requiredness across the catalog is still unmeasured.",
     "The ENFORCEMENT half of FP-002 — that a narrower scope cannot override a live platform kill switch — cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
     "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
     "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
-    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
+    "This said the package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged. Both reached main long ago -- A0-002 at 41e47bf (PR #3) and CON-002 at 1eb31c2 (PR #4) -- as did the other two declared dependencies, WP-0A-A0-001 and WP-0A-CON-001, and this package now sits on top of all four. What remains is the inheritance, which merging a branch does not discharge: both manifests still read status in_review and still record open blockers -- 13 on CON-002 and 8 on A0-002 -- and this package still inherits every one of them, including that the test-integrity guard is a tripwire with no self-anchor (A0-002) and that CTR-PAG-001 accepts a forgeable cursor with no page-size bound (CON-002).",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "RFC-2026-004 was recorded here as Proposed and awaiting disposition before the RFC-2026-002 manual merge. That is no longer the state of the tree: its Status line in architecture/decisions/ now reads Approved 2026-09-02, the $ref integrity guard is live, and no freeze level moved. What remains is narrower and unchanged in kind: RFC-2026-004 records that its own Limitations and Rollback stand unchanged despite the disposition, so this package still inherits them; and RFC-2026-002, itself only provisional manual control rather than native branch protection, still reserves every merge into main for the Product Owner, so nothing dispositioned here lets this package merge itself.",
     "CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
-    "secret_handles is a shape constraint and nothing more. Independent security review probed four handle-shaped payloads against the schema and the repository secret scanner together: the ONLY one the scanner catches is the one the schema already rejects, and everything the schema admits is invisible to the scanner. The two controls compose into zero coverage. This must be closed before any module carries a real credential handle.",
-    "Not one of the nine catalog contracts has a fixture that kills its root required list — every negative fixture fails for some other reason first. Enforced here for the two contracts this package owns; the other seven belong to other packages and are escalated.",
+    "This said secret_handles and the repository secret scanner \"compose into zero coverage\" -- independent security review had probed four handle-shaped payloads and found the only one the scanner catches is the one the schema already rejects. A1 re-measured it as disposition condition C4 (commit e7b8c4b) against 15 credential bodies the pattern admits, and scripts/scan-repository-secrets.mjs detected 12. The zero-coverage claim was false in the alarming direction, which is as wrong as understating a surface. What remains is narrower and differently shaped, and is now carried verbatim in CTR-SEC-001 x-opacity-limitation: the residual is 5 of 5 lowercase-canonical forms -- bare 32-hex, a UUID, an HMAC hex digest, a passphrase and a dotted-label password -- and the real limitation is one of REACH rather than of coverage, because the scanner walks repository files at commit time and has none over a handle in a log, an event or a job, which is the surface PT-010 is actually about. The pattern is still NOT a control and must not be cited as one; A1 must specify a handle ISSUANCE format before freeze.",
+    "This said not one of the nine catalog contracts had a fixture that killed its root required list, that CON-003 enforced it for the two contracts it owns, and that the other seven were escalated to their packages. The escalation was taken up and closed catalog-wide by WP-0A-CON-008 (merged as 963990f, PR #44). It remeasured across all fourteen contracts -- 8 of 101 root required entries isolated by a negative fixture, eight contracts isolating none -- and, rather than land 101 fixtures that can rot the same way, asserts the property generatively: test-kits/contracts/catalog-registry.test.mjs drops each declared root required key from a valid example and requires the schema to reject it by name, with a floor of 101 keys exercised so a key cannot leave a required list quietly. What remains is narrower: that guard reads schema.required at the ROOT and nowhere else. A required list nested inside a subschema is outside it, and is defended only where test-kits/contracts/schema-mutation-coverage.test.mjs names one by hand -- ctr-ntf-001 deep_link.required is the single nested entry -- so nested requiredness across the catalog is still unmeasured.",
     "The ENFORCEMENT half of FP-002 — that a narrower scope cannot override a live platform kill switch — cannot be expressed in a single decision document and is not materialized. It needs an evaluator that does not exist. The ORDER half is now enforced.",
     "MR-002 duplicate-capability resolution and MR-003 circular-dependency blocking are registry properties across multiple manifests, and FP-003 stable allocation is an evaluator property over repeated inputs. Declared in untestable_by_fixture and NOT claimed as materialized.",
     "The dependency range grammar (MR-003), the drain and shutdown protocol timing (MR-005), the bucket allocation algorithm (FP-003), the circuit-state machine (FP-004) and the admin APIs (MR-006, FP-006) are deliberately not inferred and remain open before freeze.",
-    "This package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged, and inherits every open blocker recorded on them.",
+    "This said the package depends on WP-0A-CON-002 and WP-0A-A0-002, both unmerged. Both reached main long ago -- A0-002 at 41e47bf (PR #3) and CON-002 at 1eb31c2 (PR #4) -- as did the other two declared dependencies, WP-0A-A0-001 and WP-0A-CON-001, and this package now sits on top of all four. What remains is the inheritance, which merging a branch does not discharge: both manifests still read status in_review and still record open blockers -- 13 on CON-002 and 8 on A0-002 -- and this package still inherits every one of them, including that the test-integrity guard is a tripwire with no self-anchor (A0-002) and that CTR-PAG-001 accepts a forgeable cursor with no page-size bound (CON-002).",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range c9dd4b7..4874b52 covers 38 path(s) — 31 contract-catalog file(s), 1 test file(s), 1 work-package manifest(s). Revert through a reviewed revert PR; removing the two contract directories leaves no persisted data, provider state, credential, migration or customer-data effect.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This increment covers four paths -- work-packages/WP-0A-CON-003.json, handoffs/WP-0A-CON-003-author-handoff.json, test-kits/branch-identity.test.mjs and test-kits/integrity-manifest.json -- so a revert restores the four previous blocker texts, the previous ownership.branch and the previous mapping row, and nothing else. No contract, schema, fixture, migration or persisted state is touched, so there is no data, provider or credential effect either way. A forward fix is cheaper than a revert here: a rewritten blocker that turns out to be wrong is corrected by rewriting it again, because the text IS the artifact.",
   "recommended_next_work_packages": [
     "WP-0A-CON-005"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-003/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
-    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
-    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
-    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+    "This increment rewrites four of the ten open_blockers on WP-0A-CON-003, moves ownership.branch, and changes nothing else about the package. Verify each rewrite the way it was produced: against the tree, not against this document.",
+    "Blocker 1: read the Status line of architecture/decisions/RFC-2026-004-catalog-reference-integrity.md. Blocker 3: read commit e7b8c4b and the x-opacity-limitation annotation in contract-catalog/shared-kernel/ctr-sec-001/schema.json, which carry the measurement that replaced the zero-coverage claim. Blocker 4: read commit 963990f and the generated root-required check at the end of test-kits/contracts/catalog-registry.test.mjs. Blocker 8: run git log main --oneline --grep=WP-0A-CON-002 and the same for WP-0A-A0-002, then read those two manifests for the blockers this package still inherits from them.",
+    "Six blockers were checked and deliberately left verbatim, and the check matters as much as the rewrites. Blocker 2 stands because the handle-syntax ownership conflict is still open with no RFC and is still recorded as open in CTR-SEC-001 own schema annotation. Blockers 5 and 6 stand because the FP-002 enforcement half, MR-002, MR-003 and FP-003 are still declared in untestable_by_fixture on both manifests and no evaluator or registry harness exists anywhere in the tree. Blocker 7 stands because none of its five deliberately-uninferred items appears in either schema: the dependency range is still an unconstrained non-empty string and bucket.allocated is still a bare boolean. Blockers 9 and 10 stand unchanged.",
+    "Blocker 2 is left exactly as written, including its clause that A1 is not in this session. That clause is a statement about run staffing, not about the repository, so it is not something this branch can verify or falsify from the tree; what IS in the tree is the conflict itself, unresolved and un-RFC-ed, which is why the blocker stands as it is rather than being softened.",
+    "The author is /claude/a0_atlas. Independent contract, security, test and integration verification remain open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
   ],
   "superseded_by": null
 }
