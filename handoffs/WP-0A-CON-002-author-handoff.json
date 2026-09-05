@@ -4,57 +4,11 @@
   "work_package_id": "WP-0A-CON-002",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "d207d7de86c0a9c0900cb8ea5836a98c66b0a414",
-  "head_revision_or_patch_checksum": "c9dd4b776b877b05349b2ccd6cc9c8560a7e869c",
+  "base_revision": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
+  "head_revision_or_patch_checksum": "463cf974d93e1bbd93a20e354d21ecc47b0008d7",
   "task_ids": [],
-  "files_added": [
-    "architecture/decisions/RFC-2026-004-catalog-reference-integrity.md",
-    "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-public-status-ref.json",
-    "contract-catalog/shared-kernel/ctr-api-001/examples/invalid-success-with-error.json",
-    "contract-catalog/shared-kernel/ctr-api-001/examples/valid-accepted.json",
-    "contract-catalog/shared-kernel/ctr-api-001/examples/valid-error.json",
-    "contract-catalog/shared-kernel/ctr-api-001/examples/valid-success.json",
-    "contract-catalog/shared-kernel/ctr-api-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-api-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-completed-without-result-ref.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-payload-hash-format.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-public-result-ref.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/invalid-scope-missing-workspace.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-alternate-hash-algorithm.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-completed-replay.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-failed.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/examples/valid-in-progress.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-idm-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/accepted-gap-decodable-offset-cursor.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/accepted-gap-unbounded-page-size.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-has-more-without-cursor.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-page-without-sort.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/invalid-unstable-sort-without-tiebreaker.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-first-page-request.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-last-page-result.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-next-page-request.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/examples/valid-page-result.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/manifest.json",
-    "contract-catalog/shared-kernel/ctr-pag-001/schema.json",
-    "evidence/WP-0A-CON-002/author-self-check.md",
-    "evidence/WP-0A-CON-002/review-contract-rework.md",
-    "evidence/WP-0A-CON-002/review-contract.md",
-    "evidence/WP-0A-CON-002/review-security-rework.md",
-    "evidence/WP-0A-CON-002/review-security.md",
-    "evidence/WP-0A-CON-002/test-verdict-rework.md",
-    "evidence/WP-0A-CON-002/test-verdict.md",
-    "test-kits/contracts/catalog-reference-integrity.test.mjs",
-    "test-kits/contracts/json-schema-subset.mjs",
-    "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs",
-    "test-kits/contracts/shared-kernel-schema-conformance.test.mjs",
-    "work-packages/WP-0A-CON-002.json"
-  ],
-  "files_modified": [
-    "contract-catalog/shared-kernel/ctr-evt-001/schema.json",
-    "contract-catalog/shared-kernel/ctr-job-001/schema.json",
-    "test-kits/integrity-manifest.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-010",
@@ -69,7 +23,7 @@
     "CTR-ERR-001"
   ],
   "contracts_produced_or_changed": [
-    "CTR-API-001, CTR-PAG-001, CTR-IDM-001 materialized at Draft only; no freeze-level advancement"
+    "None. This increment changes no schema, fixture or catalog entry."
   ],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
@@ -153,47 +107,46 @@
     }
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Contract-catalog changes are additive or corrective within the Candidate/Draft freeze levels. No contract version was advanced and no consumer exists yet.",
+  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect.",
+  "compatibility_impact": "None. This increment changes four open_blockers on this package's own manifest and the record that mirrors them. No contract, schema, fixture or freeze level is touched.",
   "known_limitations": [
-    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "RFC-2026-002 manual merge is no longer the control. Branch protection on main became real on 2026-09-02 -- required status check, admins included -- and RFC-2026-004 was approved the same day, so the disposition this blocker was waiting for has happened. What remains, and is recorded on every package rather than only here, is that no REQUIRED REVIEW exists: the Product Owner opens the pull requests and GitHub forbids approving your own.",
     "The cross-package correction to two WP-0A-CON-001 outputs requires an acknowledgement countersigned by that package Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session. Both schemas record acknowledgement_status pending.",
     "CTR-PAG-001 accepts a forgeable cursor. API-003 calls it \"opaque/tamper-safe\" but no integrity mechanism exists in the baseline and none is invented here; independent security review demonstrated that base64 of an offset satisfies opacity by inspection. A MAC or signature MUST be specified by the contract owner before freeze. Recorded in accepted_gaps.",
     "CTR-PAG-001 has no page-size bound. None exists in the baseline; an earlier draft invented 100 and it was removed as unsourced. An upper bound is a real enumeration-risk control and is referred to the contract owner.",
     "CTR-API-001 does not constrain the success `data` branch, which carries generated content. Per-command response schemas must constrain it; this envelope cannot. Declared in-schema.",
     "CTR-IDM-001 does not pin a hash algorithm. The baseline names none for this contract; the algorithm-prefixed form is required so it is explicit on the wire, but choosing it is a Security decision.",
     "\"No duplicate or missing item between pages\" cannot be demonstrated by fixtures and is declared in untestable_by_fixture. It needs a real dataset and a paging harness before freeze.",
-    "This package depends on WP-0A-A0-002, which is unmerged and whose RFC-2026-003 is Proposed. Without it the ownership validator rejects these paths and CI executes no contract test at all.",
+    "WP-0A-A0-002 is merged and RFC-2026-003 is approved, so the ownership validator accepts these paths and CI executes the contract tests. This package's remaining dependency risk is not a merge state: it is that the blockers below were written against a catalog that other packages have since changed, and each is re-verified against the tree rather than carried forward.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
-    "CTR-JOB-001.input_ref and .result_ref still use the deny-list that independent security review proved bypassable at 106f91c: uppercase scheme, protocol-relative, file, data, javascript and traversal forms all pass. That contract is Candidate and outside this package writable paths, so it is escalated to its owner rather than changed here.",
-    "The subset validator implements only format: date-time. Any other format value passes the keyword gate and constrains nothing, so a schema could appear to constrain something no implementation here enforces. No catalog schema uses another format today; a future one must extend the validator in the same commit.",
+    "CTR-JOB-001.input_ref and .result_ref now carry the ALLOW-LISTED scheme pattern (^(job|status|result|app|asset|content):...), replacing the deny-list that independent security review proved bypassable at 106f91c. WP-0A-CON-005 made the change against the shipped schema under RFC-2026-006, which is approved. The escalation this blocker recorded was answered by its owner; it is kept in the record because the bypass was real, not because it is open.",
+    "The subset validator FAILS CLOSED on any format it does not enforce (test-kits/contracts/json-schema-subset.mjs:123): a schema declaring format 'uri', 'email' or 'uuid' is now rejected rather than silently accepted. Independent review sixteen executed the bypass -- 'uri' accepted 'not a uri at all' -- and the repair was to refuse the keyword, not to implement it. A future schema needing another format must extend the validator in the same commit.",
     "A JWT placed in the declared field tenant_context.actor.id passes every check: it is a string in a declared slot, and the repository secret scanner has no pattern for it. CTR-TEN-001 is owned by WP-0A-CON-001; escalated rather than changed here."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-004 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "RFC-2026-002 manual merge is no longer the control. Branch protection on main became real on 2026-09-02 -- required status check, admins included -- and RFC-2026-004 was approved the same day, so the disposition this blocker was waiting for has happened. What remains, and is recorded on every package rather than only here, is that no REQUIRED REVIEW exists: the Product Owner opens the pull requests and GitHub forbids approving your own.",
     "The cross-package correction to two WP-0A-CON-001 outputs requires an acknowledgement countersigned by that package Integration Owner /root/r0_steward, an OpenAI Codex run unavailable in this session. Both schemas record acknowledgement_status pending.",
     "CTR-PAG-001 accepts a forgeable cursor. API-003 calls it \"opaque/tamper-safe\" but no integrity mechanism exists in the baseline and none is invented here; independent security review demonstrated that base64 of an offset satisfies opacity by inspection. A MAC or signature MUST be specified by the contract owner before freeze. Recorded in accepted_gaps.",
     "CTR-PAG-001 has no page-size bound. None exists in the baseline; an earlier draft invented 100 and it was removed as unsourced. An upper bound is a real enumeration-risk control and is referred to the contract owner.",
     "CTR-API-001 does not constrain the success `data` branch, which carries generated content. Per-command response schemas must constrain it; this envelope cannot. Declared in-schema.",
     "CTR-IDM-001 does not pin a hash algorithm. The baseline names none for this contract; the algorithm-prefixed form is required so it is explicit on the wire, but choosing it is a Security decision.",
     "\"No duplicate or missing item between pages\" cannot be demonstrated by fixtures and is declared in untestable_by_fixture. It needs a real dataset and a paging harness before freeze.",
-    "This package depends on WP-0A-A0-002, which is unmerged and whose RFC-2026-003 is Proposed. Without it the ownership validator rejects these paths and CI executes no contract test at all.",
+    "WP-0A-A0-002 is merged and RFC-2026-003 is approved, so the ownership validator accepts these paths and CI executes the contract tests. This package's remaining dependency risk is not a merge state: it is that the blockers below were written against a catalog that other packages have since changed, and each is re-verified against the tree rather than carried forward.",
     "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work.",
-    "CTR-JOB-001.input_ref and .result_ref still use the deny-list that independent security review proved bypassable at 106f91c: uppercase scheme, protocol-relative, file, data, javascript and traversal forms all pass. That contract is Candidate and outside this package writable paths, so it is escalated to its owner rather than changed here.",
-    "The subset validator implements only format: date-time. Any other format value passes the keyword gate and constrains nothing, so a schema could appear to constrain something no implementation here enforces. No catalog schema uses another format today; a future one must extend the validator in the same commit.",
+    "CTR-JOB-001.input_ref and .result_ref now carry the ALLOW-LISTED scheme pattern (^(job|status|result|app|asset|content):...), replacing the deny-list that independent security review proved bypassable at 106f91c. WP-0A-CON-005 made the change against the shipped schema under RFC-2026-006, which is approved. The escalation this blocker recorded was answered by its owner; it is kept in the record because the bypass was real, not because it is open.",
+    "The subset validator FAILS CLOSED on any format it does not enforce (test-kits/contracts/json-schema-subset.mjs:123): a schema declaring format 'uri', 'email' or 'uuid' is now rejected rather than silently accepted. Independent review sixteen executed the bypass -- 'uri' accepted 'not a uri at all' -- and the repair was to refuse the keyword, not to implement it. A future schema needing another format must extend the validator in the same commit.",
     "A JWT placed in the declared field tenant_context.actor.id passes every check: it is a string in a declared slot, and the repository secret scanner has no pattern for it. CTR-TEN-001 is owned by WP-0A-CON-001; escalated rather than changed here."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This package's range d207d7d..c9dd4b7 covers 44 path(s) — 30 contract-catalog file(s), 3 test file(s), 1 decision record(s), 1 work-package manifest(s). Revert through a reviewed revert PR. Reverting restores the two broken $refs exactly and removes the three Draft contract directories and both new test files. No persisted data, provider state, credential, migration or customer-data effect exists.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. This increment changes only the manifest's open_blockers, this handoff, the pinned branch row and the integrity digests; reverting it restores the previous blocker text, which was accurate when written and is no longer.",
   "recommended_next_work_packages": [
-    "WP-0A-CON-003"
+    "WP-0A-CON-003",
+    "WP-0A-CON-006"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-CON-002/ first: it records what was verified, what was refused and why, and the independent findings that corrected this package.",
-    "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
-    "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
-    "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception."
+    "Check each rewritten blocker against the tree rather than against this record: RFC-2026-004's Status line, the merge of WP-0A-A0-002 into main, the input_ref/result_ref patterns in contract-catalog/shared-kernel/ctr-job-001/schema.json, and the format branch at test-kits/contracts/json-schema-subset.mjs:123.",
+    "A blocker that has stopped being true is the thing being removed. A blocker that is merely inconvenient is not."
   ],
   "superseded_by": null
 }

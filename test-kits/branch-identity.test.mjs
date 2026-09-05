@@ -121,7 +121,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-A0-004-ci-independent-guard-step': 'WP-0A-A0-004',
   'agent/claude/WP-0A-A0-005-cardholder-data-scan': 'WP-0A-A0-005',
   'agent/root/WP-0A-CON-001-contract-catalog': 'WP-0A-CON-001',
-  'agent/claude/WP-0A-CON-002-envelope-contracts': 'WP-0A-CON-002',
+  'agent/claude/WP-0A-CON-002-stale-blockers': 'WP-0A-CON-002',
   'agent/claude/WP-0A-CON-003-module-and-policy': 'WP-0A-CON-003',
   'agent/claude/WP-0A-CON-004-security-audit-observability': 'WP-0A-CON-004',
   'agent/claude/WP-0A-CON-005-job-reference-hardening': 'WP-0A-CON-005',
