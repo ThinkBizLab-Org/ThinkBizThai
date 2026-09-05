@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
@@ -531,4 +532,189 @@ test('a handoff cites revisions reachable from main, not just from this clone', 
   assert.deepEqual(unreachable, [], `handoff(s) citing an orphaned revision:\n  ${unreachable.join('\n  ')}\n`
     + 'A squash merge rewrites the branch and discards the commits its handoffs cite. Merge with a merge '
     + 'commit instead, or regenerate the handoff against the commit that survived.');
+});
+
+// THE HEAD WAS REGENERATED FROM HISTORY AND THE BASE WAS TAKEN ON FAITH.
+//
+// `refresh-author-handoff.mjs` read `base_revision` out of the record it was rewriting, so the
+// range only ever grew forwards. That holds while a package has one branch. It breaks the moment a
+// package comes back for a SECOND increment: the new branch is cut from a main that has absorbed
+// the first one and everybody else's, the stored base is far behind that branch point, and
+// `base..HEAD` claims every file merged in between.
+//
+// WP-0A-CON-002's second branch changed four lines of one manifest and its refreshed handoff read
+// `d207d7d..463cf97 — 861 added, 37 modified`. `a handoff file list matches the range it cites`
+// above was green over it: the refresher had written the file lists AND the range from the same
+// wrong base, so the two agreed. Two things derived from one mistake agree about the mistake.
+//
+// So the situation is CONSTRUCTED here rather than asserted on a string: a branch, a merge into
+// main, other packages landing on main, then a second branch off the new main. A refresher that
+// trusts the record claims the merged-in files; one that reads the branch point does not.
+const REFRESHER = join(process.cwd(), 'scripts/refresh-author-handoff.mjs');
+
+// The child must not inherit the test runner's environment: NODE_TEST_CONTEXT makes a nested node
+// process report as a subtest and exit 0 whatever happened inside, and a probe that silently fails
+// to observe looks exactly like a guard that does not fire.
+const refresherEnv = () => {
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  delete env.NODE_OPTIONS;
+  return env;
+};
+
+// A real repository, not a mock: the script shells out to git for every fact it uses, so a mock
+// would be testing the mock. Nothing here touches this repository -- each case builds its own and
+// removes it in a `finally`.
+async function scenarioRepository() {
+  const root = await mkdtemp(join(tmpdir(), 'handoff-base-'));
+  const git = (...args) => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+    assert.equal(result.status, 0, `git ${args.join(' ')} failed: ${result.stderr}`);
+    return result.stdout.trim();
+  };
+  git('init', '-q', '-b', 'main', '.');
+  // Assembled rather than written out: the repository's own secret scanner reports a literal
+  // address anywhere in the tree, and this suite is inside the tree it scans.
+  git('config', 'user.email', ['handoff-base-test', 'example.invalid'].join('@'));
+  git('config', 'user.name', 'handoff base test');
+  await mkdir(join(root, 'work-packages'));
+  await mkdir(join(root, 'handoffs'));
+  await writeFile(join(root, 'shared.txt'), 'base\n');
+  git('add', '-A');
+  git('commit', '-qm', 'base');
+  return { root, git };
+}
+
+const declareBranch = (root, branch) => writeFile(join(root, 'work-packages/WP-TEST-001.json'),
+  `${JSON.stringify({ work_package_id: 'WP-TEST-001', ownership: { branch } }, null, 2)}\n`);
+
+const HANDOFF = 'handoffs/WP-TEST-001-author-handoff.json';
+const writeHandoff = (root, base, head) => writeFile(join(root, HANDOFF),
+  `${JSON.stringify({
+    work_package_id: 'WP-TEST-001',
+    base_revision: base,
+    head_revision_or_patch_checksum: head,
+    files_added: [], files_modified: [], files_deleted: [],
+  }, null, 2)}\n`);
+
+const refresh = (root, args = []) =>
+  spawnSync(process.execPath, [REFRESHER, ...args], { cwd: root, encoding: 'utf8', env: refresherEnv() });
+
+// A package's first branch, merged into main, with other work landing on main behind it. Returns
+// the revisions a second increment has to tell apart.
+async function firstIncrementMerged({ root, git }) {
+  const firstBase = git('rev-parse', 'HEAD');
+  git('checkout', '-qb', 'agent/test/first');
+  await writeFile(join(root, 'increment-one.txt'), 'one\n');
+  git('add', '-A');
+  git('commit', '-qm', 'increment one');
+  const firstHead = git('rev-parse', 'HEAD');
+  git('checkout', '-q', 'main');
+  git('merge', '-q', '--no-ff', '-m', 'merge increment one', 'agent/test/first');
+  for (const n of [1, 2, 3]) {
+    await writeFile(join(root, `another-package-${n}.txt`), 'landed on main\n');
+    git('add', '-A');
+    git('commit', '-qm', `another package ${n}`);
+  }
+  return { firstBase, firstHead, mainTip: git('rev-parse', 'HEAD') };
+}
+
+test('a second increment cites its own branch point, not the base its first branch left behind', async () => {
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    const { firstBase, firstHead, mainTip } = await firstIncrementMerged(scenario);
+
+    git('checkout', '-qb', 'agent/test/second');
+    await declareBranch(root, 'agent/test/second');
+    await writeHandoff(root, firstBase, firstHead);
+    await writeFile(join(root, 'increment-two.txt'), 'two\n');
+    git('add', '-A');
+    git('commit', '-qm', 'increment two');
+
+    const refreshed = refresh(root);
+    assert.equal(refreshed.status, 0, `${refreshed.stdout}${refreshed.stderr}`);
+    const handoff = JSON.parse(await readFile(join(root, HANDOFF), 'utf8'));
+
+    assert.equal(handoff.base_revision, mainTip,
+      'the base of a second increment is where its branch left main, not where the first branch started');
+    const claimed = [...handoff.files_added, ...handoff.files_modified].sort();
+    const notThisBranch = claimed.filter((path) => path.startsWith('another-package-') || path === 'increment-one.txt');
+    assert.deepEqual(notThisBranch, [],
+      'the handoff claims file(s) that reached main through another package\'s merge, which is the 861-file defect');
+    assert.deepEqual(claimed, [HANDOFF, 'increment-two.txt', 'work-packages/WP-TEST-001.json'].sort(),
+      'and it claims exactly what this branch changed');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('an in-progress branch keeps the base it recorded, byte for byte', async () => {
+  // The other direction, without which the fix would trade one wrong range for another: when the
+  // stored base already IS the branch point -- every ordinary branch, every day -- nothing about it
+  // may change. Run against both implementations, this case produces identical output.
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    const { mainTip } = await firstIncrementMerged(scenario);
+    git('checkout', '-qb', 'agent/test/second');
+    await declareBranch(root, 'agent/test/second');
+    await writeFile(join(root, 'increment-two.txt'), 'two\n');
+    git('add', '-A');
+    git('commit', '-qm', 'increment two');
+    await writeHandoff(root, mainTip, git('rev-parse', 'HEAD'));
+    await writeFile(join(root, 'increment-two-more.txt'), 'more\n');
+    git('add', '-A');
+    git('commit', '-qm', 'increment two, second commit');
+
+    const refreshed = refresh(root);
+    assert.equal(refreshed.status, 0, `${refreshed.stdout}${refreshed.stderr}`);
+    assert.doesNotMatch(refreshed.stdout, /base moved/,
+      'a base that is already the branch point must not be reported as moved');
+    const handoff = JSON.parse(await readFile(join(root, HANDOFF), 'utf8'));
+    assert.equal(handoff.base_revision, mainTip, 'the recorded base is untouched');
+    assert.deepEqual([...handoff.files_added, ...handoff.files_modified].sort(),
+      [HANDOFF, 'increment-two-more.txt', 'increment-two.txt', 'work-packages/WP-TEST-001.json'].sort(),
+      'and the range still covers the whole branch');
+
+    // And `--check` says nothing about a base it has no complaint with.
+    const checked = refresh(root, ['--check']);
+    assert.doesNotMatch(`${checked.stdout}${checked.stderr}`, /branch point/,
+      'the check must not report a branch point problem where there is none');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('a repository with no integration branch refuses rather than inventing a base', async () => {
+  // "Fail with a message that says what it could not determine" -- a clone with a differently named
+  // default branch, or a fetch that never brought one. Every alternative is worse: the stored base
+  // is the defect above, and the root commit claims the entire repository. Both produce a range
+  // that LOOKS plausible, which is how the 861-file handoff got written in the first place.
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    git('checkout', '-qb', 'agent/test/second');
+    await declareBranch(root, 'agent/test/second');
+    await writeFile(join(root, 'increment-two.txt'), 'two\n');
+    git('add', '-A');
+    git('commit', '-qm', 'increment two');
+    await writeHandoff(root, git('rev-parse', 'HEAD~1'), git('rev-parse', 'HEAD'));
+    const before = await readFile(join(root, HANDOFF), 'utf8');
+    git('branch', '-m', 'main', 'trunk');
+
+    // The literal 93, not the script's own exported constant: importing the constant would make
+    // this case fail at module load against an implementation that does not have it, which proves
+    // the export exists and nothing about what the script DOES. The other process guards in this
+    // repository pin their codes the same way.
+    const refreshed = refresh(root);
+    assert.notEqual(refreshed.status, 0, `refusing must not be reported as success:\n${refreshed.stdout}${refreshed.stderr}`);
+    assert.equal(refreshed.status, 93, 'and with its own exit code, so a caller can tell it from drift (91)');
+    assert.match(refreshed.stderr, /cannot determine where this branch left the integration branch/);
+    assert.match(refreshed.stderr, /main: no such ref/, 'the message names the ref it looked for');
+    assert.equal(await readFile(join(root, HANDOFF), 'utf8'), before,
+      'and it writes nothing rather than recording a base it could not establish');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
