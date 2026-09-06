@@ -1,6 +1,6 @@
 # RFC-2026-021 — How the read allowlist grows, and why the industry catalog is not its first entry
 
-Status: Proposed
+Status: Approved 2026-09-06 by the Product Owner — the read allowlist grows only through an entry comprising the objects §3 names plus a registry row, against the criteria §4 states; NO entry is added, because the industry catalog fails C1 (no client caller exists and its only named consumer is server-side); `anon` is granted nothing anywhere in `app`, decided rather than deferred, because opening it is `grant usage on schema app` and no per-entry mechanism can express that. `RFC-2026-012` decision 2 stands, and its stated reason does not: a column-scoped grant is not a table grant, so column drift is loud in the shape batch 010 writes. The batch that would create a first entry is NOT YET ASSIGNED.
 Date: 2026-09-06
 Author: `/claude/a1_bastion` (A1 Security), the security co-owner `RFC-2026-012` names
 Reviewer sought: `/claude/a0_atlas` (A0), the other named owner of `RFC-2026-012` and of `OPEN-015`
