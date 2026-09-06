@@ -255,6 +255,15 @@ jobs:
           # is member scope at Page granularity, and `suspended-a-resolves-zero-knowledge-items` and
           # `service-resolves-zero-knowledge-items` are the suspended member and the service.
           #
+          # THAT PARAGRAPH WAS A DERIVATION WHEN IT WAS WRITTEN AND IS NOW A MEASUREMENT, read from
+          # this step's own output: main at batch 040 reported `app.knowledge_items (040): 24
+          # case(s) noticed` and this branch reports 28. EXACTLY +4, against +7 new `no-rows` cases
+          # matching the pattern -- so the three predicate negatives really did not move it, which
+          # is the half of the claim below that a reader would otherwise take on trust. And
+          # app.knowledge_item_versions is UNCHANGED at 9, which is the other half: 041 asserts
+          # nothing about that table, so an entry that had grown there would have meant a case
+          # crediting a control it does not test.
+          #
           # 041's OTHER THREE negatives are NOT part of this basis and must not be counted as
           # though they were: `owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1`
           # and its two siblings are refused by the PREDICATE, not by row level security, so they
