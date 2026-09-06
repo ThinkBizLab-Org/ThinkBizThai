@@ -174,7 +174,24 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // is missing the batch it is built on — so the declaration extends to the TAIL, which is exactly
 // what `pendingDeclarationLint` requires of it and what makes "behind" distinguishable from
 // "divergent". This list is pinned WHOLE, so a third batch joining it is a deliberate edit here.
-const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql'];
+//
+// Batch 021 joins for the same structural reason one step further along: its four narrowing
+// policies and its two scope-table policies call helpers created by 011 and narrow tables created
+// by 020, neither of which this instance has. `pendingDeclarationLint` requires the declaration to
+// name a TAIL of the ordered set, so a third entry here is not a widening — it is the only shape
+// that keeps "behind" distinguishable from "divergent".
+//
+// WHAT THAT COSTS FOR 021 AND WHY `tenant_tables` DOES NOT GROW. app.workspace_member_scopes is not
+// in that list below, and adding a row for it would be recording a measurement of a table that does
+// not exist on the instance the snapshot describes — which `tenantTableLint`'s own completeness
+// rule would then refuse in the other direction, as "a row for a table no applied migration
+// creates". The rules that row would carry are asked where they can be: `schemaLint` holds the
+// owner comment, ENABLE, FORCE and the primary key from the migration TEXT on every `npm run
+// check`, and 021's own apply-time block asserts ENABLE, FORCE, the absent UPDATE and DELETE
+// grants, the RESTRICTIVE narrowings and RFC-2026-020 §5/3 against the LIVE catalog of whatever
+// database receives it. The list grows the day the instance receives the batch and the snapshot is
+// retaken, and the completeness rule REQUIRES it then.
+const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -301,6 +318,14 @@ const ADDED_SYMBOLS = [
   // member scope excludes the editor from: one fixture row carrying two unrelated controls is how a
   // case starts failing for the other one's reason.
   'business_a3_archived',
+  // Batch 021. §8.6 case 4 — "same Business, allowed Page A, row Page B → deny" — cannot be carried
+  // by any identity §12.6 names: user_editor_a and user_approver_a are both scoped at BUSINESS
+  // level, and §7 gives a business scope every Page beneath it, so neither can be refused a Page
+  // inside their own Business. It needs a member whose scope is a single PAGE, and a second Page
+  // under the SAME Business for that member to be refused. page_a2 cannot be the second Page: it is
+  // under business_a2, so a refusal there is case 3's control wearing case 4's name.
+  'user_page_editor_a',
+  'page_a1_sibling',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

@@ -176,4 +176,10 @@ jobs:
           control app.workspaces              '[a-z0-9-]*workspace'  010
           control app.business_profiles       '[a-z0-9-]*business'   020
           control app.page_context_profiles   '[a-z0-9-]*page'       020
+          # Batch 021's table, and the entry whose absence would have been the gap named above.
+          # Disabling row level security here does not merely hide rows: every caller sees every
+          # member's scope rows, so a narrowed member inherits somebody else's scope and stops being
+          # narrowed, and the suspended member — who holds a scope row on purpose — starts seeing
+          # one. `[a-z0-9-]*scope` is matched by both of those failures.
+          control app.workspace_member_scopes '[a-z0-9-]*scope'      021
           echo "negative control: every family above failed the suite, as each must."

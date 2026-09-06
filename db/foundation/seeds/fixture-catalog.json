@@ -24,6 +24,10 @@
       "uuid": "9b10ac91-406b-5322-9755-bfb16b0b4aa3",
       "role": "suspended member of workspace_a"
     },
+    "user_page_editor_a": {
+      "uuid": "c31e3c84-009e-5a2e-8680-a6622f8c848e",
+      "role": "active editor of workspace_a scoped to ONE PAGE, page_a1. Added by batch 021 because §8.6 case 4 — 'Same Business + allowed Page A but row Page B → deny' — cannot be carried by any identity §12.6 names: user_editor_a and user_approver_a are both scoped at BUSINESS level, and a business scope admits every Page beneath it by §7's own definition. Case 4 needs a member whose scope is a single Page and a second Page under the SAME Business to be refused, which is page_a1_sibling."
+    },
     "user_owner_b": {
       "uuid": "297ad853-58a6-5e83-87e1-f936f9c3ddff",
       "role": "active owner of workspace_b, the other tenant"
@@ -56,6 +60,10 @@
       "uuid": "da6409df-9541-5346-9d2e-447be2a649af",
       "role": "page under business_a1, inside the editor scope"
     },
+    "page_a1_sibling": {
+      "uuid": "b45dc73c-00e3-5e14-91ef-026dcbc29a7f",
+      "role": "second page under business_a1, in the SAME Business as page_a1. Added by batch 021 as the row §8.6 case 4 is about: page_a2 is under a different Business, so a member refused it has been refused by BUSINESS scope and case 4 — which is about Page scope inside one Business — would be satisfied by case 3's control. It is a new Page rather than a reuse of page_a2 for the reason business_a3_archived is a new Business: one fixture row carrying two unrelated controls is how a case starts failing for the other one's reason."
+    },
     "page_a2": {
       "uuid": "b96b06c3-e9b1-5133-b96e-08561e6f966f",
       "role": "page under business_a2, deliberately outside the editor scope"
@@ -65,5 +73,6 @@
       "role": "page under business_b1, on the far side of the tenant boundary"
     }
   },
+  "_no_symbol_for_a_member_scope_row": "Batch 021 creates app.workspace_member_scopes and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row. A member scope is identified by the member it belongs to and the target it names — (workspace_id, user_id, scope_type, business_profile_id, page_context_profile_id) is unique in 021_member_scope.sql — and every id in that tuple is already fixed here, so a case addresses an existing scope row exactly without a sixth constant to keep in step with the fixture. The two symbols batch 021 DID add are a member and a Page, because §8.6 case 4 needs a member scoped to one Page and a second Page under the same Business, and §12.6's list contains neither.",
   "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make."
 }

@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-control-020",
+    "branch": "agent/claude/WP-0A-DB-00-batch-021",
     "writable_paths": [
       "Makefile",
       "db/foundation/**",
@@ -108,10 +108,12 @@
     "amends_without_owning": {
       "paths": [
         ".github/workflows/ci.yml",
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "The CI workflow is A0-only root configuration and A0 is the author here. The negative-control step is replaced by one that runs per table family; no other step is changed, reordered or removed, and the guard steps RFC-2026-007 requires still run before it.\n\nThe branch-to-package mapping is pinned whole in a test, so renaming this package's branch moves one row. The integrity manifest records the digests of the protected files this branch edits."
+      "rationale": "Batch 021 is this package's own work: db/foundation/**, scripts/db/**, test-kits/db/** and tests/db/identity/** are all writable here, and the migration, the fixture, the isolation cases and every static assertion this branch adds land inside them.\n\nFive amendments, and only five.\n\n.github/workflows/ci.yml gains ONE LINE in the per-family negative control -- an entry for app.workspace_member_scopes, the table this batch creates. No step is added, removed, reordered or otherwise changed. The step's own comment names the gap it does not close (\"Adding a batch means adding a control, and nothing yet fails the build when someone forgets\"), and a batch that added a table and no entry would be widening it. The general rule -- every table family must have an entry -- needs a definition of \"family\" that is A0's to give and is not derivable from a migration's text; what IS derivable is asserted in tests/db/identity/identity-isolation.test.mjs, which requires this table to have an entry, requires the pattern to match a case that actually fails when row level security is disabled on it, and requires every table the control names to be created by a migration.\n\nscripts/test-suite-contract.mjs moves because TEST_NAME_DIGEST_BY_FILE is a digest over each protected suite's sorted distinct test NAMES, so adding a test to tests/db/identity/identity-isolation.test.mjs is a deliberate edit there by design: a name cannot be paid for with a count. The per-file test and assertion floors for the two suites this branch extends are raised to what they now declare. No floor is lowered and no other suite is touched.\n\ntest-kits/branch-identity.test.mjs moves because ownership.branch moves and that file pins the WHOLE branch-to-package mapping rather than the four rows a reader might expect; a branch that could pick its own judge is the defect the whole-mapping pin exists to close.\n\ntest-kits/integrity-manifest.json moves because the protected suites this branch extends change content, which is what the digest is for, and because the new test file joins the set the guard requires to be digested.\n\nevidence/VERIFICATION.md moves because the executed test count changes.\n\nIf a sixth path appears in the diff, the scope guard is right and this declaration is wrong."
     }
   },
   "inputs": {

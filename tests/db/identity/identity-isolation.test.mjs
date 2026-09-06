@@ -462,13 +462,17 @@ test('the coverage claim names what is NOT covered, with the batch that owes it'
     assert.ok(SMOKE_COVERAGE[key], `§12.6 assertion ${key} must be dispositioned`);
     assert.ok(SMOKE_COVERAGE[key].note.length > 40, `§12.6 assertion ${key} needs a real reason, not a flag`);
   }
-  // Batch 020 created the tables assertion 2 names, and paid HALF of it. The other half —
-  // "never A2/Page A2" — is member scope, which is batch 021, so the row reads 'partial' rather
-  // than true. A row that claims more than the cases carry is the failure this map exists to
-  // prevent; `covered: true` is checked against the citations below.
-  assert.equal(SMOKE_COVERAGE[2].covered, 'partial');
+  // Batch 020 created the tables assertion 2 names and paid HALF of it, recording the row as
+  // 'partial' with batch 021 named as the one that owed the rest. 021 created
+  // app.workspace_member_scopes, so the row is now `true` — and it is `true` only because the cases
+  // moved with it. The citation check below is what makes that more than a word: §12.6/2 must be
+  // cited by a case, and `editor-a-scope-does-not-reach-business-a2` is the one that replaced the
+  // positive assertion of the wider state.
+  assert.equal(SMOKE_COVERAGE[2].covered, true,
+    'batch 021 creates the member scope table, so the half of §12.6/2 that 020 recorded as owed — '
+    + '"never A2/Page A2" — is now asserted rather than deferred');
   assert.match(SMOKE_COVERAGE[2].note, /021/,
-    'a partial coverage claim must name the batch that owes the rest, or it is a note nobody can act on');
+    'the note names the batch that paid the rest, so a reader can find the change that did it');
   assert.equal(SMOKE_COVERAGE[3].covered, false);
   assert.equal(SMOKE_COVERAGE[7].covered, true,
     'batch 020 creates the business and page columns assertion 7 needs, so the "partial" batch 010 '
@@ -750,4 +754,392 @@ test('the identity expression appears exactly twice, and both places are forced 
   assert.doesNotMatch(helperBodies, /auth\.uid\(\)/,
     'a helper owned by app_authz cannot call auth.uid(): it fails with 42501 on the SCHEMA, not the '
     + 'function, and no migration of ours can grant the privilege that would fix it.');
+});
+
+// ---------------------------------------------------------------------------
+// Batch 021, statically. Same discipline as the two blocks above: what can be read from the
+// migration text is read from it, the live half runs in CI through `make db-rls-smoke`, and the
+// properties this batch's design rests on are pinned here because they are the ones a reviewer
+// would otherwise have to hold in their head while reading a long file.
+
+const SCOPE_MIGRATION = 'db/foundation/migrations/021_member_scope.sql';
+const SCOPE_FIXTURE = 'tests/db/identity/fixtures/021-member-scope-fixture.sql';
+const CI_WORKFLOW = '.github/workflows/ci.yml';
+
+const scope = await readFile(SCOPE_MIGRATION, 'utf8');
+const scopeCode = scope.replace(/--[^\n]*/g, '');
+const SCOPE_TABLE = 'workspace_member_scopes';
+const NARROWED_TABLES = ['business_profiles', 'business_profile_versions',
+  'page_context_profiles', 'page_context_profile_versions'];
+const SCOPE_HELPERS = ['member_scope_is_narrowed', 'member_scope_covers_business',
+  'member_scope_covers_page', 'member_scope_admits_business', 'member_scope_admits_page'];
+
+// The predicate the whole batch rests on, pinned character for character.
+//
+// It is pinned against the migration TEXT and not against `pg_get_expr(polqual, polrelid)`, which
+// is how RFC-2026-020 §6.1/5 pins app_authz's policy — and the difference is a refusal rather than
+// a shortcut. That literal was DERIVED FROM A MEASUREMENT: PostgreSQL 17.6's own deparser, read
+// read-only off the provisioned instance. Nobody has deparsed this policy on any database, and
+// writing a plausible-looking deparse here would be inventing a measurement, which is the one thing
+// this repository refuses everywhere else. The text pin holds today; the catalog pin is owed to
+// whoever first applies 021 somewhere a `pg_get_expr` can be read off.
+const SCOPE_SELECT_PREDICATE = `using (
+    user_id = (select auth.uid())
+    and app.is_active_member(workspace_id)
+  )`;
+
+test('the scope table carries RLS, FORCE, a primary key, an owner comment and a policy', () => {
+  assert.match(scopeCode, new RegExp(`create table (?:if not exists )?app\\.${SCOPE_TABLE}\\b`, 'i'));
+  assert.match(scopeCode, new RegExp(`alter table app\\.${SCOPE_TABLE} enable row level security`, 'i'));
+  assert.match(scopeCode, new RegExp(`alter table app\\.${SCOPE_TABLE} force row level security`, 'i'),
+    `app.${SCOPE_TABLE}: ENABLE and FORCE are different catalog columns and the data package's own `
+    + 'lint rule tests only the first, so ENABLE alone leaves the table owner exempt from every policy.');
+  assert.match(scopeCode, new RegExp(`create table (?:if not exists )?app\\.${SCOPE_TABLE}[\\s\\S]{0,600}?primary key`, 'i'),
+    `app.${SCOPE_TABLE}: no primary key`);
+  assert.match(scope, new RegExp(`comment on table app\\.${SCOPE_TABLE} is`, 'i'));
+  assert.match(scopeCode, new RegExp(`create policy \\w+ on app\\.${SCOPE_TABLE}\\b`, 'i'));
+  assert.doesNotMatch(scopeCode, /\bto\s+anon\b/i, '§8.5: anonymous holds no tenant policy and no grant');
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'account_id', 'page_id']) {
+    assert.doesNotMatch(scopeCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}`);
+  }
+  assert.match(scopeCode, new RegExp(`create table (?:if not exists )?app\\.${SCOPE_TABLE}[\\s\\S]{0,600}?workspace_id`, 'i'),
+    `app.${SCOPE_TABLE} is tenant-owned and must carry workspace_id (§3.3)`);
+});
+
+test('batch 021 adds to the merged batches and rewrites none of them', () => {
+  // Migration invariant 1, as a property of the file rather than as a sentence in its header: every
+  // `drop policy if exists X` must be followed by this file's own `create policy X`. A batch that
+  // dropped 010's, 011's or 020's policy would be rewriting an applied migration through the back
+  // door, and the drop is the only statement in this file that could do it.
+  const drops = [...scopeCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/g)].map((m) => m[1]);
+  assert.ok(drops.length >= 10, 'the batch writes a policy set, not a token policy');
+  for (const name of drops) {
+    assert.match(scopeCode, new RegExp(`create policy ${name}\\b`),
+      `${name} is dropped by batch 021 and not created by it, so the drop removes a policy another `
+      + 'batch owns. A later batch adds to a merged one and never replaces it (migration invariant 1).');
+  }
+  assert.ok(!scopeCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it '
+    + 'to a count of exactly two, and every other reader uses (select auth.uid()) inside a policy or '
+    + 'goes through a helper');
+});
+
+test('no batch 021 policy names a membership table, and every one is written TO authenticated', () => {
+  const policies = [...scopeCode.matchAll(/create policy (\w+)([\s\S]*?);\n/g)];
+  assert.ok(policies.length >= 10, 'one table with two policies, four narrowings and six editor cells');
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    // A policy ON the scope table names it in its own `on` clause; what must not appear is a JOIN.
+    const inPredicate = body.replace(/create policy \w+\s+on\s+app\.\w+/, '');
+    for (const table of ['app.workspace_members', 'app.workspace_member_scopes']) {
+      assert.doesNotMatch(inPredicate, new RegExp(table.replace('.', '\\.')),
+        `${name}: membership and member scope are read through helpers and never by joining the table `
+        + 'from a policy (RFC-2026-020 §5/5). A join here would evaluate that scan AS THE CALLER, so the '
+        + "read table's whole policy set would expand inside this one's evaluation and the width of this "
+        + 'predicate would stop being a property of this file.');
+    }
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+  }
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    if (/for\s+update/i.test(body)) {
+      assert.match(body, /using/i, `${name}: an UPDATE policy needs USING`);
+      assert.match(body, /with\s+check/i, `${name}: an UPDATE policy needs WITH CHECK`);
+    }
+    if (!/for\s+insert/i.test(body)) continue;
+    assert.match(body, /created_by\s*=\s*\(select auth\.uid\(\)\)/,
+      `${name}: without it a caller can write a row naming somebody else as its author — and on the `
+      + 'scope table the actor and the subject are different people by design, so an unasserted '
+      + 'created_by would let an owner forge the attribution of an authorization grant (§8.5, §8.6/8).');
+  }
+});
+
+test("the policy the scope helpers read through is exactly the caller's own active rows", () => {
+  const own = scopeCode.match(/create policy workspace_member_scopes_select_own([\s\S]*?);\n/);
+  assert.ok(own, 'the policy the whole batch rests on is named and present');
+  assert.match(own[0], /for\s+select\s+to\s+authenticated/i);
+  assert.ok(own[0].includes(SCOPE_SELECT_PREDICATE),
+    'the predicate is pinned character for character. It is the ONLY thing between a SECURITY INVOKER '
+    + "scope helper and another member's scope rows, and widening it fails OPEN rather than closed: a "
+    + "caller who could see a second member's rows would inherit whatever that member is scoped to, and "
+    + 'a caller whose own rows were hidden would look unscoped and therefore unnarrowed. Expected:\n'
+    + `${SCOPE_SELECT_PREDICATE}`);
+  assert.match(own[0], /user_id = \(select auth\.uid\(\)\)/,
+    'the caller conjunct is what makes every helper an answer about the caller');
+  assert.match(own[0], /app\.is_active_member\(workspace_id\)/,
+    '§7: only status=active grants access, read through the batch 011 helper');
+});
+
+test('the scope helpers are invoker-mode, pin an empty search_path, and call auth.uid() nowhere', () => {
+  const functions = [...scopeCode.matchAll(/create or replace function (app\.\w+)\(([^)]*)\)([\s\S]*?)\$\$;/g)];
+  assert.equal(functions.length, SCOPE_HELPERS.length, 'the batch writes the helper set it declares');
+  for (const [body, name] of functions.map((m) => [m[0], m[1]])) {
+    assert.ok(SCOPE_HELPERS.includes(name.replace('app.', '')), `${name} is not a declared scope helper`);
+    assert.match(body, /set\s+search_path\s*=\s*''/i, `${name}: every object is resolved by its full name`);
+    // NOT SECURITY DEFINER, and this is the batch's most arguable decision, so it is pinned.
+    assert.doesNotMatch(body, /security\s+definer/i,
+      `${name}: RFC-2026-020 §5/3 gives app_authz EXACTLY ONE policy, on app.workspace_members. A `
+      + 'SECURITY DEFINER helper owned by that role reading a new table would need a second policy and a '
+      + "grant outside the set §6.1/6 pins — refused by authzLint, refused by 011's own apply-time block "
+      + 'on any re-apply, and an amendment to an approved decision that no batch may make. A definer '
+      + 'helper owned by anyone ELSE would be owned by the table owner, which is exempt from the policies '
+      + 'on a forced table and is the anti-pattern RFC-2026-017 §3 exists to prevent.');
+    assert.doesNotMatch(body, /auth\.uid\(\)/,
+      `${name}: a \`language sql\` body is re-parsed in the calling session, so auth.uid() there is `
+      + 'resolved as the CALLER and needs USAGE on schema auth — which the CI shim grants to nobody and '
+      + "which no migration of ours can grant on the platform (011's header, measured). The same call "
+      + 'inside a POLICY is stored already resolved and needs only EXECUTE, which is why every policy in '
+      + '010, 020 and 021 uses it and works. The identity lives in the policy; the helpers read what that '
+      + 'policy leaves them.');
+  }
+  for (const helper of SCOPE_HELPERS) {
+    assert.match(scopeCode, new RegExp(`revoke all on function app\\.${helper}\\([^)]*\\) from public`, 'i'),
+      `app.${helper}: a helper reachable by PUBLIC is reachable by anon, which is granted nothing anywhere`);
+    assert.match(scopeCode, new RegExp(`grant execute on function app\\.${helper}\\([^)]*\\) to authenticated`, 'i'),
+      `app.${helper}: it is called from a policy written TO authenticated, and a policy's function call `
+      + 'is evaluated as the caller, so the caller must hold EXECUTE');
+  }
+});
+
+test('batch 021 leaves app_authz exactly as RFC-2026-020 approved it', () => {
+  assert.doesNotMatch(scopeCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz. §5/3 gives it exactly one policy and §6.1/6 pins its grants '
+    + 'to USAGE on schema app plus four columns of app.workspace_members; a batch that added to either '
+    + 'would be amending an approved decision by migration.');
+  assert.doesNotMatch(scopeCode, /owner to app_authz/i, 'batch 021 gives app_authz no new function to own');
+  // And the claim is executed, not only grepped: the file asserts the policy count against the live
+  // catalog AFTER it has run, which is the half 011's own block cannot reach.
+  assert.match(scopeCode, /app_authz holds % policies in schema app/,
+    '021 re-asserts RFC-2026-020 §5/3 at apply time, on the other side of itself. 011 asserts it before '
+    + 'this file exists, which says nothing about what this file did.');
+  assert.match(scopeCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid is readable only by a superuser, and a migration that needs '
+    + 'one to apply cannot be applied on the platform it targets (batch 020 found this)');
+  assert.doesNotMatch(scopeCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a superuser');
+});
+
+test('the narrowing is RESTRICTIVE, covers all four batch 020 tables, and asks the right question', () => {
+  const restrictive = [...scopeCode.matchAll(/create policy (\w+) on app\.(\w+)\s*\n\s*as restrictive([\s\S]*?);\n/g)];
+  assert.equal(restrictive.length, 4,
+    'four tables were granted Business/Page SELECT by batch 020 and all four have to be narrowed. A '
+    + 'version row holds what a Business or Page USED TO SAY, so a narrowing that stopped at the current '
+    + 'rows would leave the history of an out-of-scope Business readable — the quietest possible leak.');
+  assert.deepEqual(restrictive.map((m) => m[2]).sort(), [...NARROWED_TABLES].sort());
+  for (const [body, name, table] of restrictive.map((m) => [m[0], m[1], m[2]])) {
+    assert.match(body, /for\s+all\s+to\s+authenticated/i,
+      `${name}: one policy per table, FOR ALL, so the scope rule has one home per table rather than four`);
+    assert.match(body, /using/i, `${name}: needs USING, which narrows SELECT, UPDATE and DELETE`);
+    assert.match(body, /with\s+check/i, `${name}: needs WITH CHECK, or a scoped member can INSERT outside their scope`);
+    assert.match(body, /app\.member_scope_admits_(business|page)\(/,
+      `${name}: a Y operation is narrowed by scope WHERE SCOPE EXISTS, which is member_scope_admits_*. `
+      + 'Using member_scope_covers_* here would deny every member who holds no scope row — every owner, '
+      + 'admin and viewer in the fixture — which is the reading batch 021 rejected in its header.');
+    assert.ok(NARROWED_TABLES.includes(table));
+  }
+  assert.equal([...scopeCode.matchAll(/as restrictive/gi)].length, 4,
+    'exactly the four narrowing policies are restrictive. A permissive policy with the same predicate '
+    + 'would WIDEN each table instead of narrowing it — a member would see everything their scope admits '
+    + 'OR their membership admits, which is what batch 020 already does — and §12.6/2 would silently stop '
+    + 'being implemented.');
+});
+
+test('the editor P asks for an EXPLICIT scope, which is what keeps it from being a Y', () => {
+  const editorPolicies = [...scopeCode.matchAll(/create policy (\w+_scoped_editor) on app\.(\w+)([\s\S]*?);\n/g)];
+  assert.equal(editorPolicies.length, 6,
+    'the editor cell covers INSERT and UPDATE on both current tables and INSERT on both version tables, '
+    + "which is 020's reading of §8.1: the producing operation is granted and only mutation of its record "
+    + 'is denied');
+  for (const [body, name] of editorPolicies.map((m) => [m[0], m[1]])) {
+    assert.match(body, /app\.workspace_member_role\(workspace_id\) = 'editor'/,
+      `${name}: §8.1 marks the editor P and owner and admin Y; the two Y cells are batch 020's policies `
+      + 'and this one must not restate them, or the distinction the refusal protected is gone');
+    assert.match(body, /app\.member_scope_covers_(business|page)\(/,
+      `${name}: \`covers\`, never \`admits\`. P is "ผ่านตาม policy/EXPLICIT capability" and an absent `
+      + 'scope row is not explicit, so an editor who has never been scoped must gain nothing from this '
+      + 'batch. `admits` answers true for exactly that member and would ship the unconditional editor '
+      + 'grant batch 020 refused to write.');
+    for (const role of ['owner', 'admin', 'approver', 'viewer']) {
+      assert.doesNotMatch(body, new RegExp(`'${role}'`),
+        `${name}: §8.1 gives this cell to the editor conditionally and to owner and admin outright. `
+        + "Naming another role here would either restate batch 020's policy or invent a grant.");
+    }
+  }
+  const pageInsert = scopeCode.match(/create policy page_context_profiles_insert_scoped_editor([\s\S]*?);\n/);
+  assert.ok(pageInsert);
+  assert.match(pageInsert[0], /archived_at is null/,
+    '§11.3: "archive closes new creation under a Business". Batch 020 refuses a Page under an archived '
+    + 'Business; a permissive policy added later ORs past that unless it repeats the clause.');
+});
+
+test('a member scope can be created and not silently mutated, and the absence is at the grant layer', () => {
+  assert.match(scopeCode, new RegExp(`grant select \\([\\s\\S]*?\\)\\s*on app\\.${SCOPE_TABLE} to authenticated`, 'i'),
+    'the client SELECT grant is column-scoped');
+  assert.match(scopeCode, new RegExp(`grant insert \\([\\s\\S]*?\\)\\s*on app\\.${SCOPE_TABLE} to authenticated`, 'i'),
+    'the client INSERT grant is column-scoped, and it is what makes the editor refusal a POLICY refusal');
+  for (const role of ['authenticated', 'app_worker', 'app_command', 'app_maintenance', 'anon', 'app_authz']) {
+    assert.doesNotMatch(scopeCode,
+      new RegExp(`grant[^;]*\\b(update|delete)\\b[^;]*on app\\.${SCOPE_TABLE} to ${role}`, 'i'),
+      `app.${SCOPE_TABLE}: ${role} must hold neither UPDATE nor DELETE. §8.5 forbids a broad user delete `
+      + 'and requires a soft delete through a typed lifecycle field; no document names one for this row, '
+      + 'so batch 021 grants neither rather than inventing the field. The absence is what makes the '
+      + 'refusal a privilege-layer denial the isolation suite can attribute to this table by name.');
+  }
+  assert.match(scopeCode, new RegExp(`grant select, insert on app\\.${SCOPE_TABLE} to app_worker`, 'i'),
+    `app.${SCOPE_TABLE}: app_worker holds the two verbs a client holds and no policy, which is what makes `
+    + '"denied by RLS" and "denied by a missing grant" tell apart (RFC-2026-017 §7)');
+  for (const grant of scopeCode.matchAll(/grant update \(([^)]*)\) on app\.(\w+)/gi)) {
+    assert.notEqual(grant[2], SCOPE_TABLE, `app.${SCOPE_TABLE} has no updatable column in this batch`);
+  }
+});
+
+test("the scope types are §7's three, and each one is tied to the shape it implies", () => {
+  assert.match(scopeCode, /check \(scope_type in \('all_businesses', 'business', 'page'\)\)/,
+    '§7 names three scope types and this is all three, as text + a named CHECK (§3.2). A fourth value '
+    + 'would be a scope nothing resolves and a missing one would be a scope nobody can write.');
+  // Without this, a row could claim one scope and carry the target of another — and the helpers read
+  // the claim and the target from the same row.
+  assert.match(scopeCode, /workspace_member_scopes_shape_matches_type check/);
+  assert.match(scopeCode, /scope_type = 'all_businesses'\s*\n?\s*and business_profile_id is null and page_context_profile_id is null/);
+  // §3.3's composite foreign keys: a scope row cannot name a member, a Business or a Page from another
+  // Workspace, and the refusal is the constraint rather than a policy (§4 invariant 10).
+  assert.match(scopeCode, /foreign key \(workspace_id, user_id\)\s*\n?\s*references app\.workspace_members \(workspace_id, user_id\)/i);
+  assert.match(scopeCode, /foreign key \(workspace_id, business_profile_id\)\s*\n?\s*references app\.business_profiles \(workspace_id, id\)/i);
+  assert.match(scopeCode, /foreign key \(workspace_id, business_profile_id, page_context_profile_id\)\s*\n?\s*references app\.page_context_profiles \(workspace_id, business_profile_id, id\)/i);
+  // NULLS NOT DISTINCT, because two all_businesses rows for one member carry two nulls and the default
+  // spelling treats them as different rows — so the constraint would hold for the scope types whose
+  // targets are set and silently not hold for the one whose targets are empty.
+  assert.match(scopeCode, /unique nulls not distinct/i);
+});
+
+test('the deferred foreign key §6 reserves in this batch is refused, and the refusal is stated', () => {
+  assert.doesNotMatch(scopeCode, /current_version_id/i,
+    'a current_version_id pointer would be a second source of truth for "which version is latest", beside '
+    + 'a version_number that is already unique per parent; nothing in this schema could keep it true, '
+    + 'because no command function writes the current row and its version in one transaction; and a '
+    + 'DEFERRABLE constraint is checked only at COMMIT, so RLS cannot enforce it. §5 names no such column.');
+  assert.doesNotMatch(scopeCode, /deferrable/i, 'no constraint in this batch is deferred');
+  assert.match(scope, /THE DEFERRED FOREIGN KEY: NOT ADDED/,
+    'a registry row mentioning a constraint is not a requirement for one, but declining it silently would '
+    + 'leave the next reader to rediscover the question');
+});
+
+test('the batch 021 fixture writes only catalog identities and carries both scope states', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(SCOPE_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture `
+      + 'id nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['user_page_editor_a', 'page_a1_sibling', 'user_editor_a', 'user_viewer_a',
+    'user_suspended_a', 'user_owner_b', 'business_a1', 'page_a1', 'business_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // BOTH STATES, or the reading of §7 this batch had to choose is untested. user_owner_a must NOT be
+  // scoped — it is the control for "a member with no row is not narrowed" — and the other identities
+  // must be, including the suspended one, whose row exists precisely so that
+  // `suspended-a-sees-zero-scope-rows` is about a policy and not about an empty table.
+  const scopeInsert = fixture.match(/insert into app\.workspace_member_scopes[\s\S]*?on conflict/);
+  assert.ok(scopeInsert, 'the fixture writes scope rows');
+  assert.doesNotMatch(scopeInsert[0], new RegExp(`'${id('user_owner_a')}',\\s*\\n?\\s*'(all_businesses|business|page)'`),
+    'user_owner_a holds NO scope row. It is the unscoped control the whole batch is checked against, and '
+    + '`owner-a-is-unscoped-and-sees-business-a2` asserts what that means.');
+  for (const symbol of ['user_editor_a', 'user_approver_a', 'user_viewer_a', 'user_suspended_a',
+    'user_page_editor_a', 'user_owner_b']) {
+    assert.ok(scopeInsert[0].includes(id(symbol)), `${symbol} must hold a scope row`);
+  }
+  for (const type of ['all_businesses', 'business', 'page']) {
+    assert.match(scopeInsert[0], new RegExp(`'${type}'`), `§7's ${type} scope has no row, so nothing exercises it`);
+  }
+  // Idempotent on the CONSTRAINT rather than on an inferred column list: the unique index is NULLS NOT
+  // DISTINCT over five columns, three of which are null on some rows, and inference there is exactly
+  // where a re-run would quietly insert a second copy instead of doing nothing.
+  assert.match(fixture, /on conflict on constraint workspace_member_scopes_one_per_target do nothing/);
+});
+
+// The CI negative control, which is the one guard in this repository a new table can silently walk
+// past. The step's own comment says so: "Adding a batch means adding a control, and nothing yet fails
+// the build when someone forgets."
+//
+// This does not close that gap in general — deciding what a "table family" is, for every table in
+// every future batch, is a rule A0 owns and is not derivable from a migration's text. It closes it for
+// the table this batch adds, which is the half batch 021 can be held to.
+test('the table batch 021 adds has its own entry in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 4, 'the control runs per table family, one entry per family');
+
+  const forScopeTable = controls.find(([, table]) => table === SCOPE_TABLE);
+  assert.ok(forScopeTable, `app.${SCOPE_TABLE} has no negative-control entry. The step disables row level `
+    + "security on one table and requires a failed case whose id matches that table's pattern; a batch "
+    + "that adds a table and no entry widens the gap the step's own blocker names, and its number keeps "
+    + 'being reported as though it covered everything.');
+  assert.equal(forScopeTable[3], '021', 'the entry is attributed to the batch that owes it');
+
+  // The pattern has to match a case that ACTUALLY FAILS when RLS is off on this table, or the entry is
+  // satisfied by any regression anywhere. With the scope table unprotected every caller sees every
+  // scope row — including user_viewer_a's all_businesses row — so a narrowed member stops being
+  // narrowed and a suspended member starts seeing rows.
+  const pattern = new RegExp(`^${forScopeTable[2]}`);
+  const detectable = cases.filter((c) => pattern.test(c.id) && ['no-rows', 'no-effect'].includes(c.expect));
+  assert.ok(detectable.length >= 2,
+    `no case whose id matches /${forScopeTable[2]}/ would fail with row level security disabled on `
+    + `app.${SCOPE_TABLE}. A control naming a pattern nothing matches reports a pass it did not earn.`);
+  assert.ok(detectable.some((c) => c.id === 'suspended-a-sees-zero-scope-rows'),
+    'the suspended-member case is the sharpest of them: the fixture gives that identity a scope row on '
+    + 'purpose, so with RLS off it sees one');
+
+  // Every table the control names must exist in the migration set, so a renamed table takes its control
+  // with it instead of leaving an entry that disables nothing.
+  const migrations = await Promise.all(['010_identity.sql', '020_business.sql', '021_member_scope.sql']
+    .map((name) => readFile(`db/foundation/migrations/${name}`, 'utf8')));
+  const created = new Set(migrations.flatMap((sql) =>
+    [...sql.replace(/--[^\n]*/g, '').matchAll(/create table (?:if not exists )?app\.(\w+)/g)].map((m) => m[1])));
+  for (const [, table] of controls) {
+    assert.ok(created.has(table), `the negative control disables row level security on app.${table}, which `
+      + 'no migration creates — so that entry runs against nothing and its "the suite failed" is about '
+      + 'some other table');
+  }
+});
+
+// The case batch 020 wrote in order to be changed, and the change.
+test('the case that asserted the un-narrowed state is gone and its replacement asserts the narrowing', () => {
+  const ids = new Set(cases.map((c) => c.id));
+  assert.ok(!ids.has('editor-a-sees-business-a2-until-batch-021'),
+    'batch 020 asserted the wider state POSITIVELY so that narrowing it would change a test in a diff. It '
+    + 'has been narrowed, so the case must not still be here claiming the editor sees business_a2.');
+
+  const replacement = cases.find((c) => c.id === 'editor-a-scope-does-not-reach-business-a2');
+  assert.ok(replacement, 'the replacement must exist and be findable by name, not merely implied by the '
+    + 'absence of the old one — a case deleted and not replaced is a claim that stopped being checked, '
+    + 'which is exactly what batch 020 wrote the original to prevent');
+  assert.equal(replacement.expect, 'no-rows');
+  assert.deepEqual(replacement.covers, ['§12.6/2', '§8.6/3'],
+    'it carries the two labels the original carried as "-partial" and "-pending-021", now unqualified');
+
+  // And the pair that stops the new negative from being satisfied by business_a2 becoming unreadable.
+  for (const control of ['owner-a-is-unscoped-and-sees-business-a2',
+    'viewer-a-all-businesses-scope-still-sees-business-a2']) {
+    const positive = cases.find((c) => c.id === control);
+    assert.ok(positive, `${control} is missing`);
+    assert.equal(positive.expect, 'rows',
+      `${control}: a narrowing asserted only by negatives is indistinguishable from a policy that hides `
+      + 'the row from everybody, which would be a much worse batch shipping under the same test names');
+  }
+
+  // §8.6 cases 3 and 4 were recorded as owed by this batch. Both are now carried by cases, in both
+  // directions, and the coverage map says so — which the citation check above holds it to.
+  for (const label of ['§8.6/3', '§8.6/4']) {
+    const cited = cases.filter((c) => (c.covers ?? []).includes(label));
+    assert.ok(cited.some((c) => ['no-rows', 'denied', 'no-effect'].includes(c.expect)),
+      `${label} needs the denial it is about`);
+    assert.ok(cited.some((c) => c.expect === 'rows'),
+      `${label} needs the positive that makes its denial mean something: without it the case is `
+      + 'satisfied by a policy that hides the row from everybody, or by a fixture that never loaded it');
+  }
+  for (const key of [3, 4]) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), /COVERED BY BATCH 021/,
+      `§8.6 case ${key} was recorded as owed by batch 021 and the map must say what happened to it`);
+  }
 });
