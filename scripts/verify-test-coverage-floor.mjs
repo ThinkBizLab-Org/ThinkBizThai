@@ -427,6 +427,7 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-018-service-path-connection.md',
   'architecture/decisions/RFC-2026-019-service-path-connection-corrected.md',
   'architecture/decisions/RFC-2026-020-authorization-helper-role.md',
+  'architecture/decisions/RFC-2026-021-client-read-allowlist.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
