@@ -315,8 +315,10 @@ jobs:
           # `service-sees-zero-ai-model-policy-rows` is a filtered read. `service-cannot-set-an-ai-
           # model-policy` is a `denied` case refused at the POLICY layer — app_worker holds the
           # INSERT grant, so FORCE ROW LEVEL SECURITY with an empty policy set is what refuses the
-          # row, and disabling row level security makes that INSERT SUCCEED and the case fail. Every
-          # other `denied` case in the suite is a grant-layer refusal and would pass unchanged;
+          # row. Disabling row level security removes exactly that refusal: the 42501 the case
+          # demands is gone, the statement is stopped (if at all) by the primary key with a
+          # different SQLSTATE, and the case fails either way. Every other `denied` case in the
+          # suite is a grant-layer refusal and would pass unchanged;
           # tests/db/identity/identity-isolation.test.mjs counts this one and says why.
           #
           # THERE IS NO ENTRY FOR private.ai_credential_references, AND THE ABSENCE IS THE FINDING

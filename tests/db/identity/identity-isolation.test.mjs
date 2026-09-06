@@ -3629,8 +3629,9 @@ test('the two app tables batch 060 adds have control entries, and the private on
   // would pass unchanged with row level security off. That is true of every earlier batch and is
   // NOT true here: `service-cannot-set-an-ai-model-policy` is a `denied` case refused at the POLICY
   // layer, because app_worker holds the INSERT grant and an empty policy set is what stops the row.
-  // Disabling row level security makes that INSERT succeed and the case fail, so it is restored by
-  // the control and counts.
+  // Disabling row level security removes exactly the 42501 that case demands — the statement is then
+  // admitted by the privilege system and stopped, if at all, by the primary key under a different
+  // SQLSTATE — so the case fails either way and the control genuinely rests on it.
   const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
     || (c.expect === 'denied' && c.deniedBy === 'policy');
   for (const [table, floor] of [[AI_MODELS, 1], [AI_POLICIES, 2]]) {

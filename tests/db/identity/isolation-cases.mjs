@@ -524,7 +524,9 @@ export const SMOKE_COVERAGE = {
                            + 'than by a grant: app_worker holds the INSERT and FORCE ROW LEVEL SECURITY '
                            + 'with an empty policy set is what stops the row, which is the shape every '
                            + 'other batch\'s service grant was written to make possible and none of them '
-                           + 'had an INSERT grant to demonstrate it with. SECOND, '
+                           + 'had an INSERT grant to demonstrate it with — and it is the one `denied` '
+                           + 'case in the suite that disabling row level security actually breaks. '
+                           + 'SECOND, '
                            + 'private.ai_credential_references is the FIRST TABLE IN THIS SCHEMA WHERE '
                            + 'THE SERVICE HOLDS NO GRANT AT ALL — a deliberate departure from 010\'s '
                            + 'shape, because RFC-2026-012\'s inventory says "no read by anyone, INCLUDING '
@@ -5020,10 +5022,15 @@ export function buildCases(id) {
       why: 'THE ONLY CASE IN THIS BATCH REFUSED BY THE POLICY LAYER, and the second the CI negative '
          + 'control for this table rests on. app_worker HOLDS the INSERT grant, so the privilege '
          + 'system admits the statement and FORCE ROW LEVEL SECURITY with an empty policy set is what '
-         + 'refuses the row — which is a `denied` case that disabling row level security would make '
-         + 'PASS, unlike every other refusal in this batch. The WITH CHECK is evaluated before the '
-         + 'heap insert, so this is 42501 rather than the 23505 the existing primary key would raise; '
-         + 'the case demands 42501 and would fail loudly if that order ever changed.',
+         + 'refuses the row. That makes it the one `denied` case in this batch that DISABLING ROW '
+         + 'LEVEL SECURITY BREAKS: without the policy layer the 42501 this case demands is gone, and '
+         + 'the statement is then stopped — if at all — by the primary key, with a different '
+         + 'SQLSTATE. Every other refusal here is a grant-layer one and would pass unchanged.\n\n'
+         + 'THE PRIMARY KEY IS ALSO WHY THE ORDER MATTERS AND WHY THE CASE IS SELF-PROTECTING. '
+         + 'workspace_a already holds a model policy, so this row would collide; PostgreSQL evaluates '
+         + 'the RLS WITH CHECK before the heap insert, so the answer is 42501 and not 23505. The case '
+         + 'demands 42501, which `expectDenied` enforces by SQLSTATE — so if that order ever changed, '
+         + 'this fails loudly rather than passing on a constraint doing the policy\'s job.',
     },
 
     // --- private.ai_credential_references: no read by anyone, including the service. ---------------
