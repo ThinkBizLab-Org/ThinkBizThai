@@ -87,8 +87,33 @@
     "industry_pack_interior_v2": {
       "uuid": "28075fbf-06f2-5f98-9557-02bbc04822ec",
       "role": "published version 1.1.0 of industry_pack_interior, the minor release §4.5 activates by explicit approval. GLOBAL and immutable. It exists so a re-pin has a target that is not the row already pinned: an UPDATE case that set the value the row already held would pass against a database where the write did nothing."
+    },
+    "page_a1_archived": {
+      "uuid": "1e03159a-85fa-59e7-a57b-acc008ba9cf0",
+      "role": "third page under business_a1, ARCHIVED, under a LIVE Business. Added by batch 040 because its knowledge INSERT policy carries §11.3's archive clause TWICE — once for the Business and once for the Page — and the Page half had no row to be about: business_a3_archived is archived at the Business level, so a refusal there proves nothing about the second clause. This row is the only place in the fixture where the two parents disagree, which is what makes `owner-a-cannot-create-a-knowledge-item-under-an-archived-page` a case about the Page and not about its Business."
+    },
+    "knowledge_a1_business": {
+      "uuid": "3d465a92-5b43-5ba4-aa9d-baffa30d6532",
+      "role": "BUSINESS-LEVEL knowledge under business_a1: page_context_profile_id is NULL. Added by batch 040, the first family whose scope is TWO columns -- §4 invariant 3 makes Business scope mandatory and Page scope a nullable OVERRIDE -- so the fixture has to carry both states or the override is untested. This is the un-overridden one: the row every A-side positive reads and the row the approver's refused UPDATE is witnessed against. Its kind is `voice`."
+    },
+    "knowledge_a1_page": {
+      "uuid": "5a7556c9-2be0-5e74-968e-7386c016c9ca",
+      "role": "PAGE-LEVEL knowledge under business_a1, restricted to page_a1. The overridden state, and the row user_page_editor_a reaches. Its kind is `audience`, because the four values §5 names are loaded across these five rows so the vocabulary is live rather than merely permitted by a CHECK."
+    },
+    "knowledge_a1_sibling_page": {
+      "uuid": "3cffa5e5-41bc-553f-b998-480f0bb1d206",
+      "role": "PAGE-LEVEL knowledge under business_a1, restricted to page_a1_sibling. §8.6 case 4 at knowledge granularity -- same Business, allowed Page A, row Page B -- which no earlier fixture row can carry, because a knowledge item is the first row in this schema whose Page scope is a property of the row itself rather than of its parent. user_page_editor_a is refused it and user_editor_a, whose scope is the whole Business, is not. Its kind is `offers`."
+    },
+    "knowledge_a2_business": {
+      "uuid": "0ea0109e-d1ea-571e-a01f-4f3fd1bfb418",
+      "role": "BUSINESS-LEVEL knowledge under business_a2, deliberately outside user_editor_a's member scope. §8.6 case 3 at knowledge granularity, paired with an unscoped-owner positive so the negative is about the restrictive policy rather than about a row nobody can see. Its kind is `restrictions`, the fourth and last of §5's values."
+    },
+    "knowledge_b1_business": {
+      "uuid": "f93702e9-19de-5a57-a7ec-f0d57b2cec45",
+      "role": "BUSINESS-LEVEL knowledge under business_b1, on the far side of the tenant boundary. §8.6 case 5 and §12.6/1: every A-side identity attacks it while holding its EXACT id, and user_owner_b reads it, so the negative is not satisfied by an empty table. Its kind is `voice`."
     }
   },
+  "_why_a_knowledge_item_needs_a_symbol_when_a_version_does_not": "Batch 040 adds FIVE symbols and no earlier batch added more than four, which is worth explaining rather than leaving as a number. A version row is addressed by its parent and its ordinal, a member scope by its member and its target, an industry assignment by the Business it belongs to -- every one of those is a natural key some document fixes. A KNOWLEDGE ITEM HAS NONE. Nothing in §4, §5 or §8 says a Business holds one voice profile, and inventing a `unique (business_profile_id, kind)` so that the fixture could address a row without a symbol would be encoding a product decision into a constraint in order to save five constants. So the items are named here and their versions are not: app.knowledge_item_versions makes (knowledge_item_id, version_number) unique, and every case that addresses a version addresses it through an item id this file fixes.",
   "_no_symbol_for_a_member_scope_row": "Batch 021 creates app.workspace_member_scopes and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row. A member scope is identified by the member it belongs to and the target it names — (workspace_id, user_id, scope_type, business_profile_id, page_context_profile_id) is unique in 021_member_scope.sql — and every id in that tuple is already fixed here, so a case addresses an existing scope row exactly without a sixth constant to keep in step with the fixture. The two symbols batch 021 DID add are a member and a Page, because §8.6 case 4 needs a member scoped to one Page and a second Page under the same Business, and §12.6's list contains neither.",
   "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make.",
   "_no_symbol_for_an_industry_assignment": "Batch 030 creates app.industry_assignments and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row and batch 021 none for a member scope. §4's ERD makes the assignment zero-or-one per Business and 030_industry.sql makes (workspace_id, business_profile_id) unique, so a Business names at most one assignment and every case addresses it through ids this catalog already fixes. What batch 030 DID add is one Business and three global rows: the Business because the permitted INSERT needs a live target with no assignment, and the global rows because a catalog no case can address is a catalog no case can be about."

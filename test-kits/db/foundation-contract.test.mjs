@@ -200,8 +200,17 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // will require rows for all three; the snapshot's own declaration says what such a row will and
 // will not mean, because a row in a list called `tenant_tables` is not the place to discover that
 // two of its entries are not tenant-owned.
+//
+// Batch 040 joins for the same structural reason a fourth time, and the chain is now six batches
+// deep: its knowledge policies call helpers created by 011 and 021, and app.knowledge_items carries
+// composite foreign keys into BOTH tables 020 creates. What it adds to this list's own problem is
+// not a new kind of row — both of its tables are ordinary tenant tables and will take ordinary rows
+// — but a new kind of thing the rows cannot say: app.knowledge_items is the first table whose scope
+// is TWO columns, a mandatory Business and a nullable Page override, and none of the properties
+// `tenant_tables` records can see that. The snapshot's own declaration says so, because a list that
+// silently describes half a scope is the shape 030 found one row earlier.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
-  '030_industry.sql'];
+  '030_industry.sql', '040_knowledge.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -351,6 +360,33 @@ const ADDED_SYMBOLS = [
   'industry_pack_interior',
   'industry_pack_interior_v1',
   'industry_pack_interior_v2',
+  // Batch 040. Knowledge is the first family whose SCOPE IS TWO COLUMNS — §4 invariant 3 gives every
+  // knowledge row a Business scope and makes the Page scope a nullable OVERRIDE — so the fixture has
+  // to carry rows of BOTH shapes or half the narrowing is untested and green. Five items, because
+  // each one carries exactly one control: the business-level row every positive reads, the
+  // page-level row inside a single-Page scope, its SIBLING under the same Business (§8.6 case 4 at a
+  // granularity no earlier table has, because a knowledge row is the first that carries its own page
+  // scope rather than inheriting its parent's), the row outside the editor's Business scope (§8.6
+  // case 3), and the row across the tenant boundary (§8.6 case 5).
+  //
+  // A knowledge item needs a SYMBOL where a version, a member scope and an industry assignment did
+  // not, and the reason is a property of the schema rather than a preference: those three are
+  // addressed by a natural key some document fixes — parent and ordinal, member and target, the
+  // Business an assignment belongs to. A knowledge item has none. Nothing in §4, §5 or §8 says a
+  // Business holds one voice profile, so inventing a `unique (business_profile_id, kind)` to save
+  // five constants would be writing a product decision into a constraint.
+  'knowledge_a1_business',
+  'knowledge_a1_page',
+  'knowledge_a1_sibling_page',
+  'knowledge_a2_business',
+  'knowledge_b1_business',
+  // And one row that is not knowledge. 040's INSERT policy carries §11.3's archive clause TWICE —
+  // once for the Business and once for the Page — because a knowledge item is the first row in this
+  // schema with two parents that can be archived independently. business_a3_archived can only ever
+  // exercise the first: a refusal there is the Business clause firing and says nothing about the
+  // second. This is an ARCHIVED PAGE under a LIVE Business, the only fixture row where the two
+  // parents disagree.
+  'page_a1_archived',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

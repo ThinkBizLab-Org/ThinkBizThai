@@ -114,6 +114,22 @@
 // privilege layer" and by "the one role holding a grant reads zero rows". §12.6 was written about
 // tenant rows and this batch is the first with any others.
 //
+// BATCH 040 MOVES ONE ROW, AND IT IS THE ROW THAT HAS READ `false` SINCE BATCH 010. §12.6/3 is
+// "`user_approver_a` cannot edit content/knowledge", and 040 creates one of the two families that
+// sentence names. Three batches have recorded in-scope ANALOGUES for it and refused to count them;
+// these are not analogues, and the row moves from `false` to `knowledge-half`.
+//
+// IT DOES NOT MOVE TO `true`, and the reason is the whole discipline of this map: the sentence names
+// content AND knowledge, content is batch 080, and half a claim reported as a whole one is exactly
+// what the analogue rule was protecting against. `knowledge-half` is the same shape §12.6/8 has
+// carried since batch 010 — a labelled partial, printed as a partial by `make db-rls-smoke` rather
+// than counted as a pass. (It was NOT printed as one until 040: scripts/db/rls-smoke.mjs filtered on
+// `!covered`, so a truthy label vanished from the report. That is fixed in the same change, because
+// a partial nobody prints is a `true` with extra characters.)
+//
+// The three analogues stay recorded and stay labelled. They are still the only evidence about the
+// workspace, the page context and the industry assignment, and 040 pays none of them.
+//
 // A row that moves must move for a case, not for a sentence: identity-isolation.test.mjs requires
 // every assertion claimed `covered: true` to be cited by a case in this file.
 export const SMOKE_COVERAGE = {
@@ -133,7 +149,18 @@ export const SMOKE_COVERAGE = {
                            + '— plus a fourth the earlier tables had no occasion for: the two positives name '
                            + 'THE SAME GLOBAL pack version id, so the pair asserts that one catalog row is '
                            + 'pinned from both sides of the boundary while neither owner can see the other\'s '
-                           + 'assignment. Batch 030\'s two GLOBAL tables are deliberately NOT counted here. '
+                           + 'assignment.\n\n'
+                           + 'BATCH 040 ADDS app.knowledge_items AND app.knowledge_item_versions WITH ALL '
+                           + 'THREE CASES EACH — A reads its own, A cannot read B\'s while holding B\'s '
+                           + 'exact knowledge id, and B CAN — and it is the first family where the content '
+                           + 'behind that boundary is CONTENT-2 rather than a name: §9.1 classes knowledge '
+                           + '"tenant isolated", so a cross-tenant read here would leak what another '
+                           + "business says rather than what it is called. The write path is asserted too, "
+                           + 'on both tables, and the version negative is not implied by the item one — a '
+                           + 'version row holds what the item USED to say, so a boundary that held on the '
+                           + 'current row and not on the history would leak the same content one table '
+                           + 'over.\n\n'
+                           + 'Batch 030\'s two GLOBAL tables are deliberately NOT counted here. '
                            + 'They belong to no tenant, so "A cannot reach B\'s row" is not a claim anyone can '
                            + 'make about them; what is asserted instead is that BOTH owners are refused '
                            + 'identically, at the privilege layer, which is a different assertion and is '
@@ -163,15 +190,41 @@ export const SMOKE_COVERAGE = {
                            + 'negative, and it is paired with TWO positives — the unscoped owner and the '
                            + 'all_businesses viewer — so it cannot be satisfied by the row becoming '
                            + 'unreadable to everyone or by the helper answering "narrowed therefore '
-                           + 'excluded".' },
-  3: { covered: false, note: 'content and knowledge are batches 080 and 040. There are now THREE in-scope '
-                           + 'ANALOGUES — an approver cannot update the workspace (010), cannot update a '
-                           + 'page context (020), and cannot re-pin the industry assignment of the very '
-                           + 'Business their member scope names (030) — and all three are labelled analogues '
-                           + 'rather than counted as this assertion. The third is the sharpest of them, '
-                           + 'because the approver\'s scope ADMITS the row and their role still refuses the '
-                           + 'write, which is §7\'s "role sets the ceiling, scope narrows it" in the '
-                           + 'direction people forget. The tables §12.6/3 names still do not exist.' },
+                           + 'excluded".\n\n'
+                           + 'BATCH 040 IS THE FIRST TO ASSERT IT AT TWO GRANULARITIES ON ONE FAMILY, '
+                           + 'because a knowledge row is the first row in this schema that carries a Page '
+                           + 'scope OF ITS OWN rather than inheriting one from its parent. '
+                           + '`editor-a-scope-does-not-reach-the-knowledge-item-of-business-a2` is the '
+                           + 'Business half and `page-editor-a-cannot-see-the-knowledge-item-of-the-sibling-'
+                           + 'page` is the Page half — two rows in the SAME Business, distinguished by '
+                           + 'nothing but their own page column — and each is paired with a positive: the '
+                           + 'unscoped owner reads business_a2\'s, and user_editor_a reads the sibling '
+                           + "page's, because §7 gives a business scope every Page beneath it." },
+  3: { covered: 'knowledge-half',
+       note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
+           + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
+           + 'app.knowledge_item_versions — one of the two families that sentence names. §8.2 marks the '
+           + 'approver `N` on "Knowledge current INSERT/UPDATE/archive" and `Y` on the SELECT beside it, '
+           + 'which is exactly "cannot EDIT" rather than "cannot see", and five cases assert it: the '
+           + 'approver READS the knowledge item of business_a1, and is refused the insert, the rename, '
+           + 'the ARCHIVE and the version write. The archive is a separate case rather than a synonym for '
+           + 'the rename because §8.2 spells the operation "INSERT/UPDATE/archive" and archiving moves a '
+           + 'different column through a different grant — a schema refusing one and permitting the other '
+           + 'would let an approver hide every knowledge item in the workspace.\n\n'
+           + 'THE ROLE IS THE ONLY THING REFUSING, which is what makes these cases about §12.6/3 rather '
+           + 'than about visibility: user_approver_a holds a `business` member scope on business_a1, so '
+           + 'the restrictive narrowing ADMITS every row they are refused, and they read it one case '
+           + 'earlier.\n\n'
+           + 'WHAT IS STILL OWED, AND BY WHOM: content. app.content_items and its versions are batch '
+           + '080\'s and no case here touches them, so this row is `knowledge-half` and not `true`. '
+           + 'Flipping it would report half a sentence as a whole one, which is the thing the analogue '
+           + 'rule below exists to refuse.\n\n'
+           + 'THE THREE IN-SCOPE ANALOGUES REMAIN ANALOGUES AND REMAIN UNCOUNTED — an approver cannot '
+           + 'update the workspace (010), cannot update a page context (020), and cannot re-pin the '
+           + 'industry assignment of the very Business their member scope names (030). Batch 040 pays '
+           + 'none of them; they are evidence about three other tables, and the sharpest of them is '
+           + 'still the third, for the reason it was recorded: the approver\'s scope admits the row and '
+           + 'their role still refuses the write.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -186,7 +239,15 @@ export const SMOKE_COVERAGE = {
                            + '`owner-a-cannot-delete-an-industry-assignment` instead, where "even the owner" '
                            + 'is the claim. The two GLOBAL tables offer a viewer nothing to be refused: they '
                            + 'grant no client role any verb, which `owner-a-cannot-read-the-industry-pack-'
-                           + "catalog` asserts for every client identity at once." },
+                           + "catalog` asserts for every client identity at once.\n\n"
+                           + 'ON BATCH 040 IT IS INSERT AND UPDATE ON THE ITEM AND INSERT ON THE VERSION, '
+                           + 'and delete is again absent for the reason rather than by oversight: no role '
+                           + 'holds DELETE on either knowledge table, so a viewer refused one would be '
+                           + 'refused for want of a grant and would say nothing about a viewer. '
+                           + '`owner-a-cannot-delete-a-knowledge-item` carries that refusal instead, where '
+                           + '"even the owner" is the claim. The viewer here holds an `all_businesses` '
+                           + 'member scope, so the narrowing ADMITS every row they are refused and the '
+                           + 'role is the only thing refusing.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -200,7 +261,11 @@ export const SMOKE_COVERAGE = {
                            + 'had started answering for an inactive membership. Batch 021 gives that identity '
                            + 'a scope row ON PURPOSE so the claim is about a policy rather than about an '
                            + 'empty table, and batch 030 re-asks it of app.industry_assignments, whose '
-                           + 'visibility is the same helper and nothing else.' },
+                           + 'visibility is the same helper and nothing else. Batch 040 re-asks it of BOTH '
+                           + 'knowledge tables — the item, whose only membership predicate is that helper, '
+                           + 'and the version, which reaches the helper twice over: once through its own '
+                           + 'permissive policy and once through the item its restrictive narrowing '
+                           + 'resolves.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -212,7 +277,13 @@ export const SMOKE_COVERAGE = {
                            + 'is asserting a REFUSAL SOMEBODY MIGHT WANT TO REMOVE. Removing it is a security '
                            + 'decision with an owner (A1 Security, through an RFC), and this case is what '
                            + 'makes that decision arrive as a failing test rather than as a grant inside a '
-                           + 'migration.' },
+                           + 'migration.\n\n'
+                           + 'BATCH 040 IS THE OPPOSITE END OF THE SAME SCALE and is asserted the same way: '
+                           + 'knowledge is CONTENT-2, the class §9.1 describes as "tenant isolated; no '
+                           + 'model training reuse by default", and it is the one family in this schema '
+                           + 'nobody could argue for exposing anonymously. Both knowledge cases are '
+                           + 'refused on the SCHEMA all the same, because the control is the same control '
+                           + 'and stating it per table is what makes it checkable per table.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -230,7 +301,20 @@ export const SMOKE_COVERAGE = {
                            + 'holds, in a table it may not read, admitted by every policy — and the foreign '
                            + 'key refuses it with 23503. It is asserted as `rejected` with the SQLSTATE named, '
                            + 'because a case that would also pass on 42501 would be satisfied by a policy '
-                           + 'stopping the row on a database whose foreign key had been dropped.' },
+                           + 'stopping the row on a database whose foreign key had been dropped.\n\n'
+                           + 'BATCH 040 ADDS FORGERIES AND ADDS NO `rejected` CASE, and the absence is a '
+                           + 'finding rather than an omission. A forged workspace_id, a forged created_by '
+                           + 'naming another ACTIVE member of the same workspace, and a version forged onto '
+                           + "another tenant's knowledge item all fail — every one of them with 42501, at "
+                           + 'the POLICY. That is not a weaker schema: 040\'s INSERT policy checks the '
+                           + 'Business and the Page with subqueries that are the composite foreign keys\' '
+                           + 'own conditions evaluated under RLS, and the version\'s restrictive policy is '
+                           + "the version FK's condition evaluated under RLS, so a caller who would violate "
+                           + 'either constraint is refused by a policy FIRST. 020 could assert a raw 23503 '
+                           + 'because its version INSERT policy checked only created_by and the role. A '
+                           + '`rejected` case here would demand an outcome a correct database cannot '
+                           + 'produce, so the constraints are held by 040_knowledge.sql\'s text and by its '
+                           + 'apply-time block instead, and this note says which layer actually refuses.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -250,7 +334,15 @@ export const SMOKE_COVERAGE = {
                            + 'row that belongs to nobody — and they are the two the CI negative control for '
                            + 'those tables breaks. The service version-mutation pair is asserted there too, '
                            + 'and at the GRANT layer, because a published pack version is §8.1\'s only `N` in '
-                           + 'the service column.' },
+                           + 'the service column.\n\n'
+                           + 'BATCH 040 EXTENDS THE NEGATIVE HALF AND MOVES NOTHING. The service reads zero '
+                           + 'rows from BOTH knowledge tables while holding grants on both; its UPDATE of a '
+                           + 'knowledge item is FILTERED rather than refused — it holds that grant, so the '
+                           + 'empty result is attributable to row level security and is witnessed rather '
+                           + 'than merely observed — and its UPDATE and DELETE of a version are refused at '
+                           + 'the GRANT layer, which is §8.2\'s only `N` in the service column. The positive '
+                           + 'half is still not asserted, and asserting it would still require inventing '
+                           + 'the `P` §8.2 leaves undefined.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -268,7 +360,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'creates a member scope, and a SCOPED EDITOR reads and writes inside its scope (021); owner '
    + 'assigns an industry pack to the one live Business the fixture leaves unassigned, re-pins '
    + 'another to a second published version, and a scoped editor re-pins the Business its scope '
-   + 'names (030).',
+   + 'names (030); owner and EDITOR both create a knowledge item, rename one and append a version, '
+   + 'and the same owner creates one at each of the two scope shapes — business-level and '
+   + 'page-level (040).',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -280,7 +374,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'every other. The default-deny is still asserted; what changed is that the grant beside it is '
    + 'now asserted too. Batch 030 repeats the split on app.industry_assignments and adds the case '
    + 'the earlier tables had no shape for: an APPROVER whose member scope covers the row is still '
-   + 'refused the write, so role and scope are visibly two different tests rather than one.',
+   + 'refused the write, so role and scope are visibly two different tests rather than one. BATCH '
+   + '040 IS WHERE THE EDITOR READS THE OTHER WAY, and the difference is §8.2 rather than a change '
+   + 'of mind: that matrix marks "Knowledge current INSERT/UPDATE/archive" `Y` for the editor where '
+   + '§8.1 marks the Business/Page equivalent `P`, so 040 names the editor in the permissive write '
+   + 'policy unconditionally and lets the scope rule narrow it — `admits`, the treatment §8\'s '
+   + 'legend gives every `Y`, and never `covers`, which belongs to a `P`. The pair that says so is '
+   + '`editor-a-can-create-a-knowledge-item-under-business-a1` passing while '
+   + '`editor-a-cannot-create-a-business` still fails for the same identity. The approver and the '
+   + 'viewer are refused on both knowledge tables, each while holding a member scope that admits '
+   + 'the row.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -291,7 +394,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'same three shapes on app.industry_assignments — a filtered read, a filtered write with a '
    + 'witness, and a raised INSERT — and keeps the restrictive form even though it creates the '
    + 'table itself, because one policy per table means the scope rule has one home rather than one '
-   + 'per permissive policy.',
+   + 'per permissive policy. BATCH 040 CARRIES THE SAME THREE SHAPES ON app.knowledge_items — a '
+   + 'filtered read, a filtered write with a witness, and a raised INSERT — and adds them on '
+   + 'app.knowledge_item_versions, where the narrowing is not a copy of the item\'s predicate but '
+   + 'the item\'s own reachability, so the history of a Business outside the scope is refused for '
+   + 'the same reason the Business is.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -304,7 +411,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'case 4 to be about. What 030 does record is the consequence at the level it DOES have — '
    + '`page-editor-a-can-repin-the-industry-assignment-of-business-a1`, because 021\'s '
    + '`member_scope_covers_business` counts a page scope on its parent Business, which is 021\'s '
-   + 'definition and not 030\'s to change.',
+   + 'definition and not 030\'s to change. BATCH 040 IS THE FIRST TO ASK CASE 4 ABOUT A ROW\'S OWN '
+   + 'PAGE SCOPE rather than about its parent\'s. Batch 021 could only refuse a member a PAGE ROW; '
+   + 'a knowledge item carries `page_context_profile_id` itself (§4 invariant 3 — a nullable '
+   + 'override on a row that always has a Business scope), so `knowledge_a1_page` and '
+   + '`knowledge_a1_sibling_page` sit in the SAME Business and differ in nothing but that column. '
+   + 'user_page_editor_a reads the first and is refused the second, on the item and on its version, '
+   + 'for the read and for both writes. The same consequence of 021\'s definition appears here too '
+   + 'and is asserted positively rather than left implicit: '
+   + '`page-editor-a-can-update-the-business-level-knowledge-item-of-business-a1`, because a page '
+   + 'scope counts on its parent Business and business-level knowledge reaches every Page beneath '
+   + 'it. That is 021\'s to change, not 040\'s, and the case is what makes changing it visible.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -312,19 +429,34 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the write path (030). Batch 030\'s two GLOBAL tables are excluded on purpose: a row that '
    + 'belongs to no workspace has no cross-tenant case, and pretending otherwise would be counting '
    + 'a refusal that holds for everybody as a tenant boundary. What is asserted there instead is '
-   + 'that BOTH owners are refused identically.',
+   + 'that BOTH owners are refused identically. BATCH 040 adds it on both knowledge tables, in both '
+   + 'directions, on the read and on the write path — and it is the first family where the row '
+   + 'behind the boundary is CONTENT-2, so a failure here would leak what another tenant\'s '
+   + 'business SAYS rather than what it is called.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
-   + 'assignment, whose only membership predicate is the batch 011 helper.',
+   + 'assignment, whose only membership predicate is the batch 011 helper. Batch 040 re-asks it of '
+   + 'the knowledge item and of its version, which reaches the helper twice — once through its own '
+   + 'permissive policy and once through the item its restrictive narrowing resolves.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
-   + 'asserted on the SCHEMA and fails the day anon is granted USAGE on app.',
+   + 'asserted on the SCHEMA and fails the day anon is granted USAGE on app. Batch 040 asserts the '
+   + 'same refusal on the family at the other end of that scale — knowledge is CONTENT-2 and '
+   + '"tenant isolated" by §9.1 — because the control is the same control and stating it per table '
+   + 'is what makes it checkable per table.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
-   + 'column rather than about the caller being unable to write.',
+   + 'column rather than about the caller being unable to write. On 040 the forged created_by names '
+   + 'ANOTHER ACTIVE MEMBER OF THE SAME WORKSPACE, so nothing but that conjunct can refuse it, and '
+   + 'the forged SCOPE columns are asserted three ways: a workspace_id naming the other tenant, a '
+   + 'page from a Business the row does not name, and a version forged onto another tenant\'s '
+   + 'knowledge item. ALL OF THEM RAISE 42501 AT THE POLICY and none of them reaches a constraint, '
+   + 'which is stated in §12.6/7\'s note rather than dressed up as a `rejected` case: 040\'s scope '
+   + "subqueries are the composite foreign keys' own conditions evaluated under RLS, so a caller "
+   + 'who would violate one is refused by a policy first.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -344,9 +476,24 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'four cells are live: update and delete by the workspace OWNER and by the SERVICE identity, '
    + 'each at the grant layer. It is the first immutable table in the schema that belongs to no '
    + 'tenant, so the refusal cannot be mistaken for a tenant boundary — nobody can write it, and '
-   + '030\'s own apply-time block walks six roles against it and raises if any holds either verb.',
-  10: 'not applicable to batches 010-030 — no command function is specified for identity, for '
-    + 'business.core or for industry.core, and audit (140) and outbox (050) do not exist yet. Batch '
+   + '030\'s own apply-time block walks six roles against it and raises if any holds either verb.\n\n'
+   + 'BATCH 040 ADDS A FOURTH IMMUTABLE TABLE AND COMPLETES THE GRID ON IT TOO. '
+   + 'app.knowledge_item_versions is immutable by §3.2, §4 invariant 8 and §8.2\'s "Knowledge '
+   + 'version UPDATE/DELETE | N N N N N N", and all four cells are live: update and delete by the '
+   + 'workspace OWNER and by the SERVICE identity, each declared at the GRANT layer because no role '
+   + 'holds either verb. It is the first immutable table whose contents are CONTENT-2 — the others '
+   + 'held names and catalog labels — so "history cannot be rewritten" here means the record of '
+   + 'what a business said cannot be rewritten. 040\'s own apply-time block walks six roles against '
+   + 'it through has_any_column_privilege and has_table_privilege and raises if any cell holds '
+   + 'either verb, which catches a grant made by a LATER batch that no case in this file would '
+   + 'see.',
+  10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
+    + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
+    + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
+    + 'on app.knowledge_item_versions can write a version whose name never was the item\'s name, '
+    + 'because nothing binds the two statements into one transaction. RLS cannot fix that — it is a '
+    + 'property of a write path, not of a row — and the command surface owes it, which 040\'s header '
+    + 'records rather than working around with a trigger nobody specified. Batch '
     + '030 makes the gap more visible rather than smaller: RFC-2026-012 §4 names SECURITY DEFINER '
     + 'command functions as the enforcement mechanism for the whole client/database boundary, and '
     + 'the industry catalog is the first family this repository has written that is unreadable '
@@ -369,6 +516,13 @@ const PAGE_B1_NAME = 'fixture page b1';
 // Batch 021's own fixture value, for the same reason: a `no-effect` case against a row a scoped
 // member must not touch needs a witness that reads the value back, and the value has one home.
 const PAGE_A1_SIBLING_NAME = 'fixture page a1 sibling';
+// Batch 040's fixture values, for the same reason again. Four of the five knowledge rows are read
+// back by a witness after a write somebody was refused, and a witness that asserts "a row is still
+// there" without asserting what it SAYS is expectNoRows wearing a different name.
+const KNOWLEDGE_A1_BUSINESS_NAME = 'fixture knowledge a1 business';
+const KNOWLEDGE_A1_SIBLING_PAGE_NAME = 'fixture knowledge a1 sibling page';
+const KNOWLEDGE_A2_BUSINESS_NAME = 'fixture knowledge a2 business';
+const KNOWLEDGE_B1_BUSINESS_NAME = 'fixture knowledge b1 business';
 
 /**
  * @param {(symbol: string) => string} id  resolves a fixture symbol to its uuid. Passing a
@@ -598,6 +752,97 @@ export function buildCases(id) {
     params: [workspace, business],
     column: 'industry_pack_version_id',
     equals: version,
+  });
+
+  // -- Batch 040 builders and witnesses. --------------------------------------------------------
+  //
+  // Knowledge is the first family in this schema whose SCOPE IS TWO COLUMNS. §4 invariant 3 gives
+  // every knowledge row a Business scope and makes the Page scope a nullable OVERRIDE, so the rows
+  // below come in two shapes and every narrowing case has to say which one it is about: a
+  // business-level item is narrowed by `member_scope_admits_business`, a page-level item by
+  // `member_scope_admits_page`, and a suite holding only one of the two states would leave half of
+  // that policy untested and green.
+  const KNOWLEDGE_A1_BUSINESS = id('knowledge_a1_business');
+  const KNOWLEDGE_A1_PAGE = id('knowledge_a1_page');
+  const KNOWLEDGE_A1_SIBLING_PAGE = id('knowledge_a1_sibling_page');
+  const KNOWLEDGE_A2_BUSINESS = id('knowledge_a2_business');
+  const KNOWLEDGE_B1_BUSINESS = id('knowledge_b1_business');
+  // An ARCHIVED Page under a LIVE Business, and the only row in the fixture where the two parents
+  // disagree. 040's INSERT policy carries §11.3's archive clause twice — once per parent — and
+  // business_a3_archived can only ever exercise the first of them.
+  const PAGE_A1_ARCHIVED = id('page_a1_archived');
+
+  // A knowledge item is addressed by its own id, which is why the catalog needed symbols for these
+  // five and needed none for a version, a member scope or an industry assignment: those three have
+  // a natural key some document fixes, and a knowledge item has none. Inventing a unique
+  // (business_profile_id, kind) so a case could address a row without a symbol would be writing a
+  // product decision into a constraint to save five constants.
+  const KNOWLEDGE_BY_ID = 'select id from app.knowledge_items where id = $1';
+  // A version is addressed by its PARENT AND ITS ORDINAL, exactly as batch 020's are, so the five
+  // items above are the only knowledge ids this file holds.
+  const VERSION_1_OF_KNOWLEDGE =
+    'select id from app.knowledge_item_versions where knowledge_item_id = $1 and version_number = 1';
+
+  const createBusinessKnowledge = (workspace, business, kind, createdBy) => ({
+    sql: 'insert into app.knowledge_items'
+       + ' (workspace_id, business_profile_id, page_context_profile_id, kind, name, created_by, updated_by)'
+       + " values ($1, $2, null, $3, 'attempted knowledge', $4, $4) returning id",
+    params: [workspace, business, kind, createdBy],
+  });
+
+  // The page column is a literal `null` above and a parameter here rather than one builder taking
+  // either: the driver inlines every parameter as a SQL STRING literal, so a JavaScript null would
+  // arrive as the text 'null' in a uuid column. The two shapes are also the two cases, and a reader
+  // can see which one a case is about from the builder it calls.
+  const createPageKnowledge = (workspace, business, page, kind, createdBy) => ({
+    sql: 'insert into app.knowledge_items'
+       + ' (workspace_id, business_profile_id, page_context_profile_id, kind, name, created_by, updated_by)'
+       + " values ($1, $2, $3, $4, 'attempted knowledge', $5, $5) returning id",
+    params: [workspace, business, page, kind, createdBy],
+  });
+
+  // version_number 2, never 1, for batch 020's reason: the fixture already holds version 1 of every
+  // item, so a case reusing that number would hit the (knowledge_item_id, version_number) unique
+  // index — checked DURING the insert — and every refusal below would come back 23505 instead of
+  // the 42501 it exists to observe.
+  const createKnowledgeVersion = (workspace, business, item, createdBy) => ({
+    sql: 'insert into app.knowledge_item_versions'
+       + ' (workspace_id, business_profile_id, knowledge_item_id, version_number, name, created_by)'
+       + " values ($1, $2, $3, 2, 'attempted knowledge version', $4) returning id",
+    params: [workspace, business, item, createdBy],
+  });
+
+  const renameKnowledge = (item, to) => ({
+    sql: 'update app.knowledge_items set name = $2 where id = $1 returning id',
+    params: [item, to],
+  });
+
+  // Archiving is an UPDATE of the typed lifecycle field §8.2 names in the operation itself
+  // ("INSERT/UPDATE/archive"), which is why a refused archive is a different assertion from a
+  // refused rename: it is the operation §12.6/3 is most directly about when it says an approver may
+  // not EDIT knowledge, and its witness reads the lifecycle rather than the name.
+  const archiveKnowledge = (item) => ({
+    sql: 'update app.knowledge_items set archived_at = now() where id = $1 returning id',
+    params: [item],
+  });
+
+  const knowledgeNameUnchanged = (as, item, name) => ({
+    as,
+    sql: 'select name from app.knowledge_items where id = $1',
+    params: [item],
+    column: 'name',
+    equals: name,
+  });
+
+  // `coalesce(archived_at::text, 'live')` rather than the column itself, because the driver renders
+  // SQL NULL and the empty string identically and this witness has to distinguish "still live" from
+  // "the row came back with nothing in that column".
+  const knowledgeStillLive = (as, item) => ({
+    as,
+    sql: "select coalesce(archived_at::text, 'live') as archive_state from app.knowledge_items where id = $1",
+    params: [item],
+    column: 'archive_state',
+    equals: 'live',
   });
 
   return [
@@ -2595,6 +2840,759 @@ export function buildCases(id) {
       why: 'app_worker holds SELECT, INSERT and UPDATE on this table and no policy, so an empty read '
          + 'is attributable to row level security rather than to a forgotten grant — and a service '
          + 'role that had acquired BYPASSRLS would return the row instead.',
+    },
+
+    // =========================================================================================
+    // Batch 040 — knowledge items, their immutable versions, and the two-column scope.
+    // =========================================================================================
+    //
+    // Two tables, and the reason this block is the longest in the file is that it is the first
+    // family whose ROWS DIFFER IN SHAPE. Every table before this one has a single scope column that
+    // every row of it carries; §4 invariant 3 gives a knowledge row a mandatory Business scope AND
+    // an optional Page override, so the narrowing decides per row which question to ask and every
+    // scope assertion below has to be made twice — once about a business-level row and once about a
+    // page-level one.
+    //
+    // THE OTHER NEW THING IS THE ROLE. §8.2 marks the editor `Y` on "Knowledge current
+    // INSERT/UPDATE/archive" where §8.1 marked it `P` on the Business/Page equivalent, so this is
+    // the first batch where an editor's write is asserted as a POSITIVE rather than as a
+    // default-deny — and `editor-a-can-update-the-knowledge-item-of-business-a1` is the case that
+    // says so. Without it the narrowing cases below would be satisfied by an editor who can write
+    // nothing at all.
+    //
+    // WHAT THIS BLOCK DELIBERATELY DOES NOT CONTAIN IS A `rejected` CASE, and the absence is a
+    // finding rather than an omission. Batch 020 could assert §4 invariant 10 as a raw 23503
+    // because its version INSERT policy checked only `created_by` and the role, so a row naming an
+    // unrelated Business passed every policy and reached the foreign key. Batch 040's INSERT policy
+    // checks the Business and the Page with subqueries that are the composite foreign keys' own
+    // conditions evaluated under RLS, and the version's restrictive policy is literally the
+    // version FK's condition evaluated under RLS — so a caller who would violate either constraint
+    // is refused by a POLICY first, with 42501, and a `rejected` case demanding 23503 could not be
+    // satisfied by a correct database. The constraints are still there and are still the backstop
+    // for a path no policy covers (the service, and whatever command function 041 brings); they are
+    // asserted by 040_knowledge.sql's text and by its apply-time block, and pretending otherwise
+    // with a case that passed for the wrong reason would be worse than saying this.
+
+    // -- §12.6/1, §8.6/1 and §8.6/5. The tenant boundary, on both tables and both directions. ----
+    {
+      id: 'owner-a-sees-the-knowledge-item-of-business-a1',
+      covers: ['§12.6/1', '§8.6/1', '§8.2/knowledge-select'],
+      as: ownerA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'rows',
+      why: '§8.2 "Knowledge/Research SELECT" is Y for every built-in role, so the predicate tests active '
+         + 'membership and not role. The positive half: without it every negative below is satisfied by a '
+         + 'policy that hides everything, or by a fixture that never loaded.',
+    },
+    {
+      id: 'owner-a-sees-the-page-scoped-knowledge-item-of-page-a1',
+      covers: ['§12.6/1', '§8.6/1', '§4/invariant-3'],
+      as: ownerA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_PAGE],
+      expect: 'rows',
+      why: 'The OTHER shape, read by the same identity. A page-level row goes through '
+         + 'app.member_scope_admits_page where the row above goes through '
+         + 'app.member_scope_admits_business, so this is not implied by the case above it — it is the '
+         + 'other branch of the same `case` expression, and an unscoped owner must pass both.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-knowledge-item-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_B1_BUSINESS],
+      expect: 'no-rows',
+      why: "Tenant A's owner holds tenant B's knowledge id exactly, and the row is not there. Knowledge "
+         + 'is CONTENT-2 — §9.1 classes it "tenant isolated" — so this is the first table in the schema '
+         + 'where a cross-tenant read would be a leak of what another business actually says rather than '
+         + 'of what it is called.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-knowledge-item-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      ...renameKnowledge(KNOWLEDGE_B1_BUSINESS, 'renamed across the tenant boundary'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerB, KNOWLEDGE_B1_BUSINESS, KNOWLEDGE_B1_BUSINESS_NAME),
+      why: 'The USING clause does not admit the row, so nothing is raised and nothing is changed. The '
+         + "witness runs as B's own owner and is what turns \"returned nothing\" into \"the row is still "
+         + 'there and still says what it said".',
+    },
+    {
+      id: 'owner-b-sees-the-knowledge-item-of-business-b1',
+      covers: ['§8.6/1'],
+      as: ownerB,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_B1_BUSINESS],
+      expect: 'rows',
+      why: 'The far side of the boundary is a real, populated tenant. Otherwise every A-side negative '
+         + 'above is satisfied by the row simply not existing.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-knowledge-item-in-workspace-b',
+      covers: ['§12.6/7', '§8.6/5'],
+      as: ownerA,
+      ...createBusinessKnowledge('__B__', BUSINESS_B1, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'A forged workspace_id, submitted by a real owner of a real workspace and naming a real other '
+         + 'one, with that workspace\'s real Business beside it. §3.3: a workspace_id from a client is '
+         + 'never trusted. An INSERT has no USING clause to filter it silently, so WITH CHECK refuses and '
+         + 'the database raises — and the layer is declared, because a missing INSERT grant would raise '
+         + 'the same 42501 while proving nothing about the policy.',
+    },
+    {
+      id: 'owner-a-cannot-forge-created-by-on-a-knowledge-item',
+      covers: ['§12.6/7', '§8.6/8'],
+      as: ownerA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', id('user_viewer_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: '§8.5: a user action asserts created_by = (select auth.uid()). The forged subject is ANOTHER '
+         + 'ACTIVE MEMBER OF THE SAME WORKSPACE, so nothing but that conjunct refuses it — and the same '
+         + 'statement with the caller\'s own subject succeeds two cases above, which is what makes this '
+         + 'about the forged column rather than about the caller being unable to write.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-knowledge-item',
+      covers: ['§8.5', '§12.6/4'],
+      as: ownerA,
+      sql: 'delete from app.knowledge_items where id = $1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: '§8.5 has no broad user delete; archiving is the typed lifecycle field §8.2 names in the '
+         + 'operation itself. No role holds DELETE, so EVEN THE OWNER is refused and the refusal is at '
+         + 'the privilege layer — which is why §12.6/4 rests on the viewer\'s insert and update rather '
+         + 'than on a delete that says nothing about a viewer.',
+    },
+
+    // -- §8.2's three `Y` cells, as writes that actually succeed. ------------------------------
+    {
+      id: 'owner-a-can-create-a-business-level-knowledge-item',
+      covers: ['§8.6/1', '§8.2/knowledge-write', '§4/invariant-3'],
+      as: ownerA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      expect: 'rows',
+      why: 'The permitted write, rolled back with its transaction. Without it every refusal in this block '
+         + 'passes against a table nobody can write at all, which is a different design.',
+    },
+    {
+      id: 'owner-a-can-create-a-page-scoped-knowledge-item',
+      covers: ['§8.6/1', '§8.2/knowledge-write', '§4/invariant-3'],
+      as: ownerA,
+      ...createPageKnowledge('__A__', BUSINESS_A1, PAGE_A1, 'audience', '__SELF__'),
+      expect: 'rows',
+      why: 'The nullable OVERRIDE, written. §3.3 lists knowledge under the Page row conditionally — '
+         + '"policy/knowledge/asset ที่จำกัดเฉพาะเพจ" — so a schema where only the business-level shape '
+         + 'could be created would satisfy every read case above and implement half of §4 invariant 3.',
+    },
+    {
+      id: 'editor-a-can-create-a-knowledge-item-under-business-a1',
+      covers: ['§8.2/knowledge-write', '§7/editor', '§8.6/1'],
+      as: editorA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      expect: 'rows',
+      why: 'THE CELL THIS BATCH TURNS ON. §8.2 marks "Knowledge current INSERT/UPDATE/archive" `Y` for '
+         + 'the editor, where §8.1 marks the Business/Page equivalent `P` — §7 says the same in prose, '
+         + '"editor: สร้าง/แก้ knowledge ... เมื่อ policy อนุญาต", and creating knowledge is the first '
+         + 'thing on that list. So the write policy names the editor unconditionally and the scope rule '
+         + 'narrows it, which is what §8\'s legend means by `Y`. Batch 021\'s `covers` treatment belongs '
+         + 'to a `P` cell and is deliberately NOT used here; the difference is asserted by this case '
+         + 'passing while `editor-a-cannot-create-a-business` (batch 020/021) still fails.',
+    },
+    {
+      id: 'editor-a-can-update-the-knowledge-item-of-business-a1',
+      covers: ['§8.2/knowledge-write', '§7/editor'],
+      as: editorA,
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the editor inside its scope'),
+      expect: 'rows',
+      why: 'The UPDATE half of the same cell, and the positive every narrowing case below needs: without '
+         + 'it, "the editor cannot reach business_a2" is satisfied by an editor who can reach nothing.',
+    },
+
+    // -- §11.3. Archive closes new creation, and this family has TWO parents that can be archived. -
+    {
+      id: 'owner-a-cannot-create-a-knowledge-item-under-an-archived-business',
+      covers: ['§11.3', '§8.6/2'],
+      as: ownerA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A3_ARCHIVED, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: '§11.3: "Archive ปิด creation/publish ใหม่ แต่ยังอ่าน history ตาม role". Knowledge under an '
+         + 'archived Business is new creation under it. The caller is the workspace OWNER, who is refused '
+         + 'nothing else on this table, so the refusal is the archive clause and not the role.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-knowledge-item-under-an-archived-page',
+      covers: ['§11.3', '§4/invariant-3'],
+      as: ownerA,
+      ...createPageKnowledge('__A__', BUSINESS_A1, PAGE_A1_ARCHIVED, 'audience', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'THE SECOND ARCHIVE CLAUSE, and the only case in the suite that can tell it from the first. '
+         + 'page_a1_archived is an archived Page under a LIVE Business, so the Business half of the '
+         + 'clause passes and only the Page half can refuse this — where business_a3_archived would have '
+         + 'been refused by the first clause and proved nothing about the second. A knowledge row is the '
+         + 'first row in this schema with two parents that can be archived independently.',
+    },
+
+    // -- §12.6/2, §8.6/3. Member scope, at BUSINESS granularity. -------------------------------
+    {
+      id: 'owner-a-is-unscoped-and-sees-the-knowledge-item-of-business-a2',
+      covers: ['§12.6/2', '§7/member-scope'],
+      as: ownerA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A2_BUSINESS],
+      expect: 'rows',
+      why: '§7: role sets the ceiling and member scope narrows it, so a member with NO scope row is not '
+         + 'narrowed. This is the case that stops every negative below from being satisfied by '
+         + 'business_a2\'s knowledge becoming unreadable to everybody, and it is the one that fails if '
+         + 'the restrictive policy ever asked `covers` where it asks `admits`.',
+    },
+    {
+      id: 'editor-a-sees-the-knowledge-item-of-business-a1',
+      covers: ['§12.6/2', '§8.6/1'],
+      as: editorA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'rows',
+      why: 'The inside of the scope. §12.6/2 is "user_editor_a sees Business A1/Page A1, never A2/Page '
+         + 'A2", and this is that sentence about the knowledge of A1 rather than about A1 itself.',
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-the-knowledge-item-of-business-a2',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A2_BUSINESS],
+      expect: 'no-rows',
+      why: 'Same Workspace, allowed Business A1, row in Business A2. The refusal is the RESTRICTIVE '
+         + 'policy — the only shape that can narrow what the permissive SELECT already granted to every '
+         + 'active member — and the owner reads the same row one case above, so this is about a policy '
+         + 'rather than about a missing row.',
+    },
+    {
+      id: 'editor-a-cannot-update-the-knowledge-item-of-business-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...renameKnowledge(KNOWLEDGE_A2_BUSINESS, 'renamed outside the editor scope'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A2_BUSINESS, KNOWLEDGE_A2_BUSINESS_NAME),
+      why: 'The write path of the same boundary. §8.6 requires both the returned row count and the '
+         + 'mutation error to be asserted, and a restrictive USING filters rather than raising — so the '
+         + 'witness runs as the UNSCOPED owner, the only A-side identity that can see the row a scoped '
+         + 'member was refused.',
+    },
+    {
+      id: 'editor-a-cannot-create-a-knowledge-item-under-business-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A2, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'THE CASE THAT SEPARATES THE ROLE FROM THE SCOPE. Every conjunct of the permissive write '
+         + 'policy PASSES here — the caller is an editor, created_by is their own subject, business_a2 is '
+         + 'live — and the RESTRICTIVE narrowing refuses. So the same identity that writes business_a1\'s '
+         + 'knowledge four cases above is refused business_a2\'s, which is the whole of §7\'s "role sets '
+         + 'the ceiling, member scope narrows it" in one pair.\n\n'
+         + 'It is also the first case in this suite whose refusal is raised BY a restrictive policy, and '
+         + 'Postgres words that differently: it names the policy before the table. The object attribution '
+         + 'in rls-assertions.mjs could not read that form until batch 040 widened it, so before this '
+         + 'case the only way to assert a restrictive refusal was to declare no layer and no object at '
+         + 'all — the unattributed shape C0\'s review D6 removed.',
+    },
+
+    // -- §8.6/4. Member scope, at PAGE granularity, which is new at knowledge level. ------------
+    //
+    // §8.6 case 4 is "same Business, allowed Page A, row Page B". Batch 021 could only ask it about a
+    // PAGE ROW; a knowledge item is the first thing in the schema that is itself scoped to a page, so
+    // this is the first time the question is about a row's own scope rather than about its parent.
+    {
+      id: 'editor-a-sees-the-knowledge-item-of-the-sibling-page',
+      covers: ['§7/member-scope', '§8.6/1'],
+      as: editorA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_SIBLING_PAGE],
+      expect: 'rows',
+      why: '§7: a `business` scope is "จำกัด Business เดียว รวม Page ใต้ Business" — one Business '
+         + 'INCLUDING the Pages under it. user_editor_a holds exactly that, so a knowledge item '
+         + 'restricted to any Page of business_a1 is inside their scope. Without this, the page-editor '
+         + 'negative below would be satisfied by the row being hidden from everybody.',
+    },
+    {
+      id: 'page-editor-a-sees-the-page-scoped-knowledge-item-of-page-a1',
+      covers: ['§8.6/1', '§4/invariant-3'],
+      as: pageEditorA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_PAGE],
+      expect: 'rows',
+      why: 'The inside of a single-Page scope. §12.6 names no identity scoped to one Page, which is why '
+         + 'batch 021 added this one; here it is what makes the next case a claim about PAGE scope '
+         + 'rather than about a member who can see nothing.',
+    },
+    {
+      id: 'page-editor-a-cannot-see-the-knowledge-item-of-the-sibling-page',
+      covers: ['§8.6/4', '§4/invariant-3'],
+      as: pageEditorA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_SIBLING_PAGE],
+      expect: 'no-rows',
+      why: 'SAME BUSINESS, ALLOWED PAGE A, ROW PAGE B. Both rows are page-level knowledge under '
+         + 'business_a1, so nothing about the Business separates them and only '
+         + 'app.member_scope_admits_page can. This is the case that fails if the narrowing ever asked '
+         + 'the Business question about a page-level row — which would look exactly like a working '
+         + 'policy from every other angle in this file.',
+    },
+    {
+      id: 'page-editor-a-cannot-update-the-knowledge-item-of-the-sibling-page',
+      covers: ['§8.6/4'],
+      as: pageEditorA,
+      ...renameKnowledge(KNOWLEDGE_A1_SIBLING_PAGE, 'renamed across the page boundary'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A1_SIBLING_PAGE, KNOWLEDGE_A1_SIBLING_PAGE_NAME),
+      why: 'The write path of the Page boundary, witnessed by the unscoped owner. §8.6 asks for the row '
+         + 'count AND the mutation, and a filtered UPDATE raises nothing.',
+    },
+    {
+      id: 'page-editor-a-cannot-create-a-knowledge-item-under-the-sibling-page',
+      covers: ['§8.6/4'],
+      as: pageEditorA,
+      ...createPageKnowledge('__A__', BUSINESS_A1, PAGE_A1_SIBLING, 'offers', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'Every conjunct of the permissive write policy passes — an editor, their own subject, a live '
+         + 'Business and a live Page — and the restrictive narrowing refuses because the Page is not the '
+         + 'one this member is scoped to. An INSERT is chosen because an INSERT is the mutation that '
+         + 'raises.',
+    },
+    {
+      id: 'page-editor-a-can-update-the-business-level-knowledge-item-of-business-a1',
+      covers: ['§7/member-scope', '§8.2/knowledge-write'],
+      as: pageEditorA,
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the page-scoped editor'),
+      expect: 'rows',
+      why: 'A CONSEQUENCE OF BATCH 021 THAT BATCH 040 CONSUMES RATHER THAN RE-DECIDES, asserted '
+         + 'positively so that changing it moves a test instead of quietly changing a boundary. '
+         + '`app.member_scope_covers_business` counts a `page` scope row on its PARENT Business — 021 '
+         + 'chose that so a member scoped to one Page can still read the Business their Page hangs from '
+         + '— so `admits_business` is true here and a page-scoped editor may write BUSINESS-LEVEL '
+         + 'knowledge, which reaches every Page under that Business. Batch 030 met the same consequence '
+         + 'on the industry assignment and recorded the same answer: if it is wrong it is wrong in 021, '
+         + 'and correcting it is a decision about the helper rather than an edit to a policy.',
+    },
+
+    // -- §12.6/3. THE APPROVER, on the tables §12.6/3 actually names. ---------------------------
+    //
+    // §12.6 assertion 3 is "`user_approver_a` cannot edit content/knowledge". It has read `covered:
+    // false` since batch 010 with three in-scope ANALOGUES recorded and deliberately not counted —
+    // an approver refused a workspace update (010), a page context (020) and an industry assignment
+    // (030). These are not analogues. app.knowledge_items IS one of the two tables that sentence
+    // names, and §8.2 marks the approver `N` on "Knowledge current INSERT/UPDATE/archive" and `Y` on
+    // the SELECT beside it, which is exactly "cannot EDIT" rather than "cannot see".
+    //
+    // The content half is batch 080's and nothing here pays it. SMOKE_COVERAGE[3] therefore reads
+    // `knowledge-half`, not `true`.
+    {
+      id: 'approver-a-sees-the-knowledge-item-of-business-a1',
+      covers: ['§12.6/3', '§8.2/knowledge-select'],
+      as: approverA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'rows',
+      why: 'The half of the approver\'s row that is NOT a refusal. §8.2 gives the approver `Y` on '
+         + 'Knowledge SELECT and `N` on the write, and §7 describes the role as "อ่านงานใน scope, '
+         + 'approve/reject/request changes" — so an approver who could not READ knowledge would be a '
+         + 'different bug wearing this assertion\'s name, and every refusal below would be satisfied by '
+         + 'it.',
+    },
+    {
+      id: 'approver-a-cannot-create-a-knowledge-item',
+      covers: ['§12.6/3', '§8.6/2', '§8.2/knowledge-write'],
+      as: approverA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: '§8.2 marks the approver `N`. THE MEMBER SCOPE ADMITS THIS ROW — user_approver_a holds a '
+         + '`business` scope on business_a1 — so the restrictive narrowing passes and the ROLE is the '
+         + 'only thing refusing, which is §7\'s "role sets the ceiling" in the direction people forget. '
+         + 'The layer is declared because the approver holds the INSERT column privileges: they are '
+         + 'granted to `authenticated`, so a `grant` refusal here would mean something else broke.',
+    },
+    {
+      id: 'approver-a-cannot-update-a-knowledge-item',
+      covers: ['§12.6/3', '§8.6/2'],
+      as: approverA,
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the approver'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A1_BUSINESS, KNOWLEDGE_A1_BUSINESS_NAME),
+      why: 'The approver reads this row two cases above, so the UPDATE is filtered by the write policy '
+         + 'rather than by visibility — and the witness proves the row still says what it said, which is '
+         + 'what an empty result cannot.',
+    },
+    {
+      id: 'approver-a-cannot-archive-a-knowledge-item',
+      covers: ['§12.6/3', '§8.6/2', '§11.3'],
+      as: approverA,
+      ...archiveKnowledge(KNOWLEDGE_A1_BUSINESS),
+      expect: 'no-effect',
+      witness: knowledgeStillLive(ownerA, KNOWLEDGE_A1_BUSINESS),
+      why: '§8.2 spells the operation "INSERT/UPDATE/ARCHIVE", so the third verb is part of the cell and '
+         + 'not a synonym for the second: archiving is an UPDATE of a different column, reachable '
+         + 'through a different grant, and a schema that refused a rename while permitting an archive '
+         + 'would let an approver hide every knowledge item in the workspace. The witness reads the '
+         + 'lifecycle rather than the name, because that is the value this write would have moved.',
+    },
+
+    // -- §12.6/4. The viewer, refused every write this table offers a client. -------------------
+    {
+      id: 'viewer-a-cannot-create-a-knowledge-item',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: '§8.2 marks the viewer `N`, and §7 gives the role "อ่านเฉพาะ projection ที่ได้รับอนุญาต". This '
+         + 'identity holds an `all_businesses` member scope, so the narrowing admits the row and the '
+         + 'role is again the only thing refusing.',
+    },
+    {
+      id: 'viewer-a-cannot-update-a-knowledge-item',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the viewer'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A1_BUSINESS, KNOWLEDGE_A1_BUSINESS_NAME),
+      why: 'The second of the two verbs §12.6/4 can be asserted with on this table. Delete is not the '
+         + 'third: no role holds it, so a viewer refused a delete would be refused for want of a grant '
+         + 'and would say nothing about a viewer.',
+    },
+
+    // -- §12.6/5 and §12.6/6. Suspended and anonymous. ------------------------------------------
+    {
+      id: 'suspended-a-sees-zero-knowledge-items',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'no-rows',
+      why: '§7: only status=active grants access. This table has no membership predicate of its own — '
+         + 'visibility is app.is_active_member(workspace_id) and nothing else — so a suspended member '
+         + 'seeing a knowledge item would mean the batch 011 helper had started answering for an '
+         + 'inactive membership. The row is there and four other identities read it.',
+    },
+    {
+      id: 'anonymous-sees-no-knowledge-item',
+      covers: ['§12.6/6', '§8.6/7', '§8.5'],
+      as: anonymous,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: '§8.5 gives anonymous no tenant policy and batch 040 grants anon nothing, so the refusal comes '
+         + 'from the privilege system on the SCHEMA before a table is reached — stronger than §12.6/6 '
+         + 'asks for, and recorded as the layer and the object so it fails the day anon is granted USAGE '
+         + 'on app.',
+    },
+
+    // -- §12.6/8 and RFC-2026-017 §7. The service identity, granted and unpoliced. --------------
+    {
+      id: 'service-sees-zero-knowledge-items',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: KNOWLEDGE_BY_ID,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT, INSERT and UPDATE on this table and NO policy, so an empty read is '
+         + 'attributable to row level security rather than to a forgotten grant — and a service role '
+         + 'that had quietly acquired BYPASSRLS would return the row instead. §8.2 marks the service `P` '
+         + 'on knowledge, and a `P` nobody has defined is a permission nobody may write.',
+    },
+    {
+      id: 'service-cannot-create-a-knowledge-item',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'THE RAISING HALF of RFC-2026-017 §7, which asks for the service identity to be "denied with an '
+         + 'error, not an empty result". Only an INSERT can carry it: an UPDATE whose USING clause filters '
+         + 'the row reports zero rows and raises nothing. app_worker HOLDS the INSERT grant and holds no '
+         + 'policy on this table, so the refusal is row level security with no applicable policy — the '
+         + 'declared layer is what says so, and a service role that had acquired BYPASSRLS would write the '
+         + 'row instead.',
+    },
+    {
+      id: 'service-cannot-update-a-knowledge-item',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the service'),
+      expect: 'no-effect',
+      witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A1_BUSINESS, KNOWLEDGE_A1_BUSINESS_NAME),
+      why: 'The service HOLDS the UPDATE grant, so this reaches row level security and is filtered there '
+         + 'rather than refused by the privilege system. That is the whole point of granting a role that '
+         + 'has no policy: the refusal is attributable, and the witness proves the row is unchanged '
+         + 'rather than merely unreturned.',
+    },
+
+    // -- The version table. Its narrowing is the ITEM's reachability, which is what these prove. -
+    {
+      id: 'owner-a-sees-the-knowledge-version-of-business-a1',
+      covers: ['§12.6/1', '§8.6/1', '§8.2/knowledge-select'],
+      as: ownerA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'rows',
+      why: 'A version is addressed by its parent and its ordinal, which is why the catalog holds no '
+         + 'symbol for one. The positive every negative below needs.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-knowledge-version-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_B1_BUSINESS],
+      expect: 'no-rows',
+      why: "Tenant A's owner holds tenant B's knowledge id exactly and asks for its history. A version "
+         + 'row holds what the item USED to say, so a boundary that held on the current row and not on '
+         + 'the history would leak the same content one table over.',
+    },
+    {
+      id: 'owner-b-sees-the-knowledge-version-of-business-b1',
+      covers: ['§8.6/1'],
+      as: ownerB,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_B1_BUSINESS],
+      expect: 'rows',
+      why: 'The far side is populated, so the negative above is about a policy.',
+    },
+    {
+      id: 'owner-a-is-unscoped-and-sees-the-knowledge-version-of-business-a2',
+      covers: ['§7/member-scope'],
+      as: ownerA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A2_BUSINESS],
+      expect: 'rows',
+      why: 'The unscoped control, one table over: without it the scope negative below is satisfied by '
+         + "business_a2's history being unreadable to everybody.",
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-the-knowledge-version-of-business-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A2_BUSINESS],
+      expect: 'no-rows',
+      why: '021\'s own apply-time hint names the failure this prevents: "a version row holds what a '
+         + 'Business or Page used to say, so a narrowing that skipped one would leave the history '
+         + 'readable to a member the current row is hidden from".',
+    },
+    {
+      id: 'page-editor-a-sees-the-knowledge-version-of-page-a1',
+      covers: ['§8.6/1', '§4/invariant-3'],
+      as: pageEditorA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_PAGE],
+      expect: 'rows',
+      why: 'A page-scoped member reads the history of the item their scope names. The version row itself '
+         + 'carries NO page column, so this passing means the narrowing resolved the page through the '
+         + 'item rather than through the version.',
+    },
+    {
+      id: 'page-editor-a-cannot-see-the-knowledge-version-of-the-sibling-page',
+      covers: ['§8.6/4', '§4/invariant-3'],
+      as: pageEditorA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_SIBLING_PAGE],
+      expect: 'no-rows',
+      why: 'THE CASE THE VERSION TABLE\'S WHOLE DESIGN RESTS ON. Both version rows carry the same '
+         + 'workspace_id and the same business_profile_id and neither carries a page at all, so nothing '
+         + 'ON THE VERSION distinguishes them — the only thing that can is the item each one hangs from, '
+         + 'which is exactly what `knowledge_item_versions_scope_narrows_member` asks. A narrowing '
+         + 'written from the version\'s own columns would pass every other case in this block and fail '
+         + 'this one.',
+    },
+    {
+      id: 'owner-a-can-write-a-knowledge-version',
+      covers: ['§8.6/1', '§8.2/knowledge-write'],
+      as: ownerA,
+      ...createKnowledgeVersion('__A__', BUSINESS_A1, KNOWLEDGE_A1_BUSINESS, '__SELF__'),
+      expect: 'rows',
+      why: '§8.2 names no INSERT operation for a knowledge version and denies only its UPDATE and DELETE, '
+         + 'which is the shape it uses for approval events: the producing operation is granted and only '
+         + 'mutation of the record is refused. Without this case the immutability assertions below pass '
+         + 'against a table nobody can write at all.',
+    },
+    {
+      id: 'editor-a-can-write-a-knowledge-version-for-business-a1',
+      covers: ['§8.2/knowledge-write', '§7/editor'],
+      as: editorA,
+      ...createKnowledgeVersion('__A__', BUSINESS_A1, KNOWLEDGE_A1_BUSINESS, '__SELF__'),
+      expect: 'rows',
+      why: 'The version INSERT follows the producing operation exactly, including the editor: a version '
+         + 'is the record of the edit §8.2 grants them, so a schema that let an editor change an item '
+         + 'and refused them its history would produce history that is missing its author.',
+    },
+    {
+      id: 'editor-a-cannot-write-a-knowledge-version-for-business-a2',
+      covers: ['§8.6/3'],
+      as: editorA,
+      ...createKnowledgeVersion('__A__', BUSINESS_A2, KNOWLEDGE_A2_BUSINESS, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'The permissive write policy passes — an editor writing their own subject — and the '
+         + 'restrictive narrowing refuses, because the ITEM this version would belong to is not '
+         + 'reachable by this caller. It is the write-path proof that the version inherits the item\'s '
+         + 'reach rather than merely reporting the same columns.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-knowledge-version-for-business-b1',
+      covers: ['§12.6/7', '§8.6/5'],
+      as: ownerA,
+      ...createKnowledgeVersion('__B__', BUSINESS_B1, KNOWLEDGE_B1_BUSINESS, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'A real owner of a real workspace, naming another tenant\'s workspace, Business and knowledge '
+         + 'item — every id exact. §3.3: a workspace_id from a client is never trusted, and here the '
+         + 'permissive policy refuses before the restrictive one is reached because the caller holds no '
+         + 'role in that workspace at all.',
+    },
+    {
+      id: 'approver-a-cannot-write-a-knowledge-version',
+      covers: ['§12.6/3', '§8.6/2'],
+      as: approverA,
+      ...createKnowledgeVersion('__A__', BUSINESS_A1, KNOWLEDGE_A1_BUSINESS, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'The other half of §12.6/3 on this family: an approver who could append a version could write '
+         + 'knowledge history without touching the current row, which is editing knowledge by another '
+         + 'route. Their member scope admits the item, so the role is the only thing refusing.',
+    },
+    {
+      id: 'viewer-a-cannot-write-a-knowledge-version',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...createKnowledgeVersion('__A__', BUSINESS_A1, KNOWLEDGE_A1_BUSINESS, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: '§12.6/4 asserted on the one write this table offers a client. Update and delete are granted '
+         + 'to nobody, so they belong to §8.6/9 rather than here.',
+    },
+
+    // -- §8.6/9 and §12.6/8. Immutability, as ABSENT GRANTS on both verbs and both identities. --
+    {
+      id: 'owner-a-cannot-update-a-knowledge-version',
+      covers: ['§8.6/9', '§8.2/knowledge-version-immutable'],
+      as: ownerA,
+      sql: 'update app.knowledge_item_versions set name = $2'
+         + ' where knowledge_item_id = $1 and version_number = 1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS, 'rewritten history'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: '§8.2\'s "Knowledge version UPDATE/DELETE" is N for every role including the service. EVEN THE '
+         + 'WORKSPACE OWNER is refused, and at the GRANT layer: no role holds UPDATE here, so the '
+         + 'refusal happens before RLS is consulted. That distinction is the assertion — a policy can be '
+         + 'widened by an edit, an absent grant has to be granted.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-knowledge-version',
+      covers: ['§8.6/9', '§8.2/knowledge-version-immutable'],
+      as: ownerA,
+      sql: 'delete from app.knowledge_item_versions'
+         + ' where knowledge_item_id = $1 and version_number = 1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases: a batch that granted '
+         + 'one of them would be caught by exactly one of these two.',
+    },
+    {
+      id: 'service-cannot-update-a-knowledge-version',
+      // NOT labelled RFC-2026-017§7, following batch 020's own note one table over: that clause asks
+      // for the service identity to be denied BY ROW LEVEL SECURITY with an error, and this refusal
+      // comes from the privilege system, which is a stronger denial and a DIFFERENT claim. The §7
+      // cases for this batch's tables are `service-sees-zero-knowledge-items`,
+      // `service-sees-zero-knowledge-versions`, `service-cannot-update-a-knowledge-item` and
+      // `service-cannot-create-a-knowledge-item`.
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      sql: 'update app.knowledge_item_versions set name = $2'
+         + ' where knowledge_item_id = $1 and version_number = 1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS, 'rewritten history by the service'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'The service column of §8.2\'s version row is `N`, not `P`, which is the only place in that '
+         + 'matrix where the service is denied outright — and app_worker holds SELECT and INSERT on this '
+         + 'table, so the refusal is about the verb rather than about the table.',
+    },
+    {
+      id: 'service-cannot-delete-a-knowledge-version',
+      // Unlabelled for §7 for the reason above: a grant-layer refusal is not evidence about RLS.
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      sql: 'delete from app.knowledge_item_versions'
+         + ' where knowledge_item_id = $1 and version_number = 1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'knowledge_item_versions' },
+      why: 'The fourth cell of the grid, so all four are live on this table rather than three and an '
+         + 'average.',
+    },
+    {
+      id: 'suspended-a-sees-zero-knowledge-versions',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'no-rows',
+      why: '§12.6/5 asked of the history as well as of the current row. The fixture gives this identity a '
+         + 'member scope on purpose, so the empty result is a policy refusing and not a table with '
+         + 'nothing in it for them.',
+    },
+    {
+      id: 'anonymous-sees-no-knowledge-version',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app and PUBLIC '
+         + 'holds none either. The day that changes this case moves to the table and fails, which is '
+         + 'what it is for.',
+    },
+    {
+      id: 'service-sees-zero-knowledge-versions',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: VERSION_1_OF_KNOWLEDGE,
+      params: [KNOWLEDGE_A1_BUSINESS],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT on this table and no policy, so the empty read is row level security '
+         + 'and not a forgotten GRANT. It is one of the two cases the CI negative control for '
+         + 'app.knowledge_item_versions rests on.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

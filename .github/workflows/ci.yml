@@ -213,4 +213,30 @@ jobs:
           # tests/db/identity/identity-isolation.test.mjs is what refuses that deletion.
           control app.industry_packs          '[a-z0-9-]*industry-pack-catalog'  030
           control app.industry_pack_versions  '[a-z0-9-]*published-pack-version' 030
+          #
+          # THE TWO KNOWLEDGE TABLES, AND WHAT EACH ENTRY ACTUALLY RESTS ON. Batch 030 recorded
+          # that a global table's entry rests on ONE case, and said so because a control resting on
+          # one case is one deletion away from resting on none. Neither of these does, and what each
+          # rests on is named here rather than left to be counted from the suite.
+          #
+          # app.knowledge_items rests on SIX RLS-decided cases, and they fail for three different
+          # reasons. Disabling row level security there lets tenant A read tenant B's knowledge —
+          # which on this family is CONTENT-2, what a business SAYS rather than what it is called;
+          # it lets a member scoped to one Business read another Business's knowledge; it lets a
+          # member scoped to ONE PAGE read a sibling Page's, which no other table in this schema can
+          # detect, because a knowledge row is the first that carries its own page scope; and it
+          # lets the approver's refused UPDATE land, which the witness then sees.
+          #
+          # app.knowledge_item_versions rests on FIVE, and one of them is the reason that table is
+          # shaped the way it is: its narrowing is not a copy of the item's predicate but the item's
+          # own reachability, so `page-editor-a-cannot-see-the-knowledge-version-of-the-sibling-page`
+          # is the case that fails if the version ever started answering from its own columns —
+          # which it could not do correctly, since it carries no page column at all.
+          #
+          # The two patterns do not overlap: an item case id contains `knowledge-item` and a version
+          # case id contains `knowledge-version`, and tests/db/identity/identity-isolation.test.mjs
+          # asserts that no case matches both, so neither entry can be satisfied by the other
+          # table's regression.
+          control app.knowledge_items         '[a-z0-9-]*knowledge-item'    040
+          control app.knowledge_item_versions '[a-z0-9-]*knowledge-version' 040
           echo "negative control: every family above failed the suite, as each must."
