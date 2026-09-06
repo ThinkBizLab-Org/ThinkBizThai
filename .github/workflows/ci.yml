@@ -135,24 +135,45 @@ jobs:
       # nothing.
       #
       # It runs last because it mutates the database. The container is discarded with the job.
-      - name: Negative control - the suite must fail when RLS is off
+      # The negative control, one per table family rather than one for the repository.
+      #
+      # The single-table version reported "10 of 28" and then "10 of 76" — the SAME ten, because
+      # every one of them names app.workspaces. Batch 020 added 41 cases and the control could not
+      # tell a working business/page policy from a broken one: it disabled RLS on a table those
+      # cases never touch. A control that grows stale as the suite grows is worse than none, because
+      # its number keeps being reported as though it meant something.
+      #
+      # So each entry disables RLS on ONE table and requires a failed case whose id matches that
+      # table's own pattern. Requiring the pattern is the whole point: "the suite failed" is
+      # satisfied by any regression anywhere, including one this control did not cause.
+      #
+      # RLS is re-enabled after each entry, so the entries are independent. Without that, the second
+      # control would pass on the first table still being off.
+      - name: Negative control - each table family must be detectable on its own
         env:
           PGPASSWORD: postgres
           DB_TEST_URL: postgresql://postgres@localhost:5432/thinkbizthai_test
         run: |
-          psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q \
-            -c 'alter table app.workspaces disable row level security;'
-          if LC_ALL=C TZ=UTC make db-rls-smoke > control.log 2>&1; then
-            echo "The isolation suite PASSED against a database with row level security DISABLED on"
-            echo "app.workspaces. A suite that cannot detect that cannot detect anything it claims to."
-            cat control.log
-            exit 1
-          fi
-          if ! grep -q 'db-rls-smoke: FAILED' control.log; then
-            echo "The suite exited non-zero without reporting a failed isolation case. That is a"
-            echo "broken run, not a detected regression, and it must not be read as this control passing."
-            cat control.log
-            exit 1
-          fi
-          echo "negative control: the suite failed with RLS off, as it must."
-          grep 'db-rls-smoke: FAILED' control.log | sed 's/^/  /'
+          set -u
+          fail() { echo "$1"; cat control.log; exit 1; }
+          control() {
+            table="$1"; pattern="$2"; batch="$3"
+            psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -c "alter table $table disable row level security;"
+            if LC_ALL=C TZ=UTC make db-rls-smoke > control.log 2>&1; then
+              psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -c "alter table $table enable row level security;"
+              fail "The isolation suite PASSED with row level security DISABLED on $table. Batch $batch's cases cannot detect the thing they exist to detect."
+            fi
+            psql "$DB_TEST_URL" -v ON_ERROR_STOP=1 -q -c "alter table $table enable row level security;"
+            if ! grep -q 'db-rls-smoke: FAILED' control.log; then
+              fail "The suite exited non-zero without reporting a failed isolation case. That is a broken run, not a detected regression, and it must not be read as this control passing."
+            fi
+            if ! grep -Eq "^  $pattern" control.log; then
+              fail "The suite failed, but no case matching /$pattern/ did. Something failed; it was not $table. A control satisfied by any failure is satisfied by a regression it did not cause."
+            fi
+            echo "  $table ($batch): $(grep -c "^  .*(" control.log) case(s) noticed, including $(grep -Eo "^  $pattern[a-z0-9-]*" control.log | head -1 | tr -d ' ')"
+          }
+          echo "negative control: each table family must be detectable on its own"
+          control app.workspaces              '[a-z0-9-]*workspace'  010
+          control app.business_profiles       '[a-z0-9-]*business'   020
+          control app.page_context_profiles   '[a-z0-9-]*page'       020
+          echo "negative control: every family above failed the suite, as each must."
