@@ -399,10 +399,26 @@ export async function proveExecuteGrants(runOne) {
 // exist — through the same `authzLint` the snapshot path would call, never a second copy that
 // could drift from it.
 //
-// `has_table_privilege` is the right instrument for rule 6 and `has_any_column_privilege` is not:
-// the first answers about a TABLE-level grant, which is what rule 6 forbids, while the second is
-// true whenever any column is readable and would report batch 011's deliberately column-scoped
-// SELECT as the whole-table grant it exists to avoid.
+// TWO INSTRUMENT CHOICES RULE 6 TURNS ON, both found by CI reporting a finding on a correct
+// database rather than by reasoning about them first.
+//
+//   * `has_table_privilege` is right and `has_any_column_privilege` is not: the first answers about
+//     a TABLE-level grant, which is what rule 6 forbids, while the second is true whenever any
+//     column is readable and would report batch 011's deliberately column-scoped SELECT as the
+//     whole-table grant it exists to avoid.
+//
+//   * `has_schema_privilege` is WRONG for the schema half, and the first version used it. It
+//     answers "can this role use this schema", which includes privileges held through PUBLIC — and
+//     PUBLIC holds USAGE on schema `public` by default, so it reported `app_authz` holding a grant
+//     nobody made it and that every role in the database holds equally. Rule 6 is about the grants
+//     batch 011 MAKES, so the measurement reads the schema's own ACL for an entry naming the role;
+//     `aclexplode` gives PUBLIC the grantee oid 0, which the join to pg_roles drops.
+//
+//     The PUBLIC-derived reach is not thereby hidden, which would be the same defect wearing the
+//     other hat: `schemas_reachable_via_public` records it, measured, in the transcript every run
+//     prints. It is not checked by rule 6 because it is not this batch's doing and is not what §6.1/6
+//     is about — and it confers no read on any table, while the helpers' `search_path = ''` keeps
+//     `public` off their resolution path entirely.
 export const AUTHZ_CATALOG_SQL = `select json_build_object(
   'authz', json_build_object(
     'role', (select json_build_object(
@@ -435,8 +451,19 @@ export const AUTHZ_CATALOG_SQL = `select json_build_object(
     'grants', json_build_object(
       'schemas', (select coalesce(json_agg('USAGE on schema ' || n.nspname order by n.nspname), '[]'::json)
                     from pg_catalog.pg_namespace n
-                   where n.nspname in ('app','private','public')
-                     and pg_catalog.has_schema_privilege('${AUTHZ_ROLE}', n.oid, 'USAGE')),
+                   where exists (select 1
+                                   from aclexplode(coalesce(n.nspacl, pg_catalog.acldefault('n', n.nspowner))) a
+                                   join pg_catalog.pg_roles r on r.oid = a.grantee
+                                  where r.rolname = '${AUTHZ_ROLE}' and a.privilege_type = 'USAGE')),
+      'schemas_reachable_via_public', (
+                 select coalesce(json_agg(n.nspname order by n.nspname), '[]'::json)
+                   from pg_catalog.pg_namespace n
+                  where n.nspname not like 'pg\\_%' and n.nspname <> 'information_schema'
+                    and pg_catalog.has_schema_privilege('${AUTHZ_ROLE}', n.oid, 'USAGE')
+                    and not exists (select 1
+                                      from aclexplode(coalesce(n.nspacl, pg_catalog.acldefault('n', n.nspowner))) a
+                                      join pg_catalog.pg_roles r on r.oid = a.grantee
+                                     where r.rolname = '${AUTHZ_ROLE}' and a.privilege_type = 'USAGE')),
       'tables', (select coalesce(json_agg('app.' || c.relname order by c.relname), '[]'::json)
                    from pg_catalog.pg_class c
                    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
