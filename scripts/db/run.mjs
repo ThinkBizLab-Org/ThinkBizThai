@@ -804,6 +804,20 @@ export async function catalogLint(snapshot, digest, exemptions) {
   // `has_password` is read from `pg_authid` in the snapshot, NOT `pg_roles`: `pg_roles` replaces
   // rolpassword with the literal '********', so the obvious query reports a password on every role
   // including ones that have none. The first measurement taken here made exactly that mistake.
+  // `app_authz` is deliberately NOT in this list, and RFC-2026-020 §6.1/1 asks that it join one
+  // like it — so the reason is recorded rather than left as an omission a reviewer has to notice.
+  //
+  // This list is read against `c.service_roles`, which is a property of the SNAPSHOT, and the
+  // snapshot describes the provisioned instance, which does not have batch 011 and must not. Adding
+  // the name here would fail the build with "service role app_authz is missing from the catalog" —
+  // a finding about a role that is correctly absent, which is the false-positive shape this file
+  // exists to remove.
+  //
+  // The substance of §6.1/1 is not skipped: `authzLint` asserts the same five attributes for
+  // `app_authz`, and more besides, and it runs wherever batch 011 actually is — against the CI
+  // container today, and against this snapshot the moment `not_applied_to_this_instance` stops
+  // naming 011, at which point the missing block is a refusal in its own right. `KNOWN_BYPASS`
+  // below is unchanged, so a fourth bypassing role is still a finding either way.
   const SERVICE_ROLES = ['app_command', 'app_maintenance', 'app_worker'];
   const present = (c.service_roles ?? []).map((r) => r.role).sort();
   if (c.service_roles !== undefined) {

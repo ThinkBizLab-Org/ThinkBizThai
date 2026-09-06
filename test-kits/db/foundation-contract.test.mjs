@@ -822,3 +822,135 @@ test('EXECUTE is checked for PUBLIC, for the callers that need it, and for the o
   assert.equal(unreachable.ok, false);
   assert.match(unreachable.detail, /not EXECUTE-granted to authenticated/);
 });
+
+// ---------------------------------------------------------------------------
+// RFC-2026-020 §6.1/1-7, each rule shown to REJECT.
+//
+// These rules are asked of the CI container rather than of the committed snapshot, because the
+// provisioned instance does not have batch 011 and must not. That makes them the rules least
+// likely to be exercised by anything on this host -- and a rule nothing has ever seen fail is a
+// rule nobody has checked. Every case below hands authzLint a catalog that violates exactly one
+// thing and requires it to say so.
+
+import { AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_TABLE, authzLint, platformIdentityLint } from '../../scripts/db/run.mjs';
+
+// What the CI container actually measured on the green run, reduced to the fields the rules read.
+const GOOD_AUTHZ = () => ({
+  authenticator_memberships: [],
+  authz: {
+    role: { canlogin: false, bypassrls: false, superuser: false, inherit: false, has_password: false },
+    owns_tables: [],
+    functions: [
+      { function: 'app.is_active_member', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.jwt_subject', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.workspace_member_role', security_definer: true, config: ['search_path=""'] },
+    ],
+    policies: [{
+      table: AUTHZ_TABLE, policy: AUTHZ_POLICY, command: 'select', qual: AUTHZ_POLICY_QUAL,
+    }],
+    grants: {
+      schemas: ['USAGE on schema app'],
+      tables: [],
+      columns: ['app.workspace_members.role', 'app.workspace_members.status',
+        'app.workspace_members.user_id', 'app.workspace_members.workspace_id'],
+    },
+  },
+});
+
+const broken = (mutate) => { const c = GOOD_AUTHZ(); mutate(c); return authzLint(c); };
+const rejects = (mutate, pattern, label) => {
+  const problems = broken(mutate);
+  assert.ok(problems.some((p) => pattern.test(p)), `${label}: expected a finding matching ${pattern}, got ${JSON.stringify(problems)}`);
+};
+
+test('the batch-011 catalog rules pass on what CI measured, so their rejections mean something', () => {
+  assert.deepEqual(authzLint(GOOD_AUTHZ()), [],
+    'the shape CI measured on the green run must satisfy every rule, or every rejection below is '
+    + 'just the fixture being wrong');
+});
+
+test('§6.1/1: every app_authz role attribute is refused when true, and when unmeasured', () => {
+  // NOBYPASSRLS is the load-bearing one: a bypassing helper owner answers every authorization
+  // question yes, for reasons unrelated to the caller.
+  rejects((c) => { c.authz.role.bypassrls = true; }, /rolbypassrls/, 'bypassrls');
+  rejects((c) => { c.authz.role.superuser = true; }, /rolsuper/, 'superuser');
+  rejects((c) => { c.authz.role.canlogin = true; }, /rolcanlogin/, 'canlogin');
+  rejects((c) => { c.authz.role.inherit = true; }, /rolinherit/, 'inherit');
+  rejects((c) => { c.authz.role.has_password = true; }, /a password/, 'password');
+  // An unmeasured property must not read as a passing one -- the rule this file applies everywhere.
+  rejects((c) => { delete c.authz.role.bypassrls; }, /carries no bypassrls field/, 'unmeasured');
+  // And no block at all is a refusal rather than silence.
+  assert.ok(authzLint({}).some((p) => /records no app_authz block/.test(p)));
+});
+
+test('§6.1/2: authenticator being a member of app_authz is refused', () => {
+  // RFC-2026-019 §5's negative, extended by one name. A membership makes the helper owner
+  // assumable from a JWT claim, which is the whole boundary.
+  rejects((c) => { c.authenticator_memberships = ['anon', 'app_authz']; }, /authenticator is a member/, 'member');
+  rejects((c) => { delete c.authenticator_memberships; }, /does not record what authenticator is a member of/, 'unmeasured');
+});
+
+test('§6.1/3: a table owned by app_authz is refused', () => {
+  // Same rule as app_command, same reason: a SECURITY DEFINER function owned by the table owner is
+  // not subject to the policies on that table.
+  rejects((c) => { c.authz.owns_tables = ['workspace_members']; }, /owns app\.workspace_members/, 'owner');
+  rejects((c) => { delete c.authz.owns_tables; }, /does not record which tables/, 'unmeasured');
+});
+
+test('§6.1/4: an invoker-mode helper, or one with no pinned search_path, is refused', () => {
+  // Option D arriving unremarked: an invoker-mode helper runs as the caller, whose policy set on
+  // app.workspace_members by then contains the policy that calls it.
+  rejects((c) => { c.authz.functions[0].security_definer = false; }, /is not SECURITY DEFINER/, 'invoker');
+  rejects((c) => { c.authz.functions[0].config = []; }, /does not pin an empty search_path/, 'search_path');
+  // The role exists only as the owner of the helpers, so owning none means the batch did not land.
+  rejects((c) => { c.authz.functions = []; }, /owns no function at all/, 'empty');
+  rejects((c) => { delete c.authz.functions; }, /does not record the functions/, 'unmeasured');
+});
+
+test('§6.1/5: the pinned policy expression is the control, and every widening changes it', () => {
+  // This is the string RFC-2026-020 §4 chose option G over option E for: E needed no exemption but
+  // its central claim had no artefact that could hold it, and this one is a comparison a build
+  // performs on every run.
+  rejects((c) => { c.authz.policies[0].qual = 'true'; }, /policy expression is not the pinned one/, 'using (true)');
+  rejects((c) => { c.authz.policies[0].qual = AUTHZ_POLICY_QUAL.replace(" AND (status = 'active'::text)", ''); },
+    /policy expression is not the pinned one/, 'dropped the active check');
+  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'second' }); },
+    /holds 2 policies/, 'a second policy is a second decision');
+  rejects((c) => { c.authz.policies[0].command = 'all'; }, /is FOR ALL/, 'command');
+  rejects((c) => { c.authz.policies[0].table = 'workspaces'; }, /policy is on app\.workspaces/, 'table');
+  rejects((c) => { c.authz.policies[0].policy = 'renamed'; }, /is named renamed/, 'name');
+  rejects((c) => { delete c.authz.policies; }, /does not record the policies/, 'unmeasured');
+});
+
+test('§6.1/6: a wider grant than USAGE on app and four columns is refused', () => {
+  // Column-scoped so the role cannot read token_hash or anything else it was given no reason to.
+  rejects((c) => { c.authz.grants.tables = ['app.workspace_invitations']; }, /whole-table privilege/, 'table grant');
+  rejects((c) => { c.authz.grants.schemas.push('USAGE on schema private'); }, /schema grants/, 'schema');
+  rejects((c) => { c.authz.grants.columns.push('app.workspace_invitations.token_hash'); }, /column SELECT/, 'column');
+  rejects((c) => { c.authz.grants.columns.pop(); }, /column SELECT/, 'missing column');
+  rejects((c) => { delete c.authz.grants; }, /does not record .*grants/, 'unmeasured');
+});
+
+test('§6.1/7: a platform auth.uid() that moved fails the build instead of diverging silently', () => {
+  // The cost of RFC-2026-020 §5/4 -- inlining a copy of the platform expression because no role our
+  // migrations create can call auth.uid() -- made falsifiable. If Supabase changes the original,
+  // the inlined copy becomes a different function from the one every other policy in the schema
+  // uses, and that divergence must be decided rather than absorbed.
+  const measured = {
+    definition: 'CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n'
+      + "  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n"
+      + "    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n",
+    measured_at: '2026-09-06',
+  };
+  assert.deepEqual(platformIdentityLint({ platform_auth_uid: measured }), [],
+    'the body measured read-only on the instance must satisfy the rule');
+
+  const moved = { ...measured, definition: measured.definition.replace('request.jwt.claims', 'request.jwt.claims_v2') };
+  assert.ok(platformIdentityLint({ platform_auth_uid: moved })
+    .some((p) => /is not the function batch 011 copied a branch of/.test(p)),
+  'a platform change must fail the build');
+
+  // And an unmeasured field is not a passing one: the whole point of §5/4 is that the copy is held
+  // to the original by a build rather than by memory.
+  assert.ok(platformIdentityLint({}).some((p) => /records no platform auth\.uid\(\) definition/.test(p)));
+});
