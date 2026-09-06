@@ -649,7 +649,11 @@ begin
    where n.nspname = 'app'
      and c.relname in ('business_profiles', 'business_profile_versions',
                        'page_context_profiles', 'page_context_profile_versions')
-     and exists (select 1 from pg_catalog.pg_authid r
+     -- pg_roles and not pg_authid. pg_authid is readable only by a superuser, and a migration that
+     -- needs one to apply is a migration that cannot be applied on the platform it targets — where
+     -- `postgres` is not a superuser. pg_roles is the public view over the same rows and carries
+     -- both columns this needs.
+     and exists (select 1 from pg_catalog.pg_roles r
                   where r.oid = any (pol.polroles)
                     and r.rolname in ('app_worker', 'app_command', 'app_maintenance', 'anon'));
   if offending is not null then
