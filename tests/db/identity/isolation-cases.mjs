@@ -98,12 +98,15 @@
 export const SMOKE_COVERAGE = {
   1: { covered: true, note: 'workspaces, workspace_settings and workspace_invitations, in both directions '
                            + '(batch 010), and business_profiles, page_context_profiles and both version '
-                           + 'tables, in both directions (batch 020). THREE CASES PER TABLE, not two: the '
-                           + 'tenant reads its own row, the other tenant cannot, and the other tenant is '
-                           + "holding tenant B's REAL id — plus, on each table, tenant B reading the same "
-                           + 'row, without which the negative is satisfied by a fixture that never loaded '
-                           + 'it. On the version tables the id held is the business\'s or page\'s, because '
-                           + 'a version is addressed by parent and ordinal.' },
+                           + 'tables, in both directions (batch 020) — every attack run while holding tenant '
+                           + "B's REAL id, which on a version table is its business's or page's, because a "
+                           + 'version is addressed by parent and ordinal.\n\n'
+                           + 'ON ALL FOUR OF BATCH 020\'s TABLES THAT IS THREE CASES, not two: tenant A reads '
+                           + 'its own row, tenant A cannot read tenant B\'s, AND TENANT B CAN — without the '
+                           + 'third the negative is satisfied by a fixture that never loaded the row. Batch '
+                           + '010 carries that third case on app.workspaces and not on workspace_settings or '
+                           + 'workspace_invitations; those two rest on the A-side positive alone, which is a '
+                           + 'weaker shape and is named here rather than covered by an average.' },
   2: { covered: 'partial', note: 'HALF OF THIS IS NOW ASSERTED AND HALF IS STILL OWED, and the halves are '
                            + 'different rules wearing one sentence. "user_editor_a sees Business A1/Page A1" '
                            + 'and the tenant-boundary half — never business_b1, never page_b1, never their '
