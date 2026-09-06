@@ -73,10 +73,9 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-rfc-020",
+    "branch": "agent/claude/WP-0A-DB-00-batch-011",
     "writable_paths": [
       "Makefile",
-      "architecture/decisions/RFC-2026-020-authorization-helper-role.md",
       "db/foundation/**",
       "db/foundation/ci/**",
       "db/foundation/migrations/010_identity.sql",
@@ -85,6 +84,7 @@
       "handoffs/WP-0A-DB-00-*.json",
       "scripts/db/**",
       "test-kits/db/**",
+      "tests/db/identity/**",
       "work-packages/WP-0A-DB-00.json"
     ],
     "read_only_paths": [
@@ -107,12 +107,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "scripts/verify-test-coverage-floor.mjs",
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/repository-json.test.mjs"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "RFC-2026-020 is a precondition of batch 011, whose registry row this package's foundation work owns, and it is authored by A1 -- the run the registry names for 011 -- and reviewed by A0. It is declared writable here rather than given its own package because the decision exists only to unblock a batch this package carries.\n\nThe amendments are the registries a new decision record joins: the set of decision records is declared BY NAME in test-kits/repository-json.test.mjs and the protected-file list in scripts/verify-test-coverage-floor.mjs, both because an RFC that no digest protects is the hole those lists exist to close. The branch mapping, the integrity digests and the verification record move as usual. The verification record was declared and did not move: the test count is unchanged, so the generated file is byte-identical. Fifth time the scope guard has caught this run declaring a permission for work that did not happen."
+      "rationale": "Batch 011 is this package's own work: db/foundation/**, scripts/db/** and test-kits/db/** are writable here, and tests/db/identity/** is declared writable for the first time in this increment. The data package's §6 file-ownership contract puts a module's database tests under tests/db/<module-key>/, and batch 010's isolation suite landed there; no work package had ever declared that path, so the suite carrying this package's own migrations was owned by nobody. It is claimed here rather than left undeclared, because an undeclared path is one the branch-scope guard cannot judge in either direction.\n\nFour amendments, and only four. The branch mapping moves because ownership.branch moves and test-kits/branch-identity.test.mjs pins the whole mapping rather than four rows of it. The integrity digests move because two protected suites gain tests. The verification record moves because the test count changes -- unlike the previous increment, where it was declared, did not move, and had to be withdrawn. scripts/test-suite-contract.mjs moves because TEST_NAME_DIGEST_BY_FILE is a digest over each protected suite's sorted test NAMES, so adding a test to one is a deliberate edit there by design: a name cannot be paid for with a count. Only the two digests for the suites this branch extends are touched; no floor is lowered.\n\nWithdrawn from the previous increment, because this branch changes neither: scripts/verify-test-coverage-floor.mjs and test-kits/repository-json.test.mjs are the registries a new DECISION RECORD joins, and this branch adds no RFC -- RFC-2026-020 is already merged and is not edited here. architecture/decisions/** is likewise gone from writable_paths: an approved decision is not the implementing batch's to amend, and §6.2's condition is discharged by executing its two claims, not by editing the document that sets them. Sixth time the scope guard has caught this run declaring a permission for work that did not happen."
     }
   },
   "inputs": {

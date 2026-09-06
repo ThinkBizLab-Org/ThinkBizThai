@@ -148,16 +148,39 @@ test('a connection string never reaches the output', async () => {
 // repository keeps catching itself trusting after it went stale. So the snapshot
 // names the migration set it was taken against, and drifting from it fails.
 
-import { PREREQUISITE, catalogLint, migrateCleanSteps, migrationSetDigest } from '../../scripts/db/run.mjs';
+import {
+  AUTHZ_MIGRATION, PREREQUISITE, appliedMigrationDigest, catalogLint, migrateCleanSteps,
+  migrationSetDigest, pendingMigrations,
+} from '../../scripts/db/run.mjs';
 
 const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
 const snapshot = async () => JSON.parse(await readFile(SNAPSHOT, 'utf8'));
 
 test('the committed catalog snapshot matches the migrations it claims to describe', async () => {
   const snap = await snapshot();
-  assert.equal(snap.taken_against_migrations, await migrationSetDigest(),
+  assert.equal(snap.taken_against_migrations, await appliedMigrationDigest(snap),
     'the snapshot describes a different migration set than the one in the tree — retake it');
   assert.deepEqual(await catalogLint(snap), [], 'the live catalog satisfies every rule asserted against it');
+});
+
+// Batch 011 is the first migration this repository has written that is NOT applied to the
+// provisioned instance, so the snapshot's digest is taken over the APPLIED set rather than the
+// whole of db/foundation/migrations. That gap is the thing to keep honest: it must exist for the
+// declared reason, and it must be the only difference.
+test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
+  const snap = await snapshot();
+  const declared = pendingMigrations(snap);
+  assert.deepEqual(declared, [AUTHZ_MIGRATION],
+    'batch 011 is the only batch declared not applied to the instance');
+
+  // The two digests DIFFER, and that is the point: if they were equal, the declaration would be
+  // excluding nothing and the field would be decoration.
+  assert.notEqual(await migrationSetDigest(), await appliedMigrationDigest(snap),
+    'a declaration that excludes a batch must actually change the digest, or it excludes nothing');
+
+  // And the applied digest is the one the snapshot carries, so the exclusion is not a licence to
+  // let the rest drift.
+  assert.equal(await appliedMigrationDigest(snap), snap.taken_against_migrations);
 });
 
 test('a snapshot that no longer matches the migrations is refused, not read', async () => {
@@ -539,7 +562,8 @@ test('db-migrate-clean applies the prerequisite the migration set needs, before 
   // the migration registry, so the committed snapshot does not go stale because the command grew a
   // step.
   assert.doesNotMatch(PREREQUISITE, /\/migrations\//);
-  assert.equal(await migrationSetDigest(), (await snapshot()).taken_against_migrations,
+  const snap = await snapshot();
+  assert.equal(await appliedMigrationDigest(snap), snap.taken_against_migrations,
     'adding the prerequisite must not move the migration set digest');
 });
 
