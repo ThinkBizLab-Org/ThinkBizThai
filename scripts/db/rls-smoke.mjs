@@ -122,14 +122,44 @@ async function main() {
   const result = await runCases(cases, bufferedDriver());
   stdout.write(formatReport(result));
 
-  // The coverage claim is printed with the result, so nobody reads "N cases passed" as "§12.6 is
-  // covered". A1 recorded which assertions this batch's tables can carry and which they cannot.
-  const uncovered = Object.entries(SMOKE_COVERAGE ?? {}).filter(([, v]) => !v.covered);
-  if (uncovered.length > 0) {
-    stdout.write(`  §12.6 assertions this batch cannot carry: ${uncovered.map(([k]) => k).join(', ')}\n`);
-    for (const [k, v] of uncovered) stdout.write(`    ${k}: ${v.note}\n`);
+  // RFC-2026-020 §6.2, executed here rather than cited anywhere.
+  //
+  // The decision batch 011 implements is NOT IN EFFECT until two claims are discharged BY
+  // EXECUTION, and they need a real Postgres to discharge. This is the target that has one: the
+  // same service container `make db-rls-smoke` already uses, on every pull request. Wiring them
+  // here rather than adding a workflow step is deliberate — .github/workflows/ci.yml belongs to
+  // another package, and a proof that only runs when someone remembers to add a step is a proof
+  // with a step between it and the build.
+  //
+  // The proofs run AFTER the isolation cases, and both exit codes are combined. Order matters for
+  // one specific reason: CI's negative control disables row level security on app.workspaces and
+  // requires this target to fail while REPORTING a failed case. Running the cases first means that
+  // report is always printed, so the control still fails for the reason it exists to detect rather
+  // than being satisfied by a proof erroring first.
+  reportCoverage();
+  const proofs = await runAuthzProofs();
+  return result.failed.length === 0 && proofs === 0 ? 0 : 1;
+}
+
+async function runAuthzProofs() {
+  const { main: proveAuthz } = await import('./authz-proofs.mjs');
+  try {
+    return await proveAuthz();
+  } catch (failure) {
+    stderr.write(`db-authz-proofs: FAILED — the proofs did not run: ${failure.message}\n`
+      + '  RFC-2026-020 is not in effect until §6.2 is discharged by execution, and a run that could not\n'
+      + '  execute them has not discharged them. This is a failure, not a skip.\n');
+    return 1;
   }
-  return result.failed.length === 0 ? 0 : 1;
+}
+
+// The coverage claim is printed with the result, so nobody reads "N cases passed" as "§12.6 is
+// covered". A1 recorded which assertions this batch's tables can carry and which they cannot.
+function reportCoverage() {
+  const uncovered = Object.entries(SMOKE_COVERAGE ?? {}).filter(([, v]) => !v.covered);
+  if (uncovered.length === 0) return;
+  stdout.write(`  §12.6 assertions this batch cannot carry: ${uncovered.map(([k]) => k).join(', ')}\n`);
+  for (const [k, v] of uncovered) stdout.write(`    ${k}: ${v.note}\n`);
 }
 
 if (import.meta.url === `file://${argv[1]}`) exit(await main());

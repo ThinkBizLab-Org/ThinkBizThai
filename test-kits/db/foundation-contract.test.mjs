@@ -646,3 +646,179 @@ test('a SECURITY DEFINER function with no recorded owner is refused, and app_com
   });
   assert.deepEqual(await catalogLint(command, digest, { exemptions: [] }), []);
 });
+
+// ---------------------------------------------------------------------------
+// RFC-2026-020 §6.2 and §6.3, as decision logic.
+//
+// The proofs themselves need a Postgres and this host has none -- no psql, no docker -- so they
+// run in CI, behind `make db-rls-smoke`, and a failure fails the build. What CAN be executed here
+// is the part that decides what a transcript MEANS, and that is the part worth executing: a proof
+// is only as good as its willingness to fail, and most cases below drive it with output that must
+// make it fail.
+//
+// This is the same shape C0's review D4 asked for elsewhere in this package -- a property driven
+// through a fake driver rather than protected by a grep.
+
+import {
+  proveCycleExists, proveDefinerIsNotInlined, proveExecuteGrants,
+  proveTheHelperAnswersOnlyForTheCaller, proveThePolicyIsLoadBearing,
+} from '../../scripts/db/authz-proofs.mjs';
+
+const IDS = {
+  owner: '5c460eb8-0710-557a-b423-f9b12c76834f',
+  suspended: '9b10ac91-406b-5322-9755-bfb16b0b4aa3',
+  ownerB: '297ad853-58a6-5e83-87e1-f936f9c3ddff',
+  workspace: 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
+};
+// Answers handed back in the order the proof asks for them, so a proof that stops asking early
+// fails loudly rather than reading someone else's answer.
+const queued = (...answers) => { const q = [...answers]; return async () => q.shift() ?? { rows: [] }; };
+const planOf = (...lines) => ({ rows: lines.map((l) => ({ 'QUERY PLAN': l })) });
+
+test('the 42P17 proof passes only on 42P17, and a quiet database fails it', async () => {
+  const raised = await proveCycleExists(
+    queued({ error: { code: '42P17', message: 'infinite recursion detected in policy for relation "workspace_members"' } }), IDS);
+  assert.equal(raised.ok, true, raised.detail);
+  assert.match(raised.transcript, /infinite recursion detected/);
+
+  // The failure that matters most: the cycle 010's header justified two unimplemented matrix cells
+  // with turns out not to exist. That must be loud, not green.
+  const quiet = await proveCycleExists(queued({ rows: [{ members: '5' }] }), IDS);
+  assert.equal(quiet.ok, false);
+  assert.match(quiet.detail, /did NOT raise/);
+
+  // Any other error is a different failure and must not be laundered into this one.
+  const other = await proveCycleExists(queued({ error: { code: '42501', message: 'permission denied' } }), IDS);
+  assert.equal(other.ok, false);
+  assert.match(other.detail, /rather than 42P17/);
+});
+
+test('the inlining proof fails when its own control cannot demonstrate inlining', async () => {
+  // The trap the proof is built to avoid. If the INVOKER control is not inlined either, the
+  // instrument cannot tell inlining from its absence, and "the definer was not inlined" is a
+  // sentence about nothing. A vacuous instrument must fail rather than agree.
+  const vacuous = await proveDefinerIsNotInlined(queued(
+    planOf('Result', '  Output: app.__proof_invoker()'),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(vacuous.ok, false);
+  assert.match(vacuous.detail, /cannot tell inlining from its absence/);
+});
+
+test('the inlining proof reports the decision wrong when SECURITY DEFINER is inlined', async () => {
+  // RFC-2026-020 option G rests on this being impossible. If it happens, the required response is
+  // to revert the batch and reopen the decision -- so the proof has to say that, not merely fail.
+  const inlined = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))"),
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))"),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(inlined.ok, false);
+  assert.match(inlined.detail, /THE DECISION IS WRONG/);
+
+  // And the passing shape: invoker inlined, definer left as a call, shipped left as a call with no
+  // scan of the table it reads.
+  const correct = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::uuid"),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(correct.ok, true, correct.detail);
+
+  // A shipped helper whose BODY appears in the plan is the cycle coming back, even when the pair
+  // behaved.
+  const spliced = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::uuid"),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Limit', '  ->  Seq Scan on app.workspace_members m'),
+  ), IDS);
+  assert.equal(spliced.ok, false);
+  assert.match(spliced.detail, /was not left as a call/);
+});
+
+test("the negative control fails when dropping app_authz's policy changes nothing", async () => {
+  // This is RFC-2026-020's security argument made falsifiable. A helper that silently bypassed
+  // would keep answering with its policy gone, and every isolation case would still pass.
+  const bypassing = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '5' }] }, { rows: [{ members: '5' }] }), IDS, 5);
+  assert.equal(bypassing.ok, false);
+  assert.match(bypassing.detail, /bypassing rather than being policed/);
+
+  const policed = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '5' }] }, { rows: [{ members: '1' }] }), IDS, 5);
+  assert.equal(policed.ok, true, policed.detail);
+
+  // And if the roster never worked in the first place, the control has nothing to negate.
+  const neverWorked = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '1' }] }, { rows: [{ members: '1' }] }), IDS, 5);
+  assert.equal(neverWorked.ok, false);
+  assert.match(neverWorked.detail, /nothing to negate/);
+});
+
+test('the helper must answer about its caller and nobody else', async () => {
+  const answers = (owner, suspended, stranger) => queued(
+    { rows: [owner] }, { rows: [suspended] }, { rows: [stranger] });
+  const OWNER = { role: 'owner', member: 't' };
+  const NOBODY = { role: '<null>', member: 'f' };
+
+  assert.equal((await proveTheHelperAnswersOnlyForTheCaller(answers(OWNER, NOBODY, NOBODY), IDS)).ok, true);
+
+  // §12.6 assertion 5, asked through the helper -- the path batch 011's widened policy newly opens.
+  const suspendedIsActive = await proveTheHelperAnswersOnlyForTheCaller(
+    answers(OWNER, { role: 'viewer', member: 't' }, NOBODY), IDS);
+  assert.equal(suspendedIsActive.ok, false);
+  assert.match(suspendedIsActive.detail, /SUSPENDED member/);
+
+  // §6.3/12: the helper is callable by anyone, so it must not be a membership oracle for third
+  // parties.
+  const oracle = await proveTheHelperAnswersOnlyForTheCaller(
+    answers(OWNER, NOBODY, { role: 'owner', member: 't' }), IDS);
+  assert.equal(oracle.ok, false);
+  assert.match(oracle.detail, /membership oracle for third parties/);
+
+  // Without the positive, both negatives are satisfied by a helper that answers nothing at all.
+  const dead = await proveTheHelperAnswersOnlyForTheCaller(answers(NOBODY, NOBODY, NOBODY), IDS);
+  assert.equal(dead.ok, false);
+  assert.match(dead.detail, /satisfied by the helper never answering/);
+});
+
+test('EXECUTE is checked for PUBLIC, for the callers that need it, and for the one that does not', async () => {
+  const acls = (rows) => queued({ rows });
+  const GOOD = [
+    { function: 'is_active_member', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+    { function: 'jwt_subject', acl: 'app_authz=X/app_authz' },
+    { function: 'workspace_member_role', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+  ];
+  assert.equal((await proveExecuteGrants(acls(GOOD))).ok, true);
+
+  // A default ACL means PUBLIC may execute, and PUBLIC reaches anon -- which batch 010 grants
+  // nothing anywhere.
+  const defaulted = await proveExecuteGrants(acls([{ function: 'jwt_subject', acl: '<default: PUBLIC may execute>' }]));
+  assert.equal(defaulted.ok, false);
+  assert.match(defaulted.detail, /PUBLIC may execute it/);
+
+  const toPublic = await proveExecuteGrants(acls([
+    ...GOOD.slice(0, 2), { function: 'workspace_member_role', acl: 'app_authz=X/app_authz =X/app_authz' },
+  ]));
+  assert.equal(toPublic.ok, false);
+  assert.match(toPublic.detail, /EXECUTE to PUBLIC/);
+
+  // The narrowing this batch makes deliberately: jwt_subject has no caller outside the helpers that
+  // own it, so a grant to authenticated is a callable surface -- an RPC endpoint where `app` is the
+  // exposed schema -- that nothing asked for.
+  const widened = await proveExecuteGrants(acls([
+    ...GOOD.slice(0, 1),
+    { function: 'jwt_subject', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+    ...GOOD.slice(2),
+  ]));
+  assert.equal(widened.ok, false);
+  assert.match(widened.detail, /jwt_subject is EXECUTE-granted to authenticated/);
+
+  // And the policies must still be able to call what they call.
+  const unreachable = await proveExecuteGrants(acls([
+    { function: 'is_active_member', acl: 'app_authz=X/app_authz' }, ...GOOD.slice(1),
+  ]));
+  assert.equal(unreachable.ok, false);
+  assert.match(unreachable.detail, /not EXECUTE-granted to authenticated/);
+});

@@ -426,3 +426,122 @@ test('every identity helper the cases use has a role the runner can check', asyn
     assert.ok(assumeIdentity({ helper, subject: 'x' }).length > 0);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Batch 011, statically. What can be read from the file, read from the file.
+//
+// The live half -- 42P17, the inlining plan, the negative control -- runs in CI through
+// scripts/db/authz-proofs.mjs, because it needs a Postgres and this host has none. These are the
+// properties that are decidable from the migration text, and they are the ones a reviewer would
+// otherwise have to hold in their head while reading it.
+
+const AUTHZ_MIGRATION_FILE = 'db/foundation/migrations/011_authorization_helpers.sql';
+const authz = await readFile(AUTHZ_MIGRATION_FILE, 'utf8');
+const authzCode = authz.replace(/--[^\n]*/g, '');
+const IDENTITY_EXPRESSION =
+  "(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid";
+
+test('app_authz holds exactly one policy, and its predicate is the caller\'s own ACTIVE row', () => {
+  const toAuthz = [...authzCode.matchAll(/create policy (\w+)([\s\S]*?);\n/g)]
+    .filter(([body]) => /to\s+app_authz\b/.test(body));
+  assert.equal(toAuthz.length, 1,
+    'RFC-2026-020 §5/3 gives app_authz exactly one policy. The exemption is structural, not scopal: '
+    + 'a second policy is a second decision and needs its own RFC.');
+
+  const [body, name] = [toAuthz[0][0], toAuthz[0][1]];
+  assert.match(body, /for\s+select\b/i, `${name}: §5/3 gives it SELECT and nothing else`);
+  assert.match(body, /status\s*=\s*'active'/,
+    `${name}: dropping the active check would make the helper answer for a suspended membership`);
+  assert.ok(body.includes(IDENTITY_EXPRESSION),
+    `${name}: the predicate must inline the platform identity expression character for character`);
+
+  // The one place in this schema where a function call would be a defect rather than a style
+  // choice: this policy exists to break a rewrite cycle, and calling anything re-enters it.
+  assert.doesNotMatch(body.replace(/current_setting|nullif/g, ''), /\bapp\.\w+\s*\(/,
+    `${name}: this policy must not call a function. It is the base case of the recursion every `
+    + 'other reader goes through a helper to avoid, and a call here re-enters exactly what '
+    + 'RFC-2026-020 exists to break.');
+});
+
+test('the roster policy widens batch 010 rather than restating it, and only for owner and admin', () => {
+  const roster = authzCode.match(/create policy workspace_members_select_workspace_roster([\s\S]*?);\n/);
+  assert.ok(roster, 'the §8.1 member-list cell is implemented by a named policy');
+  const body = roster[0];
+  assert.match(body, /to\s+authenticated\b/i, 'the cell belongs to the request path');
+  assert.match(body, /app\.workspace_member_role\s*\(/,
+    'the predicate goes through the helper. An inline `exists (select ... from app.workspace_members)` '
+    + 'here is the 42P17 this batch exists to break, and scripts/db/authz-proofs.mjs raises it on '
+    + 'every CI run so the reason stays executed rather than remembered.');
+  assert.match(body, /'owner'/, '§8.1 gives the member list to Owner');
+  assert.match(body, /'admin'/, '§8.1 gives it to Admin');
+  for (const role of ['editor', 'approver', 'viewer']) {
+    assert.doesNotMatch(body, new RegExp(`'${role}'`),
+      `§8.1 marks Editor \`P\` and gives viewer and approver nothing. \`P\` is conditional on a `
+      + 'capability set no document defines, and inventing one here would be inventing the security '
+      + 'boundary of every later policy (RFC-2026-020 §8).');
+  }
+
+  // Migration invariant 1: 010 is applied and must not be rewritten. The widening is additive,
+  // which is what 010's own header said its predicates were written for.
+  assert.doesNotMatch(authzCode, /drop\s+policy\s+if\s+exists\s+workspace_members_select_own_active/i,
+    "batch 011 must not drop batch 010's policy. RLS policies are permissive and OR together, so "
+    + 'the roster policy adds to it; replacing it would be rewriting a merged migration through the '
+    + 'back door.');
+});
+
+test('every function batch 011 creates is SECURITY DEFINER owned by app_authz with an empty search_path', () => {
+  const functions = [...authzCode.matchAll(/create or replace function (app\.\w+)\(([^)]*)\)([\s\S]*?)\$\$;/g)];
+  assert.ok(functions.length >= 3, 'the batch writes the helper set, not a token helper');
+  for (const [body, name] of functions.map((m) => [m[0], m[1]])) {
+    assert.match(body, /security\s+definer/i,
+      `${name}: RFC-2026-020 §6.1/4 requires it of everything app_authz owns. An invoker-mode helper `
+      + "runs as the caller, whose policy set on app.workspace_members by then contains the policy "
+      + 'that calls it — option D arriving unremarked.');
+    assert.match(body, /set\s+search_path\s*=\s*''/i, `${name}: §8.5 pins an empty search_path`);
+    assert.match(authzCode, new RegExp(`alter function ${name.replace('.', '\\.')}\\([^)]*\\) owner to app_authz`, 'i'),
+      `${name}: ownership is what makes SECURITY DEFINER mean app_authz rather than the migration role, `
+      + 'and a function owned by the table owner is exempt from the policies on a forced table.');
+  }
+});
+
+test('EXECUTE is revoked from PUBLIC on every helper and granted only where there is a caller', () => {
+  for (const fn of ['app.jwt_subject()', 'app.workspace_member_role(uuid)', 'app.is_active_member(uuid)']) {
+    const escaped = fn.replace(/[.()]/g, '\\$&');
+    assert.match(authzCode, new RegExp(`revoke all on function ${escaped} from public`, 'i'),
+      `${fn}: a helper reachable by PUBLIC is reachable by anon, which batch 010 grants nothing anywhere`);
+  }
+  for (const fn of ['app.workspace_member_role(uuid)', 'app.is_active_member(uuid)']) {
+    const escaped = fn.replace(/[.()]/g, '\\$&');
+    assert.match(authzCode, new RegExp(`grant execute on function ${escaped} to authenticated`, 'i'),
+      `${fn} is called from a policy written TO authenticated, and a policy's function call is `
+      + 'evaluated as the caller, so the caller must hold EXECUTE');
+  }
+
+  // The deliberate narrowing. jwt_subject is called only from inside helpers that run as its owner,
+  // and no policy names it -- app_authz's own policy inlines the expression instead, because a call
+  // there would re-enter the cycle. So a grant would be a callable surface with no caller, and an
+  // RPC endpoint wherever `app` is the API's exposed schema.
+  assert.doesNotMatch(authzCode, /grant execute on function app\.jwt_subject\(\) to/i,
+    'app.jwt_subject() is granted to nobody. Explicitly is not the same as widely, and the narrowest '
+    + 'grant that leaves every real caller working is none.');
+});
+
+test('the identity expression appears exactly twice, and both places are forced to be there', () => {
+  // RFC-2026-020 §5/4 copies the platform expression because no role our migrations create can call
+  // auth.uid(). A copy drifts, so the copy is held to a count: app.jwt_subject()'s body is the one
+  // named home every reader goes through, and app_authz's policy has to inline it because a
+  // function call there re-enters the recursion. A third occurrence is a third place to forget.
+  const occurrences = authzCode.split(IDENTITY_EXPRESSION).length - 1;
+  assert.equal(occurrences, 2,
+    `the identity expression appears ${occurrences} time(s) and must appear exactly twice — `
+    + "app.jwt_subject()'s body and app_authz's own policy.");
+
+  // And no migration calls auth.uid() from a context that runs as a role we created: measured
+  // 2026-09-06, schema auth is owned by supabase_admin and postgres holds USAGE without grant
+  // option, so no migration of ours can grant it.
+  const helperBodies = [...authzCode.matchAll(/create or replace function[\s\S]*?\$\$([\s\S]*?)\$\$/g)]
+    .map((m) => m[1]).join('\n');
+  assert.doesNotMatch(helperBodies, /auth\.uid\(\)/,
+    'a helper owned by app_authz cannot call auth.uid(): it fails with 42501 on the SCHEMA, not the '
+    + 'function, and no migration of ours can grant the privilege that would fix it.');
+});
