@@ -28,7 +28,7 @@
     "architecture/decisions/RFC-2026-017-service-path-identity.md": "2718b216f507ac7f2fe1cf3ce2c9b05b5fb571e67d34783f28e94201f718f4a9",
     "architecture/decisions/RFC-2026-018-service-path-connection.md": "6a19ed14fa007f4e704ea2b21900f4a7d40e6887b78c2621373c10b989a41e3f",
     "architecture/decisions/RFC-2026-019-service-path-connection-corrected.md": "ff7dfb2e2240899482febff83fc44e92ce7d785f22c57271bd6b1435628286db",
-    "architecture/decisions/RFC-2026-020-authorization-helper-role.md": "1a96f53b3650c00b16803a473558e8762dcb87c1f96cf5622cdfcd746480fda8",
+    "architecture/decisions/RFC-2026-020-authorization-helper-role.md": "3307410cabe91f1553d660ec055539a7018bd0077c3c217f4b25163a69fc5305",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md": "0a7656abb31f25ba5107cf304951b6fbaefca67bb607415250ea3a4d400056c4",

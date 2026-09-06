@@ -1,6 +1,6 @@
 # RFC-2026-020 — The authorization helper is owned by a role that is not a path
 
-Status: Proposed
+Status: Approved 2026-09-06 by the Product Owner — a fourth role `app_authz` owns the batch-011 authorization helpers and holds exactly one policy, `FOR SELECT` on `app.workspace_members`, no wider than `authenticated`'s own-row policy; the identity expression is read from `request.jwt.claims` because `auth.uid()` is unreachable to any role our migrations create; every helper reading that table is `SECURITY DEFINER` owned by `app_authz`. Nothing about the three path roles changes. The decision is NOT IN EFFECT until §6 holds — including §6.2's two claims, which must be discharged by EXECUTION in batch 011 and never by citation: if the helper inlines, this decision is wrong.
 Date: 2026-09-06
 Author: /claude/a1_identity (A1 Identity), author of migration batch `010_identity.sql`
 Reviewer sought: /claude/a0_atlas (A0), who owns `RFC-2026-017`, plus the Security review the
