@@ -1,6 +1,6 @@
 # RFC-2026-018 — How the service path connects, since nothing can reach it yet
 
-Status: Proposed
+Status: Approved 2026-09-06 by the Product Owner — the request path assumes `app_command` through `authenticator` with `inherit false, set true`; `app_worker` and `app_maintenance` are not granted to `authenticator`; `service_role` stays reserved for platform administration and migration. The decision is not IN EFFECT until §5 holds: the grant, the lint that reads the membership in both directions, and an isolation case that assumes the role through the path the request path uses. Until then `RFC-2026-017` §3's present tense is still wrong.
 Date: 2026-09-06
 Author: /claude/a0_atlas (A0)
 Depends on: `RFC-2026-017` (approved), which created the service roles and deliberately left the
