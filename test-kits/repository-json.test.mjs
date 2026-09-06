@@ -113,6 +113,7 @@ const DECISION_RECORDS = [
   'RFC-2026-016-rls-service-policy-and-platform.md',
   'RFC-2026-017-service-path-identity.md',
   'RFC-2026-018-service-path-connection.md',
+  'RFC-2026-019-service-path-connection-corrected.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {

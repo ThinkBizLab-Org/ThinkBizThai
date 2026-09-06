@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "protocol_version": "1.0.0",
   "work_package_id": "WP-0A-A0-009",
-  "title": "RFC-2026-018 — how the service path connects",
+  "title": "RFC-2026-018 and its correction, RFC-2026-019 — how the service path connects",
   "gate": "G0",
   "priority": "P0",
   "status": "in_progress",
@@ -46,7 +46,7 @@
     "Product Owner disposition of RFC-2026-017, which closes the half of DATA-DEC-03 RFC-2026-016 left open.",
     "A1 to countersign the role topology before the roles are created, since DATA-DEC-03 is owned A0+A1 and this is a security surface."
   ],
-  "purpose": "RFC-2026-017 created the service roles and left the connection method open, saying so in 001_service_roles.sql. Measured on 2026-09-06, nothing can become app_worker, app_command or app_maintenance except postgres, which bypasses RLS -- so the RFC's present tense describes no reachable path. This package proposes the connection method as its own decision rather than letting it be settled by whoever writes the first line of application code.",
+  "purpose": "RFC-2026-017 created the service roles and left the connection method open, saying so in 001_service_roles.sql. Measured on 2026-09-06, nothing can become app_worker, app_command or app_maintenance except postgres, which bypasses RLS -- so the RFC's present tense describes no reachable path. This package proposes the connection method as its own decision rather than letting it be settled by whoever writes the first line of application code.\n\nRFC-2026-018 was approved and then found to rest on a misreading of RFC-2026-017 §3: it treated app_command as a role the request path assumes, when §3 defines it as the OWNER of the SECURITY DEFINER command functions. RFC-2026-019 supersedes it. The package keeps both, because a package that quietly replaces its own wrong answer teaches nobody why it was wrong.",
   "scope": {
     "include": [
       "RFC-2026-017 recording the service-path decision and the role topology it implies",
@@ -72,12 +72,13 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-A0-009-service-path-connection",
+    "branch": "agent/claude/WP-0A-A0-009-service-path-corrected",
     "writable_paths": [
       "architecture/decisions/RFC-2026-018-service-path-connection.md",
-      "work-packages/WP-0A-A0-009.json",
+      "architecture/decisions/RFC-2026-019-service-path-connection-corrected.md",
+      "evidence/WP-0A-A0-009/**",
       "handoffs/WP-0A-A0-009-*.json",
-      "evidence/WP-0A-A0-009/**"
+      "work-packages/WP-0A-A0-009.json"
     ],
     "read_only_paths": [
       "README.md",
@@ -121,6 +122,7 @@
   "outputs": {
     "files": [
       "architecture/decisions/RFC-2026-018-service-path-connection.md",
+      "architecture/decisions/RFC-2026-019-service-path-connection-corrected.md",
       "work-packages/WP-0A-A0-009.json"
     ],
     "contracts": []
@@ -132,7 +134,12 @@
     "The security question option A raises is answered directly rather than deferred: the capability is already held through service_role, and the option narrows it rather than widening it.",
     "The RFC names what must be true before it can close, in artefacts a build can check, and states that until then RFC-2026-017 §3 stays wrong.",
     "It names what it does NOT decide, including the background worker path and JWT custody.",
-    "It changes no migration, no lint and no role. A Proposed decision that has already changed the tree is not a proposal."
+    "It changes no migration, no lint and no role. A Proposed decision that has already changed the tree is not a proposal.",
+    "RFC-2026-019 states what RFC-2026-018 got wrong in its own words, including which comparison RFC-2026-018 made and which one decides the question.",
+    "It names the root error in a form that generalises: a missing COMPONENT was read as a missing GRANT.",
+    "Every clause of its decision is assertable against the database as it stands, and it says which rules carry them — including the negative, that authenticator holds no membership in any service role.",
+    "It records that the error was not caught by the review, nor by the conflict order, but by reading the two decisions together.",
+    "It changes no role, no grant and no migration, exactly as RFC-2026-018 did not."
   ],
   "required_tests": [
     "npm run check"
@@ -154,7 +161,9 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting removes a proposal and changes no role, no grant and no lint, because the proposal deliberately changed none.",
   "open_blockers": [
-    "This RFC is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision; DATA-DEC-03 is co-owned, and one co-owner is this run.",
+    "RFC-2026-019 is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision.",
+    "RFC-2026-018 is Approved and superseded, and its status line still says only Approved. Recording the supersession is a decision-record status change and belongs to a disposition branch, not to this one. Until that happens the repository holds an approved decision that must not be implemented, and that is the most dangerous shape a record can have here.",
+    "The three lint rules RFC-2026-019 §5 names are not written. They belong to WP-0A-DB-00. Two of them assert states measured true today -- authenticator holds no service-role membership, and app_command owns no table in app -- so they are assertable immediately rather than someday.",
     "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
     "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
     "Gate G0 remains Specification Baseline Complete / External Verification Pending."

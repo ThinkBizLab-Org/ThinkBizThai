@@ -425,6 +425,7 @@ export const DIGESTED_FLOOR = [
   'architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md',
   'architecture/decisions/RFC-2026-017-service-path-identity.md',
   'architecture/decisions/RFC-2026-018-service-path-connection.md',
+  'architecture/decisions/RFC-2026-019-service-path-connection-corrected.md',
   'contract-catalog/README.md',
   'contract-catalog/shared-kernel/index.json',
   'docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md',
