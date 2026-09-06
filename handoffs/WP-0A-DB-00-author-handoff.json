@@ -5,10 +5,28 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "07aa8f6bdb2257d0a4ec6d77c6ce61fcbbc55fe2",
-  "head_revision_or_patch_checksum": "07aa8f6bdb2257d0a4ec6d77c6ce61fcbbc55fe2",
+  "head_revision_or_patch_checksum": "64f30178a67dc9c5aef1e9caae8e308a4d9da741",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/migrations/030_industry.sql",
+    "evidence/WP-0A-DB-00/a2-batch-030-probes-2026-09-06.md",
+    "tests/db/identity/fixtures/030-industry-fixture.sql"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
@@ -77,6 +95,12 @@
       "exit_code": 0,
       "result": "tests 386, pass 386, fail 0, skipped 0, todo 0. See evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run.",
       "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 07aa8f6 WP-0A-DB-00",
+      "exit_code": 0,
+      "result": "all 16 changed path(s) are declared, and every amendment explains one. Run against the branch point read from history rather than against the base the handoff carried, which is what stopped a second increment claiming every file merged into main in between.",
+      "toolchain": "node v24.20.0"
     },
     {
       "command": "LC_ALL=C TZ=UTC node --test tests/db/identity/identity-isolation.test.mjs",
