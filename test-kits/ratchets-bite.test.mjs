@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -53,8 +53,26 @@ const REPOSITORY = process.cwd();
 // So the owning process id is IN THE NAME, and a copy is swept only when its owner is gone.
 // `process.kill(pid, 0)` signals nothing and throws ESRCH when no such process exists; EPERM means
 // it exists and belongs to someone else, which is still alive and still must not be touched.
+//
+// A pid is not an identity, though, and that is the hole the pid check opened while closing the
+// other one. `process.kill(pid, 0)` answers "does SOME process hold this number", not "is the
+// process that made this copy still alive". Pids are recycled -- macOS wraps at 99998 -- so an
+// abandoned copy whose number comes back around reads as live forever: never swept, and, because
+// the leftover COUNT also excludes live copies, never counted. It would sit there permanently,
+// invisible to the very assertion written to notice accumulation. That is the 597-copy failure
+// re-entering through the door its own fix opened, and it fails silently, which is worse.
+//
+// So liveness has a second condition, and it is the one thing a recycled pid cannot fake: age. No
+// copy this suite makes outlives the run that made it by hours, so a copy past the floor cannot
+// belong to a live run whatever its pid says, and one inside the floor is young enough that the
+// pid check is answering about the right process. Twelve hours is far past the longest case ever
+// measured here -- 2.3 hours, and that was the worktree-recursion defect fixed in 23c6d8b; cases
+// run in seconds now -- which is deliberate. The floor is a backstop for a coincidence, not a
+// second opinion on liveness, so it is set where it can only ever catch copies the pid check got
+// wrong.
 const COPY_PREFIX = 'ratchet-bite-';
 const MAX_LEFTOVER_COPIES = 8;
+const MAX_LIVE_COPY_AGE_MS = 12 * 60 * 60 * 1000;
 
 // `ratchet-bite-<pid>-<random>`; anything without a parseable pid is from an older revision of this
 // file and is treated as abandoned, which it is.
@@ -69,18 +87,36 @@ export function stillRunning(pid) {
   catch (error) { return error.code === 'EPERM'; }
 }
 
+// `mtime`, not `birthtime`. `birthtime` is not populated on every filesystem this can run on and
+// silently reads as the epoch where it is missing, which would make every copy look ancient and
+// hand the sweep back the deletion power this whole design took away from it. `mtime` is never
+// EARLIER than creation, so its error runs in the safe direction only: a live copy can read as
+// younger than it is, never older, and an abandoned copy's clock stops with the process that
+// owned it and ages out exactly as intended.
+export async function olderThanFloor(path, now = Date.now()) {
+  // A copy that disappeared between the listing and the stat is already gone -- a concurrent
+  // sweep's, most likely. Not abandoned, because there is nothing left to abandon.
+  const stats = await stat(path).catch(() => null);
+  if (stats === null) return false;
+  return now - stats.mtimeMs > MAX_LIVE_COPY_AGE_MS;
+}
+
+export async function abandonedCopiesIn(dir) {
+  const abandoned = [];
+  for (const name of (await readdir(dir)).filter((entry) => entry.startsWith(COPY_PREFIX))) {
+    if (!stillRunning(ownerOf(name)) || await olderThanFloor(join(dir, name))) abandoned.push(name);
+  }
+  return abandoned;
+}
+
 export async function sweepLeftoverCopies() {
   const dir = await realpath(tmpdir());
-  const all = (await readdir(dir)).filter((name) => name.startsWith(COPY_PREFIX));
-  const abandoned = all.filter((name) => !stillRunning(ownerOf(name)));
-  for (const name of abandoned) {
+  for (const name of await abandonedCopiesIn(dir)) {
     await rm(join(dir, name), { recursive: true, force: true }).catch(() => {});
   }
   // Count only what this sweep was entitled to remove. A concurrent run's copies are not leftovers,
   // and refusing to start because a colleague is working is a guard that punishes parallelism.
-  const left = (await readdir(dir))
-    .filter((name) => name.startsWith(COPY_PREFIX))
-    .filter((name) => !stillRunning(ownerOf(name)));
+  const left = await abandonedCopiesIn(dir);
   assert.ok(left.length <= MAX_LEFTOVER_COPIES,
     `${left.length} abandoned repository copies remain under ${dir} after sweeping, above the ${MAX_LEFTOVER_COPIES} this suite tolerates. `
     + 'Each is a full checkout. They accumulate when a run is killed before its cleanup, and they will fill the disk; '
@@ -597,4 +633,50 @@ test('the sweep removes an abandoned copy and never one a live process owns', as
   // A name from before pids were in it has no owner, so it is abandoned by definition.
   assert.equal(ownerOf(`${COPY_PREFIX}Ab3xY9`), null);
   assert.equal(ownerOf(`${COPY_PREFIX}${process.pid}-Ab3xY9`), process.pid);
+});
+
+// The age floor's own case. The pid check alone cannot be tested against a recycled pid -- you
+// cannot ask the operating system to hand a specific number back -- but the situation it produces
+// can be built exactly: a copy whose pid IS live and which is far too old to belong to that
+// process. Before the floor, the sweep read that as live and left it, forever, uncounted.
+test('the sweep removes a copy past the age floor even when its pid reads as live', async () => {
+  const dir = await realpath(tmpdir());
+  // This process's own pid, so `stillRunning` is certainly true: the ONLY thing that can condemn
+  // these directories is their age. That is what makes the two of them a pair -- same owner, same
+  // everything, and only the clock between them.
+  const recycled = join(dir, `${COPY_PREFIX}${process.pid}-recycled-pid-case`);
+  const fresh = join(dir, `${COPY_PREFIX}${process.pid}-fresh-case`);
+  await mkdir(recycled, { recursive: true });
+  await mkdir(fresh, { recursive: true });
+
+  // An hour past the floor, not a second past it: a boundary case would pass on a sweep that
+  // compared the wrong way round, and this is asserting the direction as much as the threshold.
+  const stale = (Date.now() - MAX_LIVE_COPY_AGE_MS - 3_600_000) / 1000;
+  await utimes(recycled, stale, stale);
+
+  try {
+    assert.equal(stillRunning(ownerOf(`${COPY_PREFIX}${process.pid}-recycled-pid-case`)), true,
+      'the fixture is void unless the pid genuinely reads as live -- that is the whole situation');
+    assert.equal(await olderThanFloor(recycled), true, 'a copy backdated past the floor must read as past it');
+    assert.equal(await olderThanFloor(fresh), false, 'a copy made moments ago must not');
+
+    await sweepLeftoverCopies();
+    // The gap this closes: a live pid is no longer a permanent exemption. Without the floor this
+    // directory survives every sweep this repository will ever run, and the leftover count -- which
+    // excludes live copies -- never sees it either, so the guard cannot fire on it.
+    assert.ok(!existsSync(recycled),
+      'a copy older than any run could possibly be survived the sweep because its pid was reused — '
+      + 'that copy can never be removed and is never counted, which is the silent accumulation this suite exists to stop');
+    // And the floor must not have cost us the fix it backstops: a live run's copy is young, and
+    // young plus live still means untouchable.
+    assert.ok(existsSync(fresh), 'the age floor swept a live run’s copy — the concurrency defect, reintroduced');
+  } finally {
+    await rm(recycled, { recursive: true, force: true });
+    await rm(fresh, { recursive: true, force: true });
+  }
+
+  // A vanished copy is not abandoned. `abandonedCopiesIn` lists names and then stats them, and
+  // between those two steps a concurrent sweep can remove one; reporting it as abandoned would
+  // inflate the count that decides whether this suite refuses to start.
+  assert.equal(await olderThanFloor(join(dir, `${COPY_PREFIX}${process.pid}-was-never-here`)), false);
 });
