@@ -3459,7 +3459,12 @@ test('the credential reference lives in private and holds only the columns §9.2
     + 'and the whole design is that the database holds a reference INSTEAD of a credential');
   // The apply-time block carries the same list. Two homes that can differ is a permitted set nobody
   // maintains, so they are compared rather than trusted.
-  const allowlistInBlock = aiCode.slice(aiCode.indexOf('a.attname <> all (array[')).slice(0, 600);
+  // `indexOf` returning -1 would make `slice` read from the END of the file, and every assertion
+  // below would then fail for a reason that has nothing to do with the allowlist — which is exactly
+  // what happened when the block gained an explicit `::text` cast. The anchor is asserted first.
+  const anchor = aiCode.indexOf('<> all (array[');
+  assert.ok(anchor > 0, 'the apply-time block still holds the column set as an allowlist');
+  const allowlistInBlock = aiCode.slice(anchor, anchor + 600);
   for (const column of CREDENTIAL_COLUMNS_PERMITTED) {
     assert.match(allowlistInBlock, new RegExp(`'${column}'`),
       `the apply-time allowlist names ${column}, so the live catalog is held to the same list as the text`);

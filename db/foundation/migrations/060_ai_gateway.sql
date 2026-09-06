@@ -678,7 +678,7 @@ begin
   -- ENABLE and FORCE on all three. The two are different catalog columns and the data package's own
   -- lint rule reads only the first (RFC-2026-016). On a table with no policy, FORCE is the whole of
   -- what refuses the owner.
-  select string_agg(n.nspname || '.' || c.relname, ', ') into offending
+  select string_agg(format('%s.%s', n.nspname, c.relname), ', ') into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
    where ((n.nspname = 'app' and c.relname in ('ai_models', 'ai_model_policies'))
@@ -712,9 +712,13 @@ begin
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'private' and c.relname = 'ai_credential_references'
      and a.attnum > 0 and not a.attisdropped
-     and a.attname <> all (array['id', 'workspace_id', 'provider', 'credential_reference',
-                                 'fingerprint', 'created_at', 'updated_at', 'rotated_at',
-                                 'expires_at', 'revoked_at', 'created_by', 'updated_by']);
+     -- `attname` is `name` and the list is `text[]`. The cast is written out rather than left to
+     -- operator resolution, because a comparison that depends on an implicit cast is a comparison
+     -- that changes meaning when somebody adds an operator — and a NEVER rule that silently starts
+     -- matching nothing is the failure mode this whole block exists to avoid.
+     and a.attname::text <> all (array['id', 'workspace_id', 'provider', 'credential_reference',
+                                       'fingerprint', 'created_at', 'updated_at', 'rotated_at',
+                                       'expires_at', 'revoked_at', 'created_by', 'updated_by']);
   if offending is not null then
     raise exception 'private.ai_credential_references carries column(s) §9.2 does not permit: %', offending
       using hint = '§9.2: "Secret table เก็บได้เพียง credential_reference, provider, fingerprint/'
@@ -790,7 +794,7 @@ begin
   -- exemption, so this is the whole of what it owes that decision, asserted rather than promised.
   -- The POLICY COUNT is deliberately not re-asserted: 021 owns that assertion on the far side of the
   -- batch that could have moved it, and repeating it would be a second home for a number.
-  select string_agg(n.nspname || '.' || c.relname, ', ') into offending
+  select string_agg(format('%s.%s', n.nspname, c.relname), ', ') into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
    where ((n.nspname = 'app' and c.relname in ('ai_models', 'ai_model_policies'))
