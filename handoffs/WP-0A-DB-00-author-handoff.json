@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e2f71cd19b4bccaac931435276e470cd317fe285",
-  "head_revision_or_patch_checksum": "57ded57f14a9facc23203c46d1c10e914cd2034b",
+  "base_revision": "ea706419ed7d72e706634a7f91a0a7d37db183ce",
+  "head_revision_or_patch_checksum": "2b9fad43c6920470477a654c11b2fffa56d6b375",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/040_knowledge.sql",
@@ -25,7 +25,6 @@
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/db/rls-assertions.test.mjs",
-    "test-kits/integrity-manifest.json",
     "tests/db/identity/identity-isolation.test.mjs",
     "tests/db/identity/isolation-cases.mjs",
     "tests/db/identity/run-isolation.mjs",

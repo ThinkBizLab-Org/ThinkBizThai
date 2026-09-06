@@ -2047,6 +2047,49 @@ test('batch 040 adds to the merged batches and rewrites none of them', () => {
     "§3.2's updated_at comes from batch 000's helper and is not reimplemented");
 });
 
+// RFC-2026-021 was APPROVED while this batch was being written, and it decides two things batch 040
+// would otherwise have inherited as convention. A batch that landed beside an approved decision
+// touching its own grants and said nothing about it would be leaving a reader to work out whether
+// the silence was agreement or ignorance.
+test('batch 040 obeys the decision approved beside it about anon and the inherited grants', async () => {
+  assert.match(knowledge, /RFC-2026-021/,
+    'the batch names the decision it is obeying, so a reader can disagree with the reading rather '
+    + 'than with the silence');
+  // §7/4: anon is granted nothing, anywhere our migrations reach — not a table, not a column, not a
+  // function, and above all not `usage on schema app`, because the first anon grant changes the
+  // DENIAL LAYER of every object in app at once.
+  assert.doesNotMatch(knowledgeCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4 decides that anon holds nothing anywhere our migrations reach. Batch 030 '
+    + 'refused this as a judgement; it is now an approved decision, and the two anonymous cases '
+    + 'assert the refusal on the SCHEMA so that widening it fails a test.');
+  for (const c of cases.filter((k) => k.as.helper === 'as_anonymous' && /knowledge/.test(k.id))) {
+    assert.equal(c.expect, 'denied', `${c.id}: anon holds no privilege, so the refusal is an error `
+      + 'and not an empty result');
+    assert.deepEqual(c.deniedOn, { kind: 'schema', name: 'app' },
+      `${c.id}: refused during name resolution, on the SCHEMA — which is the assertion §7/4 makes `
+      + 'checkable. The day anon is granted USAGE on app this moves to the table and fails.');
+  }
+  // §8.5 names 010, 020 and 021's inherited base-table grants and says the exceptions list must be
+  // CLOSED; §10 says those grants are not what the RFC decides and owes them to 170. 030 wrote new
+  // ones and 040 writes new ones, so the list will have to enumerate five batches. Recorded here
+  // rather than left for whoever writes that list to discover.
+  assert.match(knowledge, /§8\.5/,
+    'the batch records that its own grants join a list RFC-2026-021 expects to be closed, and why '
+    + 'that is a debt rather than a contradiction: every grant here is column-scoped and bounded by '
+    + 'a predicate RLS can express, which is the distinction 030 drew about a GLOBAL table');
+  for (const grant of knowledgeCode.matchAll(/grant (select|insert|update)([^;]*)on app\.(knowledge_\w+) to authenticated/gi)) {
+    assert.match(grant[2], /\(/,
+      `app.${grant[3]}: every client grant is COLUMN-SCOPED. RFC-2026-021's own Status line turns on `
+      + 'it — "a column-scoped grant is not a table grant, so column drift is loud in the shape '
+      + 'batch 010 writes" — so a table-wide grant here would remove the only reason these grants '
+      + 'are an inherited shape rather than the failure RFC-2026-012 §2 names.');
+  }
+  // And the RFC is a decision record this repository digests, so it must be one the tree still has.
+  const decisions = await readdir('architecture/decisions');
+  assert.ok(decisions.includes('RFC-2026-021-client-read-allowlist.md'),
+    'batch 040 cites RFC-2026-021 and the record must exist to be cited');
+});
+
 test('the batch 040 fixture writes only catalog identities and carries both scope shapes', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
   const fixture = (await readFile(KNOWLEDGE_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');

@@ -454,9 +454,33 @@ alter table app.knowledge_item_versions force row level security;
 -- Privileges. Deny-by-default needs a grant before RLS is even reached.
 -- ---------------------------------------------------------------------------------------------
 --
--- §6 invariant 8 puts migration, constraints, indexes, RLS AND grants in one change set. `anon` is
--- granted nothing, here as everywhere: §8.5 gives anonymous no tenant policy, so an anonymous read
--- is refused by the privilege system on the SCHEMA before RLS is reached.
+-- §6 invariant 8 puts migration, constraints, indexes, RLS AND grants in one change set.
+--
+-- `anon` IS GRANTED NOTHING, AND SINCE 2026-09-06 THAT IS AN APPROVED DECISION RATHER THAN AN
+-- INHERITED CONVENTION. RFC-2026-021 §7/4 decides it in terms — "`anon` is granted nothing: no
+-- schema USAGE, no table or column privilege, no function EXECUTE, anywhere our migrations reach,
+-- and the product has no unauthenticated database surface at G0" — and gives the structural reason
+-- 040 could not have given for itself: the first `anon` grant is not one grant, it is `grant usage
+-- on schema app`, and it changes the DENIAL LAYER of every object in `app` at once. Both anonymous
+-- cases in the isolation suite declare `deniedOn: { kind: 'schema', name: 'app' }` for exactly that
+-- reason, so the day somebody widens it they fail rather than pass more quietly.
+--
+-- THE GRANTS BELOW JOIN A LIST RFC-2026-021 EXPECTS TO BE CLOSED, AND THAT IS RECORDED RATHER THAN
+-- ABSORBED. §8.5 of that RFC names the inherited `authenticated` base-table grants in 010, 020 and
+-- 021 and says the known-exceptions list enumerating them must be CLOSED — "any new one fails" —
+-- while §10 says the same grants are not what it decides and owes them to 170. 030 wrote new ones
+-- on app.industry_assignments and 040 writes new ones here, both AFTER that list was described and
+-- BEFORE it exists, so the list will have to enumerate five batches rather than three.
+--
+-- That is a debt, not a contradiction, and the distinction is the one 030's header drew: every
+-- grant in this file is bounded by a predicate RLS can express — `app.is_active_member(workspace_id)`
+-- — so a column drift reaches one workspace and the isolation suite proves the boundary. It is a
+-- GLOBAL table with no such predicate that RFC-2026-012 §2's reasoning is load-bearing about, and
+-- RFC-2026-021's own Status line settles the rest: "a column-scoped grant is not a table grant, so
+-- column drift is loud in the shape batch 010 writes". Every grant below is column-scoped.
+--
+-- §8.5 gives anonymous no tenant policy, so an anonymous read is refused by the privilege system on
+-- the SCHEMA before RLS is reached.
 --
 -- Column-scoped, per operation. Four absences in the UPDATE grant are load-bearing and are enforced
 -- here rather than only in a WITH CHECK a later edit could weaken:
