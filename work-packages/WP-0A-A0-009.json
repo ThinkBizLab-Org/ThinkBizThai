@@ -99,14 +99,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
         "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json",
         "test-kits/repository-json.test.mjs"
       ],
-      "rationale": "The branch-to-package mapping is pinned whole in a test, so a new package's branch adds one row there where it appears in a diff. The integrity manifest digests every decision record, so a new RFC joins it. Nothing else outside this package's own files is touched: the RFC proposes a migration and a lint rule and writes neither, because a Proposed decision that has already changed the tree is not a proposal.\n\nThe set of decision records is declared BY NAME in test-kits/repository-json.test.mjs, and its message says why: an approved RFC outranks every document in the conflict order, so adding one is the highest-authority act available in this repository and may not happen by a directory listing changing. Adding the row is the declaration that test demands. The floors and the verification record move with any test edit. The protected-file list in scripts/verify-test-coverage-floor.mjs names every decision record by path; a new RFC that is not in it would be a decision record no digest protects, which is the hole the list exists to close."
+      "rationale": "The branch-to-package mapping is pinned whole in a test, so a new package's branch adds one row there where it appears in a diff. The integrity manifest digests every decision record, so a new RFC joins it. Nothing else outside this package's own files is touched: the RFC proposes a migration and a lint rule and writes neither, because a Proposed decision that has already changed the tree is not a proposal.\n\nThe set of decision records is declared BY NAME in test-kits/repository-json.test.mjs, and its message says why: an approved RFC outranks every document in the conflict order, so adding one is the highest-authority act available in this repository and may not happen by a directory listing changing. Adding the row is the declaration that test demands. The floors and the verification record move with any test edit. The protected-file list in scripts/verify-test-coverage-floor.mjs names every decision record by path; a new RFC that is not in it would be a decision record no digest protects, which is the hole the list exists to close. Two registries were declared and not touched: the test count did not move and no floor changed, so the verification record and the suite contract are byte-identical. Declaring them anyway is a standing permission for work that never happened."
     }
   },
   "inputs": {
