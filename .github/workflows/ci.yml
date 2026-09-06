@@ -170,7 +170,14 @@ jobs:
             if ! grep -Eq "^  $pattern" control.log; then
               fail "The suite failed, but no case matching /$pattern/ did. Something failed; it was not $table. A control satisfied by any failure is satisfied by a regression it did not cause."
             fi
-            echo "  $table ($batch): $(grep -c "^  .*(" control.log) case(s) noticed, including $(grep -Eo "^  $pattern[a-z0-9-]*" control.log | head -1 | tr -d ' ')"
+            # Count FAILED CASE LINES, which are `  <id> [covers] (phase): detail`. The first
+            # version counted `^  .*(` and swept up the coverage report and the authz-proof lines
+            # with them, so every number it printed was an upper bound presented as a count. A2
+            # Industry found it by reading the output rather than the step. The control itself
+            # greps ids and was never wrong; only the sentence about it was, which is the kind of
+            # defect that survives longest.
+            noticed=$(grep -Ec "^  [a-z0-9-]+ \[[^]]*\] \([a-z-]+\):" control.log)
+            echo "  $table ($batch): $noticed case(s) noticed, including $(grep -Eo "^  $pattern[a-z0-9-]*" control.log | head -1 | tr -d ' ')"
           }
           echo "negative control: each table family must be detectable on its own"
           control app.workspaces              '[a-z0-9-]*workspace'  010
