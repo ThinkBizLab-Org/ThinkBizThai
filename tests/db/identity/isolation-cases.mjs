@@ -89,9 +89,16 @@
 // An honest coverage claim is worth more than a broad one, and this map is where a batch says
 // which of its inherited debts it paid. Batch 010 wrote it with assertions 2, 3 and 7 owed to
 // tables it was not allowed to create. Batch 020 creates two of those four families
-// (business_profiles, page_context_profiles and their immutable versions) and therefore CHANGES
-// three rows: 7 becomes covered, 2 becomes partial with the remaining half named and dated, and 3
-// stays false because content and knowledge are still other people's batches.
+// (business_profiles, page_context_profiles and their immutable versions) and therefore CHANGED
+// three rows: 7 became covered, 2 became partial with the remaining half named and dated, and 3
+// stayed false because content and knowledge are still other people's batches.
+//
+// Batch 021 creates app.workspace_member_scopes and moves ONE row: 2 from `partial` to `true`. It
+// moves nothing else, and the two rows a reader might expect to move are worth naming. 3 stays
+// false — it is about an approver editing CONTENT and KNOWLEDGE, which are batches 080 and 040, and
+// member scope does not create either. 8 stays `negative-half`, because asserting the positive half
+// would still require inventing a service permission §8.1 does not grant, and 021 grants the
+// service nothing it did not already have.
 //
 // A row that moves must move for a case, not for a sentence: identity-isolation.test.mjs requires
 // every assertion claimed `covered: true` to be cited by a case in this file.
@@ -107,17 +114,22 @@ export const SMOKE_COVERAGE = {
                            + '010 carries that third case on app.workspaces and not on workspace_settings or '
                            + 'workspace_invitations; those two rest on the A-side positive alone, which is a '
                            + 'weaker shape and is named here rather than covered by an average.' },
-  2: { covered: 'partial', note: 'HALF OF THIS IS NOW ASSERTED AND HALF IS STILL OWED, and the halves are '
-                           + 'different rules wearing one sentence. "user_editor_a sees Business A1/Page A1" '
-                           + 'and the tenant-boundary half — never business_b1, never page_b1, never their '
-                           + 'versions — are asserted by batch 020 on all four of its tables. "never A2/Page '
-                           + 'A2" is NOT: business_a2 is in the same workspace, and narrowing a member to one '
-                           + 'Business inside their own workspace is MEMBER SCOPE, which lives in '
-                           + '`workspace_member_scopes` — batch 021. Until 021 lands, §8.1 gives Business/Page '
-                           + 'SELECT to every active member, so the editor seeing business_a2 is the access '
-                           + 'matrix being implemented and not a leak. The case '
-                           + '`editor-a-sees-business-a2-until-batch-021` asserts exactly that, so the day 021 '
-                           + 'narrows it a test changes in a diff instead of a claim quietly becoming false.' },
+  2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
+                           + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
+                           + 'boundary half — never business_b1, never page_b1, never their versions — on all '
+                           + 'four of its tables. It could not assert "never A2/Page A2", because business_a2 '
+                           + 'is in the SAME workspace and narrowing a member inside their own workspace is '
+                           + 'MEMBER SCOPE, whose table is batch 021. So 020 asserted the wider state '
+                           + 'POSITIVELY, in `editor-a-sees-business-a2-until-batch-021`, and said that the '
+                           + 'day 021 narrowed it a test would change in a diff instead of a claim quietly '
+                           + 'becoming false.\n\n'
+                           + 'THAT CASE IS GONE AND `editor-a-scope-does-not-reach-business-a2` STANDS WHERE '
+                           + 'IT STOOD, asserting the narrowed state just as positively. It is not alone: the '
+                           + 'same boundary is asserted on page_a2 and on the version rows of both, and it is '
+                           + 'paired with `owner-a-is-unscoped-and-sees-business-a2`, which is what stops the '
+                           + 'new negative from being satisfied by business_a2 becoming unreadable to '
+                           + 'everybody. §12.6/2 names four rows and this suite now asserts all four in both '
+                           + 'directions.' },
   3: { covered: false, note: 'content and knowledge are batches 080 and 040. There are now two in-scope '
                            + 'ANALOGUES — an approver cannot update the workspace (010) and cannot update a '
                            + 'page context (020) — and both are labelled analogues rather than counted as '
@@ -169,27 +181,42 @@ export const SMOKE_COVERAGE = {
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
-// across batches 010, 011 and 020.
+// across batches 010, 011, 020 and 021.
 export const AUTHORIZATION_CASE_COVERAGE = {
   1: 'covered — owner reads its workspace and inserts an invitation (010); owner reads its '
-   + 'businesses, pages and versions, creates a business, a page and a new version (020).',
+   + 'businesses, pages and versions, creates a business, a page and a new version (020); owner '
+   + 'creates a member scope, and a SCOPED EDITOR reads and writes inside its scope (021).',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
-   + 'carefully: §8.1 marks Business/Page INSERT/UPDATE `P` for editor, `P` is conditional on a '
-   + 'capability set no document defines, and batch 020 therefore denies it — so the editor case '
-   + 'asserts a DEFAULT-DENY and not a decided N.',
-  3: 'still owed by batch 021, and now for a narrower reason than when 010 wrote this. The tables '
-   + 'exist: business_a1 and business_a2 are both in workspace A. What does not exist is the row '
-   + 'that would narrow a member to one of them — `workspace_member_scopes` is batch 021 — so '
-   + '§8.1\'s "Business/Page SELECT: Y" gives every active member both. Batch 020 asserts that '
-   + 'state positively rather than leaving it unstated, so 021 has to change a test to change it.',
-  4: 'still owed by batch 021, for the same reason as case 3, one level down: page scope is a '
-   + 'member scope row and not a property of app.page_context_profiles.',
+   + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
+   + '`P` for editor; batch 020 denied it because `P` is conditional on a capability whose table did '
+   + 'not exist. 021 creates that table and implements the cell as "an editor whose member scope '
+   + 'EXPLICITLY covers the row", so the editor cases now split: an UNSCOPED editor is still refused '
+   + '(`editor-a-cannot-create-a-business`, which passes for a new reason — a fresh Business id is '
+   + 'covered by no scope row), and a scoped one passes on the row its scope names and is refused on '
+   + 'every other. The default-deny is still asserted; what changed is that the grant beside it is '
+   + 'now asserted too.',
+  3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
+   + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
+   + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
+   + 'the version rows of both — four cases, each paired with a positive on the business_a1 side, '
+   + 'and with `owner-a-is-unscoped-and-sees-business-a2` so that the negatives cannot be satisfied '
+   + 'by business_a2 becoming unreadable to everyone. The refusal is a RESTRICTIVE policy, which is '
+   + 'the only shape that can narrow what a merged batch already granted.',
+  4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
+   + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
+   + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
+   + 'so none of them can be refused a Page inside their own Business. user_page_editor_a holds a '
+   + '`page` scope on page_a1 and is refused page_a1_sibling, which is a second Page under '
+   + 'business_a1; `page-editor-a-sees-page-a1-in-scope` and `owner-a-sees-page-a1-sibling` are the '
+   + 'two positives that keep the negative from being about a missing row.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
    + 'addressed (020).',
-  6: 'covered — user_suspended_a, both halves, on both batches\' tables.',
+  6: 'covered — user_suspended_a, both halves, on all three batches\' tables. Batch 021 gives this '
+   + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
+   + 'rather than about a table with no row for them.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all.',
   8: 'covered — a forged created_by on the invitation insert (010) and on the business insert '
    + '(020), both of which raise.',
@@ -207,7 +234,7 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'role is granted UPDATE or DELETE on either table, so the refusal happens before RLS is '
    + 'consulted. That distinction is the assertion — a policy can be widened by an edit, an absent '
    + 'grant has to be granted.',
-  10: 'not applicable to batches 010-020 — no command function is specified for identity or for '
+  10: 'not applicable to batches 010-021 — no command function is specified for identity or for '
     + 'business.core, and audit (140) and outbox (050) do not exist yet.',
 };
 
@@ -219,9 +246,13 @@ const WORKSPACE_A_TIMEZONE = 'Asia/Bangkok';
 // there" and not "it still says what it said" is expectNoRows wearing a different name, so the
 // expected VALUE has one home and the fixture has the other.
 const BUSINESS_A1_NAME = 'fixture business a1';
+const BUSINESS_A2_NAME = 'fixture business a2';
 const BUSINESS_B1_NAME = 'fixture business b1';
 const PAGE_A1_NAME = 'fixture page a1';
 const PAGE_B1_NAME = 'fixture page b1';
+// Batch 021's own fixture value, for the same reason: a `no-effect` case against a row a scoped
+// member must not touch needs a witness that reads the value back, and the value has one home.
+const PAGE_A1_SIBLING_NAME = 'fixture page a1 sibling';
 
 /**
  * @param {(symbol: string) => string} id  resolves a fixture symbol to its uuid. Passing a
@@ -231,6 +262,10 @@ const PAGE_B1_NAME = 'fixture page b1';
 export function buildCases(id) {
   const ownerA = { helper: 'as_user', subject: id('user_owner_a') };
   const editorA = { helper: 'as_user', subject: id('user_editor_a') };
+  // Batch 021's identity, and the only one in the suite whose scope is a single Page. §8.6 case 4
+  // cannot be carried by any identity §12.6 names, because all of them are scoped at Business level
+  // or not at all and a business scope admits every Page beneath it.
+  const pageEditorA = { helper: 'as_user', subject: id('user_page_editor_a') };
   const approverA = { helper: 'as_user', subject: id('user_approver_a') };
   const viewerA = { helper: 'as_user', subject: id('user_viewer_a') };
   const suspendedA = { helper: 'as_suspended_user', subject: id('user_suspended_a') };
@@ -249,7 +284,11 @@ export function buildCases(id) {
   const BUSINESS_A3_ARCHIVED = id('business_a3_archived');
   const BUSINESS_B1 = id('business_b1');
   const PAGE_A1 = id('page_a1');
+  const PAGE_A2 = id('page_a2');
   const PAGE_B1 = id('page_b1');
+  // Batch 021's row: a second Page under business_a1. page_a2 cannot serve — it is under
+  // business_a2, so a member refused it has been refused by BUSINESS scope, which is §8.6 case 3.
+  const PAGE_A1_SIBLING = id('page_a1_sibling');
 
   // A version row is addressed by its PARENT AND ITS ORDINAL, never by an id of its own. 020 makes
   // (business_profile_id, version_number) and (page_context_profile_id, version_number) unique, so
@@ -352,6 +391,48 @@ export function buildCases(id) {
     column: 'name',
     equals: PAGE_B1_NAME,
   };
+
+  // -- Batch 021 witnesses and builders. -------------------------------------------------------
+  //
+  // Both witnesses run as user_owner_a, which is the UNSCOPED identity in workspace A: it is the
+  // only A-side identity that can see every row a scoped member is refused, which is exactly what a
+  // witness for a scoped member's blocked write has to do.
+  const businessA2NameUnchanged = {
+    as: ownerA,
+    sql: 'select name from app.business_profiles where id = $1',
+    params: [BUSINESS_A2],
+    column: 'name',
+    equals: BUSINESS_A2_NAME,
+  };
+
+  const pageA1SiblingNameUnchanged = {
+    as: ownerA,
+    sql: 'select name from app.page_context_profiles where id = $1',
+    params: [PAGE_A1_SIBLING],
+    column: 'name',
+    equals: PAGE_A1_SIBLING_NAME,
+  };
+
+  // A scope row carries no id in any case, so a write builder passes none: the row is addressed by
+  // the member and the target, which is what makes it unique, and the transaction is rolled back.
+  const scopeAllBusinesses = (workspace, member, createdBy) => ({
+    sql: 'insert into app.workspace_member_scopes'
+       + ' (workspace_id, user_id, scope_type, created_by, updated_by)'
+       + " values ($1, $2, 'all_businesses', $3, $3) returning id",
+    params: [workspace, member, createdBy],
+  });
+
+  const scopeToBusiness = (workspace, member, business, createdBy) => ({
+    sql: 'insert into app.workspace_member_scopes'
+       + ' (workspace_id, user_id, scope_type, business_profile_id, created_by, updated_by)'
+       + " values ($1, $2, 'business', $3, $4, $4) returning id",
+    params: [workspace, member, business, createdBy],
+  });
+
+  // The scope of one member, read by member rather than by row id. Every scope-visibility case goes
+  // through this shape, so "the caller sees its own rows and nobody else's" is asked the same way
+  // of every identity.
+  const scopesOf = 'select scope_type from app.workspace_member_scopes where workspace_id = $1 and user_id = $2';
 
   return [
     // -- §12.6/1, §8.6/1 and §8.6/5. Both directions of the tenant boundary. -------------------
@@ -1156,20 +1237,31 @@ export function buildCases(id) {
          + 'RFC-2026-020 §8 refused for the two `P` cells it met. When a later batch resolves the '
          + 'capability, this case is the one that has to change, and it will change in a diff.',
     },
+    // THE CASE BATCH 020 WROTE TO BE CHANGED, CHANGED. It stood here as
+    // `editor-a-sees-business-a2-until-batch-021`, expecting `rows`, and its own `why` said: "the
+    // fixture calls user_editor_a 'editor scoped to business_a1 and page_a1', and that scope is a
+    // row in `workspace_member_scopes` — batch 021. Asserting the current state positively is what
+    // makes 021 a change to this file rather than a claim that quietly became false."
+    //
+    // 021 created that row. The case is replaced IN PLACE, by one that asserts the narrowed state
+    // just as positively, so the substitution is one diff hunk rather than a deletion in one place
+    // and an addition in another. What it is paired with matters as much: without
+    // `owner-a-is-unscoped-and-sees-business-a2` and `viewer-a-all-businesses-scope-still-sees-
+    // business-a2` below, this negative would be satisfied by business_a2 becoming unreadable to
+    // everybody, which is a different and much worse batch.
     {
-      id: 'editor-a-sees-business-a2-until-batch-021',
-      covers: ['§12.6/2-partial', '§8.6/3-pending-021'],
+      id: 'editor-a-scope-does-not-reach-business-a2',
+      covers: ['§12.6/2', '§8.6/3'],
       as: editorA,
       sql: 'select id from app.business_profiles where id = $1',
       params: [BUSINESS_A2],
-      expect: 'rows',
-      why: 'THE HALF OF §12.6/2 THAT BATCH 020 CANNOT CARRY, written as an assertion instead of as a '
-         + 'note. The fixture calls user_editor_a "editor scoped to business_a1 and page_a1", and '
-         + 'that scope is a row in `workspace_member_scopes` — batch 021. Until it exists, §8.1 gives '
-         + 'Business/Page SELECT to every active member of the workspace and business_a2 is visible: '
-         + 'that is the access matrix being implemented, not a leak. Asserting the current state '
-         + 'positively is what makes 021 a change to this file rather than a claim that quietly '
-         + 'became false.',
+      expect: 'no-rows',
+      why: 'THE HALF OF §12.6/2 BATCH 020 COULD NOT CARRY: "user_editor_a sees Business A1/Page A1, '
+         + 'never A2/Page A2". business_a2 is in the editor\'s OWN workspace and they hold an active '
+         + 'membership in it, so 020\'s permissive policy admits the row and always will — the refusal '
+         + 'comes from `business_profiles_scope_narrows_member`, a RESTRICTIVE policy, which is the '
+         + 'only shape that can narrow what a merged batch already granted. The editor holds a '
+         + '`business` scope on business_a1 and nothing else.',
     },
 
     // -- §12.6/5 and §12.6/6. Suspended and anonymous, on tables with no predicate of their own. -
@@ -1317,6 +1409,523 @@ export function buildCases(id) {
          + 'table, so the refusal is row level security and nothing else — which the declared layer '
          + 'asserts rather than assumes. An INSERT is chosen because an INSERT is the mutation that '
          + 'raises.',
+    },
+
+    // =========================================================================================
+    // Batch 021 — member business/page scope.
+    // =========================================================================================
+    //
+    // One new table and, for the first time in this suite, a batch that NARROWS. Every case above
+    // that a narrowing could have broken is left standing on purpose: user_owner_a holds no scope
+    // row, so `member_scope_admits_*` is true for that identity and batch 020's cases assert, by
+    // continuing to pass, the reading of §7 this batch had to choose — a member with no scope row
+    // is not narrowed.
+    //
+    // The list below is organised as the boundary is: what the scope TABLE lets a caller see, what
+    // the scope rows do to batch 020's four tables, and what the helpers answer for whom.
+
+    // -- The scope table itself. Own rows and nobody else's, which is the whole security argument. -
+    {
+      id: 'editor-a-sees-their-own-member-scope',
+      covers: ['§7/member-scope', '§8.6/1'],
+      as: editorA,
+      sql: scopesOf,
+      params: ['__A__', '__SELF__'],
+      expect: 'rows',
+      why: 'The positive every negative below needs. `workspace_member_scopes_select_own` is the only '
+         + 'policy the scope helpers read through, so a policy that returned nothing would make every '
+         + 'caller look unscoped — which is FAIL-OPEN, not fail-closed, because an absent scope row '
+         + 'means "not narrowed". This case is what notices.',
+    },
+    {
+      id: 'editor-a-cannot-see-another-members-member-scope',
+      covers: ['§7/member-scope', '§8.6/2', 'RFC-2026-020§5/5'],
+      as: editorA,
+      sql: scopesOf,
+      params: ['__A__', id('user_page_editor_a')],
+      expect: 'no-rows',
+      why: 'A SCOPE ROW FOR ANOTHER MEMBER GRANTS THIS CALLER NOTHING, and this is the case that says '
+         + 'so at the table. It is the load-bearing one: the scope helpers are SECURITY INVOKER and '
+         + 'resolve the caller from THIS policy rather than by calling auth.uid(), so a policy that '
+         + 'admitted a second member\'s rows would silently widen every narrowing in the batch — the '
+         + 'editor would inherit whatever anyone else was scoped to. Both members are active in the '
+         + 'same workspace, so nothing but the user_id conjunct refuses this.',
+    },
+    {
+      id: 'owner-b-sees-their-own-member-scope',
+      covers: ['§8.6/1', '§12.6/1'],
+      as: ownerB,
+      sql: scopesOf,
+      params: ['__B__', '__SELF__'],
+      expect: 'rows',
+      why: 'The far side of the boundary holds a scope row, so the cross-tenant negative below is '
+         + 'about a policy rather than about a workspace nobody scoped.',
+    },
+    {
+      id: 'owner-a-cannot-see-workspace-b-member-scopes',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: scopesOf,
+      params: ['__B__', id('user_owner_b')],
+      expect: 'no-rows',
+      why: "Tenant A's owner holds tenant B's workspace id and its owner's id exactly, and asks for "
+         + 'the scope rows that say which Businesses that member reaches. Membership scope is the '
+         + 'AUTH-3 row an attacker wants most, because it describes the shape of the other tenant.',
+    },
+    {
+      id: 'suspended-a-sees-zero-scope-rows',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: scopesOf,
+      params: ['__A__', '__SELF__'],
+      expect: 'no-rows',
+      why: '§7: only status=active grants access. THE FIXTURE GIVES THIS IDENTITY A SCOPE ROW ON '
+         + 'PURPOSE, so the empty result is a policy refusing and not a table with nothing in it — '
+         + 'and the conjunct that refuses is app.is_active_member, the batch 011 helper, which is '
+         + 'how membership is read here rather than by joining app.workspace_members.',
+    },
+    {
+      id: 'anonymous-cannot-read-member-scopes',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: 'select scope_type from app.workspace_member_scopes where workspace_id = $1',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: '§8.5: anonymous has no tenant policy and no batch grants anon anything, so the refusal '
+         + 'comes from the privilege system on the SCHEMA before RLS is reached. If a later batch '
+         + 'ever grants anon USAGE on app, this moves to the table and the case fails, which is what '
+         + 'it is for.',
+    },
+
+    // -- §8.1 "Invite/change scope": the owner Y, and the four ways it is not wider than that. ----
+    {
+      id: 'owner-a-can-scope-a-member',
+      covers: ['§8.1/invite-change-scope', '§8.6/1'],
+      as: ownerA,
+      ...scopeAllBusinesses('__A__', '__SELF__', '__SELF__'),
+      expect: 'rows',
+      why: '§8.1 "Invite/change scope" is Y for owner, and this is the half of that cell that lives in '
+         + 'this table. Without it every refusal below passes against a table no identity can write '
+         + 'at all, which is a different design.\n\n'
+         + 'THE SUBJECT IS THE CALLER, and that is a property of the batch rather than a convenience: '
+         + '021 writes no roster policy on this table, so RETURNING on an INSERT for somebody ELSE '
+         + 'would be refused by `workspace_member_scopes_select_own` — Postgres applies SELECT '
+         + 'policies to a RETURNING clause. The limitation is recorded in the migration header; here '
+         + 'it is the shape of the positive case.',
+    },
+    {
+      id: 'editor-a-cannot-scope-a-member',
+      covers: ['§8.1/invite-change-scope', '§8.6/2', '§12.6/4'],
+      as: editorA,
+      ...scopeAllBusinesses('__A__', '__SELF__', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: '§8.1 marks "Invite/change scope" N for editor. A member who could widen their own scope '
+         + 'would make every narrowing in this batch advisory, so this is the case that says the '
+         + 'INSERT policy tests the ROLE and not merely the membership. The layer is declared because '
+         + 'the editor holds the INSERT column privileges — they are granted to `authenticated` — so '
+         + 'a `grant` refusal here would mean something else broke.',
+    },
+    {
+      id: 'owner-a-cannot-scope-a-member-into-workspace-b',
+      covers: ['§12.6/7', '§8.6/5'],
+      as: ownerA,
+      ...scopeAllBusinesses('__B__', '__SELF__', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: 'A forged workspace_id, submitted by a real owner of a real workspace and naming a real '
+         + 'other one. §3.3: a workspace_id from a client is never trusted. The INSERT policy asks '
+         + 'app.workspace_member_role for THAT workspace, which is null for this caller, so WITH '
+         + 'CHECK refuses before the composite foreign key is ever consulted.',
+    },
+    {
+      id: 'owner-a-cannot-forge-created-by-on-a-member-scope',
+      covers: ['§12.6/7', '§8.6/8'],
+      as: ownerA,
+      ...scopeAllBusinesses('__A__', '__SELF__', id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: '§8.5 requires an INSERT policy to assert created_by = auth.uid(). On this table the actor '
+         + 'and the subject are DIFFERENT PEOPLE by design — created_by is the owner granting the '
+         + 'scope, user_id is the member receiving it — so an unasserted created_by would let an '
+         + 'owner write an authorization grant attributed to somebody else, on the table that decides '
+         + 'what everyone else can reach.',
+    },
+    {
+      id: 'owner-a-cannot-scope-a-member-to-a-business-in-another-workspace',
+      covers: ['§12.6/7', '§4/10', '§3.3/composite-fk'],
+      as: ownerA,
+      ...scopeToBusiness('__A__', '__SELF__', BUSINESS_B1, '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23503',
+      why: '§4 invariant 10 on the table whose entire job is to say which rows a member reaches. EVERY '
+         + 'POLICY ADMITS THIS ROW — the workspace is the caller\'s own, the caller is its owner, and '
+         + 'created_by is the caller — and the composite foreign key (workspace_id, '
+         + 'business_profile_id) -> business_profiles (workspace_id, id) is the only thing that '
+         + 'refuses it. The SQLSTATE is named rather than "any error" because a policy refusing first '
+         + 'would let the constraint be dropped with nothing noticing.',
+    },
+    {
+      id: 'owner-a-cannot-update-a-member-scope',
+      covers: ['§8.5/no-broad-delete', '§8.6/9'],
+      as: ownerA,
+      sql: 'update app.workspace_member_scopes set scope_type = $3 where workspace_id = $1 and user_id = $2 returning id',
+      params: ['__A__', id('user_editor_a'), 'all_businesses'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: 'THE LIMITATION THIS BATCH SHIPS, ASSERTED RATHER THAN LEFT AS A SENTENCE. §8.5 forbids a '
+         + 'broad user delete and requires a soft delete through a typed lifecycle field; no document '
+         + 'names one for a member scope, so batch 021 grants no role UPDATE rather than inventing '
+         + 'the field. The workspace OWNER — the identity §8.1 grants "change scope" — is refused, at '
+         + 'the PRIVILEGE layer, which is a stronger claim than a policy refusal because a policy can '
+         + 'be widened by an edit and an absent grant has to be granted.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-member-scope',
+      covers: ['§8.5/no-broad-delete', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.workspace_member_scopes where workspace_id = $1 and user_id = $2',
+      params: ['__A__', id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: 'The other verb, asserted separately because UPDATE and DELETE are separate privileges and '
+         + 'a batch that granted one of them would be caught by exactly one of these two cases.',
+    },
+
+    // -- RFC-2026-017 §7 on the new table. ------------------------------------------------------
+    {
+      id: 'service-path-is-denied-a-member-scope-read-rls-must-filter',
+      covers: ['RFC-2026-017§7', '§12.6/8-negative'],
+      as: service,
+      sql: 'select scope_type from app.workspace_member_scopes where workspace_id = $1',
+      params: ['__A__'],
+      expect: 'no-rows',
+      why: 'app_worker HOLDS select on this table — batch 021 grants it deliberately, as 010 and 020 '
+         + 'did — and holds no policy, so an empty result can only have come from RLS. Workspace A '
+         + 'carries five scope rows, so a service role that had acquired BYPASSRLS would return them.',
+    },
+    {
+      id: 'service-path-cannot-create-a-member-scope',
+      covers: ['RFC-2026-017§7', '§12.6/8-negative'],
+      as: service,
+      ...scopeAllBusinesses('__A__', id('user_owner_a'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_member_scopes' },
+      why: 'The service identity attempts an operation §8.1 gives it no policy for and is DENIED WITH '
+         + 'AN ERROR rather than handed an empty result. It holds the INSERT privilege on every column '
+         + 'this statement names, so the refusal is row level security and nothing else. An INSERT is '
+         + 'chosen because an INSERT is the mutation that raises — and a scope row written by an '
+         + 'unpoliced service path would be an authorization grant nobody authorised.',
+    },
+
+    // -- §12.6/2 and §8.6/3. The Business boundary INSIDE one workspace. -------------------------
+    //
+    // The negative half of this block is `editor-a-scope-does-not-reach-business-a2`, which stands
+    // above in the position batch 020's `editor-a-sees-business-a2-until-batch-021` occupied. These
+    // are the rest of it: the positives that make it mean something, and the same boundary at Page
+    // and version depth.
+    {
+      id: 'editor-a-sees-business-a1-in-scope',
+      covers: ['§12.6/2', '§8.6/1', '§8.6/3'],
+      as: editorA,
+      sql: 'select id from app.business_profiles where id = $1',
+      params: [BUSINESS_A1],
+      expect: 'rows',
+      why: '§12.6/2\'s first half: "user_editor_a sees Business A1". The restrictive policy admits the '
+         + 'Business the editor\'s scope names, so the negative beside it is about SCOPE rather than '
+         + 'about a policy that hides everything from an editor.',
+    },
+    {
+      id: 'owner-a-is-unscoped-and-sees-business-a2',
+      covers: ['§7/member-scope', '§8.6/1'],
+      as: ownerA,
+      sql: 'select id from app.business_profiles where id = $1',
+      params: [BUSINESS_A2],
+      expect: 'rows',
+      why: 'THE CONTROL FOR THE WHOLE BATCH, and the assertion of the one thing §7 does not say. '
+         + 'user_owner_a holds NO scope row, and batch 021 reads that as "not narrowed" rather than '
+         + 'as "denied" — 010\'s own comment says scope narrows a ceiling and never widens it, and '
+         + 'the fixture catalog describes this identity with no scope at all. Without this case, '
+         + 'every scope negative in the batch would be satisfied by a restrictive policy that simply '
+         + 'hid business_a2 from everybody.',
+    },
+    {
+      id: 'viewer-a-all-businesses-scope-still-sees-business-a2',
+      covers: ['§7/member-scope', '§8.6/1'],
+      as: viewerA,
+      sql: 'select id from app.business_profiles where id = $1',
+      params: [BUSINESS_A2],
+      expect: 'rows',
+      why: '§7\'s third scope type, and the case that keeps app.member_scope_is_narrowed honest. This '
+         + 'identity IS narrowed — it holds a scope row — and still sees every Business, because the '
+         + 'row says all_businesses. A helper that read "has a scope row" as "is restricted to the '
+         + 'rows it names" would pass every other case in this block and fail here.',
+    },
+    {
+      id: 'editor-a-sees-page-a1-in-scope',
+      covers: ['§12.6/2', '§8.6/1'],
+      as: editorA,
+      sql: 'select id from app.page_context_profiles where id = $1',
+      params: [PAGE_A1],
+      expect: 'rows',
+      why: '§7: a `business` scope is one Business "รวม Page ใต้ Business" — including the Pages under '
+         + 'it. The editor holds one row, naming business_a1, and page_a1 is beneath it. This is that '
+         + 'sentence, asserted rather than assumed from the Business case.',
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-page-a2',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      sql: 'select id from app.page_context_profiles where id = $1',
+      params: [PAGE_A2],
+      expect: 'no-rows',
+      why: '"never A2/Page A2" — the Page half of §12.6 assertion 2, which batch 020 could carry in '
+         + 'neither direction. page_a2 is under business_a2, which this editor\'s scope does not name.',
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-business-a2-version-1',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      sql: `select id from app.business_profile_versions where ${VERSION_1_OF_BUSINESS}`,
+      params: [BUSINESS_A2],
+      expect: 'no-rows',
+      why: 'A version row holds what a Business USED TO SAY, so a narrowing that stopped at the '
+         + 'current row would leave the history of an out-of-scope Business readable — the quietest '
+         + 'possible leak, because nothing in the current tables would look different. This is why '
+         + 'batch 021 writes four restrictive policies rather than two.',
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-page-a2-version-1',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      sql: `select id from app.page_context_profile_versions where ${VERSION_1_OF_PAGE}`,
+      params: [PAGE_A2],
+      expect: 'no-rows',
+      why: 'The deepest row on the far side of the in-workspace boundary, reached by its parent and '
+         + 'its ordinal exactly as the cross-tenant version cases reach theirs.',
+    },
+
+    // -- §8.6/4. Page scope, inside ONE Business, which needs two rows §12.6 does not name. -------
+    {
+      id: 'owner-a-sees-page-a1-sibling',
+      covers: ['§8.6/1', '§8.6/4'],
+      as: ownerA,
+      sql: 'select id from app.page_context_profiles where id = $1',
+      params: [PAGE_A1_SIBLING],
+      expect: 'rows',
+      why: 'page_a1_sibling exists and is a real Page under business_a1. Without this, §8.6 case 4 '
+         + 'below is satisfied by a fixture row that never loaded.',
+    },
+    {
+      id: 'page-editor-a-sees-page-a1-in-scope',
+      covers: ['§8.6/1', '§8.6/4', '§7/member-scope'],
+      as: pageEditorA,
+      sql: 'select id from app.page_context_profiles where id = $1',
+      params: [PAGE_A1],
+      expect: 'rows',
+      why: 'The positive §8.6 case 4 needs: this identity\'s scope is exactly one Page and it reaches '
+         + 'that Page.',
+    },
+    {
+      id: 'page-editor-a-sees-business-a1-because-a-page-scope-carries-it',
+      covers: ['§7/member-scope', '§8.6/1'],
+      as: pageEditorA,
+      sql: 'select id from app.business_profiles where id = $1',
+      params: [BUSINESS_A1],
+      expect: 'rows',
+      why: 'A DECISION MADE IN 021 AND ASSERTED HERE. A `page` scope row carries its Business as well '
+         + 'as its Page, and app.member_scope_covers_business counts it — because a member who could '
+         + 'not read the Business their Page hangs from would hold a Page that is addressable and '
+         + 'unreachable. §7 says a page scope is "จำกัด Page Context เดียว" and does not say what '
+         + 'happens to the parent; this is the reading, written as a case so it can be argued with.',
+    },
+    {
+      id: 'page-editor-a-scope-does-not-reach-page-a1-sibling',
+      covers: ['§8.6/4', '§12.6/2'],
+      as: pageEditorA,
+      sql: 'select id from app.page_context_profiles where id = $1',
+      params: [PAGE_A1_SIBLING],
+      expect: 'no-rows',
+      why: '§8.6 CASE 4, WHICH THREE BATCHES HAVE OWED: "Same Business + allowed Page A แต่ row Page B '
+         + '→ deny". Both Pages are under business_a1 and this caller can read business_a1, so nothing '
+         + 'about Workspace or Business scope refuses this row — only the `page` scope does. No '
+         + 'identity §12.6 names could have carried it: they are all scoped at Business level or not '
+         + 'at all, and §7 gives a business scope every Page beneath it.',
+    },
+
+    // -- §8.1's editor `P`, which batch 020 recorded as this batch's to implement. ----------------
+    //
+    // `covers`, not `admits`: an editor who has never been scoped holds no EXPLICIT capability and
+    // gains nothing here, which is what keeps `P` from arriving as an unconditional grant. The
+    // default-deny batch 020 wrote — `editor-a-cannot-create-a-business`, above — still passes, and
+    // now for the reason the matrix gives rather than for the absence of a table.
+    {
+      id: 'editor-a-can-update-business-a1-in-scope',
+      covers: ['§8.1/editor-P', '§8.6/1'],
+      as: editorA,
+      sql: 'update app.business_profiles set name = $2 where id = $1 returning id',
+      params: [BUSINESS_A1, 'renamed by the editor scoped to it'],
+      expect: 'rows',
+      why: 'THE CELL. §8.1 marks "Business/Page INSERT/UPDATE/archive" `P` for editor; batch 020 '
+         + 'refused it because the table carrying the condition did not exist, and said so in its own '
+         + 'header. The condition is a member scope that explicitly covers the row, and this is an '
+         + 'editor whose scope names this Business. The write is real and the transaction is rolled '
+         + 'back, as every permitted write in this suite is.',
+    },
+    {
+      id: 'editor-a-cannot-update-business-a2',
+      covers: ['§8.1/editor-P', '§8.6/3'],
+      as: editorA,
+      sql: 'update app.business_profiles set name = $2 where id = $1 returning id',
+      params: [BUSINESS_A2, 'renamed outside the editor scope'],
+      expect: 'no-effect',
+      witness: businessA2NameUnchanged,
+      why: 'The same editor, the same workspace, the same verb, a Business their scope does not name. '
+         + 'The restrictive policy keeps the row out of the USING clause, so the statement matches '
+         + 'nothing and Postgres raises nothing — and the witness runs as the UNSCOPED owner, which is '
+         + 'the only A-side identity that can see the row and prove it still says what it said.',
+    },
+    {
+      id: 'editor-a-can-create-a-page-under-business-a1',
+      covers: ['§8.1/editor-P', '§8.6/1'],
+      as: editorA,
+      ...createPage('__A__', BUSINESS_A1, '__SELF__'),
+      expect: 'rows',
+      why: 'A `business` scope covers every Page beneath it, including one that does not exist yet, so '
+         + 'a scoped editor may create a Page under the Business they are scoped to. §11.3 still '
+         + 'applies: 021\'s editor policy repeats 020\'s archived-Business clause, because a '
+         + 'permissive policy ORs and omitting it would have let the editor do the one thing 020 '
+         + 'wrote that policy to prevent.',
+    },
+    {
+      id: 'editor-a-cannot-create-a-page-under-business-a2',
+      covers: ['§8.1/editor-P', '§8.6/3'],
+      as: editorA,
+      ...createPage('__A__', BUSINESS_A2, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'page_context_profiles' },
+      why: 'The write half of §8.6 case 3. An INSERT has no USING clause to filter it silently, so '
+         + 'this raises where the UPDATE above returns nothing — and the layer is declared because '
+         + 'the editor holds every INSERT column privilege this statement names.',
+    },
+    {
+      id: 'editor-a-can-write-a-business-a1-version',
+      covers: ['§8.1/editor-P', '§8.6/1'],
+      as: editorA,
+      ...createBusinessVersion('__A__', BUSINESS_A1, '__SELF__'),
+      expect: 'rows',
+      why: 'A version is the immutable record of the operation §8.1 grants, which is 020\'s reading of '
+         + 'the matrix and is unchanged here: the editor\'s version INSERT follows the editor\'s '
+         + 'Business write. Without this case, the negative below passes against a table the editor '
+         + 'cannot touch at all.',
+    },
+    {
+      id: 'editor-a-cannot-write-a-business-a2-version',
+      covers: ['§8.1/editor-P', '§8.6/3'],
+      as: editorA,
+      ...createBusinessVersion('__A__', BUSINESS_A2, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'business_profile_versions' },
+      why: 'History is written inside the scope or not at all. An editor able to append a version to a '
+         + 'Business they cannot read would be writing into another team\'s record — and the row would '
+         + 'then be immutable, so nobody could remove it either.',
+    },
+    {
+      id: 'page-editor-a-can-update-page-a1-in-scope',
+      covers: ['§8.1/editor-P', '§8.6/1'],
+      as: pageEditorA,
+      sql: 'update app.page_context_profiles set name = $2 where id = $1 returning id',
+      params: [PAGE_A1, 'renamed by the editor scoped to this page'],
+      expect: 'rows',
+      why: 'The editor `P` at Page granularity: this identity\'s capability is one Page and it reaches '
+         + 'exactly that Page\'s write path.',
+    },
+    {
+      id: 'page-editor-a-cannot-update-page-a1-sibling',
+      covers: ['§8.6/4', '§8.1/editor-P'],
+      as: pageEditorA,
+      sql: 'update app.page_context_profiles set name = $2 where id = $1 returning id',
+      params: [PAGE_A1_SIBLING, 'renamed outside the page scope'],
+      expect: 'no-effect',
+      witness: pageA1SiblingNameUnchanged,
+      why: '§8.6 case 4 on the write path. Same Business, same role, same verb, a different Page — and '
+         + 'the witness, run as the unscoped owner, is what turns "returned nothing" into "the row is '
+         + 'still there and still says what it said".',
+    },
+    {
+      id: 'page-editor-a-cannot-create-a-page-under-business-a1',
+      covers: ['§8.1/editor-P', '§8.6/4'],
+      as: pageEditorA,
+      ...createPage('__A__', BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'page_context_profiles' },
+      why: 'A `page` scope names one Page and a new Page is not it, so a page-scoped editor cannot '
+         + 'create a sibling — which is the difference between §7\'s `page` and `business` types, '
+         + 'asserted on the write path. The same statement succeeds for user_editor_a two cases up, '
+         + 'so this is about the scope and not about the policy refusing every page insert.',
+    },
+
+    // -- The helpers, which must answer about the CALLER and about nobody else. -------------------
+    {
+      id: 'owner-a-is-not-narrowed-through-the-scope-helper',
+      covers: ['§7/member-scope', 'RFC-2026-020§5/5'],
+      as: ownerA,
+      sql: 'select 1 as admitted where app.member_scope_admits_business($1, $2)',
+      params: ['__A__', BUSINESS_A2],
+      expect: 'rows',
+      why: 'The positive the negative below needs, asked THROUGH the helper rather than through a '
+         + 'table. Without it, a helper that returned false for everyone — or that could not be '
+         + 'called at all — would satisfy every scope negative in this batch.',
+    },
+    {
+      id: 'editor-a-is-narrowed-through-the-scope-helper',
+      covers: ['§12.6/2', '§7/member-scope'],
+      as: editorA,
+      sql: 'select 1 as admitted where app.member_scope_admits_business($1, $2)',
+      params: ['__A__', BUSINESS_A2],
+      expect: 'no-rows',
+      why: 'THE SAME QUESTION, THE SAME ARGUMENTS, A DIFFERENT ANSWER — which is the whole claim that '
+         + 'these helpers are about the caller. The pair is what makes it a claim: one identity is '
+         + 'narrowed and one is not, and nothing but who is asking distinguishes the two calls.',
+    },
+    {
+      id: 'scope-helper-is-not-an-oracle-for-third-parties',
+      covers: ['§8.6/5', 'RFC-2026-020§6.3/12'],
+      as: ownerB,
+      sql: 'select 1 as covered where app.member_scope_covers_business($1, $2)',
+      params: ['__A__', BUSINESS_A1],
+      expect: 'no-rows',
+      why: 'The helpers are EXECUTE-granted to `authenticated` on purpose, so anyone holding a token '
+         + 'can call one for any workspace id. Four members of workspace A ARE scoped to business_a1 '
+         + 'and this caller is told nothing about them: the answer is about the CALLER\'s own scope '
+         + 'rows, which is a property of `workspace_member_scopes_select_own` rather than of anything '
+         + 'in the function body. Workspace B\'s owner asks while holding A\'s and business_a1\'s '
+         + 'exact ids.',
+    },
+    {
+      id: 'anonymous-cannot-call-the-scope-helper',
+      covers: ['§12.6/6', '§8.5'],
+      as: anonymous,
+      sql: 'select 1 as admitted where app.member_scope_admits_business($1, $2)',
+      params: ['__A__', BUSINESS_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: '§8.5: EXECUTE is revoked from PUBLIC and granted explicitly, and anon is granted nothing '
+         + 'anywhere. The refusal is expected from the privilege system before the function is '
+         + 'entered — on the SCHEMA, because anon holds no USAGE on app and name resolution stops '
+         + 'there.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
