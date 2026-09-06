@@ -298,20 +298,27 @@ Two fields that ARE measurable on the instance were measured and added rather th
 
 | Command | Where | Outcome |
 | --- | --- | --- |
-| `npm run check` | this host | exit 0, 347 tests, 0 failed, 0 skipped, 0 todo |
+| `npm run check` | this host | exit 0, 355 tests, 0 failed, 0 skipped, 0 todo |
 | `node scripts/verify-branch-scope.mjs <merge-base> WP-0A-DB-00` | this host | all changed paths declared, every amendment explains one |
 | `node scripts/db/run.mjs schema-lint` | this host | ok — the static half, including the seven §6.1 rules decidable without a database |
 | `LC_ALL=C TZ=UTC make db-verify` | this host | FAILED — 6 of 9 targets need `DB_TEST_URL`, which is unset. Correct: no target reports a pass it cannot earn |
 | `make db-migrate-clean` | CI container | `ok in 294ms` — all seven batches apply, 011 included |
 | `make db-schema-lint` | CI container | `ok in 8ms` |
-| `make db-rls-smoke` | CI container | `35 isolation case(s) passed`, then `db-authz-proofs: ok — 6 claim(s) discharged by execution`, then `db-rls-smoke: ok in 4440ms` |
+| `make db-rls-smoke` | CI container | `35 isolation case(s) passed`, then `db-authz-proofs: ok — 6 claim(s) discharged by execution`, then `db-rls-smoke: ok` |
 | negative control (RLS off on `app.workspaces`) | CI container | `db-rls-smoke: FAILED — 10 of 35 case(s)` — the suite is still not blind |
 
-CI run `34017080120`, conclusion **success**, on head `68d1432`. Two earlier rounds failed, and both
-are §5: `34016457795` at `db-migrate-clean` on the `search_path` spelling, `34016757932` at rule 6
-on the schema-grant instrument. Recorded because a green run reached on the third attempt is worth
-less than the two findings that got it there, and both were the batch's own assertions firing on a
-correct database rather than the database being wrong.
+The proofs were first green on CI run `34017080120`, head `68d1432`. Two earlier rounds failed, and
+both are §5: `34016457795` at `db-migrate-clean` on the `search_path` spelling, `34016757932` at
+rule 6 on the schema-grant instrument. Recorded because a green run reached on the third attempt is
+worth less than the two findings that got it there, and both were the batch's own assertions firing
+on a correct database rather than the database being wrong.
+
+Every commit after `68d1432` re-ran the whole thing and stayed green; the last of them added tests
+and changed no migration, no policy and no proof. **A run id is a citation into something that
+moves, which is the defect this repository has already found twice in its own records, so the head
+under review is named rather than left implicit: `3cfae09`, CI run `34018402362`, conclusion
+success, `npm run check` 355 tests.** If the head has moved past that, this line is the thing to
+re-check first.
 
 The negative control's count is unchanged at 10 of 35 — the seven new cases are not among the ones
 it turns red, because it disables row level security on `app.workspaces` and the new cases read
