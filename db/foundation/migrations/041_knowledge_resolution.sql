@@ -8,10 +8,10 @@
 --
 -- Depends on: 000 (schemas), 001 (app_worker), 040 (app.knowledge_items and its two scope columns —
 -- referenced by this file only in its apply-time assertions, never altered). Migration invariant 1
--- forbids rewriting a merged migration and NOTHING BELOW DOES: this file creates one function and
--- issues three grant statements about that function, and contains no `alter table`, no `create
--- table`, no `create policy` and no `drop policy` at all. A static test asserts that rather than
--- trusting this sentence.
+-- forbids rewriting a merged migration and NOTHING BELOW DOES: this file creates one function, one
+-- comment and three privilege statements about that function — one revoke and two grants — and
+-- contains no `alter table`, no `create table`, no `create policy` and no `drop policy` at all. A
+-- static test asserts that rather than trusting this sentence.
 --
 --
 -- ============================================================================================
@@ -172,8 +172,9 @@
 --
 --   * §4 invariant 3: every knowledge row has a Business scope, so a row of another Business is
 --     never in scope.
---   * §3.3 and industry-research-pack:653: a Page-scoped row is knowledge "ที่จำกัดเฉพาะเพจ" and a
---     Page override "ใช้ได้เฉพาะ target Page" — it applies to ITS page and to no sibling.
+--   * §3.3 and sprint-0a-industry-research-pack-th.md:653: a Page-scoped row is knowledge
+--     "ที่จำกัดเฉพาะเพจ" and a Page override "ใช้ได้เฉพาะ target Page" — it applies to ITS page and
+--     to no sibling.
 --   * §4.4 puts "Business policy/brand knowledge" at layer 4 and "Page-specific facts" at layer 5,
 --     both in play for one page, which is only meaningful if the Business layer reaches the Page.
 --   * 040's own header says it in the language of consequences: business-level knowledge "reaches
