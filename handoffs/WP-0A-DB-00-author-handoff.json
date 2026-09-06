@@ -5,10 +5,28 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "a622b7a57c2a6f9c27c6ef6cdf6165239ba3a727",
-  "head_revision_or_patch_checksum": "a622b7a57c2a6f9c27c6ef6cdf6165239ba3a727",
+  "head_revision_or_patch_checksum": "64c2a098ddcfb132803619bf4c90f5c91a714d90",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/migrations/140_audit.sql",
+    "evidence/WP-0A-DB-00/a1-batch-140-probes-2026-09-07.md",
+    "tests/db/identity/fixtures/140-audit-fixture.sql"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
