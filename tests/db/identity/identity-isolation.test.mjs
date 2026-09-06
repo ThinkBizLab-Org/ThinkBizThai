@@ -3410,6 +3410,33 @@ test('batch 060 writes no policy and no client grant, and says which silence dec
     + 'permission invented rather than implemented.');
   assert.equal((aiCode.match(/drop\s+policy/gi) ?? []).length, 0,
     "and it drops none either, so it cannot have touched a merged batch's policy set");
+  // THE OTHER DIRECTION, over the WHOLE migration set, which is what makes the header's claim true
+  // rather than a statement about one file: no migration anywhere attaches a policy to a table this
+  // batch creates. A policy added by a LATER batch would not appear in 060_ai_gateway.sql at all,
+  // and it would silently turn three grant-layer refusals into policy-layer ones while every case
+  // above still declared `grant`.
+  for (const target of [`app.${AI_MODELS}`, `app.${AI_POLICIES}`, `private.${AI_REFERENCES}`]) {
+    assert.doesNotMatch(migrationText, new RegExp(`create\\s+policy[\\s\\S]{0,200}?\\bon\\s+${target.replace('.', '\\.')}\\b`, 'i'),
+      `a migration attaches a policy to ${target}. §8 has no row for this family, RFC-2026-012 §3 `
+      + 'gives the client read to an RFC and RFC-2026-021 fixes what an entry is — so a policy here '
+      + 'arrives with that decision or it arrives without a reviewer.');
+  }
+  // §5/5 of RFC-2026-020, asserted even though this batch writes no policy to break it. The rule is
+  // that membership is read through batch 011's helpers and never by joining the membership tables,
+  // and a batch with no policy at all is the cheapest possible place for it to hold — which is why
+  // it is asserted over the whole FILE rather than over its (empty) policy set: the day somebody
+  // adds a policy here, the join they must not write is already refused.
+  //
+  // The JOIN SHAPE and not the name, because the apply-time block's own error hints quote
+  // "four columns of app.workspace_members" when they explain what app_authz may reach — and a rule
+  // that cannot tell a citation from a scan is a rule somebody works around by rewording a message.
+  for (const membership of ['workspace_members', 'workspace_member_scopes']) {
+    assert.doesNotMatch(aiCode, new RegExp(`\\b(?:from|join|update|into)\\s+app\\.${membership}\\b`, 'i'),
+      `060_ai_gateway.sql reads app.${membership} directly. A policy that joins a membership table `
+      + "evaluates that scan as the CALLER, so `authenticated`'s whole policy set on another module's "
+      + "table expands inside this one's evaluation (RFC-2026-020 §5/5, and batch 020's reason "
+      + 'unchanged).');
+  }
 
   // No grant to a client role, anywhere in the batch. This is RFC-2026-012 §2/§3 and RFC-2026-021's
   // empty allowlist, held to the migration TEXT — the same shape batch 030's catalog rule uses,

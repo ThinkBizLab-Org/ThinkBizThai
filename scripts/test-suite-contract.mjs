@@ -125,7 +125,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 19,
   'test-kits/db/foundation-contract.test.mjs': 150,
   'test-kits/db/rls-assertions.test.mjs': 108,
-  'tests/db/identity/identity-isolation.test.mjs': 521,
+  'tests/db/identity/identity-isolation.test.mjs': 523,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
