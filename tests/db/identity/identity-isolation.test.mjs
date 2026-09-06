@@ -2695,3 +2695,48 @@ test('the coverage map records that batch 041 moves no row and says what it exte
     assert.ok(cited.has(label), `${label} is reasoning batch 041 rests on and no case cites it`);
   }
 });
+
+// FOUND BY CHECKING, NOT BY READING. The header cited the resolution rule at
+// core-database-and-rls-workstream-th.md:210. The rule is at 217; line 210 is a bullet about
+// `brand_voice_profiles`. The quotation beside it was correct, the line number was not, and nothing
+// in this repository could tell the difference -- which is the same class of defect as a coverage
+// note that stops being true: a citation is a claim, and an unchecked claim decays.
+//
+// So every `<document>.md:<line>` citation in batch 041's migration is resolved against the
+// document, and the check runs in BOTH directions: each declared citation must point at a line
+// containing the phrase it was cited for, and each citation the migration actually makes must be
+// declared here. A new citation therefore has to be added to this table, which is where somebody
+// looks at it.
+const CITATIONS = [
+  ['docs/plans/core-database-and-rls-workstream-th.md', 93, 'resolved_business_knowledge_v1'],
+  ['docs/plans/core-database-and-rls-workstream-th.md', 217, 'กฎ resolution'],
+  ['docs/plans/core-database-and-rls-workstream-th.md', 555, 'resolved knowledge views/functions'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 115, 'Core Runtime'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 188, '4.4 Rule precedence'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 653, 'Page override/contact/footer'],
+];
+
+test('every line batch 041 cites is the line that says what the batch says it says', async () => {
+  const declared = new Set();
+  for (const [file, line, phrase] of CITATIONS) {
+    const lines = (await readFile(file, 'utf8')).split('\n');
+    assert.ok(lines.length >= line, `${file} has no line ${line}`);
+    assert.ok(lines[line - 1].includes(phrase),
+      `${file}:${line} does not contain ${JSON.stringify(phrase)}. It reads: `
+      + `${JSON.stringify(lines[line - 1].slice(0, 90))}. A citation is a claim, and this one is the `
+      + 'kind a reviewer checks once and nobody checks again.');
+    declared.add(`${file.split('/').pop()}:${line}`);
+  }
+  // The other direction: a citation the migration makes and this table does not declare is one
+  // nobody has resolved. The header is the deliverable of this batch, so its references are held to
+  // the same standard as its SQL.
+  const made = new Set([...resolution.matchAll(/([a-z0-9-]+\.md):(\d+)/g)].map((m) => `${m[1]}:${m[2]}`));
+  for (const citation of made) {
+    assert.ok(declared.has(citation),
+      `batch 041 cites ${citation} and no entry in this test resolves it. Add it, with the phrase the `
+      + 'line is cited for -- the first version of this batch cited :210 for a rule that is at :217, '
+      + 'and the quotation beside it was correct, which is exactly why nobody noticed.');
+  }
+  assert.ok(made.size >= 6, 'the header still carries its citations; a batch whose finding IS the '
+    + 'deliverable does not get to stop naming where it read things');
+});

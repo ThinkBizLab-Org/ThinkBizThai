@@ -3731,7 +3731,7 @@ export function buildCases(id) {
     //
     // 041 creates one function: `app.knowledge_scope_applies(item_business, item_page, in_business,
     // in_page)`, the SCOPE half of the resolution rule at
-    // docs/plans/core-database-and-rls-workstream-th.md:210 — "Industry base → Business override →
+    // docs/plans/core-database-and-rls-workstream-th.md:217 — "Industry base → Business override →
     // Page override → Content brief". It answers WHICH ROWS ARE IN SCOPE for a request naming a
     // Business and, optionally, a Page. It does not answer which of them WINS. The migration's
     // header says at length why: the merge needs a hard/soft level column batch 040 does not have,

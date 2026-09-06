@@ -22,7 +22,7 @@
 -- quoted here rather than summarised because the whole of this batch's reasoning is that the
 -- definition is complete and its INPUTS are not.
 --
---   1. THE RESOLUTION RULE ITSELF. docs/plans/core-database-and-rls-workstream-th.md:210, the last
+--   1. THE RESOLUTION RULE ITSELF. docs/plans/core-database-and-rls-workstream-th.md:217, the last
 --      line of §4.3's "Typed knowledge tables":
 --
 --        กฎ resolution: Industry base → Business override → Page override → Content brief;
@@ -308,7 +308,7 @@ $$;
 
 comment on function app.knowledge_scope_applies(uuid, uuid, uuid, uuid) is
   'Owner: A2 Knowledge (knowledge.core, batch 041). The SCOPE half of the resolution rule at '
-  'docs/plans/core-database-and-rls-workstream-th.md:210 — "Industry base → Business override → '
+  'docs/plans/core-database-and-rls-workstream-th.md:217 — "Industry base → Business override → '
   'Page override → Content brief" — and only that half. Answers "is this knowledge row in scope '
   'for a request naming this Business and this Page", per §4 invariant 3 (Business scope '
   'mandatory, Page scope a nullable override), §3.3 and the industry pack contract''s "Page '
