@@ -124,16 +124,29 @@ export async function schemaLint(files) {
         problems.push(`${name}: view app.${m[1]} is not security_invoker — §8.5`);
       }
     }
-    for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?app\.(\w+)/gi)) {
-      const t = m[1];
+    // BOTH SCHEMAS THIS REPOSITORY OWNS, not only the exposed one.
+    //
+    // A3 AI GATEWAY CORRECTION, batch 060. This loop matched `app.` alone, so every
+    // rule it holds — owner comment (§3.1), ENABLE, FORCE, primary key — was a rule about a table's
+    // SCHEMA PREFIX rather than about a table. Batch 060 is the first migration to create a table in
+    // `private`, which §3.1 names as the home of "secret references", and under the old pattern a
+    // SECRET-4 table would have been the one table in the schema exempt from all four checks.
+    //
+    // The rules apply unchanged: `private` is not exposed, but §12.3's lint list is not written about
+    // exposure — a table with no primary key is unaddressable wherever it lives, and RFC-2026-016 §4
+    // requires FORCE unconditionally. The inertness is asserted rather than assumed: this widening
+    // changes no verdict for batches 000-040, because none of them creates a table outside `app`.
+    for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(app|private)\.(\w+)/gi)) {
+      const s = m[1].toLowerCase();
+      const t = m[2];
       const has = (re) => new RegExp(re, 'i').test(stripped);
-      if (!has(`comment\\s+on\\s+table\\s+app\\.${t}\\b`)) problems.push(`${name}: table app.${t} has no owner comment — §3.1`);
-      if (!has(`alter\\s+table\\s+app\\.${t}\\s+enable\\s+row\\s+level\\s+security`)) problems.push(`${name}: table app.${t} does not ENABLE ROW LEVEL SECURITY`);
+      if (!has(`comment\\s+on\\s+table\\s+${s}\\.${t}\\b`)) problems.push(`${name}: table ${s}.${t} has no owner comment — §3.1`);
+      if (!has(`alter\\s+table\\s+${s}\\.${t}\\s+enable\\s+row\\s+level\\s+security`)) problems.push(`${name}: table ${s}.${t} does not ENABLE ROW LEVEL SECURITY`);
       // FORCE is a DIFFERENT catalog column from ENABLE, and the data package's own lint rule tests
       // only the first — so ENABLE-without-FORCE passes it clean while the table owner stays exempt.
       // RFC-2026-016 records that gap. It is closed here, in the batch every later one inherits.
-      if (!has(`alter\\s+table\\s+app\\.${t}\\s+force\\s+row\\s+level\\s+security`)) problems.push(`${name}: table app.${t} does not FORCE ROW LEVEL SECURITY — ENABLE alone leaves the table owner exempt`);
-      if (!/primary\s+key/i.test(stripped.slice(m.index, m.index + 4000))) problems.push(`${name}: table app.${t} declares no primary key`);
+      if (!has(`alter\\s+table\\s+${s}\\.${t}\\s+force\\s+row\\s+level\\s+security`)) problems.push(`${name}: table ${s}.${t} does not FORCE ROW LEVEL SECURITY — ENABLE alone leaves the table owner exempt`);
+      if (!/primary\s+key/i.test(stripped.slice(m.index, m.index + 4000))) problems.push(`${name}: table ${s}.${t} declares no primary key`);
     }
   }
   problems.push(...identityExpressionLint(all));

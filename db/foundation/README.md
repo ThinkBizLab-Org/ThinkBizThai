@@ -73,9 +73,9 @@ including a fresh `taken_against_migrations`. The lint tells you the digest it e
 ## Fixtures
 
 `seeds/fixture-catalog.json` fixes the fourteen identities §12.6 names **plus the ones a batch had to
-add and declared**, which is THIRTEEN more as of batch `040`. This sentence used to say "fourteen"
+add and declared**, which is FOURTEEN more as of batch `060`. This sentence used to say "fourteen"
 flat and was wrong from batch `020` onward; it said "seven more" and was wrong the moment `040`
-landed. It is corrected each time rather than left, because a count nobody maintains is how the
+landed; it said "thirteen more" and was wrong the moment `060` did. It is corrected each time rather than left, because a count nobody maintains is how the
 closed-set assertion below stops meaning anything — and a sentence that has now been wrong twice is
 a sentence to be suspicious of rather than one to trust because it was recently edited. Every UUID is
 `uuid5(namespace, 'thinkbizthai.fixture.' || symbol)` — a pure function of the symbol, so anyone can
@@ -96,6 +96,15 @@ has none.** Nothing in §4, §5 or §8 says a Business holds one voice profile, 
 product decision into a constraint to save five constants. The sixth is `page_a1_archived`, an
 archived Page under a **live** Business: `040`'s knowledge INSERT policy carries §11.3's archive
 clause twice — once per parent — and `business_a3_archived` can only ever exercise the first.
+
+Batch `060` added **one**, which is fewer than any batch since `020`, and the arithmetic is the rule
+rather than restraint. Its model policy is addressed by the Workspace it belongs to — `workspace_id`
+**is** its primary key — and so is its credential reference, so both are reached through ids this
+file already fixes. A **global** curated model has no such natural key, which is exactly why `030`'s
+pack needed a symbol: a catalog no case can address is a catalog no case can be about. That symbol's
+`model_key` is deliberately synthetic, because `OPEN-004` owns the BYOK model allowlist, it is open,
+and §15 forbids an agent choosing an open decision — a fixture naming a real model would read as one
+having been chosen.
 
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding

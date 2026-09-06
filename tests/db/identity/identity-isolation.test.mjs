@@ -28,6 +28,11 @@ import {
   isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
+// Batch 060 widened `schemaLint` to hold a table in `private` to the same rules as one in `app`,
+// because §3.1 puts secret references there and the previous pattern matched `app.` alone. The
+// widening is exercised HERE rather than only where the migration is read: a lint rule nobody
+// probes is a rule whose inertness is a hope.
+import { schemaLint } from '../../../scripts/db/run.mjs';
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -46,6 +51,16 @@ const migration = await readFile(MIGRATION, 'utf8');
 const migrationCode = migration.replace(/--[^\n]*/g, '');
 const id = await fixtureResolver(CATALOG);
 const cases = buildCases(id);
+
+// Every migration's text, with line comments stripped, read ONCE. Two rules below need to ask a
+// question of the whole set rather than of one batch — "which tables exist in `private`" and "does
+// any migration grant anything on one" — and both must read the SET, because the answer is a
+// property of the schema and not of the file that happened to be edited.
+const MIGRATIONS_DIR = 'db/foundation/migrations';
+const migrationNamesInOrder = (await readdir(MIGRATIONS_DIR)).filter((n) => n.endsWith('.sql')).sort();
+const migrationText = (await Promise.all(
+  migrationNamesInOrder.map((n) => readFile(`${MIGRATIONS_DIR}/${n}`, 'utf8')),
+)).join('\n').replace(/--[^\n]*/g, '');
 
 test('every case identity and every row id is read from the fixture catalog, never generated', async () => {
   const source = await readFile(CASES_FILE, 'utf8');
@@ -122,9 +137,34 @@ test('a case that names the layer refusing it also names the object refused', ()
     const named = kind === 'table' ? new RegExp(`\\bapp\\.${name}\\b`) : new RegExp(`\\b${name}\\.`);
     assert.match(testCase.sql, named,
       `${testCase.id}: declares deniedOn ${kind} '${name}', which its own statement never names`);
-    // And `private` is the harness's own schema, never an object under test: a case refused there
-    // is the scaffolding failing, which is exactly the shape D6 was about.
-    assert.notEqual(name, 'private', `${testCase.id}: private is the harness's schema, not a subject`);
+    // `private` WAS FORBIDDEN OUTRIGHT AS A DECLARED OBJECT, AND THE RULE IS NARROWED RATHER THAN
+    // REMOVED. C0's review D6 found `permission denied for schema private` satisfying a claim about
+    // a TABLE, because the harness reaches `private.as_user` and a scaffolding failure raises the
+    // same 42501 on the same schema. That failure mode is unchanged and still refused.
+    //
+    // What changed is that `private` now contains a SUBJECT. §3.1 puts "secret references" there by
+    // name and batch 060 creates private.ai_credential_references, whose whole assertion is that
+    // every identity — including the service — is refused on the SCHEMA, so that the day somebody
+    // writes `grant usage on schema private` the refusal moves to the table and the cases fail.
+    // Refusing to let a case say that would leave the strongest control in the batch unassertable,
+    // and the only alternative — declaring no layer at all — is the unattributed shape D6 removed.
+    //
+    // The narrowing is that a case may name `private` ONLY when its own statement names a
+    // `private.<table>` A MIGRATION CREATES. No scaffolding failure can satisfy that: the harness
+    // touches private FUNCTIONS, and a case whose SQL names none of the migration's private tables
+    // is refused here exactly as before.
+    if (name === 'private') {
+      const privateTables = [...migrationText.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
+        .map((m) => m[1]);
+      assert.ok(privateTables.length > 0,
+        `${testCase.id}: declares deniedOn schema private, and no migration creates a table there. `
+        + "Until one does, `private` is only the harness's own schema and a refusal on it is the "
+        + 'scaffolding failing, which is exactly the shape D6 was about.');
+      assert.ok(privateTables.some((t) => new RegExp(`\\bprivate\\.${t}\\b`).test(testCase.sql)),
+        `${testCase.id}: declares deniedOn schema private and its statement names no private TABLE `
+        + `that a migration creates (found: ${privateTables.join(', ')}). A case refused on private `
+        + 'for any other reason is the harness failing to reach a helper.');
+    }
   }
 });
 
@@ -2740,8 +2780,7 @@ test('every line batch 041 cites is the line that says what the batch says it sa
     + 'deliverable does not get to stop naming where it read things');
 });
 
-// =============================================================================================
-// Batch 050 — the async kernel, and the first family in this schema no identity can read.
+// ======================================================================================// Batch 050 — the async kernel, and the first family in this schema no identity can read.
 // =============================================================================================
 //
 // Every batch before this one could assert its policies. This one has none, so the static suite
@@ -3310,4 +3349,422 @@ test('the coverage map records what a family with no reader cannot carry', () =>
     '§8.6 case 8 is a forged created_by, and this family has no such column: §3.2 adds the actor columns for a '
     + 'USER MUTATION and §8 grants no client any write here. The disposition says so rather than leaving the '
     + 'case silently uncounted.');
+});
+// Batch 060 — the AI gateway, and the first batch that writes no policy at all.
+// =============================================================================================
+//
+// Every other batch's tests ask whether the right cells were implemented. This one has to ask a
+// different question, because §8's four matrices contain NO ROW for a model registry and NO ROW for
+// a model policy: the tests below hold the batch to the ABSENCES it chose, and hold each absence to
+// a reason a reader can disagree with. An absence with no rule behind it is indistinguishable from
+// a batch that forgot.
+const AI_MIGRATION = 'db/foundation/migrations/060_ai_gateway.sql';
+const AI_FIXTURE = 'tests/db/identity/fixtures/060-ai-gateway-fixture.sql';
+const ai = await readFile(AI_MIGRATION, 'utf8');
+const aiCode = ai.replace(/--[^\n]*/g, '');
+const AI_MODELS = 'ai_models';
+const AI_POLICIES = 'ai_model_policies';
+// Named for what the table HOLDS -- a reference -- rather than for the thing it deliberately does
+// not hold. That is also what keeps the repository's own secret scan quiet: its
+// `secret-named-assignment` rule fires on any UPPERCASE constant containing CREDENTIAL that is
+// assigned a value of eight characters or more, and it fired on the first draft of this line. A
+// scanner that cannot tell a table name from a key is behaving correctly; the fix is the name.
+const AI_REFERENCES = 'ai_credential_references';
+// DEC-014's five providers, lowercased. The decision register sits at position 2 of
+// CONTRIBUTING_AGENTS.md's conflict order and the Product Master Plan — which spells three of them
+// by vendor instead — sits at 5, so these are the spellings that win. §3.2 makes them changeable by
+// migration only, which is what a named CHECK is for.
+const AI_PROVIDERS = ['openai', 'claude', 'gemini', 'grok', 'openrouter'];
+// The §9.2 permitted column list, plus the conventions §3.2/§3.3 require of any row and the one
+// column §11.4 step 2 names. This is the SAME list the migration's apply-time block holds the live
+// catalog to, and the test below requires the two to agree — a permitted set with two homes that
+// can differ is a permitted set nobody maintains.
+const CREDENTIAL_COLUMNS_PERMITTED = ['id', 'workspace_id', 'provider', 'credential_reference',
+  'fingerprint', 'created_at', 'updated_at', 'rotated_at', 'expires_at', 'revoked_at',
+  'created_by', 'updated_by'];
+
+test('every batch 060 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const [schema, table] of [['app', AI_MODELS], ['app', AI_POLICIES], ['private', AI_REFERENCES]]) {
+    assert.match(aiCode, new RegExp(`create table if not exists ${schema}\\.${table}\\b`),
+      `${schema}.${table} is created by batch 060`);
+    assert.match(aiCode, new RegExp(`alter table ${schema}\\.${table} enable row level security`),
+      `${schema}.${table} enables row level security`);
+    assert.match(aiCode, new RegExp(`alter table ${schema}\\.${table} force row level security`),
+      `${schema}.${table} FORCES it — ENABLE alone leaves the table owner exempt, and on a table with `
+      + 'no policy the owner is the only identity FORCE has left to refuse');
+    assert.match(aiCode, new RegExp(`comment on table ${schema}\\.${table} is`),
+      `${schema}.${table} carries an owner comment (§3.1)`);
+    assert.match(ai.slice(ai.indexOf(`create table if not exists ${schema}.${table}`)).slice(0, 4000),
+      /primary key/i, `${schema}.${table} declares a primary key`);
+  }
+  // NOT "and a policy", which every batch before 030 asserted. The absence is the next test.
+});
+
+test('batch 060 writes no policy and no client grant, and says which silence decides it', () => {
+  // The whole batch, not one table: this is the first migration in the repository with an empty
+  // policy set everywhere, and a single `create policy` appearing later would be a permission
+  // nobody reviewed against a §8 cell that does not exist.
+  assert.equal((aiCode.match(/create\s+policy/gi) ?? []).length, 0,
+    'batch 060 writes no policy at all. §8 has no row for a model registry or a model policy in any '
+    + 'of its four matrices, so there is no cell to implement, and a policy here would be a '
+    + 'permission invented rather than implemented.');
+  assert.equal((aiCode.match(/drop\s+policy/gi) ?? []).length, 0,
+    "and it drops none either, so it cannot have touched a merged batch's policy set");
+
+  // No grant to a client role, anywhere in the batch. This is RFC-2026-012 §2/§3 and RFC-2026-021's
+  // empty allowlist, held to the migration TEXT — the same shape batch 030's catalog rule uses,
+  // because the allowlist is designed to GROW and an apply-time assertion about it would be the
+  // trap 011 set for 021.
+  for (const role of CLIENT_ROLES) {
+    assert.doesNotMatch(aiCode, new RegExp(`grant[\\s\\S]{0,300}?\\bto\\s+${role}\\b`),
+      `batch 060 grants ${role} nothing. RFC-2026-012's inventory classifies this family "view only" `
+      + 'and RFC-2026-021 keeps the read allowlist empty until a client caller exists (C1); a grant '
+      + "here would be a sixth row on §8.5's closed list of inherited base-table grants, added by a "
+      + 'pull request rather than by the RFC that owns it.');
+  }
+  // And the reasoning is IN THE FILE, not only in a review comment. A batch whose most consequential
+  // property is an absence has to say why, where the next author reads it.
+  for (const cited of [/RFC-2026-012/, /RFC-2026-021/, /§8 HAS NO ROW/i, /DEC-014/, /OPEN-004/]) {
+    assert.match(ai, cited, `060_ai_gateway.sql names ${cited} in its own header`);
+  }
+});
+
+test('the credential reference lives in private and holds only the columns §9.2 permits', () => {
+  // §3.1 puts "secret references" in `private`, with no direct grant, reachable by server or worker
+  // through a typed service only; §14's gate checklist requires a secret table not be exposed; and
+  // `app` is the exposed schema. A batch that put this table in `app` would fail that box on the
+  // day somebody read it, so the schema is asserted rather than assumed.
+  assert.match(aiCode, new RegExp(`create table if not exists private\\.${AI_REFERENCES}\\b`),
+    'the credential reference is in `private` (§3.1), not in the exposed schema');
+  assert.doesNotMatch(aiCode, new RegExp(`create table[^;]*app\\.${AI_REFERENCES}\\b`),
+    'and not in `app`');
+
+  const body = aiCode.slice(aiCode.indexOf(`create table if not exists private.${AI_REFERENCES}`));
+  const definition = body.slice(0, body.indexOf(');'));
+  // Every column the table declares must be in the permitted set. Read from the definition rather
+  // than from the apply-time block, so the two are independent statements of the same rule and the
+  // test below can require them to agree.
+  const declared = [...definition.matchAll(/^\s{2}(\w+)\s{2,}(?:uuid|text|timestamptz)\b/gm)].map((m) => m[1]);
+  assert.ok(declared.length >= 10, `the column list was parsed, got ${JSON.stringify(declared)}`);
+  for (const column of declared) {
+    assert.ok(CREDENTIAL_COLUMNS_PERMITTED.includes(column),
+      `private.${AI_REFERENCES}.${column} is outside §9.2's permitted list. "Secret table เก็บได้เพียง `
+      + 'credential_reference, provider, fingerprint/last-four-like identifier, status, '
+      + "created/rotated/expired timestamps และ audit reference\" — plus §3.3's canonical scope and "
+      + "§3.2's convention columns. A column outside that is a credential, a ciphertext of one, or a "
+      + 'field nobody classified.');
+  }
+  assert.ok(declared.includes('credential_reference'),
+    'and the reference itself is there: an allowlist alone is satisfied by a table with no columns, '
+    + 'and the whole design is that the database holds a reference INSTEAD of a credential');
+  // The apply-time block carries the same list. Two homes that can differ is a permitted set nobody
+  // maintains, so they are compared rather than trusted.
+  const allowlistInBlock = aiCode.slice(aiCode.indexOf('a.attname <> all (array[')).slice(0, 600);
+  for (const column of CREDENTIAL_COLUMNS_PERMITTED) {
+    assert.match(allowlistInBlock, new RegExp(`'${column}'`),
+      `the apply-time allowlist names ${column}, so the live catalog is held to the same list as the text`);
+  }
+  // A denylist of names somebody thought of is defeated by the one they did not, which is why the
+  // rule above is an allowlist. These four are asserted anyway, because they are the names the
+  // repository's own secret scanner and RFC-2026-008's cardholder scan exist to catch.
+  for (const forbidden of ['api_key', 'secret', 'access_token', 'ciphertext']) {
+    assert.doesNotMatch(definition, new RegExp(`\\b${forbidden}\\b`),
+      `private.${AI_REFERENCES} declares no ${forbidden} column (§9.2's absolute prohibitions)`);
+  }
+  // §9.2 calls the fingerprint "last-four-like", and the ceiling is what makes that a shape rather
+  // than a hope: 010 put a 32-byte FLOOR on token_hash so a plaintext token could not fit a digest
+  // column, and this is the mirror image.
+  assert.match(definition, /fingerprint[\s\S]{0,200}?between 1 and 16/,
+    'the fingerprint is capped so a whole API key does not fit a column §9.2 describes as '
+    + '"last-four-like"');
+});
+
+test('no role holds any privilege on the credential reference, in any migration', () => {
+  // Read across the WHOLE migration set, not just this batch: the claim is a property of the
+  // schema, and a grant made by a later batch would not appear in 060_ai_gateway.sql at all. This
+  // is the static home of an assertion 060 deliberately does NOT make at apply time — the command
+  // surface RFC-2026-012 §4 names will one day need a grant here, and an applied migration whose
+  // self-assertion an approved RFC makes false is the trap 011 set for 021.
+  const grants = [...migrationText.matchAll(/grant\s+[\s\S]{0,400}?\bon\s+(?:table\s+)?private\.(\w+)/gi)];
+  assert.deepEqual(grants.map((m) => m[1]), [],
+    "no migration grants any privilege on any table in `private`. RFC-2026-012's inventory says of "
+    + 'ai credential refs: "no read by anyone, including service", and §8.3\'s "Plain credential '
+    + 'SELECT" is N in every column including the service\'s. This is the one table in the schema '
+    + "where app_worker deliberately holds NOTHING, which is a departure from batch 010's shape and "
+    + 'is argued in 060_ai_gateway.sql rather than assumed.');
+  assert.doesNotMatch(migrationText, /grant\s+usage\s+on\s+schema\s+private/i,
+    'and no role holds USAGE on schema `private`, which is the grant that would have to come first. '
+    + 'RFC-2026-021 §7/4 makes exactly this argument about anon and schema app: the first grant is '
+    + 'not one grant, it changes the denial layer of every object in the schema at once — here that '
+    + 'would expose private.as_user, private.as_suspended_user and private.set_updated_at to every '
+    + 'end user in the same statement.');
+  // §8.3 grants "BYOK credential manage" to the owner, so the refusal is a REFUSAL and is recorded
+  // as one rather than passing as an implementation.
+  assert.match(ai, /BYOK credential manage/,
+    'the migration names the §8.3 cell it does not implement, so the refusal is in the file');
+  assert.ok(cases.some((c) => c.id === 'owner-a-cannot-create-a-credential-reference'),
+    'and a case asserts it, so the day a command surface arrives the change is visible as a failing '
+    + 'test rather than as a grant inside a migration');
+});
+
+test("the provider vocabulary is DEC-014's and is identical in both of its homes", () => {
+  const checks = [...aiCode.matchAll(/check \(provider in \(([^)]*)\)\)/gi)]
+    .map((m) => m[1].split(',').map((v) => v.trim().replace(/'/g, '')));
+  assert.equal(checks.length, 2, 'two tables carry a provider column and each constrains it (§3.2)');
+  assert.deepEqual(checks[0], AI_PROVIDERS,
+    "the value set is DEC-014's five, lowercased. DEC-014 is Approved and the decision register sits "
+    + "at position 2 of CONTRIBUTING_AGENTS.md's conflict order, above the data package at 4.");
+  assert.deepEqual(checks[1], checks[0],
+    'and the two homes hold the SAME list. A credential row for a provider the catalog cannot name '
+    + "is what one of them being edited without the other produces, and the migration's apply-time "
+    + 'block requires the two deparsed constraint definitions to be byte-identical against the live '
+    + 'catalog as well.');
+  // The MODEL set is not constrained, and that is the other half of the same rule: OPEN-004 owns
+  // the BYOK model allowlist, it is open, and §15 forbids an agent choosing an open decision. So
+  // models are rows a seed writes, never values in a CHECK.
+  assert.doesNotMatch(aiCode, /check \(model_key in \(/i,
+    'the model allowlist is DATA and not a CHECK: OPEN-004 is open and §15 forbids an agent closing '
+    + "it. What is constrained is the FORM, which is 030's treatment of pack_id.");
+  assert.match(aiCode, /ai_models_model_key_form/,
+    'and the form IS constrained, because a rule stated in a document and not in a constraint is a '
+    + 'rule the database does not have');
+});
+
+test('the model policy pins a curated row, and its tenant scope is its own primary key', () => {
+  const body = aiCode.slice(aiCode.indexOf(`create table if not exists app.${AI_POLICIES}`));
+  const definition = body.slice(0, body.indexOf(');'));
+  assert.match(definition, /workspace_id\s+uuid\s+primary key references app\.workspaces \(id\)/,
+    "§3.3's canonical scope IS the primary key, which is 010's shape for app.workspace_settings. "
+    + "§4's ERD names no AI entity at all, so it states no cardinality to encode, and taking the "
+    + 'shape from the one table in this schema that is already a per-workspace settings row is '
+    + 'narrower than inventing a unique constraint from nothing.');
+  assert.doesNotMatch(definition, /tenant_id|organization_id|brand_id|\bpage_id\b/,
+    '§3.3 forbids those synonyms in the canonical domain schema');
+  assert.match(definition, new RegExp(`ai_model_id\\s+uuid\\s+not null references app\\.${AI_MODELS} \\(id\\)`),
+    "a policy names a CURATED CATALOG ROW by foreign key, which is OPEN-004's stop condition — "
+    + '"ห้ามให้ user ใส่ model ID อิสระ" — expressed as a constraint rather than as a convention');
+  for (const copied of ['provider', 'model_key', 'label']) {
+    assert.doesNotMatch(definition, new RegExp(`\\b${copied}\\b`),
+      `the policy does not copy ${copied} from the catalog row. A copy is a second source of truth `
+      + 'for a fact the foreign key already fixes — 021 refusing current_version_id, 030 refusing '
+      + 'industry_pack_id and 040 refusing kind, in the same words.');
+  }
+  // The global parent takes a SINGLE-column foreign key where every tenant parent in this schema
+  // takes a composite one, and 030 recorded why: a global row has no tenant column to agree with.
+  assert.doesNotMatch(definition, /foreign key \(workspace_id, ai_model_id\)/i,
+    'and it is a single-column reference, because app.ai_models has no workspace_id for a composite '
+    + "key to compare (030's finding, one family over)");
+});
+
+test('the schema lint holds a private table to the same rules, and that changes nothing for 000-040', async () => {
+  // The widening this batch needed, and the inertness that makes it safe to land here.
+  const forced = 'create table private.t (id uuid primary key);\n'
+    + "comment on table private.t is 'owner: A3';\n"
+    + 'alter table private.t enable row level security;\n'
+    + 'alter table private.t force row level security;';
+  assert.deepEqual(await schemaLint([{ name: '060_probe.sql', sql: forced }]), [],
+    'a private table with all four properties passes');
+  for (const [missing, expected] of [
+    ["comment on table private.t is 'owner: A3';\n", /has no owner comment/],
+    ['alter table private.t force row level security;', /does not FORCE ROW LEVEL SECURITY/],
+    ['alter table private.t enable row level security;', /does not ENABLE ROW LEVEL SECURITY/],
+  ]) {
+    const damaged = forced.replace(missing, '');
+    const problems = await schemaLint([{ name: '060_probe.sql', sql: damaged }]);
+    assert.ok(problems.some((p) => expected.test(p) && /private\.t/.test(p)),
+      `removing ${JSON.stringify(missing)} must be reported against private.t, got ${JSON.stringify(problems)}`);
+  }
+  const noKey = 'create table private.t (id uuid);\n'
+    + "comment on table private.t is 'owner: A3';\n"
+    + 'alter table private.t enable row level security;\n'
+    + 'alter table private.t force row level security;';
+  assert.ok((await schemaLint([{ name: '060_probe.sql', sql: noKey }]))
+    .some((p) => /private\.t declares no primary key/.test(p)),
+  "and a private table with no primary key is a finding, because §12.3's list is written about "
+    + 'tables rather than about exposure');
+  // The rule was widened in the batch that needed it, and it must not have changed any verdict for
+  // the batches already merged. None of them creates a table outside `app`, so the claim is checkable
+  // rather than merely plausible.
+  assert.deepEqual([...migrationText.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
+    .map((m) => m[1]), [AI_REFERENCES],
+  'batch 060 creates the only table in `private` in the whole migration set, so widening the lint '
+    + 'to reach that schema changes no verdict for batches 000-040');
+});
+
+test('batch 060 adds to the merged batches and rewrites none of them', () => {
+  assert.ok(migrationNamesInOrder.includes('060_ai_gateway.sql'),
+    'the batch is in the migration set the runner applies');
+  // Migration invariant 1. This batch is unusual in that the check is trivially satisfiable — it
+  // writes no policy at all — so what is asserted is that it touches no OBJECT another batch made.
+  for (const foreign of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_packs', 'knowledge_items']) {
+    assert.doesNotMatch(aiCode, new RegExp(`alter table app\\.${foreign}\\b`),
+      `batch 060 does not alter app.${foreign}, which belongs to another batch`);
+  }
+  // And it consumes no authorization or scope helper, which is the registry's "011,020" read
+  // honestly: §5 scopes this family "global/workspace", §7's three scope types all name a Business
+  // or a Page, and batch 021's own header says a workspace row is not inside any of them.
+  for (const helper of ['is_active_member', 'workspace_member_role', 'member_scope_admits_business',
+    'member_scope_covers_business', 'member_scope_admits_page']) {
+    assert.doesNotMatch(aiCode, new RegExp(`app\\.${helper}\\s*\\(`),
+      `batch 060 calls no policy helper — it writes no policy. ${helper} has nothing to narrow on a `
+      + 'family scoped global/workspace.');
+  }
+  assert.match(ai, /020 IS A DEPENDENCY IN THE REGISTRY AND NOT A DEPENDENCY IN THIS FILE/,
+    'and the file says so, because a reader will look for the 020 dependency the registry names');
+});
+
+test('the two app tables batch 060 adds have control entries, and the private one deliberately has none', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 11, 'the control runs per table family, and batch 060 adds two');
+
+  // WHAT EACH ENTRY RESTS ON, counted with a rule 040's version could not use. That test counted
+  // only `no-rows` and `no-effect`, on the ground that a `denied` case is a privilege refusal and
+  // would pass unchanged with row level security off. That is true of every earlier batch and is
+  // NOT true here: `service-cannot-set-an-ai-model-policy` is a `denied` case refused at the POLICY
+  // layer, because app_worker holds the INSERT grant and an empty policy set is what stops the row.
+  // Disabling row level security makes that INSERT succeed and the case fail, so it is restored by
+  // the control and counts.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+  for (const [table, floor] of [[AI_MODELS, 1], [AI_POLICIES, 2]]) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on `
+      + "one table and requires a failed case whose id matches that table's pattern; a batch that adds a "
+      + "table and no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '060', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.ok(detectable.length >= floor,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + `disabled, and the entry needs at least ${floor}. A control naming a pattern nothing matches reports `
+      + 'a pass it did not earn.');
+  }
+  // The two patterns must not overlap, or one entry is satisfied by the other table's cases.
+  const modelPattern = new RegExp(`^${controls.find(([, n]) => n === AI_MODELS)[2]}`);
+  const policyPattern = new RegExp(`^${controls.find(([, n]) => n === AI_POLICIES)[2]}`);
+  for (const c of cases) {
+    assert.ok(!(modelPattern.test(c.id) && policyPattern.test(c.id)),
+      `${c.id} matches BOTH batch 060 control patterns, so each entry could be satisfied by the other `
+      + "table's regression");
+  }
+  // The specific cases, pinned, so deleting one fails the build instead of leaving an entry that
+  // disables something nothing notices. app.ai_models rests on ONE, which batch 030 warned is one
+  // deletion away from resting on none — this is that refusal.
+  for (const [table, name, expect] of [
+    [AI_MODELS, 'service-sees-zero-rows-in-the-ai-model-registry', 'no-rows'],
+    [AI_POLICIES, 'service-sees-zero-ai-model-policy-rows', 'no-rows'],
+    [AI_POLICIES, 'service-cannot-set-an-ai-model-policy', 'denied'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the entry rests on this outcome kind`);
+    assert.ok(restoredByDisablingRls(found),
+      `${name}: only a case row level security actually decides is restored by disabling it. A `
+      + 'grant-layer refusal would pass unchanged and the entry would report a pass it did not earn.');
+  }
+
+  // AND THE ABSENCE, IN BOTH DIRECTIONS, which is the whole finding of this batch's control story.
+  const privateGrants = /grant\s+[\s\S]{0,400}?\bon\s+(?:table\s+)?private\./i.test(migrationText);
+  const privateEntry = [...workflow.matchAll(/^\s*control\s+private\.(\w+)/gm)];
+  if (privateGrants) {
+    assert.ok(privateEntry.length > 0,
+      'a migration now grants a privilege on a table in `private`, so some identity can reach it and '
+      + 'the negative control must have an entry that disables row level security there. The entry '
+      + 'was absent only because no grant existed.');
+  } else {
+    assert.deepEqual(privateEntry.map((m) => m[1]), [],
+      'no role holds any privilege on private.ai_credential_references, so disabling row level '
+      + "security on it restores nothing and NO case would fail. An entry would make the step's own "
+      + 'first failure message — "The isolation suite PASSED with row level security DISABLED" — fire '
+      + 'on a correct database, which is a control reporting a pass it did not earn.');
+  }
+  assert.match(workflow, /THERE IS NO ENTRY FOR private\.ai_credential_references/,
+    'and the workflow says so beside the entries, because a control whose mechanism lives only in a '
+    + 'test is a control nobody reads at the point of use');
+  assert.match(workflow, /THE TWO AI GATEWAY TABLES IN `app`/,
+    'each entry says beside itself what disabling row level security on that table would let through');
+});
+
+test('the batch 060 fixture writes only catalog identities and loads a row into private', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(AI_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A `
+      + 'fixture id nobody can recompute is an unverifiable constant.');
+  }
+  // BOTH tenants pin the SAME global model id, which is the only evidence this batch can offer that
+  // the catalog is global: no client identity may read app.ai_models, so the pair of policy rows is
+  // the assertion and neither owner can see either row.
+  assert.ok(used.has(id('ai_model_openai_text')), 'the global curated model is loaded');
+  for (const symbol of ['workspace_a', 'workspace_b']) {
+    assert.ok(used.has(id(symbol)), `the fixture loads a model policy for ${symbol}`);
+  }
+  assert.equal((fixture.match(new RegExp(id('ai_model_openai_text'), 'g')) ?? []).length, 3,
+    "the model id appears three times: the catalog row and BOTH workspaces' policies. Two tenants, "
+    + 'one catalog row — which is how batch 030 asserted that a global catalog is not replicated per '
+    + 'tenant, and the only shape available here.');
+  // The private row, and the reason it has to exist.
+  assert.match(fixture, new RegExp(`insert into private\\.${AI_REFERENCES}`),
+    'the fixture loads a credential reference. Every case against that table is refused at name '
+    + 'resolution, which passes whether or not the table has rows — so the row is what stops the '
+    + 'negatives being satisfied by an empty table.');
+  // And nothing in it looks like a credential. The repository's secret scan runs over this file on
+  // every `npm run check`; this is the same claim asserted where a reader can see it.
+  assert.match(fixture, /vault:\/\/fixture\//,
+    'the reference is a readable synthetic LOCATOR. §9.2 permits a reference and forbids the value '
+    + 'it points at appearing in this database, a log, an event, a job payload or a fixture.');
+  for (const shape of [/\bsk-[A-Za-z0-9]/, /\beyJ[A-Za-z0-9_-]/, /-{5}BEGIN/]) {
+    assert.doesNotMatch(fixture, shape, 'and it carries nothing shaped like a real credential');
+  }
+});
+
+test('the coverage map records what batch 060 could carry and what a table with no policy cannot', () => {
+  // NO ROW MOVES, which is the honest answer rather than a modest one — the same disposition batch
+  // 030 recorded. What changes is the notes, and each of them says what 060 could NOT pay.
+  assert.equal(SMOKE_COVERAGE[1].covered, true);
+  assert.match(SMOKE_COVERAGE[1].note, /BATCH 060 ADDS NO CROSS-TENANT EVIDENCE AT ALL/,
+    '§12.6/1 is about a tenant boundary, and app.ai_model_policies has no policy — so its cross-tenant '
+    + 'case is a privilege refusal indistinguishable from the one every identity gets. Counting it '
+    + "would be counting a refusal that holds for everybody, which is 030's finding about a global "
+    + 'row applied to a tenant one.');
+  assert.match(SMOKE_COVERAGE[2].note, /BATCH 060 CARRIES NO CASE FOR IT/,
+    "§7's three scope types all name a Business or a Page, and this family is scoped "
+    + 'global/workspace, so there is nothing for a member scope to narrow');
+  assert.match(SMOKE_COVERAGE[5].note, /BATCH 060 RE-ASKS IT OF NOTHING/,
+    'a suspended member sees zero rows there, and so does the owner. An assertion true of every '
+    + 'identity is not evidence about the suspended one.');
+  assert.match(SMOKE_COVERAGE[7].note, /BATCH 060 ADDS NO FORGERY CASE AND CANNOT/,
+    'a forged column rides in on a permitted write, and no client role holds one here');
+  // The two rows it genuinely extends.
+  assert.match(SMOKE_COVERAGE[6].note, /only anonymous case in the suite whose declared object is `private`/,
+    '§12.6/6 gains a shape it has never had: an anonymous refusal on a schema that is not `app`');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 060 gives the service a grant and no policy on two more tables and NO grant at all on a '
+    + 'third, which is more negative evidence and not a positive');
+  assert.match(SMOKE_COVERAGE[8].note, /only case in the whole suite where the service is refused BY A POLICY/,
+    'and the first service refusal decided by row level security rather than by the privilege system');
+  // §8.6's ten, where this batch's tables cannot carry most of them and the disposition says so.
+  for (const [key, expected] of [[1, /BATCH 060 CARRIES NO CASE FOR IT/],
+    [3, /BATCH 060 CANNOT CARRY IT/], [4, /BATCH 060 CANNOT CARRY IT EITHER/],
+    [5, /REFUSES TO COUNT/], [9, /BATCH 060 ADDS NO IMMUTABLE TABLE/],
+    [10, /UNIMPLEMENTED §8 CELL/]]) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), expected,
+      `§8.6 case ${key} states batch 060's disposition rather than leaving it to be inferred`);
+  }
+  // The labels this batch rests on are cited by cases, the same way §12.6 labels are. Without this
+  // the reasoning the whole batch turns on could stop being asserted while every row stayed green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8/no-row', 'RFC-2026-021§4', 'RFC-2026-021§7', '§8.3/plain-credential',
+    '§8.3/byok-manage', 'RFC-2026-012/credential-refs', '§9.2', 'OPEN-004', '§11.4/revoke']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 060 rests on and no case cites it`);
+  }
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /060/.test(v.note));
+  assert.equal(mentions.length, 8,
+    'batch 060 extends every one of the eight §12.6 notes and moves none. Five of them say what it '
+    + 'could not pay, which is the point: a batch whose tables have no client surface has to record '
+    + 'the assertions it cannot make, or a later reader counts its silence as coverage.');
 });

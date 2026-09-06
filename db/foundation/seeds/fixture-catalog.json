@@ -4,41 +4,9 @@
   "namespace": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
   "recipe": "uuid5(namespace, 'thinkbizthai.fixture.' || symbol)",
   "identities": {
-    "user_owner_a": {
-      "uuid": "5c460eb8-0710-557a-b423-f9b12c76834f",
-      "role": "active owner of workspace_a"
-    },
-    "user_editor_a": {
-      "uuid": "a324d4a6-15a3-5e15-9193-eed9d50b5d91",
-      "role": "editor scoped to business_a1 and page_a1"
-    },
-    "user_approver_a": {
-      "uuid": "fecceb8f-d60b-54bc-97cd-fccee216e34b",
-      "role": "approver scoped to business_a1"
-    },
-    "user_viewer_a": {
-      "uuid": "d884d3c1-89a0-5600-ae81-c368f6574821",
-      "role": "viewer of workspace_a"
-    },
-    "user_suspended_a": {
-      "uuid": "9b10ac91-406b-5322-9755-bfb16b0b4aa3",
-      "role": "suspended member of workspace_a"
-    },
-    "user_page_editor_a": {
-      "uuid": "c31e3c84-009e-5a2e-8680-a6622f8c848e",
-      "role": "active editor of workspace_a scoped to ONE PAGE, page_a1. Added by batch 021 because §8.6 case 4 — 'Same Business + allowed Page A but row Page B → deny' — cannot be carried by any identity §12.6 names: user_editor_a and user_approver_a are both scoped at BUSINESS level, and a business scope admits every Page beneath it by §7's own definition. Case 4 needs a member whose scope is a single Page and a second Page under the SAME Business to be refused, which is page_a1_sibling."
-    },
-    "user_owner_b": {
-      "uuid": "297ad853-58a6-5e83-87e1-f936f9c3ddff",
-      "role": "active owner of workspace_b, the other tenant"
-    },
-    "workspace_a": {
-      "uuid": "c4840acc-0323-5e13-b1d3-c18d7eb615cb",
-      "role": "tenant A — the workspace every A-side identity belongs to"
-    },
-    "workspace_b": {
-      "uuid": "43fd5c24-ebea-528f-9ce9-eedf1f8f9765",
-      "role": "tenant B — the workspace nothing on the A side may ever reach"
+    "ai_model_openai_text": {
+      "uuid": "27926682-2bbc-51fc-9add-10e2840c6326",
+      "role": "the GLOBAL curated model registry row, provider `openai`. It carries no _a or _b suffix for the reason industry_pack_interior carries none: every other symbol here ends in the workspace its row lives in, and a suffix would assert a tenant boundary the row does not have. Its `model_key` is the SYNTHETIC `fixture-text-model` and not a real model id, because OPEN-004 -- BYOK model allowlist and max budget -- is OPEN and §15 forbids an agent choosing an open decision; a fixture naming a real model would read as one having been chosen. Batch 060 addresses it from both tenants, from the service identity and from anonymous, and the assertion is never 'A cannot reach B's row' -- it is that no request-path identity reaches the catalog at all and the one role holding a grant is refused by row level security. It is also the row BOTH workspaces' model policies pin, which is the only way this batch can assert the catalog is global rather than replicated per tenant, since no client identity may read it directly."
     },
     "business_a1": {
       "uuid": "dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a",
@@ -60,22 +28,6 @@
       "uuid": "3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3",
       "role": "business under workspace_b, reachable only by user_owner_b"
     },
-    "page_a1": {
-      "uuid": "da6409df-9541-5346-9d2e-447be2a649af",
-      "role": "page under business_a1, inside the editor scope"
-    },
-    "page_a1_sibling": {
-      "uuid": "b45dc73c-00e3-5e14-91ef-026dcbc29a7f",
-      "role": "second page under business_a1, in the SAME Business as page_a1. Added by batch 021 as the row §8.6 case 4 is about: page_a2 is under a different Business, so a member refused it has been refused by BUSINESS scope and case 4 — which is about Page scope inside one Business — would be satisfied by case 3's control. It is a new Page rather than a reuse of page_a2 for the reason business_a3_archived is a new Business: one fixture row carrying two unrelated controls is how a case starts failing for the other one's reason."
-    },
-    "page_a2": {
-      "uuid": "b96b06c3-e9b1-5133-b96e-08561e6f966f",
-      "role": "page under business_a2, deliberately outside the editor scope"
-    },
-    "page_b1": {
-      "uuid": "9f06926b-4de1-5bcb-9199-3206f7c3f2ad",
-      "role": "page under business_b1, on the far side of the tenant boundary"
-    },
     "industry_pack_interior": {
       "uuid": "e19d29b8-7c06-542c-8ea3-4919cf7e0ab6",
       "role": "the GLOBAL industry pack catalog row, `th.sme.interior-built-in`. It carries no _a or _b suffix and that is the point: every other symbol here ends in the workspace it lives in, because every other row is tenant-owned, and a suffix on this one would assert a tenant boundary the row does not have. Batch 030's cases attack it from BOTH tenants and from the service identity, and the assertion is never 'A cannot reach B's row' -- it is 'no request-path identity reaches it at all, and the one role holding a grant is refused by row level security'."
@@ -87,10 +39,6 @@
     "industry_pack_interior_v2": {
       "uuid": "28075fbf-06f2-5f98-9557-02bbc04822ec",
       "role": "published version 1.1.0 of industry_pack_interior, the minor release §4.5 activates by explicit approval. GLOBAL and immutable. It exists so a re-pin has a target that is not the row already pinned: an UPDATE case that set the value the row already held would pass against a database where the write did nothing."
-    },
-    "page_a1_archived": {
-      "uuid": "1e03159a-85fa-59e7-a57b-acc008ba9cf0",
-      "role": "third page under business_a1, ARCHIVED, under a LIVE Business. Added by batch 040 because its knowledge INSERT policy carries §11.3's archive clause TWICE — once for the Business and once for the Page — and the Page half had no row to be about: business_a3_archived is archived at the Business level, so a refusal there proves nothing about the second clause. This row is the only place in the fixture where the two parents disagree, which is what makes `owner-a-cannot-create-a-knowledge-item-under-an-archived-page` a case about the Page and not about its Business."
     },
     "knowledge_a1_business": {
       "uuid": "3d465a92-5b43-5ba4-aa9d-baffa30d6532",
@@ -119,11 +67,67 @@
     "outbox_event_b": {
       "uuid": "cc957e57-507e-5eba-aba3-cb76860f1489",
       "role": "The event_id of workspace B's outbox row, and the event workspace B's ledger row records. The two ledger rows name the SAME consumer in two workspaces, which is what makes workspace_id's place in the natural key legible as data rather than only as a constraint. Its subject is business_b1."
+    },
+    "page_a1": {
+      "uuid": "da6409df-9541-5346-9d2e-447be2a649af",
+      "role": "page under business_a1, inside the editor scope"
+    },
+    "page_a1_archived": {
+      "uuid": "1e03159a-85fa-59e7-a57b-acc008ba9cf0",
+      "role": "third page under business_a1, ARCHIVED, under a LIVE Business. Added by batch 040 because its knowledge INSERT policy carries §11.3's archive clause TWICE — once for the Business and once for the Page — and the Page half had no row to be about: business_a3_archived is archived at the Business level, so a refusal there proves nothing about the second clause. This row is the only place in the fixture where the two parents disagree, which is what makes `owner-a-cannot-create-a-knowledge-item-under-an-archived-page` a case about the Page and not about its Business."
+    },
+    "page_a1_sibling": {
+      "uuid": "b45dc73c-00e3-5e14-91ef-026dcbc29a7f",
+      "role": "second page under business_a1, in the SAME Business as page_a1. Added by batch 021 as the row §8.6 case 4 is about: page_a2 is under a different Business, so a member refused it has been refused by BUSINESS scope and case 4 — which is about Page scope inside one Business — would be satisfied by case 3's control. It is a new Page rather than a reuse of page_a2 for the reason business_a3_archived is a new Business: one fixture row carrying two unrelated controls is how a case starts failing for the other one's reason."
+    },
+    "page_a2": {
+      "uuid": "b96b06c3-e9b1-5133-b96e-08561e6f966f",
+      "role": "page under business_a2, deliberately outside the editor scope"
+    },
+    "page_b1": {
+      "uuid": "9f06926b-4de1-5bcb-9199-3206f7c3f2ad",
+      "role": "page under business_b1, on the far side of the tenant boundary"
+    },
+    "user_approver_a": {
+      "uuid": "fecceb8f-d60b-54bc-97cd-fccee216e34b",
+      "role": "approver scoped to business_a1"
+    },
+    "user_editor_a": {
+      "uuid": "a324d4a6-15a3-5e15-9193-eed9d50b5d91",
+      "role": "editor scoped to business_a1 and page_a1"
+    },
+    "user_owner_a": {
+      "uuid": "5c460eb8-0710-557a-b423-f9b12c76834f",
+      "role": "active owner of workspace_a"
+    },
+    "user_owner_b": {
+      "uuid": "297ad853-58a6-5e83-87e1-f936f9c3ddff",
+      "role": "active owner of workspace_b, the other tenant"
+    },
+    "user_page_editor_a": {
+      "uuid": "c31e3c84-009e-5a2e-8680-a6622f8c848e",
+      "role": "active editor of workspace_a scoped to ONE PAGE, page_a1. Added by batch 021 because §8.6 case 4 — 'Same Business + allowed Page A but row Page B → deny' — cannot be carried by any identity §12.6 names: user_editor_a and user_approver_a are both scoped at BUSINESS level, and a business scope admits every Page beneath it by §7's own definition. Case 4 needs a member whose scope is a single Page and a second Page under the SAME Business to be refused, which is page_a1_sibling."
+    },
+    "user_suspended_a": {
+      "uuid": "9b10ac91-406b-5322-9755-bfb16b0b4aa3",
+      "role": "suspended member of workspace_a"
+    },
+    "user_viewer_a": {
+      "uuid": "d884d3c1-89a0-5600-ae81-c368f6574821",
+      "role": "viewer of workspace_a"
+    },
+    "workspace_a": {
+      "uuid": "c4840acc-0323-5e13-b1d3-c18d7eb615cb",
+      "role": "tenant A — the workspace every A-side identity belongs to"
+    },
+    "workspace_b": {
+      "uuid": "43fd5c24-ebea-528f-9ce9-eedf1f8f9765",
+      "role": "tenant B — the workspace nothing on the A side may ever reach"
     }
   },
+  "_no_symbol_for_a_model_policy_or_a_credential_reference": "Batch 060 creates three tables and adds ONE symbol, which is fewer than any batch since 020 and follows the rule the notes below already state. A model policy is addressed by the Workspace it belongs to -- workspace_id IS its primary key in 060_ai_gateway.sql, 010's shape for app.workspace_settings -- so every case reaches it through an id this file already fixes. A credential reference is addressed by the Workspace it belongs to as well; its own `credential_reference` is unique, and no case needs to name a second row, because every identity is refused the table at the SCHEMA and a second row would add a constant with no assertion beside it. What batch 060 DID need a symbol for is the global model, for the reason batch 030 needed one for a pack: a catalog no case can address is a catalog no case can be about.",
   "_why_a_knowledge_item_needs_a_symbol_when_a_version_does_not": "Batch 040 adds FIVE symbols and no earlier batch added more than four, which is worth explaining rather than leaving as a number. A version row is addressed by its parent and its ordinal, a member scope by its member and its target, an industry assignment by the Business it belongs to -- every one of those is a natural key some document fixes. A KNOWLEDGE ITEM HAS NONE. Nothing in §4, §5 or §8 says a Business holds one voice profile, and inventing a `unique (business_profile_id, kind)` so that the fixture could address a row without a symbol would be encoding a product decision into a constraint in order to save five constants. So the items are named here and their versions are not: app.knowledge_item_versions makes (knowledge_item_id, version_number) unique, and every case that addresses a version addresses it through an item id this file fixes.",
   "_no_symbol_for_a_member_scope_row": "Batch 021 creates app.workspace_member_scopes and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row. A member scope is identified by the member it belongs to and the target it names — (workspace_id, user_id, scope_type, business_profile_id, page_context_profile_id) is unique in 021_member_scope.sql — and every id in that tuple is already fixed here, so a case addresses an existing scope row exactly without a sixth constant to keep in step with the fixture. The two symbols batch 021 DID add are a member and a Page, because §8.6 case 4 needs a member scoped to one Page and a second Page under the same Business, and §12.6's list contains neither.",
   "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make.",
-  "_no_symbol_for_an_industry_assignment": "Batch 030 creates app.industry_assignments and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row and batch 021 none for a member scope. §4's ERD makes the assignment zero-or-one per Business and 030_industry.sql makes (workspace_id, business_profile_id) unique, so a Business names at most one assignment and every case addresses it through ids this catalog already fixes. What batch 030 DID add is one Business and three global rows: the Business because the permitted INSERT needs a live target with no assignment, and the global rows because a catalog no case can address is a catalog no case can be about.",
-  "_no_symbol_for_a_job_or_a_ledger_row": "Batch 050 creates THREE tables and adds symbols for the rows of exactly ONE of them, which is the same rule every batch since 020 has applied and is worth stating because the exception here is the interesting half. A JOB is addressed by (workspace_id, dedupe_key), unique in 050_async_kernel.sql; a CONSUMER LEDGER row by (workspace_id, consumer, event_id), unique in the same file. Both keys are spelled out of ids this catalog already fixes plus TEXT the fixture and the case file share, so neither row needs a uuid of its own. An OUTBOX EVENT is different in kind rather than in degree: its identity is `event_id`, CTR-EVT-001 makes that the envelope's required identity, and the consumer ledger row names it -- one row addressing another row BY ITS ID is the mechanism of deduplication, not an accident of the fixture, so a symbol is what that id is."
+  "_no_symbol_for_an_industry_assignment": "Batch 030 creates app.industry_assignments and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row and batch 021 none for a member scope. §4's ERD makes the assignment zero-or-one per Business and 030_industry.sql makes (workspace_id, business_profile_id) unique, so a Business names at most one assignment and every case addresses it through ids this catalog already fixes. What batch 030 DID add is one Business and three global rows: the Business because the permitted INSERT needs a live target with no assignment, and the global rows because a catalog no case can address is a catalog no case can be about."
 }

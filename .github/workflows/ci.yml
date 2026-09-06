@@ -299,4 +299,35 @@ jobs:
           control app.jobs                    '[a-z0-9-]*job-row'         050
           control app.outbox_events           '[a-z0-9-]*outbox-event'    050
           control app.consumer_ledger         '[a-z0-9-]*consumer-ledger' 050
+          # THE TWO AI GATEWAY TABLES IN `app`, AND THE THIRD TABLE THAT DELIBERATELY HAS NO ENTRY.
+          # Batch 060 writes NO POLICY on any table it creates: §8 has no row for a model registry
+          # or a model policy, so there is no cell to implement, and RFC-2026-012 with RFC-2026-021
+          # puts the client read behind an allowlist that is empty. Every client case on these
+          # tables is therefore a PRIVILEGE-layer refusal, which disabling row level security does
+          # not restore — the same situation batch 030's two global tables are in.
+          #
+          # app.ai_models rests on ONE case, `service-sees-zero-rows-in-the-ai-model-registry`, for
+          # 030's reason: app_worker holds SELECT and no policy, so that read is the only thing row
+          # level security decides on the table. Stated here rather than left to be discovered,
+          # because a control resting on one case is one deletion away from resting on none.
+          #
+          # app.ai_model_policies rests on TWO, and the second is a shape no earlier entry has.
+          # `service-sees-zero-ai-model-policy-rows` is a filtered read. `service-cannot-set-an-ai-
+          # model-policy` is a `denied` case refused at the POLICY layer — app_worker holds the
+          # INSERT grant, so FORCE ROW LEVEL SECURITY with an empty policy set is what refuses the
+          # row, and disabling row level security makes that INSERT SUCCEED and the case fail. Every
+          # other `denied` case in the suite is a grant-layer refusal and would pass unchanged;
+          # tests/db/identity/identity-isolation.test.mjs counts this one and says why.
+          #
+          # THERE IS NO ENTRY FOR private.ai_credential_references, AND THE ABSENCE IS THE FINDING
+          # RATHER THAN AN OVERSIGHT. No role holds any privilege on that table — not a client role,
+          # not app_worker — because RFC-2026-012's inventory says "no read by anyone, including
+          # service" and §8.3's "Plain credential SELECT" is N in every column. Disabling row level
+          # security there restores no grant, so no case would fail and this step's own first
+          # failure message ("The isolation suite PASSED with row level security DISABLED") would
+          # fire on a correct database. An entry that cannot bite reports a pass it did not earn.
+          # The static suite asserts the absence IN BOTH DIRECTIONS: no entry while no migration
+          # grants anything on that table, and an entry REQUIRED the moment one does.
+          control app.ai_models               '[a-z0-9-]*ai-model-registry' 060
+          control app.ai_model_policies       '[a-z0-9-]*ai-model-policy'   060
           echo "negative control: every family above failed the suite, as each must."

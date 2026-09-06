@@ -204,7 +204,19 @@ export const SMOKE_COVERAGE = {
                            + 'that as isolation would be reporting a refusal that holds for everybody as a '
                            + 'boundary that holds for one tenant. The claim this batch DOES make with the pair '
                            + 'is narrower and is labelled as such: the refusal is uniform, so it is not one '
-                           + 'tenant being unlucky.' },
+                           + 'tenant being unlucky.\n\n'
+                           + 'BATCH 060 ADDS NO CROSS-TENANT EVIDENCE AT ALL, AND THAT IS THE HONEST ROW '
+                           + 'RATHER THAN A MODEST ONE. app.ai_model_policies IS a tenant table — it '
+                           + 'carries workspace_id and the fixture loads a row on each side — and no '
+                           + 'client identity can read it, because §8 has no row for a model policy and '
+                           + 'the read allowlist is empty. So '
+                           + '`owner-a-cannot-read-the-ai-model-policy-of-workspace-b` is asserted, and '
+                           + 'it is asserted as a PRIVILEGE REFUSAL beside two cases showing each owner '
+                           + "refused their OWN workspace's row at the same layer with the same message. "
+                           + 'Counting that as a tenant boundary would be counting a refusal that holds '
+                           + 'for everybody, which is the mistake batch 030 named about a global row and '
+                           + 'is no less a mistake on a tenant one. The boundary on this table is owed '
+                           + 'to the batch that gives it a policy.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -250,7 +262,16 @@ export const SMOKE_COVERAGE = {
                            + 'it anyway. A member cannot widen what they may read by asking the contract '
                            + 'for it, and `page-editor-a-resolves-the-business-level-knowledge-item-for-'
                            + 'page-a1` is the positive that keeps this from being about a page editor who '
-                           + 'resolves nothing at all.' },
+                           + 'resolves nothing at all.\n\n'
+                           + 'BATCH 060 CARRIES NO CASE FOR IT AND THE REASON IS STRUCTURAL. §5 scopes '
+                           + 'ai.gateway "global/workspace" and §7\'s three scope types are '
+                           + 'all_businesses, business and page — every one of them names a Business or '
+                           + 'a Page, and batch 021\'s own header says a WORKSPACE row is not inside any '
+                           + 'of them. So there is no Business column on a model policy for a member '
+                           + 'scope to narrow, no restrictive policy to write, and nothing for §12.6/2 '
+                           + 'to be about. That is also why the migration registry gives 060 "011,020" '
+                           + 'and not 021: the batch that would have supplied the narrowing has nothing '
+                           + 'to narrow here.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -275,7 +296,12 @@ export const SMOKE_COVERAGE = {
            + 'industry assignment of the very Business their member scope names (030). Batch 040 pays '
            + 'none of them; they are evidence about three other tables, and the sharpest of them is '
            + 'still the third, for the reason it was recorded: the approver\'s scope admits the row and '
-           + 'their role still refuses the write.' },
+           + 'their role still refuses the write.\n\n'
+           + 'BATCH 060 ADDS A FOURTH ANALOGUE AND IT IS THE WEAKEST OF THE FOUR, which is why it is '
+           + 'recorded and not counted. `approver-a-cannot-read-the-ai-model-policy-of-workspace-a` is a '
+           + 'refusal of a READ rather than of an edit, and it holds for the owner too — on that table '
+           + 'every role is the wrong role, so the case says nothing about an approver in particular. It '
+           + 'is listed here so the count of analogues stays honest rather than growing quietly.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -306,7 +332,15 @@ export const SMOKE_COVERAGE = {
                            + 'nothing — because app.knowledge_scope_applies is `security invoker` and reads '
                            + 'no relation, so it cannot become a way around the batch 011 helper. A '
                            + 'SECURITY DEFINER predicate would have been exactly that way around, which is '
-                           + 'why the migration asserts invoker mode against the catalog on every apply.' },
+                           + 'why the migration asserts invoker mode against the catalog on every apply.\n\n'
+                           + 'BATCH 060 OFFERS A VIEWER NOTHING TO BE REFUSED, and says so rather than '
+                           + 'writing a case that would pass for the wrong reason. Its three tables grant '
+                           + 'no client role any verb at all, so a viewer refused an insert there would '
+                           + 'be refused for want of a grant that nobody holds — evidence about the '
+                           + 'table and not about the viewer. What carries the "even the owner" claim on '
+                           + 'this batch is `owner-a-cannot-delete-the-ai-model-policy-of-workspace-a` '
+                           + 'and its three siblings, where the identity refused is the strongest one '
+                           + 'there is.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -334,7 +368,14 @@ export const SMOKE_COVERAGE = {
                            + 'refused by the privilege system exactly as the owner is and the case says '
                            + 'nothing about suspension. The three cases exist so that the day this family '
                            + 'gains a client grant they start making the claim their names imply; until then '
-                           + 'they carry `§12.6/5-analogue` and this row is unaffected by them.' },
+                           + 'they carry `§12.6/5-analogue` and this row is unaffected by them.\n\n'
+                           + 'BATCH 060 RE-ASKS IT OF NOTHING, and the reason is worth stating because '
+                           + 'app.ai_model_policies IS a tenant table and a reader will look for the '
+                           + 'case. A suspended member sees zero rows there — and so does the workspace '
+                           + 'owner, the approver, the viewer and the other tenant, because no client '
+                           + 'role holds a grant. An assertion that is true of every identity alike is '
+                           + 'not evidence about the one that is suspended, and adding it would grow the '
+                           + 'count of cases without growing what the suite knows.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -369,7 +410,18 @@ export const SMOKE_COVERAGE = {
                            + 'object — the first anon grant is `grant usage on schema app`, which moves the '
                            + 'denial layer of every object in app at once. 050\'s apply-time block asserts the '
                            + 'grant half against the live catalog, and these three cases assert the '
-                           + 'behaviour.' },
+                           + 'behaviour.\n\n'
+                           + 'BATCH 060 IS WHERE THIS ASSERTION STOPS BEING ABOUT ONE SCHEMA. '
+                           + '`anonymous-cannot-read-the-ai-model-registry` is 030\'s case one family '
+                           + 'over — §9.1 names "public model label" beside the published industry '
+                           + 'catalog as its two examples of PUBLIC-0, so it is the second refusal '
+                           + 'somebody might want to remove, and RFC-2026-021 §7/4 now decides against '
+                           + 'it in terms rather than leaving it inherited. '
+                           + '`anonymous-cannot-read-a-credential-reference` is the new shape: the only '
+                           + 'anonymous case in the suite whose declared object is `private` rather than '
+                           + '`app`. anon holds nothing anywhere, so the schema that refuses it is '
+                           + 'whichever one the statement names — and declaring which is what makes the '
+                           + 'two cases different assertions instead of one repeated.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -400,7 +452,15 @@ export const SMOKE_COVERAGE = {
                            + 'because its version INSERT policy checked only created_by and the role. A '
                            + '`rejected` case here would demand an outcome a correct database cannot '
                            + 'produce, so the constraints are held by 040_knowledge.sql\'s text and by its '
-                           + 'apply-time block instead, and this note says which layer actually refuses.' },
+                           + 'apply-time block instead, and this note says which layer actually refuses.\n\n'
+                           + 'BATCH 060 ADDS NO FORGERY CASE AND CANNOT, which is a fact about the batch '
+                           + 'rather than a gap in it. §8.6 case 8 is about a forged created_by or scope '
+                           + 'column on a write a caller is otherwise permitted; no client role holds '
+                           + 'INSERT or UPDATE on any of 060\'s three tables, so there is no permitted '
+                           + 'write for a forged column to ride in on, and a case that forged one would '
+                           + 'be asserting the absent grant a different case already asserts. The '
+                           + 'assertion arrives with the command surface, which is where §8.3\'s owner '
+                           + 'cell arrives too.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -457,7 +517,22 @@ export const SMOKE_COVERAGE = {
                            + 'tables the negative half is the whole of the live evidence: no client role '
                            + 'holds anything, so `service-sees-zero-*` and `service-cannot-*` are the only '
                            + 'cases row level security decides, and they are the six the CI negative control '
-                           + 'rests on.' },
+                           + 'rests on.\n\n'
+                           + 'BATCH 060 EXTENDS THE NEGATIVE HALF IN TWO WAYS NO EARLIER BATCH COULD, and '
+                           + 'moves nothing. FIRST, `service-cannot-set-an-ai-model-policy` is the only '
+                           + 'case in the whole suite where the service is refused BY A POLICY rather '
+                           + 'than by a grant: app_worker holds the INSERT and FORCE ROW LEVEL SECURITY '
+                           + 'with an empty policy set is what stops the row, which is the shape every '
+                           + 'other batch\'s service grant was written to make possible and none of them '
+                           + 'had an INSERT grant to demonstrate it with. SECOND, '
+                           + 'private.ai_credential_references is the FIRST TABLE IN THIS SCHEMA WHERE '
+                           + 'THE SERVICE HOLDS NO GRANT AT ALL — a deliberate departure from 010\'s '
+                           + 'shape, because RFC-2026-012\'s inventory says "no read by anyone, INCLUDING '
+                           + 'SERVICE" and §8.3\'s service column is N. Four cases assert it at the '
+                           + 'privilege layer on the SCHEMA. The cost is stated where it is paid: the CI '
+                           + 'negative control can have no entry for that table, because disabling row '
+                           + 'level security restores no grant, and identity-isolation.test.mjs asserts '
+                           + 'that absence in both directions.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -481,7 +556,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'AS A QUERY: the owner resolves a business-level item for a Page, a page-level item for its own '
    + 'Page, a sibling-page item for the sibling Page, and a business-level item for a request naming '
    + 'no Page at all — four positives, one per branch of app.knowledge_scope_applies, so that every '
-   + 'predicate negative beside them differs from a passing case in exactly one argument.',
+   + 'predicate negative beside them differs from a passing case in exactly one argument.\n\n'
+   + 'page-level (040). BATCH 060 CARRIES NO CASE FOR IT, AND THAT IS THE FIRST TIME A BATCH HAS '
+   + 'HAD TO SAY SO ABOUT CASE 1. Its three tables grant no client role any verb, because §8 has no '
+   + 'row for a model registry or a model policy and RFC-2026-012 classifies the family "view only" '
+   + 'behind an allowlist RFC-2026-021 keeps empty — so there is no "allowed role/scope" for a '
+   + 'positive to be about. A case asserting a pass would have to invent the grant first, which is '
+   + 'the move every refused `P` cell in this suite exists to refuse.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -502,7 +583,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`editor-a-can-create-a-knowledge-item-under-business-a1` passing while '
    + '`editor-a-cannot-create-a-business` still fails for the same identity. The approver and the '
    + 'viewer are refused on both knowledge tables, each while holding a member scope that admits '
-   + 'the row.',
+   + 'the row. BATCH 060 IS THE DEGENERATE CASE OF THIS ROW AND IS RECORDED AS ONE: on its three '
+   + 'tables EVERY role is the wrong role, so `owner-a-...` and `approver-a-...` are refused '
+   + 'identically and the pair proves the table has no cell rather than proving a role boundary. '
+   + 'The approver case is there so that a later batch implementing a §8 row for one role has to '
+   + 'come past an assertion written about another.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -517,7 +602,10 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'filtered read, a filtered write with a witness, and a raised INSERT — and adds them on '
    + 'app.knowledge_item_versions, where the narrowing is not a copy of the item\'s predicate but '
    + 'the item\'s own reachability, so the history of a Business outside the scope is refused for '
-   + 'the same reason the Business is.',
+   + 'the same reason the Business is. BATCH 060 CANNOT CARRY IT: §5 scopes ai.gateway '
+   + '"global/workspace", so none of its tables has a Business column for case 3 to be about, and '
+   + '§7\'s scope types all name a Business or a Page (021\'s header). Nothing stands in its place '
+   + 'and nothing is counted in its place.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -548,7 +636,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1` is the same row refused '
    + 'by the PREDICATE for an identity that can read it. The two negatives look alike and fail for '
    + 'opposite reasons, which is why each is paired with the statement that differs from it in one '
-   + 'argument and returns the row.',
+   + 'argument and returns the row.\n\n'
+   + 'BATCH 060 CANNOT CARRY IT EITHER, for case 3\'s reason one level down: a family scoped '
+   + '"global/workspace" has no Page level at all.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -562,7 +652,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'business SAYS rather than what it is called. BATCH 041 re-asks it through the resolution '
    + 'contract, where the predicate answers TRUE for the far tenant\'s row and the near tenant\'s '
    + 'owner still sees nothing while holding its Business, Page and knowledge ids exactly — the '
-   + 'boundary asserted on a PATH to the table rather than on the table.',
+   + 'boundary asserted on a PATH to the table rather than on the table.\n\n'
+   + 'business SAYS rather than what it is called. BATCH 060 RUNS THE CASE AND REFUSES TO COUNT '
+   + 'WHAT IT PROVES. `owner-a-cannot-read-the-ai-model-policy-of-workspace-b` holds tenant B\'s '
+   + 'exact id and is refused — at the privilege layer, exactly as the same identity is refused its '
+   + 'OWN workspace\'s row. A refusal indistinguishable from the one every identity gets is not a '
+   + 'tenant boundary, and this row says so rather than banking it.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -571,7 +666,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'permissive policy and once through the item its restrictive narrowing resolves. Batch 041 '
    + 're-asks it once more through app.knowledge_scope_applies, which is `security invoker` and '
    + 'reads no relation, so a suspended member gains nothing by going through the contract instead '
-   + 'of writing the filter out.',
+   + 'of writing the filter out.\n\n'
+   + 'permissive policy and once through the item its restrictive narrowing resolves. BATCH 060 '
+   + 'DOES NOT RE-ASK IT, and the reason is that the answer would be free: no client role holds a '
+   + 'grant on any of its tables, so a suspended member sees zero rows exactly as the workspace '
+   + 'owner does. A case true of every identity is not evidence about the suspended one.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -582,7 +681,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'FUNCTION, and says what it does not prove: the refusal lands on the SCHEMA before either the '
    + 'function or the table is reached, so it proves the chokepoint RFC-2026-021 §7/4 decides and '
    + 'not the absence of the EXECUTE grant, which 041\'s apply-time block asserts against the live '
-   + 'ACL instead.',
+   + 'ACL instead.\n\n'
+   + 'is what makes it checkable per table. BATCH 060 ASSERTS IT ON THREE MORE TABLES AND ON A '
+   + 'SECOND SCHEMA. Two are refused on `app`, and the third — the credential reference — is the '
+   + 'first anonymous case in the suite refused on `private`, which is what declaring the object '
+   + 'rather than only the layer buys: the two refusals are different assertions and would fail for '
+   + 'different reasons.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -602,7 +706,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'time. There is also no client INSERT to forge them on. What stands in the case\'s place is an '
    + 'assertion of the same kind one layer earlier: `owner-a-cannot-enqueue-a-job-row` and '
    + '`owner-a-cannot-publish-an-outbox-event`, because a client that cannot write the row at all is '
-   + 'a client for whom forging a column on it is not a question.',
+   + 'a client for whom forging a column on it is not a question.\n\n'
+   + 'who would violate one is refused by a policy first. BATCH 060 HAS NO FORGERY CASE AND COULD '
+   + 'NOT HAVE ONE: a forged column rides in on a write the caller is otherwise permitted, and no '
+   + 'client role holds INSERT or UPDATE on any of its three tables. The assertion arrives with the '
+   + 'command surface, which is also where §8.3\'s "BYOK credential manage" arrives.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -646,6 +754,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'privilege layer, because app_worker holds UPDATE on dispatched_at and on no other column, and '
    + "050's apply-time block walks every other column against six roles.",
   10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
+   + 'BATCH 060 ADDS NO IMMUTABLE TABLE AND SAYS SO RATHER THAN STRETCHING THE ROW TO FIT. §5 calls '
+   + 'ai.gateway "catalog + run history", not "published immutable" as it calls industry.core, and '
+   + '§3.2 lists the immutable families by name — version, evidence, decision, usage, audit and '
+   + 'publish history — none of which is a model, a model policy or a credential reference. What '
+   + '060 DOES carry is the neighbouring claim, and it is a different one: '
+   + '`owner-a-cannot-relabel-an-ai-model-registry-row` is refused because no client role holds the '
+   + 'grant, NOT because the row may not change — an administrative seed corrects a curated label, '
+   + 'and 060_ai_gateway.sql spells out why that is not the industry catalog\'s rule. Reading it as '
+   + 'immutability would report the wrong control as green.',
+  10: 'not applicable to batches 010-060 — no command function is specified for identity, for '
     + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
     + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
     + 'on app.knowledge_item_versions can write a version whose name never was the item\'s name, '
@@ -670,7 +788,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
     + 'could write here would choose the event_type, the producer and the subject every consumer '
     + 'downstream routes on, and a forged domain event is not a leaked row but an instruction. The '
     + 'audit half is still 140\'s. When the first command function lands, this case becomes payable '
-    + 'in one batch and not two.',
+    + 'in one batch and not two.\n\n'
+    + 'allowlist. BATCH 060 IS WHERE THE MISSING COMMAND SURFACE STOPS BEING A GAP IN COVERAGE AND '
+    + 'BECOMES AN UNIMPLEMENTED §8 CELL. §8.3 marks "BYOK credential manage" `Y` for the owner, and '
+    + 'the only path §3.1 offers to a table in `private` is "Server/worker ผ่าน typed service '
+    + 'เท่านั้น" — the SECURITY DEFINER command function RFC-2026-012 §4 names and RFC-2026-021 §10 '
+    + 'records as absent. So this is the first batch whose refusal to implement a granted cell is '
+    + 'caused by case 10 rather than merely uncovered by it, and '
+    + '`owner-a-cannot-create-a-credential-reference` is that refusal asserted rather than assumed.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -1120,6 +1245,24 @@ export function buildCases(id) {
        + " values ($1, 'attempted.consumer', $2) returning id",
     params: [workspace, event],
   });
+  // -- Batch 060 builders. -----------------------------------------------------------------------
+  //
+  // The GLOBAL curated model, by fixture SYMBOL. It carries no `_a` or `_b` suffix for batch 030's
+  // reason, and — unlike 030's pack — it is the row BOTH workspaces' model policies pin, which is
+  // the only way this batch can assert that the catalog is global: no client identity may read it,
+  // so the pair of policies is the evidence and neither owner can see either policy.
+  const AI_MODEL = id('ai_model_openai_text');
+
+  // A model policy is addressed by the Workspace it belongs to, never by an id of its own: 060 makes
+  // workspace_id the PRIMARY KEY, which is 010's shape for app.workspace_settings, so this names
+  // exactly one existing row and the catalog needs no symbol for it.
+  const MODEL_POLICY_OF = 'select ai_model_id from app.ai_model_policies where workspace_id = $1';
+
+  // And a credential reference by its Workspace too. The statement names `private.` deliberately:
+  // the refusal these cases assert lands on the SCHEMA, and a case that could not name the schema
+  // could not say which object refused it.
+  const CREDENTIAL_REFERENCE_OF =
+    'select fingerprint from private.ai_credential_references where workspace_id = $1';
 
   return [
     // -- §12.6/1, §8.6/1 and §8.6/5. Both directions of the tenant boundary. -------------------
@@ -3881,8 +4024,7 @@ export function buildCases(id) {
          + 'app.knowledge_item_versions rests on.',
     },
     // Batch 041 — the resolved knowledge contract, in the half of it that is decided.
-    // =========================================================================================
-    //
+    // ==================================================================================    //
     // WHAT THESE CASES ARE ABOUT, AND WHAT THEY ARE DELIBERATELY NOT ABOUT.
     //
     // 041 creates one function: `app.knowledge_scope_applies(item_business, item_page, in_business,
@@ -4194,6 +4336,229 @@ export function buildCases(id) {
       as: anonymous,
       sql: JOB_BY_DEDUPE_KEY,
       params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      why: 'anon holds nothing in app; the refusal is the schema grant and it is asserted as one.',
+    },
+
+    // -- Batch 060. The AI gateway, and the first family in this schema with NO CLIENT SURFACE AT --
+    // -- ALL. --------------------------------------------------------------------------------------
+    //
+    // Every case below is a refusal, and the batch that produced them writes no policy. That is not
+    // an incomplete implementation: §8's four matrices contain NO ROW for a model registry and NO
+    // ROW for a model policy, so there is no cell to implement (030's reading of the same silence);
+    // RFC-2026-012's inventory marks this family "view only" and its credential references "no read
+    // by anyone, including service"; and RFC-2026-021 fixes what an allowlist entry is, keeps the
+    // allowlist empty, and gives adding one to an RFC rather than to a pull request.
+    //
+    // THESE CASES ARE THAT STATE, EXECUTED, and the layer each one declares is the assertion. Three
+    // different refusals live here and a suite that could not tell them apart would be reporting one
+    // number for three controls:
+    //
+    //   grant / table app.ai_models or app.ai_model_policies   — the empty read allowlist, from the
+    //                                                            request path. Four of these fail the
+    //                                                            day a batch adds a grant without the
+    //                                                            RFC.
+    //   grant / schema app                                     — anonymous, which RFC-2026-021 §7/4
+    //                                                            decides rather than defers: the first
+    //                                                            anon grant is `usage on schema app`
+    //                                                            and moves this refusal to the table.
+    //   grant / SCHEMA private                                 — the credential references, for EVERY
+    //                                                            identity including the service. This
+    //                                                            is the first subject this suite has
+    //                                                            in `private`, and the refusal moves
+    //                                                            to the table the day anybody is
+    //                                                            granted USAGE there.
+    //
+    // And exactly two cases in the whole batch are decided by ROW LEVEL SECURITY rather than by the
+    // privilege system — `service-sees-zero-rows-in-the-ai-model-registry` and
+    // `service-sees-zero-ai-model-policy-rows`, plus the service INSERT the policy layer refuses.
+    // They are the cases the CI negative control for these two tables rests on, and they exist
+    // because app_worker holds a grant and no policy, which is batch 010's shape and 010's reason.
+
+    // --- app.ai_models: the GLOBAL curated catalog. ------------------------------------------------
+    {
+      id: 'owner-a-cannot-read-the-ai-model-registry',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3', 'RFC-2026-021§4', '§9.1/PUBLIC-0'],
+      as: ownerA,
+      sql: 'select label from app.ai_models where id = $1',
+      params: [AI_MODEL],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'A workspace owner holding the catalog row\'s exact id is refused by the PRIVILEGE system. '
+         + '§9.1 gives "public model label" as its own example of PUBLIC-0 and says a client '
+         + 'projection is allowed — it names no object, no tier and no mechanism, and the OBJECT is '
+         + 'what this case is about. RFC-2026-012 §2 puts every direct client read behind a named '
+         + 'security_invoker view, §3 starts that allowlist empty, and RFC-2026-021 C1 keeps it empty '
+         + 'until a client caller exists. There is no client.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-ai-model-registry',
+      covers: ['RFC-2026-012§3', '§5/global'],
+      as: ownerB,
+      sql: 'select label from app.ai_models where id = $1',
+      params: [AI_MODEL],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'THE SAME REFUSAL FROM THE OTHER TENANT, and the pair is the assertion. This row belongs to '
+         + 'neither owner, so a cross-tenant case would prove nothing; the claim that means something '
+         + 'is that the catalog is equally unreachable from both sides. Both workspaces\' model '
+         + 'policies pin THIS id, which is what makes it a shared catalog rather than two rows.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-ai-model-registry',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: 'select label from app.ai_models where id = $1',
+      params: [AI_MODEL],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'A curated model label is, with the published industry catalog, one of only two things in '
+         + 'this schema an anonymous reader could plausibly be given — §9.1 classes both PUBLIC-0. '
+         + 'RFC-2026-021 §7/4 decides against it and gives the structural reason: the first anon grant '
+         + 'is `grant usage on schema app`, which moves the denial layer of every object at once. The '
+         + 'refusal is asserted on the SCHEMA so that the day somebody widens it, this case fails '
+         + 'rather than passing more quietly.',
+    },
+    {
+      id: 'service-sees-zero-rows-in-the-ai-model-registry',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: 'select label from app.ai_models where id = $1',
+      params: [AI_MODEL],
+      expect: 'no-rows',
+      why: 'THE ONE CASE ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason app_worker holds '
+         + 'a SELECT grant at all. Without the grant this refusal would be 42501 either way and would '
+         + 'prove only that somebody forgot a GRANT; with the grant and no policy, an empty read can '
+         + 'only have come from RLS — and a service role that had quietly acquired BYPASSRLS would '
+         + 'SUCCEED here. It is also the case the CI negative control for app.ai_models exists to '
+         + 'break: a global table has no tenant boundary to disable, so this is what disabling row '
+         + 'level security on it makes visible. That entry therefore rests on ONE case, which is said '
+         + 'here and pinned in identity-isolation.test.mjs rather than left to be counted.',
+    },
+    {
+      id: 'owner-a-cannot-add-to-the-ai-model-registry',
+      covers: ['RFC-2026-012§1', '§8/no-row', 'OPEN-004'],
+      as: ownerA,
+      sql: 'insert into app.ai_models (provider, model_key, label)'
+         + " values ('openai', 'attempted-model', 'attempted') returning id",
+      params: [],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'The catalog is platform-curated and written by an administrative seed. §8 has no row for a '
+         + 'model in any of its four matrices, so there is no cell granting this and the refusal is '
+         + 'deny-by-default reaching the privilege layer. It is also OPEN-004\'s stop condition as a '
+         + 'control — "ห้ามให้ user ใส่ model ID อิสระ", a user may not type a free model id — expressed '
+         + 'where a user cannot type one at all.',
+    },
+    {
+      id: 'owner-a-cannot-relabel-an-ai-model-registry-row',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      sql: 'update app.ai_models set label = $2 where id = $1 returning id',
+      params: [AI_MODEL, 'relabelled by a tenant'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'THE CASE THAT SAYS THIS CATALOG IS NOT THE INDUSTRY CATALOG. app.industry_pack_versions is '
+         + 'IMMUTABLE by §5 ("published immutable"), so nobody may update it and that is a property of '
+         + 'the row. §5 calls this family "catalog + run history", so a curated label CAN be corrected '
+         + '— by the seed, administratively — and what refuses a tenant here is the absence of a '
+         + 'grant rather than the immutability of the row. Two different reasons, asserted as two '
+         + 'different claims.',
+    },
+    {
+      id: 'service-cannot-relabel-an-ai-model-registry-row',
+      // NOT labelled `RFC-2026-017§7`, and the label was on it until the static suite refused it.
+      // That rule requires every service case claiming §7 and demanding an ERROR to be an INSERT,
+      // and the reason reaches further than its own wording: §7's claim is that the service is
+      // denied BY ROW LEVEL SECURITY, and 010's header says a refusal without a grant "proves only
+      // that somebody forgot a GRANT". This case is exactly that — app_worker holds no UPDATE here
+      // — so it is evidence about the grant set and not about §7, and the label came off rather
+      // than the rule being widened to fit it.
+      covers: ['§12.6/8-negative', '§8/no-row'],
+      as: service,
+      sql: 'update app.ai_models set label = $2 where id = $1 returning id',
+      params: [AI_MODEL, 'relabelled by the service'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'app_worker holds SELECT on this table and NOTHING ELSE, so its read is refused by row level '
+         + 'security and its write by the privilege system — two different layers on one table, each '
+         + 'asserted as itself. A batch that widened the service grant to `select, insert, update` '
+         + 'without a §8 row to justify it fails here.',
+    },
+    {
+      id: 'service-cannot-delete-an-ai-model-registry-row',
+      covers: ['§12.6/8-negative', '§8.5'],
+      as: service,
+      sql: 'delete from app.ai_models where id = $1 returning id',
+      params: [AI_MODEL],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_models' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases: a batch that granted '
+         + 'one of them would be caught by exactly one of the two. No role holds DELETE here at all — '
+         + '§8.5 has no broad delete and no document names a lifecycle field for a model row, so a '
+         + 'curated model can be corrected and not retired, which 060_ai_gateway.sql records as owed.',
+    },
+
+    // --- app.ai_model_policies: a TENANT table whose boundary is not what refuses anyone. ----------
+    {
+      id: 'owner-a-cannot-read-the-ai-model-policy-of-workspace-a',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3', '§8/no-row'],
+      as: ownerA,
+      sql: MODEL_POLICY_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'THE OWNER OF THE WORKSPACE THE ROW BELONGS TO, refused on its own tenant\'s row. That is the '
+         + 'shape a reader should stop at: on every tenant table before this one, an owner reads its '
+         + 'own workspace\'s row and the case is a positive. Here §8 has no row for a model policy in '
+         + 'any of its four matrices, so there is no cell to implement, and RFC-2026-012 classifies '
+         + 'the family "view only" behind an allowlist RFC-2026-021 keeps empty. The refusal is the '
+         + 'privilege layer, so it cannot be widened by editing a policy — there is none.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-ai-model-policy-of-workspace-b',
+      covers: ['RFC-2026-012§3', '§8/no-row'],
+      as: ownerB,
+      sql: MODEL_POLICY_OF,
+      params: ['__B__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'The same refusal from the other tenant, on the other tenant\'s own row. The pair is what '
+         + 'stops the case above being read as a tenant boundary: both rows exist, both owners hold '
+         + 'their own workspace\'s exact id, and neither reaches anything.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-ai-model-policy-of-workspace-b',
+      covers: ['§12.6/1', '§8.6/5', 'RFC-2026-012§3'],
+      as: ownerA,
+      sql: MODEL_POLICY_OF,
+      params: ['__B__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'THE CROSS-TENANT CASE, AND THE REASON IT IS NOT EVIDENCE ABOUT THE TENANT BOUNDARY. Tenant '
+         + "A's owner holds tenant B's exact workspace id and is refused — at the same layer, with the "
+         + 'same message, as they are refused their OWN row one case earlier. §12.6/1 is claimed here '
+         + 'as a REFUSAL and never as an isolation proof: this table has no policy, so nothing about '
+         + 'it distinguishes one workspace from another and the coverage note says so rather than '
+         + 'counting a privilege refusal as a boundary.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-ai-model-policy-of-workspace-a',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: MODEL_POLICY_OF,
+      params: ['__A__'],
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'schema', name: 'app' },
@@ -4563,7 +4928,242 @@ export function buildCases(id) {
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'table', name: 'consumer_ledger' },
-      why: 'The fourth cell, so the grid is four cases rather than three and an average.',
+      why: 'The fourth cell, so the grid is four cases rather than three and an average.\n\n'
+         + 'PUBLIC holds none either. Stated per table because the control is checkable per table: the '
+         + 'day anon is granted USAGE this refusal moves to the table and the case fails.',
+    },
+    {
+      id: 'approver-a-cannot-read-the-ai-model-policy-of-workspace-a',
+      covers: ['§8.6/2', '§8/no-row'],
+      as: approverA,
+      sql: MODEL_POLICY_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'A THIRD ROLE, refused identically, which is what makes "there is no cell" a claim about the '
+         + 'table rather than about the owner. §8.6 case 2 is "wrong role → deny"; on this table every '
+         + 'role is the wrong role, and the case is here so that a batch implementing a §8 row for '
+         + 'one role has to come past a case written about another.',
+    },
+    {
+      id: 'owner-a-cannot-set-the-ai-model-policy-of-workspace-a',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      sql: 'insert into app.ai_model_policies (workspace_id, ai_model_id, created_by, updated_by)'
+         + ' values ($1, $2, $3, $3) returning workspace_id',
+      params: ['__A__', AI_MODEL, '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'RFC-2026-012 decision 1 is "server-only mutation for every table family in §5, zero '
+         + 'exceptions at G0", and on this family it is not an inherited debt but the state of the '
+         + 'schema: no client role holds INSERT. The privilege check precedes execution, so this is '
+         + '42501 and not the 23505 the existing row would eventually raise — and the case demands '
+         + '42501, so it fails rather than passes if that ever stops being true.',
+    },
+    {
+      id: 'owner-a-cannot-repin-the-ai-model-policy-of-workspace-a',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      sql: 'update app.ai_model_policies set ai_model_id = $2, updated_by = $3 where workspace_id = $1'
+         + ' returning workspace_id',
+      params: ['__A__', AI_MODEL, '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'Re-pinning a workspace to a different curated model is the operation the AI settings screen '
+         + 'exists for, and it has no path through the database today. It is refused at the privilege '
+         + 'layer rather than filtered, which is a stronger refusal and a different one: a filtered '
+         + 'UPDATE returns nothing and raises nothing.',
+    },
+    {
+      id: 'owner-a-cannot-delete-the-ai-model-policy-of-workspace-a',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.ai_model_policies where workspace_id = $1 returning workspace_id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: '"Even the owner", which is the claim §8.5 makes when it says there is no broad user delete. '
+         + 'No role holds DELETE on this table — not the owner, not the service — and no document '
+         + 'names a typed lifecycle field that would replace it, which is the refusal 021, 030 and 040 '
+         + 'each recorded about their own tables.',
+    },
+    {
+      id: 'service-sees-zero-ai-model-policy-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: MODEL_POLICY_OF,
+      params: ['__A__'],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT, INSERT and UPDATE on this table and NO POLICY, so the empty read is '
+         + 'row level security and not a forgotten GRANT — and a service role that had quietly acquired '
+         + 'BYPASSRLS would SUCCEED here. It is the first of the two cases the CI negative control for '
+         + 'app.ai_model_policies rests on.',
+    },
+    {
+      id: 'service-cannot-set-an-ai-model-policy',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: 'insert into app.ai_model_policies (workspace_id, ai_model_id, created_by, updated_by)'
+         + ' values ($1, $2, $3, $3) returning workspace_id',
+      // as_service has no JWT subject, so __SELF__ would resolve to undefined and come back 22P02
+      // (batch 040's build error). The acting user named here is workspace A's owner, because §8.3
+      // makes AI settings an owner operation and a service writing on someone's behalf records the
+      // person it acted for.
+      params: ['__A__', AI_MODEL, id('user_owner_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'ai_model_policies' },
+      why: 'THE ONLY CASE IN THIS BATCH REFUSED BY THE POLICY LAYER, and the second the CI negative '
+         + 'control for this table rests on. app_worker HOLDS the INSERT grant, so the privilege '
+         + 'system admits the statement and FORCE ROW LEVEL SECURITY with an empty policy set is what '
+         + 'refuses the row — which is a `denied` case that disabling row level security would make '
+         + 'PASS, unlike every other refusal in this batch. The WITH CHECK is evaluated before the '
+         + 'heap insert, so this is 42501 rather than the 23505 the existing primary key would raise; '
+         + 'the case demands 42501 and would fail loudly if that order ever changed.',
+    },
+
+    // --- private.ai_credential_references: no read by anyone, including the service. ---------------
+    //
+    // The first subject this suite has in `private`, and the reason every case below declares
+    // `deniedOn: { kind: 'schema', name: 'private' }`. That declaration used to be forbidden outright
+    // — C0's review D6 found `permission denied for schema private` satisfying a claim about a table,
+    // because the HARNESS reaches `private.as_user` and a scaffolding failure looked like the object
+    // under test being refused. The rule is now narrower rather than gone: a case may name `private`
+    // only when its own statement names a `private.` TABLE a migration creates, which no scaffolding
+    // failure can do. identity-isolation.test.mjs holds it to that.
+    {
+      id: 'owner-a-cannot-read-a-credential-reference',
+      covers: ['§8.3/plain-credential', '§9.2', 'RFC-2026-012/credential-refs'],
+      as: ownerA,
+      sql: CREDENTIAL_REFERENCE_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The owner of the workspace whose credential this is, refused before the table is reached. '
+         + '§8.3 marks "Plain credential SELECT" N for every role including the service, and §3.1 puts '
+         + 'secret references in `private` with no direct grant. The refusal lands on the SCHEMA '
+         + 'because that is where the first missing privilege is, and asserting the schema rather than '
+         + 'the table is what makes this case notice the day somebody writes `grant usage on schema '
+         + 'private to authenticated` — which is the grant that would have to come first.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-credential-reference',
+      covers: ['§8.3/plain-credential', '§9.2'],
+      as: ownerB,
+      sql: CREDENTIAL_REFERENCE_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: "The other tenant's owner, holding workspace A's exact id, refused identically. On this "
+         + 'table the pair is not a tenant boundary and is not offered as one: nothing here '
+         + 'distinguishes the two owners, which is exactly the claim — a credential reference is '
+         + 'unreadable, not tenant-scoped-readable.',
+    },
+    {
+      id: 'service-cannot-read-a-credential-reference',
+      // NOT labelled `RFC-2026-017§7` either, for the same reason and more sharply: §7's claim is
+      // that the service is denied by ROW LEVEL SECURITY, and this table deliberately grants it
+      // nothing, so the refusal is the privilege system. That is the STRONGER refusal and it is a
+      // DIFFERENT one, which is the whole distinction the layer declaration exists to keep.
+      covers: ['§8.3/plain-credential', 'RFC-2026-012/credential-refs', '§12.6/8-negative'],
+      as: service,
+      sql: CREDENTIAL_REFERENCE_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE CASE THAT DEPARTS FROM THE app_worker SHAPE EVERY OTHER BATCH USES, deliberately. '
+         + 'Everywhere else the service holds a grant and no policy so that a denial is attributable '
+         + 'to RLS; here RFC-2026-012\'s inventory says in terms "no read by anyone, INCLUDING '
+         + 'SERVICE" and §8.3\'s service column is N, so it holds no grant and the refusal is the '
+         + 'privilege system on the schema. The price is that the CI negative control can have no '
+         + 'entry for this table — disabling row level security restores no grant — and that absence '
+         + 'is asserted in both directions in identity-isolation.test.mjs rather than left to be '
+         + 'noticed.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-credential-reference',
+      covers: ['§12.6/6', '§8.6/7', '§9.2'],
+      as: anonymous,
+      sql: CREDENTIAL_REFERENCE_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'Anonymous is refused on `private` rather than on `app`, which is the one anonymous case in '
+         + 'the suite whose declared object is a different schema — and that is the point of declaring '
+         + 'the object at all. anon holds nothing anywhere; the schema that refuses it is the schema '
+         + 'the statement names.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-credential-reference',
+      covers: ['§8.3/byok-manage', 'RFC-2026-012§1', '§9.2'],
+      as: ownerA,
+      sql: 'insert into private.ai_credential_references'
+         + ' (workspace_id, provider, credential_reference, created_by, updated_by)'
+         + " values ($1, 'openai', 'vault://fixture/attempted', $2, $2) returning id",
+      params: ['__A__', '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: '§8.3 MARKS "BYOK credential manage" `Y` FOR THE OWNER, AND THIS CASE ASSERTS THAT IT IS NOT '
+         + 'IMPLEMENTED. That is a refusal with a reason rather than an omission: a client grant on a '
+         + 'table in `private` is not one grant, it is `grant usage on schema private` first, which '
+         + 'would put private.as_user and every future worker payload table inside the reach of every '
+         + 'end user — RFC-2026-021 §7/4\'s structural argument about anon and schema app, one schema '
+         + 'over. §3.1 says the owner reaches it through a typed service; RFC-2026-012 §4 says what '
+         + 'that is; RFC-2026-021 §10 records that no command function exists. The day one does, this '
+         + 'case is the one that has to change.',
+    },
+    {
+      id: 'owner-a-cannot-revoke-a-credential-reference',
+      covers: ['§8.3/byok-manage', '§11.4/revoke'],
+      as: ownerA,
+      sql: 'update private.ai_credential_references set revoked_at = now(), updated_by = $2'
+         + ' where workspace_id = $1 returning id',
+      params: ['__A__', '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: '§11.4 step 2 requires API and connector credentials to be revoked during workspace closure, '
+         + 'and `revoked_at` is the column that records it. No role can set it today, which means the '
+         + 'closure lifecycle §11.4 describes has no path on this table either — stated as a case '
+         + 'rather than as a comment, so the batch that brings the retention job (160) or the command '
+         + 'surface arrives at a failing assertion instead of an empty one.',
+    },
+    {
+      id: 'service-cannot-rotate-a-credential-reference',
+      covers: ['§8.3/plain-credential', 'RFC-2026-012/credential-refs'],
+      as: service,
+      sql: 'update private.ai_credential_references set rotated_at = now()'
+         + ' where workspace_id = $1 returning id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'Rotation is the operation a service performs and this one cannot. It is a separate case '
+         + 'from the read for the reason every immutability pair in this suite is two cases: SELECT '
+         + 'and UPDATE are separate privileges, and a batch that granted the service one of them would '
+         + 'be caught by exactly one of the two.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-credential-reference',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from private.ai_credential_references where workspace_id = $1 returning id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The fourth verb, so the grid on this table is complete rather than three cells and an '
+         + 'average. §8.5 has no broad user delete; deleting a credential reference is a revocation, '
+         + 'which is a typed lifecycle field this table has and no role can write.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
