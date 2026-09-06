@@ -382,10 +382,17 @@ begin
   end if;
 
   -- §6.1/4. An invoker-mode function owned by this role is option D arriving unremarked.
+  --
+  -- `set search_path = ''` is STORED as the proconfig element `search_path=""`, not
+  -- `search_path=`: an empty GUC value is serialised quoted. The first version of this assertion
+  -- looked for the unquoted form and fired on a correct database, which CI caught on the batch's
+  -- first application. The committed catalog snapshot has recorded the quoted form for
+  -- private.set_updated_at since batch 000, and scripts/db/run.mjs matches /^search_path=""$/ —
+  -- so the evidence for the right spelling was already in the tree, and this now agrees with it.
   select string_agg(p.proname, ', ') into offending
     from pg_catalog.pg_proc p
    where pg_catalog.pg_get_userbyid(p.proowner) = 'app_authz'
-     and (not p.prosecdef or p.proconfig is null or not (p.proconfig @> array['search_path=']));
+     and (not p.prosecdef or p.proconfig is null or not (p.proconfig @> array['search_path=""']));
   if offending is not null then
     raise exception 'function(s) % owned by app_authz are not SECURITY DEFINER with an empty search_path', offending;
   end if;
