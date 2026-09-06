@@ -313,12 +313,16 @@ rule 6 on the schema-grant instrument. Recorded because a green run reached on t
 worth less than the two findings that got it there, and both were the batch's own assertions firing
 on a correct database rather than the database being wrong.
 
-Every commit after `68d1432` re-ran the whole thing and stayed green; the last of them added tests
-and changed no migration, no policy and no proof. **A run id is a citation into something that
-moves, which is the defect this repository has already found twice in its own records, so the head
-under review is named rather than left implicit: `3cfae09`, CI run `34018402362`, conclusion
-success, `npm run check` 355 tests.** If the head has moved past that, this line is the thing to
-re-check first.
+Every commit after `68d1432` re-ran the whole thing and stayed green. **A run id is a citation into
+something that moves — the defect this repository has already found twice in its own records, once
+positionally into a mutable blockers array and once as a migration count correct when written — so
+this names a commit in a way that cannot go stale by being written down.**
+
+The last commit changing EXECUTABLE content is `3cfae09`: CI run `34018402362`, conclusion success,
+`npm run check` 355 tests. It added the §6.1 rejection tests and changed no migration, no policy and
+no proof. Anything after it in this branch changes only this evidence file, which is why that commit
+rather than the literal branch head is the one worth re-running. Both were verified green
+independently; the head at the time of writing is the commit carrying this paragraph.
 
 The negative control's count is unchanged at 10 of 35 — the seven new cases are not among the ones
 it turns red, because it disables row level security on `app.workspaces` and the new cases read
