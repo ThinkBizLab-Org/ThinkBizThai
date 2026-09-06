@@ -191,7 +191,20 @@ export const SMOKE_COVERAGE = {
                            + 'precisely the Business being asked about — so the empty result is row level '
                            + 'security and nothing else. `owner-b-resolves-the-knowledge-item-of-business-b1` '
                            + 'is the far side, run through the same contract, so the negative is not '
-                           + 'satisfied by a predicate nobody can pass.' },
+                           + 'satisfied by a predicate nobody can pass.\n\n'
+                           + 'BATCH 050\'s THREE TABLES ARE NOT COUNTED EITHER, AND THE REASON IS NEW. '
+                           + 'app.jobs, app.outbox_events and app.consumer_ledger ARE tenant tables — each '
+                           + 'carries workspace_id NOT NULL with a foreign key to app.workspaces — and NO '
+                           + 'IDENTITY CAN READ ANY OF THEM. §8.4\'s "Job redacted status SELECT" grants a '
+                           + 'redacted status, which is a security_invoker view on a read allowlist that is '
+                           + 'empty and grows only by RFC, so batch 050 grants no client role anything and '
+                           + 'writes no policy. A table nobody can read has no OBSERVABLE tenant boundary: '
+                           + 'both owners are refused identically at the privilege layer, exactly as they are '
+                           + 'on batch 030\'s global rows, and for a completely different reason. Counting '
+                           + 'that as isolation would be reporting a refusal that holds for everybody as a '
+                           + 'boundary that holds for one tenant. The claim this batch DOES make with the pair '
+                           + 'is narrower and is labelled as such: the refusal is uniform, so it is not one '
+                           + 'tenant being unlucky.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -311,7 +324,17 @@ export const SMOKE_COVERAGE = {
                            + 'knowledge tables — the item, whose only membership predicate is that helper, '
                            + 'and the version, which reaches the helper twice over: once through its own '
                            + 'permissive policy and once through the item its restrictive narrowing '
-                           + 'resolves.' },
+                           + 'resolves.\n\n'
+                           + 'BATCH 050 IS THE FIRST FAMILY THIS ASSERTION CANNOT BE MADE ABOUT, and its '
+                           + 'three cases are labelled ANALOGUES rather than counted. §12.6/5 is "a suspended '
+                           + 'member sees zero tenant rows", and it says something only where an ACTIVE '
+                           + 'member sees some: on every family above, the suspended identity is refused by a '
+                           + 'policy that admits their active colleagues. On app.jobs, app.outbox_events and '
+                           + 'app.consumer_ledger NOBODY holds a client grant, so the suspended member is '
+                           + 'refused by the privilege system exactly as the owner is and the case says '
+                           + 'nothing about suspension. The three cases exist so that the day this family '
+                           + 'gains a client grant they start making the claim their names imply; until then '
+                           + 'they carry `§12.6/5-analogue` and this row is unaffected by them.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -338,7 +361,15 @@ export const SMOKE_COVERAGE = {
                            + 'either the function or the table is reached, so it proves the chokepoint and '
                            + 'NOT the function grant. That anon holds no EXECUTE on '
                            + 'app.knowledge_scope_applies itself is asserted by 041\'s apply-time block '
-                           + 'against the live ACL, which is where a claim no case can reach belongs.' },
+                           + 'against the live ACL, which is where a claim no case can reach belongs.\n\n'
+                           + 'BATCH 050 ASSERTS IT ON ALL THREE ASYNC-KERNEL TABLES, and since 2026-09-06 the '
+                           + 'refusal is an APPROVED DECISION rather than an inherited convention: '
+                           + 'RFC-2026-021 §7/4 decides that anon is granted nothing anywhere our migrations '
+                           + 'reach, and gives the structural reason these cases declare the SCHEMA as the '
+                           + 'object — the first anon grant is `grant usage on schema app`, which moves the '
+                           + 'denial layer of every object in app at once. 050\'s apply-time block asserts the '
+                           + 'grant half against the live catalog, and these three cases assert the '
+                           + 'behaviour.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -406,7 +437,27 @@ export const SMOKE_COVERAGE = {
                            + 'and 040\'s attribution property — an empty service read is row level security '
                            + 'and not a forgotten GRANT — would hold for hand-written queries while quietly '
                            + 'failing for every query written against the contract. The positive half is '
-                           + 'still not asserted and still would require inventing §8.2\'s `P`.' },
+                           + 'still not asserted and still would require inventing §8.2\'s `P`.\n\n'
+                           + 'BATCH 050 IS THE BATCH BATCH 010 PREDICTED BY NAME, AND THE ROW STILL DOES NOT '
+                           + 'MOVE. 010\'s header records that §8.1 contains no `S` cell at all and that "the '
+                           + '`S` operations the amendment exists for live in §8.2-§8.4 — research rows, '
+                           + 'publish delivery, JOB PAYLOADS, usage ledger, audit inserts — and belong to '
+                           + 'batches 050, 061, 070, 120, 140. Their owners inherit the shape." §8.4\'s '
+                           + '"Internal job/attempt/DLQ payload | N N N N N S" is the first `S` cell any batch '
+                           + 'in this schema has owned, and 050 still writes the service NO POLICY. Three '
+                           + 'reasons, argued in 050_async_kernel.sql\'s header: RFC-2026-016 §2 scopes the '
+                           + 'service policy by "a server-set workspace GUC" and NAMES NONE; RFC-2026-019 §4/3 '
+                           + '(approved, and newer) decides that app_worker\'s connection method is undecided '
+                           + 'and nothing can yet be that role; and — the reason no earlier batch could have '
+                           + 'found — a workspace-scoped GUC cannot express §3.4\'s lease claim, because a '
+                           + 'claim query cannot name a workspace when reading the row is what tells you '
+                           + 'which workspace it belongs to. A queue is the one family in §8 where the '
+                           + 'service DISCOVERS the tenant context rather than arriving with it.\n\n'
+                           + 'So the positive half stays unasserted for a SIXTH batch, and on these three '
+                           + 'tables the negative half is the whole of the live evidence: no client role '
+                           + 'holds anything, so `service-sees-zero-*` and `service-cannot-*` are the only '
+                           + 'cases row level security decides, and they are the six the CI negative control '
+                           + 'rests on.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -542,7 +593,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'knowledge item. ALL OF THEM RAISE 42501 AT THE POLICY and none of them reaches a constraint, '
    + 'which is stated in §12.6/7\'s note rather than dressed up as a `rejected` case: 040\'s scope '
    + "subqueries are the composite foreign keys' own conditions evaluated under RLS, so a caller "
-   + 'who would violate one is refused by a policy first.',
+   + 'who would violate one is refused by a policy first.\n\n'
+   + 'BATCH 050 IS THE FIRST FAMILY WITH NOTHING TO FORGE, and the disposition says so rather than '
+   + 'leaving the case silently uncounted. app.jobs, app.outbox_events and app.consumer_ledger carry '
+   + 'NO created_by and NO updated_by: §3.2 adds the audit actor columns for a USER MUTATION, and §8 '
+   + "grants no client any write on any of the three, so the columns would be two nullable uuids "
+   + "nothing writes — 030's reading on the global catalog, applied to a tenant table for the first "
+   + 'time. There is also no client INSERT to forge them on. What stands in the case\'s place is an '
+   + 'assertion of the same kind one layer earlier: `owner-a-cannot-enqueue-a-job-row` and '
+   + '`owner-a-cannot-publish-an-outbox-event`, because a client that cannot write the row at all is '
+   + 'a client for whom forging a column on it is not a question.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -572,7 +632,19 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'what a business said cannot be rewritten. 040\'s own apply-time block walks six roles against '
    + 'it through has_any_column_privilege and has_table_privilege and raises if any cell holds '
    + 'either verb, which catches a grant made by a LATER batch that no case in this file would '
-   + 'see.',
+   + 'see.\n\n'
+   + 'BATCH 050 ADDS THE OTHER NOUN IN §8.6 CASE 9. That case reads "Immutable/LEDGER row → '
+   + 'update/delete fail", and four batches have carried it on immutable VERSION tables only. '
+   + 'app.consumer_ledger is the first LEDGER in this schema — §5 calls the family "state + '
+   + 'append-only" and §10 gives it CONSUMER-LEDGER, "event dedupe keys ... retained for replay '
+   + 'safety" — and all four cells are live: update and delete, by the WORKSPACE OWNER and by the '
+   + 'SERVICE, each at the GRANT layer because no role holds either verb. The claim it carries is '
+   + 'different from a version table\'s: a version row that could be edited would rewrite history, '
+   + 'and a LEDGER row that could be edited or removed would make a redelivery replayable, which is '
+   + 'the one thing the table exists to prevent. The outbox is immutable in a narrower sense and is '
+   + 'asserted that way — `service-cannot-rewrite-an-outbox-event-envelope` is refused at the COLUMN '
+   + 'privilege layer, because app_worker holds UPDATE on dispatched_at and on no other column, and '
+   + "050's apply-time block walks every other column against six roles.",
   10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
     + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
     + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
@@ -584,7 +656,21 @@ export const AUTHORIZATION_CASE_COVERAGE = {
     + 'command functions as the enforcement mechanism for the whole client/database boundary, and '
     + 'the industry catalog is the first family this repository has written that is unreadable '
     + 'without one. The command surface is owed to DATA-DEC-03 and the RFC that opens the read '
-    + 'allowlist.',
+    + 'allowlist.\n\n'
+    + 'BATCH 050 MAKES THE STATEMENT PRECISE RATHER THAN PAYING IT. §8.6 case 10 is "Authorized '
+    + 'server command → pass + expected audit/OUTBOX", and batch 040\'s note above says the outbox '
+    + '"does not exist yet". IT EXISTS NOW — app.outbox_events, with the envelope CTR-EVT-001 fixes '
+    + '— and the case is still unpayable, because the half that is missing is the COMMAND. That is a '
+    + 'sharper claim than 040 could make and it names exactly what remains: RFC-2026-012 §4 makes a '
+    + 'SECURITY DEFINER function owned by app_command the enforcement mechanism, RFC-2026-019 §2 '
+    + 'measured ZERO such functions on the instance, and §3.4 requires the domain state and its '
+    + 'outbox event to be written in ONE TRANSACTION — which today would have to be a client\'s, '
+    + 'because a client is the only thing that writes domain state. So batch 050 grants the client '
+    + 'nothing on the outbox and `owner-a-cannot-publish-an-outbox-event` asserts it: a client that '
+    + 'could write here would choose the event_type, the producer and the subject every consumer '
+    + 'downstream routes on, and a forged domain event is not a leaked row but an instruction. The '
+    + 'audit half is still 140\'s. When the first command function lands, this case becomes payable '
+    + 'in one batch and not two.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -961,6 +1047,78 @@ export function buildCases(id) {
        + ' where app.knowledge_scope_applies(business_profile_id, page_context_profile_id, $1, null::uuid)'
        + '   and id = $2',
     params: [business, item],
+  });
+
+  // -- Batch 050 builders. The async kernel, and the first family no identity can read. ---------
+  //
+  // WHAT IS STRUCTURALLY DIFFERENT ABOUT THIS FAMILY, because it changes which OUTCOME KINDS are
+  // available and a reader will otherwise look for the ones that are missing.
+  //
+  // app.jobs, app.outbox_events and app.consumer_ledger carry NO policy and grant NO client role
+  // anything (050_async_kernel.sql's header argues both at length). Three consequences follow, and
+  // each of them removes a shape this suite normally uses:
+  //
+  //   * NO `rows` CASE IS POSSIBLE. No identity can read these tables, so there is no positive to
+  //     pair a negative against. What stands in its place is the SERVICE's filtered read: app_worker
+  //     holds the SELECT grant and no policy, so `service-sees-zero-*` is the one case per table
+  //     that row level security decides, and it is the case the CI negative control breaks.
+  //   * NO `no-effect` CASE IS POSSIBLE, and this is the sharper one. `no-effect` is an empty result
+  //     PLUS a witness read by an identity that can see the target row — and here there is no such
+  //     identity, for any row, at all. So a filtered UPDATE cannot be asserted: it would be
+  //     `expectNoRows` on a write, which identity-isolation.test.mjs refuses by name. The write path
+  //     is carried by the INSERT instead, which is the mutation that RAISES.
+  //   * NO `rejected` CASE IS POSSIBLE EITHER, which matters because the ledger's whole mechanism is
+  //     a unique constraint. A duplicate insert never reaches the constraint: app_worker holds the
+  //     INSERT grant, finds no permissive policy, and is refused with 42501 first. The natural key
+  //     is therefore asserted where it CAN be — 050's apply-time block reads it out of pg_constraint
+  //     as a column SET — rather than faked here, which is the treatment batch 040 gave §12.6/7.
+  //
+  // A job is addressed by (workspace_id, dedupe_key) and a ledger row by (workspace_id, consumer,
+  // event_id), both unique constraints in 050_async_kernel.sql, so neither needs a fixture symbol.
+  // An outbox event does: its identity IS `event_id`, and the ledger row names it.
+  const OUTBOX_EVENT_A = id('outbox_event_a');
+  const OUTBOX_EVENT_B = id('outbox_event_b');
+
+  // The fixture's own text values, in one home, for the reason every other fixture constant is here:
+  // a case that spelled them inline would drift from the file that loads them.
+  const FIXTURE_JOB_DEDUPE_A = 'fixture-job-a';
+  const FIXTURE_JOB_DEDUPE_B = 'fixture-job-b';
+  const FIXTURE_CONSUMER = 'fixture.consumer';
+
+  const JOB_BY_DEDUPE_KEY = 'select id from app.jobs where workspace_id = $1 and dedupe_key = $2';
+  const OUTBOX_EVENT_BY_ID = 'select id from app.outbox_events where event_id = $1';
+  const LEDGER_ROW_BY_KEY = 'select id from app.consumer_ledger'
+    + ' where workspace_id = $1 and consumer = $2 and event_id = $3';
+
+  // A dedupe key no fixture row holds, so the INSERT cases below are refused by the thing they name
+  // rather than by (workspace_id, dedupe_key) already existing. Batch 040's version builder had to
+  // make the same choice about version_number for the same reason.
+  const enqueueJob = (workspace, dedupeKey) => ({
+    sql: 'insert into app.jobs'
+       + ' (workspace_id, job_type, job_version, priority, available_at, max_attempts,'
+       + ' timeout_seconds, dedupe_key, input_ref, progress_stage)'
+       + " values ($1, 'attempted.job', 1, 0, now(), 5, 30, $2, 'job:attempted.input', 'attempted')"
+       + ' returning id',
+    params: [workspace, dedupeKey],
+  });
+
+  // `event_id` is left to the column default rather than passed: a case may not contain a uuid, and
+  // the two catalog symbols name rows that already exist, so an insert that reused one would be
+  // refused by the unique constraint instead of by the layer the case is about.
+  const publishOutboxEvent = (workspace, business) => ({
+    sql: 'insert into app.outbox_events'
+       + ' (event_type, event_version, occurred_at, producer_module_key,'
+       + ' producer_implementation_version, workspace_id, subject_type, subject_id, subject_version,'
+       + ' correlation_id, schema_ref)'
+       + " values ('attempted.outbox.event', 1, now(), 'attempted.module', '0.0.0', $1,"
+       + " 'business_profile', $2, 1, 'attempted-correlation', 'CTR-EVT-001@1.0.0') returning id",
+    params: [workspace, business],
+  });
+
+  const recordConsumption = (workspace, event) => ({
+    sql: 'insert into app.consumer_ledger (workspace_id, consumer, event_id)'
+       + " values ($1, 'attempted.consumer', $2) returning id",
+    params: [workspace, event],
   });
 
   return [
@@ -3722,8 +3880,6 @@ export function buildCases(id) {
          + 'and not a forgotten GRANT. It is one of the two cases the CI negative control for '
          + 'app.knowledge_item_versions rests on.',
     },
-
-    // =========================================================================================
     // Batch 041 — the resolved knowledge contract, in the half of it that is decided.
     // =========================================================================================
     //
@@ -3942,6 +4098,472 @@ export function buildCases(id) {
          + 'FUNCTION instead, and 040\'s attribution property would hold for hand-written queries while '
          + 'quietly failing for contract ones. 041 grants app_worker EXECUTE so this case can be a '
          + 'no-rows and not a denial.',
+    },
+    // ==========================================================================================
+    // Batch 050 — the async kernel. Three tables, no policy, and no reader.
+    // ==========================================================================================
+    //
+    // §8.4 gives this family two rows and neither is implementable by a migration:
+    //
+    //   | Job redacted status SELECT       | Y | Y | O/P | O/P | O/P | P |
+    //   | Internal job/attempt/DLQ payload | N | N | N   | N   | N   | S |
+    //
+    // The first grants a REDACTED STATUS, which is a security_invoker view on the read allowlist
+    // RFC-2026-012 §3 and RFC-2026-021 give to an RFC, and the allowlist is empty. The second is the
+    // schema's first `S` cell, whose shape RFC-2026-016 §2 describes with a workspace GUC no
+    // document names, for a role RFC-2026-019 §4/3 says nothing can yet be. The outbox and the
+    // consumer ledger have no row in §8 at all.
+    //
+    // So the cases below are almost all refusals, and the two per table that are NOT refusals are
+    // the ones that matter: `service-sees-zero-*` is the only read row level security decides here,
+    // and `service-cannot-*` is the only write it decides. Everything else is the privilege system,
+    // and each case declares which layer and which object so that the day a grant appears the case
+    // fails rather than passing more quietly.
+
+    // -- app.jobs. §8.6's ten, as far as a table with no reader can carry them. -----------------
+    {
+      id: 'owner-a-cannot-read-a-job-row',
+      covers: ['§8.4/job-status', 'RFC-2026-012§2', 'RFC-2026-021§7'],
+      as: ownerA,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'THE CASE THIS BATCH IS MOST LIKELY TO BE ARGUED WITH, so it is first. §8.4 marks "Job '
+         + 'redacted status SELECT" `Y` for the owner, and the owner is refused here — because the '
+         + 'object that cell grants is a REDACTED STATUS and not a job row. §9.1 classes this family '
+         + 'INTERNAL-3, whose client projection is "redacted status only", and the very next row of '
+         + '§8.4 marks the internal job payload `N` for every client role; a base-table grant would '
+         + 'hand a client both rows at once. The projection is a security_invoker view on an '
+         + 'allowlist that starts empty and grows only by RFC, so this refusal is what an unopened '
+         + 'allowlist looks like from the outside — and the day an RFC opens it, this case moves to '
+         + 'the policy layer and fails until somebody rewrites it, which is the point.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-job-row',
+      covers: ['§8.4/job-status', '§8.6/5'],
+      as: ownerB,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [B, FIXTURE_JOB_DEDUPE_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'THE SAME REFUSAL FROM THE OTHER TENANT, and the pair is the assertion — but it is a '
+         + 'WEAKER assertion than the same shape on batch 030\'s global tables and the coverage map '
+         + 'says so. app.jobs IS a tenant table: it carries workspace_id and a foreign key to '
+         + 'app.workspaces. Nobody can read it, so the tenant boundary has nothing to be observed '
+         + 'through, and §12.6/1 is NOT claimed for this family. What this pair does assert is that '
+         + 'the refusal is uniform: it is not one tenant being unlucky.',
+    },
+    {
+      id: 'viewer-a-cannot-read-a-job-row',
+      covers: ['§8.4/job-status'],
+      as: viewerA,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: '§8.4 marks the viewer `O/P` on the job status cell — BOTH SYMBOLS IN ONE CELL, which no '
+         + 'document resolves: `O` would mean "the job I started", which needs an actor column this '
+         + 'family does not have, and `P` needs a capability set nobody has defined. The owner and '
+         + 'the viewer sit at the two ends of that row and both are refused identically, which is '
+         + 'what an unresolved cell looks like when it is denied by default rather than guessed at.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-job-row',
+      covers: ['§12.6/5-analogue', '§8.6/6'],
+      as: suspendedA,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'LABELLED AN ANALOGUE AND DELIBERATELY NOT COUNTED AS §12.6/5. That assertion is "a '
+         + 'suspended member sees zero tenant rows", and it means something only where an ACTIVE '
+         + 'member sees some: on every other family the suspended identity is refused by a policy '
+         + 'that admits their active colleagues. Here they are refused by the privilege system, '
+         + 'exactly as the owner is, so the case says nothing about suspension. It is here because '
+         + 'the day this family gains a client grant, this case starts making the claim its name '
+         + 'implies — and until then the coverage map records that it does not.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-job-row',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app and '
+         + 'PUBLIC holds none either. RFC-2026-021 §7/4 made that a decision rather than a '
+         + 'convention on 2026-09-06, and gave the reason this case declares the object it does: the '
+         + 'first anon grant is `grant usage on schema app`, which moves the denial layer of every '
+         + 'object in app at once. The day that happens this case fails.',
+    },
+    {
+      id: 'owner-a-cannot-enqueue-a-job-row',
+      covers: ['§8.4/job-payload', '§8/no-row'],
+      as: ownerA,
+      ...enqueueJob(A, 'attempted-by-owner-a'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: '§8 contains NO client write cell for a job, in any of its four matrices — the only write '
+         + 'row is "Internal job/attempt/DLQ payload", which is `N` for every client role and `S` '
+         + 'for the service. So enqueueing is deny-by-default reaching the privilege layer, and a '
+         + 'workspace owner cannot put work into their own queue. That is a real consequence and it '
+         + 'is owed to the command surface: RFC-2026-012 §4 names SECURITY DEFINER command functions '
+         + 'as the mechanism, and none exists.',
+    },
+    {
+      id: 'service-sees-zero-job-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: JOB_BY_DEDUPE_KEY,
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'no-rows',
+      why: 'ONE OF THE TWO CASES ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason '
+         + 'app_worker holds a SELECT grant at all. Without the grant this refusal would be 42501 '
+         + 'either way and would prove only that somebody forgot a GRANT; with the grant and no '
+         + 'policy, an empty read can only have come from RLS — and a service role that had quietly '
+         + 'acquired BYPASSRLS would return the row. §8.4 marks the service `S` on the job payload, '
+         + 'which is the FIRST `S` CELL IN THIS SCHEMA, and 050 writes it no policy: RFC-2026-016 §2 '
+         + 'says a service policy is scoped by a workspace GUC no document names, RFC-2026-019 §4/3 '
+         + 'says nothing can yet be app_worker, and a workspace-scoped predicate cannot express the '
+         + 'cross-workspace claim query §3.4 specifies. It is also the case the CI negative control '
+         + 'for app.jobs rests on.',
+    },
+    {
+      id: 'service-cannot-enqueue-a-job-row',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/job-payload'],
+      as: service,
+      ...enqueueJob(A, 'attempted-by-the-service'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'THE RAISING HALF of RFC-2026-017 §7, which asks for the service identity to be "denied '
+         + 'with an error, not an empty result". Only an INSERT can carry it here, and for a reason '
+         + 'stronger than usual: an UPDATE whose USING clause filters the row reports zero rows and '
+         + 'raises nothing, and on THIS family a filtered update cannot even be asserted as '
+         + '`no-effect`, because a witness has to be read by an identity that can see the row and no '
+         + 'identity can. app_worker HOLDS the INSERT grant and holds no policy, so the refusal is '
+         + 'row level security finding no permissive policy to admit the row — and this is the case '
+         + 'that starts SUCCEEDING the moment the CI negative control disables RLS on app.jobs.',
+    },
+    {
+      id: 'service-cannot-delete-a-job-row',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      sql: 'delete from app.jobs where workspace_id = $1 and dedupe_key = $2 returning id',
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'NO ROLE holds DELETE on any table in this batch. §8.5 has no broad user delete, and hard '
+         + 'deletion here is a retention sweep — §10 gives this family JOB-SHORT, OUTBOX-SHORT and '
+         + 'CONSUMER-LEDGER, and batch 160 owns the job that acts on them through app_maintenance, '
+         + 'which this batch grants nothing. The refusal is at the GRANT layer, so it cannot be '
+         + 'undone by editing a policy.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-job-row',
+      covers: ['§8.6/9', '§8.5/no-broad-delete'],
+      as: ownerA,
+      sql: 'delete from app.jobs where workspace_id = $1 and dedupe_key = $2 returning id',
+      params: [A, FIXTURE_JOB_DEDUPE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'jobs' },
+      why: 'The client half of the same claim, because "even the owner" is a different assertion '
+         + 'from "not even the service" and a schema could hold one without the other.',
+    },
+
+    // -- app.outbox_events. The table §3.4 specifies and this schema cannot write. ---------------
+    {
+      id: 'owner-a-cannot-read-an-outbox-event',
+      covers: ['§8/no-row', '§9.1/INTERNAL-3'],
+      as: ownerA,
+      sql: OUTBOX_EVENT_BY_ID,
+      params: [OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: '§8 has NO ROW for an outbox event in any of its four matrices, so there is no cell to '
+         + 'implement and every operation on it is denied by default. §9.1 classes the family '
+         + 'INTERNAL-3 — "private; short retention", client projection "redacted status only" — so '
+         + 'the silence and the classification point the same way.',
+    },
+    {
+      id: 'owner-b-cannot-read-an-outbox-event',
+      covers: ['§8/no-row', '§8.6/5'],
+      as: ownerB,
+      sql: OUTBOX_EVENT_BY_ID,
+      params: [OUTBOX_EVENT_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'The other tenant, refused identically. As on app.jobs this is a uniformity claim and not '
+         + 'a tenant-boundary one, and the coverage map records the difference rather than counting '
+         + 'a refusal that holds for everybody as an isolation proof.',
+    },
+    {
+      id: 'suspended-a-cannot-read-an-outbox-event',
+      covers: ['§12.6/5-analogue', '§8.6/6'],
+      as: suspendedA,
+      sql: OUTBOX_EVENT_BY_ID,
+      params: [OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'An analogue, for the reason the job-row case gives: a suspended member refused where '
+         + 'every active member is also refused has been refused by the privilege system and not by '
+         + 'suspension.',
+    },
+    {
+      id: 'anonymous-cannot-read-an-outbox-event',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: OUTBOX_EVENT_BY_ID,
+      params: [OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, as every anonymous case in this suite is, and for RFC-2026-021 §7/4\'s '
+         + 'structural reason rather than as a formality.',
+    },
+    {
+      id: 'owner-a-cannot-publish-an-outbox-event',
+      covers: ['§3.4/outbox-atomicity', '§8/no-row'],
+      as: ownerA,
+      ...publishOutboxEvent(A, BUSINESS_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'THE CASE §3.4 TURNS ON. That section requires domain state and its outbox event to be '
+         + 'written in the SAME TRANSACTION — and today the only transaction that writes domain '
+         + 'state is a CLIENT\'s, because no command function exists for any module (020, 030 and '
+         + '040 each record it, and RFC-2026-019 §2 measured zero functions owned by app_command). '
+         + 'A client that could write here would choose event_type, producer and subject, which are '
+         + 'the fields every consumer downstream routes and trusts on: a forged '
+         + '`content.version.approved` is not a leaked row, it is an instruction. So the grant is '
+         + 'absent, this case asserts it, and §3.4\'s atomicity is owed to the command surface '
+         + 'rather than worked around with a trigger 050 may not write on another module\'s table.',
+    },
+    {
+      id: 'owner-a-cannot-mark-an-outbox-event-dispatched',
+      covers: ['§8/no-row', '§10/OUTBOX-SHORT'],
+      as: ownerA,
+      sql: 'update app.outbox_events set dispatched_at = now() where event_id = $1 returning id',
+      params: [OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'dispatched_at is the ONE mutable column on this table and it is granted to app_worker '
+         + 'alone. A client that could set it would tell the relay an event had been published when '
+         + 'it had not, and §10 retains an outbox row "until consumers ack + 30 days" — so the column '
+         + 'is also what decides when the row is purged.',
+    },
+    {
+      id: 'service-sees-zero-outbox-events',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: OUTBOX_EVENT_BY_ID,
+      params: [OUTBOX_EVENT_A],
+      expect: 'no-rows',
+      why: 'The read row level security decides on this table, and one of the two cases the CI '
+         + 'negative control for app.outbox_events rests on. app_worker holds SELECT on every column '
+         + 'and no policy, so the empty result is RLS and not a forgotten grant.',
+    },
+    {
+      id: 'service-cannot-publish-an-outbox-event',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§3.4/outbox-atomicity'],
+      as: service,
+      ...publishOutboxEvent(A, BUSINESS_A1),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'The raising half, and the second case the negative control rests on. app_worker HOLDS '
+         + 'the INSERT grant on every column this statement names and holds no policy, so row level '
+         + 'security refuses it — and the same statement SUCCEEDS the moment RLS is disabled on this '
+         + 'table, which is what makes the control bite rather than merely exit non-zero.',
+    },
+    {
+      id: 'service-cannot-rewrite-an-outbox-event-envelope',
+      covers: ['§8.6/9', '§3.2/immutable'],
+      as: service,
+      sql: 'update app.outbox_events set event_type = $2 where event_id = $1 returning id',
+      params: [OUTBOX_EVENT_A, 'rewritten.by.the.service'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'THE PER-COLUMN IMMUTABILITY OF THE ENVELOPE, live. app_worker holds UPDATE on '
+         + 'dispatched_at and on NO OTHER COLUMN, so a statement naming event_type is refused at the '
+         + 'COLUMN-privilege layer — before row level security is consulted and before the row is '
+         + 'even looked for. A role that could re-aim an event after the transaction that produced '
+         + 'it committed could redirect every consumer downstream. 050\'s apply-time block walks all '
+         + 'sixteen other columns against six roles; this case is the one that shows the refusal '
+         + 'happening.',
+    },
+    {
+      id: 'service-cannot-delete-an-outbox-event',
+      covers: ['§8.6/9', '§10/OUTBOX-SHORT'],
+      as: service,
+      sql: 'delete from app.outbox_events where event_id = $1 returning id',
+      params: [OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'outbox_events' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases. Purging an acked '
+         + 'outbox row is §10\'s OUTBOX-SHORT sweep and belongs to batch 160 through app_maintenance, '
+         + 'which this batch grants nothing.',
+    },
+
+    // -- app.consumer_ledger. The first LEDGER in the schema, which §8.6 case 9 names by that word. -
+    //
+    // The natural key — (workspace_id, consumer, event_id) — is what makes redelivery idempotent,
+    // and NO CASE HERE CAN ASSERT IT. A duplicate insert never reaches the unique constraint:
+    // app_worker holds the INSERT grant, finds no permissive policy and is refused with 42501 first,
+    // so a `rejected` case demanding 23505 would assert an outcome a correct database cannot
+    // produce. Batch 040 met the same shape on its forged-scope inserts and recorded it rather than
+    // faking a case; the key is asserted instead by 050_async_kernel.sql's apply-time block, which
+    // reads it out of pg_constraint as a COLUMN SET so that dropping workspace_id fails the apply.
+    {
+      id: 'owner-a-cannot-read-a-consumer-ledger-row',
+      covers: ['§8/no-row', '§9.1/INTERNAL-3'],
+      as: ownerA,
+      sql: LEDGER_ROW_BY_KEY,
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: '§8 has no row for a consumer ledger anywhere, and §9.1 classes the family INTERNAL-3. '
+         + 'The case addresses the row by its NATURAL KEY rather than by an id, which is the shape '
+         + 'the fixture catalog admits without a symbol — and which is also the tuple the apply-time '
+         + 'block asserts is unique.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-consumer-ledger-row',
+      covers: ['§8/no-row', '§8.6/5'],
+      as: ownerB,
+      sql: LEDGER_ROW_BY_KEY,
+      params: [B, FIXTURE_CONSUMER, OUTBOX_EVENT_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'The other tenant, refused identically — and the pair is also the only place the fixture '
+         + 'shows what workspace_id is doing in the natural key: ONE consumer, TWO workspaces, TWO '
+         + 'rows. A key without workspace_id would have collapsed them the moment the two events '
+         + 'shared an id, and one tenant\'s consumption would silently suppress the other\'s '
+         + 'redelivery.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-consumer-ledger-row',
+      covers: ['§12.6/5-analogue', '§8.6/6'],
+      as: suspendedA,
+      sql: LEDGER_ROW_BY_KEY,
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'An analogue, for the reason the job-row and outbox cases give.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-consumer-ledger-row',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: LEDGER_ROW_BY_KEY,
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA. Three tables, three anonymous cases, one control — stated per table '
+         + 'because that is what makes it checkable per table.',
+    },
+    {
+      id: 'service-sees-zero-consumer-ledger-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: LEDGER_ROW_BY_KEY,
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'no-rows',
+      why: 'The read row level security decides, and the first of the two cases the CI negative '
+         + 'control for app.consumer_ledger rests on. The row EXISTS — the fixture loads it '
+         + 'administratively, because no policy could have — so the empty result is a refusal and '
+         + 'not an empty table.',
+    },
+    {
+      id: 'service-cannot-record-a-consumer-ledger-row',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...recordConsumption(A, OUTBOX_EVENT_A),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'The raising half, and the second case the control rests on. It names a DIFFERENT '
+         + 'consumer from the fixture row so that the refusal is row level security rather than the '
+         + 'unique constraint — which is the same choice batch 040 made about version_number, and '
+         + 'which matters more here because the constraint this insert avoids is the one the whole '
+         + 'table exists for.',
+    },
+    {
+      id: 'service-cannot-update-a-consumer-ledger-row',
+      covers: ['§8.6/9', '§3.2/immutable'],
+      as: service,
+      sql: 'update app.consumer_ledger set consumer = $4'
+         + ' where workspace_id = $1 and consumer = $2 and event_id = $3 returning id',
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A, 'rewritten.consumer'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: '§8.6 CASE 9 IS "Immutable/LEDGER row → update/delete fail" AND THIS IS THE FIRST LEDGER '
+         + 'IN THE SCHEMA. Four batches have carried that case on immutable VERSION tables; this is '
+         + 'the other noun in the sentence. A ledger row that can be edited makes a redelivery '
+         + 'replayable, which is the one thing the table exists to prevent, so no role holds UPDATE '
+         + 'and the refusal is at the GRANT layer.',
+    },
+    {
+      id: 'service-cannot-delete-a-consumer-ledger-row',
+      covers: ['§8.6/9', '§10/CONSUMER-LEDGER'],
+      as: service,
+      sql: 'delete from app.consumer_ledger'
+         + ' where workspace_id = $1 and consumer = $2 and event_id = $3 returning id',
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'The second verb. Deleting a ledger row is how a consumer would process an event twice, '
+         + 'and §10 keeps these rows for 180 days or the max replay window precisely so that it '
+         + 'cannot. Purging by window is batch 160\'s, through app_maintenance, which holds nothing '
+         + 'here.',
+    },
+    {
+      id: 'owner-a-cannot-update-a-consumer-ledger-row',
+      covers: ['§8.6/9'],
+      as: ownerA,
+      sql: 'update app.consumer_ledger set consumer = $4'
+         + ' where workspace_id = $1 and consumer = $2 and event_id = $3 returning id',
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A, 'rewritten by the owner'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'The client half of §8.6/9 on this table, so all four cells of the grid are live: update '
+         + 'and delete, by the workspace owner and by the service. A schema that granted one of the '
+         + 'four would be caught by exactly one of these cases.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-consumer-ledger-row',
+      covers: ['§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.consumer_ledger'
+         + ' where workspace_id = $1 and consumer = $2 and event_id = $3 returning id',
+      params: [A, FIXTURE_CONSUMER, OUTBOX_EVENT_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'consumer_ledger' },
+      why: 'The fourth cell, so the grid is four cases rather than three and an average.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
