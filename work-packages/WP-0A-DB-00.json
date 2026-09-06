@@ -107,13 +107,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json",
         "test-kits/repository-json.test.mjs"
       ],
-      "rationale": "RFC-2026-020 is a precondition of batch 011, whose registry row this package's foundation work owns, and it is authored by A1 -- the run the registry names for 011 -- and reviewed by A0. It is declared writable here rather than given its own package because the decision exists only to unblock a batch this package carries.\n\nThe amendments are the registries a new decision record joins: the set of decision records is declared BY NAME in test-kits/repository-json.test.mjs and the protected-file list in scripts/verify-test-coverage-floor.mjs, both because an RFC that no digest protects is the hole those lists exist to close. The branch mapping, the integrity digests and the verification record move as usual."
+      "rationale": "RFC-2026-020 is a precondition of batch 011, whose registry row this package's foundation work owns, and it is authored by A1 -- the run the registry names for 011 -- and reviewed by A0. It is declared writable here rather than given its own package because the decision exists only to unblock a batch this package carries.\n\nThe amendments are the registries a new decision record joins: the set of decision records is declared BY NAME in test-kits/repository-json.test.mjs and the protected-file list in scripts/verify-test-coverage-floor.mjs, both because an RFC that no digest protects is the hole those lists exist to close. The branch mapping, the integrity digests and the verification record move as usual. The verification record was declared and did not move: the test count is unchanged, so the generated file is byte-identical. Fifth time the scope guard has caught this run declaring a permission for work that did not happen."
     }
   },
   "inputs": {
