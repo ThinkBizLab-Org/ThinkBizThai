@@ -20,7 +20,7 @@
 // requires the suite to FAIL. A suite that has never been observed failing is not evidence.
 
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -1099,7 +1099,8 @@ test('the table batch 021 adds has its own entry in the CI negative control', as
 
   // Every table the control names must exist in the migration set, so a renamed table takes its control
   // with it instead of leaving an entry that disables nothing.
-  const migrations = await Promise.all(['010_identity.sql', '020_business.sql', '021_member_scope.sql']
+  const migrations = await Promise.all(['010_identity.sql', '020_business.sql', '021_member_scope.sql',
+    '030_industry.sql']
     .map((name) => readFile(`db/foundation/migrations/${name}`, 'utf8')));
   const created = new Set(migrations.flatMap((sql) =>
     [...sql.replace(/--[^\n]*/g, '').matchAll(/create table (?:if not exists )?app\.(\w+)/g)].map((m) => m[1])));
@@ -1148,5 +1149,495 @@ test('the case that asserted the un-narrowed state is gone and its replacement a
   for (const key of [3, 4]) {
     assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), /COVERED BY BATCH 021/,
       `§8.6 case ${key} was recorded as owed by batch 021 and the map must say what happened to it`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Batch 030, statically. Same discipline as the blocks above: what can be read from the migration
+// text is read from it, and the live half runs in CI through `make db-rls-smoke`.
+//
+// This batch is the first with tables that belong to NO TENANT, so two of the properties asserted
+// here have no counterpart earlier in the file: that the global catalog is reachable by nobody on
+// the request path, and that no migration anywhere has quietly made it reachable.
+
+const INDUSTRY_MIGRATION = 'db/foundation/migrations/030_industry.sql';
+const INDUSTRY_FIXTURE = 'tests/db/identity/fixtures/030-industry-fixture.sql';
+const industry = await readFile(INDUSTRY_MIGRATION, 'utf8');
+const industryCode = industry.replace(/--[^\n]*/g, '');
+// The two that belong to no workspace, and the one that does. Almost every assertion below splits
+// on that line, which is the whole reason this batch needed its own block.
+const GLOBAL_TABLES = ['industry_packs', 'industry_pack_versions'];
+const ASSIGNMENT_TABLE = 'industry_assignments';
+const INDUSTRY_TABLES = [...GLOBAL_TABLES, ASSIGNMENT_TABLE];
+// The roles a client request can arrive as. `app_worker` is deliberately not one of them: it holds
+// a grant on the global tables ON PURPOSE, so that the service denial is attributable to row level
+// security rather than to a forgotten GRANT (batch 010's shape).
+const CLIENT_ROLES = ['authenticated', 'anon'];
+
+test('every table batch 030 creates carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const table of INDUSTRY_TABLES) {
+    assert.match(industryCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(industryCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(industryCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint `
+      + 'rule tests only the first. On the two GLOBAL tables FORCE is doing more work than usual, not '
+      + 'less: they carry no policy at all, so ENABLE plus FORCE is the whole of what makes every '
+      + 'non-bypassing role — including the table owner — read zero rows.');
+    assert.match(industryCode, new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,900}?primary key`, 'i'),
+      `app.${table}: no primary key`);
+    assert.match(industry, new RegExp(`comment on table app\\.${table} is`, 'i'));
+  }
+  // §3.3's synonyms are forbidden outright, and `page_id` is forbidden by name. This batch has no
+  // Page level at all — §4's ERD hangs INDUSTRY_ASSIGNMENT off BUSINESS_PROFILE and nothing else.
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'account_id', 'page_id']) {
+    assert.doesNotMatch(industryCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}`);
+  }
+  // The tenant table carries the canonical scope. The GLOBAL ones must NOT: §3.3 requires the field
+  // on "ทุก tenant-owned row", and a workspace_id on a catalog row would be a scope column with
+  // nothing to scope — and the first policy that read it would narrow a catalog by a tenant that
+  // does not own it.
+  assert.match(industryCode, new RegExp(`create table (?:if not exists )?app\\.${ASSIGNMENT_TABLE}[\\s\\S]{0,900}?workspace_id`, 'i'),
+    `app.${ASSIGNMENT_TABLE} is tenant-owned and must carry workspace_id (§3.3)`);
+  for (const table of GLOBAL_TABLES) {
+    const body = industryCode.match(new RegExp(`create table (?:if not exists )?app\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+    assert.ok(body, `app.${table}: the table definition must be findable`);
+    assert.doesNotMatch(body[1], /workspace_id/i,
+      `app.${table} is GLOBAL. §5 scopes this family "global/business" and §3.3 asks for the canonical `
+      + 'scope field on tenant-owned rows only, so a workspace_id here would be a tenant boundary '
+      + 'asserted about a row that has none — and every case in the suite about this table would then '
+      + 'be measuring the wrong thing.');
+  }
+});
+
+// THE EMPTY READ ALLOWLIST, AS A TEST.
+//
+// RFC-2026-012 §2 puts every direct client read behind a named `security_invoker` view and §3 starts
+// that allowlist empty, growing "by RFC, not by a pull request". §9.1 classifies the published
+// industry catalog PUBLIC-0 with "Client projection: allowed" — which licenses the CONTENT and names
+// no object, no tier and no mechanism, while RFC-2026-012 names all three and sits at position 1 of
+// CONTRIBUTING_AGENTS.md's conflict order.
+//
+// So this scans EVERY migration, not just 030's. The allowlist is a property of the schema rather
+// than of one file, and a later batch granting the read is exactly the event this must notice.
+//
+// IT IS EXPECTED TO FAIL ONE DAY, AND THAT IS WHY IT LIVES HERE RATHER THAN IN 030's APPLY-TIME
+// BLOCK. Batch 011 asserted app_authz's policy count at apply time and batch 021 had to route around
+// it, because amending the assertion would have made an APPLIED migration's self-assertion false. An
+// allowlist exists in order to grow; the batch that lands the RFC edits this test, in a diff a
+// reviewer reads, and adds the negative-control entry and the cases beside it.
+test('the industry pack catalog is not on the client read allowlist, and no migration puts it there', async () => {
+  const files = await readdir('db/foundation/migrations');
+  const migrations = await Promise.all(files.filter((n) => n.endsWith('.sql')).sort()
+    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+  assert.ok(migrations.length >= 9, 'the whole migration set is read, not one file');
+
+  for (const [name, sql] of migrations) {
+    for (const table of GLOBAL_TABLES) {
+      for (const role of CLIENT_ROLES) {
+        assert.doesNotMatch(sql, new RegExp(`grant\\s[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} a privilege on app.${table}. RFC-2026-012 §3 says the read allowlist `
+          + 'starts empty and each entry is added BY RFC, not by a pull request — and §2 says a client '
+          + 'read goes through a named security_invoker view and never a base table. If an RFC has '
+          + 'approved this entry, edit this test and name it, add the CI negative-control entry the '
+          + 'grant makes possible, and add the cases that would now be about a policy rather than about '
+          + 'a missing privilege.');
+      }
+    }
+    // A `security_invoker` view over these tables IS the allowlist entry — the allowlist is the set
+    // of such views — so one appearing without the RFC is the same finding wearing the other shape.
+    for (const view of sql.matchAll(/create\s+(?:or\s+replace\s+)?view[\s\S]*?;/gi)) {
+      assert.doesNotMatch(view[0], /industry_pack/i,
+        `${name} creates a view over the industry pack catalog. That view is the allowlist entry `
+        + 'RFC-2026-012 §3 reserves to an RFC.');
+    }
+  }
+
+  // And the measured state agrees with the decision, which is what stops this from being a rule
+  // about text alone: the provisioned instance holds no exposed view of any kind.
+  const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
+  assert.deepEqual(snapshot.catalog.exposed_views, [],
+    'the allowlist is empty in the catalog as well as in the migrations. A view measured here that no '
+    + 'RFC named would be the same finding from the other direction.');
+
+  // The refusal is stated in the migration rather than left to be inferred from an absence, because
+  // 010's own rule is that a forced table with no policy must be a decision in the file.
+  assert.match(industry, /NOTHING IS WRITTEN FOR app\.industry_packs OR app\.industry_pack_versions/,
+    'a forced table with no policy is unreachable by every client role, and an absence is not a '
+    + 'decision until somebody writes down that it is one');
+  assert.match(industry, /RFC-2026-012/,
+    'the batch names the decision it is obeying, so a reader can disagree with the reading rather '
+    + 'than with the silence');
+});
+
+test('the industry catalog carries no policy, and the assignment carries the whole §8.1 set', () => {
+  for (const table of GLOBAL_TABLES) {
+    assert.doesNotMatch(industryCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table}: §8's four matrices contain no row for an industry pack anywhere, so there is no `
+      + 'cell to implement and a policy here would be a permission nobody reviewed against a caller. '
+      + 'The refusal is deny-by-default reaching the privilege layer, which the isolation cases assert '
+      + 'as `deniedBy: grant`.');
+  }
+  const policies = [...industryCode.matchAll(new RegExp(`create policy (\\w+) on app\\.${ASSIGNMENT_TABLE}([\\s\\S]*?);\\n`, 'g'))];
+  assert.equal(policies.length, 6,
+    'select for every active member, insert and update for owner-or-admin, insert and update for a '
+    + 'scoped editor, and one restrictive narrowing. Six, because §8.1 has exactly two Business rows '
+    + 'and the editor cell is conditional.');
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+    // RFC-2026-020 §5/5: membership and member scope are read through the helpers and never by
+    // joining the tables, because a join would evaluate that scan AS THE CALLER and the width of this
+    // table's visibility would become a function of a policy set belonging to another module.
+    for (const table of ['app.workspace_members', 'app.workspace_member_scopes']) {
+      assert.doesNotMatch(body, new RegExp(table.replace('.', '\\.')),
+        `${name}: membership and member scope are read through helpers, never by joining the table`);
+    }
+    if (/for\s+update/i.test(body)) {
+      assert.match(body, /using/i, `${name}: an UPDATE policy needs USING`);
+      assert.match(body, /with\s+check/i, `${name}: an UPDATE policy needs WITH CHECK, or a row admitted by USING could be updated out of the scope that admitted it`);
+    }
+    if (!/for\s+insert/i.test(body)) continue;
+    assert.match(body, /created_by\s*=\s*\(select auth\.uid\(\)\)/,
+      `${name}: §8.5 requires a user action to assert created_by = auth.uid(), or a caller can write a `
+      + 'row naming somebody else as its author (§8.6/8)');
+    assert.match(body, /archived_at is null/,
+      `${name}: §11.3 — "archive closes new creation under a Business". BOTH insert policies carry the `
+      + 'clause, because a permissive policy ORs and one that omitted it would let its role do the one '
+      + 'thing the other was written to prevent.');
+  }
+  // Deny-by-default means the absences matter as much as the policies.
+  assert.doesNotMatch(industryCode, /create\s+policy[\s\S]{0,300}?\bfor\s+delete\b/i,
+    '§8.5: there is no broad user delete. Un-pinning a Business is owed to whichever batch names the '
+    + 'typed lifecycle field this row does not have.');
+  assert.doesNotMatch(industryCode, /\bto\s+anon\b/i,
+    '§8.5 gives anonymous no tenant policy, and a PUBLIC-0 catalog is the one family somebody might '
+    + 'propose exposing anonymously — which is a security decision with an owner, not a grant a batch '
+    + 'makes because the row is classified public');
+});
+
+test('a published pack version is immutable to every role, as absent grants and absent policies', () => {
+  const versions = 'industry_pack_versions';
+  // Three expressions of one rule, which is 020's form: no updated_at to stamp, no grant, no policy.
+  const body = industryCode.match(new RegExp(`create table (?:if not exists )?app\\.${versions}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+  assert.ok(body);
+  assert.doesNotMatch(body[1], /updated_at/i,
+    `app.${versions}: an immutable row has no update to stamp, and §3.2 requires updated_at only of a `
+    + 'MUTABLE row. A column here would be the first sentence of an immutable table contradicting '
+    + 'itself.');
+  assert.doesNotMatch(industryCode, new RegExp(`create trigger set_updated_at before update on app\\.${versions}`, 'i'),
+    `app.${versions}: no trigger, because there is no column and no update`);
+  for (const role of ['authenticated', 'anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(industryCode,
+      new RegExp(`grant[^;]*\\b(update|delete)\\b[^;]*on app\\.${versions}[^;]*to [^;]*${role}`, 'i'),
+      `app.${versions}: ${role} must hold neither UPDATE nor DELETE. §8.1's only \`N\` in the SERVICE `
+      + 'column is immutable version UPDATE/DELETE, and the industry pack contract says a published '
+      + 'version is changed only by publishing a new one. An absent grant has to be granted; a policy '
+      + 'can be widened by an edit.');
+  }
+  assert.match(industryCode, new RegExp(`grant select on app\\.${versions} to app_worker`, 'i'),
+    `app.${versions}: app_worker holds SELECT and no policy, which is what makes the service's empty `
+    + 'read attributable to row level security rather than to a forgotten GRANT — and it is the one '
+    + 'grant the CI negative control for this table rests on');
+  // And the claim is executed rather than only grepped: the apply-time block walks the whole grid of
+  // roles against the live ACLs, which catches a grant made by a LATER batch that would not appear in
+  // this file at all.
+  assert.match(industryCode, /a published pack version can be updated or deleted/,
+    '030 asserts its own immutability at apply time, against whatever database receives it');
+  assert.match(industryCode, /the published version table carries an UPDATE or DELETE policy/,
+    'both halves: a policy with no grant is inert, and a grant with no policy is denied by RLS instead '
+    + 'of by privilege, which is a weaker refusal than immutability asks for');
+});
+
+test('the assignment pins a global row, is zero-or-one per Business, and cannot move across scope', () => {
+  // §4's ERD: BUSINESS_PROFILE ||--o| INDUSTRY_ASSIGNMENT. Zero or one, as a constraint rather than a
+  // convention — and it is also the pair every isolation case addresses an assignment through.
+  assert.match(industryCode, /unique \(workspace_id, business_profile_id\)/i,
+    '§4\'s ERD makes an industry assignment zero-or-one per Business');
+  // §3.3's composite foreign key into the tenant parent, over the whole scope path.
+  assert.match(industryCode,
+    /foreign key \(workspace_id, business_profile_id\)\s*\n?\s*references app\.business_profiles \(workspace_id, id\)/i,
+    'the tenant parent is referenced by the WHOLE scope pair, so an unrelated Workspace/Business pair '
+    + 'fails at the database with 23503 for every caller including one the policy would admit (§4 '
+    + 'invariant 10)');
+  // And the GLOBAL parent by a single column, which is the difference this batch had to reason about
+  // rather than copy: there is no shared scope column for a composite key to compare.
+  assert.match(industryCode, /industry_pack_version_id\s+uuid\s+not null references app\.industry_pack_versions \(id\)/i,
+    'a global parent has no tenant column to agree with, so its foreign key is single-column — stated '
+    + 'here so that the asymmetry with the line above is a decision rather than an oversight');
+  assert.doesNotMatch(industryCode, /industry_pack_id\s+uuid[\s\S]{0,80}?references app\.industry_packs \(id\)[\s\S]{0,400}?create table/i,
+    'the assignment does not denormalise the pack: a version determines its pack, so a second column '
+    + 'would be a second source of truth for a fact the foreign key already fixes');
+  // §8.5, and the two columns that carry it.
+  for (const grant of industryCode.matchAll(/grant update \(([^)]*)\) on app\.(\w+)/gi)) {
+    assert.doesNotMatch(grant[1], /workspace_id/i, `app.${grant[2]}: workspace_id is not updatable`);
+    assert.doesNotMatch(grant[1], /business_profile_id/i,
+      `app.${grant[2]}: business_profile_id is not updatable — an assignment changing Business is a row `
+      + 'moving across scope, which §8.5 forbids an update to do');
+  }
+  assert.match(industryCode, /a scope column of app\.industry_assignments is updatable/,
+    'and the same claim against the live ACL at apply time, per column, because a grant made by a '
+    + 'later batch would not appear in this file');
+  assert.match(industryCode, /an industry assignment can be deleted through a granted path/,
+    'no role holds DELETE, asserted at apply time as well as by the absent grant');
+});
+
+test('the editor P asks for an EXPLICIT scope, and the narrowing on the new table is RESTRICTIVE', () => {
+  const editorPolicies = [...industryCode.matchAll(/create policy (\w+_scoped_editor) on app\.(\w+)([\s\S]*?);\n/g)];
+  assert.equal(editorPolicies.length, 2,
+    'the editor cell covers INSERT and UPDATE on the one table this batch offers a client write');
+  for (const [body, name] of editorPolicies.map((m) => [m[0], m[1]])) {
+    assert.match(body, /app\.workspace_member_role\(workspace_id\) = 'editor'/,
+      `${name}: §8.1 marks the editor P and owner and admin Y; restating the two Y cells here would `
+      + 'delete the distinction the conditional grant exists to keep');
+    assert.match(body, /app\.member_scope_covers_business\(/,
+      `${name}: \`covers\`, never \`admits\`. P is "ผ่านตาม policy/EXPLICIT capability" and an absent `
+      + 'scope row is not explicit, so an editor who has never been scoped must gain nothing from this '
+      + 'batch. `admits` answers true for exactly that member and would ship the unconditional editor '
+      + 'grant batch 020 refused to write.');
+    for (const role of ['owner', 'admin', 'approver', 'viewer']) {
+      assert.doesNotMatch(body, new RegExp(`'${role}'`), `${name}: naming another role restates or invents a grant`);
+    }
+  }
+  const restrictive = [...industryCode.matchAll(/create policy (\w+) on app\.(\w+)\s*\n\s*as restrictive([\s\S]*?);\n/g)];
+  assert.equal(restrictive.length, 1,
+    'one narrowing, on the one tenant table. The global tables have no member scope to narrow by: a '
+    + 'scope row names a Business or a Page, and a catalog row is neither.');
+  assert.equal(restrictive[0][2], ASSIGNMENT_TABLE);
+  assert.match(restrictive[0][0], /for\s+all\s+to\s+authenticated/i,
+    'FOR ALL, so the scope rule has ONE home on this table rather than one per permissive policy — and '
+    + 'a seventh policy added by a later batch is ANDed with it automatically instead of being a '
+    + 'seventh place to forget it');
+  assert.match(restrictive[0][0], /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
+    '`admits`, never `covers`: §8\'s legend reads Y as "active + capability + scope ตรง", so an '
+    + 'operation granted to every role is narrowed by scope WHERE ONE EXISTS and not where none does. '
+    + '`covers` here would deny every member holding no scope row — every owner, admin and unscoped '
+    + 'viewer in the fixture — which is the reading batch 021 rejected in its own header.');
+  assert.match(industryCode, /carries % restrictive policies and batch 030 writes exactly one/,
+    'and the count is re-asserted at apply time, because polpermissive is the one catalog column that '
+    + 'tells a narrowing from a widening');
+});
+
+test("the industry pack contract's stable ids are constrained rather than merely documented", () => {
+  // A rule stated in a document and not in a constraint is a rule the database does not have. Each of
+  // these is a sentence of the industry pack contract with a CHECK behind it.
+  assert.match(industryCode, /check \(pack_id ~ '\^\[a-z0-9\]\+\(\[\.-\]\[a-z0-9\]\+\)\*\$'\)/,
+    'the stable ID rule is lowercase ASCII with dots and hyphens, and it is also the seed\'s stable '
+    + 'key (§6 invariant 5) — an id that broke every consumer\'s cache key must not be seedable at all');
+  assert.match(industryCode, /check \(version ~ '\^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$'\)/,
+    '§4.5 reads patch, minor and major differently at activation time, which is only decidable from a '
+    + 'version that has three numeric parts');
+  assert.match(industryCode, /check \(checksum ~ '\^sha256:\[0-9a-f\]\{64\}\$'\)/,
+    'the contract requires every consumer to pin pack_id + version + checksum, so a row carrying a '
+    + 'digest nothing can verify would make the pin unverifiable everywhere it is used');
+  assert.match(industryCode, /released_at\s+timestamptz not null/i,
+    'a row in this catalog exists BECAUSE it was published. §5 calls the family "published immutable", '
+    + 'and a nullable released_at would be a draft in a table nothing can update.');
+  // The lifecycle §4.5 defines is NOT modelled, and the refusal is stated rather than left as an
+  // absence a reader has to notice.
+  assert.doesNotMatch(industryCode, /\bdeprecated_at\b|\bretired_at\b/i,
+    'deprecation and retirement are UPDATEs of a row this batch makes immutable. A mutable status '
+    + 'column beside an immutable row is the contradiction 020 refused one column over; the curation '
+    + 'command path owes it.');
+  assert.match(industry, /NO DEPRECATION OF A PUBLISHED VERSION/,
+    'and the batch says so, because an absence is not a decision until somebody writes down that it is');
+  // §5 assigns this family a retention class §10 never defines. Recorded rather than guessed at (§15).
+  assert.match(industry, /§10 defines no `CATALOG` class/,
+    'a retention class named in the inventory and defined nowhere is a finding in the baseline, and a '
+    + 'batch that silently picked a window would be choosing an open decision');
+});
+
+test('batch 030 adds to the merged batches and rewrites none of them', () => {
+  // Migration invariant 1 as a property of the file rather than as a sentence in its header: every
+  // `drop policy if exists X` must be followed by this file's own `create policy X`.
+  const drops = [...industryCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/g)].map((m) => m[1]);
+  assert.equal(drops.length, 6, 'one drop per policy this batch creates, and no others');
+  for (const name of drops) {
+    assert.match(industryCode, new RegExp(`create policy ${name}\\b`),
+      `${name} is dropped by batch 030 and not created by it, so the drop removes a policy another batch `
+      + 'owns. A later batch adds to a merged one and never replaces it (migration invariant 1).');
+  }
+  for (const table of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles']) {
+    assert.doesNotMatch(industryCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 030 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  assert.doesNotMatch(industryCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz. RFC-2026-020 §5/3 gives it exactly one policy and §6.1/6 '
+    + 'pins its grants; 030 creates no helper and needs no exemption.');
+  assert.match(industryCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid is readable only by a superuser, and a migration that '
+    + 'needs one to apply cannot be applied on the platform it targets (batch 020 found this)');
+  assert.doesNotMatch(industryCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a '
+    + 'superuser');
+  assert.ok(!industryCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it '
+    + 'to a count of exactly two');
+});
+
+test('the batch 030 fixture writes only catalog identities and pins two tenants to one global row', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(INDUSTRY_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture `
+      + 'id nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['industry_pack_interior', 'industry_pack_interior_v1', 'industry_pack_interior_v2',
+    'business_a4_unassigned', 'business_a1', 'business_a2', 'business_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+
+  const assignments = fixture.match(/insert into app\.industry_assignments[\s\S]*?on conflict/);
+  assert.ok(assignments, 'the fixture writes assignment rows');
+  // THE STATE EVERY CASE IN THIS BATCH DEPENDS ON, asserted rather than assumed.
+  //
+  // business_a1 and business_b1 name the SAME global version. Two tenants, one catalog row, and
+  // neither owner can see the other's assignment — which is what "global" means and is asserted by a
+  // pair of positives, because no identity can read both rows and compare them.
+  for (const business of ['business_a1', 'business_b1']) {
+    assert.match(assignments[0], new RegExp(`'${id(business)}',\\s*\\n?\\s*'${id('industry_pack_interior_v1')}'`),
+      `${business} must be pinned to industry_pack_interior_v1. The two together are the only evidence `
+      + 'in this suite that the catalog is global rather than replicated per tenant.');
+  }
+  // business_a2 is pinned to the OTHER version, so a `no-effect` witness reads back a value that
+  // would visibly change if the blocked write had gone through.
+  assert.match(assignments[0], new RegExp(`'${id('business_a2')}',\\s*\\n?\\s*'${id('industry_pack_interior_v2')}'`),
+    'business_a2 is pinned to the second version, so the witness for a refused re-pin asserts a value '
+    + 'rather than the mere existence of a row');
+  // And the two Businesses that must have NO assignment, each for its own case.
+  for (const [business, why] of [
+    ['business_a4_unassigned', 'the permitted INSERT needs a live Business with no assignment, and §4\'s '
+      + 'ERD makes an assignment zero-or-one per Business'],
+    ['business_a3_archived', '§11.3 closes new creation under an archived Business, and that case needs a '
+      + 'free slot under an archived parent — a pre-pinned row would make the refusal ambiguous between '
+      + 'the policy and the zero-or-one constraint'],
+  ]) {
+    assert.ok(!assignments[0].includes(id(business)),
+      `${business} must hold NO industry assignment: ${why}`);
+  }
+
+  // The checksum is COMPUTED from the version's own catalog symbol, not pasted. A hex string typed
+  // into a fixture is exactly the unverifiable constant the catalog exists to refuse, and the column's
+  // CHECK would accept any 64 hex characters.
+  assert.match(fixture, /sha256\(convert_to\('thinkbizthai\.fixture\.industry_pack_interior_v1', 'utf8'\)\)/,
+    'each checksum is a pure function of the symbol it belongs to, so anyone can recompute it');
+  assert.doesNotMatch(fixture, /'sha256:[0-9a-f]{8}/i, 'no checksum is written as a literal digest');
+  assert.doesNotMatch(fixture, /\b(public|extensions)\.digest\s*\(/,
+    'where pgcrypto lives is an environment fact, and a fixture that names its schema runs in one '
+    + 'environment and not the other (batch 020 found this)');
+  assert.match(fixture, /timestamptz '2026-06-01 00:00:00\+00'/,
+    'released_at is a FIXED timestamp. A now()-relative value would make the fixture content depend on '
+    + 'when it ran, which is the property the whole catalog exists to avoid.');
+  assert.match(fixture, /on conflict \(industry_pack_id, version\) do nothing/,
+    'idempotent on the NATURAL key, so a re-run cannot produce a second publication of one version even '
+    + 'if the id were regenerated');
+  assert.match(fixture, /on conflict \(workspace_id, business_profile_id\) do nothing/,
+    'and the assignment is idempotent on the pair §4\'s ERD makes unique, which is also the pair every '
+    + 'case addresses it through');
+});
+
+// The CI negative control, extended to three tables — and two of them are the first in this
+// repository where "disable row level security and watch a tenant boundary dissolve" is not
+// available, because they have no tenant boundary.
+test('the tables batch 030 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 7, 'the control runs per table family, and batch 030 adds three');
+
+  for (const [table, floor] of [[ASSIGNMENT_TABLE, 2], ...GLOBAL_TABLES.map((t) => [t, 1])]) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security `
+      + "on one table and requires a failed case whose id matches that table's pattern; a batch that "
+      + "adds a table and no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '030', `app.${table}: the entry is attributed to the batch that owes it`);
+
+    // The pattern must match a case that would ACTUALLY FAIL with RLS off on that table, or the entry
+    // is satisfied by any regression anywhere. `denied` cases cannot: a privilege refusal is unchanged
+    // by disabling row level security, which is exactly why the two global tables rest on so few.
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && ['no-rows', 'no-effect'].includes(c.expect));
+    assert.ok(detectable.length >= floor,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level `
+      + `security disabled, and the entry needs at least ${floor}. A control naming a pattern nothing `
+      + 'matches reports a pass it did not earn.');
+  }
+
+  // THE ASYMMETRY, NAMED RATHER THAN AVERAGED. On the global tables exactly one case each is
+  // RLS-detectable, and it is the SERVICE read: app_worker holds SELECT and no policy, which is the
+  // only grant either table carries. Every client case there is a privilege refusal and would still
+  // pass with row level security off. So these two entries rest on one case apiece, and deleting that
+  // case would leave the control naming a pattern nothing matches.
+  for (const [table, name] of [['industry_packs', 'service-sees-zero-rows-in-the-industry-pack-catalog'],
+    ['industry_pack_versions', 'service-sees-zero-published-pack-versions']]) {
+    const only = cases.find((c) => c.id === name);
+    assert.ok(only, `app.${table}'s negative-control entry rests on ${name}, which is missing. It is the `
+      + 'ONLY case on that table that row level security decides — every other one is refused by the '
+      + 'privilege system, which disabling RLS does not restore — so without it the entry disables '
+      + 'something nothing notices.');
+    assert.equal(only.expect, 'no-rows');
+    assert.equal(only.as.helper, 'as_service',
+      `${name} must run as the service identity: it is the only role holding a grant on a global table, `
+      + 'and the grant is what makes the refusal attributable to row level security rather than to a '
+      + 'forgotten GRANT');
+  }
+  // And the workflow says all of that in its own file, so the reason lives where the entries do.
+  assert.match(workflow, /THE TWO GLOBAL TABLES, AND WHY AN ENTRY FOR THEM BITES AT ALL/,
+    'a control whose mechanism differs from every other entry must explain itself where it runs, not '
+    + 'only in a test that reads it');
+});
+
+// What batch 030 claims about its own coverage, and — more usefully — what it says it could not do.
+//
+// The generic check above requires every §12.6 assertion claimed `covered: true` to be cited by a
+// case. That is necessary and not sufficient here: batch 030 moves NO row, because every assertion
+// it touches was already true, so a batch that changed nothing at all would satisfy the generic
+// check exactly as well. These are the claims that are specific to what this batch could and could
+// not carry.
+test('the coverage map records what batch 030 could carry and what a global row cannot', () => {
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /030/.test(v.note));
+  assert.ok(mentions.length >= 6,
+    'batch 030 extends six §12.6 notes and moves no row. If a note stopped naming it, either the '
+    + "assertion stopped being carried on this batch's tables or the note was rewritten by somebody "
+    + 'who did not know it was load-bearing.');
+  assert.equal(SMOKE_COVERAGE[3].covered, false,
+    'an approver refused an INDUSTRY ASSIGNMENT is a third in-scope ANALOGUE and still not the content '
+    + 'and knowledge tables §12.6/3 names — those are batches 080 and 040');
+  assert.match(SMOKE_COVERAGE[3].note, /analogue/i, 'and the note says so rather than counting it');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 030 gives the service a grant and no policy on two more tables, which is more NEGATIVE '
+    + 'evidence. Asserting the positive half would still require inventing a service permission §8.1 '
+    + 'does not grant.');
+  assert.match(SMOKE_COVERAGE[1].note, /GLOBAL tables are deliberately NOT counted/,
+    '§12.6/1 is a cross-tenant assertion, and a row belonging to no workspace cannot carry one. '
+    + 'Counting the catalog refusals there would be reporting a refusal that holds for everybody as a '
+    + 'tenant boundary that holds for one tenant.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[4]), /BATCH 030 CARRIES NO CASE FOR IT AND SAYS SO/,
+    '§8.6 case 4 is "same Business, allowed Page A, row Page B", and §4\'s ERD gives the industry '
+    + 'assignment no Page level for it to be about');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[5]), /GLOBAL tables are excluded on purpose/,
+    'the same refusal one case over, for the same reason');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[10]), /RFC-2026-012 §4/,
+    'case 10 is the authorized server command, and batch 030 is the first family in this repository '
+    + 'that is unreachable without one — which makes the gap larger rather than smaller');
+
+  // The labels this batch introduced are cited by cases, the same way §12.6 labels are. Without
+  // this, the decision the whole batch turns on could stop being asserted while every §12.6 row
+  // stayed green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['RFC-2026-012§2', 'RFC-2026-012§3', '§9.1/PUBLIC-0', '§5/global']) {
+    assert.ok(cited.has(label), `${label} is the reasoning batch 030 rests on and no case cites it`);
+  }
+  // And the empty allowlist is asserted at the layer that makes it an allowlist: a GRANT refusal.
+  // A case that only demanded 42501 would pass just as happily against a database where the grant
+  // existed and a policy refused instead, which is a different schema entirely.
+  const catalogDenials = cases.filter((c) => (c.covers ?? []).includes('RFC-2026-012§3'));
+  assert.ok(catalogDenials.length >= 3, 'the allowlist is asserted from more than one identity');
+  for (const c of catalogDenials) {
+    assert.equal(c.expect, 'denied', `${c.id}: an empty allowlist shows up as a refusal, not as zero rows`);
+    assert.equal(c.deniedBy, 'grant',
+      `${c.id}: the layer is the assertion. A policy refusal here would mean the grant EXISTS and `
+      + 'something else refused, which is the state RFC-2026-012 §3 says only an RFC may create.');
   }
 });
