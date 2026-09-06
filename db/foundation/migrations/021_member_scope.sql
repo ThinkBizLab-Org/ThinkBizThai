@@ -369,6 +369,12 @@ grant select, insert on app.workspace_member_scopes to app_worker;
 -- That is what makes every one of them an answer about the CALLER, and the isolation suite asserts
 -- it by calling one as an identity that is scoped differently and as one that is not scoped at all.
 --
+-- `security invoker` IS WRITTEN OUT, though it is the default. Batch 011 states every attribute of
+-- `app_authz` explicitly and says why -- "a default is not a decision" -- and the security mode of
+-- these five functions is the single most arguable thing in this batch. A reader who finds the
+-- keyword absent cannot tell a decision from an omission, and a later edit that added `definer`
+-- would be one word against no word rather than one word against another.
+--
 -- `set search_path = ''` on all five, so every object is resolved by its full name and none of them
 -- can be redirected by a caller's search path. §8.5 asks it of SECURITY DEFINER functions; it costs
 -- nothing here and the reason it matters is the same.
@@ -384,6 +390,7 @@ create or replace function app.member_scope_is_narrowed(workspace uuid)
 returns boolean
 language sql
 stable
+security invoker
 set search_path = ''
 as $$
   select exists (
@@ -409,6 +416,7 @@ create or replace function app.member_scope_covers_business(workspace uuid, busi
 returns boolean
 language sql
 stable
+security invoker
 set search_path = ''
 as $$
   select exists (
@@ -431,6 +439,7 @@ create or replace function app.member_scope_covers_page(workspace uuid, business
 returns boolean
 language sql
 stable
+security invoker
 set search_path = ''
 as $$
   select exists (
@@ -454,6 +463,7 @@ create or replace function app.member_scope_admits_business(workspace uuid, busi
 returns boolean
 language sql
 stable
+security invoker
 set search_path = ''
 as $$
   select not app.member_scope_is_narrowed(workspace)
@@ -470,6 +480,7 @@ create or replace function app.member_scope_admits_page(workspace uuid, business
 returns boolean
 language sql
 stable
+security invoker
 set search_path = ''
 as $$
   select not app.member_scope_is_narrowed(workspace)

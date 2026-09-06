@@ -875,7 +875,14 @@ test('the scope helpers are invoker-mode, pin an empty search_path, and call aut
   for (const [body, name] of functions.map((m) => [m[0], m[1]])) {
     assert.ok(SCOPE_HELPERS.includes(name.replace('app.', '')), `${name} is not a declared scope helper`);
     assert.match(body, /set\s+search_path\s*=\s*''/i, `${name}: every object is resolved by its full name`);
-    // NOT SECURITY DEFINER, and this is the batch's most arguable decision, so it is pinned.
+    // The security mode is pinned in BOTH directions, which is not redundancy. The absence of
+    // `definer` is what the batch's argument turns on; the presence of `invoker` is what makes it a
+    // stated decision rather than an inherited default -- batch 011 writes out every attribute of
+    // app_authz for the same reason, and this is the single most arguable line in this batch.
+    assert.match(body, /security\s+invoker/i,
+      `${name}: write the mode out. It is the default, and a reader who finds the keyword absent `
+      + 'cannot tell a decision from an omission — which on this particular function is the whole '
+      + 'question a reviewer is here to answer.');
     assert.doesNotMatch(body, /security\s+definer/i,
       `${name}: RFC-2026-020 §5/3 gives app_authz EXACTLY ONE policy, on app.workspace_members. A `
       + 'SECURITY DEFINER helper owned by that role reading a new table would need a second policy and a '
