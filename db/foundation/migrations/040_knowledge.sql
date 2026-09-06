@@ -703,6 +703,7 @@ declare
   offending text;
   count_of  integer;
   narrowing text;
+  probe     record;
 begin
   -- ENABLE and FORCE on both tables. The two are different catalog columns and the data package's
   -- own lint rule reads only the first (RFC-2026-016).
@@ -831,52 +832,53 @@ begin
   -- leaving the other intact went UNNOTICED by the first version of this block and by the static
   -- test beside it. A restrictive policy whose USING lost the Page branch filters nothing on read
   -- for a page-scoped member while still refusing their writes — the leak, without the symptom.
+  -- Both halves are deparsed as two named columns of one row rather than unpivoted into two rows.
+  -- `pg_node_tree` is a system type whose input function refuses a literal, and a VALUES list is
+  -- the one construct that might have to prove it can accept one; a plain projection cannot. The
+  -- shape below is dull on purpose — this block runs on every apply, and a clever query that fails
+  -- to PARSE fails the migration rather than the rule it was checking.
   count_of := 0;
-  for narrowing in
-    select pg_catalog.pg_get_expr(e.expr, pol.polrelid)
+  for probe in
+    select c.relname as target,
+           pg_catalog.pg_get_expr(pol.polqual, pol.polrelid)      as using_half,
+           pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) as check_half
       from pg_catalog.pg_policy pol
       join pg_catalog.pg_class c on c.oid = pol.polrelid
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-      cross join lateral (values (pol.polqual), (pol.polwithcheck)) as e(expr)
-     where n.nspname = 'app' and c.relname = 'knowledge_items' and not pol.polpermissive
+     where n.nspname = 'app'
+       and c.relname in ('knowledge_items', 'knowledge_item_versions')
+       and not pol.polpermissive
   loop
-    if narrowing is null
-       or position('member_scope_admits_business' in narrowing) = 0
-       or position('member_scope_admits_page' in narrowing) = 0 then
-      raise exception 'the knowledge item narrowing does not ask both the Business and the Page question: %',
-        coalesce(narrowing, '<an empty half of the restrictive policy>')
-        using hint = '§4 invariant 3 makes the Page scope a nullable override on a row that always '
-                     'carries a Business scope, so the narrowing decides per row which question to '
-                     'ask. Dropping the Page branch admits every member scoped to a sibling Page — '
-                     'and dropping it from ONE of USING and WITH CHECK hides that on the half a '
-                     'test is not looking at.';
-    end if;
-    count_of := 1;
+    count_of := count_of + 1;
+    foreach narrowing in array array[probe.using_half, probe.check_half] loop
+      if probe.target = 'knowledge_items' then
+        if narrowing is null
+           or position('member_scope_admits_business' in narrowing) = 0
+           or position('member_scope_admits_page' in narrowing) = 0 then
+          raise exception 'the knowledge item narrowing does not ask both the Business and the Page question: %',
+            coalesce(narrowing, '<an empty half of the restrictive policy>')
+            using hint = '§4 invariant 3 makes the Page scope a nullable override on a row that '
+                         'always carries a Business scope, so the narrowing decides per row which '
+                         'question to ask. Dropping the Page branch admits every member scoped to a '
+                         'sibling Page — and dropping it from ONE of USING and WITH CHECK hides '
+                         'that on the half a test is not looking at.';
+        end if;
+      else
+        if narrowing is null or position('knowledge_items' in narrowing) = 0 then
+          raise exception 'the knowledge version narrowing does not resolve through the item: %',
+            coalesce(narrowing, '<an empty half of the restrictive policy>')
+            using hint = 'The version carries no page column, so its reach is the item''s reach. A '
+                         'narrowing that asked about the version''s own columns would ask the '
+                         'Business question about the history of a page-restricted item.';
+        end if;
+      end if;
+    end loop;
   end loop;
-  if count_of <> 1 then
-    raise exception 'app.knowledge_items carries no restrictive policy to narrow it';
-  end if;
-
-  count_of := 0;
-  for narrowing in
-    select pg_catalog.pg_get_expr(e.expr, pol.polrelid)
-      from pg_catalog.pg_policy pol
-      join pg_catalog.pg_class c on c.oid = pol.polrelid
-      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-      cross join lateral (values (pol.polqual), (pol.polwithcheck)) as e(expr)
-     where n.nspname = 'app' and c.relname = 'knowledge_item_versions' and not pol.polpermissive
-  loop
-    if narrowing is null or position('knowledge_items' in narrowing) = 0 then
-      raise exception 'the knowledge version narrowing does not resolve through the item: %',
-        coalesce(narrowing, '<an empty half of the restrictive policy>')
-        using hint = 'The version carries no page column, so its reach is the item''s reach. A '
-                     'narrowing that asked about the version''s own columns would ask the Business '
-                     'question about the history of a page-restricted item.';
-    end if;
-    count_of := 1;
-  end loop;
-  if count_of <> 1 then
-    raise exception 'app.knowledge_item_versions carries no restrictive policy to narrow it';
+  if count_of <> 2 then
+    raise exception 'batch 040 found % restrictive policies to inspect and there must be two', count_of
+      using hint = 'One per table. A table with no narrowing is a table where every active member '
+                   'reaches every row their membership admits, which is what batch 020 already '
+                   'does and is exactly what this batch exists to narrow.';
   end if;
 
   -- No policy this batch writes may name a service or anonymous role. §8.2 gives the service `P` on
