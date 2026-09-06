@@ -825,32 +825,58 @@ begin
   -- ask BOTH questions and the version's must resolve them through the item. A narrowing that asked
   -- only `member_scope_admits_business` would leak page-restricted knowledge to every member scoped
   -- to a sibling Page, and it would look exactly like a working policy from the outside.
-  select pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) into narrowing
-    from pg_catalog.pg_policy pol
-    join pg_catalog.pg_class c on c.oid = pol.polrelid
-    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'app' and c.relname = 'knowledge_items' and not pol.polpermissive;
-  if narrowing is null
-     or position('member_scope_admits_business' in narrowing) = 0
-     or position('member_scope_admits_page' in narrowing) = 0 then
-    raise exception 'the knowledge item narrowing does not ask both the Business and the Page question: %',
-      coalesce(narrowing, '<no restrictive policy>')
-      using hint = '§4 invariant 3 makes the Page scope a nullable override on a row that always '
-                   'carries a Business scope, so the narrowing decides per row which question to '
-                   'ask. Dropping the Page branch admits every member scoped to a sibling Page.';
+  --
+  -- BOTH CATALOG COLUMNS, AND THAT IS A PROBE'S DOING RATHER THAN CAUTION. `polqual` is USING and
+  -- `polwithcheck` is WITH CHECK; they are two predicates, and a reversal that gutted one while
+  -- leaving the other intact went UNNOTICED by the first version of this block and by the static
+  -- test beside it. A restrictive policy whose USING lost the Page branch filters nothing on read
+  -- for a page-scoped member while still refusing their writes — the leak, without the symptom.
+  count_of := 0;
+  for narrowing in
+    select pg_catalog.pg_get_expr(e.expr, pol.polrelid)
+      from pg_catalog.pg_policy pol
+      join pg_catalog.pg_class c on c.oid = pol.polrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      cross join lateral (values (pol.polqual), (pol.polwithcheck)) as e(expr)
+     where n.nspname = 'app' and c.relname = 'knowledge_items' and not pol.polpermissive
+  loop
+    if narrowing is null
+       or position('member_scope_admits_business' in narrowing) = 0
+       or position('member_scope_admits_page' in narrowing) = 0 then
+      raise exception 'the knowledge item narrowing does not ask both the Business and the Page question: %',
+        coalesce(narrowing, '<an empty half of the restrictive policy>')
+        using hint = '§4 invariant 3 makes the Page scope a nullable override on a row that always '
+                     'carries a Business scope, so the narrowing decides per row which question to '
+                     'ask. Dropping the Page branch admits every member scoped to a sibling Page — '
+                     'and dropping it from ONE of USING and WITH CHECK hides that on the half a '
+                     'test is not looking at.';
+    end if;
+    count_of := 1;
+  end loop;
+  if count_of <> 1 then
+    raise exception 'app.knowledge_items carries no restrictive policy to narrow it';
   end if;
 
-  select pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) into narrowing
-    from pg_catalog.pg_policy pol
-    join pg_catalog.pg_class c on c.oid = pol.polrelid
-    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'app' and c.relname = 'knowledge_item_versions' and not pol.polpermissive;
-  if narrowing is null or position('knowledge_items' in narrowing) = 0 then
-    raise exception 'the knowledge version narrowing does not resolve through the item: %',
-      coalesce(narrowing, '<no restrictive policy>')
-      using hint = 'The version carries no page column, so its reach is the item''s reach. A '
-                   'narrowing that asked about the version''s own columns would ask the Business '
-                   'question about the history of a page-restricted item.';
+  count_of := 0;
+  for narrowing in
+    select pg_catalog.pg_get_expr(e.expr, pol.polrelid)
+      from pg_catalog.pg_policy pol
+      join pg_catalog.pg_class c on c.oid = pol.polrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      cross join lateral (values (pol.polqual), (pol.polwithcheck)) as e(expr)
+     where n.nspname = 'app' and c.relname = 'knowledge_item_versions' and not pol.polpermissive
+  loop
+    if narrowing is null or position('knowledge_items' in narrowing) = 0 then
+      raise exception 'the knowledge version narrowing does not resolve through the item: %',
+        coalesce(narrowing, '<an empty half of the restrictive policy>')
+        using hint = 'The version carries no page column, so its reach is the item''s reach. A '
+                     'narrowing that asked about the version''s own columns would ask the Business '
+                     'question about the history of a page-restricted item.';
+    end if;
+    count_of := 1;
+  end loop;
+  if count_of <> 1 then
+    raise exception 'app.knowledge_item_versions carries no restrictive policy to narrow it';
   end if;
 
   -- No policy this batch writes may name a service or anonymous role. §8.2 gives the service `P` on

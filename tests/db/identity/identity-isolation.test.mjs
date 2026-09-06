@@ -1684,6 +1684,17 @@ const KNOWLEDGE_KINDS = ['voice', 'audience', 'offers', 'restrictions'];
 // The roles §8.2 marks `Y` on "Knowledge current INSERT/UPDATE/archive". The editor is in this list
 // and is NOT in §8.1's equivalent, which is the single most arguable line in the batch.
 const KNOWLEDGE_WRITERS = ['owner', 'admin', 'editor'];
+// A policy's USING and WITH CHECK are two predicates and Postgres stores them in two catalog
+// columns. A test that matches the WHOLE policy body passes when one half has been gutted and the
+// other still carries the string — which is not hypothetical: TWO probes on this batch reversed a
+// USING clause, left the WITH CHECK alone, and were NOT NOTICED until this split existed. A
+// narrowing whose USING lost the Page branch filters nothing on read while still refusing the
+// write, which reads as a working policy from every angle except the one that matters.
+const halvesOf = (policy) => {
+  const [before, after] = policy.split(/with\s+check/i);
+  assert.ok(after !== undefined, 'the policy carries a WITH CHECK to split on');
+  return [['USING', before], ['WITH CHECK', after]];
+};
 
 test('every batch 040 table carries RLS, FORCE, a primary key, an owner comment and a policy', () => {
   for (const table of KNOWLEDGE_TABLES) {
@@ -1782,12 +1793,19 @@ test("the knowledge version records no page of its own and its narrowing is the 
   const narrowing = knowledgeCode.match(
     new RegExp(`create policy (\\w+) on app\\.${KNOWLEDGE_VERSIONS}\\s*\\n\\s*as restrictive([\\s\\S]*?);\\n`));
   assert.ok(narrowing, `app.${KNOWLEDGE_VERSIONS} carries a restrictive narrowing`);
-  assert.match(narrowing[0], new RegExp(`from app\\.${KNOWLEDGE_ITEMS}\\b`),
-    "a version is reachable exactly when its item is, which cannot drift from the item's rule because it IS "
-    + "the item's rule — including the page half of it, and including any narrowing a later batch adds");
-  assert.doesNotMatch(narrowing[0], /member_scope_admits_(business|page)\(/,
-    "and it is NOT a copy of the item's predicate: a copy would have to guess which question to ask about a "
-    + 'row that carries no page column, which is the guess this table exists without');
+  // BOTH HALVES, separately. A probe that rewrote only the USING clause to read
+  // app.business_profiles left `from app.knowledge_items` standing in the WITH CHECK and was NOT
+  // NOTICED by a whole-body match — which is a narrowing that filters the wrong thing on every read
+  // while still refusing the write, and reads as correct from every other angle.
+  for (const [half, predicate] of halvesOf(narrowing[0])) {
+    assert.match(predicate, new RegExp(`from app\\.${KNOWLEDGE_ITEMS}\\b`),
+      `${half}: a version is reachable exactly when its item is, which cannot drift from the item's rule `
+      + "because it IS the item's rule — including the page half of it, and including any narrowing a later "
+      + 'batch adds');
+    assert.doesNotMatch(predicate, /member_scope_admits_(business|page)\(/,
+      `${half}: it is NOT a copy of the item's predicate. A copy would have to guess which question to ask `
+      + 'about a row that carries no page column, which is the guess this table exists without.');
+  }
   assert.match(knowledgeCode, /the knowledge version narrowing does not resolve through the item/,
     'asserted at apply time against the deparsed policy expression as well, because a predicate rewritten '
     + "to read the version's own columns would pass every text check that merely named a table");
@@ -1900,20 +1918,28 @@ test('the narrowing is RESTRICTIVE on both tables and asks the Business question
       `${name}: without WITH CHECK the narrowing filters reads and admits writes, which is the half of a `
       + 'scope rule that matters most');
   }
+  // BOTH HALVES, separately, and this is not caution: a probe that dropped the Page branch from the
+  // USING clause alone was NOT NOTICED by a whole-body match, because the WITH CHECK still carried
+  // the string. That schema filters nothing on READ for a page-scoped member while still refusing
+  // their writes — the leak, without the symptom.
   const itemNarrowing = restrictive.find((m) => m[2] === KNOWLEDGE_ITEMS)[0];
-  assert.match(itemNarrowing, /case when page_context_profile_id is null/,
-    'the narrowing decides PER ROW which question to ask, because §4 invariant 3 makes the Page scope a '
-    + 'nullable override on a row that always carries a Business scope');
-  assert.match(itemNarrowing, /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
-    'the business-level branch');
-  assert.match(itemNarrowing, /app\.member_scope_admits_page\(workspace_id, business_profile_id, page_context_profile_id\)/,
-    'and the page-level one. Dropping this branch would admit every member scoped to a SIBLING Page under '
-    + 'the same Business, and it would look exactly like a working policy from every other angle: the '
-    + 'cross-tenant cases, the Business-scope cases and the suspended case would all still pass.');
-  assert.doesNotMatch(itemNarrowing, /member_scope_covers_/,
-    "`admits`, never `covers`: §8's legend reads Y as \"active + capability + scope ตรง\", so an operation "
-    + 'granted to every role is narrowed by scope WHERE ONE EXISTS and not where none does. `covers` here '
-    + 'would deny every member holding no scope row, which is the reading 021 rejected in its own header.');
+  for (const [half, predicate] of halvesOf(itemNarrowing)) {
+    assert.match(predicate, /case when page_context_profile_id is null/,
+      `${half}: the narrowing decides PER ROW which question to ask, because §4 invariant 3 makes the Page `
+      + 'scope a nullable override on a row that always carries a Business scope');
+    assert.match(predicate, /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
+      `${half}: the business-level branch`);
+    assert.match(predicate, /app\.member_scope_admits_page\(workspace_id, business_profile_id, page_context_profile_id\)/,
+      `${half}: and the page-level one. Dropping this branch would admit every member scoped to a SIBLING `
+      + 'Page under the same Business, and it would look exactly like a working policy from every other '
+      + 'angle: the cross-tenant cases, the Business-scope cases and the suspended case would all still '
+      + 'pass.');
+    assert.doesNotMatch(predicate, /member_scope_covers_/,
+      `${half}: \`admits\`, never \`covers\`. §8's legend reads Y as "active + capability + scope ตรง", so `
+      + 'an operation granted to every role is narrowed by scope WHERE ONE EXISTS and not where none does. '
+      + '`covers` here would deny every member holding no scope row, which is the reading 021 rejected in '
+      + 'its own header.');
+  }
   assert.match(knowledgeCode, /batch 040 wrote % restrictive policies and it creates two tables to narrow/,
     'and the count is re-asserted at apply time, because polpermissive is the one catalog column that tells '
     + 'a narrowing from a widening');
