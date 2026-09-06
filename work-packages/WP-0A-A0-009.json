@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-009",
+  "title": "RFC-2026-018 — how the service path connects",
+  "gate": "G0",
+  "priority": "P0",
+  "status": "in_progress",
+  "required_skill_profiles": {
+    "author": [
+      "architecture-contracts"
+    ],
+    "reviewer": [
+      "architecture-contracts"
+    ],
+    "tester": [
+      "independent-qa"
+    ],
+    "integration_owner": [
+      "integration-release"
+    ],
+    "conditional_reviewers": [
+      "security-privacy"
+    ]
+  },
+  "role_assignments": {
+    "author_agent_run_id": "/claude/a0_atlas",
+    "reviewer_agent_run_id": "/claude/c0_contract_reviewer",
+    "tester_agent_run_id": "/claude/q0_sentinel",
+    "integration_owner_agent_run_id": "/claude/r0_steward",
+    "security_reviewer_agent_run_id": "/claude/a1_bastion",
+    "product_reviewer_agent_run_id": null,
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+  },
+  "independence": {
+    "no_self_approval": true,
+    "require_distinct_author_reviewer": true,
+    "require_distinct_author_tester": true,
+    "prefer_cross_vendor_review": true,
+    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+  },
+  "accountable_owners": [
+    "A0"
+  ],
+  "required_human_authorities": [
+    "Product Owner disposition of RFC-2026-017, which closes the half of DATA-DEC-03 RFC-2026-016 left open.",
+    "A1 to countersign the role topology before the roles are created, since DATA-DEC-03 is owned A0+A1 and this is a security surface."
+  ],
+  "purpose": "RFC-2026-017 created the service roles and left the connection method open, saying so in 001_service_roles.sql. Measured on 2026-09-06, nothing can become app_worker, app_command or app_maintenance except postgres, which bypasses RLS -- so the RFC's present tense describes no reachable path. This package proposes the connection method as its own decision rather than letting it be settled by whoever writes the first line of application code.",
+  "scope": {
+    "include": [
+      "RFC-2026-017 recording the service-path decision and the role topology it implies",
+      "The measurement behind it, taken from the provisioned instance rather than vendor documentation",
+      "The costs of the decision, recorded so they are not discovered later as surprises"
+    ],
+    "exclude": [
+      "Creating the roles. That is a migration, and it belongs to the batch A0 owns, not to a decision record.",
+      "Writing any tenant table or policy. Batch 010 is A1 Identity's.",
+      "Claiming the isolation is proven. No tenant table exists, so no cross-tenant assertion has run.",
+      "Disposing this RFC. That is the Product Owner's act on a disposition branch."
+    ]
+  },
+  "decisions_consumed": [
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced": [],
+  "dependencies": {
+    "required_work_packages": [
+      "WP-0A-A0-007"
+    ],
+    "approved_fixtures": []
+  },
+  "ownership": {
+    "branch": "agent/claude/WP-0A-A0-009-service-path-connection",
+    "writable_paths": [
+      "architecture/decisions/RFC-2026-018-service-path-connection.md",
+      "work-packages/WP-0A-A0-009.json",
+      "handoffs/WP-0A-A0-009-*.json",
+      "evidence/WP-0A-A0-009/**"
+    ],
+    "read_only_paths": [
+      "README.md",
+      "docs/**",
+      "CONTRIBUTING_AGENTS.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "contract-catalog/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "forbidden_paths": [
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "db/**",
+      "migrations/**"
+    ],
+    "amends_without_owning": {
+      "paths": [
+        "scripts/verify-test-coverage-floor.mjs",
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json",
+        "test-kits/repository-json.test.mjs"
+      ],
+      "rationale": "The branch-to-package mapping is pinned whole in a test, so a new package's branch adds one row there where it appears in a diff. The integrity manifest digests every decision record, so a new RFC joins it. Nothing else outside this package's own files is touched: the RFC proposes a migration and a lint rule and writes neither, because a Proposed decision that has already changed the tree is not a proposal.\n\nThe set of decision records is declared BY NAME in test-kits/repository-json.test.mjs, and its message says why: an approved RFC outranks every document in the conflict order, so adding one is the highest-authority act available in this repository and may not happen by a directory listing changing. Adding the row is the declaration that test demands. The floors and the verification record move with any test edit. The protected-file list in scripts/verify-test-coverage-floor.mjs names every decision record by path; a new RFC that is not in it would be a decision record no digest protects, which is the hole the list exists to close. Two registries were declared and not touched: the test count did not move and no floor changed, so the verification record and the suite contract are byte-identical. Declaring them anyway is a standing permission for work that never happened."
+    }
+  },
+  "inputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-017-service-path-identity.md",
+      "architecture/decisions/RFC-2026-016-rls-service-policy-and-platform.md",
+      "db/foundation/migrations/001_service_roles.sql",
+      "db/foundation/migrations/003_service_role_no_ambient_inherit.sql",
+      "db/foundation/lint/catalog-snapshot.json",
+      "evidence/WP-0A-DB-00/a1-countersignature-role-topology.md"
+    ],
+    "fixtures": []
+  },
+  "outputs": {
+    "files": [
+      "architecture/decisions/RFC-2026-018-service-path-connection.md",
+      "work-packages/WP-0A-A0-009.json"
+    ],
+    "contracts": []
+  },
+  "acceptance_criteria": [
+    "The RFC states the measurement it rests on, names the instance and the date, and cites no vendor documentation in place of a reading.",
+    "It records that authenticator holds no membership in any service role, which is the fact that makes RFC-2026-017 §3's present tense false today.",
+    "Every candidate is recorded with what it makes true AND what it costs, including the one that is refused, so a reader can see the option was considered rather than unavailable.",
+    "The security question option A raises is answered directly rather than deferred: the capability is already held through service_role, and the option narrows it rather than widening it.",
+    "The RFC names what must be true before it can close, in artefacts a build can check, and states that until then RFC-2026-017 §3 stays wrong.",
+    "It names what it does NOT decide, including the background worker path and JWT custody.",
+    "It changes no migration, no lint and no role. A Proposed decision that has already changed the tree is not a proposal."
+  ],
+  "required_tests": [
+    "npm run check"
+  ],
+  "deterministic_commands": {
+    "setup": [],
+    "verify": [
+      "npm run check"
+    ],
+    "package_evidence": [
+      "node scripts/validate-work-packages.mjs",
+      "node scripts/validate-work-package-ownership.mjs"
+    ]
+  },
+  "security_privacy": {
+    "data_classification": "synthetic-only",
+    "secrets_required": false,
+    "network_policy": "deny-unless-declared"
+  },
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting removes a proposal and changes no role, no grant and no lint, because the proposal deliberately changed none.",
+  "open_blockers": [
+    "This RFC is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision; DATA-DEC-03 is co-owned, and one co-owner is this run.",
+    "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
+    "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+  ],
+  "review_and_test_gates": [
+    "author_complete",
+    "review_approved",
+    "security_approved",
+    "test_verified",
+    "integration_verified"
+  ]
+}

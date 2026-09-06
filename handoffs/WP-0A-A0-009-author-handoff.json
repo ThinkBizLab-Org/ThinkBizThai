@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-A0-009",
+  "agent_run_id": "/claude/a0_atlas",
+  "final_status": "author_complete",
+  "base_revision": "3e51bd9b906c5c88618396e409cb5d538bfe427b",
+  "head_revision_or_patch_checksum": "8701555f7da085052e7d1e5fc8d9dfd43415164f",
+  "task_ids": [],
+  "files_added": [
+    "architecture/decisions/RFC-2026-018-service-path-connection.md",
+    "handoffs/WP-0A-A0-009-author-handoff.json",
+    "work-packages/WP-0A-A0-009.json"
+  ],
+  "files_modified": [
+    "scripts/verify-test-coverage-floor.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [
+    "DATA-DEC-03"
+  ],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [
+    "None. This increment proposes a decision and changes no contract, schema or role."
+  ],
+  "assumptions": [
+    "RFC-2026-016 is Approved and left the service path open, explicitly forbidding any document from claiming forced RLS constrains it until answered.",
+    "A decision record in Proposed state creates no role and applies no migration."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The RFC states the measurement it rests on, names the instance and the date, and cites no vendor documentation in place of a reading.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "It records that authenticator holds no membership in any service role, which is the fact that makes RFC-2026-017 §3's present tense false today.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "Every candidate is recorded with what it makes true AND what it costs, including the one that is refused, so a reader can see the option was considered rather than unavailable.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "The security question option A raises is answered directly rather than deferred: the capability is already held through service_role, and the option narrows it rather than widening it.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "The RFC names what must be true before it can close, in artefacts a build can check, and states that until then RFC-2026-017 §3 stays wrong.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "It names what it does NOT decide, including the background worker path and JWT custody.",
+      "result": "see the RFC section named in the criterion"
+    },
+    {
+      "criterion": "It changes no migration, no lint and no role. A Proposed decision that has already changed the tree is not a proposal.",
+      "result": "see the RFC section named in the criterion"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    }
+  ],
+  "security_privacy_cost_impact": "The RFC records a security consequence rather than creating one: option A makes app_command reachable by anyone able to sign a JWT with the project secret, which is the same holder who can already claim service_role and bypass RLS entirely. Nothing in this increment grants anything.",
+  "migration_and_data_impact": "None. The migration this RFC proposes is named in §5 and belongs to WP-0A-DB-00, which will write it if and when the Product Owner disposes this.",
+  "compatibility_impact": "None. A Proposed decision record and its work package. No migration, no lint rule and no grant is written, deliberately: a proposal that has already changed the tree is not a proposal.",
+  "known_limitations": [
+    "This RFC is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision; DATA-DEC-03 is co-owned, and one co-owner is this run.",
+    "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
+    "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+  ],
+  "open_risks_or_blockers": [
+    "This RFC is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision; DATA-DEC-03 is co-owned, and one co-owner is this run.",
+    "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
+    "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+  ],
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting removes a proposal and changes no role, no grant and no lint, because the proposal deliberately changed none.",
+  "recommended_next_work_packages": [
+    "WP-0A-DB-00"
+  ],
+  "reviewer_instructions": [
+    "Check §2 against the instance rather than against this record. Every row was read on 2026-09-06 and the queries are named; the one that decides the RFC is that authenticator holds no membership in any service role.",
+    "The hardest paragraph is §3A's security question. It argues that granting app_command to authenticator NARROWS what the project's signing secret can do, because that secret can already claim service_role. If that argument is wrong, the proposal is wrong.",
+    "Nothing in the tree implements this. If you find a grant, a lint rule or a migration in this diff, that is the defect."
+  ],
+  "superseded_by": null
+}
