@@ -237,6 +237,38 @@ jobs:
           # case id contains `knowledge-version`, and tests/db/identity/identity-isolation.test.mjs
           # asserts that no case matches both, so neither entry can be satisfied by the other
           # table's regression.
+          #
+          # BATCH 041 ADDS NO ENTRY, BECAUSE IT ADDS NO TABLE. It creates one function —
+          # app.knowledge_scope_applies, the scope half of the resolution rule — and nothing that
+          # row level security can be switched off on. Saying so here rather than nowhere is the
+          # point: this step's own blocker is that nothing fails the build when a batch adds a table
+          # and no entry, so "041 owes no entry" is a claim that should be visible at the place the
+          # entries live. identity-isolation.test.mjs holds it, by requiring that NO control entry is
+          # attributed to batch 041 and that the migration creates no table.
+          #
+          # WHAT 041 DOES CHANGE IS WHAT THE app.knowledge_items ENTRY RESTS ON. It adds four more
+          # cases that fail with row level security disabled there, and they are worth naming
+          # because they fail through a NEW PATH rather than for a new reason: each one runs the
+          # resolution contract as a filter, the predicate answers TRUE for the row, and only the
+          # policy set refuses. `owner-a-cannot-resolve-the-knowledge-item-of-business-b1` is the
+          # tenant boundary, `page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page`
+          # is member scope at Page granularity, and `suspended-a-resolves-zero-knowledge-items` and
+          # `service-resolves-zero-knowledge-items` are the suspended member and the service.
+          #
+          # THAT PARAGRAPH WAS A DERIVATION WHEN IT WAS WRITTEN AND IS NOW A MEASUREMENT, read from
+          # this step's own output: main at batch 040 reported `app.knowledge_items (040): 24
+          # case(s) noticed` and this branch reports 28. EXACTLY +4, against +7 new `no-rows` cases
+          # matching the pattern -- so the three predicate negatives really did not move it, which
+          # is the half of the claim below that a reader would otherwise take on trust. And
+          # app.knowledge_item_versions is UNCHANGED at 9, which is the other half: 041 asserts
+          # nothing about that table, so an entry that had grown there would have meant a case
+          # crediting a control it does not test.
+          #
+          # 041's OTHER THREE negatives are NOT part of this basis and must not be counted as
+          # though they were: `owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1`
+          # and its two siblings are refused by the PREDICATE, not by row level security, so they
+          # return nothing whether the table is forced or wide open. They are paired instead with a
+          # statement that differs in exactly one argument and returns the row.
           control app.knowledge_items         '[a-z0-9-]*knowledge-item'    040
           control app.knowledge_item_versions '[a-z0-9-]*knowledge-version' 040
           echo "negative control: every family above failed the suite, as each must."

@@ -2277,3 +2277,466 @@ test('the coverage map pays the knowledge half of §12.6/3 and names the batch t
   assert.equal(cases.filter((c) => c.expect === 'rejected' && /knowledge/.test(c.id)).length, 0,
     'so there is no such case, and this is what stops one being added without the note changing');
 });
+
+// =============================================================================================
+// Batch 041 — the resolved knowledge contract, and the four things it refuses to decide.
+// =============================================================================================
+//
+// This is the first batch in the foundation that creates NO TABLE, so most of the shapes the
+// sections above assert have nothing here to be about. What replaces them is a different kind of
+// rule, and it exists because the risk in this batch is not a policy written wrongly — it is a
+// DECISION MADE QUIETLY. The registry row says "resolved knowledge contract"; the resolution rule
+// it names has four inputs and three of them are not in this schema; and the natural object for the
+// fourth is a view RFC-2026-021 reserves to an RFC. A batch that had built the obvious thing would
+// have chosen a merge order, invented a hard/soft level, and opened the read allowlist, all without
+// a line anywhere saying so. So the tests below hold the REFUSALS as tightly as the code.
+const RESOLUTION_MIGRATION = 'db/foundation/migrations/041_knowledge_resolution.sql';
+const resolution = await readFile(RESOLUTION_MIGRATION, 'utf8');
+const resolutionCode = resolution.replace(/--[^\n]*/g, '');
+const RESOLUTION_FUNCTION = 'knowledge_scope_applies';
+// The predicate, pinned character for character after whitespace is collapsed. This is the whole
+// content of the batch, so a test that checked anything less than the expression would be checking
+// that a function exists.
+const RESOLUTION_BODY = 'select item_business_profile_id is not null '
+  + 'and in_business_profile_id is not null '
+  + 'and item_business_profile_id = in_business_profile_id '
+  + 'and ( item_page_context_profile_id is null '
+  + 'or (in_page_context_profile_id is not null '
+  + 'and item_page_context_profile_id = in_page_context_profile_id) )';
+// The roles the batch says have a caller. Everything else must hold nothing, and the migration's
+// apply-time block asserts the negative half against live ACLs because that half is what two
+// approved decisions fix.
+const RESOLUTION_GRANTEES = ['authenticated', 'app_worker'];
+
+test('batch 041 creates one function and no table, no view and no policy', () => {
+  assert.equal([...resolutionCode.matchAll(/create\s+(?:or\s+replace\s+)?function\s+app\.(\w+)/gi)]
+    .map((m) => m[1]).join(','), RESOLUTION_FUNCTION,
+    'exactly one function, and it is the one the header argues for');
+  for (const [kind, pattern] of [
+    ['table', /create\s+table\b/i],
+    ['view', /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i],
+    ['policy', /create\s+policy\b/i],
+    ['index', /create\s+index\b/i],
+    ['trigger', /create\s+trigger\b/i],
+  ]) {
+    assert.doesNotMatch(resolutionCode, pattern,
+      `batch 041 creates a ${kind}. It creates one function and nothing else: a VIEW in particular is `
+      + 'the allowlist entry RFC-2026-021 §3 reserves to an RFC — five objects and a registry row, '
+      + 'against criteria whose C1 ("a named caller exists, and it is a client") fails here because '
+      + 'there is no client. The registry calls this batch "resolved knowledge views/functions"; the '
+      + "view half of that is not this batch's to write.");
+  }
+  // A table would also owe a CI negative-control entry, and the absence of one is only honest while
+  // the absence of a table is real. The two are asserted together so neither can drift alone.
+  assert.doesNotMatch(resolutionCode, /alter\s+table\b/i,
+    'batch 041 alters no table. Migration invariant 1 forbids rewriting a merged batch, and every '
+    + 'table this contract is about belongs to batch 040.');
+});
+
+// The declaration, read once. Both tests below read the FILE — the first version of the guard
+// loop compared RESOLUTION_BODY against itself, which is a test asserting a constant, and the probe
+// round is what showed it: three separate reversals of the predicate were all noticed by ONE
+// assertion, and the loop beside it would have passed against any migration at all.
+const resolutionDeclaration = resolutionCode.match(
+  /create\s+or\s+replace\s+function\s+app\.knowledge_scope_applies([\s\S]*?)\$\$([\s\S]*?)\$\$/i);
+const resolutionBodyText = (resolutionDeclaration?.[2] ?? '').replace(/\s+/g, ' ').trim();
+
+test('the resolution predicate is pinned character for character, because the expression is the batch', () => {
+  assert.ok(resolutionDeclaration, 'the function is declared with a dollar-quoted body this test can read');
+  assert.equal(resolutionBodyText, RESOLUTION_BODY,
+    'THE PREDICATE IS THE BATCH. §4 invariant 3 gives a knowledge row a mandatory Business scope and '
+    + 'an optional Page override, so the expression has exactly two branches and each one is a '
+    + 'sentence from a document: a business-level row reaches every Page of its Business, and a '
+    + 'page-level row reaches its own Page only. Dropping the `is null` branch returns a strict '
+    + 'subset and looks like a working query; dropping the `= in_page` branch hands every Page the '
+    + 'knowledge of every other. Neither is visible in a row count, so the expression is pinned.');
+});
+
+test('the predicate asks both halves of the two-column scope and answers false rather than unknown', () => {
+  // The whole-file pin above would catch every one of these, and that is exactly why they are here.
+  // Batch 040's scar is a rule about ONE assertion covering two independent properties: its static
+  // test and its apply-time block both matched a whole policy body, so gutting half of it went
+  // unnoticed. A single `assert.equal` over a whole expression has the same shape — delete it and
+  // four different reversals go quiet at once — so the three clauses that carry the meaning are also
+  // asserted one at a time, against the FILE.
+  for (const [clause, why] of [
+    ['item_business_profile_id = in_business_profile_id',
+      'the mandatory half of §4 invariant 3: a knowledge row of another Business is never in scope'],
+    ['item_page_context_profile_id is null',
+      'the business-level branch. Without it a resolved context for a Page contains no Business-level '
+      + 'knowledge at all, which is a strict subset and looks like a working query'],
+    ['item_page_context_profile_id = in_page_context_profile_id',
+      'the page branch. Without it every Page of a Business receives the knowledge restricted to every '
+      + 'other Page, which is the leak the nullable override exists to prevent'],
+  ]) {
+    assert.ok(resolutionBodyText.includes(clause), `${clause} is missing from the predicate — ${why}.`);
+  }
+  // TOTALITY, as a property of the text rather than only of the apply-time truth table. Every
+  // conjunct that can be null carries an `is not null` beside it, because a predicate that answers
+  // NULL filters like false in a WHERE and passes like TRUE in a CHECK — one contract, two meanings.
+  for (const guarded of ['item_business_profile_id is not null', 'in_business_profile_id is not null',
+    'in_page_context_profile_id is not null']) {
+    assert.ok(resolutionBodyText.includes(guarded),
+      `${guarded} is the guard that keeps the predicate two-valued. Without it the function returns `
+      + 'SQL NULL for a scope argument the caller left out, and NULL means the opposite thing in a '
+      + 'CHECK constraint from what it means in a WHERE clause.');
+  }
+  // And the behavioural half, which no static rule can reach: the migration runs the truth table on
+  // every apply, so a reversal that survived this file still has to survive a database.
+  for (const claim of [
+    /a business-level knowledge row does not apply to a Page of its own Business/,
+    /a business-level knowledge row does not apply to a request naming no Page/,
+    /a page-level knowledge row does not apply to its own Page/,
+    /a page-level knowledge row applies to a SIBLING Page of the same Business/,
+    /a page-level knowledge row is not definitively excluded from a request naming no Page/,
+    /a business-level knowledge row applies outside its own Business/,
+    /a page-level knowledge row applies under a Business that is not its own/,
+    /app\.knowledge_scope_applies returns NULL rather than false for a null scope/,
+  ]) {
+    assert.match(resolutionCode, claim,
+      `the apply-time truth table no longer raises on ${claim.source}. Every static rule in this file `
+      + 'reads TEXT; the truth table reads the function, on three generated uuids, in the database '
+      + '`make db-migrate-clean` builds — which is the only place a predicate that parses and means '
+      + 'the wrong thing is caught.');
+  }
+});
+
+test('the resolution predicate names no object, which is what allows it to skip search_path', () => {
+  const [, signature, body] = resolutionDeclaration;
+  // The deviation from batch 021's helper shape, held to the premise it rests on.
+  assert.doesNotMatch(signature, /set\s+search_path/i,
+    'the function pins no search_path, which is a deviation from batch 021 and is argued for in the '
+    + 'header: the body resolves no object, and a SET clause makes a SQL function opaque to the '
+    + "planner's inliner — on the one object whose whole purpose is to be substituted into a filter "
+    + 'over the columns §3.3 requires to be indexed.');
+  assert.doesNotMatch(body, /\bfrom\b/i,
+    'the body reads no relation. That is what makes the missing search_path pin safe AND what makes '
+    + 'the contract a filter rather than a permission — a caller sees exactly the rows batch 040 '
+    + 'already admits.');
+  assert.doesNotMatch(body, /\w\s*\.\s*\w/,
+    'the body names no schema-qualified object at all, which is the premise the whole search_path '
+    + 'argument rests on. THE DAY THIS FAILS, THE PIN IS REQUIRED — and this assertion is how that '
+    + 'day announces itself instead of passing quietly.');
+  assert.match(signature, /security\s+invoker/i,
+    'invoker mode is written out although it is the default, so a later edit that made this a '
+    + 'definer is a visible change to a line rather than the absence of one. A SECURITY DEFINER '
+    + "predicate over knowledge would be exactly the way around batch 011's helper that "
+    + '`suspended-a-resolves-zero-knowledge-items` exists to refuse.');
+  assert.match(signature, /\bimmutable\b/i,
+    'the answer is a property of the four arguments and of nothing else — no table, no setting, no '
+    + 'clock');
+  // And the migration asserts the same three attributes against the live catalog, because a text
+  // rule cannot see a function replaced by a later batch.
+  for (const claim of [/prosecdef/, /provolatile/, /proconfig/]) {
+    assert.match(resolutionCode, claim,
+      `the apply-time block reads ${claim.source} from pg_proc, so the attributes above are asserted `
+      + 'against the database and not only against this file');
+  }
+});
+
+test('EXECUTE is revoked from PUBLIC and granted only where batch 041 says there is a caller', () => {
+  assert.match(resolutionCode,
+    /revoke\s+all\s+on\s+function\s+app\.knowledge_scope_applies\(uuid, uuid, uuid, uuid\)\s+from\s+public/i,
+    '§8.5: a helper reachable by PUBLIC is reachable by every present and future role, including ones '
+    + 'no batch here created. Batches 011 and 021 revoke first and grant explicitly; so does this one.');
+  const granted = [...resolutionCode.matchAll(
+    /grant\s+execute\s+on\s+function\s+app\.knowledge_scope_applies\([^)]*\)\s+to\s+(\w+)/gi)]
+    .map((m) => m[1]);
+  assert.deepEqual(granted, RESOLUTION_GRANTEES,
+    'authenticated because it is the request path and already holds column-scoped SELECT on '
+    + "app.knowledge_items, and app_worker for a reason that is 040's property rather than symmetry: "
+    + '040 grants the service SELECT and NO POLICY so an empty service read is attributable to row '
+    + 'level security, and a service that could not EXECUTE this predicate would get 42501 on the '
+    + 'FUNCTION instead — the attribution holding for hand-written queries and failing for contract '
+    + 'ones. `service-resolves-zero-knowledge-items` is the case that keeps it true.');
+  for (const role of ['anon', 'app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(resolutionCode, new RegExp(`\\bto\\s+${role}\\b`, 'i'),
+      `batch 041 grants ${role} nothing. RFC-2026-021 §7/4 decides anon holds no function EXECUTE `
+      + 'anywhere our migrations reach; RFC-2026-020 §6.1/6 pins app_authz to four columns of '
+      + 'app.workspace_members; there is no command surface for knowledge.core and the retention path '
+      + 'is batch 160.');
+  }
+  // The negative half is asserted against the live ACLs too, because a grant made by a LATER batch
+  // would not appear in this file.
+  assert.match(resolutionCode, /has_function_privilege/,
+    'the apply-time block sweeps the four roles and PUBLIC against the live ACL, which is the only '
+    + 'form in which "we did not grant it" can fail a build after a later batch has run');
+  assert.match(resolutionCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid (batch 020), and here it does a second job: has_function_privilege '
+    + 'RAISES on a role that does not exist, so an array of literal role names would turn an absent '
+    + 'role into a migration failure that reads like a privilege finding');
+  assert.doesNotMatch(resolutionCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a '
+    + 'superuser');
+});
+
+test('batch 041 adds no client base-table grant, so the closed exceptions list still names five batches', () => {
+  // RFC-2026-021 §8.5 says the known-exceptions list enumerating the inherited `authenticated`
+  // base-table grants must be CLOSED, and batch 040 recorded that it will have to enumerate five
+  // batches rather than three. This is the assertion that stops it becoming six by accident.
+  for (const statement of resolutionCode.matchAll(/\b(?:grant|revoke)\b[\s\S]*?;/gi)) {
+    assert.match(statement[0], /on\s+function\s+app\.knowledge_scope_applies\b/i,
+      'every grant and revoke in batch 041 is about the one function it creates. A base-table grant '
+      + 'here would be a SIXTH entry on a list RFC-2026-021 §8.5 requires to be closed, added by a '
+      + 'batch that needed no new row privilege at all: the contract filters rows the caller already '
+      + 'holds a column-scoped SELECT on.');
+  }
+  assert.match(resolution, /RFC-2026-021/,
+    'the batch names the decision that forbids the object its own registry row calls for, so a reader '
+    + 'can disagree with the reading rather than with the silence');
+  assert.match(resolution, /C1/,
+    'and names the criterion that fails — a named CLIENT caller — rather than refusing on a general '
+    + 'unease about views');
+});
+
+test('batch 041 adds to the merged batches and rewrites none of them', () => {
+  assert.equal([...resolutionCode.matchAll(/drop\s+policy\b/gi)].length, 0,
+    'batch 041 drops no policy, because it creates none');
+  for (const table of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items', 'knowledge_item_versions']) {
+    assert.doesNotMatch(resolutionCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 041 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  // The industry side is the refusal a reader is most likely to look for, so it is asserted rather
+  // than argued. §3 of the workstream document routes a cross-module read through a named contract,
+  // and the one it names for industry.core is `resolved_industry_pack_v1`, which does not exist and
+  // is A2 Industry's to build.
+  for (const table of ['industry_packs', 'industry_pack_versions', 'industry_assignments']) {
+    assert.doesNotMatch(resolutionCode, new RegExp(`app\\.${table}\\b`, 'i'),
+      `batch 041 reads app.${table}. "Industry base" is the first term of the resolution rule and it `
+      + 'is not in this database: batch 030 created no rule content, the industry pack contract makes '
+      + 'loading and resolving a Core Runtime act, and a cross-module read belongs to '
+      + 'resolved_industry_pack_v1, which does not exist.');
+  }
+  assert.ok(!resolutionCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it '
+    + 'to a count of exactly two');
+  assert.match(resolutionCode, /gen_random_uuid\(\)/,
+    "unqualified, so it resolves from pg_catalog (batch 004). The apply-time truth table's three ids "
+    + 'are GENERATED rather than written, because a uuid literal typed into a migration is an invented '
+    + 'fixture id and the claims are about the algebra rather than about any row.');
+  assert.doesNotMatch(resolutionCode, /(public|extensions)\.gen_random_uuid/,
+    'a schema-qualified default runs in one environment and fails in the other');
+});
+
+test('the batch names the resolution rule it implements half of, and the decision it refuses to make', () => {
+  // The whole finding, held as text, because the finding IS the deliverable. Each of these is a
+  // sentence a later reader has to be able to find without re-deriving it.
+  assert.match(resolution, /Industry base → Business override → Page override → Content brief/,
+    'the resolution rule is QUOTED from docs/plans/core-database-and-rls-workstream-th.md rather than '
+    + 'paraphrased, so a reviewer checks the reading against the source and not against a summary');
+  assert.match(resolution, /resolved_business_knowledge_v1/,
+    'the cross-module read contract knowledge.core owes is named. It appears exactly once in the '
+    + 'whole repository — as a table cell — with no schema, no field and no consumer, which is why '
+    + 'this batch does not claim to have built it.');
+  assert.match(resolution, /policy_conflict/,
+    '§4.4 requires a conflict between layers to be RETURNED and forbids silently picking one — '
+    + '"ห้ามเลือกค่าหนึ่งเงียบ ๆ" — so last-writer-wins is the one merge rule the documents rule out, '
+    + 'and a batch implementing it would have implemented the forbidden thing');
+  assert.match(resolution, /level\(hard\|soft\)/,
+    'the exception clause of the rule needs a column batch 040 does not have, and the batch says '
+    + 'which column and where the blueprint puts it');
+  assert.match(resolution, /unique \(business_profile_id, kind\)/,
+    'an override needs a key to bind on, and the fixture catalog already records why that key was '
+    + 'deliberately not created');
+  // The candidate answers, so the decision arrives as a choice rather than as whatever the next
+  // batch happens to do first. RFC-2026-018 is the record of the alternative.
+  for (const marker of [/\n-- {5}A\. /, /\n-- {5}B\. /, /\n-- {5}C\. /]) {
+    assert.match(resolution, marker,
+      'the header enumerates the candidate answers to the override question. A gap with no options '
+      + 'beside it is a gap the next batch fills by default, which is exactly what RFC-2026-018 '
+      + 'records happening.');
+  }
+  assert.match(resolution, /WHO OWES THE DECISION/,
+    'and names the owner. CONTRIBUTING_AGENTS.md puts a contract-meaning change behind an RFC, so the '
+    + 'gap has an author, a reviewer and an approver rather than a batch number.');
+});
+
+test('every predicate negative is paired with a statement that differs in exactly one argument', () => {
+  // The two kinds of negative in the batch 041 block are not interchangeable, and this is the rule
+  // that keeps them apart. A negative the PREDICATE produces returns nothing whether row level
+  // security is on or off, so it cannot rest on the policy set for its meaning — it rests on a
+  // sibling case that runs the same builder, as the same identity, against the same row, with one
+  // argument changed, and returns the row.
+  const byId = new Map(cases.map((c) => [c.id, c]));
+  for (const [negative, positive, differs] of [
+    ['owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1',
+      'owner-a-resolves-the-sibling-page-knowledge-item-for-the-sibling-page', 'the Page requested'],
+    ['owner-a-does-not-resolve-the-page-scoped-knowledge-item-with-no-page-requested',
+      'owner-a-resolves-the-page-scoped-knowledge-item-for-its-own-page', 'whether a Page is named'],
+    ['owner-a-does-not-resolve-the-knowledge-item-of-business-a2-under-business-a1',
+      'owner-a-resolves-the-knowledge-item-of-business-a2-under-business-a2', 'the Business requested'],
+  ]) {
+    const no = byId.get(negative);
+    const yes = byId.get(positive);
+    assert.ok(no && yes, `${negative} and ${positive} must both exist; a predicate negative alone is `
+      + 'satisfied by a contract that resolves nothing at all');
+    assert.equal(no.expect, 'no-rows');
+    assert.equal(yes.expect, 'rows');
+    assert.equal(no.as.subject, yes.as.subject,
+      `${negative} and ${positive} run as the SAME identity, so ${differs} is the only difference and `
+      + 'the refusal cannot be about visibility');
+    assert.equal(no.params[no.params.length - 1], yes.params[yes.params.length - 1],
+      `${negative} and ${positive} address the SAME row, so ${differs} is what the pair is about`);
+    assert.notDeepEqual(no.params.slice(0, -1), yes.params.slice(0, -1),
+      `${negative} and ${positive} must differ in the REQUEST, or they are the same case twice`);
+  }
+});
+
+test('the resolution contract narrows what row level security admits and never widens it', () => {
+  const resolutionCases = cases.filter((c) => /resolve/.test(c.id));
+  assert.ok(resolutionCases.length >= 15,
+    'the batch 041 block is present. Fewer cases than this means the contract is asserted by its '
+    + 'apply-time truth table alone, which cannot say anything about row level security.');
+  for (const c of resolutionCases) {
+    assert.match(c.sql, /app\.knowledge_scope_applies\(business_profile_id, page_context_profile_id,/,
+      `${c.id}: the case runs the contract as a FILTER over app.knowledge_items. A case that called `
+      + 'the predicate on its own would assert arithmetic the migration already asserts on every '
+      + 'apply, on generated uuids, as a nine-cell truth table.');
+  }
+  // The four cases where the PREDICATE says yes and the database refuses anyway. These are the ones
+  // that make the claim in this test's name, and they are pinned by id so deleting one fails the
+  // build rather than quietly leaving the claim to the three that remain.
+  const filterNotPermission = [
+    'owner-a-cannot-resolve-the-knowledge-item-of-business-b1',
+    'page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page',
+    'suspended-a-resolves-zero-knowledge-items',
+    'service-resolves-zero-knowledge-items',
+  ];
+  for (const id of filterNotPermission) {
+    const found = cases.find((c) => c.id === id);
+    assert.ok(found, `${id} is missing, and it is one of the four cases that say the contract is a `
+      + 'filter rather than a permission');
+    assert.equal(found.expect, 'no-rows',
+      `${id}: the predicate admits the row and the database returns nothing, which is a filtered read `
+      + 'and not a refusal. A `denied` here would mean the caller could not run the contract at all, '
+      + 'which is a different (weaker) claim.');
+  }
+  // And the anonymous case is a refusal rather than an empty read, on the SCHEMA, which is where the
+  // decision RFC-2026-021 §7/4 makes is observable.
+  const anonymous = cases.find((c) => c.id === 'anonymous-cannot-resolve-a-knowledge-item');
+  assert.ok(anonymous, 'the contract is asked of the anonymous identity too');
+  assert.equal(anonymous.expect, 'denied');
+  assert.deepEqual(anonymous.deniedOn, { kind: 'schema', name: 'app' },
+    'anon holds no USAGE on schema app, so name resolution refuses before either the function or the '
+    + 'table is reached. The day anon is granted USAGE this moves to the function and the case fails, '
+    + 'which is the notice §7/4 is written to produce.');
+});
+
+test('batch 041 owes no CI negative-control entry, and says at the entries what it did change', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.equal(controls.filter((entry) => entry[3] === '041').length, 0,
+    'no control entry is attributed to batch 041, because it creates no table for row level security '
+    + "to be disabled on. The step's own blocker is that nothing fails the build when a batch adds a "
+    + 'table and no entry, so a batch that adds no table has to say so somewhere a build can read.');
+  assert.match(workflow, /BATCH 041 ADDS NO ENTRY, BECAUSE IT ADDS NO TABLE/,
+    'and it says so beside the entries, where a reader of the step finds it');
+  // What it DID change: the app.knowledge_items entry now rests on four more cases, and they are
+  // pinned here for the reason batch 040 pinned its own — an entry resting on cases nobody names is
+  // one deletion away from resting on fewer.
+  const itemEntry = controls.find((entry) => entry[1] === KNOWLEDGE_ITEMS);
+  assert.ok(itemEntry, 'the app.knowledge_items entry batch 040 wrote is still there');
+  const pattern = new RegExp(`^${itemEntry[2]}`);
+  for (const id of ['owner-a-cannot-resolve-the-knowledge-item-of-business-b1',
+    'page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page',
+    'suspended-a-resolves-zero-knowledge-items',
+    'service-resolves-zero-knowledge-items']) {
+    assert.match(id, pattern,
+      `${id} must match the app.knowledge_items control pattern, or batch 041 has added four cases `
+      + 'the control cannot see and the comment beside the entry is wrong');
+    assert.ok(workflow.includes(id),
+      `${id} is named beside the entry it strengthens, so deleting the case and leaving the comment is `
+      + 'a diff a reviewer notices');
+  }
+  // And the three that do NOT strengthen it are named as not doing so, because counting them would
+  // be the same error the per-family rewrite fixed one level down: a control credited with cases
+  // that would pass with row level security switched off.
+  assert.match(workflow, /refused by the PREDICATE, not by row level security/,
+    'the step distinguishes the two kinds of negative batch 041 adds, at the point of use');
+  const versionEntry = controls.find((entry) => entry[1] === KNOWLEDGE_VERSIONS);
+  const versionPattern = new RegExp(`^${versionEntry[2]}`);
+  for (const c of cases.filter((k) => /resolve/.test(k.id))) {
+    assert.ok(!versionPattern.test(c.id),
+      `${c.id} matches the app.knowledge_item_versions pattern. Batch 041 asserts nothing about that `
+      + "table — the contract is about the item's two scope columns and a version carries only one of "
+      + 'them — so a case of its that matched would credit an entry with evidence it did not earn.');
+  }
+});
+
+test('the coverage map records that batch 041 moves no row and says what it extended instead', () => {
+  // A batch that created no table cannot pay a §12.6 assertion, and claiming otherwise would be the
+  // "analogue" error batches 020, 021 and 030 each refused. The row a reader might expect to move is
+  // 3, which is `knowledge-half` because content is batch 080.
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'batch 041 creates no content table, so §12.6/3 stays exactly where batch 040 left it');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 041 grants the service EXECUTE on a predicate that reads no relation, which is more '
+    + 'NEGATIVE evidence and not a positive: asserting the positive half would still require '
+    + 'inventing the `P` §8.2 leaves undefined');
+  const partials = Object.values(SMOKE_COVERAGE).filter((v) => v.covered !== true).length;
+  assert.equal(partials, 2, 'the two labelled partials are still exactly the two batch 040 left');
+  const extended = Object.values(SMOKE_COVERAGE).filter((v) => /041/.test(v.note));
+  assert.equal(extended.length, 5,
+    'batch 041 extends five §12.6 notes — the tenant boundary, member scope, the suspended member, '
+    + 'the anonymous caller and the service — because a new way to REACH a table is a new place to '
+    + 'lose a check, even when it is not a new object with rows. If a note stopped naming it, either '
+    + 'the assertion stopped being carried through the contract or somebody rewrote a note without '
+    + 'knowing it was load-bearing.');
+  const authExtended = Object.values(AUTHORIZATION_CASE_COVERAGE).filter((v) => /041/.test(String(v)));
+  assert.equal(authExtended.length, 5,
+    '§8.6 cases 1, 4, 5, 6 and 7 are the five this batch can be asked about. It adds no write, so 2, '
+    + '8 and 9 are untouched; it adds no command function, so 10 is still not applicable.');
+  // The labels the batch rests on are cited by cases, the same way §12.6 labels are. Without this
+  // the reasoning could stop being asserted while every §12.6 row stayed green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§4.3/resolution-rule', '§4.4/page-override-scope', 'DB03/resolved-context',
+    '041/filter-not-permission']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 041 rests on and no case cites it`);
+  }
+});
+
+// FOUND BY CHECKING, NOT BY READING. The header cited the resolution rule at
+// core-database-and-rls-workstream-th.md:210. The rule is at 217; line 210 is a bullet about
+// `brand_voice_profiles`. The quotation beside it was correct, the line number was not, and nothing
+// in this repository could tell the difference -- which is the same class of defect as a coverage
+// note that stops being true: a citation is a claim, and an unchecked claim decays.
+//
+// So every `<document>.md:<line>` citation in batch 041's migration is resolved against the
+// document, and the check runs in BOTH directions: each declared citation must point at a line
+// containing the phrase it was cited for, and each citation the migration actually makes must be
+// declared here. A new citation therefore has to be added to this table, which is where somebody
+// looks at it.
+const CITATIONS = [
+  ['docs/plans/core-database-and-rls-workstream-th.md', 93, 'resolved_business_knowledge_v1'],
+  ['docs/plans/core-database-and-rls-workstream-th.md', 217, 'กฎ resolution'],
+  ['docs/plans/core-database-and-rls-workstream-th.md', 555, 'resolved knowledge views/functions'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 115, 'Core Runtime'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 188, '4.4 Rule precedence'],
+  ['docs/sprint-0a/sprint-0a-industry-research-pack-th.md', 653, 'Page override/contact/footer'],
+];
+
+test('every line batch 041 cites is the line that says what the batch says it says', async () => {
+  const declared = new Set();
+  for (const [file, line, phrase] of CITATIONS) {
+    const lines = (await readFile(file, 'utf8')).split('\n');
+    assert.ok(lines.length >= line, `${file} has no line ${line}`);
+    assert.ok(lines[line - 1].includes(phrase),
+      `${file}:${line} does not contain ${JSON.stringify(phrase)}. It reads: `
+      + `${JSON.stringify(lines[line - 1].slice(0, 90))}. A citation is a claim, and this one is the `
+      + 'kind a reviewer checks once and nobody checks again.');
+    declared.add(`${file.split('/').pop()}:${line}`);
+  }
+  // The other direction: a citation the migration makes and this table does not declare is one
+  // nobody has resolved. The header is the deliverable of this batch, so its references are held to
+  // the same standard as its SQL.
+  const made = new Set([...resolution.matchAll(/([a-z0-9-]+\.md):(\d+)/g)].map((m) => `${m[1]}:${m[2]}`));
+  for (const citation of made) {
+    assert.ok(declared.has(citation),
+      `batch 041 cites ${citation} and no entry in this test resolves it. Add it, with the phrase the `
+      + 'line is cited for -- the first version of this batch cited :210 for a rule that is at :217, '
+      + 'and the quotation beside it was correct, which is exactly why nobody noticed.');
+  }
+  assert.ok(made.size >= 6, 'the header still carries its citations; a batch whose finding IS the '
+    + 'deliverable does not get to stop naming where it read things');
+});

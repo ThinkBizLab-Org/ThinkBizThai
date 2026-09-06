@@ -209,8 +209,19 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // is TWO columns, a mandatory Business and a nullable Page override, and none of the properties
 // `tenant_tables` records can see that. The snapshot's own declaration says so, because a list that
 // silently describes half a scope is the shape 030 found one row earlier.
+//
+// Batch 041 joins for a reason that is not the same one a fifth time, and the difference is worth
+// the four lines. Every batch above is declared because of TABLES it cannot create here. 041
+// creates no table, no view and no policy at all — one function, app.knowledge_scope_applies — so
+// it will add no row to `tenant_tables` on the day it lands, and the completeness rule that will
+// one day REQUIRE rows for the twelve tables above will require none for this batch. What puts it
+// on this list is its apply-time block: two of its assertions read `app.knowledge_items`::regclass,
+// which is 040's table and is not here, so the batch cannot be applied to this instance for
+// exactly the reason 040 cannot. A list of batches-that-owe-rows and a list of
+// batches-that-cannot-be-applied have been the same list until now, and this is the entry that
+// separates them.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
-  '030_industry.sql', '040_knowledge.sql'];
+  '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
