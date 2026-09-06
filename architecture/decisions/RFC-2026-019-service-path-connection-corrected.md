@@ -1,6 +1,6 @@
 # RFC-2026-019 — The service path needs components, not a grant
 
-Status: Proposed
+Status: Approved 2026-09-06 by the Product Owner — `authenticator` is granted membership in none of the three service roles, and that negative is asserted by the schema lint rather than left as an omission; the request path runs as `authenticated` per `RFC-2026-012`, and work beyond a user's own policies goes through a `SECURITY DEFINER` function owned by `app_command`; `app_worker`'s connection method stays undecided until a background worker exists, and saying so is the decision. Supersedes `RFC-2026-018`. `RFC-2026-017` §3's present tense stays wrong until the components exist.
 Date: 2026-09-06
 Author: /claude/a0_atlas (A0)
 Supersedes: `RFC-2026-018` (approved 2026-09-06, never in effect — its §5 conditions were never met
