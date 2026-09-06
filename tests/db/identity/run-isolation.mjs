@@ -55,6 +55,11 @@ export const FIXTURE_SQL_FILES = [
   // It is the first entry that writes into `private`, which §3.1 makes the home of secret
   // references and which no fixture before it had a table in.
   'tests/db/identity/fixtures/060-ai-gateway-fixture.sql',
+  // Batch 130's subscriptions name only Workspaces, which 010 creates, so this file could sit
+  // second. It is last because the list is applied in order and appending is the change that cannot
+  // reorder anything else — and because a reader who sees a batch number out of sequence should be
+  // able to read the dependency from the file rather than from the position.
+  'tests/db/identity/fixtures/130-billing-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
@@ -304,10 +309,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     + '  It needs a driver — { begin, rollback, exec } — and the repository declares no Postgres\n'
     + '  client, because RFC-2026-001 forbids adding a dependency and DATA-DEC-02 leaves the tool\n'
     + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010, 011, 020,\n'
-    + `  021, 030, 040, 050 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
-    + '  Until that happens, tenant isolation for batches 010-050 is UNPROVEN. Nothing here says\n'
-    + `  021, 030, 040, 060 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
-    + '  Until that happens, tenant isolation for batches 010-060 is UNPROVEN. Nothing here says\n'
-    + '  otherwise.\n');
+    + `  021, 030, 040, 041, 050, 060, 130 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
+    + '  Until that happens, tenant isolation for every batch this suite loads a fixture for is\n'
+    + '  UNPROVEN. Nothing here says otherwise.\n');
   process.exit(1);
 }
