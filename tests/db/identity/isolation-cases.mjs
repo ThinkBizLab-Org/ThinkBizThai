@@ -195,11 +195,18 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '(020), both of which raise.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
-   + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. Every one of "
-   + 'update and delete, by a workspace owner and by the service identity, is asserted refused, '
-   + 'with the LAYER declared as `grant`: no role is granted UPDATE or DELETE on either table, so '
-   + 'the refusal happens before RLS is consulted. That distinction is the assertion — a policy '
-   + 'can be widened by an edit, an absent grant has to be granted.',
+   + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
+   + 'and the grid they cover is stated rather than rounded up: update and delete by the WORKSPACE '
+   + 'OWNER on BOTH version tables, and update and delete by the SERVICE identity on '
+   + 'business_profile_versions. Service-on-page_context_profile_versions has no live case; it is '
+   + 'covered by 020_business.sql\'s own apply-time block, which walks the whole grid — five roles '
+   + '(authenticated, anon, app_worker, app_command, app_maintenance) against both tables, through '
+   + 'has_any_column_privilege and has_table_privilege — and raises if any cell holds either verb. '
+   + 'That block is the stronger control of the two, because it also catches a grant made by a LATER '
+   + 'batch, which no case in this file would see. Every live case declares the LAYER as `grant`: no '
+   + 'role is granted UPDATE or DELETE on either table, so the refusal happens before RLS is '
+   + 'consulted. That distinction is the assertion — a policy can be widened by an edit, an absent '
+   + 'grant has to be granted.',
   10: 'not applicable to batches 010-020 — no command function is specified for identity or for '
     + 'business.core, and audit (140) and outbox (050) do not exist yet.',
 };
