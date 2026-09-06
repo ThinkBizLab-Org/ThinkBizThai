@@ -299,9 +299,9 @@ test('the batch 020 fixture writes only catalog identities, and loads both sides
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
     assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. `
-      + 'A fixture id nobody can recompute is an unverifiable constant, and the version rows are the '
-      + 'ones the immutability cases address BY ID — an invented one there would make a failure '
-      + 'impossible to reproduce.');
+      + 'A fixture id nobody can recompute is an unverifiable constant, and the cross-tenant cases '
+      + "are only worth anything because tenant A holds tenant B's REAL id — an invented one would "
+      + 'make a failure impossible to reproduce and the assertion impossible to trust.');
   }
   // Both tenants, at every depth the batch creates, plus the archived business §11.3 needs.
   for (const symbol of ['business_a1', 'business_a2', 'business_a3_archived', 'business_b1',
