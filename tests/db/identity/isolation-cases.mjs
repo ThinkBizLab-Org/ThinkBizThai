@@ -3324,16 +3324,26 @@ export function buildCases(id) {
       id: 'service-cannot-create-a-knowledge-item',
       covers: ['§12.6/8', 'RFC-2026-017§7'],
       as: service,
-      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', '__SELF__'),
+      // `created_by` is the WORKSPACE OWNER's subject and NOT `__SELF__`, because the service
+      // identity has no subject to be: `as_service` sets the role and a `{"role":"app_worker"}`
+      // claim set with no `sub`. CI found the first version of this case passing `__SELF__` —
+      // which resolved to `undefined`, was inlined as the text 'undefined', and came back 22P02
+      // instead of 42501. `resolvePlaceholders` now refuses that substitution outright, so the
+      // mistake cannot be made again in a case nobody runs against a database.
+      //
+      // The value is arbitrary and the case says so: app_worker holds NO POLICY on this table, so
+      // there is no WITH CHECK to compare a subject against and the refusal cannot be about this
+      // column.
+      ...createBusinessKnowledge('__A__', BUSINESS_A1, 'voice', id('user_owner_a')),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'knowledge_items' },
       why: 'THE RAISING HALF of RFC-2026-017 §7, which asks for the service identity to be "denied with an '
          + 'error, not an empty result". Only an INSERT can carry it: an UPDATE whose USING clause filters '
          + 'the row reports zero rows and raises nothing. app_worker HOLDS the INSERT grant and holds no '
-         + 'policy on this table, so the refusal is row level security with no applicable policy — the '
-         + 'declared layer is what says so, and a service role that had acquired BYPASSRLS would write the '
-         + 'row instead.',
+         + 'policy on this table, so the refusal is row level security finding no permissive policy to '
+         + 'admit the row — the declared layer is what says so, and a service role that had acquired '
+         + 'BYPASSRLS would write the row instead.',
     },
     {
       id: 'service-cannot-update-a-knowledge-item',
@@ -3601,9 +3611,34 @@ export function buildCases(id) {
 // uuid literal into this file. `__SELF__` in particular is load-bearing: a case that forges
 // created_by has to be visibly different from one that does not, and spelling both as explicit
 // symbols makes the difference impossible to miss in review.
-function resolvePlaceholders(testCase, { A, B }) {
-  const swap = (value) => (value === '__A__' ? A : value === '__B__' ? B
-    : value === '__SELF__' ? testCase.as.subject : value);
+//
+// A2 KNOWLEDGE CORRECTION, batch 040, found by CI rather than by argument. `__SELF__` means "the
+// subject of the identity running this case", and TWO of the four identity helpers have no
+// subject: `as_anonymous` and `as_service` set a role and a claim set with no `sub`. The
+// substitution returned `undefined`, the driver inlined it as the literal text 'undefined', and
+// Postgres answered 22P02 — "invalid input syntax for type uuid" — which `expectDenied` correctly
+// refused as not-an-RLS-refusal. One case in 209.
+//
+// The value of that failure is entirely in where it was found: nothing static could see it,
+// because `__SELF__` is a string and a missing subject is a runtime `undefined`. It is a build
+// error now. A case that wants a subject for an identity that has none must name one, and say why
+// it chose that one — which `service-cannot-create-a-knowledge-item` does.
+// Exported so a test can exercise THE FUNCTION rather than a restatement of it. The first version
+// of that test manufactured its own throw and asserted that; a test that produces the error it
+// checks for has checked nothing.
+export function resolvePlaceholders(testCase, { A, B }) {
+  const swap = (value) => {
+    if (value === '__A__') return A;
+    if (value === '__B__') return B;
+    if (value !== '__SELF__') return value;
+    if (!testCase.as.subject) {
+      throw new Error(`${testCase.id}: uses __SELF__ under ${testCase.as.helper}, which has no JWT `
+        + 'subject to be. `as_anonymous` and `as_service` set a role and a claim set with no `sub`, so '
+        + "__SELF__ resolves to undefined, is inlined as the text 'undefined', and comes back 22P02 "
+        + 'instead of the refusal the case is about. Name the subject the case means and say why.');
+    }
+    return testCase.as.subject;
+  };
   return { ...testCase, params: (testCase.params ?? []).map(swap) };
 }
 

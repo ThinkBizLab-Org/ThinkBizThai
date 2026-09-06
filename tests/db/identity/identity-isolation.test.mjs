@@ -25,7 +25,7 @@ import test from 'node:test';
 
 import {
   AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases,
-  isMutation,
+  isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 import {
@@ -2088,6 +2088,43 @@ test('batch 040 obeys the decision approved beside it about anon and the inherit
   const decisions = await readdir('architecture/decisions');
   assert.ok(decisions.includes('RFC-2026-021-client-read-allowlist.md'),
     'batch 040 cites RFC-2026-021 and the record must exist to be cited');
+});
+
+// FOUND BY CI, WHICH IS THE ONLY PLACE IT COULD BE FOUND, and turned into a build error so it
+// cannot be found that way twice.
+//
+// `__SELF__` means "the subject of the identity running this case". Two of the four identity
+// helpers have NO subject — `as_anonymous` and `as_service` set a role and a claim set with no
+// `sub` — so the substitution yielded `undefined`, the driver inlined it as the literal text
+// 'undefined', and Postgres answered 22P02 rather than the 42501 the case demanded. One case in
+// 209, invisible to every static rule in this file, and it took a database to say so.
+test('__SELF__ is refused for an identity that has no subject to be', () => {
+  const scope = { A: id('workspace_a'), B: id('workspace_b') };
+  // The two helpers that set a role and a claim set with no `sub`. ROLE_FOR_HELPER is the runner's
+  // own map, so this cannot drift into asserting something about helpers that do not exist.
+  for (const helper of ['as_anonymous', 'as_service']) {
+    assert.ok(ROLE_FOR_HELPER[helper], `${helper} is a helper the runner knows`);
+    assert.throws(
+      () => resolvePlaceholders({ id: 'probe', as: { helper }, params: ['__SELF__'] }, scope),
+      /has no JWT subject to be/,
+      `${helper} has no subject, so a case using __SELF__ under it must fail to BUILD rather than `
+      + 'reaching a database and coming back 22P02 on a uuid cast');
+  }
+  // And it still substitutes for an identity that HAS one, so the guard is not simply refusing
+  // everything — which is the shape a guard takes when somebody makes it pass by making it inert.
+  const substituted = resolvePlaceholders(
+    { id: 'probe', as: { helper: 'as_user', subject: id('user_owner_a') }, params: ['__SELF__', '__A__'] },
+    scope);
+  assert.deepEqual(substituted.params, [id('user_owner_a'), id('workspace_a')]);
+  // No case passes the string a missing subject used to produce. This is the failure as CI saw it:
+  // the text 'undefined' inlined into a uuid column, answered with 22P02, which expectDenied
+  // correctly refuses as not an RLS refusal — one case in two hundred and nine.
+  for (const c of cases) {
+    for (const param of c.params ?? []) {
+      assert.notEqual(String(param), 'undefined',
+        `${c.id}: passes the literal text 'undefined' as a parameter`);
+    }
+  }
 });
 
 test('the batch 040 fixture writes only catalog identities and carries both scope shapes', async () => {
