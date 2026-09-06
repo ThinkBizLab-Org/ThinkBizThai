@@ -5,15 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5759ba5f47e4574c640cbc62d4ef59f28986fce6",
-  "head_revision_or_patch_checksum": "68d14327ed7415a2d9a5846c0c29ae66b8a96c9a",
+  "head_revision_or_patch_checksum": "019f3b3966668d61e2eac69fbf66b053c61def7f",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/011_authorization_helpers.sql",
+    "evidence/WP-0A-DB-00/a1-batch-011-execution-2026-09-06.md",
     "scripts/db/authz-proofs.mjs"
   ],
   "files_modified": [
     "db/foundation/lint/catalog-snapshot.json",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/rls-smoke.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
