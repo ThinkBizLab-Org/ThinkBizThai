@@ -44,6 +44,10 @@
       "uuid": "0a5bed73-2981-5699-b2a1-e1c1663127f4",
       "role": "second business under workspace_a, deliberately OUTSIDE the editor scope"
     },
+    "business_a3_archived": {
+      "uuid": "de27d341-202e-5f39-813f-9ddf39e4f59b",
+      "role": "third business under workspace_a, archived. §11.3 says archive closes new creation under a Business while its history stays readable, and batch 020's page INSERT policy refuses a Page under it. Added by batch 020 rather than reusing business_a2, whose whole purpose is to be the Business the editor's scope excludes (batch 021); one fixture row carrying two unrelated controls is how a test starts failing for the other one's reason."
+    },
     "business_b1": {
       "uuid": "3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3",
       "role": "business under workspace_b, reachable only by user_owner_b"
@@ -60,5 +64,6 @@
       "uuid": "9f06926b-4de1-5bcb-9199-3206f7c3f2ad",
       "role": "page under business_b1, on the far side of the tenant boundary"
     }
-  }
+  },
+  "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make."
 }

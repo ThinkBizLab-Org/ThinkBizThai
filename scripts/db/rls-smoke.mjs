@@ -16,7 +16,7 @@ import { argv, env, exit, stdout, stderr } from 'node:process';
 
 import { query, queryFinal, connectionString } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
-import { fixtureResolver, runCases, formatReport, FIXTURE_SQL } from '../../tests/db/identity/run-isolation.mjs';
+import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
 
 // Statements are accumulated and flushed as one psql invocation per case, because a transaction
 // cannot survive psql exiting. `begin` opens a buffer; `exec` appends and, for the statement whose
@@ -108,13 +108,18 @@ async function main() {
     return 1;
   }
 
-  const fixture = await readFile(FIXTURE_SQL, 'utf8');
-  const loaded = await query(fixture);
-  if (loaded.error) {
-    stderr.write(`db-rls-smoke: the fixture did not load: ${loaded.error.message}\n`
-      + '  Every negative assertion below would be vacuous against an empty database, so this is a\n'
-      + '  failure rather than a suite with nothing to find.\n');
-    return 1;
+  // The fixtures, IN ORDER, and one psql invocation each. Batch 020's businesses carry foreign
+  // keys to batch 010's workspaces, so the sequence is a dependency and not a preference — and a
+  // failure names WHICH file failed, because "the fixture did not load" over a concatenation of
+  // two is a message that sends the reader to the wrong file half the time.
+  for (const path of FIXTURE_SQL_FILES) {
+    const loaded = await query(await readFile(path, 'utf8'));
+    if (loaded.error) {
+      stderr.write(`db-rls-smoke: ${path} did not load: ${loaded.error.message}\n`
+        + '  Every negative assertion below would be vacuous against an empty database, so this is a\n'
+        + '  failure rather than a suite with nothing to find.\n');
+      return 1;
+    }
   }
 
   const resolve = await fixtureResolver();

@@ -167,11 +167,20 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // provisioned instance, so the snapshot's digest is taken over the APPLIED set rather than the
 // whole of db/foundation/migrations. That gap is the thing to keep honest: it must exist for the
 // declared reason, and it must be the only difference.
+//
+// Batch 020 joined the list rather than making an exception to it, and the reason is a property of
+// the list's own shape: every one of 020's policies calls a helper owned by `app_authz`, which is
+// created by 011, which this instance does not have. A batch cannot be applied to a database that
+// is missing the batch it is built on — so the declaration extends to the TAIL, which is exactly
+// what `pendingDeclarationLint` requires of it and what makes "behind" distinguishable from
+// "divergent". This list is pinned WHOLE, so a third batch joining it is a deliberate edit here.
+const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql'];
+
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
   const declared = pendingMigrations(snap);
-  assert.deepEqual(declared, [AUTHZ_MIGRATION],
-    'batch 011 is the only batch declared not applied to the instance');
+  assert.deepEqual(declared, NOT_ON_THE_INSTANCE,
+    'these and only these batches are declared not applied to the instance');
 
   // The two digests DIFFER, and that is the point: if they were equal, the declaration would be
   // excluding nothing and the field would be decoration.
@@ -201,17 +210,43 @@ test('the catalog rules reject what the text rules cannot see', async () => {
 
   // ENABLE without FORCE — the difference the specified lint rule cannot express, because
   // relrowsecurity and relforcerowsecurity are different catalog columns.
-  // `owner` is part of a tenant-table row since RFC-2026-019 §5, so the constructed row carries it.
-  // Leaving it out made this case fail on a rule it is not about, which is how a fixture starts
-  // testing the fixture.
-  const enabledOnly = [{ table: 'workspace', rls_enabled: true, rls_forced: false, has_pk: true, comment: 'owner: A1', owner: 'postgres' }];
-  assert.ok((await withCatalog({ tenant_tables: enabledOnly })).some((p) => /relforcerowsecurity is false/.test(p)));
-  const forced = [{ ...enabledOnly[0], rls_forced: true }];
-  assert.deepEqual(await withCatalog({ tenant_tables: forced }), []);
+  //
+  // The broken row is made by MUTATING a real one rather than by replacing the list with a
+  // synthetic table, and that is not cosmetic. Since batch 020 the list itself is checked for
+  // completeness against the migrations this instance has received, so a fabricated single-row
+  // `tenant_tables` now fails on five missing tables and one table no migration creates — six
+  // findings about the fixture, none about the rule under test. A case whose subject is drowned by
+  // its own scaffolding is a case nobody reads.
+  const damage = (mutate) => base.catalog.tenant_tables.map((t, i) => (i === 0 ? { ...t, ...mutate } : t));
+  assert.ok((await withCatalog({ tenant_tables: damage({ rls_forced: false }) }))
+    .some((p) => /relforcerowsecurity is false/.test(p)));
+  assert.deepEqual(await withCatalog({ tenant_tables: damage({}) }), [],
+    'the unmutated list is clean, so each finding below is caused by the mutation and not by the copy');
 
   // A table whose RLS was turned off after the migration ran. No file changes; the catalog does.
-  assert.ok((await withCatalog({ tenant_tables: [{ ...forced[0], rls_enabled: false }] }))
+  assert.ok((await withCatalog({ tenant_tables: damage({ rls_enabled: false }) }))
     .some((p) => /relrowsecurity is false/.test(p)));
+
+  // RFC-2026-017 §3's owner rule, which moved into `tenantTableLint` with the rest of the per-table
+  // rules and is asserted here so the move is not a quiet loss.
+  assert.ok((await withCatalog({ tenant_tables: damage({ owner: 'app_command' }) }))
+    .some((p) => /owned by app_command/.test(p)));
+  assert.ok((await withCatalog({ tenant_tables: damage({ owner: undefined }) }))
+    .some((p) => /no owner recorded/.test(p)));
+
+  // THE LIST ITSELF, in both directions. Every rule above is a rule about the rows in
+  // `tenant_tables`, so until batch 020 a snapshot could satisfy all of them by simply omitting a
+  // table — and with a batch now declared not applied, "absent because it is not on this instance"
+  // and "absent because nobody measured it" are different states that must not look alike.
+  const dropped = base.catalog.tenant_tables.slice(1);
+  assert.ok((await withCatalog({ tenant_tables: dropped }))
+    .some((p) => new RegExp(`app\\.${base.catalog.tenant_tables[0].table} is created by a migration`).test(p)),
+    'a tenant table the applied migrations create and the snapshot omits is a finding, not a silence');
+  const invented = [...base.catalog.tenant_tables,
+    { table: 'shadow_table', rls_enabled: true, rls_forced: true, has_pk: true, comment: 'owner: nobody', owner: 'postgres' }];
+  assert.ok((await withCatalog({ tenant_tables: invented }))
+    .some((p) => /tenant_tables records app\.shadow_table and no migration/.test(p)),
+    'a row for a table no applied migration creates is the divergence the snapshot exists to catch');
 
   // A view created without security_invoker, and a definer function whose search_path was widened.
   assert.ok((await withCatalog({ exposed_views: [{ view: 'page_v', reloptions: null }] }))
@@ -247,19 +282,40 @@ test('a role gaining BYPASSRLS is a finding, not a detail', async () => {
 // because it is written down, which is the shape of evidence this repository keeps
 // removing.
 const FIXTURES = 'db/foundation/seeds/fixture-catalog.json';
-const REQUIRED_SYMBOLS = [
+const SPEC_SYMBOLS = [
   'user_owner_a', 'user_editor_a', 'user_approver_a', 'user_viewer_a', 'user_suspended_a',
   'user_owner_b', 'workspace_a', 'workspace_b', 'business_a1', 'business_a2', 'business_b1',
   'page_a1', 'page_a2', 'page_b1',
 ];
+
+// Symbols §12.6 does not name, listed one at a time with the batch that needed one and why. The
+// closed-set assertion below is over SPEC_SYMBOLS ∪ ADDED_SYMBOLS, so the catalog can still only
+// grow through an edit here — what changed is that growing it is possible at all. §12.6's list is
+// the identities the SPECIFICATION fixes, and it was written before any table existed; reading it
+// as the complete universe of fixture rows would mean no batch could ever assert a rule about a
+// state §12.6 happened not to enumerate.
+const ADDED_SYMBOLS = [
+  // Batch 020. §11.3 — "archive closes new creation under a Business" — is a real narrowing in
+  // 020's page INSERT policy, and asserting it needs an archived Business. It is a THIRD business
+  // rather than an archived business_a2, whose whole purpose is to be the Business batch 021's
+  // member scope excludes the editor from: one fixture row carrying two unrelated controls is how a
+  // case starts failing for the other one's reason.
+  'business_a3_archived',
+];
+const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
 test('every identity the data package names is in the catalog, and each id is derived not invented', async () => {
   const { createHash } = await import('node:crypto');
   const catalog = JSON.parse(await readFile(FIXTURES, 'utf8'));
   const identities = catalog.identities ?? {};
 
+  for (const symbol of SPEC_SYMBOLS) {
+    assert.ok(identities[symbol], `§12.6 names ${symbol} and the catalog must fix its id`);
+  }
   assert.deepEqual(Object.keys(identities).sort(), [...REQUIRED_SYMBOLS].sort(),
-    'the catalog carries exactly the identities §12.6 names — no more, no fewer');
+    'the catalog carries the identities §12.6 names plus the ones a batch declared above — no more, '
+    + 'no fewer. An id that appears in a fixture without appearing here is the unverifiable constant '
+    + 'this whole file exists to refuse.');
 
   // Recompute uuid5(namespace, name) here. If a value was edited by hand, this fails.
   const uuid5 = (namespace, name) => {

@@ -541,6 +541,114 @@ export async function pendingDeclarationLint(snap, files) {
   return problems;
 }
 
+// Every table in schema `app` that a given set of migrations creates, read from the migration TEXT.
+//
+// It exists so `tenantTableLint` can ask the question the previous version of this file could not:
+// not only "is every table in the snapshot's list correct" but "is the list the RIGHT LIST". Until
+// batch 020 that distinction was invisible — the instance had every migration, so a table missing
+// from `tenant_tables` was a measurement nobody took and looked exactly like a table that does not
+// exist. With a batch declared not applied, the two are different states with different verdicts,
+// and only a comparison against the migrations can tell them apart.
+//
+// The regex is the one `schemaLint` already uses on the same files, deliberately: two rules reading
+// the same text with two different patterns is how one of them starts describing a different set of
+// tables from the other.
+export function tenantTablesInMigrations(files) {
+  const tables = new Set();
+  for (const { sql } of files ?? []) {
+    const stripped = String(sql).replace(/--[^\n]*/g, '');
+    for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?app\.(\w+)/gi)) {
+      tables.add(m[1]);
+    }
+  }
+  return [...tables].sort();
+}
+
+// The per-table rules AND the completeness of the list itself, in one function.
+//
+// They were two loops in `catalogLint` — one for RLS/FORCE/PK/comment, one for RFC-2026-017 §3's
+// owner rule, several hundred lines apart — and neither asked whether the list they walked was the
+// whole list. A snapshot that simply omitted a tenant table passed both of them clean, and every
+// rule this repository writes about tenant tables is worth exactly as much as the guarantee that
+// the list is complete.
+//
+// `expected` is the table set derived from the migrations THIS DATABASE HAS RECEIVED, which is why
+// the caller must read the pending declaration first: a table batch 020 creates is correctly absent
+// from a snapshot that declares 020 not applied, and is a finding in a snapshot that does not. It
+// is required rather than optional — a caller that could omit it would silently turn the
+// completeness half off, and an unmeasured property must not read as a passing one.
+//
+// WHERE THE SAME RULES ARE ASKED OF A DATABASE THIS SNAPSHOT DOES NOT DESCRIBE, stated plainly
+// because the honest answer is "not here": the four tables batch 020 creates are not in this
+// catalog and this function does not judge them. `schemaLint` holds them from the migration text
+// (owner comment, ENABLE, FORCE, primary key) on every `npm run check`, and 020's own apply-time
+// `do $$` block asserts ENABLE, FORCE and the owner rule against the live catalog of whatever
+// database receives it — which in practice is the postgres:17 service container `make
+// db-migrate-clean` builds on every pull request. The moment 020 reaches the provisioned instance
+// and this snapshot is retaken, the completeness rule below REQUIRES its four rows here, and they
+// are judged by the same code as the other five.
+export function tenantTableLint(catalog, { expected, forceExempt } = {}) {
+  const problems = [];
+  const recorded = (catalog ?? {}).tenant_tables;
+  if (recorded === undefined) {
+    return ['the catalog records no tenant_tables at all, so nothing below can be checked — and an '
+      + 'unmeasured property must not read as a passing one'];
+  }
+  const exempt = forceExempt ?? (() => false);
+
+  for (const t of recorded) {
+    // ENABLE is not exemptible and no row can make it so. RFC-2026-012 commits the whole
+    // client/database boundary to row level security, and RFC-2026-016 §4 retired only the FORCE
+    // condition; the register replaces that condition and nothing else.
+    if (!t.rls_enabled) {
+      problems.push(`app.${t.table}: relrowsecurity is false — the exemption register replaces the FORCE `
+        + 'condition only (RFC-2026-016 §4), and no row excuses a tenant table carrying no row level security at all');
+    }
+    if (!t.rls_forced && !exempt(t.table)) {
+      problems.push(`app.${t.table}: relforcerowsecurity is false and no table-wide exemption `
+        + "(role '*', operation 'all') is registered — ENABLE alone leaves the table owner exempt");
+    }
+    if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
+    if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
+    // RFC-2026-017 §3: app_command is deliberately NOT the table owner. A SECURITY DEFINER function
+    // owned by the table owner is exempt from the policies on a forced table, so the whole point of
+    // routing privileged writes through such a function dies if the owner is the table's owner.
+    if (t.owner === undefined) {
+      problems.push(`app.${t.table}: no owner recorded — RFC-2026-017 §3 turns on which role owns it`);
+    } else if (t.owner === 'app_command') {
+      problems.push(`app.${t.table} is owned by app_command — RFC-2026-017 §3 requires it not be the table `
+        + 'owner, because a SECURITY DEFINER function owned by the table owner is exempt from the policies '
+        + 'on a forced table');
+    }
+  }
+
+  if (expected === undefined) {
+    problems.push('tenantTableLint was called without the table set the migrations create, so the '
+      + 'completeness half — the half that decides whether this list is the RIGHT list — did not run. '
+      + 'A caller that may omit it can turn the rule off by forgetting it.');
+    return problems;
+  }
+
+  // Both directions, because either one alone is satisfiable while the other is wrong.
+  const present = new Set(recorded.map((t) => t.table));
+  for (const table of expected) {
+    if (present.has(table)) continue;
+    problems.push(`app.${table} is created by a migration this database has received and has no row in `
+      + 'tenant_tables. Every rule above is a rule about the tables in that list, so a table missing from '
+      + 'it is a table with no RLS rule, no primary key rule, no owner rule and nothing to notice that. '
+      + 'If the batch that creates it has not reached this database, declare it in '
+      + 'not_applied_to_this_instance by name; if it has, retake the snapshot.');
+  }
+  for (const table of present) {
+    if (expected.includes(table)) continue;
+    problems.push(`tenant_tables records app.${table} and no migration this database has received creates `
+      + 'it. Either the snapshot is describing an object that was made outside the migration set — which is '
+      + 'the divergence this file exists to catch — or a batch that creates it is wrongly declared not '
+      + 'applied to this instance.');
+  }
+  return problems;
+}
+
 export async function catalogLint(snapshot, digest, exemptions) {
   const problems = [];
   const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));
@@ -608,21 +716,21 @@ export async function catalogLint(snapshot, digest, exemptions) {
   // role.
   const TABLE_WIDE = (e) => e.role === '*' && e.operation === 'all';
   const forceExemptions = (table) => (register.exemptions ?? []).filter((e) => e.table === table && TABLE_WIDE(e));
-  for (const t of c.tenant_tables ?? []) {
-    // ENABLE is not exemptible and no row can make it so. RFC-2026-012 commits the whole
-    // client/database boundary to row level security, and §4 retired only the FORCE condition; the
-    // register replaces that condition and nothing else.
-    if (!t.rls_enabled) {
-      problems.push(`app.${t.table}: relrowsecurity is false — the exemption register replaces the FORCE `
-        + 'condition only (RFC-2026-016 §4), and no row excuses a tenant table carrying no row level security at all');
-    }
-    if (!t.rls_forced && forceExemptions(t.table).length === 0) {
-      problems.push(`app.${t.table}: relforcerowsecurity is false and no table-wide exemption `
-        + "(role '*', operation 'all') is registered — ENABLE alone leaves the table owner exempt");
-    }
-    if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
-    if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
-  }
+  // The per-table rules, and the completeness of the list itself, are `tenantTableLint`. `expected`
+  // is derived from the migrations this instance HAS received, which is why the pending declaration
+  // has to be read first: a table batch 020 creates is correctly absent from a snapshot that
+  // declares 020 pending, and would be a finding in a snapshot that does not.
+  //
+  // This is the only caller. `authzLint` has two — the snapshot and the CI container — because
+  // batch 011's objects have a live catalog measurement (`scripts/db/authz-proofs.mjs`) to be asked
+  // of; there is no equivalent tenant-table measurement of the container, and the rules for a batch
+  // this instance has not received are asked instead by `schemaLint` over the migration text and by
+  // that batch's own apply-time assertions. Saying so here rather than implying a second caller that
+  // does not exist.
+  problems.push(...tenantTableLint(c, {
+    expected: tenantTablesInMigrations((await migrationFiles()).filter(({ name }) => !pending.has(name))),
+    forceExempt: (table) => forceExemptions(table).length > 0,
+  }));
 
   // And the other direction, which is what makes it a control rather than a list. A row here claims
   // an exemption was taken; if the catalog does not show it, the register is describing a database
@@ -758,18 +866,14 @@ export async function catalogLint(snapshot, digest, exemptions) {
     }
   }
 
-  // §3 of RFC-2026-017: app_command is deliberately NOT the table owner. A SECURITY DEFINER function
-  // owned by the table owner is exempt from the policies on a forced table, so the whole point of
-  // routing privileged writes through such a function dies if the owner is the table's owner.
-  for (const t of c.tenant_tables ?? []) {
-    if (t.owner === undefined) {
-      problems.push(`app.${t.table}: no owner recorded — RFC-2026-017 §3 turns on which role owns it`);
-    } else if (t.owner === 'app_command') {
-      problems.push(`app.${t.table} is owned by app_command — RFC-2026-017 §3 requires it not be the table `
-        + 'owner, because a SECURITY DEFINER function owned by the table owner is exempt from the policies '
-        + 'on a forced table');
-    }
-  }
+  // RFC-2026-017 §3's ownership rule moved into `tenantTableLint`, several hundred lines up, with
+  // the rest of the per-table rules. It used to be a second loop over the same list here, which is
+  // how the list came to be walked twice by two rules and checked for completeness by neither.
+  //
+  // The gap that move does NOT close, named rather than glossed: a table created by a batch this
+  // instance has not received is still not owner-checked by this file, because this file reads a
+  // snapshot of an instance that does not have it. Batch 020 closes that for its own four tables in
+  // its own apply-time assertions, against whatever database receives it.
 
   for (const v of c.exposed_views ?? []) {
     if (!(v.reloptions ?? []).some((o) => /^security_invoker=(true|on)$/i.test(o))) {

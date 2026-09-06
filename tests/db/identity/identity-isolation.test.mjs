@@ -24,7 +24,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
-  AUTHORIZATION_CASE_COVERAGE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases, isMutation,
+  AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases,
+  isMutation,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 import {
@@ -35,6 +36,8 @@ const MIGRATION = 'db/foundation/migrations/010_identity.sql';
 const FIXTURE = 'tests/db/identity/fixtures/010-identity-fixture.sql';
 const CATALOG = 'db/foundation/seeds/fixture-catalog.json';
 const CASES_FILE = 'tests/db/identity/isolation-cases.mjs';
+const BUSINESS_MIGRATION = 'db/foundation/migrations/020_business.sql';
+const BUSINESS_FIXTURE = 'tests/db/identity/fixtures/020-business-fixture.sql';
 
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const TABLES = ['user_profiles', 'workspaces', 'workspace_settings', 'workspace_members', 'workspace_invitations'];
@@ -148,10 +151,38 @@ test('every insert is asserted as a refusal, because an insert is the write that
   const inserts = cases.filter((c) => c.sql.trimStart().toLowerCase().startsWith('insert'));
   assert.ok(inserts.length >= 5, 'the forgery and wrong-role cases run through INSERT');
   for (const testCase of inserts) {
-    assert.ok(['denied', 'rows'].includes(testCase.expect), `${testCase.id}: an INSERT has no USING `
-      + 'clause to filter it silently — WITH CHECK either admits the row or raises 42501. A '
-      + 'no-effect assertion here would be weaker than the database actually is.');
+    // `rejected` joined this list with batch 020 and is not a loosening: it demands an error with a
+    // NAMED SQLSTATE that may not be 42501, which is a narrower claim than `denied` and not a
+    // weaker one. What stays excluded is the thing that mattered — `no-effect`, and `no-rows`,
+    // either of which would assert less than the database actually does.
+    assert.ok(['denied', 'rejected', 'rows'].includes(testCase.expect), `${testCase.id}: an INSERT has `
+      + 'no USING clause to filter it silently — WITH CHECK either admits the row or raises, and a '
+      + 'constraint may then refuse it. A no-effect assertion here would be weaker than the database '
+      + 'actually is.');
   }
+});
+
+test('a rejected case names a SQLSTATE, and never the one that means a policy refused', () => {
+  const rejected = cases.filter((c) => c.expect === 'rejected');
+  assert.ok(rejected.length >= 1, 'batch 020 asserts §4 invariant 10 through a composite foreign key, '
+    + 'and that assertion is the whole reason this outcome kind exists');
+  for (const testCase of rejected) {
+    assert.ok(testCase.sqlstate, `${testCase.id}: a 'rejected' case must declare the SQLSTATE it `
+      + 'expects. Without one it asserts that something went wrong, which a broken fixture satisfies.');
+    assert.match(testCase.sqlstate, /^[0-9A-Z]{5}$/, `${testCase.id}: a SQLSTATE is five characters`);
+    assert.notEqual(testCase.sqlstate, NOT_A_CONSTRAINT_CODE,
+      `${testCase.id}: 42501 is an RLS refusal and belongs to 'denied'. A case claiming the CONSTRAINT `
+      + 'stopped the row must not be satisfiable by a policy stopping it, or the constraint could be '
+      + 'dropped with nothing noticing — which is exactly what §4 invariant 10 asks to be proven.');
+  }
+  // And no case may declare a SQLSTATE it is not asserting through.
+  for (const testCase of cases) {
+    if (testCase.expect === 'rejected') continue;
+    assert.equal(testCase.sqlstate, undefined,
+      `${testCase.id}: declares a sqlstate and is not a 'rejected' case, so nothing checks it`);
+  }
+  assert.equal(ASSERTION_FOR.rejected, undefined, "'rejected' is handled by the runner, which compares "
+    + 'the code; a single-helper mapping for it would lose the SQLSTATE that is the entire assertion.');
 });
 
 test('the runner maps each outcome kind to the helper it claims, with nothing softened', () => {
@@ -261,13 +292,188 @@ test('the invitation token digest is writable and not readable, and no plaintext
     '§9.3 stores a cryptographic hash only; a length floor keeps a plaintext token from fitting the shape');
 });
 
+test('the batch 020 fixture writes only catalog identities, and loads both sides of the boundary', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(BUSINESS_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. `
+      + 'A fixture id nobody can recompute is an unverifiable constant, and the version rows are the '
+      + 'ones the immutability cases address BY ID — an invented one there would make a failure '
+      + 'impossible to reproduce.');
+  }
+  // Both tenants, at every depth the batch creates, plus the archived business §11.3 needs.
+  for (const symbol of ['business_a1', 'business_a2', 'business_a3_archived', 'business_b1',
+    'page_a1', 'page_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // The version rows carry no id of their own — they are addressed by parent and ordinal, which is
+  // why the catalog needs no symbol for one. What has to be true instead is that the fixture writes
+  // a version 1 for each of the four parents the cases address, and that it does so idempotently
+  // through the NATURAL key: `on conflict (id)` on a row with no id would be a no-op that silently
+  // inserted a second version 1 on every re-run.
+  for (const parent of ['business_profile_id', 'page_context_profile_id']) {
+    assert.match(fixture, new RegExp(`on conflict \\(${parent}, version_number\\) do nothing`),
+      `the version insert keyed on ${parent} must be idempotent on the constraint the cases address `
+      + 'it through, or a re-run and a case can disagree about which row is version 1');
+  }
+  assert.equal([...fixture.matchAll(/version_number, name, created_by\) values/g)].length, 2,
+    'one version insert per version table');
+  // The archived business is archived, or §11.3's case has nothing to bite on and passes because
+  // every page insert happened to be refused for some other reason.
+  assert.match(fixture, /timestamptz '2026-01-01 00:00:00\+00'/,
+    'business_a3_archived carries a FIXED archived_at. A now()-relative value would make the fixture '
+    + 'content depend on when it ran, which is the property the whole catalog exists to avoid.');
+});
+
+// ---------------------------------------------------------------------------
+// Batch 020, statically. Same discipline as batch 010's block above: what can be read from the
+// migration text is read from it, and the live half runs in CI through `make db-rls-smoke`.
+
+const business = await readFile(BUSINESS_MIGRATION, 'utf8');
+const businessCode = business.replace(/--[^\n]*/g, '');
+const BUSINESS_TABLES = ['business_profiles', 'business_profile_versions',
+  'page_context_profiles', 'page_context_profile_versions'];
+const VERSION_TABLES = ['business_profile_versions', 'page_context_profile_versions'];
+
+test('every batch 020 table carries RLS, FORCE, a primary key, an owner comment and a policy', () => {
+  for (const table of BUSINESS_TABLES) {
+    assert.match(businessCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(businessCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(businessCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint `
+      + 'rule tests only the first, so ENABLE alone leaves the table owner exempt from every policy.');
+    assert.match(businessCode, new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,2000}?primary key`, 'i'),
+      `app.${table}: no primary key`);
+    assert.match(business, new RegExp(`comment on table app\\.${table} is`, 'i'));
+    assert.match(businessCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table}: a forced table with no policy is unreachable by every client role. If that is `
+      + 'intended it must be a decision in the file, not an omission.');
+  }
+  assert.doesNotMatch(businessCode, /create\s+policy[\s\S]{0,300}?\bfor\s+delete\b/i,
+    '§8.5: there is no broad user delete on any tenant table. Archiving is an UPDATE of a typed '
+    + 'lifecycle field (§11.3) and hard deletion is the retention job (batch 160).');
+  assert.doesNotMatch(businessCode, /\bto\s+anon\b/i, '§8.5: anonymous holds no tenant policy and no grant');
+});
+
+test('no batch 020 policy joins the membership table, because that is what batch 011 removed', () => {
+  const policies = [...businessCode.matchAll(/create policy (\w+)([\s\S]*?);\n/g)];
+  assert.ok(policies.length >= 10, 'four tables, each with a SELECT and at least one write policy');
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    assert.doesNotMatch(body, /app\.workspace_members/,
+      `${name}: RFC-2026-020 §5/5 makes membership uniform — policies read it through the helpers and `
+      + 'never by joining app.workspace_members. A join here would evaluate that scan AS THE CALLER, so '
+      + "`authenticated`'s whole policy set on the membership table (010's own-row policy ORed with "
+      + "011's roster policy) would expand inside this table's evaluation, and the width of business "
+      + 'visibility would become a property of another module\'s batch rather than of this file.');
+    assert.match(body, /app\.(is_active_member|workspace_member_role)\s*\(/,
+      `${name}: every predicate resolves membership through a batch 011 helper. A policy that resolved `
+      + 'it some other way would be a second membership model in the same schema.');
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+  }
+  // §8.5: an UPDATE policy has both halves, or a row can be updated out of the scope that admitted it.
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    if (!/for\s+update/i.test(body)) continue;
+    assert.match(body, /using/i, `${name}: an UPDATE policy needs USING`);
+    assert.match(body, /with\s+check/i, `${name}: an UPDATE policy needs WITH CHECK`);
+  }
+  // §8.5: a user INSERT asserts created_by = auth.uid(). All four tables take client inserts.
+  const inserts = policies.filter(([body]) => /for\s+insert/i.test(body));
+  assert.equal(inserts.length, 4, 'each of the four tables carries exactly one INSERT policy');
+  for (const [body, name] of inserts.map((m) => [m[0], m[1]])) {
+    assert.match(body, /created_by\s*=\s*\(select auth\.uid\(\)\)/,
+      `${name}: without it, an owner can write a row naming somebody else as its author — the AUTH-3 `
+      + 'attribution forged at the moment of writing (§8.5, §8.6 case 8).');
+  }
+});
+
+test('an immutable version table grants no client role UPDATE or DELETE, and carries no such policy', () => {
+  for (const table of VERSION_TABLES) {
+    // The policy half. A policy with no grant is inert, and a grant with no policy is refused by
+    // RLS rather than by privilege — a weaker refusal than §8.1's `N N N N N N` row asks for — so
+    // both halves are asserted, exactly as the migration's own apply-time check asserts both.
+    const policies = [...businessCode.matchAll(new RegExp(`create policy (\\w+) on app\\.${table}\\b([\\s\\S]*?);\\n`, 'g'))];
+    assert.ok(policies.length >= 1, `app.${table}: a forced table with no policy at all is unreadable`);
+    for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+      assert.doesNotMatch(body, /for\s+(update|delete)\b/i,
+        `${name}: §3.2 and §4 invariant 8 make a version immutable, and §8.1 marks version `
+        + 'UPDATE/DELETE N for every role including the service.');
+    }
+    // The grant half, which is the one that makes the refusal a privilege-layer denial.
+    for (const role of ['authenticated', 'app_worker', 'app_command', 'app_maintenance', 'anon']) {
+      assert.doesNotMatch(businessCode,
+        new RegExp(`grant[^;]*\\b(update|delete)\\b[^;]*on app\\.${table} to ${role}`, 'i'),
+        `app.${table}: ${role} must hold neither UPDATE nor DELETE. The absence of the grant is what `
+        + 'makes the refusal happen before RLS is consulted, and a policy can be widened by an edit '
+        + 'while an absent privilege has to be granted.');
+    }
+    // And the version tables have no updated_at to stamp, so no trigger claims to stamp one.
+    assert.doesNotMatch(businessCode, new RegExp(`create trigger set_updated_at before update on app\\.${table}`, 'i'),
+      `app.${table}: an updated-at trigger on an immutable table is the first sentence of that table `
+      + 'contradicting itself.');
+  }
+  // app_worker IS granted select and insert there, deliberately: without a grant the service
+  // refusal above would be indistinguishable from a forgotten one.
+  for (const table of VERSION_TABLES) {
+    assert.match(businessCode, new RegExp(`grant select, insert on app\\.${table} to app_worker`, 'i'),
+      `app.${table}: app_worker holds SELECT and INSERT and no policy, which is what makes "denied by `
+      + 'RLS" and "denied by a missing grant" tell apart (RFC-2026-017 §7).');
+  }
+});
+
+test('the scope path is canonical, composite, and closed against a cross-tenant parent', () => {
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'account_id', 'page_id']) {
+    assert.doesNotMatch(businessCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}; the canonical fields are workspace_id, `
+      + 'business_profile_id and page_context_profile_id');
+  }
+  for (const table of BUSINESS_TABLES) {
+    assert.match(businessCode, new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,1200}?workspace_id`, 'i'),
+      `app.${table} is tenant-owned and must carry workspace_id (§3.3)`);
+  }
+  // §3.3 and §4 invariant 10: a child confirms its parent is in the SAME workspace, with a
+  // composite foreign key. A single-column reference would say the business exists and nothing
+  // about whose it is, so a row could carry workspace A and a business in workspace B — and every
+  // policy in the file would then judge the caller against the workspace the ROW claims.
+  assert.match(businessCode,
+    /foreign key \(workspace_id, business_profile_id\)\s*references app\.business_profiles \(workspace_id, id\)/i,
+    'business_profile_versions and page_context_profiles reference their business by the whole scope pair');
+  assert.match(businessCode,
+    /foreign key \(workspace_id, business_profile_id, page_context_profile_id\)\s*references app\.page_context_profiles \(workspace_id, business_profile_id, id\)/i,
+    'page_context_profile_versions references its page by the whole scope path');
+  // The unique constraints that make those references possible. Without them the foreign keys do
+  // not compile, so this is really an assertion that nobody replaced them with a single-column key.
+  assert.match(businessCode, /unique \(workspace_id, id\)/i, 'business_profiles carries the pair its children reference');
+  assert.match(businessCode, /unique \(workspace_id, business_profile_id, id\)/i,
+    'page_context_profiles carries the triple its version table references');
+  // §8.5: a row may not be moved across tenant OR scope by an update, enforced by the privilege
+  // system and not only by a WITH CHECK a later edit could weaken.
+  for (const grant of businessCode.matchAll(/grant update \(([^)]*)\) on app\.(\w+)/gi)) {
+    assert.doesNotMatch(grant[1], /workspace_id/i, `app.${grant[2]}: workspace_id is not updatable`);
+    assert.doesNotMatch(grant[1], /business_profile_id/i,
+      `app.${grant[2]}: business_profile_id is not updatable — a Page changing Business is a row moving `
+      + 'across scope, which §8.5 forbids an update to do.');
+  }
+});
+
 test('the coverage claim names what is NOT covered, with the batch that owes it', () => {
   for (const key of [1, 2, 3, 4, 5, 6, 7, 8]) {
     assert.ok(SMOKE_COVERAGE[key], `§12.6 assertion ${key} must be dispositioned`);
     assert.ok(SMOKE_COVERAGE[key].note.length > 40, `§12.6 assertion ${key} needs a real reason, not a flag`);
   }
-  assert.equal(SMOKE_COVERAGE[2].covered, false);
+  // Batch 020 created the tables assertion 2 names, and paid HALF of it. The other half —
+  // "never A2/Page A2" — is member scope, which is batch 021, so the row reads 'partial' rather
+  // than true. A row that claims more than the cases carry is the failure this map exists to
+  // prevent; `covered: true` is checked against the citations below.
+  assert.equal(SMOKE_COVERAGE[2].covered, 'partial');
+  assert.match(SMOKE_COVERAGE[2].note, /021/,
+    'a partial coverage claim must name the batch that owes the rest, or it is a note nobody can act on');
   assert.equal(SMOKE_COVERAGE[3].covered, false);
+  assert.equal(SMOKE_COVERAGE[7].covered, true,
+    'batch 020 creates the business and page columns assertion 7 needs, so the "partial" batch 010 '
+    + 'recorded is now paid: a forged workspace_id, a forged created_by, a forged business id, and a '
+    + 'version attached across the tenant boundary all fail.');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'the positive half of assertion 8 cannot be asserted without first inventing a service '
     + 'permission §8.1 does not grant');
