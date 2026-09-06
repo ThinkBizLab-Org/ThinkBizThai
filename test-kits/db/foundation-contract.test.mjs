@@ -148,16 +148,39 @@ test('a connection string never reaches the output', async () => {
 // repository keeps catching itself trusting after it went stale. So the snapshot
 // names the migration set it was taken against, and drifting from it fails.
 
-import { PREREQUISITE, catalogLint, migrateCleanSteps, migrationSetDigest } from '../../scripts/db/run.mjs';
+import {
+  AUTHZ_MIGRATION, PREREQUISITE, appliedMigrationDigest, catalogLint, migrateCleanSteps,
+  migrationSetDigest, pendingMigrations,
+} from '../../scripts/db/run.mjs';
 
 const SNAPSHOT = 'db/foundation/lint/catalog-snapshot.json';
 const snapshot = async () => JSON.parse(await readFile(SNAPSHOT, 'utf8'));
 
 test('the committed catalog snapshot matches the migrations it claims to describe', async () => {
   const snap = await snapshot();
-  assert.equal(snap.taken_against_migrations, await migrationSetDigest(),
+  assert.equal(snap.taken_against_migrations, await appliedMigrationDigest(snap),
     'the snapshot describes a different migration set than the one in the tree — retake it');
   assert.deepEqual(await catalogLint(snap), [], 'the live catalog satisfies every rule asserted against it');
+});
+
+// Batch 011 is the first migration this repository has written that is NOT applied to the
+// provisioned instance, so the snapshot's digest is taken over the APPLIED set rather than the
+// whole of db/foundation/migrations. That gap is the thing to keep honest: it must exist for the
+// declared reason, and it must be the only difference.
+test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
+  const snap = await snapshot();
+  const declared = pendingMigrations(snap);
+  assert.deepEqual(declared, [AUTHZ_MIGRATION],
+    'batch 011 is the only batch declared not applied to the instance');
+
+  // The two digests DIFFER, and that is the point: if they were equal, the declaration would be
+  // excluding nothing and the field would be decoration.
+  assert.notEqual(await migrationSetDigest(), await appliedMigrationDigest(snap),
+    'a declaration that excludes a batch must actually change the digest, or it excludes nothing');
+
+  // And the applied digest is the one the snapshot carries, so the exclusion is not a licence to
+  // let the rest drift.
+  assert.equal(await appliedMigrationDigest(snap), snap.taken_against_migrations);
 });
 
 test('a snapshot that no longer matches the migrations is refused, not read', async () => {
@@ -539,7 +562,8 @@ test('db-migrate-clean applies the prerequisite the migration set needs, before 
   // the migration registry, so the committed snapshot does not go stale because the command grew a
   // step.
   assert.doesNotMatch(PREREQUISITE, /\/migrations\//);
-  assert.equal(await migrationSetDigest(), (await snapshot()).taken_against_migrations,
+  const snap = await snapshot();
+  assert.equal(await appliedMigrationDigest(snap), snap.taken_against_migrations,
     'adding the prerequisite must not move the migration set digest');
 });
 
@@ -621,4 +645,312 @@ test('a SECURITY DEFINER function with no recorded owner is refused, and app_com
     function: 'app.create_workspace', owner: 'app_command', config: ['search_path=""'],
   });
   assert.deepEqual(await catalogLint(command, digest, { exemptions: [] }), []);
+});
+
+// ---------------------------------------------------------------------------
+// RFC-2026-020 §6.2 and §6.3, as decision logic.
+//
+// The proofs themselves need a Postgres and this host has none -- no psql, no docker -- so they
+// run in CI, behind `make db-rls-smoke`, and a failure fails the build. What CAN be executed here
+// is the part that decides what a transcript MEANS, and that is the part worth executing: a proof
+// is only as good as its willingness to fail, and most cases below drive it with output that must
+// make it fail.
+//
+// This is the same shape C0's review D4 asked for elsewhere in this package -- a property driven
+// through a fake driver rather than protected by a grep.
+
+import {
+  proveCycleExists, proveDefinerIsNotInlined, proveExecuteGrants,
+  proveTheHelperAnswersOnlyForTheCaller, proveThePolicyIsLoadBearing,
+} from '../../scripts/db/authz-proofs.mjs';
+
+const IDS = {
+  owner: '5c460eb8-0710-557a-b423-f9b12c76834f',
+  suspended: '9b10ac91-406b-5322-9755-bfb16b0b4aa3',
+  ownerB: '297ad853-58a6-5e83-87e1-f936f9c3ddff',
+  workspace: 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
+};
+// Answers handed back in the order the proof asks for them, so a proof that stops asking early
+// fails loudly rather than reading someone else's answer.
+const queued = (...answers) => { const q = [...answers]; return async () => q.shift() ?? { rows: [] }; };
+const planOf = (...lines) => ({ rows: lines.map((l) => ({ 'QUERY PLAN': l })) });
+
+test('the 42P17 proof passes only on 42P17, and a quiet database fails it', async () => {
+  const raised = await proveCycleExists(
+    queued({ error: { code: '42P17', message: 'infinite recursion detected in policy for relation "workspace_members"' } }), IDS);
+  assert.equal(raised.ok, true, raised.detail);
+  assert.match(raised.transcript, /infinite recursion detected/);
+
+  // The failure that matters most: the cycle 010's header justified two unimplemented matrix cells
+  // with turns out not to exist. That must be loud, not green.
+  const quiet = await proveCycleExists(queued({ rows: [{ members: '5' }] }), IDS);
+  assert.equal(quiet.ok, false);
+  assert.match(quiet.detail, /did NOT raise/);
+
+  // Any other error is a different failure and must not be laundered into this one.
+  const other = await proveCycleExists(queued({ error: { code: '42501', message: 'permission denied' } }), IDS);
+  assert.equal(other.ok, false);
+  assert.match(other.detail, /rather than 42P17/);
+});
+
+test('the inlining proof fails when its own control cannot demonstrate inlining', async () => {
+  // The trap the proof is built to avoid. If the INVOKER control is not inlined either, the
+  // instrument cannot tell inlining from its absence, and "the definer was not inlined" is a
+  // sentence about nothing. A vacuous instrument must fail rather than agree.
+  const vacuous = await proveDefinerIsNotInlined(queued(
+    planOf('Result', '  Output: app.__proof_invoker()'),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(vacuous.ok, false);
+  assert.match(vacuous.detail, /cannot tell inlining from its absence/);
+});
+
+test('the inlining proof reports the decision wrong when SECURITY DEFINER is inlined', async () => {
+  // RFC-2026-020 option G rests on this being impossible. If it happens, the required response is
+  // to revert the batch and reopen the decision -- so the proof has to say that, not merely fail.
+  const inlined = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))"),
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))"),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(inlined.ok, false);
+  assert.match(inlined.detail, /THE DECISION IS WRONG/);
+
+  // And the passing shape: invoker inlined, definer left as a call, shipped left as a call with no
+  // scan of the table it reads.
+  const correct = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::uuid"),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Result', "  Output: app.workspace_member_role('...'::uuid)"),
+  ), IDS);
+  assert.equal(correct.ok, true, correct.detail);
+
+  // A shipped helper whose BODY appears in the plan is the cycle coming back, even when the pair
+  // behaved.
+  const spliced = await proveDefinerIsNotInlined(queued(
+    planOf('Result', "  Output: (NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::uuid"),
+    planOf('Result', '  Output: app.__proof_definer()'),
+    planOf('Limit', '  ->  Seq Scan on app.workspace_members m'),
+  ), IDS);
+  assert.equal(spliced.ok, false);
+  assert.match(spliced.detail, /was not left as a call/);
+});
+
+test("the negative control fails when dropping app_authz's policy changes nothing", async () => {
+  // This is RFC-2026-020's security argument made falsifiable. A helper that silently bypassed
+  // would keep answering with its policy gone, and every isolation case would still pass.
+  const bypassing = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '5' }] }, { rows: [{ members: '5' }] }), IDS, 5);
+  assert.equal(bypassing.ok, false);
+  assert.match(bypassing.detail, /bypassing rather than being policed/);
+
+  const policed = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '5' }] }, { rows: [{ members: '1' }] }), IDS, 5);
+  assert.equal(policed.ok, true, policed.detail);
+
+  // And if the roster never worked in the first place, the control has nothing to negate.
+  const neverWorked = await proveThePolicyIsLoadBearing(
+    queued({ rows: [{ members: '1' }] }, { rows: [{ members: '1' }] }), IDS, 5);
+  assert.equal(neverWorked.ok, false);
+  assert.match(neverWorked.detail, /nothing to negate/);
+});
+
+test('the helper must answer about its caller and nobody else', async () => {
+  const answers = (owner, suspended, stranger) => queued(
+    { rows: [owner] }, { rows: [suspended] }, { rows: [stranger] });
+  const OWNER = { role: 'owner', member: 't' };
+  const NOBODY = { role: '<null>', member: 'f' };
+
+  assert.equal((await proveTheHelperAnswersOnlyForTheCaller(answers(OWNER, NOBODY, NOBODY), IDS)).ok, true);
+
+  // §12.6 assertion 5, asked through the helper -- the path batch 011's widened policy newly opens.
+  const suspendedIsActive = await proveTheHelperAnswersOnlyForTheCaller(
+    answers(OWNER, { role: 'viewer', member: 't' }, NOBODY), IDS);
+  assert.equal(suspendedIsActive.ok, false);
+  assert.match(suspendedIsActive.detail, /SUSPENDED member/);
+
+  // §6.3/12: the helper is callable by anyone, so it must not be a membership oracle for third
+  // parties.
+  const oracle = await proveTheHelperAnswersOnlyForTheCaller(
+    answers(OWNER, NOBODY, { role: 'owner', member: 't' }), IDS);
+  assert.equal(oracle.ok, false);
+  assert.match(oracle.detail, /membership oracle for third parties/);
+
+  // Without the positive, both negatives are satisfied by a helper that answers nothing at all.
+  const dead = await proveTheHelperAnswersOnlyForTheCaller(answers(NOBODY, NOBODY, NOBODY), IDS);
+  assert.equal(dead.ok, false);
+  assert.match(dead.detail, /satisfied by the helper never answering/);
+});
+
+test('EXECUTE is checked for PUBLIC, for the callers that need it, and for the one that does not', async () => {
+  const acls = (rows) => queued({ rows });
+  const GOOD = [
+    { function: 'is_active_member', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+    { function: 'jwt_subject', acl: 'app_authz=X/app_authz' },
+    { function: 'workspace_member_role', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+  ];
+  assert.equal((await proveExecuteGrants(acls(GOOD))).ok, true);
+
+  // A default ACL means PUBLIC may execute, and PUBLIC reaches anon -- which batch 010 grants
+  // nothing anywhere.
+  const defaulted = await proveExecuteGrants(acls([{ function: 'jwt_subject', acl: '<default: PUBLIC may execute>' }]));
+  assert.equal(defaulted.ok, false);
+  assert.match(defaulted.detail, /PUBLIC may execute it/);
+
+  const toPublic = await proveExecuteGrants(acls([
+    ...GOOD.slice(0, 2), { function: 'workspace_member_role', acl: 'app_authz=X/app_authz =X/app_authz' },
+  ]));
+  assert.equal(toPublic.ok, false);
+  assert.match(toPublic.detail, /EXECUTE to PUBLIC/);
+
+  // The narrowing this batch makes deliberately: jwt_subject has no caller outside the helpers that
+  // own it, so a grant to authenticated is a callable surface -- an RPC endpoint where `app` is the
+  // exposed schema -- that nothing asked for.
+  const widened = await proveExecuteGrants(acls([
+    ...GOOD.slice(0, 1),
+    { function: 'jwt_subject', acl: 'app_authz=X/app_authz authenticated=X/app_authz' },
+    ...GOOD.slice(2),
+  ]));
+  assert.equal(widened.ok, false);
+  assert.match(widened.detail, /jwt_subject is EXECUTE-granted to authenticated/);
+
+  // And the policies must still be able to call what they call.
+  const unreachable = await proveExecuteGrants(acls([
+    { function: 'is_active_member', acl: 'app_authz=X/app_authz' }, ...GOOD.slice(1),
+  ]));
+  assert.equal(unreachable.ok, false);
+  assert.match(unreachable.detail, /not EXECUTE-granted to authenticated/);
+});
+
+// ---------------------------------------------------------------------------
+// RFC-2026-020 §6.1/1-7, each rule shown to REJECT.
+//
+// These rules are asked of the CI container rather than of the committed snapshot, because the
+// provisioned instance does not have batch 011 and must not. That makes them the rules least
+// likely to be exercised by anything on this host -- and a rule nothing has ever seen fail is a
+// rule nobody has checked. Every case below hands authzLint a catalog that violates exactly one
+// thing and requires it to say so.
+
+import { AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_TABLE, authzLint, platformIdentityLint } from '../../scripts/db/run.mjs';
+
+// What the CI container actually measured on the green run, reduced to the fields the rules read.
+const GOOD_AUTHZ = () => ({
+  authenticator_memberships: [],
+  authz: {
+    role: { canlogin: false, bypassrls: false, superuser: false, inherit: false, has_password: false },
+    owns_tables: [],
+    functions: [
+      { function: 'app.is_active_member', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.jwt_subject', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.workspace_member_role', security_definer: true, config: ['search_path=""'] },
+    ],
+    policies: [{
+      table: AUTHZ_TABLE, policy: AUTHZ_POLICY, command: 'select', qual: AUTHZ_POLICY_QUAL,
+    }],
+    grants: {
+      schemas: ['USAGE on schema app'],
+      tables: [],
+      columns: ['app.workspace_members.role', 'app.workspace_members.status',
+        'app.workspace_members.user_id', 'app.workspace_members.workspace_id'],
+    },
+  },
+});
+
+const broken = (mutate) => { const c = GOOD_AUTHZ(); mutate(c); return authzLint(c); };
+const rejects = (mutate, pattern, label) => {
+  const problems = broken(mutate);
+  assert.ok(problems.some((p) => pattern.test(p)), `${label}: expected a finding matching ${pattern}, got ${JSON.stringify(problems)}`);
+};
+
+test('the batch-011 catalog rules pass on what CI measured, so their rejections mean something', () => {
+  assert.deepEqual(authzLint(GOOD_AUTHZ()), [],
+    'the shape CI measured on the green run must satisfy every rule, or every rejection below is '
+    + 'just the fixture being wrong');
+});
+
+test('§6.1/1: every app_authz role attribute is refused when true, and when unmeasured', () => {
+  // NOBYPASSRLS is the load-bearing one: a bypassing helper owner answers every authorization
+  // question yes, for reasons unrelated to the caller.
+  rejects((c) => { c.authz.role.bypassrls = true; }, /rolbypassrls/, 'bypassrls');
+  rejects((c) => { c.authz.role.superuser = true; }, /rolsuper/, 'superuser');
+  rejects((c) => { c.authz.role.canlogin = true; }, /rolcanlogin/, 'canlogin');
+  rejects((c) => { c.authz.role.inherit = true; }, /rolinherit/, 'inherit');
+  rejects((c) => { c.authz.role.has_password = true; }, /a password/, 'password');
+  // An unmeasured property must not read as a passing one -- the rule this file applies everywhere.
+  rejects((c) => { delete c.authz.role.bypassrls; }, /carries no bypassrls field/, 'unmeasured');
+  // And no block at all is a refusal rather than silence.
+  assert.ok(authzLint({}).some((p) => /records no app_authz block/.test(p)));
+});
+
+test('§6.1/2: authenticator being a member of app_authz is refused', () => {
+  // RFC-2026-019 §5's negative, extended by one name. A membership makes the helper owner
+  // assumable from a JWT claim, which is the whole boundary.
+  rejects((c) => { c.authenticator_memberships = ['anon', 'app_authz']; }, /authenticator is a member/, 'member');
+  rejects((c) => { delete c.authenticator_memberships; }, /does not record what authenticator is a member of/, 'unmeasured');
+});
+
+test('§6.1/3: a table owned by app_authz is refused', () => {
+  // Same rule as app_command, same reason: a SECURITY DEFINER function owned by the table owner is
+  // not subject to the policies on that table.
+  rejects((c) => { c.authz.owns_tables = ['workspace_members']; }, /owns app\.workspace_members/, 'owner');
+  rejects((c) => { delete c.authz.owns_tables; }, /does not record which tables/, 'unmeasured');
+});
+
+test('§6.1/4: an invoker-mode helper, or one with no pinned search_path, is refused', () => {
+  // Option D arriving unremarked: an invoker-mode helper runs as the caller, whose policy set on
+  // app.workspace_members by then contains the policy that calls it.
+  rejects((c) => { c.authz.functions[0].security_definer = false; }, /is not SECURITY DEFINER/, 'invoker');
+  rejects((c) => { c.authz.functions[0].config = []; }, /does not pin an empty search_path/, 'search_path');
+  // The role exists only as the owner of the helpers, so owning none means the batch did not land.
+  rejects((c) => { c.authz.functions = []; }, /owns no function at all/, 'empty');
+  rejects((c) => { delete c.authz.functions; }, /does not record the functions/, 'unmeasured');
+});
+
+test('§6.1/5: the pinned policy expression is the control, and every widening changes it', () => {
+  // This is the string RFC-2026-020 §4 chose option G over option E for: E needed no exemption but
+  // its central claim had no artefact that could hold it, and this one is a comparison a build
+  // performs on every run.
+  rejects((c) => { c.authz.policies[0].qual = 'true'; }, /policy expression is not the pinned one/, 'using (true)');
+  rejects((c) => { c.authz.policies[0].qual = AUTHZ_POLICY_QUAL.replace(" AND (status = 'active'::text)", ''); },
+    /policy expression is not the pinned one/, 'dropped the active check');
+  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'second' }); },
+    /holds 2 policies/, 'a second policy is a second decision');
+  rejects((c) => { c.authz.policies[0].command = 'all'; }, /is FOR ALL/, 'command');
+  rejects((c) => { c.authz.policies[0].table = 'workspaces'; }, /policy is on app\.workspaces/, 'table');
+  rejects((c) => { c.authz.policies[0].policy = 'renamed'; }, /is named renamed/, 'name');
+  rejects((c) => { delete c.authz.policies; }, /does not record the policies/, 'unmeasured');
+});
+
+test('§6.1/6: a wider grant than USAGE on app and four columns is refused', () => {
+  // Column-scoped so the role cannot read token_hash or anything else it was given no reason to.
+  rejects((c) => { c.authz.grants.tables = ['app.workspace_invitations']; }, /whole-table privilege/, 'table grant');
+  rejects((c) => { c.authz.grants.schemas.push('USAGE on schema private'); }, /schema grants/, 'schema');
+  rejects((c) => { c.authz.grants.columns.push('app.workspace_invitations.token_hash'); }, /column SELECT/, 'column');
+  rejects((c) => { c.authz.grants.columns.pop(); }, /column SELECT/, 'missing column');
+  rejects((c) => { delete c.authz.grants; }, /does not record .*grants/, 'unmeasured');
+});
+
+test('§6.1/7: a platform auth.uid() that moved fails the build instead of diverging silently', () => {
+  // The cost of RFC-2026-020 §5/4 -- inlining a copy of the platform expression because no role our
+  // migrations create can call auth.uid() -- made falsifiable. If Supabase changes the original,
+  // the inlined copy becomes a different function from the one every other policy in the schema
+  // uses, and that divergence must be decided rather than absorbed.
+  const measured = {
+    definition: 'CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n'
+      + "  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n"
+      + "    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n",
+    measured_at: '2026-09-06',
+  };
+  assert.deepEqual(platformIdentityLint({ platform_auth_uid: measured }), [],
+    'the body measured read-only on the instance must satisfy the rule');
+
+  const moved = { ...measured, definition: measured.definition.replace('request.jwt.claims', 'request.jwt.claims_v2') };
+  assert.ok(platformIdentityLint({ platform_auth_uid: moved })
+    .some((p) => /is not the function batch 011 copied a branch of/.test(p)),
+  'a platform change must fail the build');
+
+  // And an unmeasured field is not a passing one: the whole point of §5/4 is that the copy is held
+  // to the original by a build rather than by memory.
+  assert.ok(platformIdentityLint({}).some((p) => /records no platform auth\.uid\(\) definition/.test(p)));
 });

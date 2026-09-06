@@ -91,7 +91,11 @@ export const SMOKE_COVERAGE = {
                            + 'client-writable column.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
-                           + 'asserted, because only the pair distinguishes a policy from an empty table.' },
+                           + 'asserted, because only the pair distinguishes a policy from an empty table. '
+                           + 'Batch 011 adds a third: zero rows THROUGH THE HELPER. A SECURITY DEFINER '
+                           + 'function now answers authorization questions in a context where '
+                           + 'current_user is app_authz rather than the caller, so "sees zero rows" had '
+                           + 'to be re-asked of a path that did not exist when this was first covered.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and this batch grants anon '
                            + 'nothing. Stronger than the assertion asks for; recorded as deniedBy.' },
@@ -494,6 +498,102 @@ export function buildCases(id) {
       expect: 'no-rows',
       why: 'Membership is what an authorization bypass is worth. app_worker holds select on it and '
          + 'sees nothing.',
+    },
+
+    // -- Batch 011. §8.1 "Member list SELECT", and RFC-2026-020 §6.3. ---------------------------
+    //
+    // Batch 010 left this cell denied by default and said in its own header that its predicates
+    // were written to be WIDENED rather than corrected. These are that widening, asserted. The
+    // roster policy is PERMISSIVE, so it ORs with `workspace_members_select_own_active` — which is
+    // why the viewer case below matters as much as the owner one: a widening that widened for
+    // everybody would satisfy the positive and be a different decision entirely.
+    {
+      id: 'owner-a-sees-another-members-row',
+      covers: ['§8.1/member-list', 'RFC-2026-020§6.3/10'],
+      as: ownerA,
+      sql: 'select user_id from app.workspace_members where workspace_id = $1 and user_id = $2',
+      params: [A, id('user_editor_a')],
+      expect: 'rows',
+      why: '§8.1 "Member list SELECT: Owner Y", which batch 010 could not implement — a policy '
+         + 'asking whether the reader is a member queries the table the policy is on, and Postgres '
+         + 'raises 42P17. This is the cell, implemented through the app_authz helper. It asks for '
+         + "ANOTHER member's row specifically: batch 010 already showed the owner their own, so a "
+         + 'case reading only that would have passed before this batch existed.',
+    },
+    {
+      id: 'viewer-a-cannot-see-another-members-row',
+      covers: ['§8.1/member-list', '§12.6/4'],
+      as: viewerA,
+      sql: 'select user_id from app.workspace_members where workspace_id = $1 and user_id = $2',
+      params: [A, id('user_editor_a')],
+      expect: 'no-rows',
+      why: 'The width of the widening. §8.1 gives the member list to Owner and Admin; Editor is `P` '
+         + 'and viewer is nothing. An RLS policy set is permissive and ORs, so the roster policy '
+         + 'could only ever grant more — this is the case that says how much more, and it fails if '
+         + 'the predicate is ever loosened to "any active member".',
+    },
+    {
+      id: 'owner-a-cannot-see-workspace-b-members',
+      covers: ['§12.6/1', '§8.6/5', 'RFC-2026-020§6.3/10'],
+      as: ownerA,
+      sql: 'select user_id from app.workspace_members where workspace_id = $1',
+      params: [B],
+      expect: 'no-rows',
+      why: 'The other half of §6.3/10, and the one the new policy could have broken: the helper is '
+         + 'SECURITY DEFINER, so it runs as a role that is not the caller, and a helper that '
+         + 'resolved membership from its OWN identity rather than from the JWT would hand every '
+         + "workspace's roster to everyone. Tenant A's owner holds tenant B's exact id here.",
+    },
+    {
+      id: 'owner-a-is-an-active-member-through-the-helper',
+      covers: ['RFC-2026-020§6.3/12'],
+      as: ownerA,
+      sql: 'select 1 as member where app.is_active_member($1)',
+      params: [A],
+      expect: 'rows',
+      why: 'The positive the two negatives below need. Without it, a helper that returned false for '
+         + 'everyone — or that could not be called at all — satisfies them both.',
+    },
+    {
+      id: 'suspended-a-is-no-member-through-the-helper',
+      covers: ['§12.6/5', '§8.6/6', 'RFC-2026-020§6.3/11'],
+      as: suspendedA,
+      sql: 'select 1 as member where app.is_active_member($1)',
+      params: [A],
+      expect: 'no-rows',
+      why: '§12.6 assertion 5, asked THROUGH the helper — the path batch 011 newly opens and which '
+         + 'nothing had asked before. The suspended member already sees zero rows in the table; '
+         + 'what is new is that a SECURITY DEFINER function now answers authorization questions '
+         + 'about them, in a context where current_user is app_authz rather than the caller. '
+         + '`status = active` is asserted in the helper body AND in app_authz\'s policy, and this '
+         + 'case has to survive both.',
+    },
+    {
+      id: 'helper-is-not-an-oracle-for-third-parties',
+      covers: ['§8.6/5', 'RFC-2026-020§6.3/12'],
+      as: ownerB,
+      sql: 'select 1 as member where app.is_active_member($1)',
+      params: [A],
+      expect: 'no-rows',
+      why: 'RFC-2026-020 §6.3/12. The helper is EXECUTE-granted to `authenticated` on purpose, so '
+         + 'anyone holding a token can call it for any workspace id. It must answer about the '
+         + 'CALLER and never become a way to ask who else is in a workspace. Workspace B\'s owner '
+         + "asks about workspace A while holding A's exact id.",
+    },
+    {
+      id: 'anonymous-cannot-call-the-helper',
+      covers: ['§12.6/6', '§8.5', 'RFC-2026-020§6.3/13'],
+      as: anonymous,
+      sql: 'select 1 as member where app.is_active_member($1)',
+      params: [A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: '§8.5: EXECUTE is revoked from PUBLIC and granted explicitly, and batch 010 grants anon '
+         + 'nothing anywhere. A helper reachable by PUBLIC is reachable by anon, so the refusal is '
+         + 'expected from the privilege system before the function is ever entered — on the SCHEMA, '
+         + 'because anon holds no USAGE on app and name resolution stops there. The ACL itself is '
+         + 'measured separately by scripts/db/authz-proofs.mjs; this is the reachability half.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

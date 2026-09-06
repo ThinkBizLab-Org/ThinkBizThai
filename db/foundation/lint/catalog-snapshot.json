@@ -5,6 +5,12 @@
   "taken_against_migrations": "7215963802260771",
   "taken_at": "2026-09-06",
   "project_ref": "xtvtflkntpqfvflvdbwk",
+  "not_applied_to_this_instance": {
+    "migrations": [
+      "011_authorization_helpers.sql"
+    ],
+    "why": "Batch 011 is the first migration in this repository that is deliberately NOT applied to the provisioned instance. CI is its proof surface: RFC-2026-020's approval is conditional on §6.2, which must be discharged by EXECUTION, and one of the two proofs constructs a recursive policy on app.workspace_members in order to observe 42P17. Constructing a known-broken authorization policy on a live database to prove it is broken is not something a batch does to prove itself, and applying an unmerged authorization boundary to a live database so that a lint passes is the inversion the lint exists to prevent. The batch is applied to the postgres:17 service container on every pull request, where db-migrate-clean applies it and scripts/db/authz-proofs.mjs measures the result.\n\nWHAT THIS COSTS, stated rather than absorbed: taken_against_migrations is the digest of the migration set WITHOUT the batches named here, so this snapshot no longer describes the whole of db/foundation/migrations. Nothing is weakened -- a batch the instance HAS received must still be in the digest, an undeclared change to one still fails exactly as before, and the declaration itself is checked: it must name files that exist and must name a TAIL of the ordered set, because a database missing a middle batch while holding later ones is DIVERGENT rather than behind, which is a different finding with a different fix.\n\nWHAT IS NOT HERE, and why that is the point: there is no `authz` block below. app_authz does not exist on this instance and schema app holds no function there (both measured 2026-09-06, read-only). RFC-2026-020 §6.1/1-6 are properties of a database that HAS batch 011, so they are asked of the CI container, which can answer them, rather than answered here with fields nobody measured. scripts/db/run.mjs refuses an authz block while this declaration stands, and REQUIRES one the moment it is removed."
+  },
   "catalog": {
     "roles_bypassing_rls": [
       "postgres",
@@ -174,7 +180,27 @@
       "anon",
       "authenticated",
       "service_role"
-    ]
+    ],
+    "role_scoped_policies": [
+      { "table": "user_profiles", "policy": "user_profiles_select_own", "command": "select", "role": "authenticated" },
+      { "table": "user_profiles", "policy": "user_profiles_update_own", "command": "update", "role": "authenticated" },
+      { "table": "workspace_invitations", "policy": "workspace_invitations_insert_owner", "command": "insert", "role": "authenticated" },
+      { "table": "workspace_invitations", "policy": "workspace_invitations_select_owner", "command": "select", "role": "authenticated" },
+      { "table": "workspace_invitations", "policy": "workspace_invitations_update_owner", "command": "update", "role": "authenticated" },
+      { "table": "workspace_members", "policy": "workspace_members_select_own_active", "command": "select", "role": "authenticated" },
+      { "table": "workspace_settings", "policy": "workspace_settings_select_active_member", "command": "select", "role": "authenticated" },
+      { "table": "workspace_settings", "policy": "workspace_settings_update_owner", "command": "update", "role": "authenticated" },
+      { "table": "workspaces", "policy": "workspaces_select_active_member", "command": "select", "role": "authenticated" },
+      { "table": "workspaces", "policy": "workspaces_update_owner", "command": "update", "role": "authenticated" }
+    ],
+    "platform_auth_uid": {
+      "measured_at": "2026-09-06",
+      "owner": "supabase_auth_admin",
+      "security_definer": false,
+      "definition": "CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n"
+    }
   },
+  "_role_scoped_policies_note": "One entry per (policy, table, role) pair in schema app, read from pg_policy 2026-09-06. Two rules read it. The exemption register's corroboration rule reads it as the OTHER evidence a row naming a role can be checked against -- RFC-2026-016 §4 calls a policy on a named role the sanctioned form of a bypass, and until batch 011 the rule recognised only the role ATTRIBUTE, which is the form §4 was replacing. And the completeness pass reads it in the second direction: a policy naming a role outside the request path owes the register a row.\n\nEvery one of the ten names `authenticated`, so the completeness pass passes VACUOUSLY today. That is recorded rather than glossed: it is the measured state of this instance, and it stops being vacuous the moment batch 011 reaches it and app_authz's single policy appears here, which is exactly when the register owes that row.",
+  "_platform_auth_uid_note": "RFC-2026-020 §5/4 inlines this function's request.jwt.claims branch into batch 011, because no role our migrations create can call auth.uid(): schema auth is owned by supabase_admin and postgres holds USAGE on it WITHOUT grant option, so no migration of ours can grant it (measured 2026-09-06). The cost of a copy is that the original can move and nothing would notice. This field is what turns that cost into a build failure -- run.mjs compares the recorded body against the constant batch 011 copied a branch of. It is read verbatim from pg_get_functiondef and is NOT the CI shim's version, which differs: the shim reads only request.jwt.claims and uses ::json rather than ::jsonb, so comparing against the container would pin the wrong function.",
   "_membership_note": "members_besides_admin counts roles granted membership in the service role OTHER than the administrative role, and it is 0: nothing can become app_worker except postgres, which is how the isolation suite assumes it. grants_to_admin is 2 for each -- the CREATE ROLE admin grant (set false, inherit false) and batch 003's explicit re-grant (set true, inherit false), measured 2026-09-06.\n\nThe field these replace was `memberships: 0`, which counted the OTHER direction -- roles the service role is itself a member of. That is trivially zero, was read by no rule, and A1's countersignature noted it contradicted six live pg_auth_members rows. A number nobody reads is not evidence, and a number that reads the wrong direction while looking right is worse."
 }
