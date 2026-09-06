@@ -748,7 +748,7 @@ process.stdout.write(typeof answer === 'string'
 // working directory, so it is probed as a child process rather than by moving this one. Written to
 // accept BOTH shapes -- the bare SHA the previous implementation returned and the result object
 // this one does -- so these cases fail on the ANSWER and never on the shape of it.
-const tipBefore = (root) => {
+const tipBeforeIn = (root) => {
   const probe = spawnSync(process.execPath, ['--input-type=module', '-e', PROBE],
     { cwd: root, encoding: 'utf8', env: refresherEnv() });
   assert.equal(probe.status, 0, `${probe.stdout}${probe.stderr}`);
@@ -782,9 +782,9 @@ test('a merge is compared against the branch, whichever side of it git recorded 
       git('checkout', '-q', 'agent/test/work');
       git('merge', '-q', '--no-ff', '-m', 'merge main into the working branch', 'main');
 
-      assert.equal(tipBefore(root), branchTip,
+      assert.equal(tipBeforeIn(root), branchTip,
         'the branch as it stood before a merge run ON the branch is the FIRST parent; the last one is main');
-      assert.notEqual(tipBefore(root), mainTip, 'comparing a handoff against main describes none of the branch');
+      assert.notEqual(tipBeforeIn(root), mainTip, 'comparing a handoff against main describes none of the branch');
 
       // The command that exists to repair a handoff can run at all. Against the previous
       // implementation this is the reported state: the cited head is judged against MAIN, comes
@@ -830,9 +830,9 @@ test('a merge is compared against the branch, whichever side of it git recorded 
       git('checkout', '-q', '--detach', 'main');
       git('merge', '-q', '--no-ff', '-m', 'Merge the pull request head into the base', 'agent/test/work');
 
-      assert.equal(tipBefore(root), branchTip,
+      assert.equal(tipBeforeIn(root), branchTip,
         'a merge built ON the integration branch out of one head outside it is compared against that head');
-      assert.notEqual(tipBefore(root), mainTip);
+      assert.notEqual(tipBeforeIn(root), mainTip);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -857,8 +857,8 @@ test('a merge is compared against the branch, whichever side of it git recorded 
       const mainTip = git('rev-parse', 'HEAD');
       git('merge', '-q', '--no-ff', '-m', 'Merge pull request #1', 'agent/test/work');
 
-      assert.equal(tipBefore(root), mainTip, 'on the integration branch, the state before is its own first parent');
-      assert.notEqual(tipBefore(root), branchTip);
+      assert.equal(tipBeforeIn(root), mainTip, 'on the integration branch, the state before is its own first parent');
+      assert.notEqual(tipBeforeIn(root), branchTip);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -888,7 +888,7 @@ test('an ordinary in-progress branch is untouched by any of this, byte for byte'
     git('commit', '-qm', 'more of the same work');
     const head = git('rev-parse', 'HEAD');
 
-    assert.equal(tipBefore(root), carriedTheHandoff, 'an ordinary commit is compared against HEAD^, as it always was');
+    assert.equal(tipBeforeIn(root), carriedTheHandoff, 'an ordinary commit is compared against HEAD^, as it always was');
 
     const refreshed = refresh(root);
     assert.equal(refreshed.status, 0, `${refreshed.stdout}${refreshed.stderr}`);
