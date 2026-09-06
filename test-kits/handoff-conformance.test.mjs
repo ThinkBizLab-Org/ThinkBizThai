@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { execFile } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { validate } from './contracts/json-schema-subset.mjs';
@@ -238,9 +239,12 @@ test('the handoff for this branch describes this branch', async () => {
   }
   const handoff = JSON.parse(await readFile(`handoffs/${resolved.message}-author-handoff.json`, 'utf8'));
   // Compared against the branch as it stood BEFORE this commit: a handoff cannot cite the
-  // revision that contains it. `branchTipBefore` is HEAD^ for an ordinary commit and the branch
-  // head for the merge commit CI checks out on a pull request.
-  const drift = driftBetween(handoff.head_revision_or_patch_checksum, branchTipBefore());
+  // revision that contains it. `branchTipBefore` is HEAD^ for an ordinary commit and, for a merge,
+  // the parent on this branch's own side -- which is the first parent of a merge run on the branch
+  // and the second of the merge commit CI checks out on a pull request.
+  const tipBefore = branchTipBefore();
+  assert.ok(tipBefore.ok, `${tipBefore.message ?? ''}`);
+  const drift = driftBetween(handoff.head_revision_or_patch_checksum, tipBefore.tip);
   assert.notEqual(drift.state, 'unrelated',
     `${resolved.message}'s handoff cites a revision on no path to this branch`);
   const substantive = drift.paths;
@@ -256,7 +260,9 @@ test('a range is never compared backwards', async () => {
   // first version of this guard failed with a list of paths that had not drifted at all. A guard
   // that reports a wrong reason is how a real finding gets dismissed as noise.
   const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  const parent = branchTipBefore();
+  const tipBefore = branchTipBefore();
+  assert.ok(tipBefore.ok, `${tipBefore.message ?? ''}`);
+  const parent = tipBefore.tip;
   assert.equal(driftBetween(head, head).state, 'clean');
   if (parent !== head) {
     assert.equal(driftBetween(head, parent).state, 'awaiting-commit',
@@ -714,6 +720,268 @@ test('a repository with no integration branch refuses rather than inventing a ba
     assert.match(refreshed.stderr, /main: no such ref/, 'the message names the ref it looked for');
     assert.equal(await readFile(join(root, HANDOFF), 'utf8'), before,
       'and it writes nothing rather than recording a base it could not establish');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// A MERGE COMMIT'S PARENTS ARE ORDERED BY HOW THE MERGE WAS MADE, NOT BY WHICH SIDE IS THE BRANCH.
+//
+// `branchTipBefore` took the LAST parent. That is the branch for exactly one merge shape -- the one
+// `actions/checkout` builds on a pull request, [base, pull request head] -- and the comment saying
+// so was the whole justification. Run `git merge main` on a working branch and git records
+// [branch tip, main tip]: the last parent is MAIN, the handoff is compared against main, and the
+// head it honestly cites comes back as a revision "on no path to this branch". `refresh:handoff`
+// refuses to rewrite an unrelated citation, so the branch could neither pass the guard nor repair
+// itself. Batch 040's author hit it, kept its branch linear as a workaround, and reported it.
+//
+// Reported by an author rather than found by a guard, which is the reason for the cases below:
+// every merge shape this repository's own CI produces is constructed, in a real repository, and
+// each answer is asserted against the commit that shape means.
+const PROBE = `const module = await import(${JSON.stringify(pathToFileURL(REFRESHER).href)});
+const answer = module.branchTipBefore();
+process.stdout.write(typeof answer === 'string'
+  ? answer
+  : answer.ok ? answer.tip : \`REFUSED: \${answer.message.split('\\n')[0]}\`);`;
+
+// The exported helper, asked INSIDE a scenario repository: it shells out to git in the process's
+// working directory, so it is probed as a child process rather than by moving this one. Written to
+// accept BOTH shapes -- the bare SHA the previous implementation returned and the result object
+// this one does -- so these cases fail on the ANSWER and never on the shape of it.
+const tipBefore = (root) => {
+  const probe = spawnSync(process.execPath, ['--input-type=module', '-e', PROBE],
+    { cwd: root, encoding: 'utf8', env: refresherEnv() });
+  assert.equal(probe.status, 0, `${probe.stdout}${probe.stderr}`);
+  return probe.stdout.trim();
+};
+
+test('a merge is compared against the branch, whichever side of it git recorded last', async () => {
+  // ORIENTATION ONE: main merged INTO the working branch, parents [branch tip, main tip]. This is
+  // the shape that was wrong, and it is wrong end to end: the comparison point, the drift verdict,
+  // and the exit code of the command whose job is to repair the handoff.
+  {
+    const scenario = await scenarioRepository();
+    const { root, git } = scenario;
+    try {
+      git('checkout', '-qb', 'agent/test/work');
+      await declareBranch(root, 'agent/test/work');
+      await writeFile(join(root, 'branch-work.txt'), 'work\n');
+      git('add', '-A');
+      git('commit', '-qm', 'the work this handoff describes');
+      const cited = git('rev-parse', 'HEAD');
+      await writeHandoff(root, git('rev-parse', 'HEAD~1'), cited);
+      git('add', '-A');
+      git('commit', '-qm', 'the handoff citing it');
+      const branchTip = git('rev-parse', 'HEAD');
+
+      git('checkout', '-q', 'main');
+      await writeFile(join(root, 'another-package.txt'), 'landed on main\n');
+      git('add', '-A');
+      git('commit', '-qm', 'another package lands on main');
+      const mainTip = git('rev-parse', 'HEAD');
+      git('checkout', '-q', 'agent/test/work');
+      git('merge', '-q', '--no-ff', '-m', 'merge main into the working branch', 'main');
+
+      assert.equal(tipBefore(root), branchTip,
+        'the branch as it stood before a merge run ON the branch is the FIRST parent; the last one is main');
+      assert.notEqual(tipBefore(root), mainTip, 'comparing a handoff against main describes none of the branch');
+
+      // The command that exists to repair a handoff can run at all. Against the previous
+      // implementation this is the reported state: the cited head is judged against MAIN, comes
+      // back "on no path to this branch", and `refresh:handoff` refuses to rewrite an unrelated
+      // citation -- exit 91, nothing written, no way forward but to unmake the merge.
+      const refreshed = refresh(root);
+      assert.equal(refreshed.status, 0, `${refreshed.stdout}${refreshed.stderr}`);
+      const handoff = JSON.parse(await readFile(join(root, HANDOFF), 'utf8'));
+      assert.deepEqual([...handoff.files_added, ...handoff.files_modified].sort(),
+        [HANDOFF, 'branch-work.txt', 'work-packages/WP-TEST-001.json'].sort(),
+        'and the range still describes this branch and not the package that landed on main');
+
+      // And the guard the author has to satisfy is then green on the next commit, which is what
+      // "the tooling can repair this" has to mean.
+      git('add', '-A');
+      git('commit', '-qm', 'the refreshed handoff');
+      const checked = refresh(root, ['--check']);
+      assert.equal(checked.status, 0,
+        `merging main is not drift, and it is not an unrelated citation either:\n${checked.stdout}${checked.stderr}`);
+      assert.match(checked.stdout, /describes the branch/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+
+  // ORIENTATION TWO: the merge commit `actions/checkout` builds for a pull request -- made ON the
+  // base, out of the pull request head, with `main` left where it was. Parents [main tip, branch
+  // tip]. The previous implementation answered this one correctly and it must stay answered.
+  {
+    const scenario = await scenarioRepository();
+    const { root, git } = scenario;
+    try {
+      git('checkout', '-qb', 'agent/test/work');
+      await writeFile(join(root, 'branch-work.txt'), 'work\n');
+      git('add', '-A');
+      git('commit', '-qm', 'the work this handoff describes');
+      const branchTip = git('rev-parse', 'HEAD');
+      git('checkout', '-q', 'main');
+      await writeFile(join(root, 'another-package.txt'), 'landed on main\n');
+      git('add', '-A');
+      git('commit', '-qm', 'another package lands on main');
+      const mainTip = git('rev-parse', 'HEAD');
+      git('checkout', '-q', '--detach', 'main');
+      git('merge', '-q', '--no-ff', '-m', 'Merge the pull request head into the base', 'agent/test/work');
+
+      assert.equal(tipBefore(root), branchTip,
+        'a merge built ON the integration branch out of one head outside it is compared against that head');
+      assert.notEqual(tipBefore(root), mainTip);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+
+  // ORIENTATION THREE: that same merge once it is ON main -- what a push-to-main CI run checks out.
+  // Both parents are in main now, so neither is outside it; the branch here IS main, and main as it
+  // stood before is its first parent. The last parent answers with the merged branch's own head.
+  {
+    const scenario = await scenarioRepository();
+    const { root, git } = scenario;
+    try {
+      git('checkout', '-qb', 'agent/test/work');
+      await writeFile(join(root, 'branch-work.txt'), 'work\n');
+      git('add', '-A');
+      git('commit', '-qm', 'the work this handoff describes');
+      const branchTip = git('rev-parse', 'HEAD');
+      git('checkout', '-q', 'main');
+      await writeFile(join(root, 'another-package.txt'), 'landed on main\n');
+      git('add', '-A');
+      git('commit', '-qm', 'another package lands on main');
+      const mainTip = git('rev-parse', 'HEAD');
+      git('merge', '-q', '--no-ff', '-m', 'Merge pull request #1', 'agent/test/work');
+
+      assert.equal(tipBefore(root), mainTip, 'on the integration branch, the state before is its own first parent');
+      assert.notEqual(tipBefore(root), branchTip);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('an ordinary in-progress branch is untouched by any of this, byte for byte', async () => {
+  // The half a fix must not pay for: no merge anywhere, the stored base already the branch point,
+  // and every field of the handoff exactly what the previous implementation wrote. Asserted as the
+  // FILE'S BYTES rather than field by field, because "unaffected" is a claim about the file.
+  // Run against both implementations, this case produces identical output.
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    const branchPoint = git('rev-parse', 'HEAD');
+    git('checkout', '-qb', 'agent/test/work');
+    await declareBranch(root, 'agent/test/work');
+    await writeFile(join(root, 'branch-work.txt'), 'work\n');
+    git('add', '-A');
+    git('commit', '-qm', 'the work this handoff describes');
+    await writeHandoff(root, branchPoint, git('rev-parse', 'HEAD'));
+    git('add', '-A');
+    git('commit', '-qm', 'the handoff citing it');
+    const carriedTheHandoff = git('rev-parse', 'HEAD');
+    await writeFile(join(root, 'branch-work-2.txt'), 'more\n');
+    git('add', '-A');
+    git('commit', '-qm', 'more of the same work');
+    const head = git('rev-parse', 'HEAD');
+
+    assert.equal(tipBefore(root), carriedTheHandoff, 'an ordinary commit is compared against HEAD^, as it always was');
+
+    const refreshed = refresh(root);
+    assert.equal(refreshed.status, 0, `${refreshed.stdout}${refreshed.stderr}`);
+    assert.doesNotMatch(refreshed.stdout, /base moved/,
+      'a base that is already the branch point must not be reported as moved');
+    assert.equal(await readFile(join(root, HANDOFF), 'utf8'), `${JSON.stringify({
+      work_package_id: 'WP-TEST-001',
+      base_revision: branchPoint,
+      head_revision_or_patch_checksum: head,
+      files_added: [HANDOFF, 'branch-work-2.txt', 'branch-work.txt', 'work-packages/WP-TEST-001.json'].sort(),
+      files_modified: [],
+      files_deleted: [],
+    }, null, 2)}\n`, 'the handoff of an ordinary branch is byte for byte what it was before this change');
+
+    const checked = refresh(root, ['--check']);
+    assert.equal(checked.status, 0, `${checked.stdout}${checked.stderr}`);
+    assert.match(checked.stdout, /describes the branch/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('a merge with no integration branch to compare against is refused, not guessed', async () => {
+  // Which side of a merge is the branch is not readable from the merge alone -- both orientations
+  // above are two parents and an order. It takes the integration branch, and when there is none
+  // this REFUSES, for the reason `branchPointOf` refuses a missing ref: an answer picked from two
+  // is right half the time, and a guard that is wrong half the time is worse than a stopped run.
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    git('checkout', '-qb', 'agent/test/work');
+    await declareBranch(root, 'agent/test/work');
+    await writeFile(join(root, 'branch-work.txt'), 'work\n');
+    git('add', '-A');
+    git('commit', '-qm', 'the work this handoff describes');
+    await writeHandoff(root, git('rev-parse', 'HEAD~1'), git('rev-parse', 'HEAD'));
+    git('add', '-A');
+    git('commit', '-qm', 'the handoff citing it');
+    git('checkout', '-q', 'main');
+    await writeFile(join(root, 'another-package.txt'), 'landed on main\n');
+    git('add', '-A');
+    git('commit', '-qm', 'another package lands on main');
+    git('checkout', '-q', 'agent/test/work');
+    git('merge', '-q', '--no-ff', '-m', 'merge main into the working branch', 'main');
+    const before = await readFile(join(root, HANDOFF), 'utf8');
+    git('branch', '-m', 'main', 'trunk');
+
+    // The literal 94, not the script's exported constant, for the reason the branch-point refusal
+    // above gives: importing it would prove the export exists and nothing about what the script does.
+    const refreshed = refresh(root);
+    assert.equal(refreshed.status, 94,
+      'refusing must not be reported as success, and must be told from drift (91) and from a missing '
+      + `branch point (93):\n${refreshed.stdout}${refreshed.stderr}`);
+    assert.match(refreshed.stderr, /cannot determine which parent of merge/);
+    assert.match(refreshed.stderr, /main: no such ref/, 'the message names the refs it looked for');
+    assert.equal(await readFile(join(root, HANDOFF), 'utf8'), before,
+      'and it writes nothing rather than comparing against a side it could not identify');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('a merge with more than one candidate for the branch is refused rather than picked', async () => {
+  // The ambiguous case the rule leaves open: a merge made ON the integration branch out of TWO
+  // heads it does not contain -- the shape a merge queue builds when it batches pull requests.
+  // Neither parent order nor containment names one branch, so there is no answer to give, and the
+  // run stops naming the parents it could not choose between.
+  const scenario = await scenarioRepository();
+  const { root, git } = scenario;
+  try {
+    const mainTip = git('rev-parse', 'HEAD');
+    for (const name of ['one', 'two']) {
+      git('checkout', '-qb', `agent/test/sibling-${name}`, mainTip);
+      await writeFile(join(root, `sibling-${name}.txt`), `${name}\n`);
+      git('add', '-A');
+      git('commit', '-qm', `sibling ${name}`);
+    }
+    git('checkout', '-qb', 'agent/test/work', mainTip);
+    // `--no-ff` is load-bearing: without it the octopus strategy fast-forwards onto the first head
+    // and records [sibling one, sibling two], whose FIRST parent is outside main -- an unambiguous
+    // merge run on a branch, and not the case being built here.
+    git('merge', '-q', '--no-ff', '-m', 'a merge of two heads main does not contain',
+      'agent/test/sibling-one', 'agent/test/sibling-two');
+    await declareBranch(root, 'agent/test/work');
+    await writeHandoff(root, mainTip, git('rev-parse', 'HEAD'));
+    const before = await readFile(join(root, HANDOFF), 'utf8');
+
+    const refreshed = refresh(root);
+    assert.equal(refreshed.status, 94, `${refreshed.stdout}${refreshed.stderr}`);
+    assert.match(refreshed.stderr, /cannot determine which parent of merge/);
+    assert.match(refreshed.stderr, /2 of the rest are not/,
+      'the message says what it could not determine: how many candidates there were, and which');
+    assert.equal(await readFile(join(root, HANDOFF), 'utf8'), before);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
