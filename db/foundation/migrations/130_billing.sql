@@ -990,7 +990,7 @@ begin
   -- inexact numeric type on any column of any table this batch creates. `money` is in the list
   -- because Postgres has a type by that name whose output depends on a session GUC, which is the
   -- worst of both properties for a figure somebody is charged.
-  select format_type(a.atttypid, a.atttypmod) into offending
+  select pg_catalog.format_type(a.atttypid, a.atttypmod) into offending
     from pg_catalog.pg_attribute a
     join pg_catalog.pg_class c on c.oid = a.attrelid
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -1000,7 +1000,7 @@ begin
       coalesce(offending, '<absent>');
   end if;
 
-  select string_agg(format('%s.%s is %s', c.relname, a.attname, format_type(a.atttypid, a.atttypmod)), ', ')
+  select string_agg(format('%s.%s is %s', c.relname, a.attname, pg_catalog.format_type(a.atttypid, a.atttypmod)), ', ')
     into offending
     from pg_catalog.pg_attribute a
     join pg_catalog.pg_class c on c.oid = a.attrelid
@@ -1039,7 +1039,7 @@ begin
                    'only after a privacy review that has not happened, on tables this batch does not '
                    'create. This rule is scoped to batch 130''s own tables on purpose: a rule over '
                    'schema app would make this applied migration''s self-assertion false the day that '
-                   'review approves a column in batch 131.';
+                   'review admits a column in batch 131.';
   end if;
 
   -- NO POLICY ON A TABLE THIS BATCH CREATES MAY NAME `anon`, EVER. RFC-2026-021 §7/4 decides that
