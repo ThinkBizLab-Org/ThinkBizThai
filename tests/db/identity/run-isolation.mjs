@@ -24,9 +24,22 @@ import { readFile } from 'node:fs/promises';
 import {
   expectDenied, expectDeniedBy, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
+import { NOT_A_CONSTRAINT_CODE } from './isolation-cases.mjs';
 
 export const FIXTURE_CATALOG = 'db/foundation/seeds/fixture-catalog.json';
-export const FIXTURE_SQL = 'tests/db/identity/fixtures/010-identity-fixture.sql';
+
+// The tenant fixtures, IN APPLICATION ORDER, which is the order the migrations that need them
+// land in. Batch 020's businesses reference batch 010's workspaces by foreign key, so a loader
+// that applied these as a set rather than as a sequence would fail on the first row.
+//
+// A list rather than a constant because batch 020 is the first batch to add one, and the shape a
+// second entry forces is the shape every later batch needs. `FIXTURE_SQL` used to be a single
+// path; nothing outside this file and scripts/db/rls-smoke.mjs read it, and both now read the
+// list, so there is no stale singular left behind to be loaded by mistake.
+export const FIXTURE_SQL_FILES = [
+  'tests/db/identity/fixtures/010-identity-fixture.sql',
+  'tests/db/identity/fixtures/020-business-fixture.sql',
+];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
 // failure and not a generated uuid, because a test that invents its own id has failures nobody
@@ -45,14 +58,41 @@ export async function fixtureResolver(catalogPath = FIXTURE_CATALOG) {
   };
 }
 
-// The outcome kind → assertion mapping, as data. `no-effect` is handled by the runner because it
-// is two assertions rather than one; the others are exactly the helper module's functions, with
-// nothing wrapped and nothing softened.
+// The outcome kind → assertion mapping, as data. `no-effect` and `rejected` are handled by the
+// runner because neither is one of the helper module's assertions; the others are exactly those
+// functions, with nothing wrapped and nothing softened.
 export const ASSERTION_FOR = {
   rows: expectRows,
   'no-rows': expectNoRows,
   denied: expectDenied,
 };
+
+// `rejected`, which batch 020 needed and the helper module deliberately does not provide.
+//
+// rls-assertions.mjs is about ROW LEVEL SECURITY, and its whole design turns on refusing to call
+// anything other than 42501 a denial: "a constraint violation or a malformed fixture is a different
+// bug and must not be read as a working policy". This is the other side of that sentence. §4
+// invariant 10 requires an unrelated Workspace/Business/Page triple to fail AT THE DATABASE, and
+// the thing that fails it is a composite FOREIGN KEY — 23503, not 42501. A case asserting that
+// invariant must therefore demand the constraint's own code, or it would pass on a database where
+// the constraint had been dropped and a policy refused first.
+//
+// It lives here rather than in rls-assertions.mjs on purpose: adding a non-RLS assertion to the RLS
+// helper module is how "any error counts" gets back in through the module that exists to keep it
+// out.
+export function assertRejectedWith(result, sqlstate, what) {
+  const code = result?.error?.code ?? null;
+  if (code === sqlstate) return { kind: 'rejected', code };
+  if (!result?.error) {
+    const rows = result?.rows?.length ?? 0;
+    throw new Error(`${what}: the database accepted the row (${rows} returned) and had to refuse it with `
+      + `${sqlstate}. A relation invariant enforced by nothing is a relation invariant that is not enforced.`);
+  }
+  throw new Error(`${what}: the database refused with ${code ?? 'an error carrying no SQLSTATE'} and the case `
+    + `demands ${sqlstate}. These are not interchangeable: ${NOT_A_CONSTRAINT_CODE} means a POLICY stopped the `
+    + 'row, and a case that accepted it would pass unchanged on a database whose constraint had been dropped — '
+    + `which is the constraint this case exists to prove. Message: ${result.error.message ?? ''}`);
+}
 
 // Assuming an identity is the part a test gets wrong invisibly. `SET LOCAL` is scoped to the
 // transaction and cannot leak onto the next request that lands on a pooled connection; the
@@ -190,6 +230,20 @@ async function runOne(testCase, driver) {
         return { ...base, ok: true };
       }
 
+      if (testCase.expect === 'rejected') {
+        // The SQLSTATE is the assertion, so a case that forgot to declare one must fail rather
+        // than fall through to "any error will do" — which is the exact shape this kind exists to
+        // refuse. identity-isolation.test.mjs pins the same rule statically; this is the half that
+        // holds when a case is added without running that suite.
+        if (!testCase.sqlstate) {
+          throw new Error(`${testCase.id}: a 'rejected' case must declare the SQLSTATE it expects. `
+            + 'Without one it asserts only that something went wrong, which a broken fixture also '
+            + 'satisfies.');
+        }
+        assertRejectedWith(outcome, testCase.sqlstate, testCase.id);
+        return { ...base, ok: true };
+      }
+
       const assertion = ASSERTION_FOR[testCase.expect];
       if (!assertion) throw new Error(`${testCase.id}: unknown outcome kind '${testCase.expect}'`);
       assertion(outcome, testCase.id);
@@ -233,8 +287,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     'tests/db/identity/run-isolation.mjs is a library, not a command.\n'
     + '  It needs a driver — { begin, rollback, exec } — and the repository declares no Postgres\n'
     + '  client, because RFC-2026-001 forbids adding a dependency and DATA-DEC-02 leaves the tool\n'
-    + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010 and\n'
-    + `  ${FIXTURE_SQL}.\n`
-    + '  Until that happens, tenant isolation for batch 010 is UNPROVEN. Nothing here says otherwise.\n');
+    + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010, 011, 020\n'
+    + `  and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
+    + '  Until that happens, tenant isolation for batches 010-020 is UNPROVEN. Nothing here says\n'
+    + '  otherwise.\n');
   process.exit(1);
 }
