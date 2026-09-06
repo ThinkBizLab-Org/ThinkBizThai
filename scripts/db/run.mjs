@@ -292,12 +292,51 @@ export async function catalogLint(snapshot, digest, exemptions) {
         + 'An expired exemption is a finding, not a fact that ages into permanence.');
     }
   }
+  // RFC-2026-019 §5, and the reason it is three rules rather than a sentence.
+  //
+  // The decision is a NEGATIVE -- authenticator is granted membership in none of the service roles --
+  // and a negative is the strongest thing a lint can hold: nobody has to remember it, and a later
+  // grant fails the build until an RFC changes the decision. RFC-2026-018 proposed the opposite and
+  // would have made this rule impossible to write.
+  const SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH = ['app_worker', 'app_command', 'app_maintenance'];
+  if (c.authenticator_memberships === undefined) {
+    problems.push('the snapshot does not record what authenticator is a member of, so RFC-2026-019 §4/1 '
+      + 'cannot be checked — and an unmeasured property must not read as a passing one');
+  } else {
+    for (const role of c.authenticator_memberships.filter((r) => SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH.includes(r))) {
+      problems.push(`authenticator is a member of ${role} — RFC-2026-019 §4/1 grants it membership in none of `
+        + 'the service roles. The request path runs as authenticated and reaches app_command only as the owner '
+        + 'of a SECURITY DEFINER function it invokes; a membership makes the role assumable by a JWT claim, '
+        + 'which skips the function entirely.');
+    }
+  }
+
+  // §3 of RFC-2026-017: app_command is deliberately NOT the table owner. A SECURITY DEFINER function
+  // owned by the table owner is exempt from the policies on a forced table, so the whole point of
+  // routing privileged writes through such a function dies if the owner is the table's owner.
+  for (const t of c.tenant_tables ?? []) {
+    if (t.owner === undefined) {
+      problems.push(`app.${t.table}: no owner recorded — RFC-2026-017 §3 turns on which role owns it`);
+    } else if (t.owner === 'app_command') {
+      problems.push(`app.${t.table} is owned by app_command — RFC-2026-017 §3 requires it not be the table `
+        + 'owner, because a SECURITY DEFINER function owned by the table owner is exempt from the policies '
+        + 'on a forced table');
+    }
+  }
+
   for (const v of c.exposed_views ?? []) {
     if (!(v.reloptions ?? []).some((o) => /^security_invoker=(true|on)$/i.test(o))) {
       problems.push(`app.${v.view}: not security_invoker`);
     }
   }
   for (const f of c.security_definer_functions ?? []) {
+    // Recorded so that the first function owned by app_command arrives in a diff rather than
+    // unremarked. This rule does not forbid that owner — it is what RFC-2026-017 §3 expects of a
+    // command function — it forbids not knowing.
+    if (!f.owner) {
+      problems.push(`${f.function}: SECURITY DEFINER with no owner recorded — the owner is what decides `
+        + 'whether the function is subject to the policies on a forced table');
+    }
     if (!(f.config ?? []).some((o) => /^search_path=""$/.test(o))) {
       problems.push(`${f.function}: SECURITY DEFINER without an empty search_path`);
     }
