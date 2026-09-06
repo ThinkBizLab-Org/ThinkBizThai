@@ -72,9 +72,18 @@ including a fresh `taken_against_migrations`. The lint tells you the digest it e
 
 ## Fixtures
 
-`seeds/fixture-catalog.json` fixes the fourteen identities §12.6 names. Every UUID is
+`seeds/fixture-catalog.json` fixes the fourteen identities §12.6 names **plus the ones a batch had to
+add and declared**, which is seven more as of batch `030`. This sentence used to say "fourteen" flat
+and was wrong from batch `020` onward; it is corrected here rather than left, because a count nobody
+maintains is how the closed-set assertion below stops meaning anything. Every UUID is
 `uuid5(namespace, 'thinkbizthai.fixture.' || symbol)` — a pure function of the symbol, so anyone can
-recompute them and nobody has to trust the file. A test recomputes all fourteen on every run.
+recompute them and nobody has to trust the file. A test recomputes **all** of them on every run and
+holds the catalog to exactly §12.6's list plus the declared additions, each of which names the batch
+that needed it and the case it exists for.
+
+Batch `030` added the first symbols that belong to **no tenant** — a global industry pack and two of
+its published versions — and they carry no `_a` or `_b` suffix for that reason: every other symbol
+here ends in the workspace its row lives in.
 
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding

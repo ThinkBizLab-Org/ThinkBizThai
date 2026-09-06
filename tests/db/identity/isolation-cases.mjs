@@ -100,6 +100,20 @@
 // would still require inventing a service permission §8.1 does not grant, and 021 grants the
 // service nothing it did not already have.
 //
+// BATCH 030 MOVES NO ROW AT ALL, and that is the honest answer rather than a modest one. It creates
+// three tables and extends six of the eight notes, because every §12.6 assertion it touches was
+// already `true` and a note that grew is the only thing left to record. The two rows it might have
+// been expected to move are worth naming: 3 stays false — an approver refused an INDUSTRY
+// ASSIGNMENT is a third in-scope analogue and still not the content and knowledge tables §12.6/3
+// names — and 8 stays `negative-half`, because 030's two GLOBAL tables give the service a grant and
+// no policy, which is more negative evidence and not a positive.
+//
+// What 030 does add is a KIND of assertion §12.6 has no row for, and it is recorded inside the
+// notes rather than as a ninth key nobody may invent: a row that belongs to NO tenant cannot carry
+// a cross-tenant case, so the catalog is asserted by "both owners are refused identically, at the
+// privilege layer" and by "the one role holding a grant reads zero rows". §12.6 was written about
+// tenant rows and this batch is the first with any others.
+//
 // A row that moves must move for a case, not for a sentence: identity-isolation.test.mjs requires
 // every assertion claimed `covered: true` to be cited by a case in this file.
 export const SMOKE_COVERAGE = {
@@ -113,7 +127,17 @@ export const SMOKE_COVERAGE = {
                            + 'third the negative is satisfied by a fixture that never loaded the row. Batch '
                            + '010 carries that third case on app.workspaces and not on workspace_settings or '
                            + 'workspace_invitations; those two rest on the A-side positive alone, which is a '
-                           + 'weaker shape and is named here rather than covered by an average.' },
+                           + 'weaker shape and is named here rather than covered by an average.\n\n'
+                           + 'BATCH 030 ADDS app.industry_assignments WITH ALL THREE CASES — A reads its own, '
+                           + "A cannot read B's while holding B's exact workspace and Business ids, and B CAN "
+                           + '— plus a fourth the earlier tables had no occasion for: the two positives name '
+                           + 'THE SAME GLOBAL pack version id, so the pair asserts that one catalog row is '
+                           + 'pinned from both sides of the boundary while neither owner can see the other\'s '
+                           + 'assignment. Batch 030\'s two GLOBAL tables are deliberately NOT counted here. '
+                           + 'They belong to no tenant, so "A cannot reach B\'s row" is not a claim anyone can '
+                           + 'make about them; what is asserted instead is that BOTH owners are refused '
+                           + 'identically, at the privilege layer, which is a different assertion and is '
+                           + 'labelled as one.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -129,18 +153,40 @@ export const SMOKE_COVERAGE = {
                            + 'paired with `owner-a-is-unscoped-and-sees-business-a2`, which is what stops the '
                            + 'new negative from being satisfied by business_a2 becoming unreadable to '
                            + 'everybody. §12.6/2 names four rows and this suite now asserts all four in both '
-                           + 'directions.' },
-  3: { covered: false, note: 'content and knowledge are batches 080 and 040. There are now two in-scope '
-                           + 'ANALOGUES — an approver cannot update the workspace (010) and cannot update a '
-                           + 'page context (020) — and both are labelled analogues rather than counted as '
-                           + 'this assertion. The tables it names still do not exist.' },
+                           + 'directions.\n\n'
+                           + 'BATCH 030 EXTENDS IT TO A TABLE CREATED AFTER 021 RATHER THAN BEFORE IT, which '
+                           + 'is why the narrowing there is written into the batch that creates the table and '
+                           + 'still as a RESTRICTIVE policy: a permissive conjunct inside each of the three '
+                           + 'permissive policies would be three places to forget it and a fourth policy '
+                           + 'added later would forget it for free. '
+                           + '`editor-a-scope-does-not-reach-the-industry-assignment-of-business-a2` is the '
+                           + 'negative, and it is paired with TWO positives — the unscoped owner and the '
+                           + 'all_businesses viewer — so it cannot be satisfied by the row becoming '
+                           + 'unreadable to everyone or by the helper answering "narrowed therefore '
+                           + 'excluded".' },
+  3: { covered: false, note: 'content and knowledge are batches 080 and 040. There are now THREE in-scope '
+                           + 'ANALOGUES — an approver cannot update the workspace (010), cannot update a '
+                           + 'page context (020), and cannot re-pin the industry assignment of the very '
+                           + 'Business their member scope names (030) — and all three are labelled analogues '
+                           + 'rather than counted as this assertion. The third is the sharpest of them, '
+                           + 'because the approver\'s scope ADMITS the row and their role still refuses the '
+                           + 'write, which is §7\'s "role sets the ceiling, scope narrows it" in the '
+                           + 'direction people forget. The tables §12.6/3 names still do not exist.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
                            + 'update and delete are granted to no role at all — so `viewer-a-cannot-write-a-'
                            + 'business-version` is the case that carries this assertion there, and the '
                            + 'update/delete cases on those tables belong to §8.6/9 instead: they are refused '
-                           + 'for the OWNER and for the service, which says nothing about a viewer.' },
+                           + 'for the OWNER and for the service, which says nothing about a viewer.\n\n'
+                           + 'ON app.industry_assignments (030) it is insert and update AND NOT DELETE, and '
+                           + 'the absence is the reason rather than an omission: no role holds DELETE on that '
+                           + 'table at all, so a viewer refused a delete would be refused for want of a grant '
+                           + 'and would say nothing about the viewer. That refusal is carried by '
+                           + '`owner-a-cannot-delete-an-industry-assignment` instead, where "even the owner" '
+                           + 'is the claim. The two GLOBAL tables offer a viewer nothing to be refused: they '
+                           + 'grant no client role any verb, which `owner-a-cannot-read-the-industry-pack-'
+                           + "catalog` asserts for every client identity at once." },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -151,12 +197,22 @@ export const SMOKE_COVERAGE = {
                            + 'Batch 020 re-asks it of tables whose policies have no membership predicate of '
                            + 'their own at all: business and version visibility is the helper\'s answer and '
                            + 'nothing else, so a suspended member seeing a business row would mean the helper '
-                           + 'had started answering for an inactive membership.' },
+                           + 'had started answering for an inactive membership. Batch 021 gives that identity '
+                           + 'a scope row ON PURPOSE so the claim is about a policy rather than about an '
+                           + 'empty table, and batch 030 re-asks it of app.industry_assignments, whose '
+                           + 'visibility is the same helper and nothing else.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
-                           + 'because §8.5 gives anon no tenant policy and neither batch grants anon '
+                           + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
                            + 'on the SCHEMA, so the day anon is granted USAGE on app the refusal moves to '
-                           + 'the table and the case fails.' },
+                           + 'the table and the case fails.\n\n'
+                           + 'BATCH 030 IS WHERE THAT CASE STOPS BEING ROUTINE. A published industry catalog '
+                           + 'is classified PUBLIC-0 and is the one family in this schema an anonymous reader '
+                           + 'could plausibly be given, so `anonymous-cannot-read-the-industry-pack-catalog` '
+                           + 'is asserting a REFUSAL SOMEBODY MIGHT WANT TO REMOVE. Removing it is a security '
+                           + 'decision with an owner (A1 Security, through an RFC), and this case is what '
+                           + 'makes that decision arrive as a failing test rather than as a grant inside a '
+                           + 'migration.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -166,7 +222,15 @@ export const SMOKE_COVERAGE = {
                            + 'Workspace/Business/Page triple must fail AT THE DATABASE. That last case is '
                            + 'asserted as `rejected` with its SQLSTATE named, so it cannot be satisfied by a '
                            + 'policy refusing first — which would be a different control passing under this '
-                           + "one's name." },
+                           + "one's name.\n\n"
+                           + 'BATCH 030 ADDS A FOURTH KIND, and it is the first that is not about a tenant at '
+                           + 'all: an id that names a REAL ROW OF THE WRONG TABLE. '
+                           + '`owner-a-cannot-pin-business-a1-to-a-row-that-is-not-a-pack-version` passes the '
+                           + 'industry PACK\'s id where a published VERSION is required — a row the caller '
+                           + 'holds, in a table it may not read, admitted by every policy — and the foreign '
+                           + 'key refuses it with 23503. It is asserted as `rejected` with the SQLSTATE named, '
+                           + 'because a case that would also pass on 42501 would be satisfied by a policy '
+                           + 'stopping the row on a database whose foreign key had been dropped.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -177,15 +241,34 @@ export const SMOKE_COVERAGE = {
                            + 'not the pair as one — they are separate privileges, so a batch that granted '
                            + 'one of them would be caught by exactly one of the two cases. Both are refused '
                            + 'at the privilege layer, because app_worker is granted SELECT and INSERT there '
-                           + 'and nothing else.' },
+                           + 'and nothing else.\n\n'
+                           + 'BATCH 030 IS WHERE THE NEGATIVE HALF DOES ITS MOST WORK, because on its two '
+                           + 'GLOBAL tables the service is the ONLY identity holding a grant at all. '
+                           + '`service-sees-zero-rows-in-the-industry-pack-catalog` and '
+                           + '`service-sees-zero-published-pack-versions` are therefore the only two cases in '
+                           + 'the whole suite where row level security is the sole thing refusing a read of a '
+                           + 'row that belongs to nobody — and they are the two the CI negative control for '
+                           + 'those tables breaks. The service version-mutation pair is asserted there too, '
+                           + 'and at the GRANT layer, because a published pack version is §8.1\'s only `N` in '
+                           + 'the service column.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
-// across batches 010, 011, 020 and 021.
+// across batches 010, 011, 020, 021 and 030.
+//
+// §8.6 opens "ทุก table family ต้องมี test อย่างน้อย 10 cases", and batch 030 is the first to add a
+// family the ten were not written about. `app.industry_assignments` is a tenant table and takes them
+// as written. The two GLOBAL tables cannot: cases 3, 4, 5 and 6 are all about a Workspace, a
+// Business, a Page or a membership, and a published catalog row has none of those. Where a case
+// cannot apply the disposition says so and names what stands in its place, rather than counting a
+// refusal that holds for everybody as a boundary that holds for one tenant.
 export const AUTHORIZATION_CASE_COVERAGE = {
   1: 'covered — owner reads its workspace and inserts an invitation (010); owner reads its '
    + 'businesses, pages and versions, creates a business, a page and a new version (020); owner '
-   + 'creates a member scope, and a SCOPED EDITOR reads and writes inside its scope (021).',
+   + 'creates a member scope, and a SCOPED EDITOR reads and writes inside its scope (021); owner '
+   + 'assigns an industry pack to the one live Business the fixture leaves unassigned, re-pins '
+   + 'another to a second published version, and a scoped editor re-pins the Business its scope '
+   + 'names (030).',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -195,31 +278,53 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '(`editor-a-cannot-create-a-business`, which passes for a new reason — a fresh Business id is '
    + 'covered by no scope row), and a scoped one passes on the row its scope names and is refused on '
    + 'every other. The default-deny is still asserted; what changed is that the grant beside it is '
-   + 'now asserted too.',
+   + 'now asserted too. Batch 030 repeats the split on app.industry_assignments and adds the case '
+   + 'the earlier tables had no shape for: an APPROVER whose member scope covers the row is still '
+   + 'refused the write, so role and scope are visibly two different tests rather than one.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
    + 'the version rows of both — four cases, each paired with a positive on the business_a1 side, '
    + 'and with `owner-a-is-unscoped-and-sees-business-a2` so that the negatives cannot be satisfied '
    + 'by business_a2 becoming unreadable to everyone. The refusal is a RESTRICTIVE policy, which is '
-   + 'the only shape that can narrow what a merged batch already granted.',
+   + 'the only shape that can narrow what a merged batch already granted. BATCH 030 carries the '
+   + 'same three shapes on app.industry_assignments — a filtered read, a filtered write with a '
+   + 'witness, and a raised INSERT — and keeps the restrictive form even though it creates the '
+   + 'table itself, because one policy per table means the scope rule has one home rather than one '
+   + 'per permissive policy.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
    + 'so none of them can be refused a Page inside their own Business. user_page_editor_a holds a '
    + '`page` scope on page_a1 and is refused page_a1_sibling, which is a second Page under '
    + 'business_a1; `page-editor-a-sees-page-a1-in-scope` and `owner-a-sees-page-a1-sibling` are the '
-   + 'two positives that keep the negative from being about a missing row.',
+   + 'two positives that keep the negative from being about a missing row. BATCH 030 CARRIES NO '
+   + 'CASE FOR IT AND SAYS SO: §4\'s ERD hangs INDUSTRY_ASSIGNMENT off BUSINESS_PROFILE and off '
+   + 'nothing else, and §5 scopes the family "global/business", so this table has no Page level for '
+   + 'case 4 to be about. What 030 does record is the consequence at the level it DOES have — '
+   + '`page-editor-a-can-repin-the-industry-assignment-of-business-a1`, because 021\'s '
+   + '`member_scope_covers_business` counts a page scope on its parent Business, which is 021\'s '
+   + 'definition and not 030\'s to change.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
-   + 'addressed (020).',
-  6: 'covered — user_suspended_a, both halves, on all three batches\' tables. Batch 021 gives this '
+   + 'addressed (020); and on app.industry_assignments, in both directions and on both the read and '
+   + 'the write path (030). Batch 030\'s two GLOBAL tables are excluded on purpose: a row that '
+   + 'belongs to no workspace has no cross-tenant case, and pretending otherwise would be counting '
+   + 'a refusal that holds for everybody as a tenant boundary. What is asserted there instead is '
+   + 'that BOTH owners are refused identically.',
+  6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
-   + 'rather than about a table with no row for them.',
-  7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all.',
-  8: 'covered — a forged created_by on the invitation insert (010) and on the business insert '
-   + '(020), both of which raise.',
+   + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
+   + 'assignment, whose only membership predicate is the batch 011 helper.',
+  7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
+   + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
+   + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
+   + 'asserted on the SCHEMA and fails the day anon is granted USAGE on app.',
+  8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
+   + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
+   + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
+   + 'column rather than about the caller being unable to write.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -233,9 +338,20 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'batch, which no case in this file would see. Every live case declares the LAYER as `grant`: no '
    + 'role is granted UPDATE or DELETE on either table, so the refusal happens before RLS is '
    + 'consulted. That distinction is the assertion — a policy can be widened by an edit, an absent '
-   + 'grant has to be granted.',
-  10: 'not applicable to batches 010-021 — no command function is specified for identity or for '
-    + 'business.core, and audit (140) and outbox (050) do not exist yet.',
+   + 'grant has to be granted.\n\n'
+   + 'BATCH 030 ADDS A THIRD IMMUTABLE TABLE AND COMPLETES THE GRID ON IT. '
+   + 'app.industry_pack_versions is "published immutable" by §5, §3.2 and §4 invariant 8, and all '
+   + 'four cells are live: update and delete by the workspace OWNER and by the SERVICE identity, '
+   + 'each at the grant layer. It is the first immutable table in the schema that belongs to no '
+   + 'tenant, so the refusal cannot be mistaken for a tenant boundary — nobody can write it, and '
+   + '030\'s own apply-time block walks six roles against it and raises if any holds either verb.',
+  10: 'not applicable to batches 010-030 — no command function is specified for identity, for '
+    + 'business.core or for industry.core, and audit (140) and outbox (050) do not exist yet. Batch '
+    + '030 makes the gap more visible rather than smaller: RFC-2026-012 §4 names SECURITY DEFINER '
+    + 'command functions as the enforcement mechanism for the whole client/database boundary, and '
+    + 'the industry catalog is the first family this repository has written that is unreadable '
+    + 'without one. The command surface is owed to DATA-DEC-03 and the RFC that opens the read '
+    + 'allowlist.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -433,6 +549,56 @@ export function buildCases(id) {
   // through this shape, so "the caller sees its own rows and nobody else's" is asked the same way
   // of every identity.
   const scopesOf = 'select scope_type from app.workspace_member_scopes where workspace_id = $1 and user_id = $2';
+
+  // -- Batch 030 builders and witnesses. -------------------------------------------------------
+  //
+  // The GLOBAL rows, by fixture SYMBOL. They carry no `_a` or `_b` suffix because they belong to no
+  // tenant, and the cases below attack them from BOTH sides of the boundary: the assertion is never
+  // "A cannot reach B's row", which would be meaningless about a catalog, but "no request-path
+  // identity reaches it at all".
+  const PACK = id('industry_pack_interior');
+  const PACK_V1 = id('industry_pack_interior_v1');
+  const PACK_V2 = id('industry_pack_interior_v2');
+  // The live Business batch 030's fixture leaves unassigned, which is the only target a permitted
+  // INSERT can use: every other live Business in workspace A must already carry an assignment for
+  // the scope and cross-tenant negatives to be about a policy rather than about a missing row.
+  const BUSINESS_A4 = id('business_a4_unassigned');
+
+  // An assignment is addressed by the Business it belongs to, never by an id of its own: 030 makes
+  // (workspace_id, business_profile_id) unique because §4's ERD makes it zero-or-one per Business,
+  // so this pair names exactly one existing row and the catalog needs no symbol for it.
+  const ASSIGNMENT_OF = 'workspace_id = $1 and business_profile_id = $2';
+
+  // The pinned version of one Business, which is what every assignment positive reads and every
+  // no-effect witness reads back. Naming the version in the WHERE clause rather than only selecting
+  // it is what makes `owner-a-sees-...-the-global-pack-version` and
+  // `owner-b-sees-...-the-same-global-pack-version` a claim about ONE row rather than two.
+  const pinnedTo = `select id from app.industry_assignments where ${ASSIGNMENT_OF} and industry_pack_version_id = $3`;
+
+  const repin = (workspace, business, version) => ({
+    sql: `update app.industry_assignments set industry_pack_version_id = $3, updated_by = $4`
+       + ` where ${ASSIGNMENT_OF} returning id`,
+    params: [workspace, business, version, '__SELF__'],
+  });
+
+  const assign = (workspace, business, version, createdBy) => ({
+    sql: 'insert into app.industry_assignments'
+       + ' (workspace_id, business_profile_id, industry_pack_version_id, created_by, updated_by)'
+       + ' values ($1, $2, $3, $4, $4) returning id',
+    params: [workspace, business, version, createdBy],
+  });
+
+  // The witness for a blocked write against an assignment reads the PINNED VERSION back, not the
+  // row's existence: `no-effect` is only stronger than an empty result because the witness proves
+  // the value did not move, and business_a2 is pinned to a DIFFERENT version from business_a1 so a
+  // write that had gone through would be visible rather than idempotent.
+  const assignmentWitness = (as, workspace, business, version) => ({
+    as,
+    sql: `select industry_pack_version_id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+    params: [workspace, business],
+    column: 'industry_pack_version_id',
+    equals: version,
+  });
 
   return [
     // -- §12.6/1, §8.6/1 and §8.6/5. Both directions of the tenant boundary. -------------------
@@ -1926,6 +2092,509 @@ export function buildCases(id) {
          + 'anywhere. The refusal is expected from the privilege system before the function is '
          + 'entered — on the SCHEMA, because anon holds no USAGE on app and name resolution stops '
          + 'there.',
+    },
+
+    // -- Batch 030. The GLOBAL catalog, whose control is not a tenant boundary. -------------------
+    //
+    // §9.1 classifies the published industry catalog PUBLIC-0 with "Client projection: allowed", and
+    // RFC-2026-012 §2/3 puts that projection behind a named security_invoker view on an allowlist
+    // that starts empty and grows only by RFC. The allowlist is still empty — `exposed_views` in
+    // db/foundation/lint/catalog-snapshot.json measures `[]` — so batch 030 grants no client role
+    // anything on either global table.
+    //
+    // THESE CASES ARE THAT ALLOWLIST, EXECUTED. A denial at the GRANT layer is what an empty
+    // allowlist looks like from the request path, and the day a batch adds the grant without the
+    // RFC, four of them fail. That is the point of asserting the layer rather than the refusal.
+    {
+      id: 'owner-a-cannot-read-the-industry-pack-catalog',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3', '§9.1/PUBLIC-0'],
+      as: ownerA,
+      sql: 'select pack_id from app.industry_packs where id = $1',
+      params: [PACK],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_packs' },
+      why: 'A workspace owner holding the catalog row\'s exact id is refused by the PRIVILEGE system, '
+         + 'because RFC-2026-012 §2 puts every direct client read behind a named security_invoker '
+         + 'view and §3 starts that allowlist empty. §9.1 says a PUBLIC-0 projection MAY be shown to '
+         + 'a client; it names no object and no tier, and the object is what this case is about.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-industry-pack-catalog',
+      covers: ['RFC-2026-012§3', '§5/global'],
+      as: ownerB,
+      sql: 'select pack_id from app.industry_packs where id = $1',
+      params: [PACK],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_packs' },
+      why: 'THE SAME REFUSAL FROM THE OTHER TENANT, and the pair is the assertion. On every table '
+         + 'before this one, two owners get different answers because the row belongs to one of '
+         + 'them. This row belongs to neither, so a cross-tenant case would prove nothing — the '
+         + 'claim that means something is that the catalog is equally unreachable from both sides.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-published-pack-version',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3'],
+      as: ownerA,
+      sql: 'select version, checksum from app.industry_pack_versions where id = $1',
+      params: [PACK_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: 'The version table carries the checksum every consumer must pin, and it is behind the '
+         + 'same empty allowlist. A client that needs it reads it through the server tier or through '
+         + 'a view an RFC has named; neither exists, and this case is what says so.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-industry-pack-catalog',
+      covers: ['§12.6/6', '§8.5', 'RFC-2026-012§3'],
+      as: anonymous,
+      sql: 'select pack_id from app.industry_packs where id = $1',
+      params: [PACK],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'A published catalog is the one thing in this schema an anonymous reader could plausibly '
+         + 'be given, which is exactly why the refusal is asserted rather than assumed. anon holds '
+         + 'no USAGE on app, so name resolution stops at the SCHEMA — and the day somebody decides '
+         + 'the product has an unauthenticated surface, this case fails and the decision arrives '
+         + 'with an owner instead of inside a migration.',
+    },
+    {
+      id: 'service-sees-zero-rows-in-the-industry-pack-catalog',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: 'select pack_id from app.industry_packs where id = $1',
+      params: [PACK],
+      expect: 'no-rows',
+      why: 'THE ONE CASE ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason app_worker '
+         + 'holds a SELECT grant at all. Without the grant this refusal would be 42501 either way '
+         + 'and would prove only that somebody forgot a GRANT; with the grant and no policy, an '
+         + 'empty read can only have come from RLS — and a service role that had quietly acquired '
+         + 'BYPASSRLS would SUCCEED here. It is also the case the CI negative control for '
+         + 'app.industry_packs exists to break: a global table has no tenant boundary to disable, so '
+         + 'this is what disabling row level security on it makes visible.',
+    },
+    {
+      id: 'service-sees-zero-published-pack-versions',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: 'select version from app.industry_pack_versions where id = $1',
+      params: [PACK_V1],
+      expect: 'no-rows',
+      why: 'The same, one table over, and the same role for the CI negative control on '
+         + 'app.industry_pack_versions. The Core Runtime will have to read published packs; the '
+         + 'policy that lets it is owed to the batch that brings the resolver, and until then the '
+         + 'service reads nothing and this case says so out loud.',
+    },
+    {
+      id: 'owner-a-cannot-publish-an-industry-pack',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      sql: 'insert into app.industry_packs (pack_id, industry_key, publisher)'
+         + " values ('th.sme.attempted', 'attempted', 'attempted') returning id",
+      params: [],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_packs' },
+      why: 'The catalog is platform-curated and written by the global seed. §8 has no row for an '
+         + 'industry pack in any of its four matrices, so there is no cell granting this and the '
+         + 'refusal is deny-by-default reaching the privilege layer.',
+    },
+    {
+      id: 'owner-a-cannot-publish-a-pack-version',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      sql: 'insert into app.industry_pack_versions'
+         + ' (industry_pack_id, version, display_name_th, checksum, released_at)'
+         + " values ($1, '9.9.9', 'attempted', 'sha256:' || repeat('0', 64), now()) returning id",
+      params: [PACK],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: 'Publishing a version is what makes a pack real to every tenant at once. A workspace '
+         + 'owner may not do it, and the refusal is a privilege-layer one so it cannot be widened by '
+         + 'editing a policy.',
+    },
+    {
+      id: 'owner-a-cannot-update-a-published-pack-version',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      sql: 'update app.industry_pack_versions set display_name_th = $2 where id = $1 returning id',
+      params: [PACK_V1, 'renamed a published version'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: '"Published version immutable; แก้ด้วย version ใหม่เท่านั้น", and §3.2 and §4 invariant 8 '
+         + 'say the same of every published version. It is expressed as an ABSENT GRANT, so the '
+         + 'refusal happens before RLS is consulted and cannot be undone by a policy edit.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-published-pack-version',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      sql: 'delete from app.industry_pack_versions where id = $1 returning id',
+      params: [PACK_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases: a batch that '
+         + 'granted one of them would be caught by exactly one of the two, and a pair asserted as '
+         + 'one claim would catch neither.',
+    },
+    {
+      id: 'service-cannot-update-a-published-pack-version',
+      covers: ['§8.6/9', '§12.6/8'],
+      as: service,
+      sql: 'update app.industry_pack_versions set display_name_th = $2 where id = $1 returning id',
+      params: [PACK_V1, 'renamed by the service'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: '§8.1\'s only `N` in the SERVICE column is immutable version UPDATE/DELETE, and a '
+         + 'published pack version is one. app_worker holds SELECT here and nothing else, so this is '
+         + 'refused at the privilege layer while its READ is refused by RLS — two different layers '
+         + 'on one table, each asserted as itself.',
+    },
+    {
+      id: 'service-cannot-delete-a-published-pack-version',
+      covers: ['§8.6/9', '§12.6/8'],
+      as: service,
+      sql: 'delete from app.industry_pack_versions where id = $1 returning id',
+      params: [PACK_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_pack_versions' },
+      why: 'The second verb, for the reason the owner pair gives.',
+    },
+
+    // -- Batch 030. The tenant assignment, which is where the boundary IS the control. ------------
+    //
+    // §8.1 has no row for an industry pack, and it has two for a Business. 020's header named the
+    // industry assignment as part of a Business's attribute surface while deferring it here, so
+    // "Business/Page SELECT" (Y for every role) and "Business/Page INSERT/UPDATE/archive" (Y owner
+    // and admin, P editor) are the cells these cases exercise, through 011's membership helpers and
+    // 021's scope helpers.
+    {
+      id: 'owner-a-sees-business-a1-pinned-to-the-global-pack-version',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerA,
+      sql: pinnedTo,
+      params: ['__A__', BUSINESS_A1, PACK_V1],
+      expect: 'rows',
+      why: 'The positive half, and the A side of the claim that the catalog is GLOBAL: this owner '
+         + 'sees their Business pinned to a version id, and the case names that id rather than '
+         + 'selecting whatever is there, so it is an assertion about one row.',
+    },
+    {
+      id: 'owner-b-sees-business-b1-pinned-to-the-same-global-pack-version',
+      covers: ['§12.6/1', '§8.6/1', '§5/global'],
+      as: ownerB,
+      sql: pinnedTo,
+      params: ['__B__', BUSINESS_B1, PACK_V1],
+      expect: 'rows',
+      why: 'THE OTHER HALF, AND THE WHOLE OF WHAT "GLOBAL" MEANS HERE. Two tenants pin the SAME '
+         + 'catalog row — the same uuid appears in both cases — and neither owner can see the '
+         + "other's assignment. A catalog replicated per tenant would pass the case above and fail "
+         + 'this one; a leaking assignment table would pass both and fail the negative below.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-industry-assignment-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: `select id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+      params: ['__B__', BUSINESS_B1],
+      expect: 'no-rows',
+      why: "Tenant A's owner holds tenant B's exact workspace and Business ids, the row IS there — "
+         + 'the case above proves it — and it is not visible. That is the tenant boundary doing its '
+         + 'work on the one table in this batch that has one.',
+    },
+    {
+      id: 'owner-a-cannot-repin-the-industry-assignment-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      ...repin('__B__', BUSINESS_B1, PACK_V2),
+      expect: 'no-effect',
+      witness: assignmentWitness(ownerB, B, BUSINESS_B1, PACK_V1),
+      why: 'The USING clause does not admit the row, so the statement matches nothing and Postgres '
+         + "raises nothing. The witness — run as B's own owner — turns \"returned nothing\" into "
+         + '"the row is still pinned to the version it was pinned to".',
+    },
+    {
+      id: 'owner-a-cannot-assign-an-industry-pack-to-business-b1',
+      covers: ['§8.6/5', '§8.6/8'],
+      as: ownerA,
+      ...assign('__B__', BUSINESS_B1, PACK_V2, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: 'The write half of the cross-tenant case. An INSERT has no USING clause to filter it '
+         + 'silently, so this raises where the update above returns nothing — and the layer is '
+         + 'declared because the caller holds every INSERT column privilege the statement names, so '
+         + 'a grant-layer refusal here would mean the policy was never reached.',
+    },
+    {
+      id: 'viewer-a-sees-the-industry-assignment-of-business-a1',
+      covers: ['§8.6/1', '§8.1/business-select'],
+      as: viewerA,
+      sql: pinnedTo,
+      params: ['__A__', BUSINESS_A1, PACK_V1],
+      expect: 'rows',
+      why: '§8.1 marks Business/Page SELECT `Y` for every built-in role, so the predicate tests '
+         + 'active membership and not role. Without this the write refusals below are satisfied by a '
+         + 'viewer who cannot see the table at all.',
+    },
+    {
+      id: 'viewer-a-cannot-repin-the-industry-assignment-of-business-a1',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...repin('__A__', BUSINESS_A1, PACK_V2),
+      expect: 'no-effect',
+      witness: assignmentWitness(ownerA, A, BUSINESS_A1, PACK_V1),
+      why: 'Same workspace, wrong role. §8.1 gives Business INSERT/UPDATE `N` to the viewer, so the '
+         + 'row is outside every UPDATE policy\'s USING clause and the statement matches nothing. '
+         + 'The witness proves business_a1 is still pinned to the version it was pinned to.',
+    },
+    {
+      id: 'viewer-a-cannot-assign-an-industry-pack-to-business-a4',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...assign('__A__', BUSINESS_A4, PACK_V1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: 'The same role against the free Business slot, on the path that raises. The viewer holds '
+         + 'the INSERT column grant — §12.6/4 is about a POLICY refusing a viewer, and a case that '
+         + 'was refused for want of a grant would prove the grant instead.',
+    },
+    {
+      id: 'approver-a-cannot-repin-the-industry-assignment-of-business-a1',
+      covers: ['§8.6/2'],
+      as: approverA,
+      ...repin('__A__', BUSINESS_A1, PACK_V2),
+      expect: 'no-effect',
+      witness: assignmentWitness(ownerA, A, BUSINESS_A1, PACK_V1),
+      why: '§8.1 gives Business INSERT/UPDATE `N` to the approver too, and an approver scoped to '
+         + 'this very Business is the sharper test: their member scope ADMITS the row and their role '
+         + 'still refuses the write, which is §7\'s "role sets the ceiling, scope narrows it" in the '
+         + 'direction people forget.',
+    },
+    {
+      id: 'owner-a-can-assign-an-industry-pack-to-business-a4',
+      covers: ['§8.6/1', '§8.1/business-write'],
+      as: ownerA,
+      ...assign('__A__', BUSINESS_A4, PACK_V1, '__SELF__'),
+      expect: 'rows',
+      why: 'The permitted INSERT, without which every refusal above is satisfied by a table nobody '
+         + 'can write. business_a4 is the fixture\'s only live unassigned Business, because §4\'s ERD '
+         + 'makes an assignment zero-or-one per Business and every other live Business must already '
+         + 'carry one. The write is real and the transaction is rolled back, as every permitted '
+         + 'write in this suite is.',
+    },
+    {
+      id: 'owner-a-can-repin-business-a1-to-the-second-pack-version',
+      covers: ['§8.6/1', '§8.1/business-write'],
+      as: ownerA,
+      ...repin('__A__', BUSINESS_A1, PACK_V2),
+      expect: 'rows',
+      why: 'Re-pinning is how a Business moves to a newer published pack, which §4.5 activates by '
+         + 'explicit approval for a minor version. It is the only mutation this table offers: '
+         + 'un-pinning would be a DELETE, and no role holds one.',
+    },
+    {
+      id: 'owner-a-cannot-assign-an-industry-pack-to-an-archived-business',
+      covers: ['§11.3', '§8.6/2'],
+      as: ownerA,
+      ...assign('__A__', BUSINESS_A3_ARCHIVED, PACK_V1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: '§11.3: "Archive ปิด creation/publish ใหม่ แต่ยังอ่าน history ตาม role". Creating an '
+         + 'assignment under an archived Business is new creation under it, and both INSERT policies '
+         + 'carry the clause — the permissive one for the editor would OR past it otherwise, which '
+         + 'is the mistake 021 records about its own page insert.',
+    },
+    {
+      id: 'owner-a-cannot-forge-created-by-on-an-industry-assignment',
+      covers: ['§12.6/7', '§8.6/8'],
+      as: ownerA,
+      ...assign('__A__', BUSINESS_A4, PACK_V1, id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: '§8.5: a user action asserts `created_by = (select auth.uid())`. The same statement '
+         + 'succeeds two cases up with the owner\'s own subject, so this is about the forged column '
+         + 'and not about the owner being unable to write at all.',
+    },
+    {
+      id: 'owner-a-cannot-pin-business-a1-to-a-row-that-is-not-a-pack-version',
+      covers: ['§4/invariant-10', '§4.3/pinning'],
+      as: ownerA,
+      ...repin('__A__', BUSINESS_A1, PACK),
+      expect: 'rejected',
+      sqlstate: '23503',
+      why: 'THE CONSTRAINT, NOT THE POLICY, AND THE CASE DEMANDS THE CONSTRAINT\'S OWN SQLSTATE. The '
+         + 'id passed is the industry PACK\'s — a real row in this database, held by the caller, and '
+         + 'not a published version — so every policy admits the statement and the foreign key '
+         + 'refuses it. A case that would also pass on 42501 would be satisfied by a policy stopping '
+         + 'the row on a database whose foreign key had been dropped, which is the pinning rule this '
+         + 'case exists to prove.',
+    },
+    {
+      id: 'owner-a-cannot-move-an-industry-assignment-to-another-business',
+      covers: ['§8.5', '§12.6/7'],
+      as: ownerA,
+      sql: `update app.industry_assignments set business_profile_id = $3 where ${ASSIGNMENT_OF} returning id`,
+      params: ['__A__', BUSINESS_A1, BUSINESS_A4],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: '§8.5 forbids moving a row across tenant OR scope with an update, and the UPDATE grant '
+         + 'names only industry_pack_version_id and updated_by. So this is refused by the PRIVILEGE '
+         + 'system rather than by a WITH CHECK a later edit could weaken — by the workspace owner, '
+         + 'who may do everything else on this row.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-industry-assignment',
+      covers: ['§8.5', '§8.6/2'],
+      as: ownerA,
+      sql: `delete from app.industry_assignments where ${ASSIGNMENT_OF} returning id`,
+      params: ['__A__', BUSINESS_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: '§8.5 has no broad user delete and requires a soft delete through a typed lifecycle '
+         + 'field; no document names one for this row, so batch 030 grants the verb to nobody rather '
+         + 'than inventing the field. A Business can be re-pinned and not un-pinned, which is stated '
+         + 'in the migration header and asserted here.',
+    },
+
+    // -- Batch 030. The member scope narrowing, on a table created after 021 rather than before it.
+    {
+      id: 'editor-a-can-repin-the-industry-assignment-of-business-a1',
+      covers: ['§8.1/editor-P', '§8.6/1'],
+      as: editorA,
+      ...repin('__A__', BUSINESS_A1, PACK_V2),
+      expect: 'rows',
+      why: '§8.1 marks Business INSERT/UPDATE `P` for the editor and 021 supplies the condition: an '
+         + 'editor whose member scope EXPLICITLY covers the Business. This identity is scoped to '
+         + 'business_a1, so it passes here and nowhere else.',
+    },
+    {
+      id: 'editor-a-scope-does-not-reach-the-industry-assignment-of-business-a2',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      sql: `select id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+      params: ['__A__', BUSINESS_A2],
+      expect: 'no-rows',
+      why: 'Same workspace, same role, a Business the editor\'s scope does not name. The RESTRICTIVE '
+         + 'policy is what makes a SELECT this table already granted to every member narrower — a '
+         + 'permissive one could not subtract — and the row IS there, which the two positives below '
+         + 'prove.',
+    },
+    {
+      id: 'owner-a-is-unscoped-and-sees-the-industry-assignment-of-business-a2',
+      covers: ['§7/member-scope', '§8.6/3'],
+      as: ownerA,
+      sql: pinnedTo,
+      params: ['__A__', BUSINESS_A2, PACK_V2],
+      expect: 'rows',
+      why: 'The control the negative above needs. user_owner_a holds NO scope row, and 021 reads §7 '
+         + 'as "a member with no row is not narrowed", so this identity sees the assignment the '
+         + 'editor cannot. Without it, a policy that hid business_a2\'s assignment from EVERYBODY '
+         + 'would pass as a working narrowing.',
+    },
+    {
+      id: 'viewer-a-all-businesses-scope-still-sees-the-industry-assignment-of-business-a2',
+      covers: ['§7/member-scope'],
+      as: viewerA,
+      sql: pinnedTo,
+      params: ['__A__', BUSINESS_A2, PACK_V2],
+      expect: 'rows',
+      why: 'The second control, and the one that keeps `member_scope_admits_business` honest on this '
+         + 'table: user_viewer_a IS narrowed — it holds an all_businesses row — and still sees '
+         + 'business_a2. A helper that answered "narrowed therefore excluded" would fail here rather '
+         + 'than passing everywhere.',
+    },
+    {
+      id: 'editor-a-cannot-repin-the-industry-assignment-of-business-a2',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: editorA,
+      ...repin('__A__', BUSINESS_A2, PACK_V1),
+      expect: 'no-effect',
+      witness: assignmentWitness(ownerA, A, BUSINESS_A2, PACK_V2),
+      why: 'The write half of the same boundary. The restrictive policy keeps the row out of the '
+         + 'USING clause, so the statement matches nothing and Postgres raises nothing — and the '
+         + 'witness runs as the UNSCOPED owner, the only A-side identity that can see the row and '
+         + 'prove it is still pinned where it was.',
+    },
+    {
+      id: 'editor-a-cannot-assign-an-industry-pack-to-business-a4',
+      covers: ['§8.1/editor-P', '§8.6/3'],
+      as: editorA,
+      ...assign('__A__', BUSINESS_A4, PACK_V1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: '`covers`, not `admits`, doing the work the letter `P` asks for: this editor is scoped to '
+         + 'business_a1 and business_a4 is named by no scope row of theirs, so the explicit '
+         + 'capability is absent and the permissive editor policy refuses. The owner performs the '
+         + 'identical statement successfully, so the case is about the scope and not about the '
+         + 'policy refusing every assignment.',
+    },
+    {
+      id: 'page-editor-a-can-repin-the-industry-assignment-of-business-a1',
+      covers: ['§7/member-scope', '§8.1/editor-P'],
+      as: pageEditorA,
+      ...repin('__A__', BUSINESS_A1, PACK_V2),
+      expect: 'rows',
+      why: 'A CONSEQUENCE OF 021 RECORDED RATHER THAN RE-DECIDED, because it is the one result here '
+         + 'a reviewer should look at twice. `app.member_scope_covers_business` counts a `page` '
+         + 'scope on the Business its Page hangs from — 021 says so in terms, so that a page-scoped '
+         + 'member can reach the Business at all — and an industry assignment is a Business-level '
+         + 'row. So an editor scoped to ONE PAGE can re-pin the whole Business. 021 already grants '
+         + 'this identity UPDATE on app.business_profiles by the same predicate, so batch 030 '
+         + 'inherits the semantics rather than widening them; narrowing it would mean a different '
+         + '`covers` function, which is an amendment to a merged batch and not this one\'s to make.',
+    },
+    {
+      id: 'suspended-a-sees-zero-industry-assignments',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: `select id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+      params: ['__A__', BUSINESS_A1],
+      expect: 'no-rows',
+      why: '§7: only status=active grants access. This table has no membership predicate of its own '
+         + '— visibility is `app.is_active_member(workspace_id)` and nothing else — so a suspended '
+         + 'member seeing an assignment would mean the batch 011 helper had started answering for an '
+         + 'inactive membership. The row is there and the owner reads it, which is what makes this '
+         + 'a claim about the predicate.',
+    },
+    {
+      id: 'anonymous-sees-no-industry-assignment',
+      covers: ['§12.6/6', '§8.5'],
+      as: anonymous,
+      sql: `select id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+      params: ['__A__', BUSINESS_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: '§8.5 gives anonymous no tenant policy and batch 030 grants anon nothing, so the refusal '
+         + 'comes from the privilege system on the SCHEMA before a table is reached — stronger than '
+         + '§12.6/6 asks for, and recorded as the layer and the object so it fails the day anon is '
+         + 'granted USAGE on app.',
+    },
+    {
+      id: 'service-sees-zero-industry-assignments',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: `select id from app.industry_assignments where ${ASSIGNMENT_OF}`,
+      params: ['__A__', BUSINESS_A1],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT, INSERT and UPDATE on this table and no policy, so an empty read '
+         + 'is attributable to row level security rather than to a forgotten grant — and a service '
+         + 'role that had acquired BYPASSRLS would return the row instead.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

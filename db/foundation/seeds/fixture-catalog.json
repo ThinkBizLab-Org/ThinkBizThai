@@ -52,6 +52,10 @@
       "uuid": "de27d341-202e-5f39-813f-9ddf39e4f59b",
       "role": "third business under workspace_a, archived. §11.3 says archive closes new creation under a Business while its history stays readable, and batch 020's page INSERT policy refuses a Page under it. Added by batch 020 rather than reusing business_a2, whose whole purpose is to be the Business the editor's scope excludes (batch 021); one fixture row carrying two unrelated controls is how a test starts failing for the other one's reason."
     },
+    "business_a4_unassigned": {
+      "uuid": "2ffb7f0e-f5f3-5763-a3d4-16dd4c4fae30",
+      "role": "fourth business under workspace_a, live and DELIBERATELY UNASSIGNED. Added by batch 030 because that batch's permitted INSERT needs a live Business with no industry assignment, while every other live Business in workspace_a must HAVE one: business_a1 so the scoped-editor and cross-tenant positives address a row that exists, business_a2 so `editor-a-scope-does-not-reach-the-industry-assignment-of-business-a2` is a negative about a policy rather than about a missing row. business_a3_archived cannot serve either purpose, because the INSERT policy refuses a new row under an archived Business (§11.3) and that refusal is its own case. One fixture row carrying two unrelated controls is how a case starts failing for the other one's reason."
+    },
     "business_b1": {
       "uuid": "3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3",
       "role": "business under workspace_b, reachable only by user_owner_b"
@@ -71,8 +75,21 @@
     "page_b1": {
       "uuid": "9f06926b-4de1-5bcb-9199-3206f7c3f2ad",
       "role": "page under business_b1, on the far side of the tenant boundary"
+    },
+    "industry_pack_interior": {
+      "uuid": "e19d29b8-7c06-542c-8ea3-4919cf7e0ab6",
+      "role": "the GLOBAL industry pack catalog row, `th.sme.interior-built-in`. It carries no _a or _b suffix and that is the point: every other symbol here ends in the workspace it lives in, because every other row is tenant-owned, and a suffix on this one would assert a tenant boundary the row does not have. Batch 030's cases attack it from BOTH tenants and from the service identity, and the assertion is never 'A cannot reach B's row' -- it is 'no request-path identity reaches it at all, and the one role holding a grant is refused by row level security'."
+    },
+    "industry_pack_interior_v1": {
+      "uuid": "ff1faf5e-a13e-56d9-a18b-eaa824d67074",
+      "role": "published version 1.0.0 of industry_pack_interior. GLOBAL and immutable, and the row business_a1 and business_b1 are BOTH pinned to -- which is what proves the catalog is global rather than replicated per tenant, since each owner sees only their own assignment while both name this one id."
+    },
+    "industry_pack_interior_v2": {
+      "uuid": "28075fbf-06f2-5f98-9557-02bbc04822ec",
+      "role": "published version 1.1.0 of industry_pack_interior, the minor release §4.5 activates by explicit approval. GLOBAL and immutable. It exists so a re-pin has a target that is not the row already pinned: an UPDATE case that set the value the row already held would pass against a database where the write did nothing."
     }
   },
   "_no_symbol_for_a_member_scope_row": "Batch 021 creates app.workspace_member_scopes and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row. A member scope is identified by the member it belongs to and the target it names — (workspace_id, user_id, scope_type, business_profile_id, page_context_profile_id) is unique in 021_member_scope.sql — and every id in that tuple is already fixed here, so a case addresses an existing scope row exactly without a sixth constant to keep in step with the fixture. The two symbols batch 021 DID add are a member and a Page, because §8.6 case 4 needs a member scoped to one Page and a second Page under the same Business, and §12.6's list contains neither.",
-  "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make."
+  "_no_symbol_for_a_version_row": "Batch 020 creates two immutable version tables and adds NO symbol for their rows, which is a deliberate narrowing of the draft this batch grew from. A version is identified by its parent and its ordinal — (business_profile_id, version_number) and (page_context_profile_id, version_number) are unique constraints in 020_business.sql — so the immutability and cross-tenant cases address an EXISTING version row exactly, through ids this catalog already fixes, and the fixture inserts those rows with the id column defaulting to gen_random_uuid(). Nothing is weakened: §12.6's control is that tenant A holds tenant B's real id and still cannot reach the row, and business_b1's id is fixed here. Six more derived uuids would have been six more constants to keep in step with a fixture, bought with no assertion the natural key does not already make.",
+  "_no_symbol_for_an_industry_assignment": "Batch 030 creates app.industry_assignments and adds NO symbol for a row in it, for the same reason batch 020 added none for a version row and batch 021 none for a member scope. §4's ERD makes the assignment zero-or-one per Business and 030_industry.sql makes (workspace_id, business_profile_id) unique, so a Business names at most one assignment and every case addresses it through ids this catalog already fixes. What batch 030 DID add is one Business and three global rows: the Business because the permitted INSERT needs a live target with no assignment, and the global rows because a catalog no case can address is a catalog no case can be about."
 }

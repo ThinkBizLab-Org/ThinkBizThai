@@ -191,7 +191,17 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // grants, the RESTRICTIVE narrowings and RFC-2026-020 §5/3 against the LIVE catalog of whatever
 // database receives it. The list grows the day the instance receives the batch and the snapshot is
 // retaken, and the completeness rule REQUIRES it then.
-const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql'];
+//
+// Batch 030 joins for the same structural reason again: its policies call helpers created by 011
+// and 021, and its assignment table carries a composite foreign key into a table created by 020.
+// It also brings the first thing this list has not had to think about — two GLOBAL tables, which
+// belong to no workspace at all. `tenantTablesInMigrations` reads `create table app.X` and cannot
+// tell a global table from a tenant one, so the day 030 reaches the instance the completeness rule
+// will require rows for all three; the snapshot's own declaration says what such a row will and
+// will not mean, because a row in a list called `tenant_tables` is not the place to discover that
+// two of its entries are not tenant-owned.
+const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
+  '030_industry.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -326,6 +336,21 @@ const ADDED_SYMBOLS = [
   // under business_a2, so a refusal there is case 3's control wearing case 4's name.
   'user_page_editor_a',
   'page_a1_sibling',
+  // Batch 030. §4's ERD makes an industry assignment zero-or-one per Business, so batch 030's
+  // permitted INSERT needs a live Business that has none — while every OTHER live Business in
+  // workspace A must carry one, or the scope and cross-tenant negatives are about a missing row
+  // rather than about a policy. business_a3_archived cannot be that slot: §11.3 closes new creation
+  // under an archived Business and 030's INSERT policies refuse it, which is its own case.
+  'business_a4_unassigned',
+  // The first fixture rows that belong to NO TENANT. §5 scopes industry.core "global/business", so
+  // these three carry no `_a` or `_b` suffix — every other symbol here ends in the workspace its row
+  // lives in, and a suffix on a catalog row would assert a boundary the row does not have. Two
+  // versions rather than one because a re-pin needs a target that is not the version already
+  // pinned: an UPDATE case that set the value the row already held would pass against a database
+  // where the write did nothing.
+  'industry_pack_interior',
+  'industry_pack_interior_v1',
+  'industry_pack_interior_v2',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

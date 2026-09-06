@@ -11,8 +11,8 @@ than restate a figure.
 
 | count | value |
 |---|---|
-| tests | 375 |
-| pass | 375 |
+| tests | 386 |
+| pass | 386 |
 | fail | 0 |
 | skipped | 0 |
 | todo | 0 |

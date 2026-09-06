@@ -182,4 +182,28 @@ jobs:
           # narrowed, and the suspended member — who holds a scope row on purpose — starts seeing
           # one. `[a-z0-9-]*scope` is matched by both of those failures.
           control app.workspace_member_scopes '[a-z0-9-]*scope'      021
+          # Batch 030's tenant table. Disabling row level security here lets tenant A read tenant B's
+          # industry assignment, lets a member scoped to one Business read another Business's, and
+          # lets a suspended member and the service identity read rows they must not see. Four cases
+          # match the pattern and would fail.
+          control app.industry_assignments    '[a-z0-9-]*industry-assignment' 030
+          #
+          # THE TWO GLOBAL TABLES, AND WHY AN ENTRY FOR THEM BITES AT ALL. Every entry above works
+          # because disabling row level security dissolves a TENANT BOUNDARY and somebody sees
+          # somebody else's rows. app.industry_packs and app.industry_pack_versions have no tenant
+          # boundary to dissolve: they belong to no workspace, and batch 030 grants no client role
+          # any privilege on them at all (RFC-2026-012 §2/3 — the read allowlist is empty and grows
+          # only by RFC). Every client case against them is a PRIVILEGE-layer refusal, and disabling
+          # row level security does not restore a grant nobody made, so none of those cases would
+          # notice.
+          #
+          # What makes the entries bite is the one grant that does exist: `app_worker` holds SELECT
+          # and NO POLICY, which is the shape batch 010 introduced so that a service denial is
+          # attributable to row level security rather than to a forgotten GRANT. With RLS off, the
+          # service reads the catalog and `service-sees-zero-*` fails. So each of these entries rests
+          # on exactly ONE case rather than several — stated here rather than left to be discovered,
+          # because a control resting on one case is one deletion away from resting on none, and
+          # tests/db/identity/identity-isolation.test.mjs is what refuses that deletion.
+          control app.industry_packs          '[a-z0-9-]*industry-pack-catalog'  030
+          control app.industry_pack_versions  '[a-z0-9-]*published-pack-version' 030
           echo "negative control: every family above failed the suite, as each must."
