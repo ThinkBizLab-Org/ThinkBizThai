@@ -132,6 +132,22 @@
 //
 // A row that moves must move for a case, not for a sentence: identity-isolation.test.mjs requires
 // every assertion claimed `covered: true` to be cited by a case in this file.
+//
+// BATCH 041 MOVES NO ROW, AND IT IS THE FIRST BATCH THAT COULD NOT HAVE MOVED ONE. Every earlier
+// batch created tables; 041 creates ONE FUNCTION — app.knowledge_scope_applies, the scope half of
+// the resolution rule — and no table, no view and no policy, so there is no new family for a §12.6
+// assertion to be about. The row a reader might expect to move is 3: it is `knowledge-half` because
+// content is batch 080, and 041 creates no content table, so it stays exactly where 040 left it.
+//
+// What 041 does is extend FIVE notes — 1, 2, 5, 6 and 8 — for a reason that is worth stating rather
+// than leaving as five paragraphs: A NEW WAY TO REACH A TABLE IS A NEW PLACE TO LOSE A CHECK. A
+// filter written into a `where` clause is not a new object with rows, but it is a new path, and the
+// path a resolution contract creates is the one somebody would most plausibly build a
+// SECURITY DEFINER helper for. So every §12.6 assertion that can be asked through the contract is
+// asked through it — the tenant boundary, member scope, the suspended member, the anonymous caller
+// and the service — and in every one of those cases the PREDICATE ANSWERS TRUE for the row while
+// the database still refuses. That is the claim 041 exists to make falsifiable, and no truth table
+// inside the migration can make it.
 export const SMOKE_COVERAGE = {
   1: { covered: true, note: 'workspaces, workspace_settings and workspace_invitations, in both directions '
                            + '(batch 010), and business_profiles, page_context_profiles and both version '
@@ -164,7 +180,18 @@ export const SMOKE_COVERAGE = {
                            + 'They belong to no tenant, so "A cannot reach B\'s row" is not a claim anyone can '
                            + 'make about them; what is asserted instead is that BOTH owners are refused '
                            + 'identically, at the privilege layer, which is a different assertion and is '
-                           + 'labelled as one.' },
+                           + 'labelled as one.\n\n'
+                           + 'BATCH 041 ADDS NO TABLE AND ASSERTS THE SAME BOUNDARY THROUGH A NEW WAY OF '
+                           + 'REACHING ONE. `app.knowledge_scope_applies` is a filter a caller writes into '
+                           + 'a `where` clause, and a filter is a new path to a table whether or not it is '
+                           + 'a new object with rows. So the boundary is re-asked THROUGH IT: '
+                           + '`owner-a-cannot-resolve-the-knowledge-item-of-business-b1` runs the contract '
+                           + "while holding tenant B's Business, Page and knowledge ids exactly, and the "
+                           + 'PREDICATE ANSWERS TRUE FOR THAT ROW — it is business-level knowledge of '
+                           + 'precisely the Business being asked about — so the empty result is row level '
+                           + 'security and nothing else. `owner-b-resolves-the-knowledge-item-of-business-b1` '
+                           + 'is the far side, run through the same contract, so the negative is not '
+                           + 'satisfied by a predicate nobody can pass.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -199,7 +226,18 @@ export const SMOKE_COVERAGE = {
                            + 'page` is the Page half — two rows in the SAME Business, distinguished by '
                            + 'nothing but their own page column — and each is paired with a positive: the '
                            + 'unscoped owner reads business_a2\'s, and user_editor_a reads the sibling '
-                           + "page's, because §7 gives a business scope every Page beneath it." },
+                           + "page's, because §7 gives a business scope every Page beneath it.\n\n"
+                           + 'BATCH 041 ASSERTS IT AT A THIRD GRANULARITY, AND IT IS THE ONE THAT SAYS THE '
+                           + 'RESOLUTION CONTRACT IS A FILTER AND NEVER A PERMISSION. '
+                           + '`page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page` names '
+                           + 'the SIBLING Page in the request, so `app.knowledge_scope_applies` answers YES '
+                           + '— `owner-a-resolves-the-sibling-page-knowledge-item-for-the-sibling-page` is '
+                           + 'the identical statement under an unscoped identity and it returns the row — '
+                           + "and 040's restrictive narrowing through app.member_scope_admits_page refuses "
+                           + 'it anyway. A member cannot widen what they may read by asking the contract '
+                           + 'for it, and `page-editor-a-resolves-the-business-level-knowledge-item-for-'
+                           + 'page-a1` is the positive that keeps this from being about a page editor who '
+                           + 'resolves nothing at all.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -247,7 +285,15 @@ export const SMOKE_COVERAGE = {
                            + '`owner-a-cannot-delete-a-knowledge-item` carries that refusal instead, where '
                            + '"even the owner" is the claim. The viewer here holds an `all_businesses` '
                            + 'member scope, so the narrowing ADMITS every row they are refused and the '
-                           + 'role is the only thing refusing.' },
+                           + 'role is the only thing refusing.\n\n'
+                           + 'BATCH 041 RE-ASKS IT THROUGH THE RESOLUTION CONTRACT, for the reason a new '
+                           + 'path to a table is a new place to lose a check: '
+                           + '`suspended-a-resolves-zero-knowledge-items` runs a filter that answers TRUE '
+                           + 'for the row, under an identity whose membership is suspended, and sees '
+                           + 'nothing — because app.knowledge_scope_applies is `security invoker` and reads '
+                           + 'no relation, so it cannot become a way around the batch 011 helper. A '
+                           + 'SECURITY DEFINER predicate would have been exactly that way around, which is '
+                           + 'why the migration asserts invoker mode against the catalog on every apply.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -283,7 +329,16 @@ export const SMOKE_COVERAGE = {
                            + 'model training reuse by default", and it is the one family in this schema '
                            + 'nobody could argue for exposing anonymously. Both knowledge cases are '
                            + 'refused on the SCHEMA all the same, because the control is the same control '
-                           + 'and stating it per table is what makes it checkable per table.' },
+                           + 'and stating it per table is what makes it checkable per table.\n\n'
+                           + 'BATCH 041 ADDS THE FIRST ANONYMOUS CASE IN THIS SUITE THAT IS ABOUT A '
+                           + 'FUNCTION RATHER THAN A TABLE, and it is honest about what it cannot see. '
+                           + 'RFC-2026-021 §7/4 decides that anon holds no schema USAGE, no table or column '
+                           + 'privilege AND NO FUNCTION EXECUTE anywhere our migrations reach; '
+                           + '`anonymous-cannot-resolve-a-knowledge-item` is refused on the SCHEMA, before '
+                           + 'either the function or the table is reached, so it proves the chokepoint and '
+                           + 'NOT the function grant. That anon holds no EXECUTE on '
+                           + 'app.knowledge_scope_applies itself is asserted by 041\'s apply-time block '
+                           + 'against the live ACL, which is where a claim no case can reach belongs.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -342,7 +397,16 @@ export const SMOKE_COVERAGE = {
                            + 'than merely observed — and its UPDATE and DELETE of a version are refused at '
                            + 'the GRANT layer, which is §8.2\'s only `N` in the service column. The positive '
                            + 'half is still not asserted, and asserting it would still require inventing '
-                           + 'the `P` §8.2 leaves undefined.' },
+                           + 'the `P` §8.2 leaves undefined.\n\n'
+                           + 'BATCH 041 EXTENDS THE NEGATIVE HALF ONTO A FUNCTION AND IS THE FIRST BATCH '
+                           + 'WHERE A SERVICE GRANT EXISTS TO PRESERVE THIS ASSERTION RATHER THAN TO ADD A '
+                           + 'PERMISSION. app_worker is granted EXECUTE on app.knowledge_scope_applies '
+                           + 'precisely so that `service-resolves-zero-knowledge-items` can be a filtered '
+                           + 'read: without the grant the service would be refused 42501 ON THE FUNCTION, '
+                           + 'and 040\'s attribution property — an empty service read is row level security '
+                           + 'and not a forgotten GRANT — would hold for hand-written queries while quietly '
+                           + 'failing for every query written against the contract. The positive half is '
+                           + 'still not asserted and still would require inventing §8.2\'s `P`.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -362,7 +426,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'another to a second published version, and a scoped editor re-pins the Business its scope '
    + 'names (030); owner and EDITOR both create a knowledge item, rename one and append a version, '
    + 'and the same owner creates one at each of the two scope shapes — business-level and '
-   + 'page-level (040).',
+   + 'page-level (040). BATCH 041 ADDS THE READ SIDE OF THE SAME CELL AS A CONTRACT RATHER THAN '
+   + 'AS A QUERY: the owner resolves a business-level item for a Page, a page-level item for its own '
+   + 'Page, a sibling-page item for the sibling Page, and a business-level item for a request naming '
+   + 'no Page at all — four positives, one per branch of app.knowledge_scope_applies, so that every '
+   + 'predicate negative beside them differs from a passing case in exactly one argument.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -421,7 +489,15 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'and is asserted positively rather than left implicit: '
    + '`page-editor-a-can-update-the-business-level-knowledge-item-of-business-a1`, because a page '
    + 'scope counts on its parent Business and business-level knowledge reaches every Page beneath '
-   + 'it. That is 021\'s to change, not 040\'s, and the case is what makes changing it visible.',
+   + 'it. That is 021\'s to change, not 040\'s, and the case is what makes changing it visible. '
+   + 'BATCH 041 ASKS CASE 4 A THIRD WAY, and it is the only one of the three where the request '
+   + 'ITSELF names the wrong Page rather than the row doing so. '
+   + '`page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page` resolves FOR the sibling '
+   + 'Page — so the scope predicate admits the row and only the member scope refuses — and '
+   + '`owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1` is the same row refused '
+   + 'by the PREDICATE for an identity that can read it. The two negatives look alike and fail for '
+   + 'opposite reasons, which is why each is paired with the statement that differs from it in one '
+   + 'argument and returns the row.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -432,20 +508,30 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'that BOTH owners are refused identically. BATCH 040 adds it on both knowledge tables, in both '
    + 'directions, on the read and on the write path — and it is the first family where the row '
    + 'behind the boundary is CONTENT-2, so a failure here would leak what another tenant\'s '
-   + 'business SAYS rather than what it is called.',
+   + 'business SAYS rather than what it is called. BATCH 041 re-asks it through the resolution '
+   + 'contract, where the predicate answers TRUE for the far tenant\'s row and the near tenant\'s '
+   + 'owner still sees nothing while holding its Business, Page and knowledge ids exactly — the '
+   + 'boundary asserted on a PATH to the table rather than on the table.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
    + 'assignment, whose only membership predicate is the batch 011 helper. Batch 040 re-asks it of '
    + 'the knowledge item and of its version, which reaches the helper twice — once through its own '
-   + 'permissive policy and once through the item its restrictive narrowing resolves.',
+   + 'permissive policy and once through the item its restrictive narrowing resolves. Batch 041 '
+   + 're-asks it once more through app.knowledge_scope_applies, which is `security invoker` and '
+   + 'reads no relation, so a suspended member gains nothing by going through the contract instead '
+   + 'of writing the filter out.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
    + 'asserted on the SCHEMA and fails the day anon is granted USAGE on app. Batch 040 asserts the '
    + 'same refusal on the family at the other end of that scale — knowledge is CONTENT-2 and '
    + '"tenant isolated" by §9.1 — because the control is the same control and stating it per table '
-   + 'is what makes it checkable per table.',
+   + 'is what makes it checkable per table. BATCH 041 ADDS THE FIRST ANONYMOUS CASE ABOUT A '
+   + 'FUNCTION, and says what it does not prove: the refusal lands on the SCHEMA before either the '
+   + 'function or the table is reached, so it proves the chokepoint RFC-2026-021 §7/4 decides and '
+   + 'not the absence of the EXECUTE grant, which 041\'s apply-time block asserts against the live '
+   + 'ACL instead.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -843,6 +929,38 @@ export function buildCases(id) {
     params: [item],
     column: 'archive_state',
     equals: 'live',
+  });
+
+  // -- Batch 041 builders. ----------------------------------------------------------------------
+  //
+  // The resolution contract, exercised the only way that says anything: as a FILTER in a `where`
+  // clause over app.knowledge_items, under a real identity. `app.knowledge_scope_applies` reads no
+  // relation and returns a property of its four arguments, so a case that merely CALLED it would be
+  // asserting arithmetic — which 041's own apply-time block already asserts on every apply, as a
+  // nine-cell truth table on three generated uuids. What these cases add is the half a truth table
+  // cannot reach: that the predicate NARROWS the row set batch 040's policies admit and never
+  // widens it, and that the two are evaluated together rather than one instead of the other.
+  //
+  // The `id = $3` conjunct is what makes each case about ONE ROW rather than about a row count. A
+  // case asserting "the resolved set is not empty" would pass against a predicate that returned
+  // everything, which is precisely the regression a dropped `is null` branch produces.
+  const resolveKnowledgeForPage = (business, page, item) => ({
+    sql: 'select id from app.knowledge_items'
+       + ' where app.knowledge_scope_applies(business_profile_id, page_context_profile_id, $1, $2)'
+       + '   and id = $3',
+    params: [business, page, item],
+  });
+
+  // A request that names NO Page. The page argument is a literal `null::uuid` and not a parameter,
+  // for batch 040's reason one file over: the driver inlines every parameter as a SQL STRING
+  // literal, so a JavaScript null would arrive as the text 'null' in a uuid position. The two
+  // builders are also the two halves of §3.3, and a reader can see which one a case is about from
+  // the builder it calls.
+  const resolveKnowledgeForBusinessOnly = (business, item) => ({
+    sql: 'select id from app.knowledge_items'
+       + ' where app.knowledge_scope_applies(business_profile_id, page_context_profile_id, $1, null::uuid)'
+       + '   and id = $2',
+    params: [business, item],
   });
 
   return [
@@ -3603,6 +3721,227 @@ export function buildCases(id) {
       why: 'app_worker holds SELECT on this table and no policy, so the empty read is row level security '
          + 'and not a forgotten GRANT. It is one of the two cases the CI negative control for '
          + 'app.knowledge_item_versions rests on.',
+    },
+
+    // =========================================================================================
+    // Batch 041 — the resolved knowledge contract, in the half of it that is decided.
+    // =========================================================================================
+    //
+    // WHAT THESE CASES ARE ABOUT, AND WHAT THEY ARE DELIBERATELY NOT ABOUT.
+    //
+    // 041 creates one function: `app.knowledge_scope_applies(item_business, item_page, in_business,
+    // in_page)`, the SCOPE half of the resolution rule at
+    // docs/plans/core-database-and-rls-workstream-th.md:210 — "Industry base → Business override →
+    // Page override → Content brief". It answers WHICH ROWS ARE IN SCOPE for a request naming a
+    // Business and, optionally, a Page. It does not answer which of them WINS. The migration's
+    // header says at length why: the merge needs a hard/soft level column batch 040 does not have,
+    // a key on which an override binds that no document fixes, and the industry pack's rule content,
+    // which is not in this database at all. So there is no case below asserting that a page-level
+    // row beats a business-level one, and its absence is the finding rather than an omission.
+    //
+    // TWO KINDS OF NEGATIVE LIVE HERE AND THEY ARE NOT INTERCHANGEABLE, which is the thing a reader
+    // of this block has to hold on to:
+    //
+    //   * A PREDICATE NEGATIVE — the row is visible to the caller and the REQUEST does not reach
+    //     it. `owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1` is one. These
+    //     would still return nothing with row level security switched off, so they are NOT what the
+    //     CI negative control for app.knowledge_items rests on, and each one is paired with a case
+    //     that differs in exactly ONE argument and returns the row — same identity, same item, the
+    //     other Page or the other Business. Without that pair a predicate that returned nothing at
+    //     all would satisfy every one of them.
+    //   * AN RLS NEGATIVE — the PREDICATE says yes and the database still refuses.
+    //     `page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page` is the sharpest:
+    //     the row IS in scope for the Page being asked about, and the member's own scope keeps it
+    //     away. These are the cases that say the contract is a filter and never a permission, and
+    //     they are the ones the negative control breaks.
+
+    // -- The two shapes of §4 invariant 3, resolved for a Page. --------------------------------
+    {
+      id: 'owner-a-resolves-the-business-level-knowledge-item-for-page-a1',
+      covers: ['§4.3/resolution-rule', '§4/invariant-3', '§8.6/1'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'rows',
+      why: 'Business-level knowledge reaches every Page beneath it. §4.4 of the industry pack contract '
+         + 'puts "Business policy/brand knowledge" at layer 4 and "Page-specific facts" at layer 5, both '
+         + 'in play for one Page, which is only meaningful if the Business layer arrives there — and '
+         + '040\'s own header states the consequence in those words. Without this positive every '
+         + 'negative below is satisfied by a predicate that resolves nothing.',
+    },
+    {
+      id: 'owner-a-resolves-the-page-scoped-knowledge-item-for-its-own-page',
+      covers: ['§4.4/page-override-scope', '§4/invariant-3', '§8.6/1'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_PAGE),
+      expect: 'rows',
+      why: 'The other branch of the same predicate, and not implied by the case above it: a page-level '
+         + 'row takes the `page = $2` branch where a business-level row takes `page is null`. The '
+         + 'industry pack contract\'s "Page override/contact/footer ใช้ได้เฉพาะ target Page" is what '
+         + 'makes this the ONLY request shape that reaches this row.',
+    },
+    {
+      id: 'owner-a-resolves-the-sibling-page-knowledge-item-for-the-sibling-page',
+      covers: ['§4.4/page-override-scope', '§8.6/1'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1_SIBLING, KNOWLEDGE_A1_SIBLING_PAGE),
+      expect: 'rows',
+      why: 'THE PAIR THAT MAKES THE NEXT CASE MEAN SOMETHING. Same identity, same row, and the only '
+         + 'thing that changes below is the Page being asked about — so the refusal there is about the '
+         + 'request and not about the row being unreadable, unloaded or hidden by a policy.',
+    },
+    {
+      id: 'owner-a-does-not-resolve-the-sibling-page-knowledge-item-for-page-a1',
+      covers: ['§4.4/page-override-scope', 'DB03/resolved-context', '§8.6/4'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_SIBLING_PAGE),
+      expect: 'no-rows',
+      why: 'A PREDICATE NEGATIVE, and it is the leak the whole two-column scope exists to prevent: a '
+         + 'filter that kept only `business_profile_id = $1` would hand every Page of a Business the '
+         + 'knowledge restricted to every other Page. The identity here is the UNSCOPED owner, who can '
+         + 'read this row and does one case above, so nothing about membership or member scope is '
+         + 'involved — this case would return nothing with row level security switched off, which is '
+         + 'why it is not one of the cases the CI negative control rests on.',
+    },
+
+    // -- The request that names no Page, which is where a three-valued predicate would have gone
+    // -- wrong. --------------------------------------------------------------------------------
+    {
+      id: 'owner-a-resolves-the-business-level-knowledge-item-with-no-page-requested',
+      covers: ['§4.3/resolution-rule', 'DB03/resolved-context'],
+      as: ownerA,
+      ...resolveKnowledgeForBusinessOnly(BUSINESS_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'rows',
+      why: 'A Business-level request. §3.3 puts knowledge under the Business row unconditionally, so '
+         + 'business-level knowledge is in scope whether or not a Page is named.',
+    },
+    {
+      id: 'owner-a-does-not-resolve-the-page-scoped-knowledge-item-with-no-page-requested',
+      covers: ['§4.4/page-override-scope', 'DB03/resolved-context'],
+      as: ownerA,
+      ...resolveKnowledgeForBusinessOnly(BUSINESS_A1, KNOWLEDGE_A1_PAGE),
+      expect: 'no-rows',
+      why: 'THE CELL A PREDICATE WRITTEN THE OBVIOUS WAY WOULD ANSWER `NULL` FOR. `item_page is null or '
+         + 'item_page = null` is unknown, which filters like false HERE and would pass like true in a '
+         + 'CHECK constraint, so 041 guards every conjunct and its apply-time block asserts the answer '
+         + 'is FALSE rather than merely not-true. This case is the same claim from the other side, run '
+         + 'against a real row by an identity that reads it two cases above when it names the Page.',
+    },
+
+    // -- The Business half of the scope, which the Page branch must not be able to skip. --------
+    {
+      id: 'owner-a-resolves-the-knowledge-item-of-business-a2-under-business-a2',
+      covers: ['§4/invariant-3', '§8.6/1'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A2, PAGE_A2, KNOWLEDGE_A2_BUSINESS),
+      expect: 'rows',
+      why: 'The pair for the case below. The unscoped owner reaches business_a2 — asserted directly by '
+         + '`owner-a-is-unscoped-and-sees-the-knowledge-item-of-business-a2` — so when the same '
+         + 'statement with business_a1 returns nothing, the Business argument is the only thing that '
+         + 'changed.',
+    },
+    {
+      id: 'owner-a-does-not-resolve-the-knowledge-item-of-business-a2-under-business-a1',
+      covers: ['§4/invariant-3', 'DB03/resolved-context'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A2_BUSINESS),
+      expect: 'no-rows',
+      why: 'A PREDICATE NEGATIVE about the mandatory half of the scope. §4 invariant 3 gives every '
+         + 'knowledge row a Business scope, so a resolved context for business_a1 contains no row of '
+         + 'business_a2 even for a caller who can read both. Like the other predicate negatives it '
+         + 'would still be empty with row level security off.',
+    },
+
+    // -- §12.6/1 and §8.6/5: the contract does not cross the tenant boundary. -------------------
+    {
+      id: 'owner-a-cannot-resolve-the-knowledge-item-of-business-b1',
+      covers: ['§12.6/1', '§8.6/5', '041/filter-not-permission', 'DB00-A03'],
+      as: ownerA,
+      ...resolveKnowledgeForPage(BUSINESS_B1, PAGE_B1, KNOWLEDGE_B1_BUSINESS),
+      expect: 'no-rows',
+      why: 'AN RLS NEGATIVE, and the first of the four this batch adds. The predicate answers TRUE for '
+         + "this row — it is business-level knowledge of exactly the Business being asked about — and "
+         + "tenant A's owner still sees nothing, while holding tenant B's Business, Page and knowledge "
+         + 'ids exactly. A resolution contract that returned rows its caller may not read would be a '
+         + 'leak wearing the shape of a helper, and DB-03\'s acceptance line says a resolved context '
+         + 'returns only what was requested AND what the caller is entitled to.',
+    },
+    {
+      id: 'owner-b-resolves-the-knowledge-item-of-business-b1',
+      covers: ['§8.6/1', '§12.6/1'],
+      as: ownerB,
+      ...resolveKnowledgeForPage(BUSINESS_B1, PAGE_B1, KNOWLEDGE_B1_BUSINESS),
+      expect: 'rows',
+      why: 'The far side of that boundary is a real, populated tenant resolving its own knowledge '
+         + 'through the same contract. Without it the case above is satisfied by a row that is not '
+         + 'there or by a predicate nobody can pass.',
+    },
+
+    // -- §8.6/4 at the granularity only a knowledge row has: member scope narrows the contract. --
+    {
+      id: 'page-editor-a-resolves-the-business-level-knowledge-item-for-page-a1',
+      covers: ['§7/member-scope', '§4.3/resolution-rule'],
+      as: pageEditorA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'rows',
+      why: 'A member scoped to ONE Page resolves the Business layer for that Page, which is 021\'s '
+         + 'definition of `member_scope_admits_business` meeting §4.4\'s layer 4 and is the positive '
+         + 'that keeps the next case from being about a page editor who resolves nothing at all.',
+    },
+    {
+      id: 'page-editor-a-cannot-resolve-the-knowledge-item-of-the-sibling-page',
+      covers: ['§8.6/4', '§12.6/2', '041/filter-not-permission'],
+      as: pageEditorA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1_SIBLING, KNOWLEDGE_A1_SIBLING_PAGE),
+      expect: 'no-rows',
+      why: 'THE SHARPEST CASE IN THIS BLOCK. The request names the sibling Page, so the PREDICATE says '
+         + 'yes — `owner-a-resolves-the-sibling-page-knowledge-item-for-the-sibling-page` is the same '
+         + 'statement under an unscoped identity and it returns the row. What refuses here is 040\'s '
+         + 'restrictive narrowing through `app.member_scope_admits_page`, and that is the whole claim: '
+         + 'a caller cannot widen what they may read by asking the resolution contract for it. It is '
+         + 'one of the four cases the CI negative control for app.knowledge_items now rests on that '
+         + 'this batch added.',
+    },
+
+    // -- §12.6/5, /6 and /8 through the contract, because a helper is a new way to reach a table. -
+    {
+      id: 'suspended-a-resolves-zero-knowledge-items',
+      covers: ['§12.6/5', '§8.6/6', '041/filter-not-permission'],
+      as: suspendedA,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'no-rows',
+      why: '§7: only `active` grants access. The predicate answers TRUE for this row and the suspended '
+         + 'member still sees nothing, because `app.knowledge_scope_applies` is `security invoker` and '
+         + 'reads no relation — it cannot become a way around batch 011\'s helper. The owner runs the '
+         + 'identical statement successfully at the top of this block.',
+    },
+    {
+      id: 'anonymous-cannot-resolve-a-knowledge-item',
+      covers: ['§12.6/6', '§8.5', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'RFC-2026-021 §7/4 decides that anon holds no schema USAGE, no table or column privilege and '
+         + 'NO FUNCTION EXECUTE anywhere our migrations reach. The refusal therefore lands on the '
+         + 'SCHEMA, before either the function or the table is considered, and is recorded as the layer '
+         + 'AND the object so that granting anon USAGE on app moves it to the function and fails this '
+         + 'case. That anon holds no EXECUTE on the predicate ITSELF cannot be observed from here — a '
+         + 'schema refusal comes first — so 041\'s apply-time block asserts it against the live ACL.',
+    },
+    {
+      id: 'service-resolves-zero-knowledge-items',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '041/filter-not-permission'],
+      as: service,
+      ...resolveKnowledgeForPage(BUSINESS_A1, PAGE_A1, KNOWLEDGE_A1_BUSINESS),
+      expect: 'no-rows',
+      why: 'THE CASE THE app_worker GRANT EXISTS FOR. Batch 040 gives the service SELECT on '
+         + 'app.knowledge_items and NO POLICY precisely so that an empty read is attributable to row '
+         + 'level security rather than to a forgotten GRANT — and if the service could not EXECUTE this '
+         + 'predicate, every service query written against the contract would come back 42501 on the '
+         + 'FUNCTION instead, and 040\'s attribution property would hold for hand-written queries while '
+         + 'quietly failing for contract ones. 041 grants app_worker EXECUTE so this case can be a '
+         + 'no-rows and not a denial.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
