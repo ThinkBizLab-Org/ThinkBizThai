@@ -114,6 +114,7 @@ const DECISION_RECORDS = [
   'RFC-2026-017-service-path-identity.md',
   'RFC-2026-018-service-path-connection.md',
   'RFC-2026-019-service-path-connection-corrected.md',
+  'RFC-2026-020-authorization-helper-role.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
