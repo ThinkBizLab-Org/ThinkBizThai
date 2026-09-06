@@ -369,4 +369,30 @@ jobs:
           control app.billing_plans           '[a-z0-9-]*billing-plan-catalog'   130
           control app.billing_plan_versions   '[a-z0-9-]*plan-price'             130
           control app.plan_entitlements       '[a-z0-9-]*plan-entitlement'       130
+          # THE TWO AUDIT TABLES, AND A CORRECTION TO WHAT MAKES AN ENTRY BITE. Every entry above
+          # rests on a FILTERED READ or a FILTERED WRITE — a case that returns nothing while row
+          # level security is on and returns something when it is off. Batch 030 recorded that its
+          # two global tables rest on exactly one such case each, and said so because a control
+          # resting on one case is one deletion away from resting on none.
+          #
+          # These two rest on TWO cases each, and the second kind is one no earlier entry used: a
+          # POLICY-LAYER REFUSED WRITE. app_worker holds SELECT and INSERT on both tables and NO
+          # POLICY — §8.4 marks "Audit/security INSERT" `S` and RFC-2026-016 §2 conditions the
+          # service policy on a workspace GUC that does not exist yet — so with row level security
+          # ON the insert is refused by RLS, and with it OFF the grant is enough and the write
+          # LANDS. `service-cannot-write-an-audit-log` therefore fails when this control disables
+          # RLS, exactly as `service-sees-zero-audit-logs` does.
+          #
+          # No CLIENT case on either table would notice. No client role holds any privilege here at
+          # all (RFC-2026-012 decision 2 with RFC-2026-021's empty allowlist), so every one of them
+          # is a privilege-layer refusal that disabling row level security does not restore. That is
+          # stated here rather than left to be counted, and
+          # tests/db/identity/identity-isolation.test.mjs pins the four cases by id and by outcome
+          # so deleting one fails the build instead of leaving an entry that disables something
+          # nothing notices.
+          #
+          # The two patterns do not overlap: an audit case id contains `audit-log` and a security
+          # case id contains `security-event`, and the same test asserts that no case matches both.
+          control app.audit_logs              '[a-z0-9-]*audit-log'      140
+          control app.security_events         '[a-z0-9-]*security-event' 140
           echo "negative control: every family above failed the suite, as each must."

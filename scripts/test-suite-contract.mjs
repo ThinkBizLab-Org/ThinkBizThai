@@ -162,7 +162,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/foundation-contract.test.mjs': '7dd71b3f39603eef',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': 'd6c5dc7be948f47b',
+  'tests/db/identity/identity-isolation.test.mjs': 'ed90f6225ef47e93',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

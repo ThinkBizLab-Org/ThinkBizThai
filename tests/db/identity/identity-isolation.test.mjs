@@ -4406,3 +4406,579 @@ test('the coverage map records what batch 130 could carry and what a workspace r
     assert.ok(cited.has(label), `${label} is reasoning batch 130 rests on and no case cites it`);
   }
 });
+
+// =============================================================================================
+// Batch 140 — audit, and the first table in this schema whose adversary can own it.
+// =============================================================================================
+//
+// The tests below are shaped by one fact that no earlier batch's were: NEITHER OF THESE TABLES
+// CARRIES A POLICY, and no client role holds a privilege on either. So there is no predicate to
+// assert about, no membership helper to check a call to, and no narrowing to prove restrictive.
+// What there IS to assert is the shape of a refusal — absent grants, absent policies, a trigger,
+// and a set of columns a contract rather than a batch chose — plus the two claims this batch makes
+// that nothing else in the repository makes: that a trigger reaches the table owner, and that
+// FORCE ROW LEVEL SECURITY does not.
+const AUDIT_MIGRATION = 'db/foundation/migrations/140_audit.sql';
+const AUDIT_FIXTURE = 'tests/db/identity/fixtures/140-audit-fixture.sql';
+const audit = await readFile(AUDIT_MIGRATION, 'utf8');
+const auditCode = audit.replace(/--[^\n]*/g, '');
+const AUDIT_LOGS = 'audit_logs';
+const SECURITY_EVENTS = 'security_events';
+const AUDIT_TABLES = [AUDIT_LOGS, SECURITY_EVENTS];
+// The six roles the apply-time block walks. `app_authz` is in the list even though it owns no
+// grant anywhere here, because RFC-2026-020 §6.1/6 pins its grant set and a batch that widened it
+// would be amending an approved decision by migration.
+const EVERY_ROLE = ['authenticated', 'anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz'];
+// CTR-AUD-001's six action categories, verbatim. Its own x-source calls them "exactly the six
+// auditable action classes SEC-009 enumerates", so this list is the contract's and not a choice
+// made in a migration.
+const AUDIT_CATEGORIES = ['role', 'credential', 'publish', 'delete', 'billing', 'support'];
+// The SQLSTATE private.refuse_mutation() raises. It is deliberately NOT 42501: rls-assertions.mjs
+// accepts only 42501 as a denial, so a request-path identity that ever reached the trigger would
+// fail loudly rather than pass under the wrong control's name.
+const REFUSAL_SQLSTATE = 'ZZ140';
+
+test('every batch 140 table carries RLS, FORCE, a primary key, an owner comment and NO policy', () => {
+  for (const table of AUDIT_TABLES) {
+    assert.match(auditCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(auditCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(auditCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first (RFC-2026-016 §4)');
+    assert.match(auditCode, new RegExp(`comment on table app\\.${table} is`, 'i'));
+    assert.match(auditCode, new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,600}?primary key`, 'i'));
+    // The policy set is EMPTY, on purpose, and this is the direction that catches a batch adding one.
+    assert.doesNotMatch(auditCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table} carries a policy. Batch 140 writes none: §8.4's client cells are refused because a `
+      + 'client read is a named security_invoker view on an allowlist RFC-2026-021 §7/3 keeps empty, and '
+      + "§8.4's one `S` cell is refused because RFC-2026-016 §2 conditions a service policy on a workspace "
+      + 'GUC that does not exist. A policy here is one of those two decisions being changed by a migration '
+      + 'rather than by an RFC.');
+  }
+  // And the other direction: FORCE with no policy denies every non-bypassing role, so the absence
+  // above is the control rather than an omission. 030's two global tables established the shape.
+  assert.match(audit, /Both tables are ENABLE \+ FORCE with an empty policy set/,
+    'the migration states that the empty policy set is the decision, where a reader meets it');
+});
+
+// THE CENTRE OF THE BATCH. Three mechanisms, and the third is one no earlier batch used.
+test('an audit record is append-only by absent grants, absent policies AND a trigger', () => {
+  for (const table of AUDIT_TABLES) {
+    for (const verb of ['update', 'delete', 'truncate']) {
+      assert.doesNotMatch(auditCode, new RegExp(`grant[^;]*\\b${verb}\\b[^;]*on app\\.${table}\\b`, 'i'),
+        `app.${table} grants ${verb.toUpperCase()} to somebody. §8.4's "Audit/security UPDATE/DELETE" is `
+        + '`N N N N N N` — the service included — and TRUNCATE is the verb that empties a table with no '
+        + 'DELETE grant, which no access matrix has a row for at all.');
+    }
+    // The trigger half. A row trigger for UPDATE and DELETE, a STATEMENT trigger for TRUNCATE,
+    // which has no rows for a row trigger to fire on.
+    assert.match(auditCode,
+      new RegExp(`create trigger \\w+ before update or delete on app\\.${table}\\s+for each row execute function private\\.refuse_mutation\\(\\)`, 'i'),
+      `app.${table} has no row-level append-only trigger. Absent grants stop every role our migrations `
+      + 'can name and stop NOBODY ELSE: postgres owns every table in app and holds BYPASSRLS, so it is '
+      + 'exempt from FORCE and can grant itself anything. On an audit log that is the adversary that '
+      + 'matters, and §8.5 asks for a "command/trigger/privilege defense" rather than only the last of '
+      + 'the three.');
+    assert.match(auditCode,
+      new RegExp(`create trigger \\w+ before truncate on app\\.${table}\\s+for each statement execute function private\\.refuse_mutation\\(\\)`, 'i'),
+      `app.${table} has no TRUNCATE trigger. TRUNCATE fires no row trigger and is refused by no DELETE `
+      + 'grant; it is the one verb that empties an append-only table while every row-level control stays '
+      + 'green.');
+  }
+  // The function itself, and the properties that make it fire for a role that bypasses RLS.
+  assert.match(auditCode, /create or replace function private\.refuse_mutation\(\)/);
+  assert.match(auditCode, new RegExp(`errcode = '${REFUSAL_SQLSTATE}'`),
+    'the trigger raises a SQLSTATE this batch owns, so the apply-time probe can tell "the trigger refused" '
+    + 'from "something else went wrong" without asserting on a message string, whose language is the '
+    + "server's lc_messages");
+  assert.notEqual(REFUSAL_SQLSTATE, NOT_A_CONSTRAINT_CODE,
+    'and it is deliberately NOT 42501: rls-assertions.mjs accepts only 42501 as a denial, so an identity '
+    + 'that ever reached this trigger would fail loudly instead of passing under the name of a control '
+    + 'that had not run');
+  assert.match(auditCode, /security definer[\s\S]{0,120}set search_path = ''/i,
+    "§8.5 asks an empty search_path of every SECURITY DEFINER function, and batch 000's set_updated_at is "
+    + 'the precedent for a trigger function in `private` that a role holding nothing there can fire');
+  assert.match(auditCode, /revoke all on function private\.refuse_mutation\(\) from public/i,
+    '§8.5: EXECUTE is revoked from PUBLIC. A helper reachable by PUBLIC is reachable by anon.');
+  // The claim is PROVEN rather than stated: the apply-time block writes a row as the migration role,
+  // which owns the table and bypasses RLS, and requires all three verbs to raise.
+  for (const verb of ['update_refused', 'delete_refused', 'truncate_refused']) {
+    assert.match(auditCode, new RegExp(`if not ${verb} then`),
+      `the apply-time probe does not require the ${verb.split('_')[0].toUpperCase()} to be refused. `
+      + 'RFC-2026-020 §6.2 made "executed rather than cited" the rule for a claim a decision rests on, and '
+      + "this batch's whole immutability claim rests on the trigger firing for the table owner.");
+  }
+  assert.match(auditCode, /if exists \(select 1 from app\.audit_logs where id = probe_id\) then/,
+    'and the probe checks that its own row is gone, so a migration cannot seed test data into an audit log');
+});
+
+// RFC-2026-012 decision 2 and RFC-2026-021 §7/3 and §8.5, as a property of the file. This is
+// asserted HERE and not in the migration's apply-time block for 030's reason: an allowlist exists in
+// order to grow, and an applied migration whose self-assertion an approving RFC makes false is the
+// trap 011 set for 021. The batch that opens a client read edits a line a reviewer reads.
+test('no client role is granted anything on either audit table, and the batch says why', async () => {
+  for (const role of CLIENT_ROLES) {
+    assert.doesNotMatch(auditCode, new RegExp(`grant[^;]*on app\\.(${AUDIT_TABLES.join('|')})[^;]*to ${role}\\b`, 'i'),
+      `batch 140 grants ${role} a privilege on an audit table. RFC-2026-012's inventory classifies audit `
+      + '"safe view only" and security events "server-only" — the only two families in it carrying a '
+      + 'redaction qualifier — and RFC-2026-021 §7/3 keeps the allowlist that would carry such a read '
+      + 'EMPTY, while §8.5 says the list of inherited base-table grants "is CLOSED: any new one fails".');
+  }
+  assert.doesNotMatch(auditCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4 decides that anon holds nothing anywhere our migrations reach, and the first anon '
+    + 'grant is `usage on schema app`, which changes the denial layer of every object in app at once');
+  // Both decisions are cited in the file, so a reader can disagree with the reading rather than with
+  // the silence.
+  for (const rfc of ['RFC-2026-012', 'RFC-2026-021', 'RFC-2026-016']) {
+    assert.match(audit, new RegExp(rfc), `batch 140 names ${rfc}, which it is obeying or refusing`);
+  }
+  const decisions = await readdir('architecture/decisions');
+  for (const file of ['RFC-2026-012-client-database-boundary.md', 'RFC-2026-021-client-read-allowlist.md']) {
+    assert.ok(decisions.includes(file), `batch 140 cites ${file} and the record must exist to be cited`);
+  }
+  // And the two cells that WOULD have been implementable are named, so this is a refusal rather than
+  // an oversight a reviewer has to notice.
+  assert.match(audit, /THE TWO CELLS THAT WOULD HAVE BEEN IMPLEMENTABLE ARE NAMED/,
+    "§8.4's owner `Y` and editor `O` on Tenant audit SELECT are both writable predicates; the batch says "
+    + 'so and refuses them for a reason about the OBJECT rather than about the predicate');
+  // The five client cells are five cases, so the refusal is per cell rather than per table.
+  const readRefusals = cases.filter((c) => (c.covers ?? []).includes('§8.4/tenant-audit-select')
+    && c.expect === 'denied');
+  assert.ok(readRefusals.length >= 5,
+    '§8.4 gives "Tenant audit SELECT" five client cells — Y, P, O, "approval trail" and N — and each is '
+    + 'refused for its own reason. One case standing for all five would make the other four look like '
+    + 'consequences of it, and the day an allowlist entry opens one, exactly one line changes here.');
+  for (const c of readRefusals) {
+    assert.equal(c.deniedBy, 'grant',
+      `${c.id}: the LAYER is the assertion. A policy-layer refusal would mean the grant EXISTS and `
+      + 'something else refused, which is a schema RFC-2026-021 §3 says only an RFC may create.');
+  }
+  // AND EACH CELL IS PINNED BY IDENTITY, because a COUNT IS NOT A CELL. A probe renamed
+  // `editor-a-cannot-read-their-own-audit-log` to something else and NOTHING NOTICED: the renamed
+  // case still carried `§8.4/tenant-audit-select`, so five cases still covered the label while the
+  // one cell that distinguishes this table from every other -- the reader who IS the subject of the
+  // record -- had stopped being asserted. The five entries below are §8.4's five client cells, in
+  // the order the matrix writes them, each held to the identity it is about.
+  for (const [cell, name, helper, subject] of [
+    ['owner Y', 'owner-a-cannot-read-the-audit-log-of-workspace-a', 'as_user', 'user_owner_a'],
+    ['editor O', 'editor-a-cannot-read-their-own-audit-log', 'as_user', 'user_editor_a'],
+    ['approver approval-trail', 'approver-a-cannot-read-the-audit-log', 'as_user', 'user_approver_a'],
+    ['viewer N', 'viewer-a-cannot-read-the-audit-log', 'as_user', 'user_viewer_a'],
+    ['the far tenant', 'owner-b-cannot-read-the-audit-log-of-workspace-b', 'as_user', 'user_owner_b'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `§8.4's "${cell}" cell is asserted by ${name}, which is missing. Five cells, five `
+      + 'cases: one case standing for all of them would make the other four look like consequences of it.');
+    assert.equal(found.as.helper, helper, `${name}: the cell is about a specific identity`);
+    assert.equal(found.as.subject, id(subject),
+      `${name}: ${cell} is a claim about ${subject}, and a case run as anybody else asserts a different cell`);
+    assert.ok((found.covers ?? []).includes('§8.4/tenant-audit-select'),
+      `${name}: the case cites the matrix row it refuses a cell of`);
+  }
+  // The editor's cell is the one that needs the FIXTURE as well as the case: it is "own rows", so
+  // the row the case reads has to be one this identity is the actor of.
+  const ownRow = cases.find((c) => c.id === 'editor-a-cannot-read-their-own-audit-log');
+  assert.deepEqual(ownRow.params, [id('audit_log_a1')],
+    'the editor reads THE ROW THEY ARE THE ACTOR OF (the fixture makes user_editor_a audit_log_a1\'s '
+    + "actor). Pointed at any other row the case asserts the viewer's `N` under the editor's name.");
+});
+
+// §5 names no column of any family and every batch from 020 to 040 recorded that it therefore
+// invented nothing. This batch does not have to: CONTRIBUTING_AGENTS.md's conflict order puts the
+// Contract Catalog at position 2 and the Core Database/RLS document at 4, and CTR-AUD-001 fixes the
+// audit record's fields by name.
+test("the audit row is CTR-AUD-001's shape, and every field it declines is declared", () => {
+  assert.match(audit, /CTR-AUD-001/, 'the batch names the contract its columns come from');
+  assert.match(audit, /Contract Catalog at position 2/,
+    'and the reason a contract outranks §5\'s silence, so a reader can check the conflict order rather '
+    + 'than take the column list on trust');
+  for (const column of ['occurred_at', 'actor_kind', 'actor_id', 'action_category', 'action_name',
+    'outcome', 'reason_key', 'correlation_id', 'causation_id', 'change_before_ref', 'change_after_ref',
+    'error_code', 'secret_redacted', 'content_redacted', 'pii_redacted', 'retention_policy_ref']) {
+    assert.match(auditCode, new RegExp(`\\b${column}\\b`), `app.audit_logs carries ${column} (CTR-AUD-001)`);
+  }
+  // The tenant context is flattened into the canonical §3.3 names rather than stored as a document.
+  for (const column of ['workspace_id', 'business_profile_id', 'page_context_profile_id', 'request_id']) {
+    assert.match(auditCode, new RegExp(`\\b${column}\\b`), `CTR-TEN-001's ${column}, in §3.3's canonical form`);
+  }
+  // The six categories are the contract's list, whole.
+  for (const category of AUDIT_CATEGORIES) {
+    assert.match(auditCode, new RegExp(`'${category}'`),
+      `${category} is one of the six categories CTR-AUD-001's x-source calls "exactly the six auditable `
+      + 'action classes SEC-009 enumerates". A shorter list would be this batch choosing which actions are '
+      + 'auditable.');
+  }
+  // NO free-form bag, which is the one field the contract declares and holds empty.
+  assert.doesNotMatch(auditCode, /\bdetails\s+jsonb\b/i,
+    'CTR-AUD-001 declares `details` at maxProperties 0 and §5 forbids an untyped document column without a '
+    + 'declared schema, size, prohibited fields and owner. A free-form bag is how a secret or a page of '
+    + 'user content reaches an audit log, which is the failure OB-005 names.');
+  for (const forbidden of ['metadata', 'payload', 'jsonb']) {
+    assert.doesNotMatch(auditCode, new RegExp(`^\\s+\\w*${forbidden}\\w*\\s+jsonb`, 'im'),
+      `no ${forbidden} column: §5 forbids one without a declared JSON Schema version, maximum size, `
+      + 'prohibited fields and owner, none of which exists');
+  }
+  // And the divergences are DECLARED rather than left to be spotted.
+  assert.match(audit, /FOUR DIVERGENCES FROM THE CONTRACT, EACH DELIBERATE/,
+    'a store that silently drops a contract field is a store nobody can compare to the contract');
+  assert.match(audit, /NO `locale` AND NO `timezone`/,
+    'CTR-TEN-001 makes both `const`, so a column for either would store one value forever');
+  // The record is immutable, so it carries no updated_at and no created_by/updated_by: §3.2 asks for
+  // the first of a MUTABLE row and the second of a USER MUTATION, and an audit record is neither.
+  assert.doesNotMatch(auditCode, /create trigger set_updated_at on app\.(audit_logs|security_events)/i,
+    'an immutable row has no update to stamp');
+  // Asked of the COLUMN LISTS rather than of the whole file: the column comments explain at length
+  // why created_by is absent, and a rule that could not tell an explanation from a declaration would
+  // be satisfied by deleting the explanation.
+  for (const table of AUDIT_TABLES) {
+    const body = auditCode.match(new RegExp(`create table (?:if not exists )?app\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+    assert.ok(body, `app.${table}'s definition is readable`);
+    for (const column of ['created_by', 'updated_by', 'updated_at']) {
+      assert.doesNotMatch(body[1], new RegExp(`^\\s+${column}\\s`, 'm'),
+        `app.${table} declares ${column}. §3.2 asks for updated_at of a MUTABLE row and for created_by of a `
+        + 'USER MUTATION, and an audit record is neither: the acting party is CTR-AUD-001\'s typed actor, '
+        + 'whose id is not a uuid when the actor is a system_actor.');
+    }
+  }
+});
+
+// CTR-AUD-001's own `untestable_by_schema` note lists CROSS-FIELD CONSISTENCY as something JSON
+// Schema in this subset cannot express. Two of its `allOf` rules are exactly that shape, and a CHECK
+// constraint can hold both — so the STORE refuses a record the schema would only have failed at the
+// edge, which is the strongest thing this batch can do for a contract it does not own.
+test("the two cross-field rules CTR-AUD-001 states are CHECK constraints in the store", () => {
+  assert.match(auditCode, /constraint audit_logs_delete_names_what_it_deleted\s+check \(action_category <> 'delete' or change_before_ref is not null\)/,
+    'CTR-AUD-001 allOf[0] with PDPA-008: a deletion must leave a tombstone and an audit entry, and a delete '
+    + 'that records no reference to what existed beforehand satisfies neither');
+  assert.match(auditCode, /constraint audit_logs_outcome_matches_error\s+check \(\(outcome = 'succeeded'\) = \(error_code is null\)\)/,
+    'allOf[1] and allOf[2] as ONE biconditional: a failed or denied action says why in CTR-ERR-001\'s '
+    + 'vocabulary, and a successful one carrying an error is two contradictory statements about one event');
+  assert.match(auditCode, /constraint audit_logs_redaction_asserted\s+check \(secret_redacted and content_redacted and pii_redacted\)/,
+    'the three redaction flags are `const: true` in the contract, so a record that does not ASSERT '
+    + 'redaction is refused by the store rather than accepted and hoped about');
+  // The grammars, which are the contract's own patterns rather than shapes chosen here.
+  assert.match(auditCode, /action_name ~ '\^\[a-z0-9_\]\+\(\\\.\[a-z0-9_\]\+\)\+\$'/,
+    "the dotted <domain>.<entity>.<action> grammar, with the underscore CTR-AUD-001 deliberately permits "
+    + 'inside a segment because DEC-010\'s entities are business_profile and page_context_profile');
+  assert.match(auditCode, /reason_key ~ '\^audit\\\.\[a-z0-9_\.\]\+\$'/,
+    'a stable KEY and never free text (CM-004, CTR-ERR-001, OBS-001)');
+  assert.match(auditCode, /retention_policy_ref ~ '\^retention\\\.\[a-z0-9_\.\]\+\$'/,
+    'SEC-009 and PDPA-006: the record names the policy governing it. A REFERENCE and not a duration — '
+    + 'DATA-DEC-06 is open and a window written here would read as ratified (§15).');
+  assert.match(auditCode, /\^\(snapshot\|record\):/,
+    "the change reference's closed scheme list, adopted by the contract from CTR-IDM-001 after that "
+    + "contract's own security review: a reference, never a value, so the record cannot leak state it does "
+    + 'not hold');
+});
+
+test('the service holds grants and no policy, and the one S cell in the repository is refused', () => {
+  for (const table of AUDIT_TABLES) {
+    assert.match(auditCode, new RegExp(`grant select, insert on app\\.${table} to app_worker`, 'i'),
+      `app.${table}: without the grant a service refusal is 42501 either way and proves only that somebody `
+      + 'forgot a GRANT. With it and no policy, an empty read can only have come from row level security, '
+      + 'and a role that had quietly acquired BYPASSRLS would SUCCEED where the suite demands a refusal.');
+  }
+  for (const role of ['app_worker', 'app_command', 'app_maintenance']) {
+    assert.doesNotMatch(auditCode, new RegExp(`create\\s+policy[\\s\\S]{0,600}?\\bto\\s+${role}\\b`, 'i'),
+      `batch 140 must write no policy TO ${role}`);
+  }
+  // The reason is the finding, and the finding is larger than this batch.
+  assert.match(audit, /THE ONE `S` CELL IN THIS REPOSITORY/,
+    '§8.4\'s "Audit/security INSERT | N N N N N S" is the first `S` cell any migration here has reached, '
+    + "and batch 010's header named 140 as one of the batches that would inherit RFC-2026-016 §2's shape");
+  assert.match(audit, /server-set workspace GUC/i,
+    'RFC-2026-016 §2 conditions the service policy on a GUC derived from CTR-TEN-001, and that GUC has no '
+    + 'name, no setter and no contract. The batch says so rather than naming one itself (DATA-DEC-03) or '
+    + 'writing `with check (true)`, which is not the policy §2 sanctions.');
+  assert.match(audit, /050, 061, 070 and[\s\S]{0,12}120 all inherit it/,
+    'and the consequence is recorded for the program rather than for this batch: no `S` cell anywhere in '
+    + '§8.2 to §8.4 can be implemented until that GUC exists');
+  // The two cases that will flip when it does, and the layer that makes them flip.
+  for (const name of ['service-cannot-write-an-audit-log', 'service-cannot-write-a-security-event']) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `${name} is the case that asserts the present state of the S cell`);
+    assert.equal(found.deniedBy, 'policy',
+      `${name}: app_worker HOLDS the INSERT grant, so the refusal is row level security finding no `
+      + 'permissive policy. A grant-layer refusal here would mean the grant was never made, and the day '
+      + 'the policy is written this case would keep passing instead of flipping.');
+  }
+});
+
+// The decision a reviewer should argue with first, made checkable.
+test('the audit scope columns carry no foreign key, because §11.4 retains audit after it purges', () => {
+  const bodies = AUDIT_TABLES.map((table) => {
+    const m = auditCode.match(new RegExp(`create table (?:if not exists )?app\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+    assert.ok(m, `app.${table}'s definition is readable`);
+    return [table, m[1]];
+  });
+  for (const [table, body] of bodies) {
+    assert.doesNotMatch(body, /\breferences\b/i,
+      `app.${table} carries a foreign key. §11.4's required order purges tenant content in step 7 and '
+      + 'ANONYMIZES/RETAINS audit and security records in step 8, so an audit row must outlive the rows it '
+      + 'names. A foreign key makes that impossible in both directions at once: either the audit row blocks '
+      + 'the purge, or the purge deletes it — and this table refuses deletion.`);
+    assert.match(body, /workspace_id\s+uuid\s+not null/,
+      `app.${table} carries §3.3's canonical tenant scope, NOT NULL. A platform-scope record belonging to `
+      + 'no workspace is deliberately not modelled, which is CTR-AUD-001\'s own boundary.');
+  }
+  assert.match(audit, /§4 invariant 10 is not enforced for these two tables/,
+    'the COST of that decision is stated rather than absorbed: an audit row naming a Business in another '
+    + "Workspace is refused by nothing here, and CTR-TEN-001's trust boundary is what refuses it in the "
+    + 'producer, which is batch 141');
+  // And the suite carries no case pretending otherwise.
+  assert.equal(cases.filter((c) => c.expect === 'rejected' && /audit-log|security-event/.test(c.id)).length, 0,
+    'a `rejected` case demands a constraint refusal, and there is no constraint here to refuse. Writing one '
+    + 'would be the suite claiming a control nobody built.');
+});
+
+test('batch 140 adds to the merged batches and rewrites none of them', () => {
+  assert.doesNotMatch(auditCode, /drop policy/i,
+    'batch 140 writes no policy, so it drops none. A `drop policy` here could only name one another batch '
+    + 'created (migration invariant 1).');
+  const drops = [...auditCode.matchAll(/drop trigger if exists (\w+) on app\.(\w+)/g)];
+  assert.equal(drops.length, 4, 'one drop per trigger this batch creates, and no others');
+  for (const [, name, table] of drops) {
+    assert.ok(AUDIT_TABLES.includes(table),
+      `batch 140 drops a trigger on app.${table}, which it does not create`);
+    assert.match(auditCode, new RegExp(`create trigger ${name} before[\\s\\S]{0,80}on app\\.${table}\\b`),
+      `${name} is dropped by batch 140 and not created by it`);
+  }
+  for (const table of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items']) {
+    assert.doesNotMatch(auditCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 140 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  // Membership is never read by joining the membership table — and here that is trivially true,
+  // because nothing reads membership at all. Asserted anyway: the day somebody adds a policy, the
+  // rule RFC-2026-020 §5/5 makes uniform is already in force on this file.
+  assert.doesNotMatch(auditCode, /from app\.workspace_members\b/,
+    'no predicate in batch 140 READS the membership table. There is no predicate at all today, and this is '
+    + 'what stops the first one being written the way RFC-2026-020 §5/5 forbids. The table is NAMED once, '
+    + "in an apply-time hint about app_authz's pinned grants, which is a sentence rather than a scan.");
+  assert.doesNotMatch(auditCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz (RFC-2026-020 §5/3 and §6.1/6)');
+  assert.match(auditCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid needs a superuser, so a migration reading it passes in CI and '
+    + 'fails on the platform (batch 020 found this)');
+  assert.doesNotMatch(auditCode, /pg_authid/);
+  assert.ok(!auditCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it to a '
+    + 'count of exactly two');
+  assert.match(auditCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(auditCode, /(public|extensions)\.gen_random_uuid/);
+  for (const synonym of ['tenant_id', 'organization_id', 'brand_id', 'page_id']) {
+    assert.doesNotMatch(auditCode, new RegExp(`\\b${synonym}\\b`),
+      `§3.3 forbids the synonym ${synonym} outright in the canonical domain schema`);
+  }
+});
+
+// THE ASSERTION THIS BATCH OWES MOST AFTER THE TRIGGER, because a claim about what a control does
+// not do is the half a reader is least likely to be told.
+test('the immutability claim names the adversary it does not stop, and the pin it rests on', async () => {
+  assert.match(audit, /FORCE ROW LEVEL SECURITY BUYS NOTHING HERE/,
+    'postgres owns every table in app and holds BYPASSRLS, and BYPASSRLS beats FORCE: forcing makes the '
+    + 'OWNER subject to policies, and a bypassing role is outside the row-security system whether or not it '
+    + 'is the owner. A batch that wrote FORCE and implied it protected an audit log would be making the '
+    + 'claim this file exists to avoid.');
+  assert.match(audit, /WHAT FORCE IS STILL FOR/,
+    'and the reason it is written anyway, so the two lines are not read as decoration');
+  assert.match(audit, /tamper[\s\S]{0,20}RESISTANCE and not tamper EVIDENCE/,
+    'the trigger raises the cost of destroying a record from one statement to two and does not stop a '
+    + 'determined owner. Saying only the first half would be the overclaim.');
+  assert.match(audit, /hash chain/,
+    "CTR-AUD-001's freeze boundary leaves the store's tamper evidence OPEN and its untestable_by_schema "
+    + 'note says there is no hash chain field because no source specifies one. This batch does not invent '
+    + 'one and says where its claim stops.');
+  // The claim rests on a measured fact, and the measurement has a home a build reads. If postgres
+  // ever stops bypassing, the paragraph above is out of date and this fails rather than ageing.
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.match(runner, /const KNOWN_BYPASS = \[[^\]]*'postgres'/,
+    "batch 140's limitation statement rests on postgres bypassing row level security, which run.mjs pins "
+    + 'and fails the build over. If postgres leaves that set, the paragraph in 140_audit.sql about FORCE '
+    + 'buying nothing has to be rewritten, and this is what says so.');
+});
+
+test('the security event stores a digest and never an address, and its type is a grammar', () => {
+  for (const column of ['source_ip_hash', 'user_agent_hash']) {
+    assert.match(auditCode, new RegExp(`${column}\\s+bytea`),
+      `§9.3: "IP/user-agent: store keyed hash or truncated/redacted representation". bytea, so a plaintext `
+      + 'address does not fit the column at all.');
+    assert.match(auditCode, new RegExp(`octet_length\\(${column}\\) = 32`),
+      `${column} is exactly 32 bytes — 010's device for token_hash, tightened from a floor to an equality `
+      + 'because this column holds a digest and nothing else');
+  }
+  assert.match(audit, /lives outside this database/,
+    'a keyed hash needs a key and §9.2 forbids a secret in this database, so the key lives outside it');
+  // A GRAMMAR and not a vocabulary, which is the opposite of what §3.2 asks for a Phase 1 STATE —
+  // and the difference is that a state has a value set some document fixes and this does not.
+  assert.match(auditCode, /event_type ~ '\^\[a-z0-9_\]\+\(\\\.\[a-z0-9_\]\+\)\+\$'/,
+    'the dotted grammar CTR-AUD-001 fixes for action.name, reused rather than a second convention invented');
+  assert.doesNotMatch(auditCode, /event_type in \(/,
+    'no enum: NO DOCUMENT ENUMERATES the kinds of security event, and a CHECK over an invented vocabulary '
+    + 'would be inventing the security taxonomy — which is what 010 refused for invitation status and 021 '
+    + 'for a scope lifecycle');
+  // The actor is optional here and mandatory on the audit log, which is a difference between the two
+  // families rather than an inconsistency.
+  assert.match(auditCode, /constraint security_events_actor_is_whole_or_absent\s+check \(\(actor_kind is null\) = \(actor_id is null\)\)/,
+    "§9.1's own example of this family is a \"replay anomaly\", which is a pattern nobody performed — so "
+    + 'the actor is nullable, and the two columns move together so a row cannot name a KIND of actor '
+    + 'without naming one');
+  assert.match(auditCode, /actor_kind\s+text\s+not null/,
+    'while an audit record always has an actor, because it is a record of somebody\'s action');
+  // And the private-schema half of §5's scope cell is refused with a measurable reason.
+  assert.match(audit, /the private half is NOT honoured/,
+    "§5 scopes this family \"workspace/private\" and a table in `private` is reachable by NO ROLE today: "
+    + '§3.1 reaches it only "through a typed service" and none exists, while run.mjs fails the build when '
+    + 'any service role holds USAGE on private. Its isolation would be unprovable, which is the '
+    + 'unfalsifiable shape RFC-2026-016 §4 retired "force where compatible" for being.');
+});
+
+// The CI negative control, extended to two more tables — and each entry rests on a kind of case no
+// earlier entry used.
+test('the tables batch 140 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 11, 'the control runs per table family, and batch 140 adds two');
+
+  // A case is RESTORED by disabling row level security when it is a filtered read, a filtered write,
+  // or a POLICY-layer refusal. The third is 040's rule corrected: that batch counted only the first
+  // two and noted that "a `denied` case is a privilege refusal and would pass unchanged" — which is
+  // true of `deniedBy: 'grant'` and false of `deniedBy: 'policy'`. On these two tables the policy
+  // layer is where most of the detectability lives, because no client role holds a privilege at all.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+
+  for (const table of AUDIT_TABLES) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on `
+      + "one table and requires a failed case whose id matches that table's pattern; a batch that adds a "
+      + "table and no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '140', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.ok(detectable.length >= 2,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + 'disabled, and the entry needs at least two. Batch 030 recorded that an entry resting on ONE case is '
+      + 'one deletion away from resting on none; these rest on two, and both are named below.');
+  }
+  // The two patterns must not overlap, or one entry is satisfied by the other table's regression.
+  const auditPattern = new RegExp(`^${controls.find(([, n]) => n === AUDIT_LOGS)[2]}`);
+  const securityPattern = new RegExp(`^${controls.find(([, n]) => n === SECURITY_EVENTS)[2]}`);
+  for (const c of cases) {
+    assert.ok(!(auditPattern.test(c.id) && securityPattern.test(c.id)),
+      `${c.id} matches BOTH batch 140 control patterns, so each entry could be satisfied by the other `
+      + "table's regression");
+  }
+  // WHAT EACH ENTRY RESTS ON, pinned by id and by outcome so deleting one fails the build.
+  for (const [table, name, expect, layer] of [
+    [AUDIT_LOGS, 'service-sees-zero-audit-logs', 'no-rows', undefined],
+    [AUDIT_LOGS, 'service-cannot-write-an-audit-log', 'denied', 'policy'],
+    [SECURITY_EVENTS, 'service-sees-zero-security-events', 'no-rows', undefined],
+    [SECURITY_EVENTS, 'service-cannot-write-a-security-event', 'denied', 'policy'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the outcome is what disabling row level security changes`);
+    assert.equal(found.deniedBy, layer, `${name}: the layer is what makes it change`);
+    assert.ok(restoredByDisablingRls(found), `${name} would not be restored by disabling row level security`);
+  }
+  assert.match(workflow, /THE TWO AUDIT TABLES, AND A CORRECTION TO WHAT MAKES AN ENTRY BITE/,
+    'each entry says beside itself what disabling row level security on that table would let through, '
+    + 'because a control whose mechanism lives only in a test is a control nobody reads at the point of use');
+});
+
+test('the batch 140 fixture writes only catalog identities and exercises both branches', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(AUDIT_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['audit_log_a1', 'audit_log_b1', 'security_event_a1', 'security_event_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // BOTH TENANTS, so "both owners are refused identically" is about two real rows rather than one.
+  assert.ok(used.has(id('workspace_a')) && used.has(id('workspace_b')),
+    'both sides of the boundary are loaded, or the refusal on the far side is about a missing row');
+  // The ACTOR of the A-side audit row is user_editor_a, which is what makes the §8.4 `O` case a case
+  // about that cell rather than about a role the matrix denies anyway.
+  assert.match(fixture, new RegExp(`'user', '${id('user_editor_a')}'`),
+    'audit_log_a1 is ABOUT user_editor_a. §8.4 marks "Tenant audit SELECT" `O` for the editor — own rows — '
+    + 'so without this the case that asserts that cell would be indistinguishable from the viewer\'s `N`.');
+  // BOTH BRANCHES of every cross-field rule, or the other branch is permitted and never satisfied.
+  assert.match(fixture, /'succeeded'/, "the succeeded branch: no error_code, which allOf[2] requires");
+  assert.match(fixture, /'denied'/, 'and the denied branch, which allOf[1] requires an error_code beside');
+  assert.match(fixture, /'delete',/, "the delete category, which allOf[0] requires a before-reference for");
+  assert.match(fixture, /'record:business_profile\//, 'and that reference, in the contract\'s own grammar');
+  assert.match(fixture, /'auth\.session\.replay_detected', null, null/,
+    "a security event with NO ACTOR — §9.1's own example is a replay anomaly, which is a pattern rather "
+    + "than somebody's act — so the both-or-neither constraint is exercised in the absent direction");
+  assert.match(fixture, /'auth\.credential\.rotation_failed', 'user'/, 'and one WITH an actor');
+  // The hashes are computed and never pasted.
+  // BOTH DIRECTIONS, because a probe that replaced ONE of the four computed digests with a pasted
+  // hex literal was NOT NOTICED by a rule that only asked whether sha256 appeared at all. Three
+  // survivors satisfied it while the fourth was an unverifiable constant.
+  assert.equal((fixture.match(/sha256\(convert_to\(/g) ?? []).length, 4,
+    'four computed digests: an IP and a user agent on each of the two security events. A pasted hex '
+    + 'digest would be a constant nobody can recompute, which is the thing the fixture catalog exists to '
+    + 'avoid, and §9.3 forbids the address itself.');
+  assert.doesNotMatch(fixture, /\\x[0-9a-f]{16,}/i,
+    'and no pasted byte literal anywhere. This is the half the count cannot make: a fifth hashed column '
+    + 'added tomorrow with a literal would keep the count at four for the columns that already have one.');
+  assert.doesNotMatch(fixture, /\bnow\(\)/,
+    'every timestamp is FIXED: a fixture whose content depends on when it ran is one whose failures depend '
+    + "on when they ran (030's sentence about released_at)");
+  assert.match(fixture, /on conflict \(id\) do nothing/,
+    'idempotent on the primary key, because an audit record has no natural key and inventing a unique '
+    + 'constraint so a case could address one without a symbol would be writing a product decision into a '
+    + 'schema to save four constants');
+});
+
+test('the coverage map records what a table nobody can read can and cannot carry', () => {
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /140/.test(v.note));
+  assert.ok(mentions.length >= 6,
+    'batch 140 extends six §12.6 notes and moves no row. If a note stopped naming it, either the assertion '
+    + "stopped being carried on this batch's tables or the note was rewritten by somebody who did not know "
+    + 'it was load-bearing.');
+  // NOTHING MOVES, and the two rows a reader might expect to are the point.
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'batch 140 pays no part of §12.6/3. An approver refused an AUDIT read is a fourth in-scope analogue and '
+    + 'is still not the content and knowledge tables that sentence names; content is batch 080.');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'and §12.6/8 stays a labelled partial. What CHANGED is what it is waiting for: the positive half is no '
+    + 'longer unassertable because the matrix grants the service nothing — §8.4 marks the audit INSERT `S` '
+    + '— it is unassertable because RFC-2026-016 §2 conditions the policy on a GUC nobody has named.');
+  assert.match(SMOKE_COVERAGE[8].note, /workspace GUC/,
+    'the note names the missing thing, so a reader can go and find whether it exists yet');
+  assert.match(SMOKE_COVERAGE[8].note, /050, 061, 070 and 120/,
+    'and names the other batches the same blocker reaches, because a finding recorded only where it was '
+    + 'found is a finding the batches that inherit it will each rediscover');
+  assert.match(SMOKE_COVERAGE[7].note, /carries a foreign key/,
+    '§12.6/7 is the forged-id assertion, and batch 140 adds no case for it because nothing in this schema '
+    + 'would refuse one. The note says so rather than letting the absence read as an oversight.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[1]), /BATCH 140 HAS NO CASE FOR THIS AT ALL/,
+    '§8.6 case 1 is "same Workspace + allowed role → pass", and there is no allowed client role on either '
+    + 'table. Counting the service grant would report the absence of a client surface as coverage of one.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[9]), /TRIGGER/,
+    'case 9 is the immutable row, and batch 140 is the first to carry it against the table OWNER');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[10]), /one of those two now does/,
+    'case 10 is "authorized server command → pass + expected audit/outbox", and the note it replaces said '
+    + 'audit did not exist yet. It does now; what is missing is a writer.');
+  // The labels this batch introduced are cited by cases, so the reasoning cannot stop being asserted
+  // while every §12.6 row stays green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.4/tenant-audit-select', '§8.4/security-event-details', '§8.4/audit-insert',
+    '§8.4/audit-mutation', '§9.1/AUTH-3', 'RFC-2026-021§7']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 140 rests on and no case cites it`);
+  }
+  // And every audit case is a refusal or an empty read: there is no passing client case to be had,
+  // and one appearing would mean a grant was made without an allowlist entry.
+  for (const c of cases.filter((k) => /audit-log|security-event/.test(k.id))) {
+    assert.notEqual(c.expect, 'rows',
+      `${c.id}: a passing case on these tables would mean somebody granted a client role a privilege, `
+      + 'which RFC-2026-021 §3 gives to an RFC and takes away from a pull request');
+  }
+});

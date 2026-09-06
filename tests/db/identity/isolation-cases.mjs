@@ -130,6 +130,30 @@
 // The three analogues stay recorded and stay labelled. They are still the only evidence about the
 // workspace, the page context and the industry assignment, and 040 pays none of them.
 //
+// BATCH 140 MOVES NO ROW AND CHANGES THE MEANING OF ONE, WHICH IS A THING NO EARLIER BATCH HAS
+// DONE TO THIS MAP. §12.6's eight assertions are written about TENANT ROWS a member can reach, and
+// batch 140's two tables are reachable by NO REQUEST-PATH IDENTITY AT ALL: no client role holds a
+// privilege on app.audit_logs or app.security_events, and no policy is written for one. Batch 030
+// met a version of that on its two GLOBAL tables and recorded the kind of assertion §12.6 has no row
+// for; 140's tables ARE tenant-owned and are still unreachable, which is a different state again and
+// is recorded in the notes rather than as a ninth key nobody may invent.
+//
+// So six notes grow, one of them substantially, and every `covered` value is untouched:
+//
+//   §12.6/1 gains "both owners are refused identically", which on a table nobody can read is what
+//           stands in place of a cross-tenant claim — the same substitute 030 recorded for a row
+//           that belongs to no tenant, arriving now for a row that belongs to one.
+//   §12.6/4 gains the reason it is NOT extended: a viewer refused here is refused exactly as an
+//           owner is, so the case says nothing about a viewer, which is 030's own finding.
+//   §12.6/5 gains a suspended member refused at the GRANT layer rather than filtered to zero rows.
+//   §12.6/6 gains the anonymous refusal on the family at the most restricted end of §9.1.
+//   §12.6/7 gains the reason batch 140 asserts NO forged-id case at all, which is a finding about
+//           the schema rather than a gap in the suite.
+//   §12.6/8 CHANGES SUBSTANTIALLY, and it is the most useful thing this batch found: the positive
+//           half stops being "unasserted because the matrix grants the service nothing" and becomes
+//           "unasserted because the one `S` cell in the whole repository needs a workspace GUC that
+//           does not exist". The row stays `negative-half`; what it is waiting for is now named.
+//
 // A row that moves must move for a case, not for a sentence: identity-isolation.test.mjs requires
 // every assertion claimed `covered: true` to be cited by a case in this file.
 //
@@ -230,7 +254,16 @@ export const SMOKE_COVERAGE = {
                            + 'when — FIN-3, which §9.1 describes as "restricted, immutable history".\n\n'
                            + 'BATCH 130\'s THREE GLOBAL TABLES ARE EXCLUDED for 030\'s reason, unchanged: '
                            + 'a row that belongs to no workspace has no cross-tenant case, and both owners '
-                           + 'are refused identically at the privilege layer instead.' },
+                           + 'are refused identically at the privilege layer instead.\n\n'
+                           + 'BATCH 140 ADDS TWO TENANT TABLES AND NO CROSS-TENANT CASE, which is new: '
+                           + 'app.audit_logs and app.security_events both carry workspace_id, so they are '
+                           + 'tenant-owned in a way 030\'s catalog is not — and no client role holds a '
+                           + 'privilege on either, so "A cannot reach B\'s row" is unaskable for the same '
+                           + 'reason it was unaskable of a global row and a different one. What is asserted '
+                           + 'instead is the substitute 030 named: BOTH OWNERS ARE REFUSED IDENTICALLY, on '
+                           + 'both tables, while each holds the exact id of a row in their OWN workspace. '
+                           + 'That is a stronger statement than a tenant boundary and a narrower one, and '
+                           + 'it is labelled rather than counted here.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -382,7 +415,16 @@ export const SMOKE_COVERAGE = {
                            + '`owner-a-cannot-extend-a-billing-subscription` and '
                            + '`owner-a-cannot-delete-a-billing-subscription` carry those refusals instead, '
                            + 'where "even the owner" is the claim and the thing being refused is a '
-                           + 'client-asserted entitlement.' },
+                           + 'client-asserted entitlement.\n\n'
+                           + 'BATCH 140 ADDS NOTHING HERE AND THE ABSENCE IS THE ENTRY. A viewer refused '
+                           + 'an audit row is refused by the same absent grant that refuses the workspace '
+                           + 'OWNER, so the case would say nothing about a viewer — which is exactly what '
+                           + '030 recorded about its two global tables and is why '
+                           + '`owner-a-cannot-write-an-audit-log` carries the write refusal instead, where '
+                           + '"even the owner" is the claim. §8.4 marks the viewer `N` on every audit row, '
+                           + 'and `viewer-a-cannot-read-the-audit-log` asserts that cell; it is counted '
+                           + 'under §8.6/2 (wrong role) rather than here, because a refusal that holds for '
+                           + 'everyone is not evidence about a role.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -423,7 +465,15 @@ export const SMOKE_COVERAGE = {
                            + 'schema: app.workspace_member_role(workspace_id) = \'owner\'. A suspended '
                            + 'member sees zero rows there because the helper answers NULL for a membership '
                            + 'that is not active, which is §7 arriving through batch 011 and nothing '
-                           + 'else.' },
+                           + 'else.\n\n'
+                           + 'BATCH 140 RE-ASKS IT AND GETS A STRONGER ANSWER THAN THE ASSERTION WANTS. '
+                           + 'On both audit tables a suspended member is refused with an ERROR at the '
+                           + 'GRANT layer rather than filtered to zero rows, because no client role holds '
+                           + 'a privilege there — so the two cases declare `denied` and name the layer '
+                           + 'and the object rather than claiming the weaker outcome. The pair with an '
+                           + 'ACTIVE owner refused identically is what stops that being read as a '
+                           + 'suspension control: on these two tables suspension is not what refuses '
+                           + 'anybody.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -479,7 +529,14 @@ export const SMOKE_COVERAGE = {
                            + 'reach, and the structural reason it gives is why these cases declare the '
                            + 'SCHEMA: the first anon grant is `usage on schema app`, which moves the denial '
                            + 'layer of every object in app at once. Four anonymous cases in this batch, on '
-                           + 'the schema, so that day arrives as four failing tests.' },
+                           + 'the schema, so that day arrives as four failing tests.\n\n'
+                           + 'BATCH 140 STATES IT ON THE TWO FAMILIES §9.1 RESTRICTS MOST. AUTH-3 is '
+                           + '"restricted and append-only where needed" and SECURITY-4 is "hash/minimize; '
+                           + 'restricted", with a client projection of "security/admin safe view only" — '
+                           + 'so if 030\'s catalog is the one family somebody might argue for exposing '
+                           + 'anonymously, a raw security event is the last. Both cases are refused on '
+                           + 'the SCHEMA, which is RFC-2026-021 §7/4 as an assertion rather than as a '
+                           + 'convention.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -530,7 +587,20 @@ export const SMOKE_COVERAGE = {
                            + 'platform-curated catalog — §3.2 asks for the actor columns on a row a USER '
                            + 'mutates, and no user mutates this one. What CAN be forged here is a '
                            + 'commitment, and `owner-a-cannot-create-a-billing-subscription` is that '
-                           + 'case.' },
+                           + 'case.\n\n'
+                           + 'BATCH 140 ADDS NO FORGERY CASE AT ALL, AND THAT IS A FINDING ABOUT THE '
+                           + 'SCHEMA RATHER THAN A GAP IN THE SUITE. A forged id fails somewhere only if '
+                           + 'something checks it, and on app.audit_logs and app.security_events nothing '
+                           + 'does: neither table carries a foreign key — 140_audit.sql gives §11.4\'s '
+                           + 'required order as the reason, because step 7 purges tenant content and step '
+                           + '8 RETAINS audit, so an audit row must outlive the rows it names — and '
+                           + 'neither carries a policy for a forged column to be refused by. So §4 '
+                           + 'invariant 10 is NOT enforced for these two tables, the producer owes it '
+                           + '(CTR-TEN-001\'s trust boundary is "Server-resolved only after membership '
+                           + 'and Workspace→Business→Page relation validation"), and batch 141 is where '
+                           + 'a producer able to violate it will exist. A case asserting a refusal this '
+                           + 'schema does not perform would be the suite claiming a control nobody '
+                           + 'built.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -625,7 +695,27 @@ export const SMOKE_COVERAGE = {
                            + 'than as a convention, and `service-cannot-create-a-billing-subscription` is '
                            + 'where it is asserted. The positive half is still not asserted, and here it is '
                            + 'owed to a NAMED batch rather than to an undefined permission: 131 grants the '
-                           + 'verbs when it brings the projection that needs them.' },
+                           + 'verbs when it brings the projection that needs them.\n\n'
+                           + 'BATCH 140 IS WHERE THE POSITIVE HALF STOPS BEING A MATTER OF TASTE AND '
+                           + 'BECOMES A BLOCKED DEPENDENCY, and it is the most useful thing this batch '
+                           + 'found. Every batch from 010 to 040 said the same sentence — the positive '
+                           + 'half is unasserted because the matrix marks no operation `S` and asserting '
+                           + 'a success would mean inventing the permission first. **§8.4 MARKS '
+                           + '"Audit/security INSERT" `S`.** It is the first and only `S` cell any '
+                           + 'migration in this repository has reached, batch 010\'s own header named 140 '
+                           + 'as one of the batches that would inherit RFC-2026-016 §2\'s service-policy '
+                           + 'shape, and the policy is STILL not written — because §2 conditions it on "a '
+                           + 'server-set workspace GUC derived from CTR-TEN-001" that has no name, no '
+                           + 'setter and no contract, with DATA-DEC-03 open until G1.\n\n'
+                           + 'So the row stays `negative-half` and what it is waiting for has changed '
+                           + 'from a decision nobody has taken to a decision somebody has taken and '
+                           + 'nobody has implemented. `service-cannot-write-an-audit-log` and '
+                           + '`service-cannot-write-a-security-event` are the two cases that will have to '
+                           + 'flip when it is, and they are POLICY-layer denials rather than grant-layer '
+                           + 'ones precisely so that they flip rather than staying green: app_worker '
+                           + 'holds the INSERT grant already. THE FINDING GENERALISES — until that GUC '
+                           + 'exists no `S` cell anywhere in §8.2 to §8.4 can be implemented by any '
+                           + 'batch, which reaches 050, 061, 070 and 120 as well as this one.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -637,6 +727,24 @@ export const SMOKE_COVERAGE = {
 // Business, a Page or a membership, and a published catalog row has none of those. Where a case
 // cannot apply the disposition says so and names what stands in its place, rather than counting a
 // refusal that holds for everybody as a boundary that holds for one tenant.
+//
+// BATCH 140 IS THE THIRD SHAPE, and it is the one §8.6 fits worst. Its two tables ARE tenant tables
+// — both carry workspace_id — and no request-path identity holds a privilege on either, so:
+//
+//   * CASE 1 HAS NO INSTANCE AT ALL. "Same Workspace + allowed role/scope → pass" needs a role the
+//     matrix allows something, and §8.4 gives every client cell to an object this batch may not
+//     create (RFC-2026-012's view, on RFC-2026-021's empty allowlist) or to a capability no
+//     document defines. There is no passing client case on app.audit_logs or app.security_events,
+//     and the disposition says so rather than counting a service grant as one.
+//   * CASES 3 AND 4 have nothing to be about: member scope's three types are all_businesses,
+//     business and page, and an audit record is addressed by its Workspace.
+//   * CASE 8 has nothing to forge against: neither table carries a foreign key or a policy, for
+//     §11.4's reason, so a forged scope column is refused by nothing here and is owed to the
+//     producer and to CTR-TEN-001's trust boundary.
+//   * CASE 9 IS THE ONE THIS FAMILY CARRIES BEST, and it is carried further than any earlier batch
+//     could carry it: not only by absent grants and absent policies but by a TRIGGER, proven at
+//     apply time against the table OWNER — the role every earlier immutable table is defenceless
+//     against.
 export const AUTHORIZATION_CASE_COVERAGE = {
   1: 'covered — owner reads its workspace and inserts an invitation (010); owner reads its '
    + 'businesses, pages and versions, creates a business, a page and a new version (020); owner '
@@ -660,7 +768,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'thin suite: §8.3 gives a client exactly one operation on billing — "Billing/subscription '
    + 'SELECT", `Y` for the owner — and every write on all four tables is refused to every role, '
    + 'including the service. The owner of each tenant reads its own subscription, and the two '
-   + 'positives name the same global plan revision.',
+   + 'positives name the same global plan revision.\n\n'
+   + 'page-level (040).\n\n'
+   + 'BATCH 140 HAS NO CASE FOR THIS AT ALL AND THE ABSENCE IS THE DISPOSITION. §8.4 gives the '
+   + 'client roles Y, P, O, "approval trail", N and P across two rows, and batch 140 implements '
+   + 'none of them: the object that carries a client read of an audit trail is a named '
+   + 'security_invoker view on RFC-2026-021\'s allowlist, the allowlist is empty, and C1 of that '
+   + 'RFC — a named CLIENT caller exists — fails here as it failed for the industry catalog. So '
+   + 'there is no "allowed role" on either table to pass, and the two identities that hold a grant '
+   + 'or a privilege at all — app_worker, and the migration role — are asserted in cases 9 and 10 '
+   + 'instead. Counting a service grant here would be reporting the absence of a client surface as '
+   + 'coverage of one.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -692,7 +810,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'roles — so the three cases assert zero rows for three ACTIVE members of the workspace, each '
    + 'paired with the owner\'s positive on the same row. Their member scopes are irrelevant and '
    + 'that is asserted rather than assumed: a subscription is a workspace row, and 021\'s reading '
-   + 'of §7 puts no workspace row inside any scope type.',
+   + 'of §7 puts no workspace row inside any scope type.\n\n'
+   + 'the row.\n\n'
+   + 'BATCH 140 CARRIES IT AS THE ONLY §8.6 CASE ITS CLIENT ROLES CAN CARRY, five times over on the '
+   + 'audit log: the owner (`Y`), the editor (`O` — own rows, and the fixture makes that identity '
+   + 'the ACTOR of the row), the approver ("approval trail"), the viewer (`N`) and the far tenant\'s '
+   + 'owner are each refused separately, so the five cells of §8.4\'s read row are five cases rather '
+   + 'than one refusal standing for all of them. Only the viewer\'s is a wrong-role refusal in the '
+   + 'ordinary sense; the other four are refusals of cells the matrix GRANTS, which is why each names '
+   + 'its own reason in `why` and why the day an allowlist entry opens one of them exactly one line '
+   + 'changes here.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -779,7 +906,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'so the cross-tenant WRITE case has no shape here: an attempted write against the other '
    + 'tenant is refused by the same absent grant as an attempted write against your own, and a '
    + 'case naming the boundary would be claiming a control that is not the one doing the work. '
-   + 'Batch 130\'s three GLOBAL tables are excluded on purpose, for the reason 030 gave.',
+   + 'Batch 130\'s three GLOBAL tables are excluded on purpose, for the reason 030 gave.\n\n'
+   + 'business SAYS rather than what it is called.\n\n'
+   + 'BATCH 140 CARRIES THE SUBSTITUTE RATHER THAN THE CASE, for the reason 030 gave about a global '
+   + 'row and a different one: the rows ARE tenant-owned and no client identity can read its own, so '
+   + '"A cannot reach B\'s" would be satisfied by a table nobody can read. What is asserted is that '
+   + 'BOTH OWNERS ARE REFUSED IDENTICALLY on both tables while each holds the exact id of a row in '
+   + 'their OWN workspace — `owner-a-cannot-read-the-audit-log-of-workspace-a` beside '
+   + '`owner-b-cannot-read-the-audit-log-of-workspace-b`, and the same pair on the security event.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -795,7 +929,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'owner does. A case true of every identity is not evidence about the suspended one.\n\n'
    + 'permissive policy and once through the item its restrictive narrowing resolves. Batch 130 '
    + 're-asks it of app.billing_subscriptions, whose only membership predicate is that helper at '
-   + 'its narrowest — a role equality rather than a membership test.',
+   + 'its narrowest — a role equality rather than a membership test.\n\n'
+   + 'permissive policy and once through the item its restrictive narrowing resolves.\n\n'
+   + 'Batch 140 re-asks it of both audit tables and gets an ERROR rather than an empty read, because '
+   + 'the suspended member is refused by the privilege system exactly as an active owner is. The '
+   + 'case declares the layer and the object so the difference is recorded rather than smoothed: on '
+   + 'these two tables suspension is not what refuses anybody, and the active-owner case beside it '
+   + 'is what says so.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -816,7 +956,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'and on all three catalog tables, and one of those is the most ordinary anonymous surface a '
    + 'product has: a price list. RFC-2026-021 §7/4 makes the refusal an approved decision rather '
    + 'than a convention, and all four declare the SCHEMA, so opening it fails four tests at once '
-   + 'instead of being noticed on one.',
+   + 'instead of being noticed on one.\n\n'
+   + 'is what makes it checkable per table.\n\n'
+   + 'Batch 140 asserts it on the two families §9.1 restricts most — AUTH-3 "restricted and '
+   + 'append-only where needed" and SECURITY-4 "security/admin safe view only" — on the SCHEMA, '
+   + 'which is RFC-2026-021 §7/4 as a check rather than as a convention.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -847,7 +991,18 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'identically to a well-formed one — at the privilege layer, by the same absent grant. '
    + 'app.billing_subscriptions carries no created_by to forge, for the reason 030 gave about a '
    + 'platform-curated row. The forgery this family is actually exposed to is a forged '
-   + 'COMMITMENT, and `owner-a-cannot-create-a-billing-subscription` is the case.',
+   + 'COMMITMENT, and `owner-a-cannot-create-a-billing-subscription` is the case.\n\n'
+   + 'BATCH 140 CARRIES NO FORGERY CASE AND SAYS WHY, because the honest answer is that nothing in '
+   + 'this schema would refuse one. app.audit_logs and app.security_events carry NO FOREIGN KEY and '
+   + 'NO POLICY: §11.4 purges tenant content in step 7 and RETAINS audit in step 8, so an audit row '
+   + 'must be able to outlive every row it names, and a foreign key would make that impossible in '
+   + 'both directions at once. §4 invariant 10 is therefore NOT enforced for this family, which '
+   + 'CTR-TEN-001\'s own trust boundary covers instead ("Server-resolved only after membership and '
+   + 'Workspace→Business→Page relation validation; client-supplied context is untrusted input"), and '
+   + 'batch 141 is where a producer able to violate it will exist. What IS asserted is the half a '
+   + 'forged column is usually asserted through: no client role can insert at all, so the party a '
+   + 'record is about cannot compose one — `owner-a-cannot-write-an-audit-log` and '
+   + '`owner-a-cannot-write-a-security-event`, both at the grant layer.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -934,7 +1089,29 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'schema whose rewriting changes what somebody was charged, and an entitlement is what a '
    + 'paying customer was promised. 130\'s own apply-time block walks six roles against both '
    + 'tables and raises if any cell holds either verb, which catches a grant made by a later '
-   + 'batch.',
+   + 'batch.\n\n'
+   + 'BATCH 140 ADDS THE FIFTH AND SIXTH IMMUTABLE TABLES AND IS THE FIRST BATCH TO CARRY THIS CASE '
+   + 'AGAINST THE ONE ADVERSARY THE OTHER FOUR ARE DEFENCELESS AGAINST. app.audit_logs and '
+   + 'app.security_events are append-only by §5, §3.2, §4 invariant 8 and §8.4\'s "Audit/security '
+   + 'UPDATE/DELETE | N N N N N N", and all four cells are live on each: update and delete by a '
+   + 'workspace OWNER and by the SERVICE identity, eight cases, every one declared at the GRANT '
+   + 'layer because no role holds either verb.\n\n'
+   + 'WHAT IS NEW IS THE THIRD MECHANISM. Batches 020, 030 and 040 expressed immutability as absent '
+   + 'grants and absent policies, which reaches every role our migrations can name and reaches '
+   + 'NOBODY ELSE: `postgres` owns every table in `app` and holds BYPASSRLS, so FORCE ROW LEVEL '
+   + 'SECURITY does not constrain it and neither does an absent grant it can issue to itself. On an '
+   + 'audit log that is the adversary that matters, because the record exists to be read against the '
+   + 'people who can reach the database. So 140 also carries a TRIGGER — §8.5\'s own "command/'
+   + 'trigger/privilege defense" for an immutable table, which no earlier batch used — refusing '
+   + 'UPDATE, DELETE and TRUNCATE for every role including the owner, and 140_audit.sql PROVES it by '
+   + 'execution at apply time: it writes a probe row as the migration role, attempts all three, '
+   + 'requires all three to raise, and rolls the probe back. No isolation case can carry that, '
+   + 'because no identity this harness can assume gets past the privilege system to reach the '
+   + 'trigger.\n\n'
+   + 'AND THE LIMIT IS RECORDED WITH THE CLAIM: the owner can disable the trigger in one statement. '
+   + 'It is tamper RESISTANCE and not tamper evidence, and CTR-AUD-001\'s freeze boundary leaves '
+   + '"the audit STORE, its append-only or immutability mechanism, and any tamper evidence" open '
+   + 'precisely because no source specifies a hash chain. This batch does not invent one.',
   10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
     + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
     + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
@@ -978,7 +1155,18 @@ export const AUTHORIZATION_CASE_COVERAGE = {
     + 'entitlement is derived only from a verified Stripe webhook projection" being the reason the '
     + 'absence is correct rather than convenient. What batch 130 contributes is that the gap is now '
     + 'a set of PASSING CASES: six refusals that will have to change, in a named batch, in a diff a '
-    + 'reviewer reads.',
+    + 'reviewer reads.\n\n'
+   + 'BATCH 140 BUILDS THE HALF OF CASE 10 THAT WAS MISSING AND CANNOT REACH THE OTHER HALF. The '
+   + 'case is "authorized server command → pass + EXPECTED AUDIT/OUTBOX", and until this batch there '
+   + 'was no audit store for the second half to be about — the note above said "audit (140) and '
+   + 'outbox (050) do not exist yet" and one of those two now does. What is still missing is a '
+   + 'WRITER: §8.4 marks "Audit/security INSERT" `S`, RFC-2026-016 §2 conditions a service policy on '
+   + '"a server-set workspace GUC derived from CTR-TEN-001", and no such GUC has a name, a setter or '
+   + 'a contract (DATA-DEC-03, open until G1). So `service-cannot-write-an-audit-log` asserts the '
+   + 'present state — the service holds the INSERT grant and is refused by row level security — and '
+   + 'the day the GUC is decided that case flips, in a diff, rather than a claim quietly becoming '
+   + 'true. **The finding is larger than this batch: until that GUC exists, no `S` cell anywhere in '
+   + '§8.2 to §8.4 can be implemented, which reaches 050, 061, 070 and 120 as well.**',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -1552,6 +1740,67 @@ export function buildCases(id) {
     sql: 'delete from app.plan_entitlements'
        + " where billing_plan_version_id = $1 and feature_key = 'workspace_users' returning id",
     params: [version],
+  });
+
+  // -- Batch 140 builders and witnesses. --------------------------------------------------------
+  //
+  // THIS BLOCK IS SHAPED UNLIKE EVERY BLOCK ABOVE IT, and the shape is the finding rather than a
+  // stylistic drift. There is no `rows` case anywhere in it: batch 140 grants no client role
+  // anything on either table and writes no policy for one, so no request-path identity has an
+  // operation to succeed at. Batch 030 met that state first on its two GLOBAL tables and said what
+  // stands in place of a positive — "both owners are refused identically, at the privilege layer" —
+  // and these two tables are the same shape for a different reason: 030's rows belong to NO tenant,
+  // and these belong to one and are still unreachable by it.
+  //
+  // So there is no witness function here either. A `no-effect` case pairs an empty write with a
+  // witness read; every write below is REFUSED rather than filtered, because the privilege is
+  // absent rather than the policy, and `denied` is the stronger assertion the helper module reserves
+  // for exactly that.
+  const AUDIT_A1 = id('audit_log_a1');
+  const AUDIT_B1 = id('audit_log_b1');
+  const SECURITY_A1 = id('security_event_a1');
+  const SECURITY_B1 = id('security_event_b1');
+
+  const AUDIT_BY_ID = 'select id from app.audit_logs where id = $1';
+  const SECURITY_EVENT_BY_ID = 'select id from app.security_events where id = $1';
+
+  // The write §8.4 marks `N` for every client role and `S` for the service. Its columns are the ones
+  // CTR-AUD-001 makes required and no more: the three redaction flags are `true` because the
+  // constraint refuses a record that does not assert redaction, and the outcome is `succeeded`
+  // because the biconditional constraint would otherwise demand an error_code beside it.
+  //
+  // A statement that a correct database refuses at the PRIVILEGE layer would be refused whatever it
+  // contained, so it is written to be otherwise VALID on purpose: a case whose row would have been
+  // rejected by a CHECK anyway proves nothing about the grant.
+  const writeAuditLog = (workspace, actor) => ({
+    sql: 'insert into app.audit_logs'
+       + ' (workspace_id, occurred_at, actor_kind, actor_id, action_category, action_name,'
+       + ' outcome, reason_key, request_id, correlation_id,'
+       + ' secret_redacted, content_redacted, pii_redacted, retention_policy_ref)'
+       + " values ($1, now(), 'user', $2, 'role', 'identity.workspace_member.role_changed',"
+       + " 'succeeded', 'audit.case.attempted_write', 'attempted-request', 'attempted-correlation',"
+       + " true, true, true, 'retention.audit') returning id",
+    params: [workspace, actor],
+  });
+
+  const writeSecurityEvent = (workspace) => ({
+    sql: 'insert into app.security_events (workspace_id, occurred_at, event_type)'
+       + " values ($1, now(), 'auth.session.attempted_write') returning id",
+    params: [workspace],
+  });
+
+  // `reason_key` and not `outcome`, deliberately. An UPDATE setting `outcome` would be refused by
+  // `audit_logs_outcome_matches_error` on a database that had wrongly GRANTED the verb — 23514 where
+  // the case demands 42501 — so the case would fail for the right reason and report the wrong one.
+  // The column a rewrite would actually reach for is the one that says why the action was recorded.
+  const rewriteAuditLog = (auditId) => ({
+    sql: 'update app.audit_logs set reason_key = $2 where id = $1 returning id',
+    params: [auditId, 'audit.case.rewritten'],
+  });
+
+  const rewriteSecurityEvent = (eventId) => ({
+    sql: 'update app.security_events set event_type = $2 where id = $1 returning id',
+    params: [eventId, 'auth.session.rewritten'],
   });
 
   return [
@@ -4532,8 +4781,7 @@ export function buildCases(id) {
          + 'no-rows and not a denial.',
     },
     // ===================================================================================    // Batch 050 — the async kernel. Three tables, no policy, and no reader.
-    // ==========================================================================================
-    //
+    // ===================================================================================    //
     // §8.4 gives this family two rows and neither is implementable by a migration:
     //
     //   | Job redacted status SELECT       | Y | Y | O/P | O/P | O/P | P |
@@ -6010,6 +6258,402 @@ export function buildCases(id) {
       why: 'The fourth cell. 020 left one cell of its own grid to an apply-time block and said so; '
          + 'this batch leaves none, because a plan entitlement is what a paying customer was '
          + 'promised.',
+    },
+
+    // -- BATCH 140. The audit log, which nobody may read and nobody may write. ------------------
+    //
+    // §8.4's four audit rows, as denials. Every case below is `denied` rather than `no-rows`, and
+    // the difference is the whole reason this block reads as it does: `authenticated` holds NO
+    // PRIVILEGE AT ALL on either table, so a read is refused by the privilege system before row
+    // level security is reached, and an empty result would be a weaker outcome than the database
+    // actually produces. Each declares the LAYER and the OBJECT, so a case cannot be satisfied by a
+    // refusal somewhere else in the scaffolding.
+    //
+    // THE FIVE CLIENT CELLS OF "Tenant audit SELECT" ARE FIVE SEPARATE CASES — Y, P, O, "approval
+    // trail" and N — and that is not padding. 140_audit.sql refuses all five for five different
+    // reasons, two of which are refusals of things that COULD have been implemented (the owner's `Y`
+    // and the editor's `O`), and a single case would leave the other four looking like consequences
+    // of it. The day the RFC that opens the read allowlist lands, exactly the cells it opens change
+    // here, in a diff, one line each.
+    {
+      id: 'owner-a-cannot-read-the-audit-log-of-workspace-a',
+      covers: ['§8.4/tenant-audit-select', 'RFC-2026-012§2', 'RFC-2026-021§7'],
+      as: ownerA,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'THE STRONGEST CLIENT CELL IN THE MATRIX, REFUSED. §8.4 marks "Tenant audit SELECT" `Y` for '
+         + 'the owner, unconditionally, and this batch implements it nowhere — RFC-2026-012 decision 2 '
+         + 'puts a client read behind a named security_invoker view, its inventory classifies audit '
+         + '"safe view only", and RFC-2026-021 §7/3 keeps that allowlist EMPTY. The refusal is at the '
+         + 'GRANT layer because no client role holds a privilege here at all, which is stronger than a '
+         + 'policy filtering to zero rows and is why the case demands an error.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-audit-log-of-workspace-b',
+      covers: ['§8.4/tenant-audit-select', '§8.6/5'],
+      as: ownerB,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_B1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'BOTH OWNERS ARE REFUSED IDENTICALLY, which is batch 030\'s shape and is what stands in place '
+         + 'of a cross-tenant claim on a table no tenant can read. Without it the case above would be '
+         + 'satisfied by a tenant boundary rather than by the absent grant it is actually about: A '
+         + 'cannot read B\'s audit log AND B cannot read B\'s own.',
+    },
+    {
+      id: 'editor-a-cannot-read-their-own-audit-log',
+      covers: ['§8.4/tenant-audit-select', '§9.1/AUTH-3'],
+      as: editorA,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'THE ONE CELL IN THE WHOLE MATRIX WHERE THE READER IS THE SUBJECT OF THE RECORD. §8.4 marks '
+         + '"Tenant audit SELECT" `O` for the editor — own rows — and the fixture makes user_editor_a '
+         + 'the ACTOR of audit_log_a1 on purpose, so this case is about that cell and not about a role '
+         + 'the matrix denies anyway. It would have been implementable: `actor_kind = \'user\' and '
+         + 'actor_id = (select auth.uid())::text`. It is refused because §9.1 gives AUTH-3 a "minimum '
+         + 'role projection" and a base-table grant projects nothing, and because the object that '
+         + 'carries a client read is an allowlist entry this batch may not add.',
+    },
+    {
+      id: 'approver-a-cannot-read-the-audit-log',
+      covers: ['§8.4/tenant-audit-select'],
+      as: approverA,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: '§8.4 gives the approver neither Y nor N but the words "approval trail" — a subset scoped by '
+         + 'the approval tables, which are batch 090 and do not exist. There is no trail to scope to, '
+         + 'so the cell is not merely unimplemented here: it is unimplementable until 090 lands, and '
+         + 'this case is where that becomes visible rather than staying a note.',
+    },
+    {
+      id: 'viewer-a-cannot-read-the-audit-log',
+      covers: ['§8.4/tenant-audit-select', '§8.6/2'],
+      as: viewerA,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'The only client cell §8.4 marks `N`, and the only one this batch refuses for the reason the '
+         + 'matrix gives rather than for a reason about objects and allowlists. It is the control for '
+         + 'the four cases above: they are refused identically to a role the document says must be, '
+         + 'which is what makes "no client role reaches this table" a statement about the table.',
+    },
+    {
+      id: 'suspended-a-cannot-read-the-audit-log',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: '§12.6/5 asks for zero TENANT rows and gets an error instead, which is strictly stronger and '
+         + 'is recorded as the layer rather than smoothed into the weaker claim. On every other table '
+         + 'in this schema a suspended member is filtered by a policy; here they are refused by the '
+         + 'privilege system exactly as an active owner is, because the table distinguishes no client '
+         + 'identity from another.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-audit-log',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app — which '
+         + 'RFC-2026-021 §7/4 makes an approved decision rather than an inherited convention. The day '
+         + 'somebody grants it, this refusal moves to the table and the case fails, which is the whole '
+         + 'reason the object is declared.',
+    },
+    {
+      id: 'owner-a-cannot-write-an-audit-log',
+      covers: ['§8.4/audit-insert', '§8.6/8'],
+      as: ownerA,
+      ...writeAuditLog('__A__', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'THE CASE THIS BATCH EXISTS FOR, ON THE WRITE SIDE. §8.4 marks "Audit/security INSERT" `N` '
+         + 'for every client role including the workspace owner, so the party an audit record is about '
+         + 'cannot forge one about themselves — the row it attempts is otherwise VALID, so nothing but '
+         + 'the absent grant refuses it. At the privilege layer, which is what makes it a refusal a '
+         + 'later policy edit cannot widen.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-an-audit-log',
+      covers: ['§8.4/audit-mutation', '§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...rewriteAuditLog(AUDIT_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'An audit record\'s value is that the party it is about cannot alter it. §8.4\'s '
+         + '"Audit/security UPDATE/DELETE | N N N N N N" is the only row in §8 where every column '
+         + 'including the service is N, and it is expressed as an absent grant, an absent policy AND a '
+         + 'trigger. The refusal here is the FIRST of those three: the privilege system, which never '
+         + 'reaches the trigger. The trigger is proven against the one identity that gets past the '
+         + 'privilege system — the table owner — by 140_audit.sql\'s own apply-time probe, because no '
+         + 'identity this harness can assume ever does.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-audit-log',
+      covers: ['§8.4/audit-mutation', '§8.6/9', '§8.5'],
+      as: ownerA,
+      sql: 'delete from app.audit_logs where id = $1 returning id',
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases: a batch that granted '
+         + 'one of them would be caught by exactly one of these two. §8.5 has no broad user delete and '
+         + 'this table has no lifecycle field to soft-delete through either — an audit record has no '
+         + 'lifecycle at all, which is what append-only means.',
+    },
+    {
+      id: 'service-sees-zero-audit-logs',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/tenant-audit-select'],
+      as: service,
+      sql: AUDIT_BY_ID,
+      params: [AUDIT_A1],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT on this table and NO POLICY, so an empty read is attributable to row '
+         + 'level security rather than to a forgotten GRANT — and a service role that had quietly '
+         + 'acquired BYPASSRLS would return the row instead. §8.4 marks the service `P` here, and a `P` '
+         + 'nobody has defined is a permission nobody may write. It is ONE OF THE TWO CASES the CI '
+         + 'negative control for app.audit_logs rests on: every other case on this table is a '
+         + 'privilege-layer refusal that disabling row level security would not restore.',
+    },
+    {
+      id: 'service-cannot-write-an-audit-log',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/audit-insert'],
+      as: service,
+      // The actor is the workspace owner's subject and NOT `__SELF__`: `as_service` sets a role and a
+      // claim set with no `sub`, and CI found the cost of forgetting that once already. No policy on
+      // this table reads the column, so the value is arbitrary and the case says so.
+      ...writeAuditLog('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'THE ONE `S` CELL IN THIS REPOSITORY, DENIED. §8.4 marks "Audit/security INSERT" `S` — '
+         + 'service only — and batch 010 named 140 as one of the batches that would inherit '
+         + 'RFC-2026-016 §2\'s service-policy shape. It is not written, because §2 conditions that '
+         + 'policy on "a server-set workspace GUC derived from CTR-TEN-001" and NO SUCH GUC EXISTS: no '
+         + 'name, no setter, no contract, and DATA-DEC-03 open until G1. So app_worker holds the INSERT '
+         + 'grant and no policy, the refusal is row level security finding no permissive policy, and '
+         + 'the declared POLICY layer is what says so. It is the second of the two cases the negative '
+         + 'control rests on: with row level security off, this write SUCCEEDS and the case fails.',
+    },
+    {
+      id: 'service-cannot-rewrite-an-audit-log',
+      // NOT labelled RFC-2026-017§7, following batch 020's note and 040's: that clause asks for the
+      // service to be denied BY ROW LEVEL SECURITY with an error, and this refusal comes from the
+      // privilege system, which is a stronger denial and a DIFFERENT claim.
+      covers: ['§8.4/audit-mutation', '§8.6/9'],
+      as: service,
+      ...rewriteAuditLog(AUDIT_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: '§8.4\'s mutation row marks the SERVICE `N` alongside every client role, which almost nothing '
+         + 'else in §8 does. app_worker holds SELECT and INSERT here, so the refusal is about the VERB '
+         + 'rather than about the table — which is what distinguishes this from a role that was simply '
+         + 'granted nothing.',
+    },
+    {
+      id: 'service-cannot-delete-an-audit-log',
+      covers: ['§8.4/audit-mutation', '§8.6/9'],
+      as: service,
+      sql: 'delete from app.audit_logs where id = $1 returning id',
+      params: [AUDIT_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: 'The fourth cell of the grid, so all four are live on this table rather than three and an '
+         + 'average: update and delete by a client identity and by the service, each at the grant '
+         + 'layer. TRUNCATE is the fifth verb and no identity this harness can assume holds it either; '
+         + 'it is asserted by the migration\'s apply-time block, against the role that does.',
+    },
+
+    // -- BATCH 140. The security event, which §8 gives the least to of anything in the schema. ---
+    //
+    // SECURITY-4 is the highest class in §9.1 that is not a secret, its client projection is
+    // "security/admin safe view only", and RFC-2026-012's inventory marks the family SERVER-ONLY.
+    // Every case below is therefore a refusal, and the pairs are chosen so that each says something
+    // the audit cases above do not: the owner's cell here is `P` rather than `Y`, the editor's is `N`
+    // rather than `O`, and the service's read cell is `S` rather than `P` — the strongest read
+    // permission in the matrix, and still refused, because the policy that would carry it needs the
+    // same workspace GUC the INSERT does.
+    {
+      id: 'owner-a-cannot-read-the-security-event',
+      covers: ['§8.4/security-event-details', 'RFC-2026-012§2'],
+      as: ownerA,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: '§8.4 marks "Security event details" `P` for the owner and `N` for everybody else, and `P` is '
+         + '"passes per policy/EXPLICIT capability" over a capability set no document defines — the '
+         + 'refusal 011, 020, 021 and 030 each recorded and RFC-2026-020 §8 ratified. RFC-2026-012 '
+         + 'classifies the family server-only besides. Two independent reasons, one refusal, at the '
+         + 'privilege layer.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-security-event',
+      covers: ['§8.4/security-event-details', '§8.6/5'],
+      as: ownerB,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_B1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The far side, refused identically. The two security events differ in the one column §9.1 '
+         + 'cares about — this one names an actor and the A-side one does not — and neither owner '
+         + 'reaches either, so the refusal cannot be read as a tenant boundary.',
+    },
+    {
+      id: 'editor-a-cannot-read-the-security-event',
+      covers: ['§8.4/security-event-details', '§8.6/2'],
+      as: editorA,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The same identity that is `O` on the audit log is `N` here, which is the difference between '
+         + 'the two families in one pair of cases. §9.1 puts a raw security event and an IP or user '
+         + 'agent hash in SECURITY-4 and the audit actor in AUTH-3; the matrix follows, and so does '
+         + 'this suite.',
+    },
+    {
+      id: 'suspended-a-cannot-read-the-security-event',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'Asked of the second table because a control stated per table is a control checkable per '
+         + 'table. It is an error rather than an empty read for the same reason as on the audit log: '
+         + 'no client role holds a privilege here at all.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-security-event',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, as every anonymous case in this suite is. Batch 030 recorded that its '
+         + 'PUBLIC-0 catalog was the family somebody might argue for exposing anonymously and 040 '
+         + 'recorded that CONTENT-2 knowledge was the family nobody would; this is the family at the '
+         + 'far end of that scale, and the control is the same control.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-security-event',
+      covers: ['§8.4/audit-insert', '§8.6/8'],
+      as: ownerA,
+      ...writeSecurityEvent('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: '"Audit/security INSERT | N N N N N S" covers both tables in one row, so the client write is '
+         + 'refused here exactly as it is on the audit log. A workspace owner who could write their '
+         + 'own security events could manufacture the record of an incident they caused.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-security-event',
+      covers: ['§8.4/audit-mutation', '§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...rewriteSecurityEvent(SECURITY_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'Append-only, by absent grant, absent policy and trigger — the same three mechanisms as the '
+         + 'audit log, asserted separately because they are separate tables and a batch that protected '
+         + 'one and forgot the other would pass every case written about the first.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-security-event',
+      covers: ['§8.4/audit-mutation', '§8.6/9', '§8.5'],
+      as: ownerA,
+      sql: 'delete from app.security_events where id = $1 returning id',
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The second verb, separately. §10 gives this family a 2-year retention and "hash/anonymize '
+         + 'PII; retain active investigation/legal hold" — every one of which is an UPDATE or a DELETE '
+         + 'no role holds, which is the conflict between §8.4 and §10 that 140_audit.sql records and '
+         + 'batch 160 inherits.',
+    },
+    {
+      id: 'service-sees-zero-security-events',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/security-event-details'],
+      as: service,
+      sql: SECURITY_EVENT_BY_ID,
+      params: [SECURITY_A1],
+      expect: 'no-rows',
+      why: 'THE STRONGEST READ CELL IN §8.4 — the service is `S` on "Security event details", not `P` — '
+         + 'and it is still an empty read, because the policy that would carry it needs the workspace '
+         + 'GUC RFC-2026-016 §2 requires and nothing defines. app_worker HOLDS the SELECT grant, so '
+         + 'this is row level security and not a forgotten GRANT, and it is one of the two cases the CI '
+         + 'negative control for app.security_events rests on.',
+    },
+    {
+      id: 'service-cannot-write-a-security-event',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/audit-insert'],
+      as: service,
+      ...writeSecurityEvent('__A__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The `S` INSERT cell on the second table, denied for the same missing GUC. It is the RAISING '
+         + 'half of RFC-2026-017 §7 here — only an INSERT can carry it, because an UPDATE a USING '
+         + 'clause filters reports zero rows and raises nothing — and the second case the negative '
+         + 'control rests on: with row level security off, app_worker holds the grant and the write '
+         + 'lands.',
+    },
+    {
+      id: 'service-cannot-rewrite-a-security-event',
+      covers: ['§8.4/audit-mutation', '§8.6/9'],
+      as: service,
+      ...rewriteSecurityEvent(SECURITY_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The service is `N` on mutation here as on the audit log, and holds SELECT and INSERT, so the '
+         + 'refusal is about the verb. Not labelled for RFC-2026-017 §7: a grant-layer refusal is not '
+         + 'evidence about row level security.',
+    },
+    {
+      id: 'service-cannot-delete-a-security-event',
+      covers: ['§8.4/audit-mutation', '§8.6/9'],
+      as: service,
+      sql: 'delete from app.security_events where id = $1 returning id',
+      params: [SECURITY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'security_events' },
+      why: 'The fourth cell of the second grid. Both tables now carry the whole of §8.4\'s mutation row '
+         + 'as live cases rather than one table carrying it and the other inheriting the claim.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

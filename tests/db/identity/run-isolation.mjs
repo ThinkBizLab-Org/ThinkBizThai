@@ -60,6 +60,12 @@ export const FIXTURE_SQL_FILES = [
   // reorder anything else — and because a reader who sees a batch number out of sequence should be
   // able to read the dependency from the file rather than from the position.
   'tests/db/identity/fixtures/130-billing-fixture.sql',
+  // Batch 140 is the first entry whose POSITION is not a dependency, and saying so keeps the list
+  // honest about what it is: app.audit_logs and app.security_events carry no foreign key at all
+  // (140_audit.sql's header gives §11.4's required order as the reason), so these rows would load
+  // against an empty database. It is last because the list is an order and a new batch joins its
+  // end, and because the ids it carries are the ids the earlier fixtures made real.
+  'tests/db/identity/fixtures/140-audit-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard

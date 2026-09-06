@@ -64,6 +64,22 @@
       "uuid": "0ea0109e-d1ea-571e-a01f-4f3fd1bfb418",
       "role": "BUSINESS-LEVEL knowledge under business_a2, deliberately outside user_editor_a's member scope. §8.6 case 3 at knowledge granularity, paired with an unscoped-owner positive so the negative is about the restrictive policy rather than about a row nobody can see. Its kind is `restrictions`, the fourth and last of §5's values."
     },
+    "audit_log_a1": {
+      "uuid": "3a2d01be-c1c5-595c-a4c1-7bc7c44441ee",
+      "role": "the tenant audit record of workspace_a. Its ACTOR IS user_editor_a, which is the whole reason it needs a symbol rather than being addressed by its workspace: \u00a78.4 marks \"Tenant audit SELECT\" `O` for the editor -- own rows -- so `editor-a-cannot-read-their-own-audit-log` is the one case in the suite where the reader IS the subject of the record, and it would be indistinguishable from the viewer's `N` if the actor were anybody else. Its outcome is `succeeded` and it carries no error_code, which is one side of CTR-AUD-001's allOf[1]/allOf[2] biconditional."
+    },
+    "audit_log_b1": {
+      "uuid": "1895aa25-6b24-5d2a-b5a7-04c651141c18",
+      "role": "the tenant audit record of workspace_b, held by its EXACT id by every A-side identity and reached by none of them -- and not by user_owner_b either, which is what makes batch 140's refusal a claim about the table rather than about a tenant boundary. It is a DENIED DELETE carrying an error_code and a change_before_ref, so it satisfies the other side of every cross-field CHECK that audit_log_a1 satisfies one side of: CTR-AUD-001 allOf[0] (a delete names what it deleted) and allOf[1] (a non-succeeded outcome carries an error)."
+    },
+    "security_event_a1": {
+      "uuid": "f0625576-359f-5d05-90de-8fa165f090bb",
+      "role": "the security event of workspace_a, SECURITY-4. It carries NO ACTOR -- \u00a79.1's own example of this family is a \"replay anomaly\", which is a pattern rather than somebody's act -- so it is the row that exercises app.security_events' both-or-neither actor constraint in the absent direction. It is the row `service-sees-zero-security-events` is about, which is the case the CI negative control for that table rests on."
+    },
+    "security_event_b1": {
+      "uuid": "c327f7e6-1cd9-5a1c-a9b0-5dfb2e487587",
+      "role": "the security event of workspace_b, with an IDENTIFIED ACTOR, so the both-or-neither constraint is satisfied in both directions by real rows rather than only permitted by a CHECK. It is the far side of a boundary that refuses both sides identically: \u00a78.4 marks \"Security event details\" `P` for the owner and RFC-2026-012 classifies the family server-only, so neither owner reaches their own."
+    },
     "knowledge_b1_business": {
       "uuid": "f93702e9-19de-5a57-a7ec-f0d57b2cec45",
       "role": "BUSINESS-LEVEL knowledge under business_b1, on the far side of the tenant boundary. §8.6 case 5 and §12.6/1: every A-side identity attacks it while holding its EXACT id, and user_owner_b reads it, so the negative is not satisfied by an empty table. Its kind is `voice`."
