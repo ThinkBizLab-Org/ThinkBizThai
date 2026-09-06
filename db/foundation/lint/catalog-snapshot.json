@@ -1,7 +1,7 @@
 {
   "_what": "The live catalog state, read from the provisioned Postgres. The text lint reads migration files; this is what the database actually became. A rule asserted against text and a rule asserted against the catalog are different rules, and only the second one is true.",
   "_staleness": "taken_against_migrations must equal the digest of db/foundation/migrations/*.sql. If a migration changes and this file is not retaken, db-schema-lint FAILS. A snapshot that can silently describe a database that no longer exists is the same defect class as a blocker list nobody re-checks.",
-  "_measurement_note": "service_roles.has_password is read from pg_authid, NOT pg_roles. pg_roles is a view that replaces rolpassword with the literal '********', so the obvious query reports a password on every role including ones that have none. The first attempt here made exactly that mistake and reported has_password: true for all three.\n\nRetaken 2026-09-06 after batch 004. Batch 004 asserts and changes nothing, so the catalog below is expected to be identical -- and it was RE-READ rather than carried forward, because a snapshot copied across a migration is exactly the thing the staleness digest exists to catch. Two fields are new and one was wrong: service_roles now carry `superuser` (measured false for all three), the instance's `roles_superuser` set is recorded (supabase_admin alone), and the old `memberships: 0` is replaced by `grants_to_admin`, which is 2 for each role -- the CREATE ROLE grant and the explicit re-grant from batch 003. A1's countersignature noted the zero contradicted six live pg_auth_members rows; it counted the wrong direction and no rule read it.",
+  "_measurement_note": "service_roles.has_password is read from pg_authid, NOT pg_roles. pg_roles is a view that replaces rolpassword with the literal '********', so the obvious query reports a password on every role including ones that have none. The first attempt here made exactly that mistake and reported has_password: true for all three.\n\nRetaken 2026-09-06 after batch 004. Batch 004 asserts and changes nothing, so the catalog below is expected to be identical -- and it was RE-READ rather than carried forward, because a snapshot copied across a migration is exactly the thing the staleness digest exists to catch. Two fields are new and one was wrong: service_roles now carry `superuser` (measured false for all three), the instance's `roles_superuser` set is recorded (supabase_admin alone), and the old `memberships: 0` is replaced by `grants_to_admin`, which is 2 for each role -- the CREATE ROLE grant and the explicit re-grant from batch 003. A1's countersignature noted the zero contradicted six live pg_auth_members rows; it counted the wrong direction and no rule read it.\n\nExtended 2026-09-06 for RFC-2026-019 §5. Three fields, all read from the instance: each tenant table's owner, the roles authenticator is a member of, and the owner already recorded on every SECURITY DEFINER function. The second is the decision itself as a measurement -- authenticator is a member of anon, authenticated and service_role and of NO service role -- and the rule that reads it is the only form in which 'we did not grant it' can fail a build.",
   "taken_against_migrations": "7215963802260771",
   "taken_at": "2026-09-06",
   "project_ref": "xtvtflkntpqfvflvdbwk",
@@ -112,7 +112,8 @@
         "rls_forced": true,
         "has_pk": true,
         "policies": 2,
-        "comment": true
+        "comment": true,
+        "owner": "postgres"
       },
       {
         "table": "workspace_invitations",
@@ -120,7 +121,8 @@
         "rls_forced": true,
         "has_pk": true,
         "policies": 3,
-        "comment": true
+        "comment": true,
+        "owner": "postgres"
       },
       {
         "table": "workspace_members",
@@ -128,7 +130,8 @@
         "rls_forced": true,
         "has_pk": true,
         "policies": 1,
-        "comment": true
+        "comment": true,
+        "owner": "postgres"
       },
       {
         "table": "workspace_settings",
@@ -136,7 +139,8 @@
         "rls_forced": true,
         "has_pk": true,
         "policies": 2,
-        "comment": true
+        "comment": true,
+        "owner": "postgres"
       },
       {
         "table": "workspaces",
@@ -144,7 +148,8 @@
         "rls_forced": true,
         "has_pk": true,
         "policies": 2,
-        "comment": true
+        "comment": true,
+        "owner": "postgres"
       }
     ],
     "exposed_views": [],
@@ -164,6 +169,11 @@
     },
     "roles_superuser": [
       "supabase_admin"
+    ],
+    "authenticator_memberships": [
+      "anon",
+      "authenticated",
+      "service_role"
     ]
   },
   "_membership_note": "members_besides_admin counts roles granted membership in the service role OTHER than the administrative role, and it is 0: nothing can become app_worker except postgres, which is how the isolation suite assumes it. grants_to_admin is 2 for each -- the CREATE ROLE admin grant (set false, inherit false) and batch 003's explicit re-grant (set true, inherit false), measured 2026-09-06.\n\nThe field these replace was `memberships: 0`, which counted the OTHER direction -- roles the service role is itself a member of. That is trivially zero, was read by no rule, and A1's countersignature noted it contradicted six live pg_auth_members rows. A number nobody reads is not evidence, and a number that reads the wrong direction while looking right is worse."

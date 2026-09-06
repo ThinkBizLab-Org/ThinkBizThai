@@ -178,7 +178,10 @@ test('the catalog rules reject what the text rules cannot see', async () => {
 
   // ENABLE without FORCE — the difference the specified lint rule cannot express, because
   // relrowsecurity and relforcerowsecurity are different catalog columns.
-  const enabledOnly = [{ table: 'workspace', rls_enabled: true, rls_forced: false, has_pk: true, comment: 'owner: A1' }];
+  // `owner` is part of a tenant-table row since RFC-2026-019 §5, so the constructed row carries it.
+  // Leaving it out made this case fail on a rule it is not about, which is how a fixture starts
+  // testing the fixture.
+  const enabledOnly = [{ table: 'workspace', rls_enabled: true, rls_forced: false, has_pk: true, comment: 'owner: A1', owner: 'postgres' }];
   assert.ok((await withCatalog({ tenant_tables: enabledOnly })).some((p) => /relforcerowsecurity is false/.test(p)));
   const forced = [{ ...enabledOnly[0], rls_forced: true }];
   assert.deepEqual(await withCatalog({ tenant_tables: forced }), []);
@@ -553,4 +556,69 @@ test('the CI shim no longer satisfies the prerequisite behind the command', asyn
   // And it keeps the parts that really are platform emulation and really are CI-only.
   assert.match(shim, /create schema if not exists auth/i);
   assert.match(shim, /create or replace function auth\.uid\(\)/i);
+});
+
+// RFC-2026-019 §5. The decision is a NEGATIVE, and these are what make a negative fail a build.
+//
+// RFC-2026-018 proposed granting app_command to authenticator and was approved before the misreading
+// under it was found: RFC-2026-017 §3 defines app_command as the OWNER of the SECURITY DEFINER
+// command functions, not a role the request path assumes. Had it been implemented, the first rule
+// below could never have been written -- the state it forbids would have been the intended state.
+test('a membership in any service role is refused, because the decision is that there is none', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+
+  for (const role of ['app_worker', 'app_command', 'app_maintenance']) {
+    const granted = structuredClone(base);
+    granted.catalog.authenticator_memberships = [...granted.catalog.authenticator_memberships, role];
+    const problems = await catalogLint(granted, digest, { exemptions: [] });
+    assert.ok(problems.some((p) => p.includes(`authenticator is a member of ${role}`)),
+      `granting ${role} to authenticator must fail the lint:\n${problems.join('\n')}`);
+  }
+
+  // The memberships it DOES hold are the platform's own and are not findings — a rule that fired on
+  // those would be one nobody could keep green, and a guard nobody can keep green gets turned off.
+  assert.deepEqual(await catalogLint(base, digest, { exemptions: [] }), []);
+
+  // And an unmeasured property must not read as a passing one.
+  const unmeasured = structuredClone(base);
+  delete unmeasured.catalog.authenticator_memberships;
+  const silent = await catalogLint(unmeasured, digest, { exemptions: [] });
+  assert.ok(silent.some((p) => /does not record what authenticator is a member of/.test(p)), silent.join('\n'));
+});
+
+test('a tenant table owned by app_command is refused, and an unrecorded owner too', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+
+  // RFC-2026-017 §3: app_command is deliberately not the table owner, because a SECURITY DEFINER
+  // function owned by the table owner is exempt from the policies on a forced table -- which is the
+  // entire mechanism the role exists to provide.
+  const owned = structuredClone(base);
+  owned.catalog.tenant_tables[0].owner = 'app_command';
+  const problems = await catalogLint(owned, digest, { exemptions: [] });
+  assert.ok(problems.some((p) => /is owned by app_command/.test(p)), problems.join('\n'));
+
+  const unrecorded = structuredClone(base);
+  delete unrecorded.catalog.tenant_tables[0].owner;
+  const silent = await catalogLint(unrecorded, digest, { exemptions: [] });
+  assert.ok(silent.some((p) => /no owner recorded/.test(p)), silent.join('\n'));
+});
+
+test('a SECURITY DEFINER function with no recorded owner is refused, and app_command is not', async () => {
+  const base = await snapshot();
+  const digest = base.taken_against_migrations;
+
+  const unrecorded = structuredClone(base);
+  delete unrecorded.catalog.security_definer_functions[0].owner;
+  const problems = await catalogLint(unrecorded, digest, { exemptions: [] });
+  assert.ok(problems.some((p) => /SECURITY DEFINER with no owner recorded/.test(p)), problems.join('\n'));
+
+  // The rule forbids not knowing, not the owner itself. A command function owned by app_command is
+  // what RFC-2026-017 §3 expects, and a lint that refused it would refuse the design.
+  const command = structuredClone(base);
+  command.catalog.security_definer_functions.push({
+    function: 'app.create_workspace', owner: 'app_command', config: ['search_path=""'],
+  });
+  assert.deepEqual(await catalogLint(command, digest, { exemptions: [] }), []);
 });

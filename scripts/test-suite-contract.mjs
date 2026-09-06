@@ -76,7 +76,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 15,
-  'test-kits/db/foundation-contract.test.mjs': 24,
+  'test-kits/db/foundation-contract.test.mjs': 27,
   'test-kits/db/rls-assertions.test.mjs': 20,
   'tests/db/identity/identity-isolation.test.mjs': 17,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
@@ -123,7 +123,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
-  'test-kits/db/foundation-contract.test.mjs': 95,
+  'test-kits/db/foundation-contract.test.mjs': 102,
   'test-kits/db/rls-assertions.test.mjs': 105,
   'tests/db/identity/identity-isolation.test.mjs': 75,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
@@ -160,7 +160,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'e8ba48bdd1896554',
+  'test-kits/db/foundation-contract.test.mjs': 'd3ac0cae66460815',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': 'd67cdf0f8f30677e',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
