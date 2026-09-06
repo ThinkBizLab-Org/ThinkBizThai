@@ -98,9 +98,12 @@
 export const SMOKE_COVERAGE = {
   1: { covered: true, note: 'workspaces, workspace_settings and workspace_invitations, in both directions '
                            + '(batch 010), and business_profiles, page_context_profiles and both version '
-                           + 'tables, in both directions (batch 020) — every one of them attacked while '
-                           + "holding tenant B's exact id — and, on the version tables, holding the exact "
-                           + 'id of the business or page whose history is being asked for.' },
+                           + 'tables, in both directions (batch 020). THREE CASES PER TABLE, not two: the '
+                           + 'tenant reads its own row, the other tenant cannot, and the other tenant is '
+                           + "holding tenant B's REAL id — plus, on each table, tenant B reading the same "
+                           + 'row, without which the negative is satisfied by a fixture that never loaded '
+                           + 'it. On the version tables the id held is the business\'s or page\'s, because '
+                           + 'a version is addressed by parent and ordinal.' },
   2: { covered: 'partial', note: 'HALF OF THIS IS NOW ASSERTED AND HALF IS STILL OWED, and the halves are '
                            + 'different rules wearing one sentence. "user_editor_a sees Business A1/Page A1" '
                            + 'and the tenant-boundary half — never business_b1, never page_b1, never their '
@@ -116,9 +119,13 @@ export const SMOKE_COVERAGE = {
                            + 'ANALOGUES — an approver cannot update the workspace (010) and cannot update a '
                            + 'page context (020) — and both are labelled analogues rather than counted as '
                            + 'this assertion. The tables it names still do not exist.' },
-  4: { covered: true, note: 'viewer insert, update and delete on every batch 010 and batch 020 table with a '
-                           + 'client-writable column — and, on the version tables, delete refused at the '
-                           + 'privilege layer because no client role is granted it at all.' },
+  4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
+                           + '010 and on business_profiles and page_context_profiles that is insert, update '
+                           + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
+                           + 'update and delete are granted to no role at all — so `viewer-a-cannot-write-a-'
+                           + 'business-version` is the case that carries this assertion there, and the '
+                           + 'update/delete cases on those tables belong to §8.6/9 instead: they are refused '
+                           + 'for the OWNER and for the service, which says nothing about a viewer.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -151,9 +158,11 @@ export const SMOKE_COVERAGE = {
                            + 'would have required inventing the permission first. The negative half is '
                            + 'the half that detects a regression, and it is asserted. Batch 020 extends it '
                            + 'to its own tables and adds the one cell where §8.1 marks the service `N` '
-                           + 'rather than `P`: immutable version UPDATE/DELETE, which is refused at the '
-                           + 'privilege layer because app_worker is granted SELECT and INSERT there and '
-                           + 'nothing else.' },
+                           + 'rather than `P`: immutable version UPDATE/DELETE. BOTH VERBS are asserted, '
+                           + 'not the pair as one — they are separate privileges, so a batch that granted '
+                           + 'one of them would be caught by exactly one of the two cases. Both are refused '
+                           + 'at the privilege layer, because app_worker is granted SELECT and INSERT there '
+                           + 'and nothing else.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -914,6 +923,29 @@ export function buildCases(id) {
       why: "The deepest row in the batch, on the far side of the boundary, reached through page_b1's "
          + 'exact id.',
     },
+    {
+      id: 'owner-b-sees-business-b1-version-1',
+      covers: ['§8.6/1', '§12.6/1'],
+      as: ownerB,
+      sql: `select id from app.business_profile_versions where ${VERSION_1_OF_BUSINESS}`,
+      params: [BUSINESS_B1],
+      expect: 'rows',
+      why: 'THE ROW THE PREVIOUS NEGATIVE IS ABOUT, PROVED TO EXIST. Without it, '
+         + '`owner-a-cannot-see-business-b1-version-1` is satisfied by a fixture that never inserted a '
+         + "version for business_b1 — and the current-row positive does not cover it, because a "
+         + 'business existing says nothing about its history existing. Both directions, on the version '
+         + 'table itself, is what §12.6/1 asks for and what SMOKE_COVERAGE claims.',
+    },
+    {
+      id: 'owner-b-sees-page-b1-version-1',
+      covers: ['§8.6/1', '§12.6/1'],
+      as: ownerB,
+      sql: `select id from app.page_context_profile_versions where ${VERSION_1_OF_PAGE}`,
+      params: [PAGE_B1],
+      expect: 'rows',
+      why: 'The same for the deepest table in the batch. Four tables, three cases each — the tenant '
+         + 'sees its own, the other tenant does not, and the other tenant is holding the real id.',
+    },
 
     // -- §8.6/9 and §8.1's version row. The immutability, as ABSENT GRANTS. ---------------------
     //
@@ -1010,6 +1042,20 @@ export function buildCases(id) {
          + 'here, because this refusal is the privilege system and not RLS; that is the point of '
          + 'implementing this cell as an absent grant.',
     },
+    {
+      id: 'service-path-cannot-delete-a-business-version',
+      covers: ['§8.6/9', '§12.6/8-negative', '§8.1/version-service-N'],
+      as: service,
+      sql: `delete from app.business_profile_versions where ${VERSION_1_OF_BUSINESS}`,
+      params: [BUSINESS_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'business_profile_versions' },
+      why: 'The OTHER half of the cell. §8.1 spells the operation "Immutable business/page version '
+         + 'UPDATE/DELETE" and marks it N for the service; the case above covers UPDATE and this one '
+         + 'covers DELETE, because UPDATE and DELETE are separate privileges and a batch that granted '
+         + 'one of them would be caught by exactly one of these two cases.',
+    },
 
     // -- §12.6/4 and §8.6/2. Same workspace, wrong role. ---------------------------------------
     {
@@ -1058,6 +1104,21 @@ export function buildCases(id) {
       why: '§8.5: no tenant table carries a broad user delete. Archiving is an UPDATE of a typed '
          + 'lifecycle field (§11.3) and hard deletion is batch 160, so DELETE is granted to nobody '
          + 'and this is refused before RLS is consulted.',
+    },
+    {
+      id: 'viewer-a-cannot-write-a-business-version',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...createBusinessVersion('__A__', BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'business_profile_versions' },
+      why: 'INSERT IS THE ONLY CLIENT-WRITABLE OPERATION A VERSION TABLE HAS, so §12.6/4 — "user_'
+         + 'viewer_a cannot insert/update/delete" — is not carried on these two tables by the update '
+         + 'and delete cases above, which are refused for every role including the owner. This is the '
+         + 'one that is about the VIEWER: the row it writes would be admitted for an owner, and it is '
+         + 'the INSERT policy\'s owner-or-admin test that refuses it. §8.1 grants the producing '
+         + 'operation to owner and admin and marks it N for viewer.',
     },
     {
       id: 'approver-a-cannot-update-page-a1',
