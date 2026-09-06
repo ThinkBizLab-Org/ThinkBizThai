@@ -41,6 +41,9 @@ export const FIXTURE_SQL_FILES = [
   'tests/db/identity/fixtures/020-business-fixture.sql',
   'tests/db/identity/fixtures/021-member-scope-fixture.sql',
   'tests/db/identity/fixtures/030-industry-fixture.sql',
+  // Batch 040's items name Businesses from 020 and page_a1_sibling from 021, so this entry is last
+  // for the same reason every other one is where it is: the list is an ORDER, not a set.
+  'tests/db/identity/fixtures/040-knowledge-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
@@ -290,8 +293,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     + '  It needs a driver — { begin, rollback, exec } — and the repository declares no Postgres\n'
     + '  client, because RFC-2026-001 forbids adding a dependency and DATA-DEC-02 leaves the tool\n'
     + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010, 011, 020,\n'
-    + `  021, 030 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
-    + '  Until that happens, tenant isolation for batches 010-030 is UNPROVEN. Nothing here says\n'
+    + `  021, 030, 040 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
+    + '  Until that happens, tenant isolation for batches 010-040 is UNPROVEN. Nothing here says\n'
     + '  otherwise.\n');
   process.exit(1);
 }

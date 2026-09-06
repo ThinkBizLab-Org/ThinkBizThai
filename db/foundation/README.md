@@ -73,9 +73,11 @@ including a fresh `taken_against_migrations`. The lint tells you the digest it e
 ## Fixtures
 
 `seeds/fixture-catalog.json` fixes the fourteen identities §12.6 names **plus the ones a batch had to
-add and declared**, which is seven more as of batch `030`. This sentence used to say "fourteen" flat
-and was wrong from batch `020` onward; it is corrected here rather than left, because a count nobody
-maintains is how the closed-set assertion below stops meaning anything. Every UUID is
+add and declared**, which is THIRTEEN more as of batch `040`. This sentence used to say "fourteen"
+flat and was wrong from batch `020` onward; it said "seven more" and was wrong the moment `040`
+landed. It is corrected each time rather than left, because a count nobody maintains is how the
+closed-set assertion below stops meaning anything — and a sentence that has now been wrong twice is
+a sentence to be suspicious of rather than one to trust because it was recently edited. Every UUID is
 `uuid5(namespace, 'thinkbizthai.fixture.' || symbol)` — a pure function of the symbol, so anyone can
 recompute them and nobody has to trust the file. A test recomputes **all** of them on every run and
 holds the catalog to exactly §12.6's list plus the declared additions, each of which names the batch
@@ -84,6 +86,16 @@ that needed it and the case it exists for.
 Batch `030` added the first symbols that belong to **no tenant** — a global industry pack and two of
 its published versions — and they carry no `_a` or `_b` suffix for that reason: every other symbol
 here ends in the workspace its row lives in.
+
+Batch `040` added six, which is more than any batch before it, and the reason is a property of the
+schema rather than an appetite. A version row is addressed by its parent and its ordinal, a member
+scope by its member and its target, an industry assignment by the Business it belongs to — every one
+of those is a natural key some document fixes, so none of them needed a symbol. **A knowledge item
+has none.** Nothing in §4, §5 or §8 says a Business holds one voice profile, so inventing a
+`unique (business_profile_id, kind)` in order to address a row without a symbol would be writing a
+product decision into a constraint to save five constants. The sixth is `page_a1_archived`, an
+archived Page under a **live** Business: `040`'s knowledge INSERT policy carries §11.3's archive
+clause twice — once per parent — and `business_a3_archived` can only ever exercise the first.
 
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding

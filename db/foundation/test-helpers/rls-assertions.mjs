@@ -225,10 +225,29 @@ export function denialLayer(result) {
 // USAGE on app, that refusal moves from the schema to the table and the case FAILS -- which is the
 // notice A1 wrote the case for. And `private` is the harness's own schema: a case refused there was
 // never refused on anything it was testing.
+//
+// A2 KNOWLEDGE CORRECTION, batch 040. The row-level-security pattern was written as
+// `policy[^"]*for table` and therefore could not match the form Postgres emits when a RESTRICTIVE
+// policy is the one that refused:
+//
+//   new row violates row-level security policy for table "t"                   -- permissive
+//   new row violates row-level security policy "narrowing" for table "t"        -- RESTRICTIVE
+//
+// `[^"]*` cannot cross the quotes around the policy name, so every restrictive refusal attributed
+// to NO OBJECT. `expectDeniedBy` then rejected any case declaring `deniedOn` for one — so the only
+// way to assert a restrictive refusal was to declare no layer at all, which is exactly the
+// unattributed shape D6 removed. Batch 021 introduced restrictive policies and batch 030 added
+// another, but neither had a case where the permissive check PASSES and the restrictive one
+// refuses, so nothing had exercised the difference; batch 040's scoped-editor write cases are the
+// first, because §8.2 grants the editor the write that §8.1 withheld.
+//
+// The policy name is captured and discarded rather than merely skipped, so the pattern says which
+// optional token it is stepping over. This is a widening of ATTRIBUTION only: a message that
+// matched before still matches, and one that matched nothing now names the table it always named.
 const DENIAL_OBJECT = [
   [/permission denied for column\s+"?[^\s",]+"?\s+of relation\s+"?([^\s",]+)"?/i, 'table'],
   [/permission denied for (?:table|relation|view|materialized view|sequence)\s+"?([^\s",]+)"?/i, 'table'],
-  [/violates row-level security policy[^"]*for table\s+"([^"]+)"/i, 'table'],
+  [/violates row-level security policy(?:\s+"[^"]*")?\s+for table\s+"([^"]+)"/i, 'table'],
   [/permission denied for schema\s+"?([^\s",]+)"?/i, 'schema'],
   [/permission denied for function\s+"?([^\s",(]+)"?/i, 'function'],
 ];

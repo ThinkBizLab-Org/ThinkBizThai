@@ -25,7 +25,7 @@ import test from 'node:test';
 
 import {
   AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases,
-  isMutation,
+  isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 import {
@@ -473,7 +473,13 @@ test('the coverage claim names what is NOT covered, with the batch that owes it'
     + '"never A2/Page A2" — is now asserted rather than deferred');
   assert.match(SMOKE_COVERAGE[2].note, /021/,
     'the note names the batch that paid the rest, so a reader can find the change that did it');
-  assert.equal(SMOKE_COVERAGE[3].covered, false);
+  // Batch 040 moved this from `false` to a LABELLED PARTIAL, and the line changing here is the
+  // point: §12.6/3 names content AND knowledge, 040 creates the knowledge tables and asserts the
+  // approver against them, and 080 still owes content. A batch that had flipped it to `true` would
+  // have passed the citation check below on the knowledge cases alone.
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'batch 040 creates one of the two families §12.6/3 names and asserts the approver against it, so '
+    + 'the row is no longer `false` — and content is batch 080, so it is not `true` either');
   assert.equal(SMOKE_COVERAGE[7].covered, true,
     'batch 020 creates the business and page columns assertion 7 needs, so the "partial" batch 010 '
     + 'recorded is now paid: a forged workspace_id, a forged created_by, a forged business id, and a '
@@ -1099,8 +1105,15 @@ test('the table batch 021 adds has its own entry in the CI negative control', as
 
   // Every table the control names must exist in the migration set, so a renamed table takes its control
   // with it instead of leaving an entry that disables nothing.
-  const migrations = await Promise.all(['010_identity.sql', '020_business.sql', '021_member_scope.sql',
-    '030_industry.sql']
+  //
+  // A2 KNOWLEDGE CORRECTION, batch 040. This list was four filenames written by hand, so a batch that
+  // added a table AND its control entry failed here — the rule read "every table the control names is
+  // created by one of these four migrations" rather than "by A migration", which is what it says it
+  // checks. The directory is read instead, which is the shape batch 030's allowlist scan already uses
+  // for the same reason: a rule about the migration SET must be derived from the set.
+  const migrationNames = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort();
+  assert.ok(migrationNames.length >= 10, 'the whole migration set is read, not a list somebody maintains');
+  const migrations = await Promise.all(migrationNames
     .map((name) => readFile(`db/foundation/migrations/${name}`, 'utf8')));
   const created = new Set(migrations.flatMap((sql) =>
     [...sql.replace(/--[^\n]*/g, '').matchAll(/create table (?:if not exists )?app\.(\w+)/g)].map((m) => m[1])));
@@ -1601,10 +1614,21 @@ test('the coverage map records what batch 030 could carry and what a global row 
     'batch 030 extends six §12.6 notes and moves no row. If a note stopped naming it, either the '
     + "assertion stopped being carried on this batch's tables or the note was rewritten by somebody "
     + 'who did not know it was load-bearing.');
-  assert.equal(SMOKE_COVERAGE[3].covered, false,
-    'an approver refused an INDUSTRY ASSIGNMENT is a third in-scope ANALOGUE and still not the content '
-    + 'and knowledge tables §12.6/3 names — those are batches 080 and 040');
-  assert.match(SMOKE_COVERAGE[3].note, /analogue/i, 'and the note says so rather than counting it');
+  // BATCH 040 CHANGED THIS LINE, and that is the shape 021 chose when it retired
+  // `editor-a-sees-business-a2-until-batch-021`: a claim that stops being true changes in a diff
+  // rather than quietly becoming false. Batch 030's own claim is unaltered — its industry
+  // assignment is still an ANALOGUE and still uncounted — but the ROW moved, because 040 creates
+  // one of the two families §12.6/3 names.
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'an approver refused an INDUSTRY ASSIGNMENT is a third in-scope ANALOGUE and is still not the '
+    + 'content and knowledge tables §12.6/3 names. Batch 040 created the knowledge half of them; '
+    + 'content is batch 080, so the row is a labelled partial rather than `true`.');
+  assert.match(SMOKE_COVERAGE[3].note, /analogue/i,
+    'and the note still says the three analogues are analogues rather than counting them: 040 pays '
+    + 'none of them, and a note that dropped the word would be reporting evidence about the '
+    + 'workspace, the page context and the industry assignment as evidence about knowledge');
+  assert.match(SMOKE_COVERAGE[3].note, /080/,
+    'a partial names the batch that owes the rest, or it is a `true` with a longer label');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'batch 030 gives the service a grant and no policy on two more tables, which is more NEGATIVE '
     + 'evidence. Asserting the positive half would still require inventing a service permission §8.1 '
@@ -1640,4 +1664,616 @@ test('the coverage map records what batch 030 could carry and what a global row 
       `${c.id}: the layer is the assertion. A policy refusal here would mean the grant EXISTS and `
       + 'something else refused, which is the state RFC-2026-012 §3 says only an RFC may create.');
   }
+});
+
+// =============================================================================================
+// Batch 040 — knowledge, and the first family whose scope is two columns.
+// =============================================================================================
+const KNOWLEDGE_MIGRATION = 'db/foundation/migrations/040_knowledge.sql';
+const KNOWLEDGE_FIXTURE = 'tests/db/identity/fixtures/040-knowledge-fixture.sql';
+const knowledge = await readFile(KNOWLEDGE_MIGRATION, 'utf8');
+const knowledgeCode = knowledge.replace(/--[^\n]*/g, '');
+const KNOWLEDGE_ITEMS = 'knowledge_items';
+const KNOWLEDGE_VERSIONS = 'knowledge_item_versions';
+const KNOWLEDGE_TABLES = [KNOWLEDGE_ITEMS, KNOWLEDGE_VERSIONS];
+// §5's four words for the knowledge profiles, verbatim. Two of them read as plurals and that is
+// deliberate: normalising them would be two edits to a vocabulary a document fixed, and §3.2 makes a
+// Phase 1 state changeable by migration, which is the mechanism for changing it once somebody with
+// the authority to decide has.
+const KNOWLEDGE_KINDS = ['voice', 'audience', 'offers', 'restrictions'];
+// The roles §8.2 marks `Y` on "Knowledge current INSERT/UPDATE/archive". The editor is in this list
+// and is NOT in §8.1's equivalent, which is the single most arguable line in the batch.
+const KNOWLEDGE_WRITERS = ['owner', 'admin', 'editor'];
+// A policy's USING and WITH CHECK are two predicates and Postgres stores them in two catalog
+// columns. A test that matches the WHOLE policy body passes when one half has been gutted and the
+// other still carries the string — which is not hypothetical: TWO probes on this batch reversed a
+// USING clause, left the WITH CHECK alone, and were NOT NOTICED until this split existed. A
+// narrowing whose USING lost the Page branch filters nothing on read while still refusing the
+// write, which reads as a working policy from every angle except the one that matters.
+const halvesOf = (policy) => {
+  const [before, after] = policy.split(/with\s+check/i);
+  assert.ok(after !== undefined, 'the policy carries a WITH CHECK to split on');
+  return [['USING', before], ['WITH CHECK', after]];
+};
+
+test('every batch 040 table carries RLS, FORCE, a primary key, an owner comment and a policy', () => {
+  for (const table of KNOWLEDGE_TABLES) {
+    assert.match(knowledgeCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(knowledgeCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(knowledgeCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'tests only the first, so ENABLE without FORCE passes it clean while the table owner stays exempt '
+      + 'from every policy in the file');
+    assert.match(knowledgeCode, new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,900}?primary key`, 'i'),
+      `app.${table}: no primary key`);
+    assert.match(knowledge, new RegExp(`comment on table app\\.${table} is`, 'i'));
+    assert.match(knowledgeCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table}: RFC-2026-017 §3 puts a table's policies in the migration that creates it. A forced `
+      + 'table with no policy is unreachable, which is a decision batch 030 had to write down; this table '
+      + 'is CONTENT-2 tenant data and has no such decision to make.');
+  }
+  // §3.3's synonyms are forbidden outright, `page_id` by name. Batch 020 records that this check reads
+  // the file with line comments stripped and string literals kept, so writing a forbidden token even
+  // to say it is forbidden fails the build. That is the rule behaving correctly.
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'account_id', 'page_id']) {
+    assert.doesNotMatch(knowledgeCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}`);
+  }
+});
+
+// THE SHAPE OF THE SCOPE, WHICH IS THIS BATCH'S WHOLE DESIGN.
+//
+// §5 scopes knowledge.core "business/page" and §3.3 lists knowledge under the Business row
+// unconditionally and under the Page row conditionally ("ที่จำกัดเฉพาะเพจ"). §4 relation invariant 3
+// settles it: every knowledge row has a Business scope, and the Page scope is a NULLABLE OVERRIDE
+// that must be in the same Business. Neither column alone is the scope.
+test('a knowledge row always has a Business scope and a Page scope only as a nullable override', () => {
+  const body = knowledgeCode.match(new RegExp(`create table (?:if not exists )?app\\.${KNOWLEDGE_ITEMS}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+  assert.ok(body, 'the item table definition must be findable');
+  assert.match(body[1], /workspace_id\s+uuid\s+not null/i,
+    '§3.3 requires the canonical tenant scope on every tenant-owned row');
+  assert.match(body[1], /business_profile_id\s+uuid\s+not null/i,
+    '§4 invariant 3: EVERY knowledge row has a Business scope. A nullable business_profile_id would make '
+    + 'the Page column a substitute for it rather than an override of it.');
+  assert.match(body[1], /page_context_profile_id\s+uuid\s*,/i,
+    '§4 invariant 3: the Page scope is a NULLABLE override. A NOT NULL page column would forbid '
+    + 'business-level knowledge, which is most of it.');
+  // The override's validity is a THREE-column foreign key: the Page must be a Page of THAT Business in
+  // THAT Workspace. A single-column reference would say the Page exists and nothing more.
+  assert.match(knowledgeCode,
+    /foreign key \(workspace_id, business_profile_id, page_context_profile_id\)\s*\n?\s*references app\.page_context_profiles \(workspace_id, business_profile_id, id\)/i,
+    'the Page override is referenced over the WHOLE scope path, so a Page belonging to another Business '
+    + 'fails at the database with 23503 for every caller (§4 invariant 10)');
+  assert.match(knowledgeCode,
+    /foreign key \(workspace_id, business_profile_id\)\s*\n?\s*references app\.business_profiles \(workspace_id, id\)/i,
+    'and the Business scope is referenced the same way, and is never null, so that key is checked on '
+    + 'every row');
+  // MATCH SIMPLE is the default and is the load-bearing choice: with any referencing column null the
+  // key is satisfied trivially, which is what lets a business-level row exist. MATCH FULL would refuse
+  // every one of them, because workspace_id and business_profile_id are never null.
+  assert.doesNotMatch(knowledgeCode, /match\s+full/i,
+    'MATCH FULL on the Page key would demand all three columns be null or none, and two of them are NOT '
+    + 'NULL — so it would refuse every business-level knowledge row while looking like a stricter '
+    + 'constraint. The default is the right one here and the file says why.');
+  assert.match(knowledge, /MATCH SIMPLE/,
+    'a default that is load-bearing is a decision, and a decision a reader cannot find is one they cannot '
+    + 'disagree with');
+  // §8.5, and the column that carries the second half of the scope.
+  for (const grant of knowledgeCode.matchAll(/grant update \(([^)]*)\) on app\.(\w+)/gi)) {
+    for (const column of ['workspace_id', 'business_profile_id', 'page_context_profile_id']) {
+      assert.doesNotMatch(grant[1], new RegExp(`\\b${column}\\b`, 'i'),
+        `app.${grant[2]}: ${column} is not updatable. §8.5 forbids moving a row across tenant OR SCOPE with `
+        + 'an update, and a knowledge item changing Page is exactly that.');
+    }
+  }
+  assert.match(knowledgeCode, /a scope or type column of app\.knowledge_items is updatable/,
+    'and the same claim against the live ACL at apply time, per column, because a grant made by a later '
+    + 'batch would not appear in this file');
+});
+
+// THE ONE THING IN THIS BATCH A REVIEWER SHOULD ARGUE WITH, held to the argument it made.
+test("the knowledge version records no page of its own and its narrowing is the item's reachability", () => {
+  const body = knowledgeCode.match(new RegExp(`create table (?:if not exists )?app\\.${KNOWLEDGE_VERSIONS}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+  assert.ok(body);
+  assert.doesNotMatch(body[1], /page_context_profile_id/i,
+    `app.${KNOWLEDGE_VERSIONS}: a nullable copy of the Page could not be held equal to the item's by any `
+    + 'foreign key this schema can write — MATCH SIMPLE skips a null referencing column, so a version could '
+    + 'claim to be business-level while its item is page-restricted, and the narrowing would then ask the '
+    + 'Business question about the history of a page-restricted item. An unenforceable copy of the column '
+    + 'the narrowing turns on is worse than no copy.');
+  assert.doesNotMatch(body[1], /\bkind\b/i,
+    `app.${KNOWLEDGE_VERSIONS}: a version determines its item and an item determines its kind, so a copy `
+    + "here would be a second source of truth for a fact the foreign key already fixes — 021's refusal of "
+    + "current_version_id and 030's of industry_pack_id, in the same words");
+  assert.match(body[1], /workspace_id\s+uuid\s+not null/i);
+  assert.match(body[1], /business_profile_id\s+uuid\s+not null/i,
+    'the Business scope IS carried, because §3.3 requires it of every knowledge row unconditionally and '
+    + 'because the composite key into the item is spelled over it');
+  // And the narrowing that replaces the absent column.
+  const narrowing = knowledgeCode.match(
+    new RegExp(`create policy (\\w+) on app\\.${KNOWLEDGE_VERSIONS}\\s*\\n\\s*as restrictive([\\s\\S]*?);\\n`));
+  assert.ok(narrowing, `app.${KNOWLEDGE_VERSIONS} carries a restrictive narrowing`);
+  // BOTH HALVES, separately. A probe that rewrote only the USING clause to read
+  // app.business_profiles left `from app.knowledge_items` standing in the WITH CHECK and was NOT
+  // NOTICED by a whole-body match — which is a narrowing that filters the wrong thing on every read
+  // while still refusing the write, and reads as correct from every other angle.
+  for (const [half, predicate] of halvesOf(narrowing[0])) {
+    assert.match(predicate, new RegExp(`from app\\.${KNOWLEDGE_ITEMS}\\b`),
+      `${half}: a version is reachable exactly when its item is, which cannot drift from the item's rule `
+      + "because it IS the item's rule — including the page half of it, and including any narrowing a later "
+      + 'batch adds');
+    assert.doesNotMatch(predicate, /member_scope_admits_(business|page)\(/,
+      `${half}: it is NOT a copy of the item's predicate. A copy would have to guess which question to ask `
+      + 'about a row that carries no page column, which is the guess this table exists without.');
+  }
+  assert.match(knowledgeCode, /the knowledge version narrowing does not resolve through the item/,
+    'asserted at apply time against the deparsed policy expression as well, because a predicate rewritten '
+    + "to read the version's own columns would pass every text check that merely named a table");
+});
+
+test('an immutable knowledge version grants no role UPDATE or DELETE, and carries no such policy', () => {
+  const body = knowledgeCode.match(new RegExp(`create table (?:if not exists )?app\\.${KNOWLEDGE_VERSIONS}\\s*\\(([\\s\\S]*?)\\n\\);`, 'i'));
+  assert.ok(body);
+  assert.doesNotMatch(body[1], /updated_at/i,
+    `app.${KNOWLEDGE_VERSIONS}: an immutable row has no update to stamp, and §3.2 requires updated_at only `
+    + 'of a MUTABLE row');
+  assert.doesNotMatch(knowledgeCode, new RegExp(`create trigger set_updated_at before update on app\\.${KNOWLEDGE_VERSIONS}`, 'i'));
+  for (const role of ['authenticated', 'anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(knowledgeCode,
+      new RegExp(`grant[^;]*\\b(update|delete)\\b[^;]*on app\\.${KNOWLEDGE_VERSIONS}[^;]*to [^;]*${role}`, 'i'),
+      `app.${KNOWLEDGE_VERSIONS}: ${role} must hold neither UPDATE nor DELETE. §8.2's "Knowledge version `
+      + 'UPDATE/DELETE" is N for every role INCLUDING the service. An absent grant has to be granted; a '
+      + 'policy can be widened by an edit.');
+  }
+  // And no DELETE on the item either, for anyone — §8.5 has no broad user delete and the item has a
+  // typed lifecycle field instead.
+  for (const table of KNOWLEDGE_TABLES) {
+    assert.doesNotMatch(knowledgeCode, new RegExp(`grant[^;]*\\bdelete\\b[^;]*on app\\.${table}`, 'i'),
+      `app.${table}: §8.5 requires a soft delete through a typed lifecycle field. The item has archived_at, `
+      + 'which §8.2 names in the operation itself; a version has none, because nothing about an immutable '
+      + 'row has a lifecycle.');
+  }
+  assert.doesNotMatch(knowledgeCode, /create\s+policy[\s\S]{0,400}?\bfor\s+delete\b/i,
+    'and no DELETE policy either: a policy with no grant is inert, and a reader should not have to work out '
+    + 'which of the two is missing');
+  assert.match(knowledgeCode, new RegExp(`grant select, insert on app\\.${KNOWLEDGE_VERSIONS} to app_worker`, 'i'),
+    `app.${KNOWLEDGE_VERSIONS}: app_worker holds the two verbs §8.2 allows it and no policy, which is what `
+    + "makes the service's empty read attributable to row level security rather than to a forgotten GRANT");
+  assert.match(knowledgeCode, /an immutable knowledge version can be updated or deleted/,
+    '040 asserts its own immutability at apply time, against whatever database receives it, which catches a '
+    + 'grant made by a LATER batch that no text rule in this file would see');
+  assert.match(knowledgeCode, /the knowledge version table carries an UPDATE or DELETE policy/,
+    'both halves: a policy with no grant is inert, and a grant with no policy is denied by RLS instead of by '
+    + 'privilege, which is a weaker refusal than immutability asks for');
+});
+
+// §8.2's three knowledge rows, and the cell that differs from §8.1.
+test('the §8.2 knowledge cells are implemented as written, and the editor is a Y and not a P', () => {
+  const policies = [...knowledgeCode.matchAll(/create policy (\w+) on app\.(knowledge_\w+)([\s\S]*?);\n/g)];
+  assert.equal(policies.length, 7,
+    'select, insert and update on the item; select and insert on the version; and one restrictive narrowing '
+    + 'per table. Seven, because §8.2 grants the version its producing operation and denies only mutation of '
+    + 'the record.');
+  const writes = policies.filter(([, name]) => /_writer$/.test(name));
+  assert.equal(writes.length, 3, 'insert and update on the item, insert on the version');
+  for (const [body, name] of writes.map((m) => [m[0], m[1]])) {
+    for (const role of KNOWLEDGE_WRITERS) {
+      assert.match(body, new RegExp(`'${role}'`),
+        `${name}: §8.2 marks "Knowledge current INSERT/UPDATE/archive" Y for ${role}. THE EDITOR IS THE one `
+        + 'to read carefully: §8.1 marks the Business/Page equivalent `P`, which 020 refused and 021 paid '
+        + 'with an EXPLICIT member scope, and §8.2 marks THIS one `Y`. §7 says the same in prose — "editor: '
+        + 'สร้าง/แก้ knowledge ... เมื่อ policy อนุญาต" — so the write policy names the editor '
+        + "unconditionally and the scope rule narrows it, which is what §8's legend means by Y.");
+    }
+    for (const role of ['approver', 'viewer']) {
+      assert.doesNotMatch(body, new RegExp(`'${role}'`),
+        `${name}: §8.2 marks ${role} N on the knowledge write. §12.6/3 is the approver half of that.`);
+    }
+    // `covers` belongs to a `P` cell and would deny every member holding no scope row. Using it here
+    // would be implementing a cell §8.2 does not have.
+    assert.doesNotMatch(body, /member_scope_covers_/,
+      `${name}: \`covers\` is the predicate for a \`P\` cell — "passes per EXPLICIT capability" — and §8.2 `
+      + 'marks no client cell on these tables P. It answers false for a member with no scope row, so using it '
+      + 'here would deny every unscoped owner, admin and editor the write the matrix grants them.');
+    if (!/for\s+insert/i.test(body)) continue;
+    assert.match(body, /created_by\s*=\s*\(select auth\.uid\(\)\)/,
+      `${name}: §8.5 requires a user action to assert created_by = auth.uid(), or a caller can write a row `
+      + 'naming somebody else as its author (§8.6/8)');
+  }
+  // §11.3, twice, because this family has two parents that can be archived independently.
+  const itemInsert = policies.find(([, name]) => name === 'knowledge_items_insert_writer');
+  assert.ok(itemInsert);
+  assert.match(itemInsert[0], /from app\.business_profiles b[\s\S]*?archived_at is null/,
+    'knowledge under an archived Business is new creation under it (§11.3)');
+  assert.match(itemInsert[0], /page_context_profile_id is null[\s\S]{0,80}?or exists \([\s\S]*?from app\.page_context_profiles p[\s\S]*?archived_at is null/,
+    'AND under an archived PAGE, which is the second half of §11.3 for a family whose rows carry their own '
+    + 'Page. The clause is guarded on the override being set, so a business-level row is not refused for '
+    + 'having no Page to check.');
+  // The UPDATE policy deliberately carries NO archive clause: archiving IS an update of archived_at, so
+  // a clause there would make un-archiving impossible.
+  const itemUpdate = policies.find(([, name]) => name === 'knowledge_items_update_writer');
+  assert.ok(itemUpdate);
+  assert.doesNotMatch(itemUpdate[0], /archived_at is null/,
+    'archiving is itself an UPDATE of archived_at, so an archive clause on the UPDATE policy would make '
+    + "un-archiving impossible — 020 read §11.3 the same way on its own business update");
+  assert.match(itemUpdate[0], /using/i, 'an UPDATE policy needs USING');
+  assert.match(itemUpdate[0], /with\s+check/i,
+    'and WITH CHECK, or a row admitted by USING could be updated out of the scope that admitted it (§8.5)');
+});
+
+test('the narrowing is RESTRICTIVE on both tables and asks the Business question or the Page question', () => {
+  const restrictive = [...knowledgeCode.matchAll(/create policy (\w+) on app\.(knowledge_\w+)\s*\n\s*as restrictive([\s\S]*?);\n/g)];
+  assert.equal(restrictive.length, 2,
+    'one per table. Permissive policies OR together and cannot subtract, so a scope rule written as a '
+    + 'permissive policy would WIDEN each table instead of narrowing it — and a version row holds what a '
+    + 'knowledge item used to say, so a narrowing that skipped it would leave the history readable to a '
+    + "member the current row is hidden from (021's own words).");
+  assert.deepEqual(restrictive.map((m) => m[2]).sort(), [...KNOWLEDGE_TABLES].sort());
+  for (const [body, name] of restrictive.map((m) => [m[0], m[1]])) {
+    assert.match(body, /for\s+all\s+to\s+authenticated/i,
+      `${name}: FOR ALL, so the scope rule has ONE home per table rather than one per command — and a `
+      + 'permissive policy added by a later batch is ANDed with it automatically instead of being another '
+      + 'place to forget it');
+    assert.match(body, /with\s+check/i,
+      `${name}: without WITH CHECK the narrowing filters reads and admits writes, which is the half of a `
+      + 'scope rule that matters most');
+  }
+  // BOTH HALVES, separately, and this is not caution: a probe that dropped the Page branch from the
+  // USING clause alone was NOT NOTICED by a whole-body match, because the WITH CHECK still carried
+  // the string. That schema filters nothing on READ for a page-scoped member while still refusing
+  // their writes — the leak, without the symptom.
+  const itemNarrowing = restrictive.find((m) => m[2] === KNOWLEDGE_ITEMS)[0];
+  for (const [half, predicate] of halvesOf(itemNarrowing)) {
+    assert.match(predicate, /case when page_context_profile_id is null/,
+      `${half}: the narrowing decides PER ROW which question to ask, because §4 invariant 3 makes the Page `
+      + 'scope a nullable override on a row that always carries a Business scope');
+    assert.match(predicate, /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
+      `${half}: the business-level branch`);
+    assert.match(predicate, /app\.member_scope_admits_page\(workspace_id, business_profile_id, page_context_profile_id\)/,
+      `${half}: and the page-level one. Dropping this branch would admit every member scoped to a SIBLING `
+      + 'Page under the same Business, and it would look exactly like a working policy from every other '
+      + 'angle: the cross-tenant cases, the Business-scope cases and the suspended case would all still '
+      + 'pass.');
+    assert.doesNotMatch(predicate, /member_scope_covers_/,
+      `${half}: \`admits\`, never \`covers\`. §8's legend reads Y as "active + capability + scope ตรง", so `
+      + 'an operation granted to every role is narrowed by scope WHERE ONE EXISTS and not where none does. '
+      + '`covers` here would deny every member holding no scope row, which is the reading 021 rejected in '
+      + 'its own header.');
+  }
+  assert.match(knowledgeCode, /batch 040 wrote % restrictive policies and it creates two tables to narrow/,
+    'and the count is re-asserted at apply time, because polpermissive is the one catalog column that tells '
+    + 'a narrowing from a widening');
+  assert.match(knowledgeCode, /the knowledge item narrowing does not ask both the Business and the Page question/,
+    'and so is the presence of BOTH branches, against the deparsed expression — the count alone would be '
+    + 'satisfied by a narrowing that asked only the Business question');
+});
+
+test('no batch 040 policy names a membership table, and every one is written TO authenticated', () => {
+  const policies = [...knowledgeCode.matchAll(/create policy (\w+) on app\.(knowledge_\w+)([\s\S]*?);\n/g)];
+  assert.ok(policies.length >= 7);
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+    // RFC-2026-020 §5/5 and 020's reason: a join would evaluate that scan AS THE CALLER, so another
+    // module's whole policy set would expand inside this table's evaluation and the width of knowledge
+    // visibility would stop being a property of this file.
+    for (const table of ['app.workspace_members', 'app.workspace_member_scopes']) {
+      assert.doesNotMatch(body, new RegExp(table.replace('.', '\\.')),
+        `${name}: membership and member scope are read through the helpers — app.is_active_member, `
+        + 'app.workspace_member_role, app.member_scope_admits_* — and never by joining the table. '
+        + 'RFC-2026-020 §5/5 exists for that, and batch 011 exists for it.');
+    }
+    for (const role of ['app_worker', 'app_command', 'app_maintenance', 'anon']) {
+      assert.doesNotMatch(body, new RegExp(`\\bto\\s+${role}\\b`, 'i'),
+        `${name}: §8.2 gives the service \`P\` and anonymous nothing. A policy for either would add a `
+        + 'permission the matrix does not grant and would make the service denial unfalsifiable.');
+    }
+  }
+  // The only tables a batch 040 policy reads besides its own are the two parents of §11.3's archive
+  // clause and the item its version narrowing resolves through — all three written in THIS file or
+  // read in the fail-closed direction, which is the property 020's warning was protecting.
+  const foreign = policies.flatMap(([body]) =>
+    [...body.matchAll(/from app\.(\w+)/g)].map((m) => m[1]))
+    .filter((t) => !KNOWLEDGE_TABLES.includes(t));
+  assert.deepEqual([...new Set(foreign)].sort(), ['business_profiles', 'page_context_profiles'],
+    'and no others: any narrowing of those two can only make the INSERT refuse more, and neither is a '
+    + 'membership table whose policy set belongs to another module');
+  assert.match(knowledgeCode, /batch 040 wrote a policy for a service or anonymous role/,
+    'and the same claim against the live catalog at apply time');
+});
+
+test('the typed profile is the row, and its four values are the four §5 names', () => {
+  assert.match(knowledgeCode,
+    new RegExp(`check \\(kind in \\(${KNOWLEDGE_KINDS.map((k) => `'${k}'`).join(', ')}\\)\\)`),
+    '§5 lists the family as "items/versions/voice/audience/offers/restrictions" and §3.2 makes a Phase 1 '
+    + "state text + a named CHECK whose values change by migration only. The four words are §5's, unchanged "
+    + '— normalising the two that read as plurals would be two edits to a vocabulary a document fixed.');
+  // The alternative shape, refused: four profile tables would be six entities §4's ERD does not have,
+  // and no document names a single column of any of them.
+  for (const invented of ['knowledge_voice', 'knowledge_audience', 'knowledge_offer', 'knowledge_restriction']) {
+    assert.doesNotMatch(knowledgeCode, new RegExp(`create table (?:if not exists )?app\\.${invented}`, 'i'),
+      "§4's ERD contains exactly two knowledge entities — KNOWLEDGE_ITEM and KNOWLEDGE_VERSION — and no "
+      + 'document names a single column of a per-kind table, so four of them would be four identical shells '
+      + 'reserved against a design somebody else has to do. 021 refused workspace_member_scope_versions for '
+      + 'the same reason.');
+  }
+  assert.match(knowledge, /FOUR PROFILE TABLES \(rejected\)/,
+    'and the batch says which shape it refused, so a reader can disagree with the reading rather than with '
+    + 'the silence');
+  // `kind` is not updatable, which is 040's own reading and is labelled as one.
+  for (const grant of knowledgeCode.matchAll(/grant update \(([^)]*)\) on app\.(\w+)/gi)) {
+    assert.doesNotMatch(grant[1], /\bkind\b/i,
+      `app.${grant[2]}: a typed profile that can change type is not typed, and §8.2 names no operation that `
+      + 'changes one');
+  }
+  // No document column standing in for the shape §5 declines to name.
+  assert.doesNotMatch(knowledgeCode, /\b(jsonb|metadata|config|payload)\b/i,
+    '§5 forbids "metadata", "config", "payload" and "JSON" without a declared JSON Schema version, maximum '
+    + 'size, prohibited fields and owner, none of which exists — and a CONTENT-2 blob is the worst column in '
+    + "the schema to invent on that basis. The resolved knowledge shape is batch 041's.");
+});
+
+test('batch 040 adds to the merged batches and rewrites none of them', () => {
+  // Migration invariant 1 as a property of the file rather than as a sentence in its header.
+  const drops = [...knowledgeCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/g)].map((m) => m[1]);
+  assert.equal(drops.length, 7, 'one drop per policy this batch creates, and no others');
+  for (const name of drops) {
+    assert.match(knowledgeCode, new RegExp(`create policy ${name}\\b`),
+      `${name} is dropped by batch 040 and not created by it, so the drop removes a policy another batch `
+      + 'owns. A later batch adds to a merged one and never replaces it (migration invariant 1).');
+  }
+  for (const table of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments']) {
+    assert.doesNotMatch(knowledgeCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 040 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  assert.doesNotMatch(knowledgeCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz. RFC-2026-020 §5/3 gives it exactly one policy and §6.1/6 pins '
+    + 'its grants; 040 creates no helper and needs no exemption.');
+  assert.match(knowledgeCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid is readable only by a superuser, and a migration that needs one '
+    + 'to apply cannot be applied on the platform it targets (batch 020 found this)');
+  assert.doesNotMatch(knowledgeCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a '
+    + 'superuser');
+  assert.ok(!knowledgeCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it to a '
+    + 'count of exactly two');
+  assert.match(knowledgeCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(knowledgeCode, /(public|extensions)\.gen_random_uuid/,
+    'a schema-qualified default runs in one environment and fails in the other, which is the failure batch '
+    + '010 records at the head of its own file');
+  assert.match(knowledgeCode, /private\.set_updated_at\(\)/,
+    "§3.2's updated_at comes from batch 000's helper and is not reimplemented");
+});
+
+// RFC-2026-021 was APPROVED while this batch was being written, and it decides two things batch 040
+// would otherwise have inherited as convention. A batch that landed beside an approved decision
+// touching its own grants and said nothing about it would be leaving a reader to work out whether
+// the silence was agreement or ignorance.
+test('batch 040 obeys the decision approved beside it about anon and the inherited grants', async () => {
+  assert.match(knowledge, /RFC-2026-021/,
+    'the batch names the decision it is obeying, so a reader can disagree with the reading rather '
+    + 'than with the silence');
+  // §7/4: anon is granted nothing, anywhere our migrations reach — not a table, not a column, not a
+  // function, and above all not `usage on schema app`, because the first anon grant changes the
+  // DENIAL LAYER of every object in app at once.
+  assert.doesNotMatch(knowledgeCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4 decides that anon holds nothing anywhere our migrations reach. Batch 030 '
+    + 'refused this as a judgement; it is now an approved decision, and the two anonymous cases '
+    + 'assert the refusal on the SCHEMA so that widening it fails a test.');
+  for (const c of cases.filter((k) => k.as.helper === 'as_anonymous' && /knowledge/.test(k.id))) {
+    assert.equal(c.expect, 'denied', `${c.id}: anon holds no privilege, so the refusal is an error `
+      + 'and not an empty result');
+    assert.deepEqual(c.deniedOn, { kind: 'schema', name: 'app' },
+      `${c.id}: refused during name resolution, on the SCHEMA — which is the assertion §7/4 makes `
+      + 'checkable. The day anon is granted USAGE on app this moves to the table and fails.');
+  }
+  // §8.5 names 010, 020 and 021's inherited base-table grants and says the exceptions list must be
+  // CLOSED; §10 says those grants are not what the RFC decides and owes them to 170. 030 wrote new
+  // ones and 040 writes new ones, so the list will have to enumerate five batches. Recorded here
+  // rather than left for whoever writes that list to discover.
+  assert.match(knowledge, /§8\.5/,
+    'the batch records that its own grants join a list RFC-2026-021 expects to be closed, and why '
+    + 'that is a debt rather than a contradiction: every grant here is column-scoped and bounded by '
+    + 'a predicate RLS can express, which is the distinction 030 drew about a GLOBAL table');
+  for (const grant of knowledgeCode.matchAll(/grant (select|insert|update)([^;]*)on app\.(knowledge_\w+) to authenticated/gi)) {
+    assert.match(grant[2], /\(/,
+      `app.${grant[3]}: every client grant is COLUMN-SCOPED. RFC-2026-021's own Status line turns on `
+      + 'it — "a column-scoped grant is not a table grant, so column drift is loud in the shape '
+      + 'batch 010 writes" — so a table-wide grant here would remove the only reason these grants '
+      + 'are an inherited shape rather than the failure RFC-2026-012 §2 names.');
+  }
+  // And the RFC is a decision record this repository digests, so it must be one the tree still has.
+  const decisions = await readdir('architecture/decisions');
+  assert.ok(decisions.includes('RFC-2026-021-client-read-allowlist.md'),
+    'batch 040 cites RFC-2026-021 and the record must exist to be cited');
+});
+
+// FOUND BY CI, WHICH IS THE ONLY PLACE IT COULD BE FOUND, and turned into a build error so it
+// cannot be found that way twice.
+//
+// `__SELF__` means "the subject of the identity running this case". Two of the four identity
+// helpers have NO subject — `as_anonymous` and `as_service` set a role and a claim set with no
+// `sub` — so the substitution yielded `undefined`, the driver inlined it as the literal text
+// 'undefined', and Postgres answered 22P02 rather than the 42501 the case demanded. One case in
+// 209, invisible to every static rule in this file, and it took a database to say so.
+test('__SELF__ is refused for an identity that has no subject to be', () => {
+  const scope = { A: id('workspace_a'), B: id('workspace_b') };
+  // The two helpers that set a role and a claim set with no `sub`. ROLE_FOR_HELPER is the runner's
+  // own map, so this cannot drift into asserting something about helpers that do not exist.
+  for (const helper of ['as_anonymous', 'as_service']) {
+    assert.ok(ROLE_FOR_HELPER[helper], `${helper} is a helper the runner knows`);
+    assert.throws(
+      () => resolvePlaceholders({ id: 'probe', as: { helper }, params: ['__SELF__'] }, scope),
+      /has no JWT subject to be/,
+      `${helper} has no subject, so a case using __SELF__ under it must fail to BUILD rather than `
+      + 'reaching a database and coming back 22P02 on a uuid cast');
+  }
+  // And it still substitutes for an identity that HAS one, so the guard is not simply refusing
+  // everything — which is the shape a guard takes when somebody makes it pass by making it inert.
+  const substituted = resolvePlaceholders(
+    { id: 'probe', as: { helper: 'as_user', subject: id('user_owner_a') }, params: ['__SELF__', '__A__'] },
+    scope);
+  assert.deepEqual(substituted.params, [id('user_owner_a'), id('workspace_a')]);
+  // No case passes the string a missing subject used to produce. This is the failure as CI saw it:
+  // the text 'undefined' inlined into a uuid column, answered with 22P02, which expectDenied
+  // correctly refuses as not an RLS refusal — one case in two hundred and nine.
+  for (const c of cases) {
+    for (const param of c.params ?? []) {
+      assert.notEqual(String(param), 'undefined',
+        `${c.id}: passes the literal text 'undefined' as a parameter`);
+    }
+  }
+});
+
+test('the batch 040 fixture writes only catalog identities and carries both scope shapes', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(KNOWLEDGE_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['knowledge_a1_business', 'knowledge_a1_page', 'knowledge_a1_sibling_page',
+    'knowledge_a2_business', 'knowledge_b1_business', 'page_a1_archived']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  const items = fixture.match(/insert into app\.knowledge_items[\s\S]*?on conflict/);
+  assert.ok(items, 'the fixture writes knowledge items');
+  // BOTH SCOPE SHAPES, which is the state every narrowing case in this batch depends on. A fixture
+  // carrying only business-level rows would leave the Page branch of the narrowing untested and green.
+  assert.match(items[0], new RegExp(`'${id('knowledge_a1_business')}'[\\s\\S]{0,200}?null,`),
+    'knowledge_a1_business carries a NULL page: the un-overridden state §4 invariant 3 makes the default');
+  assert.match(items[0], new RegExp(`'${id('knowledge_a1_page')}'[\\s\\S]{0,200}?'${id('page_a1')}'`),
+    'knowledge_a1_page carries page_a1: the overridden state, without which half the narrowing is untested');
+  assert.match(items[0], new RegExp(`'${id('knowledge_a1_sibling_page')}'[\\s\\S]{0,200}?'${id('page_a1_sibling')}'`),
+    'and knowledge_a1_sibling_page carries the OTHER Page of the SAME Business, which is the only pair in '
+    + 'the fixture §8.6 case 4 can be about at knowledge granularity');
+  // All four kinds live, so the vocabulary is exercised rather than merely permitted by a CHECK.
+  for (const kind of KNOWLEDGE_KINDS) {
+    assert.match(items[0], new RegExp(`'${kind}'`),
+      `the fixture loads a '${kind}' row. A vocabulary that only ever appears in a CHECK is one no row has `
+      + 'ever had to satisfy — 021 loaded the all_businesses scope type for the same reason.');
+  }
+  // The archived PAGE under a LIVE Business, which is the only row that can tell §11.3's second clause
+  // from its first.
+  assert.match(fixture, new RegExp(`'${id('page_a1_archived')}'[\\s\\S]{0,400}?timestamptz '2026-07-01`),
+    'page_a1_archived is archived at a FIXED timestamp: a fixture whose content depends on when it ran is '
+    + "one whose failures depend on when they ran (030's sentence about released_at)");
+  assert.ok(!items[0].includes(id('business_a3_archived')),
+    'no knowledge is loaded under the archived BUSINESS: §11.3 closes new creation under it and that case '
+    + 'needs a parent with nothing under it, or the refusal is ambiguous');
+  const versions = fixture.match(/insert into app\.knowledge_item_versions[\s\S]*?on conflict/);
+  assert.ok(versions, 'the fixture writes version rows');
+  assert.doesNotMatch(versions[0], new RegExp(`'${id('page_a1')}'`),
+    'a version row carries no page, because the table has none — the fixture cannot quietly disagree with '
+    + 'the schema about the one column this batch argued hardest about');
+  assert.match(fixture, /on conflict \(knowledge_item_id, version_number\) do nothing/,
+    'idempotent on the NATURAL key, so a re-run cannot produce a second version 1 even if an id were '
+    + 'regenerated');
+});
+
+// The CI negative control, extended to two more tables — and unlike batch 030's global entries, both
+// of these rest on several RLS-decided cases rather than on one.
+test('the tables batch 040 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 9, 'the control runs per table family, and batch 040 adds two');
+
+  for (const [table, floor] of [[KNOWLEDGE_ITEMS, 6], [KNOWLEDGE_VERSIONS, 3]]) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on `
+      + "one table and requires a failed case whose id matches that table's pattern; a batch that adds a "
+      + "table and no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '040', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && ['no-rows', 'no-effect'].includes(c.expect));
+    assert.ok(detectable.length >= floor,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + `disabled, and the entry needs at least ${floor}. A control naming a pattern nothing matches reports `
+      + 'a pass it did not earn.');
+  }
+  // The two patterns must not overlap, or one entry is satisfied by the other table's cases and the
+  // control stops being per family — which is the exact defect the per-family rewrite fixed.
+  const itemPattern = new RegExp(`^${controls.find(([, n]) => n === KNOWLEDGE_ITEMS)[2]}`);
+  const versionPattern = new RegExp(`^${controls.find(([, n]) => n === KNOWLEDGE_VERSIONS)[2]}`);
+  for (const c of cases) {
+    assert.ok(!(itemPattern.test(c.id) && versionPattern.test(c.id)),
+      `${c.id} matches BOTH batch 040 control patterns, so each entry could be satisfied by the other `
+      + "table's regression");
+  }
+  // WHAT EACH ENTRY RESTS ON, named rather than counted. Batch 030 recorded that a global table's entry
+  // can rest on a single case; neither of these does, and the specific cases are pinned so that
+  // deleting one fails the build instead of leaving an entry that disables something nothing notices.
+  for (const [table, name, expect] of [
+    [KNOWLEDGE_ITEMS, 'page-editor-a-cannot-see-the-knowledge-item-of-the-sibling-page', 'no-rows'],
+    [KNOWLEDGE_ITEMS, 'approver-a-cannot-update-a-knowledge-item', 'no-effect'],
+    [KNOWLEDGE_ITEMS, 'owner-a-cannot-see-the-knowledge-item-of-business-b1', 'no-rows'],
+    [KNOWLEDGE_VERSIONS, 'page-editor-a-cannot-see-the-knowledge-version-of-the-sibling-page', 'no-rows'],
+    [KNOWLEDGE_VERSIONS, 'editor-a-scope-does-not-reach-the-knowledge-version-of-business-a2', 'no-rows'],
+    [KNOWLEDGE_VERSIONS, 'service-sees-zero-knowledge-versions', 'no-rows'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: only a filtered read or a filtered write is restored by `
+      + 'disabling row level security. A `denied` case is a privilege refusal and would pass unchanged.');
+  }
+  assert.match(workflow, /TWO KNOWLEDGE TABLES, AND WHAT EACH ENTRY ACTUALLY RESTS ON/,
+    'each entry says beside itself what disabling row level security on that table would let through, '
+    + 'because a control whose mechanism lives only in a test is a control nobody reads at the point of use');
+});
+
+// What batch 040 claims about its own coverage, and — more usefully — what it says it did not pay.
+test('the coverage map pays the knowledge half of §12.6/3 and names the batch that owes the rest', () => {
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'app.knowledge_items is one of the two families §12.6/3 names, so the row is no longer false; content is '
+    + 'batch 080, so it is not true');
+  assert.match(SMOKE_COVERAGE[3].note, /080/, 'and the note names the batch that owes the other half');
+  assert.match(SMOKE_COVERAGE[3].note, /analogue/i,
+    'the three in-scope analogues stay labelled as analogues. Batch 040 pays none of them: they are evidence '
+    + 'about the workspace, the page context and the industry assignment.');
+  // The claim has to be carried by cases, and by cases of BOTH kinds — a refusal alone would be
+  // satisfied by an approver who cannot see knowledge at all, which is a different (wrong) schema.
+  const approver = cases.filter((c) => (c.covers ?? []).includes('§12.6/3') && /^approver-a-/.test(c.id));
+  assert.ok(approver.length >= 5, '§12.6/3 is claimed for knowledge and must be carried by cases on the '
+    + 'knowledge tables, not by the analogues');
+  assert.ok(approver.some((c) => c.expect === 'rows'),
+    'the approver READS knowledge — §8.2 marks that cell Y — so the refusals beside it are about editing '
+    + 'rather than about visibility. Without this the claim is satisfied by an approver who sees nothing.');
+  for (const verb of ['create', 'update', 'archive']) {
+    assert.ok(approver.some((c) => c.id.includes(`cannot-${verb}`)),
+      `§8.2 spells the operation "INSERT/UPDATE/archive", so ${verb} is part of the cell. A schema that `
+      + 'refused a rename and permitted an archive would let an approver hide every knowledge item in the '
+      + 'workspace.');
+  }
+  assert.ok(approver.some((c) => /knowledge-version/.test(c.id)),
+    'and the version write, because an approver who could append a version would be editing knowledge '
+    + 'history without touching the current row');
+  // Nothing else moved, and the row a reader might expect to is named.
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 040 gives the service grants and no policy on two more tables, which is more NEGATIVE evidence. '
+    + 'Asserting the positive half would still require inventing the `P` §8.2 leaves undefined.');
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /040/.test(v.note));
+  assert.ok(mentions.length >= 7,
+    'batch 040 extends seven §12.6 notes and moves one row. If a note stopped naming it, either the '
+    + "assertion stopped being carried on this batch's tables or the note was rewritten by somebody who did "
+    + 'not know it was load-bearing.');
+  // The labels this batch introduced are cited by cases, the same way §12.6 labels are. Without this the
+  // decision the whole batch turns on could stop being asserted while every §12.6 row stayed green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§4/invariant-3', '§8.2/knowledge-write', '§8.2/knowledge-select',
+    '§8.2/knowledge-version-immutable', '§7/editor', '§11.3']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 040 rests on and no case cites it`);
+  }
+  // And §12.6/7's note says which layer actually refuses a forged id here, rather than claiming a
+  // constraint case this schema cannot produce for a caller.
+  assert.match(SMOKE_COVERAGE[7].note, /rejected` CASE/,
+    "040's INSERT policy checks the scope with the composite foreign keys' own conditions under RLS, so a "
+    + 'caller who would violate one is refused by a policy first. A `rejected` case demanding 23503 would '
+    + 'assert an outcome a correct database cannot produce, and the note says so rather than the suite '
+    + 'faking one.');
+  assert.equal(cases.filter((c) => c.expect === 'rejected' && /knowledge/.test(c.id)).length, 0,
+    'so there is no such case, and this is what stops one being added without the note changing');
 });

@@ -160,11 +160,23 @@ async function runAuthzProofs() {
 
 // The coverage claim is printed with the result, so nobody reads "N cases passed" as "§12.6 is
 // covered". A1 recorded which assertions this batch's tables can carry and which they cannot.
+//
+// A2 KNOWLEDGE CORRECTION, batch 040. The filter was `!v.covered`, which printed only the rows
+// claiming NOTHING and silently dropped every PARTIAL one — `covered: 'negative-half'` is a
+// truthy string, so §12.6/8 had never once appeared in this report despite the map saying in terms
+// that half of it is not asserted. Batch 040 makes §12.6/3 partial too (`knowledge-half`: the
+// knowledge tables exist and the approver is refused them; content is batch 080), and a run that
+// printed neither would be reporting six of eight assertions as an unqualified pass.
+//
+// So the filter is `covered !== true` and the LABEL is printed beside the key. A partial claim that
+// looks identical to a full one in the output is how "N cases passed" starts being read as "§12.6
+// is covered", which is the exact misreading this function was written to prevent.
 function reportCoverage() {
-  const uncovered = Object.entries(SMOKE_COVERAGE ?? {}).filter(([, v]) => !v.covered);
-  if (uncovered.length === 0) return;
-  stdout.write(`  §12.6 assertions this batch cannot carry: ${uncovered.map(([k]) => k).join(', ')}\n`);
-  for (const [k, v] of uncovered) stdout.write(`    ${k}: ${v.note}\n`);
+  const owed = Object.entries(SMOKE_COVERAGE ?? {}).filter(([, v]) => v.covered !== true);
+  if (owed.length === 0) return;
+  const label = ([k, v]) => (v.covered ? `${k} (${v.covered})` : k);
+  stdout.write(`  §12.6 assertions this batch does not fully carry: ${owed.map(label).join(', ')}\n`);
+  for (const [k, v] of owed) stdout.write(`    ${k}: ${v.note}\n`);
 }
 
 if (import.meta.url === `file://${argv[1]}`) exit(await main());

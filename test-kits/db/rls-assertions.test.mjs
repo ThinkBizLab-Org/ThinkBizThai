@@ -402,6 +402,17 @@ test('a case that names the object refused is held to that object, not just to t
     { kind: 'table', name: 'workspace_invitations' });
   assert.deepEqual(denialObject(refusal('new row violates row-level security policy for table "workspaces"')),
     { kind: 'table', name: 'workspaces' });
+  // The RESTRICTIVE form, which Postgres spells differently: it names the policy, because a
+  // restrictive policy is checked on its own rather than merged with the permissive set. The
+  // pattern read `policy[^"]*for table` until batch 040 and could not cross those quotes, so every
+  // restrictive refusal attributed to NO object and no case could declare `deniedOn` for one —
+  // which is the unattributed shape this whole test exists to refuse.
+  assert.deepEqual(denialObject(refusal(
+    'new row violates row-level security policy "knowledge_items_scope_narrows_member" for table "knowledge_items"')),
+  { kind: 'table', name: 'knowledge_items' },
+  'a refusal raised by a restrictive policy names the policy before the table, and the object is '
+    + 'still the table. Without this, a scoped member refused a write they hold the role for could '
+    + 'only be asserted with no layer and no object at all.');
   assert.deepEqual(denialObject(refusal('permission denied for schema private')),
     { kind: 'schema', name: 'private' });
   assert.deepEqual(denialObject(refusal('permission denied for function private.as_user')),
