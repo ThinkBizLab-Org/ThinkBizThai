@@ -15,9 +15,10 @@
       "041_knowledge_resolution.sql",
       "050_async_kernel.sql",
       "060_ai_gateway.sql",
-      "130_billing.sql"
+      "130_billing.sql",
+      "140_audit.sql"
     ],
-    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 9 batches long, and it grew by four batches written in parallel -- 050, 060, 130 and 140 -- each of which added itself to this list without seeing the others. That is why the list is a union at merge and not a choice between sides: keeping one branch's line would produce a declaration with a hole in it, which the lint refuses for the reason above."
+    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 10 batches long, and four of those batches -- 050, 060, 130 and 140 -- were written in parallel, each adding itself to this list without seeing the others. That is why this list is a UNION at merge and never a choice between sides: keeping one branch's line produces a declaration with a hole in it, and the lint refuses it for the reason above rather than accepting a shorter true-looking list."
   },
   "catalog": {
     "roles_bypassing_rls": [

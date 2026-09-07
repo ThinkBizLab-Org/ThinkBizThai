@@ -249,9 +249,19 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // enforce: its property is an ABSENCE OF GRANTS — no role holds INSERT, UPDATE or DELETE on
 // app.billing_subscriptions — and `tenant_tables` records rls_enabled, rls_forced, has_pk, comment
 // and owner, not one of which can see a privilege.
+// Batch 140 joins for a reason that is NOT the structural one the five above share, and the
+// difference is worth a sentence because the pattern would otherwise look automatic. Each of those
+// five depends on an object an earlier undeployed batch creates; 140 depends on none — its two
+// tables carry no foreign key at all (§11.4 purges tenant content in step 7 and RETAINS audit in
+// step 8, so an audit row must outlive the rows it names), call no helper, and carry no policy, so
+// it would apply here exactly as it stands. It is declared because the declaration must name a TAIL
+// of the ordered set, and because its apply-time block WRITES A PROBE ROW into app.audit_logs as
+// the migration role to prove the append-only trigger fires for the one identity FORCE ROW LEVEL
+// SECURITY does not reach. Doing that to a live database in order to make a lint pass is the
+// inversion 011's header refuses, one table further along and on an audit log.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql', '060_ai_gateway.sql', '130_billing.sql'];
+  '050_async_kernel.sql', '060_ai_gateway.sql', '130_billing.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -464,6 +474,30 @@ const ADDED_SYMBOLS = [
   // clauses.
   'billing_plan_starter',
   'billing_plan_starter_v1',
+  // Batch 140. Four rows for two tables NO REQUEST-PATH IDENTITY CAN READ, which is why they are
+  // here at all and why the reason differs from every entry above: nothing in this list exists so
+  // that a POSITIVE case can read it. `service-sees-zero-audit-logs` and
+  // `service-sees-zero-security-events` are the only two cases on those tables that row level
+  // security decides — every client refusal is a privilege-layer one — so they are what the CI
+  // negative control rests on, and against an empty table they would pass with row level security
+  // on or off. Two tenants, so the batch's substitute for a cross-tenant claim ("both owners are
+  // refused identically") is about two real rows.
+  //
+  // An audit record needs a SYMBOL for the reason a knowledge item does: it has no natural key. §4's
+  // ERD hangs AUDIT_LOG off WORKSPACE with no ordinal, and inventing a unique constraint so a case
+  // could address a row without a symbol would be writing a product decision into a schema.
+  //
+  // The two in each pair are NOT interchangeable. audit_log_a1's ACTOR IS user_editor_a, because
+  // §8.4 marks "Tenant audit SELECT" `O` for the editor — own rows — and that is the one cell in
+  // the whole matrix where the reader IS the subject of the record; audit_log_b1 is a DENIED DELETE
+  // carrying an error_code and a change_before_ref, so the two rows take opposite branches of every
+  // cross-field CHECK CTR-AUD-001 states and JSON Schema cannot. security_event_a1 carries NO ACTOR
+  // — §9.1's own example of that family is a "replay anomaly", which is a pattern rather than
+  // somebody's act — and security_event_b1 carries one.
+  'audit_log_a1',
+  'audit_log_b1',
+  'security_event_a1',
+  'security_event_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
