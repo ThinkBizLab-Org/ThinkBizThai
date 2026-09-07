@@ -240,9 +240,18 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // `app` — private.ai_credential_references, where §3.1 puts secret references by name — which
 // `tenantTablesInMigrations` cannot see in either direction, so `schemaLint` is widened in the same
 // change to hold a `private` table to the same owner-comment, ENABLE, FORCE and primary-key rules.
+// Batch 130 joins a fifth time and the chain is SEVEN batches deep, on a narrower dependency than
+// any before it: its one policy calls app.workspace_member_role, which 011 creates and this
+// instance does not have. Its own table takes an ordinary row the day it lands; its three GLOBAL
+// tables — app.billing_plans, app.billing_plan_versions and app.plan_entitlements — would not
+// belong in `tenant_tables` even then, exactly as 030's two do not. What 130 adds to this list's
+// own problem is a third thing the rows cannot say, and it is the thing that batch exists to
+// enforce: its property is an ABSENCE OF GRANTS — no role holds INSERT, UPDATE or DELETE on
+// app.billing_subscriptions — and `tenant_tables` records rls_enabled, rls_forced, has_pk, comment
+// and owner, not one of which can see a privilege.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql', '060_ai_gateway.sql'];
+  '050_async_kernel.sql', '060_ai_gateway.sql', '130_billing.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -441,6 +450,20 @@ const ADDED_SYMBOLS = [
   // case can address is a catalog no case can be about. Its `model_key` is synthetic on purpose —
   // OPEN-004 owns the BYOK model allowlist, it is open, and §15 forbids an agent choosing it.
   'ai_model_openai_text',
+  // Batch 130. TWO symbols, and it is the smallest addition any batch with four new tables has
+  // made, because three of the four things this batch could have named have a natural key some
+  // document fixes: a subscription is addressed by the workspace it belongs to (§1 of the Stripe
+  // billing contract gives a workspace at most one live subscription, and 130 makes that a partial
+  // unique index), and an entitlement by the published revision and the feature key.
+  //
+  // The two that ARE named belong to no tenant, which is why neither carries an `_a` or `_b`
+  // suffix. They exist for the reason 030's pack rows exist — a catalog no case can address is a
+  // catalog no case can be about — and for one more that is peculiar to this family: NO IDENTITY IN
+  // THE SCHEMA MAY READ EITHER OF THEM, so the only way this suite can assert that the plan catalog
+  // is global is two subscriptions, one per tenant, naming the same revision id in their own WHERE
+  // clauses.
+  'billing_plan_starter',
+  'billing_plan_starter_v1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

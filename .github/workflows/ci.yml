@@ -332,4 +332,41 @@ jobs:
           # grants anything on that table, and an entry REQUIRED the moment one does.
           control app.ai_models               '[a-z0-9-]*ai-model-registry' 060
           control app.ai_model_policies       '[a-z0-9-]*ai-model-policy'   060
+          # THE FOUR BILLING TABLES, AND THE ASYMMETRY BETWEEN THEM. Batch 130 creates one tenant
+          # table and three global ones, so it carries both shapes this step has met, in one batch.
+          #
+          # app.billing_subscriptions is the tenant entry and it is the STRONGEST one here: six
+          # RLS-decided cases match its pattern and they fail for three different reasons. Disabling
+          # row level security there lets tenant A read tenant B's subscription — what another
+          # business is paying and until when; it lets an ACTIVE EDITOR, APPROVER AND VIEWER of the
+          # workspace read a row §8.3 marks `N` for their role, which no earlier table in this
+          # schema can detect because every other SELECT row in §8 is `Y` for all five built-in
+          # roles; and it lets the suspended member and the service identity read rows they must not
+          # see.
+          #
+          # app.billing_plans, app.billing_plan_versions and app.plan_entitlements are the shape
+          # batch 030 named. They belong to NO WORKSPACE, so there is no tenant boundary for this
+          # control to dissolve, and batch 130 grants no client role any privilege on them at all
+          # (RFC-2026-012 §2/3 and RFC-2026-021: the read allowlist is empty and grows only by RFC).
+          # Every client case against them is a PRIVILEGE-layer refusal, and disabling row level
+          # security does not restore a grant nobody made — so none of those cases would notice. The
+          # entries bite through the ONE grant that exists: app_worker holds SELECT and no policy,
+          # which is batch 010's shape for making a service denial attributable to RLS rather than to
+          # a forgotten GRANT, so with RLS off the service reads the catalog and `service-sees-zero-*`
+          # fails. EACH OF THOSE THREE ENTRIES THEREFORE RESTS ON EXACTLY ONE CASE, which is 030's
+          # weakness repeated three times and is named rather than averaged:
+          # tests/db/identity/identity-isolation.test.mjs pins each of those cases by id, by outcome
+          # kind and by identity helper, so deleting one fails the build instead of leaving an entry
+          # that disables something nothing notices.
+          #
+          # The four patterns do not overlap with each other or with any entry above: a subscription
+          # case id contains `billing-subscription`, a catalog case `billing-plan-catalog`, a price
+          # case `plan-price` and an entitlement case `plan-entitlement`, and none of them contains
+          # `workspace`, `business`, `page`, `scope`, `industry-` or `knowledge-`. The static suite
+          # asserts that pairwise, across every entry in this step, rather than leaving it to
+          # inspection.
+          control app.billing_subscriptions   '[a-z0-9-]*billing-subscription'   130
+          control app.billing_plans           '[a-z0-9-]*billing-plan-catalog'   130
+          control app.billing_plan_versions   '[a-z0-9-]*plan-price'             130
+          control app.plan_entitlements       '[a-z0-9-]*plan-entitlement'       130
           echo "negative control: every family above failed the suite, as each must."

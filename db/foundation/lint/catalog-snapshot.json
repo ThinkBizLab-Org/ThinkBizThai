@@ -14,9 +14,10 @@
       "040_knowledge.sql",
       "041_knowledge_resolution.sql",
       "050_async_kernel.sql",
-      "060_ai_gateway.sql"
+      "060_ai_gateway.sql",
+      "130_billing.sql"
     ],
-    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 8 batches long.\n\n011 to 040 are here because of tables this instance does not have. 041 creates no table at all and is here because its apply-time block reads app.knowledge_items. 050's three tables reference only app.workspaces, so its SQL dependencies are all present and it is declared not applied by the tail rule rather than by an exception to it. 060 adds two global tables and one in `private`, and is here for the same reason."
+    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 9 batches long, and it grew by four batches written in parallel -- 050, 060, 130 and 140 -- each of which added itself to this list without seeing the others. That is why the list is a union at merge and not a choice between sides: keeping one branch's line would produce a declaration with a hole in it, which the lint refuses for the reason above."
   },
   "catalog": {
     "roles_bypassing_rls": [

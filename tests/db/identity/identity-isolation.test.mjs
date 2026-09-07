@@ -3801,3 +3801,608 @@ test('the coverage map records what batch 060 could carry and what a table with 
     + 'could not pay, which is the point: a batch whose tables have no client surface has to record '
     + 'the assertions it cannot make, or a later reader counts its silence as coverage.');
 });
+
+// =============================================================================================
+// Batch 130 — billing. What may be stored at all, and who may write a commitment.
+// =============================================================================================
+//
+// The static half of this batch carries more than usual, and the reason is written into
+// 130_billing.sql's own apply-time block: three of the claims batch 130 cares about most are
+// claims an ALREADY-NAMED batch is expected to change, so asserting them inside an applied
+// migration would be 011's trap — a self-assertion that becomes false on the day it is meant to.
+// They live here instead, where the batch that changes one edits a line a reviewer reads.
+const BILLING_MIGRATION = 'db/foundation/migrations/130_billing.sql';
+const BILLING_FIXTURE = 'tests/db/identity/fixtures/130-billing-fixture.sql';
+const billing = await readFile(BILLING_MIGRATION, 'utf8');
+const billingCode = billing.replace(/--[^\n]*/g, '');
+const SUBSCRIPTION_TABLE = 'billing_subscriptions';
+const BILLING_GLOBAL_TABLES = ['billing_plans', 'billing_plan_versions', 'plan_entitlements'];
+const BILLING_TABLES = [...BILLING_GLOBAL_TABLES, SUBSCRIPTION_TABLE];
+// The two tables §5.1 of the Stripe billing contract calls an immutable mapping and a versioned
+// contract. A price and an entitlement are what a customer was charged and what they were promised.
+const BILLING_IMMUTABLE = ['billing_plan_versions', 'plan_entitlements'];
+const SERVICE_ROLES = ['app_worker', 'app_command', 'app_maintenance'];
+// THE COLUMN DEFINITIONS ALONE, and the reason this helper exists is worth a sentence rather than a
+// name. Batch 130 is the first migration whose own text has to NAME every shape it refuses — its
+// apply-time block greps the catalog for `float4`, for `money`, and for column names matching
+// pan|cvv|cvc|card|last4, and its comments explain why `last4` and `cancel_at_period_end` are
+// absent. A rule reading the whole file would therefore be satisfied by the refusal and would fail
+// on the batch that wrote it, which is the shape where a control starts being edited to make it
+// pass. So the rules below read the CREATE TABLE bodies, which is where a column would actually
+// arrive.
+const billingTableBodies = [...billingCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const allMigrations = async () => {
+  const files = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort();
+  return Promise.all(files.map(async (name) =>
+    [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+};
+
+test('every batch 130 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const table of BILLING_TABLES) {
+    assert.match(billingCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(billingCode, new RegExp(`alter table app\\.${table} enable row level security`));
+    assert.match(billingCode, new RegExp(`alter table app\\.${table} force row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. On a global table with no policy, FORCE is the whole control.');
+    assert.match(billingCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(billingCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,600}?primary key`));
+  }
+  // The policy set is ONE policy, on the one table §8.3 gives a client a cell for. Every other
+  // table here is FORCE ROW LEVEL SECURITY with an empty policy set, which denies every
+  // non-bypassing role including the one holding a grant — and 010's rule is that such an absence
+  // must be a decision in the file rather than an omission.
+  const policies = [...billingCode.matchAll(/create policy (\w+) on app\.(\w+)/g)];
+  assert.equal(policies.length, 1,
+    'batch 130 writes exactly one policy: §8.3 gives a client one operation on this family, '
+    + '"Billing/subscription SELECT" for the owner, and everything else is an absence at the privilege '
+    + 'layer');
+  assert.equal(policies[0][1], 'billing_subscriptions_select_owner');
+  assert.equal(policies[0][2], SUBSCRIPTION_TABLE);
+  assert.match(billing, /NOTHING IS WRITTEN FOR app\.billing_plans, app\.billing_plan_versions OR app\.plan_entitlements/,
+    'a forced table with no policy is unreachable by every role, and an absence is not a decision until '
+    + 'somebody writes down that it is one');
+});
+
+// THE HEADLINE, AND IT IS ASSERTED OVER EVERY MIGRATION RATHER THAN OVER THIS ONE.
+//
+// 130_billing.sql grants no role INSERT, UPDATE or DELETE on app.billing_subscriptions, and its
+// apply-time block asserts the CLIENT half against the live catalog. The SERVICE half cannot be
+// asserted there: batch 131 must write this projection, so an app_worker or app_command grant — and
+// under RFC-2026-012 §4 a policy to go with it — is expected, and an applied migration forbidding it
+// would be false on the day it is meant to be (011's trap, which 021 had to route around).
+//
+// So it is asserted here, across the whole migration set, and the failure message names 131. A batch
+// that legitimately adds the write path edits this test in the same diff, which is the whole point.
+test('nothing in the migration set can create, change or end a billing subscription', async () => {
+  const migrations = await allMigrations();
+  assert.ok(migrations.length >= 12, 'the whole migration set is read, not one file');
+  for (const [name, sql] of migrations) {
+    for (const role of [...CLIENT_ROLES, ...SERVICE_ROLES, 'app_authz']) {
+      for (const verb of ['insert', 'update', 'delete']) {
+        assert.doesNotMatch(sql,
+          new RegExp(`grant\\s[^;]*\\b${verb}\\b[^;]*\\bon\\s+app\\.${SUBSCRIPTION_TABLE}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} ${verb.toUpperCase()} on app.${SUBSCRIPTION_TABLE}. `
+          + 'CONTRIBUTING_AGENTS.md: "Payment entitlement is derived only from a verified Stripe webhook '
+          + 'projection. Checkout redirects are never proof of payment." The billing contract says the same '
+          + 'in §2.1, §3/2 and §12.1, and RFC-2026-012 decision 1 says it for every family. If this is batch '
+          + '131 landing the webhook projection, edit this test and name the RFC or the decision that '
+          + 'authorises the writer, move the six `*-cannot-*-a-billing-subscription` cases to whatever layer '
+          + 'now refuses them, and restate the negative control entry that rests on them.');
+      }
+    }
+    // The policy half of the same claim. A write policy with no grant is inert, so this is the
+    // weaker of the two — and it is here because the pair is what makes either mean anything.
+    for (const m of sql.matchAll(new RegExp(`create policy \\w+ on app\\.${SUBSCRIPTION_TABLE}\\b[\\s\\S]*?;`, 'gi'))) {
+      assert.match(m[0], /\bfor\s+select\b/i,
+        `${name} writes a non-SELECT policy on app.${SUBSCRIPTION_TABLE}. §8.3 gives a client exactly one `
+        + 'operation on this family and it is a read; a write policy here is a permission nobody reviewed '
+        + 'against a caller.');
+    }
+  }
+  // And the migration says so in its own file, because a control whose reason lives only in a test
+  // is a control nobody reads at the point of use.
+  assert.match(billing, /NOBODY MAY CREATE, CHANGE OR END A SUBSCRIPTION THROUGH THIS SCHEMA/);
+  assert.match(billing, /CONTRIBUTING_AGENTS\.md/,
+    'the batch names the rule it is obeying, so a reader can disagree with the reading rather than with '
+    + 'the silence');
+  // The cases that carry it: three verbs, two identities, all six at the GRANT layer.
+  for (const who of ['owner-a', 'service']) {
+    for (const verb of ['create', 'extend', 'delete']) {
+      const found = cases.find((c) => c.id === `${who}-cannot-${verb}-a-billing-subscription`);
+      assert.ok(found, `${who}-cannot-${verb}-a-billing-subscription is missing`);
+      assert.equal(found.expect, 'denied');
+      assert.equal(found.deniedBy, 'grant',
+        `${found.id}: the refusal must be attributable to an ABSENT GRANT. A policy can be widened by an `
+        + 'edit; an absent privilege has to be granted.');
+      assert.deepEqual(found.deniedOn, { kind: 'table', name: SUBSCRIPTION_TABLE });
+    }
+  }
+});
+
+// The read side of the same boundary, and the reason it is a separate test: the plan catalog is
+// refused for RFC-2026-012's reason and the subscription is granted for §8.3's, and a single test
+// over both would let one of them be satisfied by the other.
+test('the billing plan catalog is not on the client read allowlist, and no migration puts it there', async () => {
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const table of BILLING_GLOBAL_TABLES) {
+      for (const role of CLIENT_ROLES) {
+        assert.doesNotMatch(sql, new RegExp(`grant\\s[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} a privilege on app.${table}. RFC-2026-012 §3 says the read allowlist starts `
+          + 'empty and each entry is added BY RFC, and RFC-2026-021 §3 says an entry is five objects plus a '
+          + 'registry row. §9.1 licenses an owner/admin SUMMARY of FIN-3 content — a summary is a projection, '
+          + 'and the projection is the object an RFC has to name. If an RFC has approved this entry, edit this '
+          + 'test and name it, restate the negative-control entry the grant makes possible, and move the cases '
+          + 'that are now about a policy rather than about a missing privilege.');
+      }
+    }
+    for (const view of sql.matchAll(/create\s+(?:or\s+replace\s+)?view[\s\S]*?;/gi)) {
+      assert.doesNotMatch(view[0], /billing_plan|plan_entitlements/i,
+        `${name} creates a view over the billing plan catalog. That view IS the allowlist entry `
+        + 'RFC-2026-012 §3 reserves to an RFC.');
+    }
+  }
+  // No policy on any of the three either — the other half of "unreachable", and the half that
+  // would matter the moment somebody wrote the grant.
+  for (const table of BILLING_GLOBAL_TABLES) {
+    assert.doesNotMatch(billingCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table}: §8 has no row for a plan catalog in any of its four matrices — §8.3's two rows are `
+      + 'about a SUBSCRIPTION and about a plan/payment ACTION — so there is no cell to implement.');
+  }
+  // The batch names the criterion it fails and refuses to name the batch that would pass it,
+  // because confirming a batch number by citation is what this package's own blockers refuse.
+  assert.match(billing, /RFC-2026-021/,
+    'the batch names the decision it is obeying about how the allowlist grows');
+  assert.match(billing, /WHICH BATCH CREATES THE ENTRY IS NOT ASSIGNED/,
+    "RFC-2026-021 §3 puts an entry in a new batch in the family owner's range and A0 assigns batch "
+    + 'numbers; naming one here would create a batch number by citation, which this package refuses for '
+    + "the industry catalog's 031 already");
+  // And the measured state agrees, which is what stops this being a rule about text alone.
+  const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
+  assert.deepEqual(snapshot.catalog.exposed_views, []);
+});
+
+// §3.2 fixes money and this is the batch that has some. The rule is asserted three ways because
+// each catches a different mistake: the declared type catches a redefinition, the absent float
+// types catch a new column, and the currency CHECK catches a constraint that ratified an
+// UNVERIFIED decision.
+test('a price is numeric(18,6) with an ISO-4217 currency, and no inexact type appears', () => {
+  assert.match(billingCode, /unit_amount\s+numeric\(18,6\)\s+not null/,
+    '§3.2: "เงิน: numeric(18,6) + ISO-4217 currency; ห้าม float". The scale is not decoration — a '
+    + 'repository that stores money at two decimals cannot represent a per-unit price it later divides.');
+  assert.equal(billingTableBodies.length, 4, 'four tables, four column lists to read');
+  for (const body of billingTableBodies) {
+    for (const inexact of ['float', 'double precision', 'real', 'money']) {
+      assert.doesNotMatch(body, new RegExp(`\\b${inexact}\\b`, 'i'),
+        `a column typed ${inexact} cannot hold a price exactly (and Postgres's own money type renders `
+        + 'through a session GUC), which is why §3.2 forbids it rather than discouraging it');
+    }
+  }
+  assert.match(billingCode, /currency\s+text\s+not null/);
+  assert.match(billingCode, /check \(currency ~ '\^\[A-Z\]\{3\}\$'\)/,
+    "ISO-4217 is three uppercase letters. The SHAPE is §3.2's and the VALUE is BILL-DEC-014's, which is "
+    + 'marked UNVERIFIED against a live account.');
+  assert.doesNotMatch(billingCode, /currency\s*=\s*'THB'/,
+    'a constraint naming THB would encode an UNVERIFIED decision (BILL-DEC-014) as a schema rule');
+  // And the apply-time block asks the catalog rather than the text, because a later ALTER would not
+  // appear in this file at all.
+  assert.match(billingCode, /format_type\(a\.atttypid, a\.atttypmod\)/,
+    'the declared type is asserted against the live catalog, not only against the CREATE TABLE above');
+  assert.match(billingCode, /typname in \('float4', 'float8', 'money'\)/,
+    'and so is the absence of an inexact type on any column of any table this batch creates');
+});
+
+// §9.2 and BILL-DEC-003 forbid the DATA. This forbids the column SHAPES it arrives in, because a
+// column named for a card is the column somebody eventually writes a card into — and RFC-2026-008
+// records that the scan walks the working tree only, so a PAN that reaches `main` is a disclosure
+// this repository has no mechanism to undo.
+test('no table batch 130 creates carries a payment instrument by another name', () => {
+  for (const body of billingTableBodies) {
+    for (const forbidden of ['pan', 'cvv', 'cvc', 'card_number', 'cardholder', 'last4', 'last_four',
+      'exp_month', 'exp_year', 'security_code', 'payment_method_token', 'card_fingerprint']) {
+      assert.doesNotMatch(body, new RegExp(`\\b${forbidden}\\b`, 'i'),
+        '§9.2 forbids a card PAN, a CVV and any provider-managed payment credential; BILL-DEC-003 marks '
+        + `the same rule MANDATORY. A ${forbidden} column is where that data would arrive.`);
+    }
+  }
+  // The one that would have been arguable, refused with its three conditions named rather than
+  // debated in a later pull request.
+  assert.match(billing, /THE ONE THAT WOULD HAVE BEEN ARGUABLE IS `last4`/,
+    '§14.1 of the billing contract permits brand/last4/expiry "ที่ Stripe ส่งให้และมี UX need โดยต้องผ่าน '
+    + 'privacy review" — three conditions, none of which holds at G0');
+  assert.match(billing, /RFC-2026-008/,
+    'the batch names the scanner decision that makes a card column a permanent disclosure rather than a '
+    + 'removable mistake');
+  // No provider identifier either. §9.3 requires an external account id to be an encrypted private
+  // reference plus a stable hash, and neither exists here; §6's registry gives the provider read
+  // model to 131.
+  for (const body of billingTableBodies) {
+    for (const provider of ['stripe', 'livemode', 'provider_status', 'customer_id', 'price_id',
+      'product_id', 'invoice_id', 'payment_intent']) {
+      assert.doesNotMatch(body, new RegExp(`\\b${provider}\\w*\\b`, 'i'),
+      'batch 130 stores no provider identifier and no provider status: §9.3\'s safe form for an external id '
+      + '(encrypted private reference + stable hash) does not exist in this repository, §9.1 classes a '
+      + "provider identifier PROVIDER-3 with \"redact external identifiers\", and §6's registry gives the "
+        + `webhook/invoice/payment read model to batch 131. A ${provider} column here would be that `
+        + "batch's work arriving without that batch's review.");
+    }
+  }
+  // The apply-time block asks the same question of the catalog, scoped to this batch's own tables
+  // so that a privacy review approving a column in 131 does not make an applied migration's
+  // self-assertion false — which is 011's trap and the reason the scope is stated.
+  assert.match(billingCode, /\(\^\|_\)\(pan\|cvv\|cvc\|card\|last4\|iin\|bin\)\(\$\|_\)/,
+    'the column-shape rule runs against the live catalog too, so a later ALTER on one of these four tables '
+    + 'is caught as well as a later CREATE');
+  assert.match(billing, /SCOPED TO THIS BATCH'S OWN FOUR TABLES AND NOT TO SCHEMA/,
+    'and the scope is stated, because a rule over schema app would be the self-assertion 131 is expected '
+    + 'to falsify — §14.1 of the billing contract permits brand/last4/expiry after a privacy review, on '
+    + 'tables this batch does not create');
+});
+
+test('a published plan revision and its entitlements are immutable to every role', () => {
+  for (const table of BILLING_IMMUTABLE) {
+    for (const role of [...CLIENT_ROLES, ...SERVICE_ROLES, 'app_authz']) {
+      for (const verb of ['update', 'delete']) {
+        assert.doesNotMatch(billingCode,
+          new RegExp(`grant\\s[^;]*\\b${verb}\\b[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `app.${table} grants ${role} ${verb.toUpperCase()}. §5.1 calls a price an "immutable mapping ... `
+          + 'สร้าง revision ใหม่" and an entitlement a "versioned contract"; §3.2 and §4 invariant 8 say the '
+          + 'same of every published version.');
+      }
+    }
+    assert.doesNotMatch(billingCode,
+      new RegExp(`create policy \\w+ on app\\.${table}[\\s\\S]{0,400}?for\\s+(update|delete)`, 'i'),
+      `app.${table}: both halves are asserted, because either alone can be satisfied while the other is `
+      + 'wrong — a policy with no grant is inert, and a grant with no policy is denied by RLS instead of by '
+      + 'privilege, which is a weaker refusal than immutability asks for');
+    assert.doesNotMatch(billingCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,1600}?updated_at`),
+      `app.${table} declares updated_at. An immutable row has no update to stamp, and §3.2 requires it only `
+      + 'of a MUTABLE row — adding one is the first sentence of an immutable table contradicting itself.');
+  }
+  // Eight live cases, so both grids are complete rather than resting on the apply-time block for
+  // half of each. 020 left one cell to its block and said so; a price and an entitlement are what
+  // somebody was charged and what they were promised.
+  const immutability = cases.filter((c) => (c.covers ?? []).includes('§8.6/9')
+    && /(plan-price|plan-entitlement)/.test(c.id));
+  assert.equal(immutability.length, 8,
+    'update and delete, by the workspace OWNER and by the SERVICE identity, on each of the two tables');
+  for (const c of immutability) {
+    assert.equal(c.expect, 'denied');
+    assert.equal(c.deniedBy, 'grant',
+      `${c.id}: the refusal is an ABSENT GRANT, which is a stronger claim than a policy refusal because a `
+      + 'policy can be widened by an edit');
+  }
+});
+
+test('the §8.3 cells are implemented as written, and the admin P is refused for a new reason', () => {
+  const policy = billingCode.match(/create policy billing_subscriptions_select_owner[\s\S]*?;/)[0];
+  assert.match(policy, /\bfor\s+select\s+to\s+authenticated\b/i,
+    '§8.5 writes tenant policies TO authenticated');
+  assert.match(policy, /app\.workspace_member_role\(workspace_id\)\s*=\s*'owner'/,
+    '§8.3 marks "Billing/subscription SELECT" `Y` for the owner ALONE, so the predicate is a role '
+    + 'EQUALITY and not the membership test every earlier batch used. It is the narrowest client predicate '
+    + 'in the schema, which is what makes the column-scoped grant beside it bounded by something RLS can '
+    + 'express.');
+  for (const role of ['admin', 'editor', 'approver', 'viewer']) {
+    assert.doesNotMatch(policy, new RegExp(`'${role}'`),
+      `§8.3 marks ${role} N or P on this row, and neither is a grant. Writing role in ('owner','admin') `
+      + 'would delete the distinction between Y and P and ship every workspace admin the billing surface.');
+  }
+  // The refusal of admin's P is the one thing in this batch that is NOT the refusal every earlier
+  // batch made, and the file has to say which one it is making.
+  assert.match(billing, /THE ADMIN'S `P` IS REFUSED, and the reason is NOT the one 010, 011, 020, 021 and 030 all gave/,
+    'earlier batches refused a `P` because no document defines the capability set. Here BILL-DEC-004 defines '
+    + 'a Billing Admin ROLE, §7 fixes five built-ins that do not include it, and app.workspace_members.role '
+    + 'is a CHECK in an APPLIED migration — so implementing it needs an RFC and a batch that owns that '
+    + 'table, not a predicate here.');
+  assert.match(billing, /BILL-DEC-004/);
+  assert.match(billing, /migration invariant 1/,
+    'and the file says why the sixth role cannot simply be added: 010 is applied');
+  // The three N cells, asserted as zero rows for three ACTIVE members, each paired with the owner's
+  // positive on the same row.
+  for (const role of ['viewer', 'editor', 'approver']) {
+    const c = cases.find((k) => k.id === `${role}-a-cannot-read-the-billing-subscription-of-tenant-a`);
+    assert.ok(c, `the §8.3 N cell for ${role} has no case`);
+    assert.equal(c.expect, 'no-rows',
+      `${c.id}: an N on a SELECT row is a filtered read, not a refusal — the role holds the column grant `
+      + 'like every other member and the policy is what excludes them');
+  }
+  assert.ok(cases.some((c) => c.id === 'owner-a-sees-the-billing-subscription-of-tenant-a' && c.expect === 'rows'),
+    'without the positive, the three negatives are satisfied by a table nobody can read');
+});
+
+// Every batch since 021 has written a RESTRICTIVE policy and this one does not. An absence in a
+// batch that creates four tables needs a reason a reviewer can check.
+test('batch 130 writes no member-scope narrowing, because a subscription is a workspace row', () => {
+  assert.doesNotMatch(billingCode, /as\s+restrictive/i,
+    'a restrictive narrowing here would have to ask member_scope_admits_business with no Business to name, '
+    + 'which denies every caller while looking like a control');
+  for (const helper of ['member_scope_admits_business', 'member_scope_admits_page',
+    'member_scope_covers_business', 'member_scope_covers_page', 'member_scope_is_narrowed']) {
+    assert.doesNotMatch(billingCode, new RegExp(`\\b${helper}\\b`),
+      "batch 130 calls no scope helper. §7's three scope types — all_businesses, business, page — every one "
+      + 'of them names a Business or a Page, and a subscription names neither.');
+  }
+  assert.match(billing, /NO MEMBER-SCOPE NARROWING, AND THAT IS 021's SENTENCE RATHER THAN AN OMISSION/,
+    '021 met this question about "Workspace UPDATE: Admin P" and answered it; the absence here cites that '
+    + 'answer rather than re-deriving it');
+  for (const table of BILLING_TABLES) {
+    assert.doesNotMatch(billingCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,1600}?business_profile_id`),
+      `app.${table} carries no business_profile_id: §3.3 requires it of "knowledge, research, content, asset, `
+      + "approval, calendar, publish\" and §4's ERD hangs SUBSCRIPTION off WORKSPACE and off nothing else");
+  }
+});
+
+test('no batch 130 policy names a membership table, and the one it writes is TO authenticated', () => {
+  // The whole-file half: no JOIN and no FROM against a membership table anywhere in the batch. The
+  // NAMES appear in this file — an apply-time hint quotes RFC-2026-020 §6.1/6, which pins app_authz's
+  // grants to four columns of app.workspace_members — so the rule is about the scan and not about the
+  // string, which is the distinction 040's equivalent test draws by reading policy bodies.
+  for (const table of ['workspace_members', 'workspace_member_scopes']) {
+    assert.doesNotMatch(billingCode, new RegExp(`\\b(from|join)\\s+app\\.${table}\\b`, 'i'),
+      `RFC-2026-020 §5/5: membership is read through the helpers and never by joining app.${table}. A scan `
+      + "written into a policy here would run AS THE CALLER, so another module's whole policy set would "
+      + 'expand inside this evaluation and the width of billing visibility would stop being a property of '
+      + 'this file.');
+  }
+  const policies = [...billingCode.matchAll(/create policy (\w+) on app\.\w+([\s\S]*?);\n/g)];
+  assert.equal(policies.length, 1, 'the one policy this batch writes');
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    for (const table of ['app.workspace_members', 'app.workspace_member_scopes']) {
+      assert.doesNotMatch(body, new RegExp(table.replace('.', '\\.')),
+        `${name}: membership is read through app.workspace_member_role and never by naming the table`);
+    }
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+    for (const role of [...SERVICE_ROLES, 'anon', 'app_authz']) {
+      assert.doesNotMatch(body, new RegExp(`\\bto\\s+${role}\\b`, 'i'),
+        `${name}: a policy naming ${role} would add a permission §8.3 does not grant and would make the `
+        + 'service denial the isolation suite asserts unfalsifiable');
+    }
+  }
+  // The apply-time block asserts only the `anon` half, and the file says why it is narrower than
+  // 020's, 021's, 030's and 040's. Without this the narrowing would look like a copy that lost a
+  // word.
+  assert.match(billing, /THE SERVICE ROLES ARE DELIBERATELY NOT IN THIS LIST/,
+    '§8.3 marks the service `P` and 131 owes the projection that writes it, so an apply-time rule refusing '
+    + 'a service policy would be a self-assertion an already-named batch is expected to falsify');
+  assert.match(billingCode, /r\.rolname = 'anon'/,
+    'RFC-2026-021 §7/4 IS asserted at apply time, because no later batch may change it without reversing an '
+    + 'approved decision');
+});
+
+test('batch 130 adds to the merged batches and rewrites none of them', () => {
+  const drops = [...billingCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/g)].map((m) => m[1]);
+  assert.equal(drops.length, 1, 'one drop per policy this batch creates, and no others');
+  for (const name of drops) {
+    assert.match(billingCode, new RegExp(`create policy ${name}\\b`),
+      `${name} is dropped by batch 130 and not created by it, so the drop removes a policy another batch `
+      + 'owns (migration invariant 1)');
+  }
+  for (const table of ['workspaces', 'workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items']) {
+    assert.doesNotMatch(billingCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 130 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  assert.doesNotMatch(billingCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz. RFC-2026-020 §5/3 gives it exactly one policy and §6.1/6 pins '
+    + 'its grants; 130 creates no helper and needs no exemption.');
+  assert.doesNotMatch(billingCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4: anon holds nothing anywhere our migrations reach');
+  assert.match(billingCode, /pg_catalog\.pg_roles/);
+  assert.doesNotMatch(billingCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a '
+    + 'superuser (batch 020 found this)');
+  assert.ok(!billingCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone');
+  assert.match(billingCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(billingCode, /(public|extensions)\.gen_random_uuid/);
+  assert.match(billingCode, /private\.set_updated_at\(\)/,
+    "§3.2's updated_at comes from batch 000's helper and is not reimplemented");
+  // No created_by anywhere in this batch, which is 030's rule arriving somewhere less obvious: §3.2
+  // asks for the actor columns on a row a USER mutates, and no user mutates any of these four.
+  assert.doesNotMatch(billingCode, /\bcreated_by\b/,
+    'no table here is user-mutated — no role holds INSERT or UPDATE on any of them — so §8.5\'s "user action '
+    + 'ตรวจ created_by = (select auth.uid())" has nothing to attach to. The acting user belongs in the audit '
+    + "event batch 140 owes and in billing_operations, which is 131's.");
+});
+
+// The one live subscription per workspace, which §1 of the billing contract requires and §13.1
+// otherwise leaves to a reconciliation job to REPORT. A constraint refuses it instead.
+test('a workspace holds at most one live subscription, as a partial unique index', () => {
+  assert.match(billingCode,
+    /create unique index if not exists billing_subscriptions_one_live_per_workspace\s+on app\.billing_subscriptions \(workspace_id\)\s+where local_access_state <> 'canceled'/,
+    '§1: "หนึ่ง billable subscription ต่อหนึ่ง workspace". It is PARTIAL because §4\'s ERD gives this table '
+    + '`WORKSPACE ||--o{ SUBSCRIPTION` — zero or MANY — so an ended subscription stays and a total unique '
+    + 'index would forbid the history.');
+  assert.match(billingCode, /i\.indisunique and i\.indpred is not null/,
+    'the apply-time block asserts UNIQUE and PARTIAL from the catalog, because a non-unique index would '
+    + 'enforce nothing and a total one would forbid the history');
+  // The state vocabulary is §9's, and NO_PLAN is deliberately absent.
+  assert.match(billingCode,
+    /check \(local_access_state in \(\s*'pending', 'trialing', 'active', 'grace', 'restricted',\s*'cancel_scheduled', 'canceled', 'manual_fallback'\)\)/,
+    "§9's local state machine as text + a named CHECK (§3.2), lowercased the way batch 010 lowercased "
+    + "§11.4's diagram labels");
+  assert.doesNotMatch(billingCode, /'no_plan'/,
+    'NO_PLAN is the ABSENCE of a row, which is what buys the NOT NULL foreign key to the plan revision: '
+    + 'every row is a commitment to a contract that exists');
+  for (const body of billingTableBodies) {
+    assert.doesNotMatch(body, /cancel_at_period_end/,
+      '`cancel_scheduled` in local_access_state IS that flag, and a boolean beside it could disagree with '
+      + 'the state — the second source of truth 021, 030 and 040 each refused one column over');
+  }
+  // BILL-DEC-012 says the grace number is policy and not schema.
+  assert.match(billingCode, /grace_expires_at\s+timestamptz,/,
+    '§10.1 requires the grace deadline to be recorded');
+  assert.doesNotMatch(billingCode, /interval '7 days'/,
+    'BILL-DEC-012: 7 days is a baseline that "ปรับได้ผ่าน policy ไม่ hard-code", so there is no default and '
+    + 'no arithmetic here');
+});
+
+test('the batch 130 fixture writes only catalog identities and subscribes both tenants to one revision', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(BILLING_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity`);
+  }
+  for (const symbol of ['billing_plan_starter', 'billing_plan_starter_v1', 'workspace_a', 'workspace_b']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // BOTH tenants on the SAME plan revision, which is the only proof available that the catalog is
+  // global: no identity may read app.billing_plan_versions, so the claim has to be carried by two
+  // subscriptions naming one id.
+  const subscriptions = fixture.match(/insert into app\.billing_subscriptions[\s\S]*?on conflict[^;]*;/);
+  assert.ok(subscriptions, 'the fixture loads subscriptions');
+  assert.equal((subscriptions[0].match(new RegExp(id('billing_plan_starter_v1'), 'g')) ?? []).length, 2,
+    'one subscription per tenant, both naming the same global plan revision');
+  assert.match(subscriptions[0], new RegExp(id('workspace_a')));
+  assert.match(subscriptions[0], new RegExp(id('workspace_b')));
+  // Both entitlement kinds are loaded, for the reason batch 040 loaded all four of its `kind`
+  // values: a vocabulary that only ever appears in a CHECK is a vocabulary no row has had to satisfy.
+  for (const kind of ['limit', 'value']) {
+    assert.match(fixture, new RegExp(`'${kind}'`), `the fixture loads an entitlement of kind ${kind}`);
+  }
+  assert.match(fixture, /21474836480/,
+    "§5.3's own asset_storage_bytes, which does not fit an integer and is why §3.2 fixes these quantities "
+    + 'as bigint');
+  // No yearly price, because BILL-OQ-01 is OPEN: the vocabulary is the document's and the offering
+  // is Product's.
+  assert.doesNotMatch(fixture, /'year'/,
+    'whether a yearly price is OFFERED is BILL-OQ-01 and still open; a fixture row would be this batch '
+    + 'answering it');
+  // And no card data, which is the one thing a billing fixture is most likely to acquire.
+  assert.doesNotMatch(fixture, /\b\d{13,19}\b/,
+    'a long digit run in a billing fixture is the shape RFC-2026-008 exists to report. Nothing here needs '
+    + 'one, and a published provider test card is reported rather than exempted.');
+});
+
+test('the tables batch 130 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 13, 'the control runs per table family, and batch 130 adds four');
+
+  for (const [table, floor] of [[SUBSCRIPTION_TABLE, 6], ...BILLING_GLOBAL_TABLES.map((t) => [t, 1])]) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on one `
+      + "table and requires a failed case whose id matches that table's pattern; a batch that adds a table and "
+      + "no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '130', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && ['no-rows', 'no-effect'].includes(c.expect));
+    assert.ok(detectable.length >= floor,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + `disabled, and the entry needs at least ${floor}. A control naming a pattern nothing matches reports a `
+      + 'pass it did not earn.');
+  }
+
+  // NONE OF BATCH 130's FOUR PATTERNS OVERLAPS ANY OTHER ENTRY IN THIS STEP, its own three included.
+  // Batch 040 asserted this for its own pair; four new patterns make the hazard four times as likely,
+  // so it is asserted against EVERY entry rather than only against the siblings.
+  //
+  // IT IS ASSERTED ONE-DIRECTIONALLY, AND THAT IS A FINDING RATHER THAN A CONVENIENCE. The same
+  // claim made globally is FALSE TODAY: measured on this branch, sixteen pairs of the pre-existing
+  // entries share cases, `app.business_profiles` and `app.workspace_member_scopes` sharing fifteen
+  // of them (`editor-a-scope-does-not-reach-business-a2` matches both `[a-z0-9-]*business` and
+  // `[a-z0-9-]*scope`). Those patterns are anchored with `^[a-z0-9-]*`, which matches a substring
+  // anywhere in an id, so any id naming two families matches two entries. It is a weakness rather
+  // than a hole — each `control` call runs with exactly one table's row level security off, so a
+  // failure during it was caused by that table — but the guarantee is narrower than the step's own
+  // wording implies. Repointing another batch's pattern is not this batch's to do; it is recorded in
+  // the work package's open blockers, and batch 130 makes the problem no larger.
+  const mine = controls.filter((c) => c[3] === '130');
+  assert.equal(mine.length, 4, "batch 130's four entries");
+  for (const [, table, pattern] of mine) {
+    const own = new RegExp(`^${pattern}`);
+    for (const [, other, otherPattern] of controls) {
+      if (other === table) continue;
+      const theirs = new RegExp(`^${otherPattern}`);
+      const both = cases.filter((c) => own.test(c.id) && theirs.test(c.id));
+      assert.deepEqual(both.map((c) => c.id), [],
+        `case(s) match BOTH the app.${table} and app.${other} control patterns, so each entry could be `
+        + "satisfied by the other table's regression");
+    }
+  }
+
+  // WHAT EACH ENTRY RESTS ON, named rather than counted. The three global entries rest on ONE case
+  // each — 030's weakness, repeated three times because the shape is the same — so each is pinned by
+  // id, by outcome kind and by identity helper.
+  for (const [table, name] of [
+    ['billing_plans', 'service-sees-zero-rows-in-the-billing-plan-catalog'],
+    ['billing_plan_versions', 'service-sees-zero-published-plan-prices'],
+    ['plan_entitlements', 'service-sees-zero-plan-entitlements'],
+  ]) {
+    const only = cases.find((c) => c.id === name);
+    assert.ok(only, `app.${table}'s negative-control entry rests on ${name}, which is missing. It is the ONLY `
+      + 'case on that table row level security decides — every other one is a privilege refusal, which '
+      + 'disabling RLS does not restore — so without it the entry disables something nothing notices.');
+    assert.equal(only.expect, 'no-rows');
+    assert.equal(only.as.helper, 'as_service',
+      `${name} must run as the service identity: app_worker is the only role holding a grant on a global `
+      + 'table, and the grant is what makes the refusal attributable to row level security');
+  }
+  // The tenant entry rests on six, and they fail for three different reasons. Five are pinned
+  // because three of them are cases no earlier table in this schema could carry: §8.3 is the first
+  // SELECT row where an ACTIVE member of the workspace is an `N`.
+  for (const name of ['viewer-a-cannot-read-the-billing-subscription-of-tenant-a',
+    'editor-a-cannot-read-the-billing-subscription-of-tenant-a',
+    'approver-a-cannot-read-the-billing-subscription-of-tenant-a',
+    'owner-a-cannot-read-the-billing-subscription-of-tenant-b',
+    'service-sees-zero-billing-subscriptions']) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.billing_subscriptions' entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, 'no-rows',
+      `${name}: only a filtered read or a filtered write is restored by disabling row level security. A `
+      + '`denied` case is a privilege refusal and would pass unchanged.');
+  }
+  assert.match(workflow, /THE FOUR BILLING TABLES, AND THE ASYMMETRY BETWEEN THEM/,
+    'each entry says beside itself what disabling row level security on that table would let through, '
+    + 'because a control whose mechanism lives only in a test is a control nobody reads at the point of use');
+});
+
+// What batch 130 claims about its own coverage, and — more usefully — what it says it could not
+// carry. It moves NO §12.6 row, so the generic citation check would be satisfied by a batch that
+// changed nothing at all.
+test('the coverage map records what batch 130 could carry and what a workspace row cannot', () => {
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /130/.test(v.note));
+  assert.ok(mentions.length >= 7,
+    'batch 130 extends seven §12.6 notes and moves no row. If a note stopped naming it, either the assertion '
+    + "stopped being carried on this batch's tables or the note was rewritten by somebody who did not know it "
+    + 'was load-bearing.');
+  // The three it says it CANNOT carry, each with the reason in the note rather than in a commit
+  // message.
+  assert.match(SMOKE_COVERAGE[2].note, /BATCH 130 CARRIES NOTHING FOR THIS ASSERTION AND SAYS SO/,
+    '§12.6/2 is about member scope, and a subscription is a workspace row that no scope type reaches');
+  assert.match(SMOKE_COVERAGE[7].note, /BATCH 130 ADDS NO FORGERY CASE AT ALL, AND THE ABSENCE IS THE FINDING/,
+    '§8.6/8 needs a write path for a forged column to travel down, and there is none');
+  assert.match(SMOKE_COVERAGE[3].note, /BATCH 130 ADDS A FOURTH ANALOGUE AND IT IS NOT COUNTED EITHER/,
+    'an approver refused a billing READ is not an approver refused a knowledge EDIT, and the row stays '
+    + 'knowledge-half');
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half', 'batch 130 moves nothing here');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 130 gives the service a SELECT grant and no policy on four more tables, which is more NEGATIVE '
+    + 'evidence — and it is the first batch where the service holds no write verb at all, so its write '
+    + 'refusals are grant-layer and are deliberately not labelled RFC-2026-017 §7');
+  assert.match(SMOKE_COVERAGE[8].note, /nothing in this repository can create, change or end a subscription/,
+    'the headline belongs in the coverage map too, because that is where a reader looks for what a batch '
+    + 'proved rather than for what it built');
+  // §8.6's dispositions, and the three that say "not applicable" with a reason.
+  for (const [key, needle] of [[3, 'BATCH 130 CARRIES NO CASE FOR IT AND SAYS WHY'],
+    [4, 'BATCH 130 CARRIES NO CASE FOR IT'],
+    [8, 'ON BATCH 130 THERE IS NO CASE AND THE ABSENCE IS THE FINDING'],
+    [9, 'BATCH 130 ADDS TWO MORE IMMUTABLE TABLES'],
+    [10, 'BATCH 130 MAKES THE GAP AS LARGE AS IT GETS']]) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), new RegExp(needle),
+      `§8.6 case ${key}: batch 130's disposition is missing or was rewritten`);
+  }
+  // The labels this batch introduced are cited by cases, the same way §12.6 labels are. Without
+  // this, the reasoning the whole batch turns on could stop being asserted while every §12.6 row
+  // stayed green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.3/billing-select', '§8.3/plan-payment-action', '§9.1/FIN-3', '§3.2/money',
+    'RFC-2026-021§7/4', '§8.5/no-broad-delete']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 130 rests on and no case cites it`);
+  }
+});

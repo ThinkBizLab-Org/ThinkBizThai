@@ -216,7 +216,21 @@ export const SMOKE_COVERAGE = {
                            + 'Counting that as a tenant boundary would be counting a refusal that holds '
                            + 'for everybody, which is the mistake batch 030 named about a global row and '
                            + 'is no less a mistake on a tenant one. The boundary on this table is owed '
-                           + 'to the batch that gives it a policy.' },
+                           + 'to the batch that gives it a policy.\n\n'
+                           + 'BATCH 130 ADDS app.billing_subscriptions WITH ALL THREE CASES — A reads its '
+                           + "own, A cannot read B's while holding B's exact workspace id, and B CAN — and "
+                           + 'the pair of positives does a second job no earlier pair had to do. Both name '
+                           + 'THE SAME GLOBAL PLAN REVISION id, which is batch 030\'s trick for proving a '
+                           + 'catalog is global; here it is the ONLY available proof, because no identity '
+                           + 'in the schema may read app.billing_plan_versions at all and the NOT NULL '
+                           + 'foreign key is what makes the row they name a fact.\n\n'
+                           + 'WHAT IS BEHIND THIS BOUNDARY IS DIFFERENT IN KIND from every family before '
+                           + 'it. §12.6/1 has protected a name (010, 020), a catalog pin (030) and tenant '
+                           + 'content (040); here it protects what another business is PAYING and until '
+                           + 'when — FIN-3, which §9.1 describes as "restricted, immutable history".\n\n'
+                           + 'BATCH 130\'s THREE GLOBAL TABLES ARE EXCLUDED for 030\'s reason, unchanged: '
+                           + 'a row that belongs to no workspace has no cross-tenant case, and both owners '
+                           + 'are refused identically at the privilege layer instead.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -271,7 +285,18 @@ export const SMOKE_COVERAGE = {
                            + 'scope to narrow, no restrictive policy to write, and nothing for §12.6/2 '
                            + 'to be about. That is also why the migration registry gives 060 "011,020" '
                            + 'and not 021: the batch that would have supplied the narrowing has nothing '
-                           + 'to narrow here.' },
+                           + 'to narrow here.\n\n'
+                           + 'BATCH 130 CARRIES NOTHING FOR THIS ASSERTION AND SAYS SO. app.billing_'
+                           + 'subscriptions is a WORKSPACE row: it carries workspace_id and neither '
+                           + 'business_profile_id nor page_context_profile_id, and §7\'s three scope types '
+                           + '— all_businesses, business, page — every one of them names a Business or a '
+                           + 'Page. That is 021\'s own sentence about "Workspace UPDATE: Admin P", and it '
+                           + 'is why batch 130 writes no RESTRICTIVE policy at all while every batch since '
+                           + '021 has written one. The three global tables have no tenant, so the same is '
+                           + 'true of them one step further out. user_editor_a IS refused the subscription '
+                           + 'of their own workspace, and their member scope has nothing to do with it: '
+                           + '§8.3 marks the editor `N` on that row and the ROLE is the whole of the '
+                           + 'refusal.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -301,7 +326,13 @@ export const SMOKE_COVERAGE = {
            + 'recorded and not counted. `approver-a-cannot-read-the-ai-model-policy-of-workspace-a` is a '
            + 'refusal of a READ rather than of an edit, and it holds for the owner too — on that table '
            + 'every role is the wrong role, so the case says nothing about an approver in particular. It '
-           + 'is listed here so the count of analogues stays honest rather than growing quietly.' },
+           + 'is listed here so the count of analogues stays honest rather than growing quietly.\n\n'
+           + 'BATCH 130 ADDS A FOURTH ANALOGUE AND IT IS NOT COUNTED EITHER, and it is the weakest of '
+           + 'the four rather than the sharpest: `approver-a-cannot-read-the-billing-subscription-of-'
+           + 'tenant-a` is a refused READ, and §12.6/3 is about EDITING. It is recorded here because a '
+           + 'reader who finds an approver case in batch 130 should be able to see that it was weighed '
+           + 'and rejected rather than overlooked. Content is still batch 080\'s, and this row still '
+           + 'reads `knowledge-half`.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -340,7 +371,18 @@ export const SMOKE_COVERAGE = {
                            + 'table and not about the viewer. What carries the "even the owner" claim on '
                            + 'this batch is `owner-a-cannot-delete-the-ai-model-policy-of-workspace-a` '
                            + 'and its three siblings, where the identity refused is the strongest one '
-                           + 'there is.' },
+                           + 'there is.\n\n'
+                           + 'ON BATCH 130 THE VIEWER IS REFUSED THE READ ITSELF, which no earlier family '
+                           + 'could assert: §8.3 marks "Billing/subscription SELECT" `N` for the viewer '
+                           + 'where every SELECT row in §8.1 and §8.2 is `Y` for all five built-in roles. '
+                           + 'There is nothing else for a viewer to be refused there — NOBODY holds '
+                           + 'INSERT, UPDATE or DELETE on any of batch 130\'s four tables, so a viewer '
+                           + 'refused a write would be refused for want of a grant and would say nothing '
+                           + 'about a viewer. `owner-a-cannot-create-a-billing-subscription`, '
+                           + '`owner-a-cannot-extend-a-billing-subscription` and '
+                           + '`owner-a-cannot-delete-a-billing-subscription` carry those refusals instead, '
+                           + 'where "even the owner" is the claim and the thing being refused is a '
+                           + 'client-asserted entitlement.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -375,7 +417,13 @@ export const SMOKE_COVERAGE = {
                            + 'owner, the approver, the viewer and the other tenant, because no client '
                            + 'role holds a grant. An assertion that is true of every identity alike is '
                            + 'not evidence about the one that is suspended, and adding it would grow the '
-                           + 'count of cases without growing what the suite knows.' },
+                           + 'count of cases without growing what the suite knows.\n\n'
+                           + 'BATCH 130 RE-ASKS IT OF app.billing_subscriptions, where the helper is again '
+                           + 'the only membership predicate — and asks it of the narrowest one in the '
+                           + 'schema: app.workspace_member_role(workspace_id) = \'owner\'. A suspended '
+                           + 'member sees zero rows there because the helper answers NULL for a membership '
+                           + 'that is not active, which is §7 arriving through batch 011 and nothing '
+                           + 'else.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -421,7 +469,17 @@ export const SMOKE_COVERAGE = {
                            + 'anonymous case in the suite whose declared object is `private` rather than '
                            + '`app`. anon holds nothing anywhere, so the schema that refuses it is '
                            + 'whichever one the statement names — and declaring which is what makes the '
-                           + 'two cases different assertions instead of one repeated.' },
+                           + 'two cases different assertions instead of one repeated.\n\n'
+                           + 'BATCH 130 IS THE THIRD PLACE THE CASE STOPS BEING ROUTINE, AND THE MOST '
+                           + 'ORDINARY-LOOKING. A pricing page is the most unremarkable unauthenticated '
+                           + 'surface a product has, so `anonymous-cannot-read-the-billing-plan-catalog` '
+                           + 'and `anonymous-cannot-read-a-published-plan-price` are asserting refusals '
+                           + 'somebody will want removed for a perfectly good reason. RFC-2026-021 §7/4 is '
+                           + 'now an APPROVED decision that anon holds nothing anywhere our migrations '
+                           + 'reach, and the structural reason it gives is why these cases declare the '
+                           + 'SCHEMA: the first anon grant is `usage on schema app`, which moves the denial '
+                           + 'layer of every object in app at once. Four anonymous cases in this batch, on '
+                           + 'the schema, so that day arrives as four failing tests.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -460,7 +518,19 @@ export const SMOKE_COVERAGE = {
                            + 'write for a forged column to ride in on, and a case that forged one would '
                            + 'be asserting the absent grant a different case already asserts. The '
                            + 'assertion arrives with the command surface, which is where §8.3\'s owner '
-                           + 'cell arrives too.' },
+                           + 'cell arrives too.\n\n'
+                           + 'BATCH 130 ADDS NO FORGERY CASE AT ALL, AND THE ABSENCE IS THE FINDING RATHER '
+                           + 'THAN A GAP. §8.6/8 is about a forged `created_by` or a forged scope column '
+                           + 'failing an insert or an update. Batch 130 grants NO ROLE insert or update on '
+                           + 'any of its four tables, so there is no write path for a forged column to '
+                           + 'travel down: a forged workspace_id and a well-formed one are refused '
+                           + 'identically, at the privilege layer, and a case asserting the first would be '
+                           + 'asserting the second under a misleading name. app.billing_subscriptions '
+                           + 'carries no created_by at all, for the reason 030 gave about a '
+                           + 'platform-curated catalog — §3.2 asks for the actor columns on a row a USER '
+                           + 'mutates, and no user mutates this one. What CAN be forged here is a '
+                           + 'commitment, and `owner-a-cannot-create-a-billing-subscription` is that '
+                           + 'case.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -534,7 +604,28 @@ export const SMOKE_COVERAGE = {
                            + 'privilege layer on the SCHEMA. The cost is stated where it is paid: the CI '
                            + 'negative control can have no entry for that table, because disabling row '
                            + 'level security restores no grant, and identity-isolation.test.mjs asserts '
-                           + 'that absence in both directions.' },
+                           + 'that absence in both directions.\n\n'
+                           + 'BATCH 130 IS WHERE THE NEGATIVE HALF IS THE WHOLE OF THE SERVICE STORY, and '
+                           + 'the shape is new. On every earlier family the service held the verbs a client '
+                           + 'held and was refused by row level security; here it holds SELECT and NOTHING '
+                           + 'ELSE on all four tables, because the verbs this family\'s writer needs belong '
+                           + 'to the webhook projection and the webhook projection is batch 131 — 010\'s '
+                           + 'rule that a grant issued ahead of the thing that needs it is a grant nobody '
+                           + 'reviews against a caller, applied to the service for the first time. So the '
+                           + 'four `service-sees-zero-*` reads are RLS-decided and carry RFC-2026-017 §7, '
+                           + 'while ALL SIX service write cases are refused at the GRANT layer and are '
+                           + 'deliberately NOT labelled §7: that clause asks for a denial BY ROW LEVEL '
+                           + 'SECURITY, which needs a grant for RLS to then refuse, and there is none. '
+                           + '020 drew that distinction first on an immutable version table; here it '
+                           + 'covers a service\'s whole write surface.\n\n'
+                           + 'THE CONSEQUENCE IS WORTH SAYING PLAINLY BECAUSE IT IS THE BATCH\'s HEADLINE: '
+                           + 'nothing in this repository can create, change or end a subscription. That is '
+                           + 'CONTRIBUTING_AGENTS.md\'s "payment entitlement is derived only from a '
+                           + 'verified Stripe webhook projection" holding as an absence of grants rather '
+                           + 'than as a convention, and `service-cannot-create-a-billing-subscription` is '
+                           + 'where it is asserted. The positive half is still not asserted, and here it is '
+                           + 'owed to a NAMED batch rather than to an undefined permission: 131 grants the '
+                           + 'verbs when it brings the projection that needs them.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -564,7 +655,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'row for a model registry or a model policy and RFC-2026-012 classifies the family "view only" '
    + 'behind an allowlist RFC-2026-021 keeps empty — so there is no "allowed role/scope" for a '
    + 'positive to be about. A case asserting a pass would have to invent the grant first, which is '
-   + 'the move every refused `P` cell in this suite exists to refuse.',
+   + 'the move every refused `P` cell in this suite exists to refuse.\n\n'
+   + 'page-level (040). ON BATCH 130 THE ONLY PASS IS A READ, and that is the family rather than a '
+   + 'thin suite: §8.3 gives a client exactly one operation on billing — "Billing/subscription '
+   + 'SELECT", `Y` for the owner — and every write on all four tables is refused to every role, '
+   + 'including the service. The owner of each tenant reads its own subscription, and the two '
+   + 'positives name the same global plan revision.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -589,7 +685,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'tables EVERY role is the wrong role, so `owner-a-...` and `approver-a-...` are refused '
    + 'identically and the pair proves the table has no cell rather than proving a role boundary. '
    + 'The approver case is there so that a later batch implementing a §8 row for one role has to '
-   + 'come past an assertion written about another.',
+   + 'come past an assertion written about another.\n\n'
+   + 'the row. BATCH 130 IS THE FIRST FAMILY WHERE THE WRONG ROLE FAILS A READ RATHER THAN A '
+   + 'WRITE. §8.3 marks "Billing/subscription SELECT" `Y` for the owner and `N` for editor, '
+   + 'approver and viewer, where every SELECT row in §8.1 and §8.2 is `Y` for all five built-in '
+   + 'roles — so the three cases assert zero rows for three ACTIVE members of the workspace, each '
+   + 'paired with the owner\'s positive on the same row. Their member scopes are irrelevant and '
+   + 'that is asserted rather than assumed: a subscription is a workspace row, and 021\'s reading '
+   + 'of §7 puts no workspace row inside any scope type.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -607,7 +710,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the same reason the Business is. BATCH 060 CANNOT CARRY IT: §5 scopes ai.gateway '
    + '"global/workspace", so none of its tables has a Business column for case 3 to be about, and '
    + '§7\'s scope types all name a Business or a Page (021\'s header). Nothing stands in its place '
-   + 'and nothing is counted in its place.',
+   + 'and nothing is counted in its place.\n\n'
+   + 'the same reason the Business is. BATCH 130 CARRIES NO CASE FOR IT AND SAYS WHY: this case is '
+   + '"same Workspace, allowed Business A but row Business B", and none of batch 130\'s four '
+   + 'tables has a Business at all — a subscription is scoped to the Workspace and the plan '
+   + 'catalog is scoped to nothing. There is no Business boundary here to be inside or outside '
+   + 'of.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -640,7 +748,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'opposite reasons, which is why each is paired with the statement that differs from it in one '
    + 'argument and returns the row.\n\n'
    + 'BATCH 060 CANNOT CARRY IT EITHER, for case 3\'s reason one level down: a family scoped '
-   + '"global/workspace" has no Page level at all.',
+   + '"global/workspace" has no Page level at all.\n\n'
+   + 'BATCH 130 CARRIES NO CASE FOR IT, for the reason it carries none for case 3 and one level '
+   + 'further out: §4\'s ERD hangs SUBSCRIPTION off WORKSPACE and off nothing else, so this family '
+   + 'has no Page level for case 4 to be about and no Business level either. What it records '
+   + 'instead is the consequence at the level it DOES have — user_page_editor_a and user_editor_a '
+   + 'are refused the subscription of their own workspace by ROLE, and their scopes neither help '
+   + 'nor hinder.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -659,7 +773,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'WHAT IT PROVES. `owner-a-cannot-read-the-ai-model-policy-of-workspace-b` holds tenant B\'s '
    + 'exact id and is refused — at the privilege layer, exactly as the same identity is refused its '
    + 'OWN workspace\'s row. A refusal indistinguishable from the one every identity gets is not a '
-   + 'tenant boundary, and this row says so rather than banking it.',
+   + 'tenant boundary, and this row says so rather than banking it.\n\n'
+   + 'business SAYS rather than what it is called. BATCH 130 adds it on app.billing_subscriptions '
+   + 'in both directions on the read path, and there is no write path on that table for anybody, '
+   + 'so the cross-tenant WRITE case has no shape here: an attempted write against the other '
+   + 'tenant is refused by the same absent grant as an attempted write against your own, and a '
+   + 'case naming the boundary would be claiming a control that is not the one doing the work. '
+   + 'Batch 130\'s three GLOBAL tables are excluded on purpose, for the reason 030 gave.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -672,7 +792,10 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'permissive policy and once through the item its restrictive narrowing resolves. BATCH 060 '
    + 'DOES NOT RE-ASK IT, and the reason is that the answer would be free: no client role holds a '
    + 'grant on any of its tables, so a suspended member sees zero rows exactly as the workspace '
-   + 'owner does. A case true of every identity is not evidence about the suspended one.',
+   + 'owner does. A case true of every identity is not evidence about the suspended one.\n\n'
+   + 'permissive policy and once through the item its restrictive narrowing resolves. Batch 130 '
+   + 're-asks it of app.billing_subscriptions, whose only membership predicate is that helper at '
+   + 'its narrowest — a role equality rather than a membership test.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -688,7 +811,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'SECOND SCHEMA. Two are refused on `app`, and the third — the credential reference — is the '
    + 'first anonymous case in the suite refused on `private`, which is what declaring the object '
    + 'rather than only the layer buys: the two refusals are different assertions and would fail for '
-   + 'different reasons.',
+   + 'different reasons.\n\n'
+   + 'is what makes it checkable per table. Batch 130 asserts it FOUR TIMES, on the subscription '
+   + 'and on all three catalog tables, and one of those is the most ordinary anonymous surface a '
+   + 'product has: a price list. RFC-2026-021 §7/4 makes the refusal an approved decision rather '
+   + 'than a convention, and all four declare the SCHEMA, so opening it fails four tests at once '
+   + 'instead of being noticed on one.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -712,7 +840,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'who would violate one is refused by a policy first. BATCH 060 HAS NO FORGERY CASE AND COULD '
    + 'NOT HAVE ONE: a forged column rides in on a write the caller is otherwise permitted, and no '
    + 'client role holds INSERT or UPDATE on any of its three tables. The assertion arrives with the '
-   + 'command surface, which is also where §8.3\'s "BYOK credential manage" arrives.',
+   + 'command surface, which is also where §8.3\'s "BYOK credential manage" arrives.\n\n'
+   + 'who would violate one is refused by a policy first. ON BATCH 130 THERE IS NO CASE AND THE '
+   + 'ABSENCE IS THE FINDING: no role holds INSERT or UPDATE on any of its four tables, so a '
+   + 'forged column has no write path to travel down and a forged workspace_id is refused '
+   + 'identically to a well-formed one — at the privilege layer, by the same absent grant. '
+   + 'app.billing_subscriptions carries no created_by to forge, for the reason 030 gave about a '
+   + 'platform-curated row. The forgery this family is actually exposed to is a forged '
+   + 'COMMITMENT, and `owner-a-cannot-create-a-billing-subscription` is the case.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -774,8 +909,33 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`owner-a-cannot-relabel-an-ai-model-registry-row` is refused because no client role holds the '
    + 'grant, NOT because the row may not change -- an administrative seed corrects a curated label, '
    + 'and 060_ai_gateway.sql spells out why that is not the industry catalog\'s rule. Reading it as '
-   + 'immutability would report the wrong control as green.',
+   + 'immutability would report the wrong control as green.\n\n'
+   + 'BATCH 130 ADDS TWO MORE IMMUTABLE TABLES AND COMPLETES THE GRID ON BOTH, AND IT DOES NOT COUNT THEM. The branch wrote \'a fifth and a sixth\', which was true of the tree it was cut from and false of the one it merged into: 050 landed an append-only ledger and an immutable outbox envelope in parallel. An ordinal is a claim about the whole schema that a batch cannot check, and three branches made one this week. '
+   + 'app.billing_plan_versions is immutable by §3.2, §4 invariant 8 and §5.1\'s "immutable '
+   + 'mapping หลังมีลูกค้า; สร้าง revision ใหม่"; app.plan_entitlements by §5.1\'s "versioned '
+   + 'contract" and §5.3\'s requirement that changing an entitlement carry a version, a migration '
+   + 'impact and an approval. Eight cases, all four cells live on each: update and delete by the '
+   + 'workspace OWNER and by the SERVICE identity, every one at the GRANT layer because no role '
+   + 'holds either verb. 020 left one cell of its grid to an apply-time block and said so; this '
+   + 'batch leaves none, and the reason is what these rows hold — a price is the one value in the '
+   + 'schema whose rewriting changes what somebody was charged, and an entitlement is what a '
+   + 'paying customer was promised. 130\'s own apply-time block walks six roles against both '
+   + 'tables and raises if any cell holds either verb, which catches a grant made by a later '
+   + 'batch.',
   10: 'not applicable to batches 010-060 — no command function is specified for identity, for '
+   + 'BATCH 130 ADDS A FIFTH AND A SIXTH IMMUTABLE TABLE AND COMPLETES THE GRID ON BOTH. '
+   + 'app.billing_plan_versions is immutable by §3.2, §4 invariant 8 and §5.1\'s "immutable '
+   + 'mapping หลังมีลูกค้า; สร้าง revision ใหม่"; app.plan_entitlements by §5.1\'s "versioned '
+   + 'contract" and §5.3\'s requirement that changing an entitlement carry a version, a migration '
+   + 'impact and an approval. Eight cases, all four cells live on each: update and delete by the '
+   + 'workspace OWNER and by the SERVICE identity, every one at the GRANT layer because no role '
+   + 'holds either verb. 020 left one cell of its grid to an apply-time block and said so; this '
+   + 'batch leaves none, and the reason is what these rows hold — a price is the one value in the '
+   + 'schema whose rewriting changes what somebody was charged, and an entitlement is what a '
+   + 'paying customer was promised. 130\'s own apply-time block walks six roles against both '
+   + 'tables and raises if any cell holds either verb, which catches a grant made by a later '
+   + 'batch.',
+  10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
     + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
     + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
     + 'on app.knowledge_item_versions can write a version whose name never was the item\'s name, '
@@ -807,7 +967,18 @@ export const AUTHORIZATION_CASE_COVERAGE = {
     + 'เท่านั้น" — the SECURITY DEFINER command function RFC-2026-012 §4 names and RFC-2026-021 §10 '
     + 'records as absent. So this is the first batch whose refusal to implement a granted cell is '
     + 'caused by case 10 rather than merely uncovered by it, and '
-    + '`owner-a-cannot-create-a-credential-reference` is that refusal asserted rather than assumed.',
+    + '`owner-a-cannot-create-a-credential-reference` is that refusal asserted rather than assumed.\n\n'
+    + 'BATCH 130 MAKES THE GAP AS LARGE AS IT GETS, and this is the case §8.6 most obviously wants '
+    + 'and this schema most obviously cannot give. "Authorized server command → pass + expected '
+    + 'audit/outbox" is, for billing, the ENTIRE WRITE PATH: no role holds INSERT, UPDATE or DELETE '
+    + 'on a subscription, so a subscription can only ever be created by a command the repository '
+    + 'does not have, fed by a webhook projection batch 131 owes, recorded in an audit event batch '
+    + '140 owes and an outbox batch 050 owes. That is not a defect in this batch — it is '
+    + 'RFC-2026-012 §4\'s mechanism being named and absent, and CONTRIBUTING_AGENTS.md\'s "payment '
+    + 'entitlement is derived only from a verified Stripe webhook projection" being the reason the '
+    + 'absence is correct rather than convenient. What batch 130 contributes is that the gap is now '
+    + 'a set of PASSING CASES: six refusals that will have to change, in a named batch, in a diff a '
+    + 'reviewer reads.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -1275,6 +1446,113 @@ export function buildCases(id) {
   // could not say which object refused it.
   const CREDENTIAL_REFERENCE_OF =
     'select fingerprint from private.ai_credential_references where workspace_id = $1';
+  // -- Batch 130 builders. -----------------------------------------------------------------------
+  //
+  // THE GLOBAL PLAN ROWS, by fixture SYMBOL. They carry no `_a` or `_b` suffix because they belong
+  // to no tenant, and every case below attacks them from BOTH tenants, from anonymous and from the
+  // service: the assertion is never "A cannot reach B's row", which is meaningless about a catalog,
+  // but "no request-path identity reaches the plan catalog at all".
+  const PLAN = id('billing_plan_starter');
+  const PLAN_V1 = id('billing_plan_starter_v1');
+
+  // A subscription is addressed by the WORKSPACE it belongs to, never by an id of its own: 130 makes
+  // (workspace_id) unique among the states that are not `canceled`, which is §1 of the Stripe
+  // billing contract — "หนึ่ง billable subscription ต่อหนึ่ง workspace" — so this names exactly one
+  // live row and the catalog needs no symbol for it.
+  //
+  // The plan revision is named in the WHERE clause as well as selected, which is what makes
+  // `owner-a-sees-the-billing-subscription-of-tenant-a` and its owner-B twin a claim about ONE
+  // GLOBAL ROW rather than two unrelated rows: the same uuid appears on both sides of the tenant
+  // boundary and neither owner can see the other's subscription. It is batch 030's shape for
+  // proving a catalog is global, and here it is the ONLY shape available, because no identity in
+  // this schema may read the plan revision itself.
+  const subscribedTo =
+    'select id from app.billing_subscriptions where workspace_id = $1 and billing_plan_version_id = $2';
+  const SUBSCRIPTION_OF = 'select id from app.billing_subscriptions where workspace_id = $1';
+
+  // The three writes, and each is a thing somebody would want. Creating a subscription is granting
+  // yourself a plan; extending one is granting yourself another year; deleting one is erasing the
+  // record of what you owed. All three are refused at the PRIVILEGE layer, because batch 130 grants
+  // no role INSERT, UPDATE or DELETE on this table at all.
+  //
+  // `pending` is what a started checkout would project, and the case names it rather than `active`
+  // so a reader can see which step of §9's state machine is being forged. THE ROW WOULD ALSO
+  // COLLIDE with the one-live-per-workspace index, and that does not weaken the case — it
+  // strengthens it. The privilege check runs before any constraint, so a correct database answers
+  // 42501; a database that had been granted the INSERT would answer 23505, and `expectDenied`
+  // refuses every SQLSTATE but 42501. The case cannot be satisfied by the constraint standing in
+  // for the missing grant.
+  const startSubscription = (workspace, version) => ({
+    sql: 'insert into app.billing_subscriptions'
+       + ' (workspace_id, billing_plan_version_id, local_access_state)'
+       + " values ($1, $2, 'pending') returning id",
+    params: [workspace, version],
+  });
+
+  const extendSubscription = (workspace) => ({
+    sql: "update app.billing_subscriptions set current_period_end = current_period_end + interval '1 year'"
+       + ' where workspace_id = $1 returning id',
+    params: [workspace],
+  });
+
+  const endSubscription = (workspace) => ({
+    sql: 'delete from app.billing_subscriptions where workspace_id = $1 returning id',
+    params: [workspace],
+  });
+
+  // The catalog reads. The price read selects `unit_amount` by name on purpose: it is the one value
+  // in this schema whose disclosure or alteration is a commercial fact rather than a data one, and a
+  // case that selected `id` would be refused identically while saying less about what it protects.
+  const readPlanCatalog = 'select plan_code from app.billing_plans where id = $1';
+  const readPlanPrice = 'select currency, unit_amount from app.billing_plan_versions where id = $1';
+  const readPlanEntitlement =
+    'select entitlement_kind, limit_value from app.plan_entitlements'
+    + " where billing_plan_version_id = $1 and feature_key = 'workspace_users'";
+
+  // The catalog writes. Publishing a plan or a price is deciding what the product charges every
+  // tenant at once; raising an entitlement is deciding what a plan includes. `revision 9` and
+  // `attempted_*` keys are values no fixture row holds, so nothing below can be satisfied by a
+  // unique constraint firing first.
+  const publishPlan = {
+    sql: "insert into app.billing_plans (plan_code) values ('attempted_plan_code') returning id",
+    params: [],
+  };
+
+  const publishPlanPrice = (plan) => ({
+    sql: 'insert into app.billing_plan_versions'
+       + ' (billing_plan_id, revision, display_name_th, currency, unit_amount, billing_interval, effective_from)'
+       + " values ($1, 9, 'attempted revision', 'THB', 0, 'month', now()) returning id",
+    params: [plan],
+  });
+
+  const rewritePlanPrice = (version) => ({
+    sql: 'update app.billing_plan_versions set unit_amount = 0 where id = $1 returning id',
+    params: [version],
+  });
+
+  const deletePlanPrice = (version) => ({
+    sql: 'delete from app.billing_plan_versions where id = $1 returning id',
+    params: [version],
+  });
+
+  const writePlanEntitlement = (plan, version) => ({
+    sql: 'insert into app.plan_entitlements'
+       + ' (billing_plan_id, billing_plan_version_id, feature_key, entitlement_kind, limit_value)'
+       + " values ($1, $2, 'attempted_feature_key', 'limit', 999999) returning id",
+    params: [plan, version],
+  });
+
+  const raisePlanEntitlement = (version) => ({
+    sql: 'update app.plan_entitlements set limit_value = 999999'
+       + " where billing_plan_version_id = $1 and feature_key = 'workspace_users' returning id",
+    params: [version],
+  });
+
+  const deletePlanEntitlement = (version) => ({
+    sql: 'delete from app.plan_entitlements'
+       + " where billing_plan_version_id = $1 and feature_key = 'workspace_users' returning id",
+    params: [version],
+  });
 
   return [
     // -- §12.6/1, §8.6/1 and §8.6/5. Both directions of the tenant boundary. -------------------
@@ -4253,8 +4531,7 @@ export function buildCases(id) {
          + 'quietly failing for contract ones. 041 grants app_worker EXECUTE so this case can be a '
          + 'no-rows and not a denial.',
     },
-    // ==========================================================================================
-    // Batch 050 — the async kernel. Three tables, no policy, and no reader.
+    // ===================================================================================    // Batch 050 — the async kernel. Three tables, no policy, and no reader.
     // ==========================================================================================
     //
     // §8.4 gives this family two rows and neither is implementable by a migration:
@@ -4574,6 +4851,139 @@ export function buildCases(id) {
       as: anonymous,
       sql: MODEL_POLICY_OF,
       params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'anon holds no USAGE on app, so the refusal lands on the schema rather than on the table.',
+    },
+
+    // =========================================================================================
+    // Batch 130 — billing. The commitment, and the catalog that prices it.
+    // =========================================================================================
+    //
+    // FOUR TABLES AND ONE POLICY, WHICH IS THE SMALLEST POLICY SET ANY BATCH HAS WRITTEN AND IS THE
+    // point. §8.3 gives a client exactly one operation on this family — "Billing/subscription
+    // SELECT", `Y` for the owner — and everything else is an absence asserted at the privilege
+    // layer:
+    //
+    //   * NOBODY MAY WRITE A SUBSCRIPTION. Not the owner, not the service. CONTRIBUTING_AGENTS.md
+    //     derives payment entitlement only from a verified webhook projection and that projection is
+    //     batch 131, so the six write cases below are the batch's headline and every one of them is
+    //     `deniedBy: 'grant'` — the refusal happens before row level security is consulted and
+    //     cannot be undone by editing a policy.
+    //   * THE PLAN CATALOG IS UNREACHABLE. Three global tables, no client grant, no policy, for
+    //     030's reason under RFC-2026-021's empty allowlist. §9.1 licenses an owner/admin SUMMARY of
+    //     FIN-3 content; a summary is a projection, a projection is an allowlist entry, and an entry
+    //     is an RFC's to add.
+    //
+    // THIS IS ALSO THE FIRST FAMILY WHERE AN ACTIVE MEMBER SEES NONE OF ITS TENANT'S ROWS. Every
+    // SELECT row in §8.1 and §8.2 is `Y` for all five built-in roles; §8.3's is `Y` for the owner and
+    // `N` for editor, approver and viewer. Three cases assert that, each paired with the owner's
+    // positive so the refusal is a policy and not an empty table — and each identity holds a member
+    // scope, which does nothing here: a subscription is a WORKSPACE row and §7's three scope types
+    // all name a Business or a Page (021's own sentence about "Workspace UPDATE: Admin P").
+
+    // -- §12.6/1, §8.6/1 and §8.6/5. The tenant boundary, and the proof the catalog is global. ----
+    {
+      id: 'owner-a-sees-the-billing-subscription-of-tenant-a',
+      covers: ['§12.6/1', '§8.6/1', '§8.3/billing-select'],
+      as: ownerA,
+      sql: subscribedTo,
+      params: [A, PLAN_V1],
+      expect: 'rows',
+      why: 'The positive half, and the only thing a client may do in this batch. §8.3 marks '
+         + '"Billing/subscription SELECT" `Y` for the owner, and the case names the pinned plan '
+         + 'revision rather than selecting whatever is there, so it is an assertion about one row.',
+    },
+    {
+      id: 'owner-b-sees-the-billing-subscription-of-tenant-b-on-the-same-plan-revision',
+      covers: ['§12.6/1', '§8.6/1', '§5/global'],
+      as: ownerB,
+      sql: subscribedTo,
+      params: [B, PLAN_V1],
+      expect: 'rows',
+      why: 'THE OTHER HALF, AND THE WHOLE OF WHAT "GLOBAL" MEANS HERE. Two tenants are subscribed to '
+         + 'the SAME plan revision — the same uuid appears in both cases — and neither owner can see '
+         + "the other's subscription. A plan catalog replicated per tenant would pass the case above "
+         + 'and fail this one. It is also the only way this suite can say anything about the catalog '
+         + 'at all: no identity may read app.billing_plan_versions, and the NOT NULL foreign key is '
+         + 'what makes the row it names a fact rather than an assumption.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-billing-subscription-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: SUBSCRIPTION_OF,
+      params: [B],
+      expect: 'no-rows',
+      why: "Tenant A's owner holds tenant B's exact workspace id, the row IS there — the case above "
+         + 'proves it — and it is not visible. This is the tenant boundary on the one table in this '
+         + 'batch that has one, and what it protects is what another business is paying and until '
+         + 'when.',
+    },
+
+    // -- §12.6/4 and §8.6/2. The first SELECT row in §8 that an active member fails. --------------
+    //
+    // Each of the three identities below holds a member scope in workspace A and an ACTIVE
+    // membership. Neither helps: §8.3 marks this cell `N` for their role, and a subscription is a
+    // workspace row that no scope type reaches. The role is the only thing refusing, which is what
+    // makes these cases about §8.3 rather than about visibility.
+    {
+      id: 'viewer-a-cannot-read-the-billing-subscription-of-tenant-a',
+      covers: ['§12.6/4', '§8.6/2', '§8.3/billing-select'],
+      as: viewerA,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
+      expect: 'no-rows',
+      why: '§8.3: "Billing/subscription SELECT | Y | P | N | N | N | P". The viewer is an `N`, and '
+         + 'this is the first table in the schema where an ACTIVE member of a workspace sees none of '
+         + 'its rows — every SELECT row in §8.1 and §8.2 is `Y` for all five built-in roles. The '
+         + 'owner reads the same row two cases earlier, so the refusal is a policy and not an empty '
+         + 'table.',
+    },
+    {
+      id: 'editor-a-cannot-read-the-billing-subscription-of-tenant-a',
+      covers: ['§12.6/4', '§8.6/2', '§8.3/billing-select'],
+      as: editorA,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
+      expect: 'no-rows',
+      why: 'The editor is an `N` here where §8.2 makes them a `Y` on knowledge — the same identity, '
+         + 'the same workspace, a different matrix row. Their member scope on business_a1 reaches '
+         + 'nothing: §7\'s scope types all name a Business or a Page, and a subscription names '
+         + 'neither, so 021\'s sentence about "Workspace UPDATE" applies here unchanged.',
+    },
+    {
+      id: 'approver-a-cannot-read-the-billing-subscription-of-tenant-a',
+      covers: ['§12.6/4', '§8.6/2', '§8.3/billing-select'],
+      as: approverA,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
+      expect: 'no-rows',
+      why: 'The third `N`. All three are asserted separately rather than as one claim about '
+         + '"non-owners", because a policy written `role in (...)` with one role too many would be '
+         + 'caught by exactly one of them.',
+    },
+
+    // -- §12.6/5, §12.6/6 and §12.6/8 on the subscription. ----------------------------------------
+    {
+      id: 'suspended-a-sees-no-billing-subscription',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
+      expect: 'no-rows',
+      why: '§12.6/5 asked of the billing surface. This identity was an owner-equivalent member before '
+         + 'suspension only in the sense that the fixture gives it a scope row on purpose; what '
+         + 'refuses it is app.workspace_member_role returning NULL for a membership that is not '
+         + 'active, which is §7 through the batch 011 helper and nothing else.',
+    },
+    {
+      id: 'anonymous-sees-no-billing-subscription',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'schema', name: 'app' },
@@ -5183,7 +5593,423 @@ export function buildCases(id) {
       deniedOn: { kind: 'schema', name: 'private' },
       why: 'The fourth verb, so the grid on this table is complete rather than three cells and an '
          + 'average. §8.5 has no broad user delete; deleting a credential reference is a revocation, '
-         + 'which is a typed lifecycle field this table has and no role can write.',
+         + 'which is a typed lifecycle field this table has and no role can write.\n\n'
+         + 'PUBLIC holds none either. RFC-2026-021 §7/4 makes that an approved decision rather than '
+         + 'an inherited convention, and declaring the SCHEMA is what makes this case fail the day '
+         + 'somebody widens it.',
+    },
+    {
+      id: 'service-sees-zero-billing-subscriptions',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: SUBSCRIPTION_OF,
+      params: [A],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT on this table and no policy, so the empty read is row level '
+         + 'security and not a forgotten GRANT, and a service role that had quietly acquired '
+         + 'BYPASSRLS would SUCCEED here. It is one of the six cases the CI negative control for '
+         + 'app.billing_subscriptions rests on.',
+    },
+
+    // -- THE HEADLINE. §8.3's "Plan/payment action", read the way RFC-2026-012's crux reads it. ---
+    //
+    // "Plan/payment action | Y | N | N | N | N | P" marks the OWNER `Y`, and none of the six cases
+    // below implements that cell as a table write, because a plan/payment action is a Checkout
+    // session created by a server handler and this row is the projection of what the provider then
+    // confirmed. RFC-2026-012's crux section is the reading: a policy "constrains the content of the
+    // row and the identity of the session; it says nothing about the tier, and RLS has no predicate
+    // that could".
+    //
+    // So all six are refused at the GRANT layer — no role holds INSERT, UPDATE or DELETE on this
+    // table — and the OWNER and the SERVICE are asserted separately at each verb, because they are
+    // refused for two different reasons that a single claim would blur: the owner because
+    // CONTRIBUTING_AGENTS.md and the billing contract forbid a client-asserted entitlement, and the
+    // service because the writer is the webhook projection and the webhook projection is batch 131.
+    {
+      id: 'owner-a-cannot-create-a-billing-subscription',
+      covers: ['§8.3/plan-payment-action', 'RFC-2026-012§1', '§8.6/2'],
+      as: ownerA,
+      ...startSubscription(A, PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'THE CASE THIS BATCH EXISTS FOR. A workspace owner — the role §8.3 marks `Y` on '
+         + '"Plan/payment action" — cannot bring a subscription into existence by writing a row. '
+         + 'CONTRIBUTING_AGENTS.md: "Payment entitlement is derived only from a verified Stripe '
+         + 'webhook projection. Checkout redirects are never proof of payment." The refusal is a '
+         + 'privilege-layer one, so it cannot be widened by editing a policy — and it cannot be '
+         + 'satisfied by the one-live-per-workspace index either, because expectDenied refuses every '
+         + 'SQLSTATE but 42501 and a granted INSERT would answer 23505.',
+    },
+    {
+      id: 'owner-a-cannot-extend-a-billing-subscription',
+      covers: ['§8.3/plan-payment-action', 'RFC-2026-012§1'],
+      as: ownerA,
+      ...extendSubscription(A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'Granting yourself another year, which is what an UPDATE on this table is. It is a '
+         + 'separate case from the INSERT because UPDATE is a separate privilege: a batch that '
+         + 'granted one of them would be caught by exactly one of these.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-billing-subscription',
+      covers: ['§8.3/plan-payment-action', '§8.5/no-broad-delete'],
+      as: ownerA,
+      ...endSubscription(A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'Erasing the record of what was owed. §8.5 has no broad user delete anywhere, and here the '
+         + 'absence is doubled: there is no soft-delete path either, because §9\'s state machine '
+         + 'ENDS a subscription (`canceled`) rather than removing it and §10 keeps the finance record '
+         + 'seven years by default. "Even the owner" is the claim, which is what makes this case '
+         + 'carry §12.6/4 on this table rather than a viewer case doing so.',
+    },
+    {
+      id: 'service-cannot-create-a-billing-subscription',
+      // NOT labelled RFC-2026-017§7, deliberately, and for the opposite reason to every earlier
+      // batch's service INSERT. §7 asks for the service to be denied BY ROW LEVEL SECURITY with an
+      // error, which needs a GRANT for RLS to then refuse — 010's whole shape. Batch 130 grants
+      // app_worker no INSERT at all, so this refusal is the privilege system: stronger, and a
+      // different claim. The §7 cases for this batch's tables are the four `service-sees-zero-*`
+      // reads, where the grant exists and the empty result can only be RLS.
+      covers: ['§12.6/8-negative', '§8.3/plan-payment-action'],
+      as: service,
+      ...startSubscription(A, PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'AND THE SERVICE CANNOT EITHER, WHICH IS THE PART THAT SURPRISES. §8.3 marks the service '
+         + '`P` and nothing defines that permission, so batch 130 grants app_worker SELECT and '
+         + 'nothing else — 021\'s rule, that "a verb no client and no policy holds would be a '
+         + 'privilege nobody reviewed against a caller". The verbs this table\'s writer needs belong '
+         + 'to the webhook projection, which is batch 131, and 131 grants them in the change that '
+         + 'brings the thing that needs them. Until then NOTHING IN THIS REPOSITORY CAN CREATE A '
+         + 'SUBSCRIPTION, and that is the claim, asserted rather than described.',
+    },
+    {
+      id: 'service-cannot-extend-a-billing-subscription',
+      covers: ['§12.6/8-negative'],
+      as: service,
+      ...extendSubscription(A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'The second verb, at the grant layer, for the reason the owner pair gives. Its READ two '
+         + 'cases up is refused by row level security instead — two different layers on one table, '
+         + 'each asserted as itself.',
+    },
+    {
+      id: 'service-cannot-delete-a-billing-subscription',
+      covers: ['§12.6/8-negative'],
+      as: service,
+      ...endSubscription(A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_subscriptions' },
+      why: 'The third verb, so all three cells of the grid are live for the service as well as for '
+         + 'the owner rather than three and an average.',
+    },
+
+    // -- The GLOBAL plan catalog, whose control is not a tenant boundary. -------------------------
+    //
+    // §9.1 classifies a price FIN-3 with the client projection "owner/admin summary", and
+    // RFC-2026-012 §2/3 puts every summary behind a named security_invoker view on an allowlist that
+    // starts empty and grows only by RFC. RFC-2026-021 then decided the mechanism and added no
+    // entry. These cases are that allowlist, executed: a denial at the GRANT layer is what an empty
+    // allowlist looks like from the request path, and the day a batch adds the grant without the RFC
+    // they fail.
+    //
+    // The plan catalog is the strongest candidate this repository has produced — §7.1 of the billing
+    // contract already describes the screen that would read it — and it fails RFC-2026-021's C1 for
+    // exactly the reason the industry catalog fails it: there is no client, because there is no
+    // `src/`. Which batch would create the entry is NOT ASSIGNED, and naming one here would create a
+    // batch number by citation.
+    {
+      id: 'owner-a-cannot-read-the-billing-plan-catalog',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3', '§9.1/FIN-3'],
+      as: ownerA,
+      sql: readPlanCatalog,
+      params: [PLAN],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plans' },
+      why: 'A workspace owner holding the plan row\'s exact id is refused by the PRIVILEGE system. '
+         + '§9.1 says an owner/admin SUMMARY of FIN-3 content may be shown to a client; it names no '
+         + 'object and no tier, and the object is what this case is about. The owner can read their '
+         + 'own subscription and cannot resolve the plan it names — which is what the empty allowlist '
+         + 'costs, stated by a passing case rather than by a comment.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-billing-plan-catalog',
+      covers: ['RFC-2026-012§3', '§5/global'],
+      as: ownerB,
+      sql: readPlanCatalog,
+      params: [PLAN],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plans' },
+      why: 'THE SAME REFUSAL FROM THE OTHER TENANT, and the pair is the assertion. This row belongs '
+         + 'to neither of them, so a cross-tenant case would prove nothing; the claim that means '
+         + 'something is that the catalog is equally unreachable from both sides.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-billing-plan-catalog',
+      covers: ['§12.6/6', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: readPlanCatalog,
+      params: [PLAN],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'A pricing page is the most ordinary unauthenticated surface a product has, which is '
+         + 'exactly why the refusal is asserted rather than assumed. anon holds no USAGE on app, so '
+         + 'name resolution stops at the SCHEMA — and RFC-2026-021 §7/4 says why that is structural: '
+         + 'the first anon grant is `usage on schema app`, which moves the denial layer of every '
+         + 'object in app at once. A public price list is a decision about the product having an '
+         + 'unauthenticated surface, and this case makes it arrive as a failing test.',
+    },
+    {
+      id: 'service-sees-zero-rows-in-the-billing-plan-catalog',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: readPlanCatalog,
+      params: [PLAN],
+      expect: 'no-rows',
+      why: 'THE ONE CASE ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason app_worker '
+         + 'holds a SELECT grant at all. Without the grant the refusal would be 42501 either way and '
+         + 'would prove only that somebody forgot a GRANT; with the grant and no policy, an empty '
+         + 'read can only have come from RLS. It is also the case the CI negative control for '
+         + 'app.billing_plans exists to break, and that control therefore rests on exactly one case, '
+         + 'which is stated in the workflow beside it.',
+    },
+    {
+      id: 'owner-a-cannot-add-a-row-to-the-billing-plan-catalog',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      ...publishPlan,
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plans' },
+      why: 'The plan catalog is platform-curated and written by the global seed. §8 has no row for a '
+         + 'plan catalog in any of its four matrices — §8.3\'s two rows are about a SUBSCRIPTION and '
+         + 'about a plan/payment ACTION — so there is no cell granting this and the refusal is '
+         + 'deny-by-default reaching the privilege layer.',
+    },
+
+    // -- The published price. Global, immutable, and the one row whose content is money. ----------
+    {
+      id: 'owner-a-cannot-read-a-published-plan-price',
+      covers: ['RFC-2026-012§2', '§9.1/FIN-3', '§3.2/money'],
+      as: ownerA,
+      sql: readPlanPrice,
+      params: [PLAN_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'The price of the plan this owner is subscribed to, refused to that owner. It reads '
+         + 'strangely and it is the empty read allowlist working exactly as RFC-2026-012 §3 designed '
+         + 'it: what a client may be SHOWN is a projection, and there is none. §9.1 classes price '
+         + 'FIN-3 — "restricted, immutable history" — which is a classification and not an object.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-published-plan-price',
+      covers: ['RFC-2026-012§3', '§5/global'],
+      as: ownerB,
+      sql: readPlanPrice,
+      params: [PLAN_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'The pair again, on the table that matters most: both tenants are subscribed to this '
+         + 'revision and neither may read what it costs.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-published-plan-price',
+      covers: ['§12.6/6', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: readPlanPrice,
+      params: [PLAN_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, for the reason §7/4 gives. Asserted per table rather than once, because '
+         + 'the control is the same control and stating it per table is what makes it checkable per '
+         + 'table.',
+    },
+    {
+      id: 'service-sees-zero-published-plan-prices',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: readPlanPrice,
+      params: [PLAN_V1],
+      expect: 'no-rows',
+      why: 'The same shape one table over, and the single case the CI negative control for '
+         + 'app.billing_plan_versions rests on. The entitlement resolver will have to read prices; '
+         + 'the policy that lets it is owed to batch 132, and until then the service reads nothing '
+         + 'and this case says so out loud.',
+    },
+    {
+      id: 'owner-a-cannot-publish-a-plan-price',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      ...publishPlanPrice(PLAN),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'Publishing a revision is deciding what the product charges every tenant at once. The '
+         + 'refusal is a privilege-layer one so it cannot be widened by editing a policy, and '
+         + 'revision 9 is a number no fixture row holds so nothing here can be satisfied by the '
+         + '(billing_plan_id, revision) unique index firing first.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-published-plan-price',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...rewritePlanPrice(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'Setting the price to zero, which is the shape of the attack this table\'s immutability '
+         + 'exists to refuse. §3.2 and §4 invariant 8 make a published version immutable and §5.1 '
+         + 'says a price mapping changes by publishing a new revision; it is expressed as an ABSENT '
+         + 'GRANT, so the refusal happens before RLS is consulted.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-published-plan-price',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...deletePlanPrice(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'UPDATE and DELETE are separate privileges, so they are separate cases: a batch that '
+         + 'granted one of them would be caught by exactly one of the two, and a pair asserted as '
+         + 'one claim would catch neither.',
+    },
+    {
+      id: 'service-cannot-rewrite-a-published-plan-price',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      ...rewritePlanPrice(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'The service holds SELECT here and nothing else, so this is refused at the privilege layer '
+         + 'while its READ is refused by row level security. A service that could rewrite a published '
+         + 'price could change what every tenant is charged without a migration.',
+    },
+    {
+      id: 'service-cannot-delete-a-published-plan-price',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      ...deletePlanPrice(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_plan_versions' },
+      why: 'The fourth cell, so all four are live on this table rather than three and an average.',
+    },
+
+    // -- What a plan grants. Global, immutable, and batch 132's input. ----------------------------
+    {
+      id: 'owner-a-cannot-read-a-plan-entitlement',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3'],
+      as: ownerA,
+      sql: readPlanEntitlement,
+      params: [PLAN_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'What a plan includes is behind the same empty allowlist as what it costs. The row a '
+         + 'CLIENT would eventually read is not this one anyway: §5.1 puts the effective, resolved '
+         + 'answer in app.workspace_entitlements, which §6\'s registry gives to batch 132 and which '
+         + 'this batch deliberately does not create.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-plan-entitlement',
+      covers: ['§12.6/6', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: readPlanEntitlement,
+      params: [PLAN_V1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, the third of three, so the day anon is granted USAGE on app all three fail '
+         + 'together rather than one of them being noticed.',
+    },
+    {
+      id: 'service-sees-zero-plan-entitlements',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: readPlanEntitlement,
+      params: [PLAN_V1],
+      expect: 'no-rows',
+      why: 'The single case the CI negative control for app.plan_entitlements rests on. Batch 132 is '
+         + 'the resolver that will have to read this table, and the policy that lets it is owed to '
+         + 'that batch — 010\'s rule, that a grant issued ahead of the thing that needs it is a grant '
+         + 'nobody reviews against a caller.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-plan-entitlement',
+      covers: ['RFC-2026-012§1', '§8/no-row'],
+      as: ownerA,
+      ...writePlanEntitlement(PLAN, PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'Adding an entitlement to your own plan is granting yourself a feature. The key is one no '
+         + 'fixture row holds, so the refusal cannot be the (billing_plan_version_id, feature_key) '
+         + 'unique index standing in for a missing grant.',
+    },
+    {
+      id: 'owner-a-cannot-raise-a-plan-entitlement',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...raisePlanEntitlement(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'Raising your own seat limit from three to nine hundred thousand. §5.1 calls this table a '
+         + '"versioned contract", so what a plan grants changes by publishing a new revision and '
+         + 'never by updating a row — and §5.3 requires that change to carry a version, a migration '
+         + 'impact and an approval, none of which an UPDATE would have.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-plan-entitlement',
+      covers: ['§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...deletePlanEntitlement(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'The second verb. Deleting a limit is a subtler upgrade than raising one, because whatever '
+         + 'resolves entitlements has to decide what an ABSENT row means — which is 021\'s question '
+         + 'about an absent scope row, arriving in batch 132\'s inbox rather than in this one.',
+    },
+    {
+      id: 'service-cannot-raise-a-plan-entitlement',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      ...raisePlanEntitlement(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'And the service is refused the same two verbs, so this table\'s grid is complete rather '
+         + 'than resting on the apply-time block for half of it.',
+    },
+    {
+      id: 'service-cannot-delete-a-plan-entitlement',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      ...deletePlanEntitlement(PLAN_V1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'The fourth cell. 020 left one cell of its own grid to an apply-time block and said so; '
+         + 'this batch leaves none, because a plan entitlement is what a paying customer was '
+         + 'promised.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
