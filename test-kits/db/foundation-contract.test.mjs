@@ -220,8 +220,20 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // exactly the reason 040 cannot. A list of batches-that-owe-rows and a list of
 // batches-that-cannot-be-applied have been the same list until now, and this is the entry that
 // separates them.
+// Batch 050 joins for a reason that is NOT the structural one, and the difference is worth stating
+// because the list would otherwise read as five instances of one rule. Its three tables reference
+// app.workspaces and nothing else, so its SQL dependencies are all on the instance — it is the
+// first batch in this tail that COULD be applied. It is declared not applied because the
+// declaration must name a TAIL of the ordered set: a database holding 050 while missing 011, 020,
+// 021, 030 and 040 is DIVERGENT rather than behind, which is a different finding with a different
+// fix, and `pendingMigrations` refuses a declaration that is not a tail for exactly that reason.
+// What it adds to this list's own problem is a third kind of thing the rows cannot say: these are
+// the first TENANT tables in the schema with NO POLICY AT ALL, and none of the five properties
+// `tenant_tables` records — rls_enabled, rls_forced, has_pk, comment, owner — can tell a table no
+// role can read from one with a full policy set.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
-  '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql'];
+  '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
+  '050_async_kernel.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -398,6 +410,21 @@ const ADDED_SYMBOLS = [
   // second. This is an ARCHIVED PAGE under a LIVE Business, the only fixture row where the two
   // parents disagree.
   'page_a1_archived',
+  // Batch 050 adds TWO symbols for THREE tables, and the asymmetry is the rule this list has
+  // applied since batch 020 rather than an oversight. A JOB is addressed by (workspace_id,
+  // dedupe_key) and a CONSUMER LEDGER row by (workspace_id, consumer, event_id) — both unique
+  // constraints in 050_async_kernel.sql, both spelled out of ids this catalog already fixes plus
+  // text the fixture and the case file share — so neither needs an id of its own, exactly as a
+  // version row, a member scope and an industry assignment did not.
+  //
+  // AN OUTBOX EVENT IS THE FIRST ROW IN THIS SCHEMA WHOSE ID ANOTHER ROW MUST NAME. CTR-EVT-001
+  // makes `event_id` the envelope's required identity, and a consumer ledger row records that a
+  // consumer handled THAT event — one row addressing another BY ITS ID is the mechanism of
+  // deduplication rather than an accident of the fixture. Two of them, one per workspace, because
+  // the pair is what makes workspace_id's place in the ledger's natural key legible as data: one
+  // consumer, two tenants, two rows.
+  'outbox_event_a',
+  'outbox_event_b',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

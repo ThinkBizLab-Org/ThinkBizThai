@@ -271,4 +271,32 @@ jobs:
           # statement that differs in exactly one argument and returns the row.
           control app.knowledge_items         '[a-z0-9-]*knowledge-item'    040
           control app.knowledge_item_versions '[a-z0-9-]*knowledge-version' 040
+          #
+          # THE THREE ASYNC-KERNEL TABLES, AND WHY EACH ENTRY RESTS ON EXACTLY TWO CASES. Batch 030
+          # recorded that a global table's entry rests on ONE case and said so because a control
+          # resting on one case is one deletion away from resting on none. These three are the same
+          # shape for a different reason and land on two rather than one, which is stated here
+          # rather than left to be counted from the suite.
+          #
+          # Batch 050 grants NO CLIENT ROLE ANYTHING on any of its three tables: §8.4's "Job
+          # redacted status SELECT" grants a REDACTED STATUS, which is a security_invoker view on
+          # the read allowlist RFC-2026-012 §3 and RFC-2026-021 give to an RFC, and the outbox and
+          # the consumer ledger have no row in §8 at all. So every client case against them is a
+          # PRIVILEGE-layer refusal and disabling row level security restores no grant nobody made.
+          #
+          # What makes each entry bite is the pair of grants that DOES exist: app_worker holds
+          # SELECT and INSERT (and, on app.jobs, UPDATE) with NO POLICY, which is the shape batch
+          # 010 introduced so that a service denial is attributable to row level security rather
+          # than to a forgotten GRANT. With RLS off, `service-sees-zero-*` returns the row AND
+          # `service-cannot-*` succeeds where it must be refused — a filtered read and a policy-layer
+          # write refusal, which are the two outcomes disabling RLS actually changes. A `denied`
+          # case whose layer is `grant` would pass unchanged and is not counted by
+          # tests/db/identity/identity-isolation.test.mjs, which pins these six cases by id.
+          #
+          # The three patterns do not overlap — a job case id contains `job-row`, an outbox case id
+          # `outbox-event` and a ledger case id `consumer-ledger` — and that test asserts no case
+          # matches two of them, so no entry can be satisfied by another table's regression.
+          control app.jobs                    '[a-z0-9-]*job-row'         050
+          control app.outbox_events           '[a-z0-9-]*outbox-event'    050
+          control app.consumer_ledger         '[a-z0-9-]*consumer-ledger' 050
           echo "negative control: every family above failed the suite, as each must."

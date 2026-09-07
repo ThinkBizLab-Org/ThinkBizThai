@@ -2280,8 +2280,7 @@ test('the coverage map pays the knowledge half of §12.6/3 and names the batch t
 
 // =============================================================================================
 // Batch 041 — the resolved knowledge contract, and the four things it refuses to decide.
-// =============================================================================================
-//
+// ======================================================================================//
 // This is the first batch in the foundation that creates NO TABLE, so most of the shapes the
 // sections above assert have nothing here to be about. What replaces them is a different kind of
 // rule, and it exists because the risk in this batch is not a policy written wrongly — it is a
@@ -2739,4 +2738,576 @@ test('every line batch 041 cites is the line that says what the batch says it sa
   }
   assert.ok(made.size >= 6, 'the header still carries its citations; a batch whose finding IS the '
     + 'deliverable does not get to stop naming where it read things');
+});
+
+// =============================================================================================
+// Batch 050 — the async kernel, and the first family in this schema no identity can read.
+// =============================================================================================
+//
+// Every batch before this one could assert its policies. This one has none, so the static suite
+// carries a larger share of the batch than usual and what it holds is different in kind:
+//
+//   * that the ABSENCE of a client grant and of a policy is a decision written in the file rather
+//     than an omission, and that no migration anywhere reverses it;
+//   * that the columns are the two CONTRACTS' own properties rather than a design — the opposite of
+//     every earlier batch, where §5 named no column and the discipline was to invent none;
+//   * that the two natural keys are workspace-scoped, because a retry may not reach across scope and
+//     a key that dropped `workspace_id` would pass every other check in this repository.
+const ASYNC_MIGRATION = 'db/foundation/migrations/050_async_kernel.sql';
+const ASYNC_FIXTURE = 'tests/db/identity/fixtures/050-async-kernel-fixture.sql';
+const asyncKernel = await readFile(ASYNC_MIGRATION, 'utf8');
+const asyncCode = asyncKernel.replace(/--[^\n]*/g, '');
+const JOBS = 'jobs';
+const OUTBOX = 'outbox_events';
+const LEDGER = 'consumer_ledger';
+const ASYNC_TABLES = [JOBS, OUTBOX, LEDGER];
+const JOB_CONTRACT = 'contract-catalog/shared-kernel/ctr-job-001/schema.json';
+const EVENT_CONTRACT = 'contract-catalog/shared-kernel/ctr-evt-001/schema.json';
+
+// The create-table body of one table, so a column assertion cannot be satisfied by a column of a
+// different table in the same file. Three tables in one migration is the first time that matters.
+const asyncTableBody = (table) => {
+  const m = asyncCode.match(new RegExp(`create table (?:if not exists )?app\\.${table}\\b([\\s\\S]*?)\\n\\);`, 'i'));
+  assert.ok(m, `app.${table} has no readable create-table body`);
+  return m[1];
+};
+
+test('every table batch 050 creates carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const table of ASYNC_TABLES) {
+    assert.match(asyncCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(asyncCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(asyncCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. On a table with NO POLICY that difference is the whole control — without FORCE '
+      + 'the table owner reads every row and the isolation suite cannot tell that from a working queue.');
+    assert.match(asyncKernel, new RegExp(`comment on table app\\.${table} is`, 'i'));
+    assert.match(asyncTableBody(table), /primary key/i, `app.${table} declares no primary key`);
+    // §3.3's canonical scope. §5 scopes jobs.kernel to `workspace` and §4's ERD reads
+    // WORKSPACE ||--o{ JOB, so every row here is tenant-owned and carries the canonical field.
+    assert.match(asyncTableBody(table), /workspace_id\s+uuid\s+not null references app\.workspaces \(id\)/i,
+      `app.${table}: §3.3 requires the canonical scope field on every tenant-owned row, NOT NULL and bound to `
+      + 'the tenant root. A queue is the family where a reader might expect a global table, and three '
+      + 'documents say otherwise — §5, §4\'s ERD and CTR-TEN-001, whose workspace_id is required.');
+  }
+  // And nothing BELOW the tenant, which is the other half of the same decision. CTR-TEN-001 makes
+  // business_profile_id and page_context_profile_id optional properties of the tenant context; §5
+  // scopes this family `workspace` and §4 hangs JOB off WORKSPACE alone.
+  for (const column of ['business_profile_id', 'page_context_profile_id']) {
+    assert.doesNotMatch(asyncCode, new RegExp(`^\\s*${column}\\s`, 'im'),
+      `batch 050 declares no ${column} column. §5 scopes jobs.kernel \`workspace\` and §4's ERD gives it no `
+      + 'scope below that, so the column would be a scope level two source documents decline. An event about '
+      + "a Business records it in CTR-EVT-001's own subject instead.");
+  }
+});
+
+// THE CENTRAL REFUSAL, held in both directions: no client grant appears anywhere, and the file says
+// why rather than leaving an absence to be read as an oversight.
+test('the job status projection is not on the client read allowlist, and no migration puts it there', async () => {
+  const files = await readdir('db/foundation/migrations');
+  const migrations = await Promise.all(files.filter((n) => n.endsWith('.sql')).sort()
+    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+  assert.ok(migrations.length >= 12, 'the whole migration set is read, not one file');
+
+  for (const [name, sql] of migrations) {
+    for (const table of ASYNC_TABLES) {
+      for (const role of ['authenticated', 'anon']) {
+        assert.doesNotMatch(sql, new RegExp(`grant\\s[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} a privilege on app.${table}. §8.4's "Job redacted status SELECT" grants a `
+          + 'REDACTED STATUS — §9.1 gives INTERNAL-3 the client projection "redacted status only" and the next '
+          + 'row of the same matrix marks the internal job payload N for every client role — so the object is a '
+          + 'security_invoker view, and RFC-2026-012 §2/§3 puts every such view on a read allowlist that starts '
+          + 'empty and grows only by RFC. If an RFC has approved this entry, edit this test and name it, add the '
+          + 'five objects RFC-2026-021 §3 requires, and rewrite the cases that would now be about a policy.');
+      }
+    }
+    for (const view of sql.matchAll(/create\s+(?:or\s+replace\s+)?view[\s\S]*?;/gi)) {
+      for (const table of ASYNC_TABLES) {
+        assert.doesNotMatch(view[0], new RegExp(`\\bapp\\.${table}\\b`, 'i'),
+          `${name} creates a view over app.${table}. That view IS the allowlist entry RFC-2026-012 §3 reserves `
+          + 'to an RFC, and RFC-2026-021 §3 makes it five objects and a registry row rather than one.');
+      }
+    }
+  }
+
+  // The measured state agrees with the decision, which is what stops this being a rule about text.
+  const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
+  assert.deepEqual(snapshot.catalog.exposed_views, [],
+    'the allowlist is empty in the catalog as well as in the migrations');
+
+  // And the batch states the refusal, with the criteria the candidate meets and the one it fails,
+  // because an absence is not a decision until somebody writes down that it is one.
+  assert.match(asyncKernel, /RFC-2026-021/,
+    'the batch names the decision it is obeying, so a reader can disagree with the reading rather than with '
+    + 'the silence');
+  assert.match(asyncKernel, /C1 \(a named client caller exists\) FAILS TODAY/,
+    "RFC-2026-021 §4's criteria are applied to this candidate rather than cited at it: C1 is the one that "
+    + 'fails, and naming it lets the RFC that opens the entry start from a read instead of a blank page');
+  assert.match(asyncKernel, /C7 \(a global table states its blast radius\) DOES NOT APPLY/,
+    'and the criterion that does NOT apply is named too. app.jobs is a TENANT table, so the blast-radius '
+    + "criterion written for a global one is not this candidate's obstacle — which is the difference between "
+    + 'this candidate and the industry catalog, and is worth more to the next reviewer than a list of passes.');
+});
+
+// The other half of "no policy" — and, unlike the grants, this one has to be checked against an
+// approved decision that EXPECTS it to change, which is why it lives here and not in the apply-time
+// block. RFC-2026-016 §2 positively requires a `TO app_worker` policy once the GUC is decided.
+test('batch 050 writes no policy at all, and argues the refusal instead of omitting it', () => {
+  for (const table of ASYNC_TABLES) {
+    assert.doesNotMatch(asyncCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table}: batch 050 writes no policy. §8 has no implementable cell for this family — the client row `
+      + 'is a view on an empty allowlist and the service row is an `S` whose shape needs a GUC no document '
+      + 'names — and a policy written for a caller that does not exist is a permission nobody reviewed.');
+  }
+  assert.equal([...asyncCode.matchAll(/create policy/gi)].length, 0,
+    'not one policy in the whole file, which is what makes every case in the suite a refusal');
+  assert.equal([...asyncCode.matchAll(/drop policy/gi)].length, 0,
+    'and no drop either: a batch that dropped a policy it did not create would be rewriting a merged one '
+    + '(migration invariant 1)');
+
+  // The three reasons, each pinned, because this is the batch eight others inherit the shape from
+  // and a refusal that loses its reason is a refusal the next batch reverses by accident.
+  assert.match(asyncKernel, /NO DOCUMENT NAMES THE GUC/,
+    'RFC-2026-016 §2 says "a server-set workspace GUC" and spells none. Writing one here would fix the name '
+    + 'for batches 051, 061, 070, 100, 110, 120, 131 and 140.');
+  assert.match(asyncKernel, /RFC-2026-019 §4\/3/,
+    'and the approved decision that says nothing can yet BE app_worker');
+  assert.match(asyncKernel, /THE SHAPE DOES NOT FIT THE FIRST TABLE IT WOULD LAND ON/,
+    'the third reason is the one no earlier batch could have found: §3.4 specifies a lease claim with FOR '
+    + 'UPDATE SKIP LOCKED, and a claim query cannot name a workspace because which workspace the next job '
+    + 'belongs to is what reading the row tells you. A workspace-scoped GUC policy either refuses every claim '
+    + 'or turns a queue into per-tenant polling. That is a finding about an approved decision and it must not '
+    + 'be lost if this file is ever tidied.');
+
+  // And the rule RFC-2026-020 §5/5 makes uniform, held even where there is no policy to break it.
+  // A membership table in a FROM or a JOIN is the shape the rule is about; naming one inside a
+  // raise hint is not, and the apply-time block quotes RFC-2026-020 §6.1/6 by name.
+  for (const table of ['workspace_members', 'workspace_member_scopes']) {
+    assert.doesNotMatch(asyncCode, new RegExp(`\\b(from|join)\\s+app\\.${table}\\b`, 'i'),
+      `batch 050 must not read app.${table}. RFC-2026-020 §5/5: a predicate that joined a membership table `
+      + "would evaluate that scan as the caller, re-entering authenticated's own policy set inside this "
+      + "table's evaluation. The batch has no policy today and the rule is asserted anyway, because the first "
+      + 'policy added here is the one most likely to reach for the join.');
+  }
+});
+
+// THE CONTRACT ASSERTION. Every earlier batch had to record that §5 names no column of its family
+// and invent none. This one is the opposite case, and the discipline that follows is stricter
+// rather than looser: the columns ARE the contract's properties, so a field added to an envelope
+// must fail the build here instead of being discovered by a consumer.
+test('the async kernel carries every property CTR-JOB-001 and CTR-EVT-001 name', async () => {
+  const job = JSON.parse(await readFile(JOB_CONTRACT, 'utf8'));
+  const event = JSON.parse(await readFile(EVENT_CONTRACT, 'utf8'));
+  const jobsBody = asyncTableBody(JOBS);
+  const outboxBody = asyncTableBody(OUTBOX);
+
+  // CTR-JOB-001, minus tenant_context, which §3.3 resolves to workspace_id.
+  const jobProperties = Object.keys(job.properties).filter((p) => p !== 'tenant_context');
+  assert.ok(jobProperties.length >= 17, 'the contract is read rather than a list of it retyped here');
+  for (const property of jobProperties) {
+    // `job_id` is the primary key, spelled `id` because §3.2 gives a domain aggregate a uuid and the
+    // table is app.jobs — every other property keeps the contract's own name.
+    const column = property === 'job_id' ? 'id' : property;
+    assert.match(jobsBody, new RegExp(`^\\s*${column}\\s`, 'm'),
+      `app.jobs has no column for CTR-JOB-001's \`${property}\`. A migration that contradicts a frozen `
+      + 'contract is a defect and one that ignores it is worse: a job envelope this table cannot hold is a '
+      + 'queue that drops a field every producer is entitled to send.');
+  }
+  assert.match(jobsBody, /^\s*id\s+uuid\s+primary key/m,
+    "CTR-JOB-001 types job_id string(1..128) and §3.2 requires a uuid for a domain aggregate. A uuid's 36 "
+    + 'characters satisfy both, and a text column would have let a producer choose a 128-character key for an '
+    + 'aggregate root.');
+
+  // CTR-EVT-001, minus tenant_context, minus payload, and with the three nested objects flattened.
+  const flattened = {
+    producer: ['producer_module_key', 'producer_implementation_version'],
+    subject: ['subject_type', 'subject_id', 'subject_version'],
+    metadata: ['schema_ref'],
+  };
+  for (const property of Object.keys(event.properties)) {
+    if (property === 'tenant_context') continue;
+    if (property === 'payload') {
+      assert.equal(event.properties.payload.maxProperties, 0,
+        'if the payload has acquired properties, this batch owes a column for them');
+      assert.doesNotMatch(outboxBody, /^\s*payload\s/m,
+        'CTR-EVT-001 fixes payload at maxProperties 0 until a domain payload contract is owner-approved, so a '
+        + 'payload column would be a column whose only legal value is {}. §5 would also have PERMITTED one — '
+        + 'the contract supplies the schema version, the owner and the prohibited fields §5 asks for — which is '
+        + 'why the reason recorded is the contract and not the word ban.');
+      continue;
+    }
+    for (const column of flattened[property] ?? [property]) {
+      assert.match(outboxBody, new RegExp(`^\\s*${column}\\s`, 'm'),
+        `app.outbox_events has no column for CTR-EVT-001's \`${property}\` (expected ${column})`);
+    }
+  }
+
+  // The patterns are the contracts' own, character for character, because a rule stated in a
+  // document and not in a constraint is a rule the database does not have (030).
+  assert.ok(asyncCode.includes(event.properties.event_type.pattern),
+    "CTR-EVT-001's event_type pattern is a CHECK constraint and not a comment");
+  assert.ok(asyncCode.includes(event.properties.metadata.properties.schema_ref.pattern),
+    "CTR-EVT-001's schema_ref pattern is a CHECK constraint. Its x-source records that an unconstrained "
+    + 'schema_ref accepted file://, javascript:, data:, a protocol-relative authority, traversal and a cloud '
+    + 'metadata address across sixteen probed hostile forms.');
+  assert.equal([...asyncCode.matchAll(new RegExp(job.properties.input_ref.pattern.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), 'g'))].length, 2,
+    "CTR-JOB-001's reference pattern is a CHECK constraint on both input_ref and result_ref, character for "
+    + 'character from the contract — non-capturing groups included, because a rewritten regex is a second '
+    + 'source of truth for a rule the contract already states. Its '
+    + 'x-reference-rule records the traversal and scheme bypasses the earlier deny-list form permitted, and a '
+    + 'worker DEREFERENCES these values.');
+
+  // And the bounds the contract DOES state, versus the four it does not. This batch adds no invented
+  // maximum: a CHECK stricter than the wire would reject an envelope the schema accepts.
+  for (const property of ['job_type', 'lease_owner', 'progress_stage', 'last_error_code']) {
+    assert.equal(job.properties[property].maxLength, undefined,
+      `CTR-JOB-001 still leaves \`${property}\` unbounded, while bounding job_id and dedupe_key at 128 after a `
+      + 'security review found reference-shaped fields accepting 100000-character values. If its owner has '
+      + "since bounded it, this batch's CHECK constraints should gain the bound in the same change — and until "
+      + 'then a migration may not amend a contract by being stricter than it.');
+  }
+  assert.match(asyncKernel, /WHAT THE CONTRACT LEAVES UNBOUNDED, REPORTED AND NOT FIXED/,
+    'the four unbounded fields are reported to the contract owner rather than silently constrained, which is '
+    + 'the treatment batch 030 gave the undefined CATALOG retention class');
+});
+
+// THE ASSERTION THIS BATCH OWES MOST. A ledger keyed on (consumer, event_id) alone would still be
+// unique, still make redelivery idempotent within one tenant, and still pass every other check in
+// this repository — while letting one tenant's consumption suppress another's redelivery.
+test('both natural keys are workspace-scoped, because a retry may not reach across scope', () => {
+  assert.match(asyncCode, /unique\s*\(workspace_id,\s*consumer,\s*event_id\)/i,
+    'app.consumer_ledger is unique on (workspace_id, consumer, event_id). `event_id` is what is deduplicated, '
+    + '`consumer` is why two consumers each get one turn, and `workspace_id` is because a retry may not reach '
+    + "across scope — CTR-IDM-001 makes workspace part of an idempotency key's scope by contract, and §11.1/9 "
+    + 'states the principle.');
+  assert.match(asyncCode, /unique\s*\(workspace_id,\s*dedupe_key\)/i,
+    'app.jobs is unique on (workspace_id, dedupe_key). CTR-JOB-001 requires dedupe_key and states no '
+    + 'uniqueness; a dedupe key that is not unique deduplicates nothing.');
+
+  // The apply-time block reads both keys out of pg_constraint as COLUMN SETS, which is what catches
+  // a key that was narrowed rather than removed — the failure mode a create-table diff hides.
+  assert.match(asyncCode, /cols = 'consumer,event_id,workspace_id'/,
+    'the apply-time block compares the ledger key as a sorted column set against the live catalog, so dropping '
+    + 'workspace_id fails the APPLY and not merely a text match');
+  assert.match(asyncCode, /cols = 'dedupe_key,workspace_id'/, 'and the same for the job key');
+
+  // And the reason is recorded with the correction the dispatch to this batch needed, because a
+  // positional citation into a numbered list is a defect this repository has now met three times.
+  assert.match(asyncKernel, /§12\.6 — the deterministic fixture contract — has EIGHT required/,
+    '§12.6 has eight smoke assertions and no ninth. The retry-idempotence sentence this batch applies is item '
+    + '9 of §11.1, the export contract; the principle is general and the position was not, and recording that '
+    + 'is what stops the next batch inheriting the wrong citation.');
+  assert.equal(SMOKE_COVERAGE[9], undefined,
+    'and no ninth key is invented in the coverage map. Batch 030 refused to add one for a shape §12.6 has no '
+    + 'row for, and this batch keeps that rule.');
+});
+
+// The lifecycle refusal, which is what a reader will most want to argue with: a queue with no status
+// column looks like a missing feature until you read what CTR-JOB-001's manifest reserves.
+test('batch 050 invents no lifecycle vocabulary, in a column, in a CHECK or in an index predicate', async () => {
+  const job = JSON.parse(await readFile(JOB_CONTRACT, 'utf8'));
+  const manifest = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-job-001/manifest.json', 'utf8'));
+  assert.match(manifest.freeze_boundary, /lifecycle state names and transition policy remain subject to/,
+    'the contract reserves the lifecycle to an owner review. If that sentence has been lifted, the refusals '
+    + 'below are the ones to revisit — and revisiting them is a decision, which is what this assertion makes '
+    + 'someone do.');
+  assert.equal(job.properties.status, undefined,
+    'CTR-JOB-001 has no status field at all, which is why this batch has no status column');
+
+  const jobsBody = asyncTableBody(JOBS);
+  for (const invented of ['status', 'state', 'phase']) {
+    assert.doesNotMatch(jobsBody, new RegExp(`^\\s*${invented}\\s+text`, 'im'),
+      `app.jobs declares no \`${invented}\` column. §3.2's "Phase 1 state: text + named CHECK" is a rule about `
+      + 'HOW a state is stored once someone with the authority has decided what the states ARE, and '
+      + "CTR-JOB-001's manifest reserves that decision. A four-value enum here would be four words this "
+      + "repository's source of truth never wrote (010's sentence about invitation status).");
+  }
+  // The lifecycle IS the contract's timestamps and counters, and each of them is present.
+  for (const column of ['available_at', 'lease_owner', 'lease_expires_at', 'attempt', 'max_attempts',
+    'cancel_requested_at', 'result_ref', 'last_error_code']) {
+    assert.match(jobsBody, new RegExp(`^\\s*${column}\\s`, 'm'),
+      `app.jobs carries ${column}: the lifecycle is expressed as the fields CTR-JOB-001 names, exactly as batch `
+      + "010 expressed an invitation's as expires_at/accepted_at/revoked_at rather than as an enum.");
+  }
+  // AND THE SAME REFUSAL IN THE PLACE IT IS QUIETEST. A partial index whose predicate named
+  // result_ref, cancel_requested_at and the attempt budget would define which jobs are still live.
+  const jobIndexes = [...asyncCode.matchAll(/create index[\s\S]{0,200}?\bon app\.jobs\b([\s\S]*?);/gi)];
+  assert.ok(jobIndexes.length >= 2, 'the job indexes are read, not assumed');
+  for (const [, body] of jobIndexes) {
+    assert.doesNotMatch(body, /\bwhere\b/i,
+      'no index on app.jobs carries a predicate. The obvious claimability index would define which jobs are '
+      + 'still live, and an index predicate is a quieter place to put a decision than a CHECK constraint, not '
+      + 'a weaker one.');
+  }
+  assert.match(asyncKernel, /NO PARTIAL INDEX EXPRESSING CLAIMABILITY/,
+    'and the refusal is stated, so the batch that decides the lifecycle knows what it is unlocking');
+
+  // No app.job_attempts and no dead-letter table, with the reason each refusal rests on.
+  for (const refused of ['job_attempts', 'job_dead_letter', 'dead_letter_queue', 'job_dlq']) {
+    assert.doesNotMatch(asyncCode, new RegExp(`create table (?:if not exists )?app\\.${refused}\\b`, 'i'),
+      `batch 050 creates no app.${refused}`);
+  }
+  assert.match(asyncKernel, /NO `app\.job_attempts`, AND THE REASON IS THE CONTRACT RATHER THAN THE REGISTRY/,
+    "§4's ERD does carry JOB_ATTEMPT, so \"the registry does not name it\" would be a thin reason on its own. "
+    + 'The deciding one is that CTR-JOB-001 models attempts as scalars on the envelope — attempt, max_attempts '
+    + 'and last_error_code — and nothing in this schema could keep a table and a counter equal, which is 021\'s '
+    + "reason for refusing current_version_id and 030's for refusing industry_pack_id.");
+});
+
+test('the ledger is append-only, the outbox envelope is immutable but for one column, and nothing is deletable', () => {
+  // The ledger. §8.6 case 9 is "Immutable/LEDGER row → update/delete fail" and this is the first
+  // ledger in the schema; four batches have carried that case on version tables only.
+  assert.doesNotMatch(asyncCode, new RegExp(`grant\\s+[^;]*update[^;]*\\bon\\s+app\\.${LEDGER}\\b`, 'i'),
+    'no role holds UPDATE on app.consumer_ledger. A ledger row that can be edited makes a redelivery '
+    + 'replayable, which is the one thing the table exists to prevent.');
+  assert.doesNotMatch(asyncTableBody(LEDGER), /updated_at/i,
+    "and it carries no updated_at, because an append-only row has no update to stamp (020's rule about its "
+    + 'version tables, one family over)');
+  assert.doesNotMatch(asyncCode, new RegExp(`create trigger set_updated_at before update on app\\.${LEDGER}\\b`, 'i'),
+    'and no trigger for one');
+
+  // The outbox. One granted column and every other one ungranted, asserted here from the text and in
+  // the apply-time block from the live ACL — because a grant made by a LATER batch appears in
+  // neither this file nor a diff of it.
+  const outboxUpdates = [...asyncCode.matchAll(new RegExp(`grant\\s+update\\s*\\(([^)]*)\\)\\s*on\\s+app\\.${OUTBOX}\\b`, 'gi'))];
+  assert.equal(outboxUpdates.length, 1, 'exactly one UPDATE grant on the outbox');
+  assert.equal(outboxUpdates[0][1].trim(), 'dispatched_at',
+    'and it names dispatched_at alone. §10 retains an outbox row "until consumers ack + 30 days", so the row '
+    + 'has to record having been published — and a role that could rewrite event_type, producer_module_key or '
+    + 'subject_id could re-aim an event every consumer downstream routes on, after the transaction that '
+    + 'produced it committed.');
+  assert.match(asyncCode, /a column of the outbox envelope other than dispatched_at is updatable/,
+    'the apply-time block walks every other column against six roles, which is what catches a later batch');
+
+  // No DELETE anywhere, for anybody.
+  for (const table of ASYNC_TABLES) {
+    assert.doesNotMatch(asyncCode, new RegExp(`grant\\s+[^;]*delete[^;]*\\bon\\s+app\\.${table}\\b`, 'i'),
+      `no role holds DELETE on app.${table}. §8.5 has no broad user delete, and every purge in this family is a `
+      + 'retention sweep — JOB-SHORT, OUTBOX-SHORT and CONSUMER-LEDGER — which batch 160 owns through '
+      + 'app_maintenance, granted nothing here.');
+  }
+  assert.doesNotMatch(asyncCode, /\bto\s+app_maintenance\b/i,
+    'and app_maintenance holds nothing: a grant issued ahead of the thing that needs it is a grant nobody '
+    + 'reviews against a caller (010)');
+  assert.doesNotMatch(asyncCode, /\bto\s+app_command\b/i,
+    'nor app_command, which owns command functions this batch does not write — and whose absence is exactly '
+    + "what §3.4's outbox atomicity and §8.6 case 10 are owed to");
+
+  // §3.2's identifier rule for a high-volume append-only row, which this is the first batch to need.
+  for (const table of [OUTBOX, LEDGER]) {
+    assert.match(asyncTableBody(table), /id\s+bigint generated always as identity primary key/i,
+      `app.${table} keys on a bigint GENERATED ALWAYS AS IDENTITY, which is §3.2's rule for an append-only `
+      + 'event or ledger at volume. ALWAYS and not BY DEFAULT: under BY DEFAULT a writer may supply its own '
+      + "position in an ordered log, and the outbox's id IS the relay's cursor.");
+  }
+  assert.match(asyncCode, /a\.attidentity <> 'a'/,
+    "and the apply-time block reads attidentity from the catalog, because 'always' in the DDL and 'always' in "
+    + 'pg_attribute are two different claims until one is checked against the other');
+});
+
+test('the outbox and the ledger record what §3.4 and §10 say, and no foreign key between them', () => {
+  // §3.4's atomicity rule, and the fact that no write path in this schema can satisfy it.
+  assert.match(asyncKernel, /Domain state และ outbox event เขียน transaction เดียวกัน/,
+    "§3.4's rule is quoted rather than paraphrased, because the batch's central finding is that it cannot be "
+    + 'satisfied and a paraphrase is a place for that to soften');
+  assert.match(asyncKernel, /WHY NOT A TRIGGER/,
+    "and the obvious workaround is refused in writing: a trigger on another module's table is forbidden by "
+    + "migration invariant 1 and by §3.4's own last bullet, and batch 040 refused to invent one for the "
+    + 'adjacent gap');
+
+  // §10's two retention classes, and the constraint their difference decides.
+  assert.doesNotMatch(asyncCode, new RegExp(`references app\\.${OUTBOX}\\b`, 'i'),
+    'app.consumer_ledger has NO foreign key to app.outbox_events. §10 purges an outbox row at ack + 30 days '
+    + 'and keeps a ledger row for 180 days or the max replay window, so the key would take the ledger row with '
+    + 'the event — destroying the replay safety the longer window exists for. "No FK" is the kind of absence a '
+    + 'later reader adds without knowing what it buys.');
+  assert.match(asyncKernel, /OUTBOX-SHORT/, 'and the class that decides it is named');
+  assert.match(asyncKernel, /CONSUMER-LEDGER/, 'as is the other one');
+
+  // §5 names a retention class §10 does not define, for the second time in this schema.
+  assert.match(asyncKernel, /defines NO CLASS CALLED `LEDGER`/,
+    "§5 assigns this family JOB-SHORT/LEDGER and §10's twenty-six-row table has no LEDGER row. Batch 030 "
+    + 'reported the same defect about CATALOG; two families now name a class the retention baseline does not '
+    + 'define, which is a finding about §10 rather than about either batch.');
+  // And no number is encoded, because §10's own approval owns them (§15). The window appears in a
+  // table COMMENT — where §5 and §10 are quoted — and nowhere a constraint could enforce it.
+  assert.doesNotMatch(asyncCode, /interval\s*'/i,
+    "no retention window is written into a constraint, a default or an index predicate. Batch 160 owns the "
+    + "job and §10's own Product/Security/Legal approval owns the numbers; a number the schema enforced "
+    + 'would read as ratified (§15).');
+  for (const table of ASYNC_TABLES) {
+    assert.doesNotMatch(asyncTableBody(table), /\b(30|90|180)\b/,
+      `app.${table}'s definition contains no retention day count. The three classes §10 gives this family — `
+      + 'JOB-SHORT, OUTBOX-SHORT and CONSUMER-LEDGER — carry numbers, and none of them is a constraint.');
+  }
+  // What IS provided is the column each sweep reads and an index over it, which is 010's treatment
+  // of expires_at for TOKEN-SHORT before that job existed either.
+  assert.match(asyncCode, /create index if not exists consumer_ledger_window_idx\s+on app\.consumer_ledger \(consumed_at\)/i,
+    '§10 purges the ledger "by partition/window" and this is the column that window is over');
+});
+
+test('batch 050 adds to the merged batches and rewrites none of them', () => {
+  for (const table of ['workspaces', 'workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items']) {
+    assert.doesNotMatch(asyncCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 050 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  assert.doesNotMatch(asyncCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz. RFC-2026-020 §5/3 gives it exactly one policy and §6.1/6 pins its '
+    + 'grants; 050 creates no helper and needs no exemption.');
+  assert.match(asyncCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid is readable only by a superuser, and a migration that needs one '
+    + 'to apply cannot be applied on the platform it targets (batch 020 found this)');
+  assert.doesNotMatch(asyncCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform');
+  assert.ok(!asyncCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it to a '
+    + 'count of exactly two');
+  assert.match(asyncCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(asyncCode, /(public|extensions)\.gen_random_uuid/,
+    'a schema-qualified default runs in one environment and fails in the other');
+  assert.match(asyncCode, /private\.set_updated_at\(\)/,
+    "§3.2's updated_at comes from batch 000's helper and is not reimplemented");
+  // §3.3 forbids these synonyms outright in the canonical domain schema.
+  for (const synonym of ['tenant_id', 'organization_id', 'brand_id', 'page_id']) {
+    assert.doesNotMatch(asyncCode, new RegExp(`\\b${synonym}\\b`), `§3.3 forbids the synonym ${synonym} outright`);
+  }
+});
+
+test('the batch 050 fixture writes only catalog identities and loads rows no identity can read', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(ASYNC_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  // Both tenants, so that every `service-sees-zero-*` case addresses one workspace's row while the
+  // other tenant's sits beside it.
+  for (const symbol of ['workspace_a', 'workspace_b', 'outbox_event_a', 'outbox_event_b']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // The ledger rows name the SAME consumer in two workspaces, which is what makes workspace_id's
+  // place in the natural key legible as data rather than only as a constraint.
+  assert.equal([...fixture.matchAll(/'fixture\.consumer'/g)].length, 2,
+    'one consumer, two workspaces, two ledger rows. A key without workspace_id would have collapsed them the '
+    + 'moment the two events shared an id.');
+  // No status value, because there is no status column.
+  assert.doesNotMatch(fixture, /\bstatus\b/i,
+    'the fixture invents no lifecycle value either. A fixture is where a vocabulary nobody decided arrives '
+    + 'most quietly.');
+  // And the runner loads it, in order, or none of the above is reached.
+  const runner = await readFile('tests/db/identity/run-isolation.mjs', 'utf8');
+  assert.match(runner, /050-async-kernel-fixture\.sql/,
+    'the runner applies this fixture. A fixture no runner loads is a file, not a fixture.');
+});
+
+test('the tables batch 050 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 12, 'the control runs per table family, and batch 050 adds three');
+
+  // WHAT IS DETECTABLE HERE IS A DIFFERENT SET FROM EVERY EARLIER BATCH, and the predicate says so.
+  // No client role holds anything, so a `denied` case whose layer is `grant` passes unchanged with
+  // row level security off. The two outcomes that DO change are a filtered read and a policy-layer
+  // write refusal — which is why each entry rests on exactly two cases rather than on a count.
+  const flips = (c) => c.expect === 'no-rows' || c.expect === 'no-effect'
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+  for (const table of ASYNC_TABLES) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on one `
+      + "table and requires a failed case whose id matches that table's pattern; a batch that adds a table and "
+      + "no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '050', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && flips(c));
+    assert.equal(detectable.length, 2,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would change behaviour with row level `
+      + 'security disabled, and this entry rests on exactly two — the filtered service read and the '
+      + 'policy-layer service insert. A control naming a pattern nothing matches reports a pass it did not '
+      + 'earn, and one resting on more cases than it claims is a count nobody checked.');
+  }
+  // The three patterns must not overlap, or one entry is satisfied by another table's regression.
+  const patterns = ASYNC_TABLES.map((t) => new RegExp(`^${controls.find(([, n]) => n === t)[2]}`));
+  for (const c of cases) {
+    assert.ok(patterns.filter((p) => p.test(c.id)).length <= 1,
+      `${c.id} matches more than one batch 050 control pattern, so each entry could be satisfied by another `
+      + "table's regression");
+  }
+  // The six cases are pinned by id and outcome, so deleting one fails the build instead of leaving
+  // an entry that disables something nothing notices.
+  for (const [table, name, expect] of [
+    [JOBS, 'service-sees-zero-job-rows', 'no-rows'],
+    [JOBS, 'service-cannot-enqueue-a-job-row', 'denied'],
+    [OUTBOX, 'service-sees-zero-outbox-events', 'no-rows'],
+    [OUTBOX, 'service-cannot-publish-an-outbox-event', 'denied'],
+    [LEDGER, 'service-sees-zero-consumer-ledger-rows', 'no-rows'],
+    [LEDGER, 'service-cannot-record-a-consumer-ledger-row', 'denied'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the outcome the control depends on`);
+    if (expect === 'denied') {
+      assert.equal(found.deniedBy, 'policy',
+        `${name}: only a POLICY-layer refusal is restored by disabling row level security. app_worker holds `
+        + 'the INSERT grant, so this insert succeeds the moment the policy set stops refusing it — a '
+        + 'grant-layer refusal would pass unchanged and the control would report a detection it did not make.');
+    }
+  }
+  assert.match(workflow, /THE THREE ASYNC-KERNEL TABLES, AND WHY EACH ENTRY RESTS ON EXACTLY TWO CASES/,
+    'each entry says beside itself what disabling row level security on that table would let through, because '
+    + 'a control whose mechanism lives only in a test is a control nobody reads at the point of use');
+});
+
+// What batch 050 claims about its own coverage, and — more usefully — what it says it did NOT cover.
+// It moves no row, and the two a reader might expect it to move are the interesting ones.
+test('the coverage map records what a family with no reader cannot carry', () => {
+  // §12.6/1 and §8.6/5 are the tenant boundary, and this is the first batch that creates TENANT
+  // tables and cannot assert one: no identity can read the rows, so there is nothing to observe the
+  // boundary through. Counting the uniform grant-layer refusal as isolation would be exactly the
+  // error batch 030 refused to make about its global rows.
+  assert.equal(SMOKE_COVERAGE[1].covered, true, 'the row does not move — it was true before this batch');
+  assert.match(SMOKE_COVERAGE[1].note, /050/,
+    "§12.6/1's note must name batch 050 and say that its three tables are NOT counted");
+  assert.match(SMOKE_COVERAGE[1].note, /no identity can read/i,
+    'and say why: a table nobody can read has no observable tenant boundary, which is a different sentence '
+    + "from batch 030's about rows that belong to no tenant");
+
+  // §12.6/8 gains more negative evidence and no positive, for the sixth batch running.
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    "batch 050 owns the schema's FIRST `S` cell and still writes the service no policy, so the positive half "
+    + 'stays unasserted. Asserting it would require choosing the workspace GUC no document names.');
+  assert.match(SMOKE_COVERAGE[8].note, /first `S` cell/,
+    'and the note records that this is the batch where the `S` shape arrived, because 010 predicted it by name '
+    + 'and the next reader should find the answer where the question was sent');
+
+  // The suspended and anonymous rows: one is extended honestly, the other is not claimed at all.
+  assert.match(SMOKE_COVERAGE[6].note, /050/, 'anonymous is asserted on all three tables');
+  assert.match(SMOKE_COVERAGE[5].note, /analogue/,
+    '§12.6/5 is NOT claimed on this family: a suspended member refused where every active member is also '
+    + 'refused has been refused by the privilege system, not by suspension. The three cases are labelled '
+    + 'analogues and the note says so.');
+  const suspended = cases.filter((c) => (c.covers ?? []).includes('§12.6/5-analogue'));
+  assert.equal(suspended.length, 3, 'one analogue per batch 050 table, labelled rather than counted');
+
+  // §8.6 case 9 names a LEDGER and this is the first one in the schema.
+  assert.match(AUTHORIZATION_CASE_COVERAGE[9], /consumer_ledger/,
+    '§8.6 case 9 reads "Immutable/ledger row → update/delete fail". Four batches have carried it on immutable '
+    + 'VERSION tables; app.consumer_ledger is the other noun in that sentence.');
+  const grid = cases.filter((c) => /consumer-ledger/.test(c.id) && (c.covers ?? []).includes('§8.6/9'));
+  assert.equal(grid.length, 4,
+    'all four cells: update and delete, by the workspace owner and by the service. A schema that granted one '
+    + 'of the four would be caught by exactly one of these cases.');
+
+  // §8.6 case 10 names the OUTBOX by that word, and batch 040 recorded that it "does not exist yet".
+  // It exists now and the case is still unpayable, which is a more precise statement than before.
+  assert.match(AUTHORIZATION_CASE_COVERAGE[10], /050/,
+    '§8.6 case 10 is "Authorized server command → pass + expected audit/outbox". The outbox table now exists '
+    + 'and the case is still not payable, because the missing half is the COMMAND — a sharper claim than batch '
+    + '040 could make and the one this batch is entitled to.');
+  assert.match(AUTHORIZATION_CASE_COVERAGE[8], /050/,
+    '§8.6 case 8 is a forged created_by, and this family has no such column: §3.2 adds the actor columns for a '
+    + 'USER MUTATION and §8 grants no client any write here. The disposition says so rather than leaving the '
+    + 'case silently uncounted.');
 });
