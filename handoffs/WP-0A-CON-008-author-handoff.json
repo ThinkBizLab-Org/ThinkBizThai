@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "a622b7a57c2a6f9c27c6ef6cdf6165239ba3a727",
-  "head_revision_or_patch_checksum": "217ab81f17c65f864b2019191fcdb35778c0fd79",
+  "base_revision": "c4b4493855775ad59d73b3d9564d6a63b7b900db",
+  "head_revision_or_patch_checksum": "46b6362bef02449bfcd259c430e59ba4136d234f",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-008/merge-parent-order.md"
