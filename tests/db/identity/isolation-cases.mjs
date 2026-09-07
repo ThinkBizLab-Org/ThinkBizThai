@@ -754,8 +754,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the one thing the table exists to prevent. The outbox is immutable in a narrower sense and is '
    + 'asserted that way — `service-cannot-rewrite-an-outbox-event-envelope` is refused at the COLUMN '
    + 'privilege layer, because app_worker holds UPDATE on dispatched_at and on no other column, and '
-   + "050's apply-time block walks every other column against six roles.",
-  10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
+   + "050's apply-time block walks every other column against six roles."
+   + '\n\n'
    + 'BATCH 060 ADDS NO IMMUTABLE TABLE AND SAYS SO RATHER THAN STRETCHING THE ROW TO FIT. §5 calls '
    + 'ai.gateway "catalog + run history", not "published immutable" as it calls industry.core, and '
    + '§3.2 lists the immutable families by name — version, evidence, decision, usage, audit and '
@@ -763,6 +763,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '060 DOES carry is the neighbouring claim, and it is a different one: '
    + '`owner-a-cannot-relabel-an-ai-model-registry-row` is refused because no client role holds the '
    + 'grant, NOT because the row may not change — an administrative seed corrects a curated label, '
+   + 'and 060_ai_gateway.sql spells out why that is not the industry catalog\'s rule. Reading it as '
+   + 'immutability would report the wrong control as green.'
+   + '\n\n'
+   + 'BATCH 060 ADDS NO IMMUTABLE TABLE AND SAYS SO RATHER THAN STRETCHING THE ROW TO FIT. §5 calls '
+   + 'ai.gateway "catalog + run history", not "published immutable" as it calls industry.core, and '
+   + '§3.2 lists the immutable families by name -- version, evidence, decision, usage, audit and '
+   + 'publish history -- none of which is a model, a model policy or a credential reference. What '
+   + '060 DOES carry is the neighbouring claim, and it is a different one: '
+   + '`owner-a-cannot-relabel-an-ai-model-registry-row` is refused because no client role holds the '
+   + 'grant, NOT because the row may not change -- an administrative seed corrects a curated label, '
    + 'and 060_ai_gateway.sql spells out why that is not the industry catalog\'s rule. Reading it as '
    + 'immutability would report the wrong control as green.',
   10: 'not applicable to batches 010-060 — no command function is specified for identity, for '
@@ -4340,7 +4350,10 @@ export function buildCases(id) {
       params: [A, FIXTURE_JOB_DEDUPE_A],
       expect: 'denied',
       deniedBy: 'grant',
-      why: 'anon holds nothing in app; the refusal is the schema grant and it is asserted as one.',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'anon holds nothing in app: no schema USAGE, so the refusal lands on the SCHEMA and not on '
+         + 'the table. Naming the object is what separates this from a harness that could not reach '
+         + 'the table for some other reason.',
     },
 
     // -- Batch 060. The AI gateway, and the first family in this schema with NO CLIENT SURFACE AT --

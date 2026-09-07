@@ -20,7 +20,13 @@
 -- they could be would be adding a scope level two source documents decline to give this family.
 --
 --
--- THE FIRST BATCH IN THIS REPOSITORY THAT WRITES NO POLICY, AND THAT IS THE WHOLE OF WHAT IS NEW
+-- A BATCH THAT WRITES NO POLICY, AND THAT IS THE WHOLE OF WHAT IS NEW
+--
+-- This claimed to be the FIRST such batch and was wrong three ways over by the time it merged: 041
+-- creates one function and no table, and 050 and 140 were written in parallel with this one and
+-- write no policy either. The sentence was true of the base this branch was cut from and false of
+-- the tree it landed in -- which is the failure mode of writing four batches at once, and the reason
+-- a claim about the schema's history belongs in the record only when something can check it.
 --
 -- Every batch from 010 to 040 implemented §8 cells. This one implements none, because §8 HAS NO
 -- ROW FOR A MODEL REGISTRY AND NO ROW FOR A MODEL POLICY — not in §8.1, not in §8.2, not in §8.3,
@@ -524,9 +530,13 @@ create index if not exists ai_credential_references_workspace_idx
 -- updated_at. §3.2 requires it on every MUTABLE row; batch 000 supplied the trigger helper.
 -- ---------------------------------------------------------------------------------------------
 --
--- All three, and two of the three are INERT TODAY — said rather than hidden, which is 021's
--- treatment of the same situation. No role holds UPDATE on app.ai_model_policies or on
--- private.ai_credential_references, so nothing can fire their triggers through a granted path; the
+-- All three, and one of the three is INERT TODAY — said rather than hidden, which is 021's
+-- treatment of the same situation. No role holds UPDATE on private.ai_credential_references, so
+-- nothing can fire its trigger through a granted path. app.ai_model_policies is DIFFERENT and the
+-- first draft of this comment got it wrong: app_worker holds a column-scoped UPDATE there, so its
+-- trigger is reachable — through a path RLS then refuses, which is not the same thing as unreachable
+-- and must not be written as if it were. Batch 050 wrote the same situation correctly ('no role holds
+-- UPDATE THROUGH A POLICY'); this file did not, until review compared the sentence with the grant. The
 -- trigger on app.ai_models is not inert, because the administrative seed that curates the catalog
 -- re-runs and corrects rows (§6 invariant 5), which is exactly the update it stamps.
 --
@@ -603,7 +613,15 @@ alter table private.ai_credential_references force row level security;
 --     has no broad delete and no document names a typed lifecycle field for this row, which is the
 --     refusal 021, 030 and 040 each made about their own tables.
 grant select on app.ai_models to app_worker;
-grant select, insert, update on app.ai_model_policies to app_worker;
+grant select, insert on app.ai_model_policies to app_worker;
+-- UPDATE is COLUMN-SCOPED, and the column it excludes is the point. `workspace_id` is this table's
+-- primary key and its whole tenant scope, so a table-wide UPDATE would let the one role that can
+-- reach the table move a policy from one workspace to another -- the cross-tenant move §8.5
+-- prohibits, granted by a verb nobody asked for. The first draft of this file granted it table-wide
+-- and said twice, in comments that ship into the catalog, that no role held UPDATE here at all.
+-- Independent review across four parallel branches found the grant and the claim contradicting each
+-- other; the grant is what was wrong.
+grant update (ai_model_id, updated_at, updated_by) on app.ai_model_policies to app_worker;
 
 -- private.ai_credential_references IS GRANTED TO NOBODY. Not `authenticated`, not `anon`, not
 -- `app_worker`, not `app_command`, not `app_maintenance`, not `app_authz`. And no role is granted
