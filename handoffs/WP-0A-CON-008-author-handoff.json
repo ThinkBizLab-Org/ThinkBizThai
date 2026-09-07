@@ -4,18 +4,21 @@
   "work_package_id": "WP-0A-CON-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b44e6cffd2ed3c15ad116dcb93f8d9561d3ba835",
-  "head_revision_or_patch_checksum": "3a0d84a08768124c54e9433b69ce6a7e9af2d867",
+  "base_revision": "c4b4493855775ad59d73b3d9564d6a63b7b900db",
+  "head_revision_or_patch_checksum": "46b6362bef02449bfcd259c430e59ba4136d234f",
   "task_ids": [],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-CON-008/merge-parent-order.md"
+  ],
   "files_modified": [
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-CON-008-author-handoff.json",
+    "scripts/refresh-author-handoff.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/ci-guard-behaviour.test.mjs",
+    "test-kits/handoff-conformance.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/ratchets-bite.test.mjs",
     "work-packages/WP-0A-CON-008.json"
   ],
   "files_deleted": [],
@@ -74,13 +77,14 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None.",
-  "compatibility_impact": "None. One guard suite's temporary-directory handling. The sweep now removes only copies whose owning process is gone, so a run no longer deletes a concurrent run's repository mid-test.",
+  "compatibility_impact": "No contract changes and no catalog file touched. One exported helper changes shape: scripts/refresh-author-handoff.mjs branchTipBefore now returns a result object ({ ok, tip } or { ok: false, message }) rather than a bare SHA, matching branchPointOf beside it. Its only callers are that script's own main() and test-kits/handoff-conformance.test.mjs, both updated here. One new exit code, 94, for a merge whose branch side cannot be determined; 91 and 93 are unchanged.",
   "known_limitations": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
     "A1 and A6 sign-off is outstanding for four contracts and cannot be represented by an agent.",
     "The freeze check establishes presence, not sufficiency. Four items are named in the RFC where a script cannot see what the phrase meant: stable ordering, auth rules, decimal money and bounded cardinality.",
     "CTR-NTF-001 remains unassessed; A5 owns it.",
-    "A SHA-256 digest can contain a Luhn-valid 13-to-19 digit run by coincidence, and test-kits/integrity-manifest.json is a file of 83 such digests rewritten whenever any protected file changes. This branch was first spelled `WP-0A-CON-008-sweep-age-floor`; the resulting digest of work-packages/WP-0A-CON-008.json contained a Visa-shaped 13-digit run that scan-repository-secrets.mjs correctly reported as a payment card number. It was a false positive with no data behind it, and there is no allowlist to silence one -- deliberately, per that scanner's own comments. The branch was renamed to `WP-0A-CON-008-pid-reuse-age-floor` to change the digest, which is a workaround and not a fix: roughly one regenerated digest in a few hundred will trip this again, on any package, for reasons having nothing to do with that package's work. The scanner is outside this package's writable paths and an exemption there is explicitly reserved for a reviewed decision with a named owner. The offending run is not reproduced here, because that rule is not prose-exempt and quoting it fails the scan -- which this entry established by doing it. Recorded so the next author finds a diagnosis, not a mystery."
+    "The ambiguous merge is refused, not resolved: a merge built on the integration branch out of two heads it does not contain -- what a merge queue produces -- exits 94 rather than picking one. If that shape becomes ordinary here it needs a rule, not a guess.",
+    "branchTipBefore consults an integration ref only for a merge commit. An ordinary commit is still HEAD^ with no ref resolved, so a clone with no default branch behaves exactly as it did."
   ],
   "open_risks_or_blockers": [
     "RFC-2026-010 is Proposed. Until the Product Owner disposes of it, every contract stays Draft and consumers stay limited to exploratory spikes.",
@@ -89,7 +93,7 @@
     "CTR-NTF-001 remains unassessed; A5 owns it.",
     "A SHA-256 digest can contain a Luhn-valid 13-to-19 digit run by coincidence, and test-kits/integrity-manifest.json is a file of 83 such digests rewritten whenever any protected file changes. This branch was first spelled `WP-0A-CON-008-sweep-age-floor`; the resulting digest of work-packages/WP-0A-CON-008.json contained a Visa-shaped 13-digit run that scan-repository-secrets.mjs correctly reported as a payment card number. It was a false positive with no data behind it, and there is no allowlist to silence one -- deliberately, per that scanner's own comments. The branch was renamed to `WP-0A-CON-008-pid-reuse-age-floor` to change the digest, which is a workaround and not a fix: roughly one regenerated digest in a few hundred will trip this again, on any package, for reasons having nothing to do with that package's work. The scanner is outside this package's writable paths and an exemption there is explicitly reserved for a reviewed decision with a named owner. The offending run is not reproduced here, because that rule is not prose-exempt and quoting it fails the scan -- which this entry established by doing it. Recorded so the next author finds a diagnosis, not a mystery."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a sweep that deletes any ratchet-bite directory it finds, which fails concurrent runs with a reason that is not the reason.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting restores a comparison point that is main whenever a branch has merged main into itself, which leaves check:handoff red with 'on no path to this branch' and refresh:handoff refusing to rewrite it -- so a reverted branch must be kept linear, as batch 040's was.",
   "recommended_next_work_packages": [
     "None. This is the top of the stack; the next actions are the Product Owner dispositions listed in OVERNIGHT-SUMMARY.md and RFC-2026-010."
   ],
@@ -98,7 +102,7 @@
     "Ten independent verification runs were dispatched against this stack. The first eight each shipped an untested business rule past every guard; the ninth and tenth could not, after roughly 22,000 and 9,350 mutations respectively, but each still found real defects elsewhere. Assume an eleventh exists.",
     "Attack the guards rather than reading them. Every defect found so far came from execution and none from reading.",
     "The author is /claude/a0_atlas. Reviewer, tester and integration verification are open and must be distinct runs; cross-vendor review is not satisfied and is carried as a recorded exception.",
-    "For this increment read evidence/WP-0A-CON-008/handoff-base-revision.md, then restore scripts/refresh-author-handoff.mjs from an earlier revision and run node --test test-kits/handoff-conformance.test.mjs: two of the three new cases must fail and the in-progress case must pass against both implementations. A test that cannot be made to fail is not evidence."
+    "For this increment read evidence/WP-0A-CON-008/merge-parent-order.md, then restore scripts/refresh-author-handoff.mjs from this branch's base revision and run node --test test-kits/handoff-conformance.test.mjs: three of the four new cases must fail (the merge orientations and both refusals) and 'an ordinary in-progress branch is untouched by any of this, byte for byte' must pass against both implementations. A test that cannot be made to fail is not evidence. The fourth failure you will see, 'a range is never compared backwards', is a pre-existing case reading the new return shape, and is recorded as such rather than presented as a finding."
   ],
   "superseded_by": null
 }

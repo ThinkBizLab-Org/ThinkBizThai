@@ -85,7 +85,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-CON-008-pid-reuse-age-floor",
+    "branch": "agent/claude/WP-0A-CON-008-merge-parent-order",
     "writable_paths": [
       "architecture/decisions/RFC-2026-010-shared-kernel-freeze-readiness.md",
       "work-packages/WP-0A-CON-008.json",
@@ -129,13 +129,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/ci-guard-behaviour.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "test-kits/ratchets-bite.test.mjs is this package's own file. The four paths here are the registries that move whenever a package adds a test or renames its branch: the per-file floors and name digests, the branch-to-package mapping (pinned whole, so a row cannot be added quietly), the integrity digests, and the machine-written verification record. A floor is raised by the new case; none is lowered.\n\ntest-kits/ci-guard-behaviour.test.mjs names this package's branch as its live example when it checks that verify-branch-identity resolves a real branch, so renaming the branch moves that line too. It is a fixture reference, not a rule: the assertion it feeds is unchanged."
+      "rationale": "Only what this branch changes outside its own writable paths, and nothing else. Both are registries that move whenever a package adds a test: scripts/test-suite-contract.mjs carries the per-file declared-test floor, the assertion floor and the test-name digest, and test-kits/integrity-manifest.json carries the content digests. handoff-conformance.test.mjs goes from 15 declared tests to 19 and from 36 assertions to 63; a floor is raised by the new cases and none is lowered, and the name digest moves because four test names were added.\n\nevidence/VERIFICATION.md, test-kits/branch-identity.test.mjs and test-kits/ci-guard-behaviour.test.mjs were listed here before and are not any more: all three are in this package's own writable_paths, and an amendment records what a package touches OUTSIDE its scope. branch-identity.test.mjs pins the whole branch-to-package mapping and ci-guard-behaviour.test.mjs names this package's branch as its live example, so renaming the branch to agent/claude/WP-0A-CON-008-merge-parent-order moves both lines. They are fixture references, not rules: the assertions they feed are unchanged."
     }
   },
   "inputs": {
@@ -161,7 +158,9 @@
       "test-kits/contracts/catalog-registry.test.mjs",
       "test-kits/handoff-conformance.test.mjs",
       "scripts/regenerate-integrity-manifest.mjs",
-      "test-kits/integrity-manifest-rebuild.test.mjs"
+      "test-kits/integrity-manifest-rebuild.test.mjs",
+      "scripts/refresh-author-handoff.mjs",
+      "evidence/WP-0A-CON-008/merge-parent-order.md"
     ],
     "contracts": []
   },

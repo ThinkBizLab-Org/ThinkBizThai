@@ -18,6 +18,8 @@
 //   default   rewrite the handoff for the package that owns the current branch
 //   --check   report drift and exit 91 without writing anything
 //   exit 93   the branch point could not be determined; see branchPointOf below
+//   exit 94   HEAD is a merge and which parent is the branch could not be determined; see
+//             branchTipBefore below
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -25,6 +27,9 @@ import { claimantsOf, reportFor } from './verify-branch-identity.mjs';
 
 export const DRIFTED = 91;
 export const NO_BRANCH_POINT = 93;
+// Kept apart from 93 because they are different failures with different remedies: 93 is "I do not
+// know where this branch STARTED", 94 is "I do not know which side of this merge the branch IS".
+export const NO_BRANCH_TIP = 94;
 
 // Files that are WRITTEN AFTER the work they describe, so a handoff cannot be expected to list
 // its own commit. Everything else changing after the cited head means the handoff is stale.
@@ -39,10 +44,10 @@ const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 
 // A handoff cannot cite the commit that CONTAINS it -- that revision does not exist until the
 // commit is made. So the range is compared against the branch as it stood BEFORE the current
-// commit, which is the last parent of HEAD: `HEAD^` for an ordinary commit, and for the merge
-// commit `actions/checkout` builds on a pull request, the branch head itself. Without this the
-// check is red for exactly as long as it takes to write the follow-up commit, every time, and a
-// guard that is normally red is a guard people learn to ignore.
+// commit: `HEAD^` for an ordinary commit, and for a merge, whichever parent is this branch's own
+// side -- see branchTipBefore. Without this the check is red for exactly as long as it takes to
+// write the follow-up commit, every time, and a guard that is normally red is a guard people learn
+// to ignore.
 // Between `refresh:handoff` and the commit that carries it, the cited head IS `HEAD`, which is
 // AHEAD of the comparison point -- and `git diff a..b` on a reversed range reports the reverse
 // diff, so the check used to fail with a list of paths that had not drifted at all. A guard must
@@ -61,9 +66,88 @@ export function driftBetween(cited, target) {
   return { state: 'drifted', paths: classify([...since.added, ...since.modified]).substantive };
 }
 
-export function branchTipBefore(head = 'HEAD') {
-  const parents = git('rev-list', '--parents', '-1', head).split(' ');
-  return parents.length > 1 ? parents[parents.length - 1] : head;
+// WHICH PARENT OF A MERGE IS "the branch as it stood before this commit".
+//
+// This took the LAST parent, on the reasoning in the paragraph above: the merge commit
+// `actions/checkout` builds for a pull request has parents [base, pull request head], so the last
+// one is the branch. That is true of THAT merge and of no other. Parent order records how a merge
+// was MADE -- git puts the branch the merge was run ON first -- and not which side is the feature
+// branch:
+//
+//   git merge main         run on the working branch  -> [branch tip, main tip]   branch FIRST
+//   the pull request merge built on top of the base   -> [main tip, branch tip]   branch LAST
+//
+// Batch 040's author hit the first shape, kept its branch linear as a workaround and reported it
+// rather than editing a file it does not own. Measured on the reported shape: the handoff was
+// compared against MAIN, so its honestly cited head came back `unrelated` -- "cites a revision on
+// no path to this branch", exit 91 -- and `refresh:handoff` refuses to rewrite an unrelated
+// citation, so the tooling could neither pass nor repair itself. A branch could not merge main.
+//
+// Order cannot tell the two apart, so order is not what is asked. The branch side of a merge is
+// the side THE INTEGRATION BRANCH DOES NOT ALREADY CONTAIN, which is a fact in the history rather
+// than a convention about how the merge was typed:
+//
+//   first parent not in the integration branch -> the first parent. Any merge run ON this branch,
+//                                                 whether main or a sibling branch was merged in.
+//   first parent in it, exactly one other not  -> that other parent. A merge built ON the
+//                                                 integration branch out of one outside head:
+//                                                 the pull request merge commit, and only it.
+//   every parent in it                         -> the first parent. HEAD is itself a commit on the
+//                                                 integration branch -- the merge of a pull
+//                                                 request, which is what a push-to-main CI run
+//                                                 checks out. The branch there IS main, and main
+//                                                 as it stood before is its first parent.
+//   first parent in it, two or more others not -> REFUSED. More than one candidate is more than
+//                                                 one answer, and this script does not pick.
+//
+// Refusing is the answer `branchPointOf` already gives when it cannot resolve an integration ref,
+// for the same reason: a comparison point that is silently the wrong side makes the guard red for
+// a false reason or green for no reason, and both are worse than a stopped run with a message.
+export function branchTipBefore(head = 'HEAD', refs = INTEGRATION_REFS) {
+  const [commit, ...parents] = git('rev-list', '--parents', '-1', head).split(' ');
+  // A root commit has nothing before it; compared against itself, `driftBetween` reports `clean`.
+  if (parents.length === 0) return { ok: true, tip: commit, parents, reason: 'the root commit has nothing before it' };
+  if (parents.length === 1) return { ok: true, tip: parents[0], parents, reason: 'an ordinary commit: its only parent' };
+
+  const integration = [];
+  const rejected = [];
+  for (const ref of refs) {
+    const resolved = resolveCommit(ref);
+    if (resolved === null) { rejected.push(`${ref}: no such ref in this repository`); continue; }
+    integration.push({ ref, commit: resolved });
+  }
+  const cannotTell = (detail) => ({
+    ok: false,
+    message: `cannot determine which parent of merge ${commit.slice(0, 7)} is this branch's own tip.\n`
+      + `  ${detail}\n`
+      + '  A merge commit\'s parents are ordered by how the merge was made, not by which side is the branch: '
+      + '`git merge main` run on a working branch puts the branch FIRST, and the merge commit a pull request is '
+      + 'built on puts it SECOND. Telling them apart needs the integration branch.\n'
+      + '  A handoff is compared against the branch as it stood before this commit. Comparing it against the other '
+      + 'side of the merge reports every path on the branch as a revision "on no path to this branch", which this '
+      + 'script then refuses to rewrite -- so it will not guess which side that is.\n',
+  });
+  if (integration.length === 0) {
+    return cannotTell(`None of ${refs.join(', ')} could be used:\n    ${rejected.join('\n    ')}\n`
+      + '  Fetch the default branch (git fetch origin) or check out a clone that has it, then run this again.');
+  }
+
+  const alreadyIntegrated = (parent) => integration.some(({ commit: tip }) => isAncestor(parent, tip));
+  const [first, ...rest] = parents;
+  const refNames = integration.map(({ ref }) => ref).join(', ');
+  if (!alreadyIntegrated(first)) {
+    return { ok: true, tip: first, parents, reason: `${first.slice(0, 7)} is not in ${refNames}, so it is this branch's own history` };
+  }
+  const outside = rest.filter((parent) => !alreadyIntegrated(parent));
+  if (outside.length === 1) {
+    return { ok: true, tip: outside[0], parents, reason: `${outside[0].slice(0, 7)} is the one parent ${refNames} does not already contain` };
+  }
+  if (outside.length === 0) {
+    return { ok: true, tip: first, parents, reason: `every parent is already in ${refNames}, so HEAD is a commit on it and its previous state is the first parent` };
+  }
+  return cannotTell(`Its parents are ${parents.map((parent) => parent.slice(0, 7)).join(', ')}. The first is already in `
+    + `${refNames}, and ${outside.length} of the rest are not (${outside.map((parent) => parent.slice(0, 7)).join(', ')}), `
+    + 'so more than one of them could be the branch this handoff describes.');
 }
 
 export function classify(paths) {
@@ -224,7 +308,12 @@ async function main(argv) {
   const handoff = JSON.parse(await readFile(path, 'utf8'));
   const stored = handoff.base_revision;
   const head = git('rev-parse', 'HEAD');
-  const comparedAgainst = branchTipBefore();
+  const tipBefore = branchTipBefore();
+  if (!tipBefore.ok) {
+    process.stderr.write(tipBefore.message);
+    return NO_BRANCH_TIP;
+  }
+  const comparedAgainst = tipBefore.tip;
 
   const branchPoint = branchPointOf(head);
   if (!branchPoint.ok) {
