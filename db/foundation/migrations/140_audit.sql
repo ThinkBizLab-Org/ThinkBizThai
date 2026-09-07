@@ -224,13 +224,18 @@
 -- client read. A member never needed a SELECT grant here to receive their export.
 --
 --
--- THE ONE `S` CELL IN THIS REPOSITORY, AND WHY IT IS STILL DENIED
+-- THE SECOND `S` CELL IN THIS REPOSITORY, AND WHY IT IS STILL DENIED
 --
 -- Batch 010's header, written before any of this existed, said it: "The `S` operations the
 -- amendment exists for live in §8.2–§8.4 — research rows, publish delivery, job payloads, usage
 -- ledger, AUDIT INSERTS — and belong to batches 050, 061, 070, 120, **140**. Their owners inherit
 -- the shape; batch 010 has no occasion to use it." This is that batch, and "Audit/security INSERT |
--- N N N N N S" is the first `S` cell any migration in this repository has reached.
+-- N N N N N S" is the second `S` cell a migration here has reached. This file said THE FIRST, and
+-- so did batch 050, written in parallel and merged before it: §8.4's "Internal job/attempt/DLQ
+-- payload" is the other one. Both were true of the base each branch was cut from. The correction
+-- matters beyond bookkeeping, because 050 found that RFC-2026-016 §2's service-policy shape does
+-- not fit a queue -- and an audit table is the case where it might, so the two cells are evidence
+-- about the same open decision rather than one cell twice.
 --
 -- **The service INSERT policy is NOT written, and the reason is a condition inside the approved
 -- decision rather than a reluctance to obey it.** `RFC-2026-016` §2 amends §8.5 to

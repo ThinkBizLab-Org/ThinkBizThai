@@ -4683,8 +4683,8 @@ test('the service holds grants and no policy, and the one S cell in the reposito
       `batch 140 must write no policy TO ${role}`);
   }
   // The reason is the finding, and the finding is larger than this batch.
-  assert.match(audit, /THE ONE `S` CELL IN THIS REPOSITORY/,
-    '§8.4\'s "Audit/security INSERT | N N N N N S" is the first `S` cell any migration here has reached, '
+  assert.match(audit, /THE SECOND `S` CELL IN THIS REPOSITORY/,
+    '§8.4\'s "Audit/security INSERT | N N N N N S" is the second `S` cell a migration here has reached, '
     + "and batch 010's header named 140 as one of the batches that would inherit RFC-2026-016 §2's shape");
   assert.match(audit, /server-set workspace GUC/i,
     'RFC-2026-016 §2 conditions the service policy on a GUC derived from CTR-TEN-001, and that GUC has no '
