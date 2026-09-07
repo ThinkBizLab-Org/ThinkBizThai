@@ -49,6 +49,12 @@ export const FIXTURE_SQL_FILES = [
   // order and a new batch appends to it, which is also what keeps a reader from having to work out
   // whether the position meant something.
   'tests/db/identity/fixtures/050-async-kernel-fixture.sql',
+  // Batch 060 names only Workspaces (010) and its own global model row, so it could sit anywhere
+  // after the first entry; it is last because the list is also the ORDER OF THE BATCHES, and a
+  // reader who finds a fixture out of migration order has to check whether that was deliberate.
+  // It is the first entry that writes into `private`, which §3.1 makes the home of secret
+  // references and which no fixture before it had a table in.
+  'tests/db/identity/fixtures/060-ai-gateway-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
@@ -300,6 +306,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010, 011, 020,\n'
     + `  021, 030, 040, 050 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
     + '  Until that happens, tenant isolation for batches 010-050 is UNPROVEN. Nothing here says\n'
+    + `  021, 030, 040, 060 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
+    + '  Until that happens, tenant isolation for batches 010-060 is UNPROVEN. Nothing here says\n'
     + '  otherwise.\n');
   process.exit(1);
 }

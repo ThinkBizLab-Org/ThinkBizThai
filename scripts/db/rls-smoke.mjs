@@ -70,7 +70,19 @@ export function bufferedDriver(runQuery = queryFinal) {
       // identity under test (C0's review D7). No fixture value triggered it and the escalation was
       // confined to a rolled-back transaction, but a control over a privilege decision must not be
       // reachable from data at all. The statement is the code; the parameters are not.
-      const assumesIdentity = /\bprivate\.as_/.test(statement);
+      //
+      // A3 AI GATEWAY CORRECTION, batch 060, and it is an adjacency this batch CREATED rather than
+      // a defect it found. The pattern was `/\bprivate\.as_/` — a substring test — and until now no
+      // isolation case named `private.` at all, so the only statements it could match were the four
+      // identity helpers. Batch 060 puts a real subject in `private`
+      // (private.ai_credential_references, where §3.1 says secret references live) and eight cases
+      // name it in their own SQL. A substring test is then ONE TABLE NAME away from turning a case's
+      // own statement into a connection-role statement: a table called `private.as_of_date`, say,
+      // would make every case reading it run as the role that BYPASSES row level security, and the
+      // case would pass while asserting nothing. So the test is anchored on the SHAPE of an identity
+      // call — a `select` of a `private.as_*` FUNCTION — which the four helpers have and no `select
+      // ... from private.<table>` can acquire.
+      const assumesIdentity = /^\s*select\s+private\.as_\w+\s*\(/i.test(statement);
       const sql = await run(statement, params);
       if (assumesIdentity) buffer.push('reset role;');
       const final = sql.trim().endsWith(';') ? sql : `${sql};`;

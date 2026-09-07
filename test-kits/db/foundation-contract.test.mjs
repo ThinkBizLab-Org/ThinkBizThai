@@ -231,9 +231,18 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // the first TENANT tables in the schema with NO POLICY AT ALL, and none of the five properties
 // `tenant_tables` records — rls_enabled, rls_forced, has_pk, comment, owner — can tell a table no
 // role can read from one with a full policy set.
+// Batch 060 joins for a reason that is NOT the structural one, and saying so is the point of this
+// list. Its own dependencies are shallow — a foreign key into app.workspaces, which the instance
+// has — so it could be applied there. It is declared all the same, because
+// `pendingDeclarationLint` requires the declaration to name a TAIL of the ordered set: an instance
+// holding 060 while missing 011 through 040 is DIVERGENT rather than behind, which is a different
+// finding with a different fix. It also brings the first table this repository has created OUTSIDE
+// `app` — private.ai_credential_references, where §3.1 puts secret references by name — which
+// `tenantTablesInMigrations` cannot see in either direction, so `schemaLint` is widened in the same
+// change to hold a `private` table to the same owner-comment, ENABLE, FORCE and primary-key rules.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql'];
+  '050_async_kernel.sql', '060_ai_gateway.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -425,6 +434,13 @@ const ADDED_SYMBOLS = [
   // consumer, two tenants, two rows.
   'outbox_event_a',
   'outbox_event_b',
+  // Batch 060. One symbol for three tables, and the arithmetic is the rule rather than restraint: a
+  // model policy is addressed by the Workspace it belongs to (workspace_id IS its primary key), and
+  // a credential reference by the Workspace too — both natural keys this file already fixes. A
+  // GLOBAL curated model has none, which is exactly why batch 030's pack needed one: a catalog no
+  // case can address is a catalog no case can be about. Its `model_key` is synthetic on purpose —
+  // OPEN-004 owns the BYOK model allowlist, it is open, and §15 forbids an agent choosing it.
+  'ai_model_openai_text',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

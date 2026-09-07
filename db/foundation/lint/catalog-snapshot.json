@@ -13,9 +13,10 @@
       "030_industry.sql",
       "040_knowledge.sql",
       "041_knowledge_resolution.sql",
-      "050_async_kernel.sql"
+      "050_async_kernel.sql",
+      "060_ai_gateway.sql"
     ],
-    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, which is a different finding with a different fix, and pendingDeclarationLint refuses a declaration that is not a tail.\n\nThe tail is now 7 batches long. 011, 020, 021, 030 and 040 are here because of tables this instance does not have. 041 is here because its apply-time block reads app.knowledge_items, which is not on this instance, and it creates no table at all -- so it adds no row to tenant_tables and will add none the day it lands. 050 is the first batch in the tail whose SQL dependencies are ALL present: its three tables reference app.workspaces and nothing else. It is declared not applied anyway, by the tail rule rather than by an exception to it."
+    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 8 batches long.\n\n011 to 040 are here because of tables this instance does not have. 041 creates no table at all and is here because its apply-time block reads app.knowledge_items. 050's three tables reference only app.workspaces, so its SQL dependencies are all present and it is declared not applied by the tail rule rather than by an exception to it. 060 adds two global tables and one in `private`, and is here for the same reason."
   },
   "catalog": {
     "roles_bypassing_rls": [

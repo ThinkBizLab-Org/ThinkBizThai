@@ -497,4 +497,27 @@ test('the reset-role decision is made from the statement and never from its para
   await driver.exec('select private.as_user($1::uuid)', ['00000000-0000-0000-0000-000000000001']);
   assert.ok(sent[1].prelude.includes('reset role;'),
     `an identity call must still step back to the connection role first:\n${sent[1].prelude.join('\n')}`);
+
+  // BATCH 060: a case whose own statement READS A TABLE IN `private`. Until that batch no isolation
+  // case named `private.` at all, so a substring test over the statement could only ever match the
+  // four identity helpers. private.ai_credential_references is a real subject now — §3.1 puts
+  // secret references there and eight cases assert that every identity is refused on that SCHEMA —
+  // and a substring test would have been one table name away from stepping those cases back to the
+  // connection role, which BYPASSES row level security. They would then have passed while asserting
+  // nothing, which is the exact failure shape D7 was about, reached from the schema instead of from
+  // a parameter.
+  //
+  // Counted rather than tested for presence: the prelude is CUMULATIVE — it replays every statement
+  // of the case so far — so the identity call above has already put one `reset role;` in it, and a
+  // presence test would report the wrong thing while looking right. What must be true is that THIS
+  // statement adds none.
+  const resets = (prelude) => prelude.filter((line) => line === 'reset role;').length;
+  await driver.exec('select fingerprint from private.ai_credential_references where workspace_id = $1',
+    ['00000000-0000-0000-0000-000000000001']);
+  assert.equal(resets(sent[2].prelude), resets(sent[1].prelude),
+    'a case READING a table in `private` must run as the identity under test, not as the connection '
+    + `role that bypasses row level security:\n${sent[2].prelude.join('\n')}`);
+  assert.match(sent[2].statement, /private\.ai_credential_references/,
+    'and the statement still reaches the database unchanged — the control moved off the substring, '
+    + 'not off the table');
 });
