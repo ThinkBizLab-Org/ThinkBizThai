@@ -2738,7 +2738,9 @@ test('every line batch 041 cites is the line that says what the batch says it sa
   }
   assert.ok(made.size >= 6, 'the header still carries its citations; a batch whose finding IS the '
     + 'deliverable does not get to stop naming where it read things');
-=======
+});
+
+// =============================================================================================
 // Batch 050 — the async kernel, and the first family in this schema no identity can read.
 // =============================================================================================
 //

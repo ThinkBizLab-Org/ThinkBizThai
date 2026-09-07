@@ -220,8 +220,6 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // exactly the reason 040 cannot. A list of batches-that-owe-rows and a list of
 // batches-that-cannot-be-applied have been the same list until now, and this is the entry that
 // separates them.
-const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
-  '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql'];
 // Batch 050 joins for a reason that is NOT the structural one, and the difference is worth stating
 // because the list would otherwise read as five instances of one rule. Its three tables reference
 // app.workspaces and nothing else, so its SQL dependencies are all on the instance — it is the
@@ -234,7 +232,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
 // `tenant_tables` records — rls_enabled, rls_forced, has_pk, comment, owner — can tell a table no
 // role can read from one with a full policy set.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
-  '030_industry.sql', '040_knowledge.sql', '050_async_kernel.sql'];
+  '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
+  '050_async_kernel.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
