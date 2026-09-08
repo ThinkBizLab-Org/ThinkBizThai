@@ -5606,3 +5606,606 @@ test('each coverage map declares each key exactly once, which the parsed object 
       + 'as its most dangerous, and it is only visible in the source.');
   }
 });
+
+
+// =================================================================================================
+// BATCH 061 — metering. What can be proven about the ledger, the hold and the aggregate without a
+// database.
+// =================================================================================================
+//
+// Appended as one contiguous block at the END of this file, which is the integration rule
+// evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md §4 produced after three conflict seams
+// fell INSIDE an expression during the last parallel round: a side-taking resolution there PARSES,
+// the suite runs, and another batch's work is gone with nothing to report it. "main's version plus
+// this branch's own section" is the only resolution that cannot lose a test by accident.
+const METERING_MIGRATION = 'db/foundation/migrations/061_metering.sql';
+const METERING_FIXTURE = 'tests/db/identity/fixtures/061-metering-fixture.sql';
+const SERVICE_POLICY_MAP_FILE = 'db/foundation/lint/service-policy-map.json';
+const USAGE_CONTRACT = 'contract-catalog/shared-kernel/ctr-usg-001/schema.json';
+// The schema states the SHAPE; the manifest states what the schema cannot express. Both are read,
+// because the whole of the next test is about the gap between them.
+const USAGE_MANIFEST = 'contract-catalog/shared-kernel/ctr-usg-001/manifest.json';
+const metering = await readFile(METERING_MIGRATION, 'utf8');
+const meteringCode = metering.replace(/--[^\n]*/g, '');
+const USAGE_EVENTS = 'usage_events';
+const USAGE_RESERVATIONS = 'usage_reservations';
+const QUOTA_BUCKETS = 'quota_buckets';
+const METERING_TABLES = [USAGE_EVENTS, USAGE_RESERVATIONS, QUOTA_BUCKETS];
+// The two tables §8 says nothing about in any of its four matrices, and which therefore carry no
+// policy at all. app.quota_buckets is deliberately not in this list.
+const METERING_TABLES_WITH_NO_POLICY = [USAGE_EVENTS, USAGE_RESERVATIONS];
+
+test('every batch 061 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const table of METERING_TABLES) {
+    assert.match(meteringCode, new RegExp(`create table (?:if not exists )?app\\.${table}\\b`, 'i'));
+    assert.match(meteringCode, new RegExp(`alter table app\\.${table} enable row level security`, 'i'));
+    assert.match(meteringCode, new RegExp(`alter table app\\.${table} force row level security`, 'i'),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first (RFC-2026-016 §4)');
+    assert.match(meteringCode, new RegExp(`comment on table app\\.${table} is`, 'i'));
+    assert.match(meteringCode,
+      new RegExp(`create table (?:if not exists )?app\\.${table}[\\s\\S]{0,600}?primary key`, 'i'));
+  }
+  // The two tables §8 has no row for carry NO policy, and this is the direction that catches a batch
+  // adding one. app.quota_buckets is excluded because it carries two, asserted separately below.
+  for (const table of METERING_TABLES_WITH_NO_POLICY) {
+    assert.doesNotMatch(meteringCode, new RegExp(`create policy \\w+ on app\\.${table}\\b`, 'i'),
+      `app.${table} carries a policy. §8 has no row for a usage-ledger READ and none at all for a `
+      + 'reservation, so there is no cell to implement; and the ledger\'s one `S` cell is classified '
+      + 'CARRIED under a decision RFC-2026-022 declares NOT IN EFFECT. A policy here is one of those two '
+      + 'being changed by a migration rather than by an RFC.');
+  }
+  assert.match(metering, /FORCE ROW LEVEL SECURITY with an empty policy set/,
+    'the migration states that the empty policy set is the decision, where a reader meets it');
+});
+
+// THE CENTRE OF THE BATCH. §5 calls this family "append-only ledger + aggregate" — two shapes — and
+// the ledger is the half that carries the truth.
+test('the usage ledger is append-only and the aggregate is derived, asserted both ways', () => {
+  for (const verb of ['update', 'delete']) {
+    assert.doesNotMatch(meteringCode,
+      new RegExp(`grant[^;]*\\b${verb}\\b[^;]*on app\\.${USAGE_EVENTS}\\b`, 'i'),
+      `app.usage_events grants ${verb.toUpperCase()} to somebody. §8.4's "Usage ledger `
+      + 'INSERT/UPDATE/DELETE" is `N N N N N S/N` — the `S` is on the INSERT alone and the service is `N` '
+      + 'on the other two — and §3.2 and §4 invariant 8 both name USAGE history immutable.');
+  }
+  // And the same claim as the live catalog holds it, in the migration's own apply-time block, which
+  // is the half that catches a grant a LATER batch makes in a file this one cannot see.
+  assert.match(meteringCode, /the usage ledger can be updated or deleted/,
+    'the apply-time block asserts the ledger against the live ACL rather than against the grant text');
+  assert.match(meteringCode, /the usage ledger carries an UPDATE or DELETE policy/,
+    'and against the live POLICY catalog, because a grant with no policy and a policy with no grant are '
+    + 'different failures and either alone leaves the other open');
+  // No updated_at and no trigger on the ledger: an immutable row has no update to stamp.
+  assert.doesNotMatch(meteringCode,
+    new RegExp(`create trigger \\w+ before update on app\\.${USAGE_EVENTS}\\b`, 'i'),
+    'app.usage_events has an updated_at trigger, which is the first sentence of an append-only table '
+    + 'contradicting itself');
+  // The aggregate is the OTHER half and is mutable, which is what makes §5's sentence two shapes.
+  for (const table of [USAGE_RESERVATIONS, QUOTA_BUCKETS]) {
+    assert.match(meteringCode,
+      new RegExp(`create trigger set_updated_at before update on app\\.${table}\\s+for each row execute function private\\.set_updated_at\\(\\)`, 'i'),
+      `app.${table} is mutable by design and §3.2 requires updated_at of a mutable row`);
+  }
+  assert.match(metering, /THE LEDGER WINS, BY CONSTRUCTION, AND THIS BATCH WRITES NO\n--\s+RECONCILIATION/,
+    'the migration answers "what happens when they disagree" where a reader meets the two tables, rather '
+    + 'than leaving the reader to infer it from an absent trigger');
+});
+
+// The reconciliation refusal, asserted as an absence in both of the shapes it could have taken.
+test('nothing in batch 061 maintains the aggregate from the ledger, and the watermark is why', () => {
+  assert.doesNotMatch(meteringCode, /create (?:or replace )?function/i,
+    'batch 061 creates no function at all. A trigger function maintaining app.quota_buckets from '
+    + 'app.usage_events would have to decide which events fall in which bucket, what a superseding event '
+    + 'does to the estimate it replaces, and whether the bucket is authoritative between recomputes — '
+    + "CTR-USG-001's freeze boundary puts OB-008's reconciliation algorithm outside itself and §6's "
+    + 'registry gives the resolver to batch 132.');
+  assert.doesNotMatch(meteringCode, /create (?:or replace )?(?:materialized )?view/i,
+    'and no view either, which is the other shape the same decision could have arrived in');
+  assert.doesNotMatch(meteringCode, new RegExp(`create trigger \\w+[^;]*on app\\.${USAGE_EVENTS}\\b`, 'i'),
+    'and no trigger on the ledger');
+  // What IS built is the thing that makes a disagreement detectable rather than resolvable.
+  assert.match(meteringCode, /computed_through\s+timestamptz/,
+    'app.quota_buckets carries the watermark. Without it a STALE bucket and a WRONG bucket are '
+    + 'indistinguishable, which is the unfalsifiable shape this repository keeps removing — and a bucket '
+    + 'whose watermark is NULL claims nothing rather than claiming zero.');
+  assert.match(meteringCode, /usage_events_bucket_recompute_idx/,
+    'and the index the comparison runs over, on exactly the columns quota_buckets_one_per_period is keyed '
+    + 'on, so "does this bucket agree with the ledger" is a query anyone can run');
+  assert.match(metering, /THE WATERMARK, AND THE ONE COLUMN THAT MAKES A DISAGREEMENT DETECTABLE/,
+    'and the reason is written where the column is, not only in the header');
+});
+
+// §8.4's two metering rows, and which of them this batch implements.
+test('the one client grant is a column-scoped SELECT on the aggregate, and nothing else', async () => {
+  // The ledger and the hold are granted nothing at all to a client role.
+  for (const role of CLIENT_ROLES) {
+    for (const table of METERING_TABLES_WITH_NO_POLICY) {
+      assert.doesNotMatch(meteringCode,
+        new RegExp(`grant[^;]*on app\\.${table}[^;]*to ${role}\\b`, 'i'),
+        `batch 061 grants ${role} a privilege on app.${table}. §8.4's client cells are about the SUMMARY, `
+        + 'which is app.quota_buckets; the ledger has no client cell in any of §8\'s four matrices and a '
+        + 'reservation has no row at all.');
+    }
+  }
+  assert.doesNotMatch(meteringCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4 decides that anon holds nothing anywhere our migrations reach, and the first anon '
+    + 'grant is `usage on schema app`, which changes the denial layer of every object in app at once');
+  // The one grant that exists, and the column it withholds.
+  const grant = meteringCode.match(/grant select \(([^)]*)\)\s*\n?\s*on app\.quota_buckets to authenticated/i);
+  assert.ok(grant, '§8.4 marks "Usage/quota summary SELECT" `Y` for the owner and `Y` for the admin, and the '
+    + 'aggregate IS the summary. A batch that implemented neither would be refusing two unconditional cells.');
+  const granted = grant[1].split(',').map((c) => c.trim());
+  assert.ok(!granted.includes('computed_through'),
+    'computed_through is inside the client grant. It describes the RESOLVER\'s own progress — the shape '
+    + '§9.1 gives INTERNAL-3 ("redacted status only") rather than the summary it gives FIN-3 — and batch '
+    + '132 owns it. A client reading it would be reading how far behind a job is.');
+  for (const column of ['consumed_amount', 'reserved_amount', 'dimension', 'quantity_unit',
+    'period_start', 'period_end']) {
+    assert.ok(granted.includes(column), `the summary must carry ${column}, or it is not a summary`);
+  }
+  // The debt this grant joins, recorded rather than absorbed.
+  assert.match(metering, /RFC-2026-021.{0,40}§8\.5 EXPECTS TO BE CLOSED/,
+    'RFC-2026-021 §8.5 requires the list of inherited authenticated base-table grants to be CLOSED — "any '
+    + 'new one fails" — and the list still does not exist. 030, 040 and 130 each recorded that they grew '
+    + 'it; a batch that grew it silently would be the one that made the list unwritable.');
+  const decisions = await readdir('architecture/decisions');
+  for (const file of ['RFC-2026-021-client-read-allowlist.md', 'RFC-2026-022-service-policy-shape.md']) {
+    assert.ok(decisions.includes(file), `batch 061 cites ${file} and the record must exist to be cited`);
+  }
+});
+
+// USING and WITH CHECK are two catalog columns, so they are asserted separately.
+test('the aggregate carries a role policy and a RESTRICTIVE narrowing, each asserted on both clauses', () => {
+  const select = meteringCode.match(
+    /create policy quota_buckets_select_owner_or_admin on app\.quota_buckets\s+for select to authenticated\s+using \(([^;]*?)\);/i);
+  assert.ok(select, 'the §8.4 summary cell is implemented as a policy TO authenticated');
+  assert.match(select[1], /app\.workspace_member_role\(workspace_id\)\s*in\s*\(\s*'owner',\s*'admin'\s*\)/,
+    "§8.4 marks the summary `Y` for the owner AND `Y` for the admin — two unconditional cells — and the "
+    + "editor's `P` is refused because RFC-2026-020 §8 decides no document defines the capability set. "
+    + "Widening this to 'editor' would delete the distinction between `Y` and `P`.");
+  assert.doesNotMatch(select[1], /with check/i,
+    'a FOR SELECT policy admits no WITH CHECK, so the two clauses are asserted apart rather than as one blob');
+
+  const restrictive = meteringCode.match(
+    /create policy quota_buckets_scope_narrows_member on app\.quota_buckets\s+as restrictive\s+for all to authenticated\s+using \(([\s\S]*?)\)\s*with check \(([\s\S]*?)\);/i);
+  assert.ok(restrictive, 'the member-scope narrowing is AS RESTRICTIVE and carries BOTH clauses. A narrowing '
+    + 'written as a permissive policy would OR with the role policy and subtract nothing, which is the '
+    + 'failure the whole restrictive/permissive distinction exists for.');
+  for (const [clause, which] of [[restrictive[1], 'USING'], [restrictive[2], 'WITH CHECK']]) {
+    assert.match(clause, /business_profile_id is null/,
+      `${which}: the NULL branch is explicit. A workspace-level bucket is inside no member scope — 021: `
+      + '"every one of them names a Business or a Page, and a WORKSPACE row is not inside any of them" — '
+      + 'and passing NULL to the helper would deny everyone including the unscoped.');
+    assert.match(clause, /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
+      `${which}: the narrowing calls 021's helper rather than a new scope test`);
+    assert.doesNotMatch(clause, /member_scope_covers_/,
+      `${which}: member_scope_covers_* is the \`P\` form and answers FALSE for a member holding no scope `
+      + 'row, so it would deny every unscoped owner — the reading 021 rejected in its own header');
+  }
+  // RFC-2026-020 §5/5: membership is read through the helpers and never by joining the table.
+  for (const table of ['workspace_members', 'workspace_member_scopes']) {
+    assert.doesNotMatch(meteringCode, new RegExp(`create policy[\\s\\S]{0,600}?app\\.${table}\\b`, 'i'),
+      `a batch 061 policy reads app.${table} directly. RFC-2026-020 §5/5 makes membership and scope `
+      + 'uniform through the helpers, and a join here would evaluate as the CALLER and make the width of '
+      + "metering visibility a function of another module's policy set.");
+  }
+  // And the service half: grants, no policy, so a service denial stays attributable to RLS.
+  assert.doesNotMatch(meteringCode, /create policy[^;]*to app_worker/i,
+    'app_worker holds grants and NO POLICY on all three tables. RFC-2026-022 classes this batch\'s `S` cell '
+    + 'CARRIED and declares the decision NOT IN EFFECT, so the classification is recorded as data and the '
+    + 'policy is not written.');
+});
+
+test("the ledger's columns are CTR-USG-001's, and every divergence from that contract is declared", async () => {
+  const contract = JSON.parse(await readFile(USAGE_CONTRACT, 'utf8'));
+  const ledger = meteringCode.match(/create table if not exists app\.usage_events \(([\s\S]*?)\n\);/);
+  assert.ok(ledger, 'the ledger table must be readable from the migration text');
+  const body = ledger[1];
+  // Every scalar property of the contract has a column, with the nested objects flattened.
+  const expected = {
+    usage_id: 'usage_id',
+    occurred_at: 'occurred_at',
+    dimension: 'dimension',
+    dedupe_key: 'dedupe_key',
+  };
+  for (const property of Object.keys(contract.properties)) {
+    if (['quantity', 'attribution', 'cost', 'tenant_context'].includes(property)) continue;
+    assert.match(body, new RegExp(`\\n\\s+${expected[property]}\\s`),
+      `CTR-USG-001 declares ${property} and the store has no column for it. A migration that contradicts a `
+      + 'contract is a defect and one that ignores a contract is worse.');
+  }
+  for (const flattened of ['quantity_amount', 'quantity_unit', 'job_id', 'provider_key',
+    'cost_amount', 'cost_currency', 'cost_basis', 'supersedes_usage_id']) {
+    assert.match(body, new RegExp(`\\n\\s+${flattened}\\s`),
+      `the nested contract object flattens to ${flattened}, and the column is missing`);
+  }
+  // tenant_context resolves to §3.3's canonical names — 050's resolution, not a new one.
+  assert.match(body, /\n\s+workspace_id\s+uuid\s+not null/);
+  assert.match(body, /\n\s+business_profile_id\s+uuid,/);
+  // The contract's own value sets, as named CHECKs (§3.2).
+  for (const value of contract.properties.dimension.enum) {
+    assert.ok(body.includes(`'${value}'`), `the dimension vocabulary must carry the contract's ${value}`);
+  }
+  for (const value of contract.properties.quantity.properties.unit.enum) {
+    assert.ok(body.includes(`'${value}'`), `the unit vocabulary must carry the contract's ${value}`);
+  }
+  for (const value of contract.properties.cost.properties.basis.enum) {
+    assert.ok(body.includes(`'${value}'`), `cost_basis must carry the contract's ${value}`);
+  }
+  // THE FOUR DIVERGENCES, each declared in the header rather than discovered by a reviewer.
+  for (const needle of [/`usage_id` IS A `uuid` AND IS NOT THE PRIMARY KEY/,
+    /`cost_amount` IS `numeric\(18,6\)` AND THE CONTRACT PERMITS MORE/,
+    /`quantity_amount` IS `numeric\(24,8\)` AND §3\.2 SAYS `bigint`/,
+    /THERE IS NO `metric_labels` COLUMN/]) {
+    assert.match(metering, needle,
+      'a divergence from a Draft contract whose owner is this batch\'s own owner pair is declared, or the '
+      + 'reading is one nobody countersigned');
+  }
+  assert.equal(contract.$id, 'CTR-USG-001');
+  // Money is §3.2's type, asserted against the live catalog at apply time as 130 asserts its own.
+  assert.match(meteringCode, /cost_amount\s+numeric\(18,6\)/);
+  assert.match(meteringCode, /§3\.2 fixes money as numeric\(18,6\)/,
+    'and the apply-time block reads the DECLARED TYPE from the catalog, because a column retyped by a later '
+    + 'batch would not appear in this file');
+  // Read from the CREATE TABLE bodies rather than from the whole file: the apply-time block NAMES
+  // these type names on purpose, in the query that refuses them.
+  for (const table of METERING_TABLES) {
+    const columns = meteringCode.match(new RegExp(`create table if not exists app\\.${table} \\(([\\s\\S]*?)\\n\\);`))[1];
+    assert.doesNotMatch(columns, /\b(real|double precision|float4|float8|money)\b/i,
+      `app.${table}: §3.2 says "เงิน: numeric(18,6) + ISO-4217 currency; ห้าม float", and CTR-USG-001 `
+      + 'carries both money AND quantity as decimal strings for the same reason — a quantity a cost is '
+      + 'derived from is as float-sensitive as the cost');
+  }
+  assert.match(meteringCode, /an inexact or locale-dependent numeric type appears in batch 061/,
+    'and the apply-time block asks the live catalog the same question, which catches a column a LATER batch '
+    + 'retypes in a file this one cannot see');
+});
+
+test('the two rules CTR-USG-001 says its validator cannot express are constraints in the store', async () => {
+  const manifest = JSON.parse(await readFile(USAGE_MANIFEST, 'utf8'));
+  assert.equal(manifest.contract_id, 'CTR-USG-001');
+  assert.equal(manifest.status, 'Draft',
+    'the columns come from a DRAFT contract, which is a departure this batch declares rather than hides — '
+    + 'and if the status ever moves, the four divergences in 061\'s header are what a freeze has to weigh');
+  assert.match(manifest.untestable_by_schema, /SELF-REFERENCE AND SUPERSESSION UNIQUENESS/,
+    'the contract records both gaps, and this test exists because a store can close what a JSON Schema '
+    + 'subset cannot');
+  assert.match(meteringCode,
+    /constraint usage_events_supersedes_is_not_self\s+check \(supersedes_usage_id is null or supersedes_usage_id <> usage_id\)/,
+    'CTR-USG-001: "a document whose cost.supersedes_usage_id equals its own usage_id VALIDATES". An event '
+    + 'that supersedes itself is a correction of nothing that a reconciliation would count as a correction '
+    + 'of something.');
+  assert.match(meteringCode,
+    /create unique index if not exists usage_events_supersedes_at_most_once[\s\S]{0,160}?where supersedes_usage_id is not null/,
+    'CTR-USG-001: "nothing here stops two events superseding one estimate". Partial, because the column is '
+    + 'null on every event that corrects nothing.');
+  // And the third: the dedupe key must AGREE with the row it is on.
+  assert.match(manifest.untestable_by_schema, /DEDUPE KEY AGREEMENT/);
+  assert.match(meteringCode,
+    /constraint usage_events_dedupe_key_names_its_row check \(\s*starts_with\(dedupe_key,/,
+    "the key's workspace, job, dimension and basis segments are pinned to the row's own columns");
+  assert.doesNotMatch(meteringCode, /like 'usg:' \|\|/,
+    'and with starts_with rather than LIKE, because `_` is a LIKE wildcard and four of the six dimension '
+    + 'values contain one — a LIKE would accept a key whose dimension segment is not the row\'s dimension');
+  assert.match(metering, /THE SIXTH PART, THE INSTANT, IS THE ONE THIS STORE CANNOT\n-- CHECK/,
+    'and the segment that is NOT checked is named, with the reason, rather than leaving a reader to assume '
+    + 'all six are');
+});
+
+test('the §8.4 `S` cell is classified as data and no service policy is written', async () => {
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP_FILE, 'utf8'));
+  const mine = (map.cells ?? []).filter((c) => c.batch === '061_metering.sql');
+  assert.equal(mine.length, 1,
+    'ONE entry, not three. §8.4 marks the ledger `S/N` — the `S` is on the INSERT alone — and neither '
+    + 'app.usage_reservations nor app.quota_buckets has a row in any of §8\'s four matrices, so inventing a '
+    + '`cell` value for either would be a claim about the access matrix made in a lint file.');
+  const [cell] = mine;
+  assert.equal(cell.table, USAGE_EVENTS);
+  assert.equal(cell.operation, 'insert');
+  assert.equal(cell.shape, 'carried',
+    "RFC-2026-022 §3 classes this cell CARRIED: CTR-USG-001 makes attribution.workspace_id a REQUIRED "
+    + 'property of the envelope, so the workspace is an INPUT to the statement rather than something the '
+    + 'statement discovers');
+  assert.match(cell.cell, /§8\.4/, 'the entry quotes the matrix row it classifies');
+  assert.ok(cell.why.length > 200, 'the reason is a sentence someone can disagree with, per RFC-2026-022 §7.2');
+  // The rule reads the file in both directions, and it accepts this entry.
+  // The set comes from `tablesCreatedByMigrations` rather than from a regex over this batch's own
+  // text. Batch 110 widened `table` to accept a schema-qualified name -- its own cell is on a table
+  // in `private` -- so a locally-built set of unqualified `app` names is now the wrong SHAPE, and
+  // building one here would have made this test pass while the rule it claims to exercise read
+  // something else. The helper is the rule's own source of truth and it reads every migration.
+  const { servicePolicyMapLint, tablesCreatedByMigrations } = await import('../../../scripts/db/run.mjs');
+  const created = await tablesCreatedByMigrations();
+  assert.deepEqual(servicePolicyMapLint(map, created), [],
+    'the map this batch writes passes the rule that reads it, over the tables the migrations actually create');
+  // AND NO POLICY. The decision is approved and NOT IN EFFECT.
+  assert.doesNotMatch(meteringCode, /create policy[^;]*app\.usage_events/i,
+    'RFC-2026-022 §5/8: a policy TO app_worker written today is unreachable except from an identity for '
+    + 'which it is moot — the only member of app_worker is postgres, which bypasses row level security');
+  assert.match(String(map._not_in_effect), /NOT IN EFFECT/,
+    'and the file itself says so, so an entry cannot be read as authorising a policy');
+  // THE CONFINEMENT TERM IS NOT A TENANT BOUNDARY, and RFC-2026-022 forbids any artefact saying it is.
+  assert.doesNotMatch(meteringCode, /current_setting\(/,
+    'batch 061 writes no service policy, so it spells the confinement expression nowhere. RFC-2026-022 §5/2 '
+    + 'gives it exactly one legal spelling and §7.1/7 requires the literal to appear once in the tree, in '
+    + 'the lint; a second spelling in a migration is the failure that RFC measured.');
+  assert.match(cell.why, /never tenant isolation of the service path/,
+    'RFC-2026-022 §5/4, measured twice: the role the policy names can set the setting the policy reads, and '
+    + 'the catalog cannot be asked who may. The term confines ONE TRANSACTION to one tenant — containment '
+    + "against defects in the service's own code — and the RFC forbids any document, test or assertion from "
+    + 'citing it as tenant isolation of the service path.');
+  // And the negative, over every artefact this batch writes about it: wherever the phrase appears, it
+  // is denied within the same clause rather than asserted.
+  const claims = [metering, JSON.stringify(map)].join('\n');
+  for (const m of claims.matchAll(/tenant isolation/gi)) {
+    const before = claims.slice(Math.max(0, m.index - 60), m.index);
+    assert.match(before, /\bnever\b|\bnot\b|\bNOT\b/,
+      `batch 061 writes "tenant isolation" without denying it, at: ...${before.slice(-50)}${m[0]}. `
+      + 'RFC-2026-022 §5/4 forbids the confinement term being cited as tenant isolation of the service path.');
+  }
+  for (const c of cases.filter((x) => /usage-event|usage-reservation|quota-bucket/.test(x.id))) {
+    assert.doesNotMatch(c.id, /cross-tenant/,
+      `${c.id}: RFC-2026-022 §5/4 says a case named service-cannot-cross-tenant that rests on the `
+      + 'confinement term asserts a control nobody has, and must be named for what it checks');
+  }
+});
+
+test('the metering vocabulary has three homes and the migration refuses to let them drift', () => {
+  for (const [name, values] of [
+    ['dimension', ['ai_tokens', 'research_search', 'storage_bytes', 'egress_bytes',
+      'media_processing', 'publish_operation']],
+    ['quantity_unit', ['token', 'request', 'byte', 'second', 'operation']],
+  ]) {
+    for (const table of METERING_TABLES) {
+      const constraint = `${table}_${name}_known`;
+      assert.match(meteringCode, new RegExp(`constraint ${constraint}\\b`),
+        `app.${table} must carry ${constraint}: a bucket keyed on a dimension a ledger row may not hold, or `
+        + 'counting in a unit its measurements are not measured in, is an aggregate of two different things');
+      for (const value of values) {
+        assert.ok(meteringCode.includes(`'${value}'`), `${constraint} must carry ${value}`);
+      }
+    }
+    assert.match(meteringCode, new RegExp(`the ${name === 'dimension' ? 'dimension' : 'quantity-unit'} vocabulary differs between its three homes`),
+      `and the apply-time block requires the three deparsed ${name} definitions to be IDENTICAL, which is `
+      + "060's assertion for a vocabulary with two homes, extended to three");
+  }
+  // The provider vocabulary is deliberately NOT 060's, and that is asserted so nobody "fixes" it.
+  assert.doesNotMatch(meteringCode, /provider_key in \(/,
+    'CTR-USG-001 types attribution.provider_key as a PATTERN and enumerates nothing, and four of the six '
+    + 'dimensions above are not served by an AI provider — so narrowing this column to DEC-014\'s five would '
+    + 'make four of six dimensions unrecordable');
+  assert.match(meteringCode, /constraint usage_events_provider_key_form check \(provider_key ~ '\^\[a-z\]\[a-z0-9\._-\]\*\$'\)/,
+    "the contract's own pattern, character for character");
+  assert.doesNotMatch(meteringCode, /references app\.ai_models/,
+    "and no foreign key into 060's curated MODEL catalog: an object-storage egress charge would have to have "
+    + 'a row in the AI model registry');
+});
+
+// The ledger/aggregate split, expressed as which tables carry §3.3's composite key and which cannot.
+test('the ledger carries no foreign key and the other two carry the composite one', () => {
+  const ledger = meteringCode.match(/create table if not exists app\.usage_events \(([\s\S]*?)\n\);/)[1];
+  assert.doesNotMatch(ledger, /references\b/i,
+    'app.usage_events references nothing — not app.workspaces, not app.business_profiles, not app.jobs. '
+    + '§11.4 purges tenant content in step 7 and RETAINS finance records in step 8, and §10\'s '
+    + 'FINANCE-HISTORY is "not erased if legal basis requires": a row that must outlive what it names cannot '
+    + 'be constrained by it in either direction.');
+  assert.doesNotMatch(ledger, /foreign key/i);
+  for (const table of [USAGE_RESERVATIONS, QUOTA_BUCKETS]) {
+    const body = meteringCode.match(new RegExp(`create table if not exists app\\.${table} \\(([\\s\\S]*?)\\n\\);`))[1];
+    assert.match(body, /foreign key \(workspace_id, business_profile_id\)\s+references app\.business_profiles \(workspace_id, id\)/,
+      `app.${table} must carry §3.3's composite foreign key over the whole scope path. It does not outlive `
+      + 'the tenant — an aggregate is recomputable and a hold expires — so it has none of the ledger\'s '
+      + 'reason to be unconstrained, and §4 invariant 10 asks for the constraint where one is possible.');
+    assert.match(body, /references app\.workspaces \(id\)/);
+  }
+  assert.match(metering, /THE ROW THAT OUTLIVES THE\n--\s+TENANT CANNOT BE CONSTRAINED BY IT, AND THE ROWS THAT DO NOT, ARE\./,
+    'and the split is stated as a rule rather than left to be reverse-engineered from three CREATE TABLEs');
+  // §3.3's forbidden synonyms.
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'account_id', 'page_id']) {
+    assert.doesNotMatch(meteringCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}`);
+  }
+});
+
+test('batch 061 adds to the merged batches and rewrites none of them', () => {
+  assert.doesNotMatch(meteringCode, /\balter table app\.(workspaces|business_profiles|workspace_members|jobs|ai_models|billing_subscriptions)\b/i,
+    'migration invariant 1 forbids rewriting a merged migration; every statement in batch 061 creates a new '
+    + 'object or attaches a policy to one this file created');
+  const drops = [...meteringCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/gi)];
+  for (const [, policy, table] of drops) {
+    assert.ok(METERING_TABLES.includes(table),
+      `batch 061 drops ${policy} on app.${table}, which is not a table it creates`);
+    assert.match(meteringCode, new RegExp(`create policy ${policy} on app\\.${table}\\b`),
+      `${policy} is dropped and not recreated`);
+  }
+  assert.doesNotMatch(meteringCode, /\bpg_authid\b/,
+    'pg_authid is readable only by a superuser, and a migration that needs one to apply cannot be applied on '
+    + 'the platform this schema targets, where postgres is not a superuser (batch 020)');
+  assert.match(meteringCode, /gen_random_uuid\(\)/);
+  assert.doesNotMatch(meteringCode, /(public|extensions)\.gen_random_uuid/,
+    'gen_random_uuid() is called unqualified, as every batch since 000 calls it');
+});
+
+test('the batch 061 fixture writes only catalog identities and composes the dedupe key from its row', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(METERING_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['user_admin_a', 'quota_bucket_a_all', 'quota_bucket_a1', 'quota_bucket_a2',
+    'quota_bucket_b', 'usage_event_a1', 'usage_event_b1', 'usage_reservation_a1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // THE JOB ATTRIBUTION IS RESOLVED, NOT WRITTEN. CTR-USG-001 requires attribution.job_id and batch
+  // 050 gave a job no symbol, so a uuid here would have been an invented constant.
+  assert.match(fixture, /from app\.jobs j\s*\n\s*where j\.workspace_id =/,
+    'the ledger rows select their job through the natural key batch 050 declares, which is how every batch '
+    + '050 case addresses one — so the fixture writes no id it did not read AND a ledger row is attributed to '
+    + 'a job that actually exists, which is the state app.usage_events carries no foreign key to enforce');
+  assert.match(fixture, /'usg:' \|\| j\.workspace_id::text \|\| ':' \|\| j\.id::text \|\| ':ai_tokens:estimated:20260901T100000Z'/,
+    "the dedupe key is COMPOSED the contract's own way rather than typed, so a fixture that loads is a "
+    + 'demonstration of CTR-USG-001\'s composition rule; the instant segment is literal because it is the '
+    + 'one segment no constraint in this dialect can check, and a zero fraction is OMITTED');
+  // THE ADMIN IS SCOPED AND THE OWNER IS NOT, which is what makes the narrowing falsifiable.
+  assert.match(fixture, new RegExp(`'business', '${id('business_a1')}'`),
+    'user_admin_a holds a `business` scope on business_a1. Without a scoped caller who PASSES the role test, '
+    + 'the restrictive policy could be dropped and no case would fail.');
+  // The aggregate agrees with the ledger, and nothing keeps it that way.
+  assert.ok(fixture.includes('1450'), 'quota_bucket_a_all carries the ledger row\'s own quantity');
+  assert.match(fixture, /\n\s+0, 0, null\)/,
+    'quota_bucket_a2 carries zeroes AND a NULL computed_through: "this bucket claims nothing" and "this '
+    + 'bucket claims zero" are different states, and a fixture carrying only the second could not tell them '
+    + 'apart — which is the whole reason the watermark column exists');
+  assert.doesNotMatch(fixture, /\bnow\(\)/,
+    'every timestamp is FIXED. It matters more here than anywhere it has been said before, because '
+    + 'occurred_at is INSIDE the dedupe key: a now() would make the key a different string on every run.');
+});
+
+test('the tables batch 061 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 21, 'the control runs per table family, and batch 061 adds three');
+
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+
+  for (const table of METERING_TABLES) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. A batch that adds a table and no entry `
+      + "widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '061', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.ok(detectable.length >= 2,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + 'disabled, and the entry needs at least two — 030 recorded that an entry resting on ONE case is one '
+      + 'deletion away from resting on none.');
+  }
+  // The three patterns must not overlap with each other, or one entry is satisfied by another
+  // table's regression.
+  const patterns = METERING_TABLES.map((t) => [t, new RegExp(`^${controls.find(([, n]) => n === t)[2]}`)]);
+  for (const c of cases) {
+    const hit = patterns.filter(([, p]) => p.test(c.id)).map(([t]) => t);
+    assert.ok(hit.length <= 1, `${c.id} matches ${hit.length} batch 061 control patterns (${hit.join(', ')})`);
+  }
+  // AND NOT WITH ANY EARLIER ENTRY EITHER. The merged tree already carries eighteen overlapping
+  // entry-pairs, measured during the last parallel round and recorded as not fixed; this batch is
+  // held to making it no larger.
+  const earlier = controls.filter(([, , , batch]) => batch !== '061');
+  for (const [, table, pattern] of earlier) {
+    const mine = cases.filter((c) => patterns.some(([, p]) => p.test(c.id)));
+    for (const c of mine) {
+      assert.doesNotMatch(c.id, new RegExp(`^${pattern}`),
+        `${c.id} also matches the control entry for app.${table}, so that entry could be satisfied by a `
+        + 'metering regression it did not test — the overlap batch 130 measured and this batch may not grow');
+    }
+  }
+  // WHAT EACH ENTRY RESTS ON, pinned by id, by outcome and by layer so deleting one fails the build.
+  for (const [table, name, expect, layer] of [
+    [USAGE_EVENTS, 'service-sees-zero-usage-events', 'no-rows', undefined],
+    [USAGE_EVENTS, 'service-cannot-write-a-usage-event', 'denied', 'policy'],
+    [USAGE_RESERVATIONS, 'service-sees-zero-usage-reservations', 'no-rows', undefined],
+    [USAGE_RESERVATIONS, 'service-cannot-open-a-usage-reservation', 'denied', 'policy'],
+    [QUOTA_BUCKETS, 'service-sees-zero-quota-buckets', 'no-rows', undefined],
+    [QUOTA_BUCKETS, 'service-cannot-create-a-quota-bucket', 'denied', 'policy'],
+    [QUOTA_BUCKETS, 'service-cannot-rewrite-a-quota-bucket-total', 'no-effect', undefined],
+    [QUOTA_BUCKETS, 'admin-a-cannot-read-the-quota-bucket-outside-their-narrowing', 'no-rows', undefined],
+    [QUOTA_BUCKETS, 'owner-a-cannot-read-the-quota-bucket-of-tenant-b', 'no-rows', undefined],
+    [QUOTA_BUCKETS, 'suspended-a-sees-zero-quota-buckets', 'no-rows', undefined],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the outcome is what disabling row level security changes`);
+    assert.equal(found.deniedBy, layer, `${name}: the layer is what makes it change`);
+    assert.ok(restoredByDisablingRls(found), `${name} would not be restored by disabling row level security`);
+  }
+  // The one no earlier entry has: a refusal produced by a RESTRICTIVE policy after the caller has
+  // already passed the permissive one.
+  const narrowed = cases.find((c) => c.id === 'admin-a-cannot-read-the-quota-bucket-outside-their-narrowing');
+  const admitted = cases.find((c) => c.id === 'admin-a-reads-the-quota-bucket-inside-their-narrowing');
+  assert.ok(admitted && admitted.expect === 'rows',
+    'the narrowing negative needs its positive, or a policy denying the admin everything would satisfy it');
+  assert.deepEqual(narrowed.as, admitted.as,
+    'and both must be the SAME identity, or the pair is about two callers rather than about one scope');
+  assert.match(workflow, /THE THREE METERING TABLES\./,
+    'each entry says beside itself what disabling row level security on that table would let through, '
+    + 'because a control whose mechanism lives only in a test is a control nobody reads at the point of use');
+});
+
+test('the coverage map records what batch 061 carries and what a derived row cannot', () => {
+  for (const key of Object.keys(SMOKE_COVERAGE)) {
+    assert.match(SMOKE_COVERAGE[key].note, /BATCH 061/,
+      `§12.6/${key} says nothing about batch 061. A coverage map that stops being updated is a coverage map `
+      + 'that stops being read.');
+  }
+  for (const key of Object.keys(AUTHORIZATION_CASE_COVERAGE)) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), /BATCH 061/,
+      `§8.6 case ${key} states batch 061's disposition rather than leaving it to be inferred`);
+  }
+  // The dispositions that are REFUSALS rather than coverage, each named with what it is owed to.
+  for (const [key, needle] of [
+    [3, 'BATCH 061 MOVES NOTHING HERE'],
+    [7, 'app.quota_buckets AND app.usage_reservations DO CARRY'],
+    [8, 'STILL NOT IN EFFECT'],
+  ]) {
+    assert.match(SMOKE_COVERAGE[key].note, new RegExp(needle),
+      `§12.6/${key}: batch 061's disposition is missing or was rewritten`);
+  }
+  for (const [key, needle] of [
+    [4, 'BATCH 061 HAS NO INSTANCE OF THIS CASE'],
+    [9, 'THE TRIGGER HALF OF'],
+    [10, 'the reason has MOVED'],
+  ]) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), new RegExp(needle),
+      `§8.6 case ${key}: batch 061's disposition is missing or was rewritten`);
+  }
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 061 classifies its `S` cell and writes no policy, so the positive half of §12.6/8 is exactly as '
+    + 'unpaid as it was — RFC-2026-022 §5/8 says why, and a flag moved without a policy would be the claim '
+    + 'this repository keeps removing');
+  // The labels this batch rests on are cited by cases, so the reasoning cannot stop being asserted
+  // while every row stays green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.4/usage-quota-summary', '§8.4/usage-ledger-insert', '§8.4/usage-ledger-mutation',
+    '§8.5/no-cross-tenant-update', '§9.1/FIN-3', '§8.6/3-control']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 061 rests on and no case cites it`);
+  }
+});
+
+// THE GUARD FOR A DEFECT THIS BATCH FOUND ON `main` RATHER THAN CREATED.
+//
+// tests/db/identity/isolation-cases.mjs carried TWO `10:` keys in AUTHORIZATION_CASE_COVERAGE.
+// Duplicate object keys are last-wins and the parser is silent, so the first was unreachable — and
+// what it contained was batch 130's and batch 140's case-9 immutability paragraphs, mislabelled by a
+// merge, still carrying the two false ordinal sentences ("A FIFTH AND A SIXTH IMMUTABLE TABLE",
+// "THE FIFTH AND SIXTH IMMUTABLE TABLES") that the parallel-integration record says were corrected.
+// The corrected copies are in key 9 and are live; the stale copies were in a key nothing read.
+//
+// This is exactly the failure evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md §4 describes:
+// a resolution that PARSES while another batch's work is gone with nothing to report it. The dead
+// block is removed and this is the rule that would have caught it, in both directions — because the
+// removal on its own is a fix that the next merge can undo.
+test('neither coverage map carries a duplicated key', async () => {
+  const source = await readFile(CASES_FILE, 'utf8');
+  for (const [name, opener, terminator] of [
+    ['SMOKE_COVERAGE', /export const SMOKE_COVERAGE = \{/, /^\};$/m],
+    ['AUTHORIZATION_CASE_COVERAGE', /export const AUTHORIZATION_CASE_COVERAGE = \{/, /^\};$/m],
+  ]) {
+    const start = source.search(opener);
+    assert.ok(start >= 0, `${name} must exist to be checked`);
+    const rest = source.slice(start);
+    const end = rest.search(terminator);
+    const body = rest.slice(0, end);
+    const keys = [...body.matchAll(/^\s{2}(\d+):/gm)].map((m) => m[1]);
+    assert.ok(keys.length > 0, `${name} must declare keys`);
+    assert.equal(new Set(keys).size, keys.length,
+      `${name} declares a key twice: [${keys.join(', ')}]. Duplicate object keys are LAST-WINS and the `
+      + 'parser says nothing, so the earlier one is prose no reader will ever be shown and no test will '
+      + 'ever check — which is how batch 130\'s and batch 140\'s §8.6 case 9 paragraphs came to sit under a '
+      + 'second `10:` label carrying ordinals the integration run had already corrected.');
+  }
+});

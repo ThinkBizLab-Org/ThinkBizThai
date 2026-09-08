@@ -274,7 +274,8 @@ export const SMOKE_COVERAGE = {
                            + 'PRIVILEGE REFUSALS beside cases showing each owner refused their OWN row at the same layer '
                            + 'with the same message. Counting that as a tenant boundary would be counting a refusal that '
                            + 'holds for everybody, which 030 named about a global row and 050 and 060 named about tenant '
-                           + 'ones. The boundary on these two tables is owed to the batch that gives them a policy.' },
+                           + 'ones. The boundary on these two tables is owed to the batch that gives them a policy.\n\n'
+                           + 'BATCH 061 ADDS app.quota_buckets WITH ALL THREE CASES -- A\'s owner reads A\'s bucket, A\'s owner cannot read B\'s while holding B\'s exact id, and B\'s owner CAN -- and what is behind this boundary is what a workspace is SPENDING and on which dimension, which is the FIN-3 half batch 130 protects from the price side. It carries one case with an identity §12.6 does not name: an ADMIN of workspace A reads the same row, because §8.4 gives the admin an unconditional `Y` here while §12.6\'s identity list has no admin at all -- so the second branch of the policy\'s role test had no caller until this batch added one.\n\nITS OTHER TWO TABLES ARE NOT COUNTED, FOR BATCH 050\'s REASON EXACTLY. app.usage_events and app.usage_reservations are tenant tables -- both carry workspace_id, and the fixture loads a ledger row on each side of the boundary -- and NO CLIENT IDENTITY CAN READ EITHER: §8.4 says nothing about who may SELECT a usage event, and a reservation has no §8 row at all. What is asserted instead is 030\'s substitute, both owners refused identically at the privilege layer, and it is labelled rather than counted.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -348,7 +349,8 @@ export const SMOKE_COVERAGE = {
                            + 'social FK") and whose table §5 assigns to TWO module rows at once. A connection hangs off a '
                            + 'Workspace and a discovered account off a connection; neither carries a Business column for a '
                            + 'member scope to narrow, so 021\'s helpers are named in 110\'s header and called by nothing. '
-                           + 'The scope half of this family arrives with the binding, and so does this row\'s case.' },
+                           + 'The scope half of this family arrives with the binding, and so does this row\'s case.\n\n'
+                           + 'BATCH 061 CARRIES THIS ASSERTION ON A CALLER THE MATRIX ALLOWS, WHICH IS WHAT MAKES IT ABOUT SCOPE RATHER THAN ABOUT ROLE. Every table since 021 has narrowed an EDITOR, and on batch 061\'s one client-readable table §8.4 marks the editor `P` -- so an editor refused a quota bucket proves nothing about member scope. user_admin_a is an ADMIN, whose `Y` §8.4 gives unconditionally, holding a `business` scope on business_a1: they read quota_bucket_a1 and are refused quota_bucket_a2, while user_owner_a -- unscoped -- reads BOTH. The three cases together are 021\'s reading of §7 as an assertion: a scope narrows a caller the matrix already admits, and does not narrow a caller who holds no scope row.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -390,7 +392,8 @@ export const SMOKE_COVERAGE = {
                            + 'knowledge tables this sentence names — and here it would be weaker than 130\'s, because the '
                            + 'approver is refused by the privilege system exactly as the owner is. §8.3 marks the approver '
                            + '`N` on both connector rows, which is counted under §8.6/2 rather than here. Content is still '
-                           + 'batch 080\'s, and this row still reads `knowledge-half`.' },
+                           + 'batch 080\'s, and this row still reads `knowledge-half`.\n\n'
+           + 'BATCH 061 MOVES NOTHING HERE AND THE REASON IS SHORT. §12.6/3 is about an approver EDITING content or knowledge; a quota bucket is neither, and `approver-a-sees-zero-quota-buckets` is a READ refusal counted under §8.6/2. Content is still batch 080\'s and this row still reads `knowledge-half`.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -457,7 +460,8 @@ export const SMOKE_COVERAGE = {
                            + 'tenant-a` and `owner-a-cannot-rename-the-social-account-of-tenant-a` carry those refusals '
                            + 'instead, where "even the owner" is the claim — and on this family "even the owner" is the '
                            + 'sharper statement, because §8.3 marks the owner `Y` on connect/disconnect/re-auth and the '
-                           + 'refusal is therefore of a cell the matrix GRANTS.' },
+                           + 'refusal is therefore of a cell the matrix GRANTS.\n\n'
+                           + 'BATCH 061 ADDS `viewer-a-sees-zero-quota-buckets`, WHICH IS ALSO NOT THIS ROW. §12.6/4 is about a viewer refused an INSERT, an UPDATE or a DELETE, and that refusal on all three metering tables holds for every client role including the workspace OWNER, at the grant layer -- so it is not evidence about a viewer either. What batch 061 does contribute is the pairing that makes a viewer case legible at all: on app.quota_buckets the viewer is refused a READ that an owner and an admin of the same workspace both perform, so the refusal is attributable to the role, and it is counted under §8.6/2 where it belongs rather than here.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -513,7 +517,8 @@ export const SMOKE_COVERAGE = {
                            + 'than empty reads, because no client role holds a privilege there — and each sits beside an '
                            + 'ACTIVE owner refused identically, which is what stops the pair being read as a suspension '
                            + 'control. On this family suspension is not what refuses anybody either, and the cases declare '
-                           + 'the layer and the object so the difference is recorded rather than inferred.' },
+                           + 'the layer and the object so the difference is recorded rather than inferred.\n\n'
+                           + 'BATCH 061 GIVES THE ROW BACK A CASE WHERE SUSPENSION IS THE WHOLE OF THE REFUSAL. `suspended-a-sees-zero-quota-buckets` reads a row that an ACTIVE OWNER and an ACTIVE ADMIN of the same workspace both read in the cases immediately above it, through a policy whose predicate is `app.workspace_member_role(workspace_id)` -- which batch 011 defines to answer only for a membership whose status is `active`. That is the shape batch 140 could not produce and said so; the difference is that this table has a client read at all.\n\nON app.usage_events AND app.usage_reservations BATCH 061 IS IN 140\'s POSITION and does not pretend otherwise: no client identity can read either, so a suspended member is refused exactly as an active owner is, and no case there is written as a suspension control.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -590,7 +595,8 @@ export const SMOKE_COVERAGE = {
                            + 'shape. WHAT THE THREE NEW CASES ADD is the raw webhook inbox — §8.3 marks "Raw token/webhook '
                            + 'SELECT" N for all five built-in roles, §10 says "no tenant access" and §11.1/5 keeps it out '
                            + 'of a PDPA export, so if a raw security event is the last thing somebody would expose '
-                           + 'anonymously, a raw provider delivery is beside it.' },
+                           + 'anonymously, a raw provider delivery is beside it.\n\n'
+                           + 'BATCH 061 ADDS THREE MORE, one per table, all declared on the SCHEMA. That is not repetition for its own sake: RFC-2026-021 §7/4\'s structural argument is that the first anon grant is `grant usage on schema app`, which changes the DENIAL LAYER of every object in `app` at once -- so the day somebody writes it, every anonymous case in this suite moves from the schema to the table together, and a batch that declared only one of its three would have one case failing and two quietly still passing for the wrong reason.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -663,7 +669,8 @@ export const SMOKE_COVERAGE = {
                            + 'identity holding an INSERT grant is app_worker, and row level security refuses it at 42501 '
                            + 'before the constraint is consulted. A `rejected` case would demand an outcome a correct '
                            + 'database cannot produce, which 140 called the suite claiming a control nobody built. The '
-                           + 'apply-time block asserts the constraint\'s column set instead.' },
+                           + 'apply-time block asserts the constraint\'s column set instead.\n\n'
+                           + 'BATCH 061 IS THE SAME FINDING IN A FINANCE FAMILY, AND ONE OF ITS THREE TABLES DIFFERS FROM THE OTHER TWO. app.usage_events carries NO FOREIGN KEY ON ANY COLUMN -- not to app.workspaces, not to app.business_profiles, not to app.jobs -- because §11.4 purges tenant content in step 7 and RETAINS finance records in step 8, and §10\'s FINANCE-HISTORY row says a ledger is \'not erased if legal basis requires\'. A ledger row that must outlive what it names cannot be constrained by it, so a forged Business on a usage event is refused by nothing in this schema and cannot be; §4 invariant 10 admits that outcome in its own words -- \'fail ที่ DB หรือ command boundary\' -- and CTR-TEN-001\'s trust boundary is the boundary that refuses it.\n\napp.quota_buckets AND app.usage_reservations DO CARRY §3.3\'s COMPOSITE FOREIGN KEY, because neither outlives the tenant: an aggregate is recomputable and a hold expires. AND NO CASE CAN EXERCISE IT, which is stated rather than left as an absence -- no role holds INSERT on either table through a policy, so there is no caller that could offer a Business of another Workspace and be refused by the constraint rather than by row level security, and a `rejected` case demanding 23503 would be a case a correct database cannot satisfy. Owed to the command surface, and it is one case each when that exists.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -791,7 +798,8 @@ export const SMOKE_COVERAGE = {
                            + 'and 131 owns the same cell for the payment inbox. The negative half this row is about gains '
                            + 'four cases on the two `app` tables — two filtered reads and two POLICY-layer refused writes — '
                            + 'and gains nothing on the two `private` ones, where app_worker holds no grant at all and the '
-                           + 'refusal is the privilege system for every identity alike.' },
+                           + 'refusal is the privilege system for every identity alike.\n\n'
+                           + 'BATCH 061 IS ONE OF THE BATCHES THAT SENTENCE NAMES, AND IT ARRIVES WITH THE DECISION MADE AND STILL NOT IN EFFECT. RFC-2026-022 (approved 2026-09-08) splits the nine §8 `S` cells by whether the statement CARRIES its workspace or DISCOVERS it, classes §8.4\'s \'Usage ledger INSERT\' CARRIED, names the setting and pins its one legal spelling -- and declares itself NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So this row is still `negative-half`, and the negative half is now larger and better labelled: batch 061 records the classification as DATA in db/foundation/lint/service-policy-map.json, writes NO service policy, and asserts the present refusal in `service-cannot-write-a-usage-event` at the POLICY layer.\n\nTWO THINGS A LATER READER MUST NOT DO WITH THESE CASES. The first is to read `service-sees-zero-usage-events` or `service-sees-zero-usage-reservations` as pending. RFC-2026-022 §8 records that batch 050\'s equivalents are PERMANENT, and a service SELECT on a metering table is no more an `S` cell than a service SELECT on a job is: §8.4 puts the `S` on the ledger\'s INSERT alone. The second is to cite the confinement term as tenant isolation. RFC-2026-022 §5/4 measured that app_worker can set the setting the policy would read; the term confines ONE TRANSACTION to one tenant, which catches a worker computing the wrong workspace for a row, and it is not a boundary against the service role. No case in this suite is named or worded as though it were.\n\nTHE POSITIVE HALF IS STILL UNPAYABLE, for the reason it has been since batch 010 and for a narrower one now: it needs an identity that can BE app_worker, which RFC-2026-019 §4/3 leaves open and RFC-2026-022 §5/8 gives to the RFC that creates the worker (DATA-DEC-03, due before G1).' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -862,7 +870,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the second is a COMMAND whose essential half is an OAuth exchange §3.4 forbids inside a '
    + 'transaction and a vault write no role can perform. There is no passing client case on any of '
    + 'this batch\'s four tables, and counting the app_worker grant would report the absence of a '
-   + 'client surface as coverage of one.',
+   + 'client surface as coverage of one.\n\n'
+   + 'BATCH 061 HAS A PASSING CLIENT CASE AGAIN, ON ONE OF ITS THREE TABLES. §8.4 marks \'Usage/quota summary SELECT\' `Y` for the owner and `Y` for the admin, and the aggregate IS the summary, so app.quota_buckets carries four positives: the owner reads the workspace-level bucket, the ADMIN reads it, the admin reads the bucket inside their member scope, and the unscoped owner reads the one outside it. The admin cases exist because §12.6\'s identity list names no admin and half of the policy\'s role test would otherwise have gone unexercised. app.usage_events and app.usage_reservations have NO INSTANCE of this case at all, exactly as batch 140\'s two tables do not, and the disposition says so rather than counting a service grant as a pass.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -910,7 +919,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'defines (RFC-2026-020 §8) — the refusal 020 made about a Business and 030 about an industry '
    + 'assignment. It is asserted at the GRANT layer beside the owner refused identically, so it '
    + 'stays true on the day a later batch implements the owner\'s `Y` and leaves the editor\'s `P` '
-   + 'unimplemented, which is the state that batch should ship.',
+   + 'unimplemented, which is the state that batch should ship.\n\n'
+   + 'BATCH 061 CARRIES THIS CASE THREE TIMES ON ONE TABLE AND EACH IS A DIFFERENT CELL OF ONE MATRIX ROW. §8.4\'s \'Usage/quota summary SELECT\' reads `Y Y P N N P`, so the editor is refused a cell the matrix marks `P` -- refused because RFC-2026-020 §8 decides that no document defines the capability set -- while the approver and the viewer are refused cells it marks `N`. Three cases rather than one, because a single case would make the other two look like consequences of it, and because the day a capability set is defined exactly one of the three changes.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -941,7 +951,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '110 "connection/account/webhook inbox" and gives the "business-channel/social FK" to 111, and '
    + 'migration invariant 6 puts a cross-module foreign key in an integration batch. So this case '
    + 'is owed to 111 together with the table, and the gap is a registry gap rather than a coverage '
-   + 'one — §5 names "bindings" in two module rows while §6 names one owner for its foreign key.',
+   + 'one — §5 names "bindings" in two module rows while §6 names one owner for its foreign key.\n\n'
+   + 'BATCH 061 IS A FAMILY THAT CAN CARRY THIS CASE AGAIN, AND IT CARRIES IT ON A CALLER THE MATRIX ALLOWS. §5 scopes metering.core `workspace/business`, so app.quota_buckets has a nullable business_profile_id tied to app.business_profiles by §3.3\'s composite foreign key, and `admin-a-cannot-read-the-quota-bucket-outside-their-narrowing` is refused by quota_buckets_scope_narrows_member -- AS RESTRICTIVE, because permissive policies OR together and cannot subtract -- AFTER the caller has already passed the role test. The positive beside it and the unscoped owner reading the same row are what make the refusal about scope rather than about role or about an empty table.\n\napp.usage_events IS THE OPPOSITE CASE ON THE SAME QUESTION and is worth naming: it too carries business_profile_id, and no policy reads it, because no client role holds a privilege on the ledger at all.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -985,7 +996,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'row with a page_context_profile_id, and the binding is the only row in this family that would '
    + 'have one. 020\'s page scope and 021\'s `member_scope_covers_page` are named in 110\'s header '
    + 'as what a binding policy would be written against, and called by nothing — which is what a '
-   + 'declared dependency looks like when the batch that declares it refuses the table.',
+   + 'declared dependency looks like when the batch that declares it refuses the table.\n\n'
+   + 'BATCH 061 HAS NO INSTANCE OF THIS CASE AND THE ABSENCE IS THE DISPOSITION. §5 scopes metering.core `workspace/business` and stops there: no table in this batch carries a page_context_profile_id, §4\'s ERD hangs USAGE_EVENT off WORKSPACE and names no Page relation for the family, and inventing a Page column so that case 4 could be carried would be adding a scope level two source documents decline to give it. The narrowing policy therefore calls app.member_scope_admits_business and never app.member_scope_admits_page, and user_page_editor_a -- the identity batch 021 added for this case -- is refused a quota bucket by ROLE, which is case 2.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1024,7 +1036,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'connection id and tenant B\'s exact external account hash — the fixture loads the SAME hash on '
    + 'both sides so the second case names a real row — and both are refused at the privilege layer, '
    + 'identically to each owner being refused their OWN row. What the pair proves is that the '
-   + 'refusal is uniform, not that a boundary holds.',
+   + 'refusal is uniform, not that a boundary holds.\n\n'
+   + 'BATCH 061 CARRIES CASE 5 IN BOTH FORMS AT ONCE, WHICH A BATCH WITH ONE SHAPE OF TABLE CANNOT. On app.quota_buckets it is the case as written -- A\'s owner holds B\'s exact bucket id and reads nothing, B\'s owner reads it, and A\'s owner is refused in the other direction too. On app.usage_events it is 030\'s substitute, because no client identity can read the ledger: both owners are refused identically while each holds the id of a row in their OWN workspace. Having the two side by side in one batch is what makes the substitute legible AS a substitute rather than as a weaker version of the same claim.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -1050,7 +1063,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'BATCH 110 REPEATS THE SHAPE ON TWO MORE TABLES AND KEEPS THE SAME QUALIFIER. The suspended '
    + 'member is refused app.meta_connections and app.social_accounts by the privilege system, '
    + 'exactly as an active owner is, and each case declares the layer and the object so the '
-   + 'distinction from a policy-filtered empty read is recorded rather than smoothed.',
+   + 'distinction from a policy-filtered empty read is recorded rather than smoothed.\n\n'
+   + 'BATCH 061 CARRIES CASE 6 AS A REAL SUSPENSION CONTROL ON app.quota_buckets: the policy resolves app.workspace_member_role, which batch 011 defines to answer only for an ACTIVE membership, and an active owner and an active admin read the same row in the cases above it. On its other two tables it is in 140\'s position -- no client identity reads them at all -- and no case there is written as though suspension were doing the work.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -1083,7 +1097,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '§12.6/6 records why that sentence could not have been checked by the branch that wrote it. '
    + 'What matters is unchanged: anon holds nothing anywhere, so the schema that refuses it is '
    + 'whichever one the statement names, and declaring which is what makes a widening fail a case '
-   + 'instead of passing more quietly.',
+   + 'instead of passing more quietly.\n\n'
+   + 'BATCH 061 ADDS THREE MORE ANONYMOUS REFUSALS, one per table, all declared on the SCHEMA for the same structural reason: the first anon grant is `grant usage on schema app` and it moves the denial layer of every object in `app` at once, so the three fail together or the decision has not changed.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -1134,7 +1149,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'is refused by row level security at 42501 before the constraint is consulted. So the '
    + 'constraint is asserted by the migration\'s apply-time block as a COLUMN SET rather than by a '
    + '`rejected` case, because a case demanding 23503 here would demand an outcome a correct '
-   + 'database cannot produce.',
+   + 'database cannot produce.\n\n'
+   + 'BATCH 061 CARRIES NO FORGERY CASE EITHER, AND FOR TWO DIFFERENT REASONS THAT ARE BOTH WORTH STATING. There is no `created_by` on any of its three tables -- §3.2 asks for the actor columns on a row a USER mutates, §8.4 gives no client any write here, and CTR-USG-001\'s attribution names a job and a provider rather than a person -- so the columns would be nullable uuids nothing writes. And a forged SCOPE column is refused by nothing on app.usage_events, which carries no foreign key at all (§11.4 steps 7 and 8; see §12.6/7), while on app.quota_buckets and app.usage_reservations, which DO carry §3.3\'s composite key, no role holds INSERT through a policy -- so no caller exists to offer a mismatched triple and be refused by the constraint. What batch 061 carries instead is the UPDATE half of this case, twice: `service-cannot-retarget-a-quota-bucket` and `service-cannot-retarget-a-usage-reservation` are §8.5\'s \'ห้ามย้าย row ข้าม tenant ด้วย update\' refused BY A COLUMN LIST rather than by an absent verb, which is the distinction batch 060 had to be corrected on.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1239,7 +1255,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'on any of the four tables and the apply-time block walks six roles to say so, because §8.5 '
    + 'has no broad user delete and every purge in this family is a retention sweep. Reading that as '
    + 'immutability would report the wrong control as green — a raw webhook row is MEANT to be '
-   + 'purged, and §10\'s WEBHOOK-SHORT says when.',
+   + 'purged, and §10\'s WEBHOOK-SHORT says when.\n\n'
+   + 'BATCH 061 CARRIES CASE 9 ON THE TABLE §8.6 NAMES IT FOR. The case is \'Immutable/LEDGER row -> update/delete fail\', app.usage_events is a ledger by §8.4\'s own row heading, and §3.2 and §4 invariant 8 both name USAGE history immutable beside audit history. Four cases: the owner and the service each refused UPDATE and DELETE, every one at the GRANT layer because no role holds either verb at all -- and 061_metering.sql re-asserts it against the live ACL AND against the live policy catalog, so a grant made by a LATER batch is caught by a file that could not have named it.\n\nTHE TRIGGER HALF OF §8.5\'s \'command/trigger/privilege defense ตามความเหมาะสม\' IS NOT TAKEN HERE, and that is a decision with a reason rather than a gap. Batch 140 took it and recorded what it cost: private.refuse_mutation() raises for EVERY role including the table owner, and 140\'s own blocker states the consequence -- \'THE RETENTION JOB CANNOT RUN, and batch 160 cannot fix it with a grant\'. §10 gives this family FINANCE-HISTORY, whose rule is \'anonymize nonrequired PII; retain ledger integrity\' over a seven-year window that ENDS in a purge, so the same trigger here would create the same contradiction a second time, knowingly, in a family whose retention class names the sweep it would block. The adversary it would stop is `postgres`, which owns the table and can also `alter table ... disable trigger all` -- which 140\'s blocker calls tamper RESISTANCE rather than tamper evidence. Reusing 140\'s function would also make a refusal on a usage ledger report SQLSTATE ZZ140, and writing a second function doing the same thing with a different code would be two functions for one rule with nothing keeping them equal. **Owed to A1 Security, who owns the immutability-mechanism question, and to batch 160, which owns the sweep. §8.5\'s \'ตามความเหมาะสม\' is a judgement, and this batch says which way it went rather than letting the absence read as an oversight.**',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -1326,7 +1343,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'no window is encoded in a constraint, where it would read as ratified, and what the batch '
    + 'provides instead is the columns each sweep would read — processed_at, failed_at, redacted_at, '
    + 'and a body_ref that can be emptied while the dedupe hash §10 says to keep longer stays — with '
-   + 'an index over each. `service-cannot-purge-a-meta-webhook-delivery` asserts the present state.',
+   + 'an index over each. `service-cannot-purge-a-meta-webhook-delivery` asserts the present state.\n\n'
+   + 'BATCH 061 IS ONE OF THOSE BATCHES AND ARRIVES AFTER THE DECISION IT WAS WAITING FOR, WHICH CHANGES THE SHAPE OF THE DEBT WITHOUT PAYING IT. RFC-2026-022 (approved 2026-09-08) answers \'what does my `S` cell look like\' -- §8.4\'s \'Usage ledger INSERT\' is CARRIED, the setting is `app.workspace_id`, and it has exactly one legal spelling -- while its §5/8 declares the decision NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So case 10 is still unpayable and the reason has MOVED: it was \'no document names the GUC\' and it is now \'no identity can be the service\'.\n\nWHAT BATCH 061 PAYS TOWARD IT is the half a batch can pay: the cell is classified as DATA in db/foundation/lint/service-policy-map.json, which scripts/db/run.mjs reads in both directions, so the shape is a row a reviewer reads rather than an argument in a migration header. THE SECOND HALF OF CASE 10 -- \'+ expected audit/outbox\' -- is also still unreachable: a usage event that landed should announce itself, §3.4 requires an outbox row in the SAME TRANSACTION as the domain state, and batch 050 recorded that no write path in this schema can do that because no command function exists. **Owed to DATA-DEC-03, to RFC-2026-022 §7, and to the batch that brings the command surface; the AGGREGATE\'s writer is owed to batch 132 (§6: \'entitlement-metering resolver\', depending on 061 and 130), which is a named batch rather than \'a later batch\'.**',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -7392,6 +7410,550 @@ export function buildCases(id) {
          + 'processed_at, failed_at, redacted_at and a body_ref that can be emptied while the dedupe '
          + 'hash stays — and an index over each.',
     },
+    // =========================================================================================
+    // BATCH 061 — metering. The ledger, the hold, and the aggregate a client may read.
+    // =========================================================================================
+    //
+    // Three tables and three shapes. app.usage_events and app.usage_reservations are the shape
+    // batch 050 established — no client role holds a privilege, so every client refusal is a
+    // PRIVILEGE-layer one and the only cases row level security decides are the service's.
+    // app.quota_buckets is the other shape: §8.4 marks "Usage/quota summary SELECT" `Y` for the
+    // OWNER and `Y` for the ADMIN, and the aggregate IS the summary, so that table carries §8.6's
+    // grid as written.
+    //
+    // THE ADMIN IS A NEW IDENTITY AND IT IS NOT CONVENIENCE. §12.6 names an owner, an editor, an
+    // approver, a viewer and a suspended member of workspace_a and no admin, while §8.4 gives the
+    // admin an UNCONDITIONAL `Y` here rather than the `P` §8.1 gives the same role. The policy
+    // therefore reads `app.workspace_member_role(workspace_id) in ('owner', 'admin')` and half of
+    // that predicate could have been inverted without a case failing. user_admin_a is SCOPED to
+    // business_a1 and user_owner_a deliberately is not, because batch 021 reads §7 as "a member
+    // with no scope row is not narrowed" and both halves of that reading need a caller.
+    {
+      id: 'owner-a-reads-the-quota-bucket-of-tenant-a',
+      covers: ['§12.6/1', '§8.6/1', '§8.4/usage-quota-summary'],
+      as: ownerA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'rows',
+      why: 'THE POSITIVE EVERY NEGATIVE BELOW DEPENDS ON. §8.4 marks "Usage/quota summary SELECT" '
+         + '`Y` for the owner and the aggregate is the summary, so this is the cell implemented '
+         + 'rather than refused. Without it every refusal on this table is satisfied by a policy '
+         + 'that denies everyone — which is the state the other two tables in this batch are in, '
+         + 'and they say so rather than counting it.',
+    },
+    {
+      id: 'admin-a-reads-the-quota-bucket-of-tenant-a',
+      covers: ['§8.6/1', '§8.4/usage-quota-summary'],
+      as: METERING_ADMIN_A(id),
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'rows',
+      why: 'THE SECOND BRANCH OF THE POLICY PREDICATE, WHICH NO IDENTITY §12.6 NAMES COULD HAVE '
+         + 'EXERCISED. §8.4 gives the admin `Y` here — unconditional, not the `P` §8.1 gives the '
+         + 'same role — so the role test has two live branches and this is the one the fixture had '
+         + 'to gain a member for. The bucket is the WORKSPACE-level one, so the restrictive '
+         + 'narrowing takes its NULL branch and this case is about the role and nothing else.',
+    },
+    {
+      id: 'admin-a-reads-the-quota-bucket-inside-their-narrowing',
+      covers: ['§12.6/2', '§8.6/1'],
+      as: METERING_ADMIN_A(id),
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a1')],
+      expect: 'rows',
+      why: 'The scoped positive. user_admin_a holds a `business` member scope naming business_a1 '
+         + 'and this bucket is scoped to it, so 021\'s app.member_scope_admits_business answers '
+         + 'true. Paired with the negative below, which differs in ONE argument.',
+    },
+    {
+      id: 'admin-a-cannot-read-the-quota-bucket-outside-their-narrowing',
+      covers: ['§12.6/2', '§8.6/3'],
+      as: METERING_ADMIN_A(id),
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a2')],
+      expect: 'no-rows',
+      why: 'THE CASE THAT MAKES THE RESTRICTIVE POLICY FALSIFIABLE. The caller has ALREADY PASSED '
+         + 'the role test — they are an admin of this workspace and the case above proves it — so '
+         + 'the only thing that can refuse this row is quota_buckets_scope_narrows_member, which is '
+         + 'AS RESTRICTIVE because permissive policies OR together and cannot subtract. business_a2 '
+         + 'is the Business batch 021 put in the fixture precisely to be excluded by a member '
+         + 'scope, so this is §8.6 case 3 at Business granularity on a caller the matrix otherwise '
+         + 'allows. It is also what this table\'s CI negative control gains that dropping the '
+         + 'permissive policy alone would not touch.',
+    },
+    {
+      id: 'owner-a-reads-the-quota-bucket-outside-the-admin-narrowing',
+      covers: ['§8.6/1', '§8.6/3-control'],
+      as: ownerA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a2')],
+      expect: 'rows',
+      why: 'THE CONTROL FOR THE CASE ABOVE, and 021\'s reading of §7 asserted rather than assumed: '
+         + '"a member with no scope row is not narrowed". user_owner_a holds no scope row in this '
+         + 'workspace, so app.member_scope_admits_business answers true for them on the same row '
+         + 'the admin is refused. Without this case a restrictive policy that denied EVERY caller '
+         + 'the business-scoped buckets would pass.',
+    },
+    {
+      id: 'editor-a-sees-zero-quota-buckets',
+      covers: ['§8.6/2', '§8.4/usage-quota-summary'],
+      as: editorA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: '§8.4 marks the editor `P` on this cell — "ผ่านตาม policy/explicit capability" — and '
+         + 'RFC-2026-020 §8 decides that no document defines the capability set, so the cell is '
+         + 'denied by default. Writing `in (\'owner\', \'admin\', \'editor\')` would delete the '
+         + 'distinction between `Y` and `P` and hand every editor the workspace\'s spend. Same '
+         + 'Workspace, wrong role, and the member scope has nothing to do with it: this is the '
+         + 'WORKSPACE-level bucket, which no scope narrows.',
+    },
+    {
+      id: 'approver-a-sees-zero-quota-buckets',
+      covers: ['§8.6/2', '§8.4/usage-quota-summary'],
+      as: approverA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: '§8.4 marks the approver `N`. Refused by the role test, on a row an owner and an admin '
+         + 'of the same workspace both read in the two cases above.',
+    },
+    {
+      id: 'viewer-a-sees-zero-quota-buckets',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: '§8.4 marks the viewer `N`, and this is a READ refusal rather than §12.6/4\'s write one, '
+         + 'which is why it is counted under §8.6/2. The viewer holds an `all_businesses` member '
+         + 'scope (batch 021\'s fixture), so a narrowing could not have refused them and the ROLE '
+         + 'is the whole of it.',
+    },
+    {
+      id: 'suspended-a-sees-zero-quota-buckets',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: 'AND HERE THE SUSPENSION IS WHAT REFUSES, which is not true of every table in this '
+         + 'schema. app.workspace_member_role returns a role only for an ACTIVE membership, and an '
+         + 'active owner and an active admin both read this exact row above. On batch 140\'s two '
+         + 'tables the same case is refused identically to an active owner and therefore says '
+         + 'nothing about suspension; here the pair is what makes it a suspension control.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-quota-bucket-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_b')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read, run while HOLDING TENANT B\'S EXACT id — the control §12.6 asks '
+         + 'for, on a FIN-3 row: what another business is spending, and on what.',
+    },
+    {
+      id: 'owner-b-reads-the-quota-bucket-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5'],
+      as: ownerB,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_b')],
+      expect: 'rows',
+      why: 'THE THIRD CASE, without which the negative above is satisfied by a fixture that never '
+         + 'loaded the row. Batch 020 established that a cross-tenant claim needs all three.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-quota-bucket-of-tenant-a',
+      covers: ['§12.6/1', '§8.6/5'],
+      as: ownerB,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: 'The boundary in the other direction, so it is a boundary rather than one tenant being '
+         + 'unlucky.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-quota-bucket',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app — '
+         + 'which RFC-2026-021 §7/4 makes an approved decision rather than an inherited convention. '
+         + 'The day somebody grants it, this refusal moves to the table and the case fails, which '
+         + 'is the whole reason the object is declared.',
+    },
+    {
+      id: 'service-sees-zero-quota-buckets',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: METERING_BUCKET_BY_ID,
+      params: [id('quota_bucket_a_all')],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT and NO POLICY, so this empty read can only have '
+         + 'come from row level security — and a service role that had quietly acquired BYPASSRLS '
+         + 'would return the row. One of the cases the CI negative control for app.quota_buckets '
+         + 'rests on.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-quota-bucket',
+      covers: ['§8/no-row', 'RFC-2026-012§1'],
+      as: ownerA,
+      ...meteringOpenQuotaBucket('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'CREATING YOUR OWN QUOTA BUCKET IS DECLARING YOUR OWN CONSUMPTION. §8 has no row for '
+         + 'writing a quota bucket in any of its four matrices — its two metering rows are the '
+         + 'summary SELECT and the ledger INSERT/UPDATE/DELETE — so the cell is denied by default, '
+         + 'and the refusal is at the PRIVILEGE layer because `authenticated` holds SELECT and '
+         + 'nothing else. The row it attempts is otherwise valid and names a period no fixture row '
+         + 'holds, so the refusal cannot be the natural key standing in for a missing grant.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-quota-bucket-total',
+      covers: ['§8/no-row', '§8.6/9'],
+      as: ownerA,
+      ...meteringRewriteQuotaBucket(id('quota_bucket_a_all')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'Setting your own consumed total to zero is granting yourself the quota back. The owner '
+         + 'can READ this row — the first case in this block proves it — so the refusal is about '
+         + 'the verb rather than about visibility, and it is a privilege-layer refusal a later '
+         + 'policy edit cannot widen.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-quota-bucket',
+      covers: ['§8/no-row', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.quota_buckets where id = $1 returning id',
+      params: [id('quota_bucket_a_all')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'Deleting the aggregate is a subtler form of editing it, because whatever resolves a '
+         + 'quota has to decide what an ABSENT bucket means — 021\'s question about an absent scope '
+         + 'row, arriving in batch 132\'s inbox.',
+    },
+    {
+      id: 'service-cannot-create-a-quota-bucket',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8/no-row'],
+      as: service,
+      ...meteringOpenQuotaBucket('__A__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'THE CASE THAT ANSWERS "WHO MAY MOVE THE DERIVED ROW", and one of the two policy-layer '
+         + 'refusals this table\'s negative control rests on. app_worker HOLDS the INSERT grant, so '
+         + 'FORCE ROW LEVEL SECURITY with no service policy is what refuses it — with row level '
+         + 'security off the grant is enough and the write LANDS. The writer is batch 132 (§6: '
+         + '"entitlement-metering resolver", depending on 061 and 130) and the identity that would '
+         + 'run it does not exist either (RFC-2026-022 §5/8).',
+    },
+    {
+      id: 'service-cannot-rewrite-a-quota-bucket-total',
+      covers: ['§12.6/8', '§8/no-row'],
+      as: service,
+      ...meteringRewriteQuotaBucket(id('quota_bucket_a_all')),
+      expect: 'no-effect',
+      witness: {
+        as: ownerA,
+        sql: METERING_BUCKET_WITNESS_SQL,
+        params: [id('quota_bucket_a_all')],
+        column: 'state',
+        equals: 'unchanged',
+      },
+      why: 'A WRITE ROW LEVEL SECURITY FILTERS RATHER THAN REFUSES, which is why this is '
+         + '`no-effect` and not `denied`: app_worker holds a column-scoped UPDATE on the three '
+         + 'derived columns, the USING clause admits no row, the statement affects nothing and '
+         + 'RAISES NOTHING. The witness is the half an empty result cannot give — the workspace '
+         + 'owner, who CAN read this row, sees the fixture\'s number unchanged. With row level '
+         + 'security off the write lands and the witness sees the new value, which is what makes '
+         + 'this case part of the negative control rather than decoration.',
+    },
+    {
+      id: 'service-cannot-retarget-a-quota-bucket',
+      covers: ['§8.5/no-cross-tenant-update', '§8.6/8'],
+      as: service,
+      sql: 'update app.quota_buckets set workspace_id = $2 where id = $1 returning id',
+      params: [id('quota_bucket_a_all'), '__B__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: '§8.5: "ห้ามย้าย row ข้าม tenant ด้วย update". The refusal is at the PRIVILEGE layer and '
+         + 'that is the point — app_worker\'s UPDATE grant names the three derived columns plus '
+         + '`updated_at`, and `workspace_id` is not one of them, so the prohibition holds by a '
+         + 'COLUMN LIST rather than by the absence of a verb. Batch 060 shipped a comment claiming '
+         + 'the second beside a table-wide grant and independent review found it; this case is that '
+         + 'finding as an assertion.',
+    },
+    {
+      id: 'service-cannot-delete-a-quota-bucket',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      sql: 'delete from app.quota_buckets where id = $1 returning id',
+      params: [id('quota_bucket_a_all')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'No role holds DELETE on any table in this batch. §10\'s FINANCE-HISTORY is "not erased '
+         + 'if legal basis requires" and the purge is batch 160\'s, through a role this batch grants '
+         + 'nothing.',
+    },
+
+    // -- The LEDGER. Nobody may read it, nobody may write it, and nobody may ever edit it. -------
+    //
+    // §8.4 says NOTHING about who may SELECT a usage event — its two metering rows are the SUMMARY
+    // SELECT, which is app.quota_buckets above, and the ledger's INSERT/UPDATE/DELETE. Where a
+    // document is silent the cell is denied, so no client role holds a privilege here and every
+    // client case below is a PRIVILEGE-layer refusal that declares its layer and its object.
+    {
+      id: 'owner-a-cannot-read-a-usage-event',
+      covers: ['§8/no-row', 'RFC-2026-012§2'],
+      as: ownerA,
+      sql: METERING_LEDGER_BY_ID,
+      params: [id('usage_event_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'THE PAIR THAT MAKES §8.4\'s TWO ROWS TWO OBJECTS. The same identity reads the SUMMARY '
+         + 'in the first case of this block and is refused the LEDGER here, at a different layer '
+         + 'and on a different table. §8.4 grants a summary and says nothing about a ledger read, '
+         + 'and a ledger row carries what the summary does not: the cost, the provider, the dedupe '
+         + 'key and the estimate a correction supersedes.',
+    },
+    {
+      id: 'admin-a-cannot-read-a-usage-event',
+      covers: ['§8/no-row', '§9.1/FIN-3'],
+      as: METERING_ADMIN_A(id),
+      sql: METERING_LEDGER_BY_ID,
+      params: [id('usage_event_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'And the same for the other role §8.4 gives the summary to, so "the summary is granted '
+         + 'and the ledger is not" is a statement about the TABLES rather than about one caller. '
+         + '§9.1 gives FIN-3 the client projection "owner/admin summary" — a projection, which '
+         + 'RFC-2026-012 §2 puts behind a named security_invoker view and RFC-2026-021 keeps on an '
+         + 'allowlist that is empty.',
+    },
+    {
+      id: 'owner-b-cannot-read-their-own-usage-event',
+      covers: ['§8/no-row', '§8.6/5-substitute'],
+      as: ownerB,
+      sql: METERING_LEDGER_BY_ID,
+      params: [id('usage_event_b1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'BOTH OWNERS ARE REFUSED IDENTICALLY, WHILE EACH HOLDS THE EXACT ID OF A ROW IN THEIR '
+         + 'OWN WORKSPACE. That is batch 030\'s substitute for a cross-tenant claim on a table no '
+         + 'client identity can read, kept by 050, 060 and 140 and kept here: without it the case '
+         + 'above would be satisfied by a tenant boundary rather than by the absent grant it is '
+         + 'actually about.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-usage-event',
+      covers: ['§12.6/6', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: METERING_LEDGER_BY_ID,
+      params: [id('usage_event_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, one of three in this batch, so the day anon is granted USAGE on app all '
+         + 'three fail together rather than one of them being noticed.',
+    },
+    {
+      id: 'service-sees-zero-usage-events',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: METERING_LEDGER_BY_ID,
+      params: [id('usage_event_a1')],
+      expect: 'no-rows',
+      why: 'One of the two cases the CI negative control for app.usage_events rests on. app_worker '
+         + 'holds a column-scoped SELECT and no policy, so this is the only thing row level '
+         + 'security decides on a read of this table.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-usage-event',
+      covers: ['§8.4/usage-ledger-insert', '§8.6/8'],
+      as: ownerA,
+      ...meteringWriteUsageEvent('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'THE CELL THIS FAMILY EXISTS FOR, ON THE CLIENT SIDE. §8.4 marks "Usage ledger INSERT" '
+         + '`N` for every client role including the workspace owner, so the party a charge is about '
+         + 'cannot write the measurement it is computed from. The row it attempts is otherwise '
+         + 'VALID — its dedupe key is composed from its own workspace and job exactly as '
+         + 'CTR-USG-001 requires, so 061\'s starts_with constraint would admit it — and nothing but '
+         + 'the absent grant refuses it.',
+    },
+    {
+      id: 'service-cannot-write-a-usage-event',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/usage-ledger-insert'],
+      as: service,
+      ...meteringWriteUsageEvent('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'THE `S` CELL, REFUSED AT THE POLICY LAYER, AND THE REFUSAL IS NOT PENDING ON THIS '
+         + 'BATCH. RFC-2026-022 §3 classes §8.4\'s "Usage ledger INSERT" CARRIED and its §5/8 '
+         + 'declares the whole decision NOT IN EFFECT — measured, the only member of app_worker is '
+         + 'postgres, which bypasses row level security — so batch 061 records the classification '
+         + 'in db/foundation/lint/service-policy-map.json and writes no policy. app_worker HOLDS '
+         + 'the INSERT grant, so with row level security off the write lands: this is the second '
+         + 'case the negative control for this table rests on. The `job_id` it carries is the '
+         + 'workspace owner\'s subject rather than a job, and the value is arbitrary on purpose — '
+         + 'the column carries no foreign key (061\'s header says why) and app_worker holds no '
+         + 'policy here, so there is no WITH CHECK for the refusal to be about.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-usage-event',
+      covers: ['§8.4/usage-ledger-mutation', '§8.6/9', '§4/invariant-8'],
+      as: ownerA,
+      ...meteringRewriteUsageEvent(id('usage_event_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'Editing the quantity is editing the bill. §3.2 and §4 invariant 8 both name USAGE '
+         + 'history immutable and §8.4 marks the ledger\'s UPDATE `N` in every column of the row, '
+         + 'so no role holds the verb at all — a privilege-layer refusal rather than a policy a '
+         + 'later edit could widen.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-usage-event',
+      covers: ['§8.4/usage-ledger-mutation', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.usage_events where usage_id = $1 returning usage_id',
+      params: [id('usage_event_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'The second verb of the same cell. A measurement that can be removed is a measurement '
+         + 'that can be un-charged.',
+    },
+    {
+      id: 'service-cannot-rewrite-a-usage-event',
+      covers: ['§8.4/usage-ledger-mutation', '§8.6/9'],
+      as: service,
+      ...meteringRewriteUsageEvent(id('usage_event_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'AND THE SERVICE IS REFUSED THE SAME VERB, which is the half of §8.4\'s `S/N` a reader '
+         + 'is most likely to lose: the `S` is on the INSERT alone and the UPDATE and DELETE are '
+         + '`N` for the service too. Not labelled for RFC-2026-017 §7 — a grant-layer refusal is '
+         + 'not evidence about row level security.',
+    },
+    {
+      id: 'service-cannot-delete-a-usage-event',
+      covers: ['§8.4/usage-ledger-mutation', '§8.6/9'],
+      as: service,
+      sql: 'delete from app.usage_events where usage_id = $1 returning usage_id',
+      params: [id('usage_event_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_events' },
+      why: 'The fourth cell of the grid, so this table carries the whole of §8.4\'s mutation row as '
+         + 'live cases rather than resting on the apply-time block for half of it.',
+    },
+
+    // -- The HOLD. §8 has no row for it at all, so every cell is denied by default. --------------
+    {
+      id: 'owner-a-cannot-read-a-usage-reservation',
+      covers: ['§8/no-row', 'RFC-2026-012§2'],
+      as: ownerA,
+      sql: METERING_RESERVATION_BY_ID,
+      params: [id('usage_reservation_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_reservations' },
+      why: 'A reservation has NO ROW in any of §8\'s four matrices, in either direction, so there '
+         + 'is no cell to implement and every operation on it is denied by default — 030\'s reading '
+         + 'of the same silence, kept by 050 for the outbox and the consumer ledger. What a client '
+         + 'is granted about a quota is the SUMMARY, and a hold is not one.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-usage-reservation',
+      covers: ['§12.6/6', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: METERING_RESERVATION_BY_ID,
+      params: [id('usage_reservation_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'The last of this batch\'s three anonymous refusals, all declared on the SCHEMA and all '
+         + 'failing together the day anon is granted USAGE on app.',
+    },
+    {
+      id: 'service-sees-zero-usage-reservations',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: METERING_RESERVATION_BY_ID,
+      params: [id('usage_reservation_a1')],
+      expect: 'no-rows',
+      why: 'One of the two cases the CI negative control for app.usage_reservations rests on. The '
+         + 'fixture loads exactly one hold, and against an empty table this case would pass with '
+         + 'row level security on or off.',
+    },
+    {
+      id: 'owner-a-cannot-open-a-usage-reservation',
+      covers: ['§8/no-row', 'RFC-2026-012§1'],
+      as: ownerA,
+      ...meteringOpenReservation('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_reservations' },
+      why: 'Taking your own hold against your own quota. Refused at the privilege layer, because '
+         + '`authenticated` holds nothing at all on this table.',
+    },
+    {
+      id: 'service-cannot-open-a-usage-reservation',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8/no-row'],
+      as: service,
+      ...meteringOpenReservation('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'usage_reservations' },
+      why: 'The second case this table\'s negative control rests on. app_worker holds the INSERT '
+         + 'grant and no policy, so the refusal is row level security\'s and disabling it lets the '
+         + 'row land. There is no §8 cell to point at here and no RFC-2026-022 classification '
+         + 'either — the service-policy map carries ONE entry, on the ledger\'s INSERT, because '
+         + 'that is the only metering statement §8 marks `S`.',
+    },
+    {
+      id: 'service-cannot-retarget-a-usage-reservation',
+      covers: ['§8.5/no-cross-tenant-update', '§8.6/8'],
+      as: service,
+      sql: 'update app.usage_reservations set workspace_id = $2 where id = $1 returning id',
+      params: [id('usage_reservation_a1'), '__B__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_reservations' },
+      why: '§8.5 again, by column list: app_worker\'s UPDATE grant on this table names '
+         + '`released_at`, `consumed_usage_id` and `updated_at` — the two columns a hold ENDS with, '
+         + 'plus the stamp — and nothing that says which hold it is or whose.',
+    },
+    {
+      id: 'service-cannot-delete-a-usage-reservation',
+      covers: ['§8.6/9', '§12.6/8-negative'],
+      as: service,
+      sql: 'delete from app.usage_reservations where id = $1 returning id',
+      params: [id('usage_reservation_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'usage_reservations' },
+      why: 'A hold is RELEASED and never deleted: the row is what says a quota was held and then '
+         + 'given back, and a delete would erase the fact rather than close it. No role holds the '
+         + 'verb on any table in this batch.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -7443,4 +8005,119 @@ export const MUTATION_PREFIXES = ['insert', 'update', 'delete'];
 
 export function isMutation(sql) {
   return MUTATION_PREFIXES.some((verb) => sql.trimStart().toLowerCase().startsWith(verb));
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 061 — the statements the metering cases run.
+// ---------------------------------------------------------------------------------------------
+//
+// They are module-level constants declared AFTER buildCases rather than locals declared inside it,
+// and the reason is a merge rule rather than a style: three other batches are appending to this
+// file at the same time, and the only resolution that cannot silently lose another batch's work is
+// "main's version plus this branch's own section, contiguous and last". A `const` here is in scope
+// inside buildCases at CALL time, so the whole of batch 061's contribution to this file is two
+// appended blocks and no edit anywhere else in it.
+//
+// They exist at all for the reason every earlier batch's builders exist: a negative and the
+// positive it is paired with have to be visibly THE SAME STATEMENT with one argument changed, and
+// a reader comparing two inline strings is checking that by eye.
+
+// The identity §12.6 does not name. It is a function of the resolver rather than a constant because
+// every id in this file is read from the fixture catalog and none is written.
+export const METERING_ADMIN_A = (id) => ({ helper: 'as_user', subject: id('user_admin_a') });
+
+export const METERING_BUCKET_BY_ID = 'select id from app.quota_buckets where id = $1';
+export const METERING_LEDGER_BY_ID = 'select usage_id from app.usage_events where usage_id = $1';
+export const METERING_RESERVATION_BY_ID = 'select id from app.usage_reservations where id = $1';
+
+// The number 061-metering-fixture.sql loads into quota_bucket_a_all, which is also the quantity of
+// the one ledger row in workspace A — the fixture's own demonstration that the aggregate agrees
+// with the ledger, kept that way by nothing. It is HERE rather than inline in the witness for the
+// reason the witness exists at all: a witness asserting "the row is still there" and not "it still
+// says what it said" is expectNoRows wearing a different name, so the expected VALUE has one home
+// and the fixture has the other.
+export const METERING_BUCKET_A_CONSUMED = '1450';
+
+// The witness reads a DERIVED ANSWER rather than the column, and that is deliberate. `no-effect`
+// compares the witness column with `!==`, and a numeric(24,8) comes back from a driver as a string
+// whose rendering is a property of the declared scale — so a witness pinned to '1450.00000000'
+// would fail the day somebody widened the column rather than the day somebody widened the policy.
+// The comparison happens in SQL, against the value the fixture wrote, and the case asserts the
+// word.
+export const METERING_BUCKET_WITNESS_SQL =
+  `select case when consumed_amount = ${METERING_BUCKET_A_CONSUMED} then 'unchanged' else 'moved' end as state `
+  + 'from app.quota_buckets where id = $1';
+
+// A bucket for a period no fixture row holds, so a refusal cannot be quota_buckets_one_per_period
+// standing in for a missing grant, and so the write LANDS when the CI negative control disables row
+// level security. No business_profile_id, so the composite foreign key is not exercised here.
+export function meteringOpenQuotaBucket(workspace) {
+  return {
+    sql: 'insert into app.quota_buckets '
+       + '(workspace_id, dimension, quantity_unit, period_start, period_end, consumed_amount, reserved_amount) '
+       + "values ($1::uuid, 'ai_tokens', 'token', "
+       + "        timestamptz '2026-10-01 00:00:00+00', timestamptz '2026-11-01 00:00:00+00', 0, 0) "
+       + 'returning id',
+    params: [workspace],
+  };
+}
+
+// Setting the consumed total to zero, which is the attack rather than an arbitrary edit: a quota is
+// what a plan grants MINUS what has been consumed, so zeroing the second half hands the caller the
+// whole allowance back. `consumed_amount` is one of the three columns app_worker's UPDATE grant
+// DOES name, which is what makes the service form of this case a POLICY refusal and not a grant one.
+export function meteringRewriteQuotaBucket(bucketId) {
+  return {
+    sql: 'update app.quota_buckets set consumed_amount = 0 where id = $1 returning id',
+    params: [bucketId],
+  };
+}
+
+// A valid usage event, composed the way CTR-USG-001 composes one. The dedupe key is BUILT FROM THE
+// STATEMENT'S OWN PARAMETERS rather than written out, so this insert satisfies
+// usage_events_dedupe_key_names_its_row by construction — which matters because the case demands a
+// refusal that is about the GRANT or the POLICY, and a row a CHECK would have rejected anyway
+// proves neither. The instant segment is literal because it is the one segment no constraint in
+// this dialect can check (061_metering.sql's header says why), and 2026-09-02 is a different
+// instant from the fixture's, so the natural key cannot be what refuses this.
+//
+// Every parameter is cast at every use. `$1` appears as a uuid column value and inside a text
+// concatenation, and a parameter whose type is inferred from whichever context Postgres reaches
+// first is a parameter whose type is an accident.
+export function meteringWriteUsageEvent(workspace, jobId) {
+  return {
+    sql: 'insert into app.usage_events '
+       + '(occurred_at, dimension, quantity_amount, quantity_unit, workspace_id, job_id, '
+       + 'provider_key, cost_amount, cost_currency, cost_basis, dedupe_key) '
+       + "values (timestamptz '2026-09-02 11:00:00+00', 'ai_tokens', 10, 'token', $1::uuid, $2::uuid, "
+       + "'openai', 0.001000, 'USD', 'estimated', "
+       + "'usg:' || ($1::uuid)::text || ':' || ($2::uuid)::text || ':ai_tokens:estimated:20260902T110000Z') "
+       + 'returning usage_id',
+    params: [workspace, jobId],
+  };
+}
+
+// Editing a measurement after the fact. No role holds UPDATE on this table at all — §8.4 marks the
+// ledger's UPDATE `N` in every column of the row, the service included — so both forms of this case
+// are grant-layer refusals and neither is evidence about row level security.
+export function meteringRewriteUsageEvent(usageId) {
+  return {
+    sql: 'update app.usage_events set quantity_amount = 1 where usage_id = $1 returning usage_id',
+    params: [usageId],
+  };
+}
+
+// A valid hold. `expires_at` is far-future and FIXED rather than an offset from now(): the row must
+// satisfy usage_reservations_expiry_after_reservation when the CI negative control disables row
+// level security and the insert actually lands, and a fixture value that depends on when it ran is
+// one whose failures depend on when they ran.
+export function meteringOpenReservation(workspace, jobId) {
+  return {
+    sql: 'insert into app.usage_reservations '
+       + '(workspace_id, dimension, quantity_amount, quantity_unit, job_id, expires_at) '
+       + "values ($1::uuid, 'ai_tokens', 5, 'token', $2::uuid, timestamptz '2099-01-01 00:00:00+00') "
+       + 'returning id',
+    params: [workspace, jobId],
+  };
 }

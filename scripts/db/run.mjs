@@ -739,6 +739,36 @@ export function servicePolicyMapLint(map, tablesInMigrations) {
   return problems;
 }
 
+// A0/A6 METERING CORRECTION, batch 061. `servicePolicyMapLint` was written, exported, exercised by
+// test-kits/db/foundation-contract.test.mjs — and INVOKED BY NO TARGET. RFC-2026-022 §7.1/6 asks for
+// a rule that reads the map "in both directions", and the declared command contract read it in
+// neither: `make db-schema-lint` composed `schemaLint` and `catalogLint` and nothing else, so a
+// malformed entry, an entry naming a table no migration creates, or a `shape` outside §3's two
+// outcomes would have shipped and only a unit test would have said so.
+//
+// That was harmless while the file was empty and stopped being harmless the moment a batch
+// classified a cell. It is wired here rather than left, and the table set is READ from the
+// migrations rather than kept by hand, because the rule's own strongest clause — "app.X is created
+// by no migration, and a classification of a cell on a table that does not exist is a claim about
+// nothing" — can only be asked of the truth.
+export async function servicePolicyMapCheck(mapPath = SERVICE_POLICY_MAP, files) {
+  let map;
+  try {
+    map = JSON.parse(await readFile(mapPath, 'utf8'));
+  } catch (failure) {
+    return [`${mapPath} could not be read as JSON: ${failure.message}. RFC-2026-022 §5 makes this file the `
+      + 'record of which shape each `S` cell takes, and a file that cannot be read is not one.'];
+  }
+  // The set comes from `tablesCreatedByMigrations`, which is the same function the rule's own
+  // tests use and the only place the shape of a table name is decided. This function once built
+  // its own set with a regex for `create table app.(\w+)`, which produced UNQUALIFIED names --
+  // correct while every classified cell was on an `app` table, and wrong the moment one was not.
+  // A second definition of "the tables the migrations create" does not merely duplicate the
+  // first: it drifts from it, and the drift shows up as the rule reporting that a table which
+  // plainly exists does not.
+  return servicePolicyMapLint(map, await tablesCreatedByMigrations(files));
+}
+
 export async function catalogLint(snapshot, digest, exemptions) {
   const problems = [];
   const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));
@@ -1164,7 +1194,8 @@ async function runTarget(target) {
     return code;
   }
   if (!STATIC.has(target)) { stderr.write(`unknown target '${target}'\n`); return 2; }
-  const problems = target === 'schema-lint' ? [...await schemaLint(), ...await catalogLint()]
+  const problems = target === 'schema-lint'
+    ? [...await schemaLint(), ...await catalogLint(), ...await servicePolicyMapCheck()]
     : target === 'contract-check' ? await contractCheck()
     : await generatedDriftCheck();
   for (const p of problems) stderr.write(`  ${p}\n`);

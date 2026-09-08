@@ -66,6 +66,14 @@ export const FIXTURE_SQL_FILES = [
   // against an empty database. It is last because the list is an order and a new batch joins its
   // end, and because the ids it carries are the ids the earlier fixtures made real.
   'tests/db/identity/fixtures/140-audit-fixture.sql',
+  // Batch 061's position IS a dependency and not only a convention. Its ledger rows resolve their
+  // job attribution by subquery against app.jobs — CTR-USG-001 requires attribution.job_id and batch
+  // 050 gave a job no catalog symbol, so a uuid literal here would have been an invented constant —
+  // which means this file cannot load before 050's. Its quota buckets name business_a1 and
+  // business_a2 by composite foreign key, so it cannot load before 020's either. It is appended
+  // rather than inserted, because the list is an ORDER and appending is the change that cannot
+  // reorder anything else.
+  'tests/db/identity/fixtures/061-metering-fixture.sql',
   // Batch 110's connections hang off Workspaces from 010 and everything else in the batch hangs off
   // a connection, so this entry could sit second. It is last because the list is applied in order
   // and appending is the change that cannot reorder anything else. It is the second entry that
