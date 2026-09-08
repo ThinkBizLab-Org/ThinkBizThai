@@ -275,7 +275,35 @@ export const SMOKE_COVERAGE = {
                            + 'with the same message. Counting that as a tenant boundary would be counting a refusal that '
                            + 'holds for everybody, which 030 named about a global row and 050 and 060 named about tenant '
                            + 'ones. The boundary on these two tables is owed to the batch that gives them a policy.\n\n'
-                           + 'BATCH 061 ADDS app.quota_buckets WITH ALL THREE CASES -- A\'s owner reads A\'s bucket, A\'s owner cannot read B\'s while holding B\'s exact id, and B\'s owner CAN -- and what is behind this boundary is what a workspace is SPENDING and on which dimension, which is the FIN-3 half batch 130 protects from the price side. It carries one case with an identity §12.6 does not name: an ADMIN of workspace A reads the same row, because §8.4 gives the admin an unconditional `Y` here while §12.6\'s identity list has no admin at all -- so the second branch of the policy\'s role test had no caller until this batch added one.\n\nITS OTHER TWO TABLES ARE NOT COUNTED, FOR BATCH 050\'s REASON EXACTLY. app.usage_events and app.usage_reservations are tenant tables -- both carry workspace_id, and the fixture loads a ledger row on each side of the boundary -- and NO CLIENT IDENTITY CAN READ EITHER: §8.4 says nothing about who may SELECT a usage event, and a reservation has no §8 row at all. What is asserted instead is 030\'s substitute, both owners refused identically at the privilege layer, and it is labelled rather than counted.' },
+                           + 'BATCH 061 ADDS app.quota_buckets WITH ALL THREE CASES -- A\'s owner reads A\'s bucket, A\'s owner cannot read B\'s while holding B\'s exact id, and B\'s owner CAN -- and what is behind this boundary is what a workspace is SPENDING and on which dimension, which is the FIN-3 half batch 130 protects from the price side. It carries one case with an identity §12.6 does not name: an ADMIN of workspace A reads the same row, because §8.4 gives the admin an unconditional `Y` here while §12.6\'s identity list has no admin at all -- so the second branch of the policy\'s role test had no caller until this batch added one.\n\nITS OTHER TWO TABLES ARE NOT COUNTED, FOR BATCH 050\'s REASON EXACTLY. app.usage_events and app.usage_reservations are tenant tables -- both carry workspace_id, and the fixture loads a ledger row on each side of the boundary -- and NO CLIENT IDENTITY CAN READ EITHER: §8.4 says nothing about who may SELECT a usage event, and a reservation has no §8 row at all. What is asserted instead is 030\'s substitute, both owners refused identically at the privilege layer, and it is labelled rather than counted.\n\n'
+                           + 'BATCH 051 ADDS app.notifications WITH ALL THREE CASES — A reads its own, A '
+                           + 'cannot read B\'s while holding B\'s exact notification id, and B CAN — and '
+                           + 'ALSO WITH A FOURTH KIND OF CASE §12.6 HAS NO ROW FOR, which is recorded '
+                           + 'inside this note rather than as a ninth key nobody may invent (030\'s rule). '
+                           + '§5 scopes notification.core "workspace/USER", so the boundary this family '
+                           + 'has is TWO boundaries, and the cross-tenant one is the weaker of them: '
+                           + '`owner-a-cannot-see-the-notification-of-owner-b` is refused by BOTH terms of '
+                           + 'the predicate independently, so a database that had lost either conjunct '
+                           + 'would still pass it. The case that isolates the recipient term is '
+                           + '`owner-a-cannot-see-the-notification-of-editor-a` — two ACTIVE MEMBERS OF '
+                           + 'ONE WORKSPACE, the attacker being its OWNER, which §8.1 and §8.2 mark `Y` on '
+                           + 'every SELECT row they contain.\n\n'
+                           + 'A ROW-LEVEL SEPARATION BETWEEN TWO MEMBERS OF ONE WORKSPACE ALREADY EXISTS '
+                           + 'IN THIS SUITE and the batch 051 pair is not offered as though it did not: '
+                           + '`viewer-a-cannot-see-another-members-row` (010 and 011) and '
+                           + '`editor-a-cannot-see-another-members-member-scope` (021) both carry it. What '
+                           + 'batch 051 adds is the identity §8.4 refuses that §8.1 admits. §8.1 gives the '
+                           + 'member list to owner and admin and 011\'s workspace_members_select_roster '
+                           + 'implements it, so an OWNER reads another member\'s row there; §8.4 marks this '
+                           + 'cell `O` for ALL FIVE built-in roles, so the owner is refused here. A '
+                           + 'predicate copied from the roster shape passes every case in this suite '
+                           + 'except that pair.\n\n'
+                           + 'THE OTHER TWO BATCH 051 TABLES ARE NOT COUNTED HERE, for the two reasons '
+                           + 'already on this row. app.notification_preferences is a TENANT TABLE NO '
+                           + 'IDENTITY CAN READ — §8 has no row for a preference in any of its four '
+                           + 'matrices — so both owners are refused identically at the privilege layer, '
+                           + 'which is 050\'s shape. private.push_subscription_references is refused on '
+                           + 'the SCHEMA for every identity alike, which is 060\'s.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -518,7 +546,27 @@ export const SMOKE_COVERAGE = {
                            + 'ACTIVE owner refused identically, which is what stops the pair being read as a suspension '
                            + 'control. On this family suspension is not what refuses anybody either, and the cases declare '
                            + 'the layer and the object so the difference is recorded rather than inferred.\n\n'
-                           + 'BATCH 061 GIVES THE ROW BACK A CASE WHERE SUSPENSION IS THE WHOLE OF THE REFUSAL. `suspended-a-sees-zero-quota-buckets` reads a row that an ACTIVE OWNER and an ACTIVE ADMIN of the same workspace both read in the cases immediately above it, through a policy whose predicate is `app.workspace_member_role(workspace_id)` -- which batch 011 defines to answer only for a membership whose status is `active`. That is the shape batch 140 could not produce and said so; the difference is that this table has a client read at all.\n\nON app.usage_events AND app.usage_reservations BATCH 061 IS IN 140\'s POSITION and does not pretend otherwise: no client identity can read either, so a suspended member is refused exactly as an active owner is, and no case there is written as a suspension control.' },
+                           + 'BATCH 061 GIVES THE ROW BACK A CASE WHERE SUSPENSION IS THE WHOLE OF THE REFUSAL. `suspended-a-sees-zero-quota-buckets` reads a row that an ACTIVE OWNER and an ACTIVE ADMIN of the same workspace both read in the cases immediately above it, through a policy whose predicate is `app.workspace_member_role(workspace_id)` -- which batch 011 defines to answer only for a membership whose status is `active`. That is the shape batch 140 could not produce and said so; the difference is that this table has a client read at all.\n\nON app.usage_events AND app.usage_reservations BATCH 061 IS IN 140\'s POSITION and does not pretend otherwise: no client identity can read either, so a suspended member is refused exactly as an active owner is, and no case there is written as a suspension control.\n\n'
+                           + 'BATCH 051 IS WHERE THIS ASSERTION FINALLY BITES ON A ROW THE SUSPENDED '
+                           + 'MEMBER OWNS. On every table since 010 the suspended member has been refused '
+                           + 'rows that belong to somebody else or to nobody, and 050, 060 and 140 had to '
+                           + 'label their suspended cases ANALOGUES because a refusal that holds for every '
+                           + 'active member too is the privilege system rather than suspension. '
+                           + 'app.notifications is different: the fixture ADDRESSES A NOTIFICATION TO '
+                           + 'user_suspended_a, the recipient term of the policy admits them, and only '
+                           + '`app.is_active_member(workspace_id)` refuses — while '
+                           + '`editor-a-sees-their-own-notification` shows an active member with the same '
+                           + 'relationship to their own row reading it. So `suspended-a-sees-zero-'
+                           + 'notifications` is not an analogue and is not labelled one.\n\n'
+                           + 'THE MUTATION HALF IS CARRIED AT A WEAKER GRANULARITY AND THAT IS SAID '
+                           + 'RATHER THAN AVERAGED. §12.6/5 asks for zero rows AND no mutation, and the '
+                           + 'strongest mutation case — the suspended member marking their OWN '
+                           + 'notification read — cannot be written, because a `no-effect` case is an '
+                           + 'empty result plus a WITNESS that reads the value back, and no identity in '
+                           + 'this schema may read that row: the recipient is the suspended member, an '
+                           + 'owner is refused by the recipient term, and the service holds no policy. '
+                           + '`suspended-a-cannot-mark-a-notification-read` therefore targets another '
+                           + 'member\'s row, which the row\'s own recipient can witness.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -596,7 +644,16 @@ export const SMOKE_COVERAGE = {
                            + 'SELECT" N for all five built-in roles, §10 says "no tenant access" and §11.1/5 keeps it out '
                            + 'of a PDPA export, so if a raw security event is the last thing somebody would expose '
                            + 'anonymously, a raw provider delivery is beside it.\n\n'
-                           + 'BATCH 061 ADDS THREE MORE, one per table, all declared on the SCHEMA. That is not repetition for its own sake: RFC-2026-021 §7/4\'s structural argument is that the first anon grant is `grant usage on schema app`, which changes the DENIAL LAYER of every object in `app` at once -- so the day somebody writes it, every anonymous case in this suite moves from the schema to the table together, and a batch that declared only one of its three would have one case failing and two quietly still passing for the wrong reason.' },
+                           + 'BATCH 061 ADDS THREE MORE, one per table, all declared on the SCHEMA. That is not repetition for its own sake: RFC-2026-021 §7/4\'s structural argument is that the first anon grant is `grant usage on schema app`, which changes the DENIAL LAYER of every object in `app` at once -- so the day somebody writes it, every anonymous case in this suite moves from the schema to the table together, and a batch that declared only one of its three would have one case failing and two quietly still passing for the wrong reason.\n\n'
+                           + 'BATCH 051 ADDS THREE, AND ONE OF THEM NAMES A DIFFERENT SCHEMA. '
+                           + '`anonymous-cannot-see-a-notification` and '
+                           + '`anonymous-cannot-read-a-notification-preference` are refused on `app`; '
+                           + '`anonymous-cannot-read-a-push-subscription-reference` is refused on '
+                           + '`private`, which is the second table this suite has there and the reason '
+                           + 'the declared OBJECT is worth carrying at all — the schema that refuses an '
+                           + 'anonymous read is the schema its statement names, and a case that declared '
+                           + 'only the layer would be satisfied by the harness failing to reach a '
+                           + 'helper.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -670,7 +727,20 @@ export const SMOKE_COVERAGE = {
                            + 'before the constraint is consulted. A `rejected` case would demand an outcome a correct '
                            + 'database cannot produce, which 140 called the suite claiming a control nobody built. The '
                            + 'apply-time block asserts the constraint\'s column set instead.\n\n'
-                           + 'BATCH 061 IS THE SAME FINDING IN A FINANCE FAMILY, AND ONE OF ITS THREE TABLES DIFFERS FROM THE OTHER TWO. app.usage_events carries NO FOREIGN KEY ON ANY COLUMN -- not to app.workspaces, not to app.business_profiles, not to app.jobs -- because §11.4 purges tenant content in step 7 and RETAINS finance records in step 8, and §10\'s FINANCE-HISTORY row says a ledger is \'not erased if legal basis requires\'. A ledger row that must outlive what it names cannot be constrained by it, so a forged Business on a usage event is refused by nothing in this schema and cannot be; §4 invariant 10 admits that outcome in its own words -- \'fail ที่ DB หรือ command boundary\' -- and CTR-TEN-001\'s trust boundary is the boundary that refuses it.\n\napp.quota_buckets AND app.usage_reservations DO CARRY §3.3\'s COMPOSITE FOREIGN KEY, because neither outlives the tenant: an aggregate is recomputable and a hold expires. AND NO CASE CAN EXERCISE IT, which is stated rather than left as an absence -- no role holds INSERT on either table through a policy, so there is no caller that could offer a Business of another Workspace and be refused by the constraint rather than by row level security, and a `rejected` case demanding 23503 would be a case a correct database cannot satisfy. Owed to the command surface, and it is one case each when that exists.' },
+                           + 'BATCH 061 IS THE SAME FINDING IN A FINANCE FAMILY, AND ONE OF ITS THREE TABLES DIFFERS FROM THE OTHER TWO. app.usage_events carries NO FOREIGN KEY ON ANY COLUMN -- not to app.workspaces, not to app.business_profiles, not to app.jobs -- because §11.4 purges tenant content in step 7 and RETAINS finance records in step 8, and §10\'s FINANCE-HISTORY row says a ledger is \'not erased if legal basis requires\'. A ledger row that must outlive what it names cannot be constrained by it, so a forged Business on a usage event is refused by nothing in this schema and cannot be; §4 invariant 10 admits that outcome in its own words -- \'fail ที่ DB หรือ command boundary\' -- and CTR-TEN-001\'s trust boundary is the boundary that refuses it.\n\napp.quota_buckets AND app.usage_reservations DO CARRY §3.3\'s COMPOSITE FOREIGN KEY, because neither outlives the tenant: an aggregate is recomputable and a hold expires. AND NO CASE CAN EXERCISE IT, which is stated rather than left as an absence -- no role holds INSERT on either table through a policy, so there is no caller that could offer a Business of another Workspace and be refused by the constraint rather than by row level security, and a `rejected` case demanding 23503 would be a case a correct database cannot satisfy. Owed to the command surface, and it is one case each when that exists.\n\n'
+                           + 'BATCH 051 ADDS NO CASE HERE EITHER, AND THE REASON IS A THIRD ONE. Its '
+                           + 'three tables carry `workspace_id` with a foreign key to app.workspaces, so '
+                           + 'a forged WORKSPACE id fails at the constraint — but that is 020\'s claim, '
+                           + 'already asserted, and nothing new is learned by asserting it again on a '
+                           + 'fourth family. The id this family could forge that no earlier one could is '
+                           + '`user_id`, and NOTHING IN THIS SCHEMA REFUSES A FORGED ONE: it is not '
+                           + 'FK-constrained, because §11.2 forbids cascade-deleting history when a '
+                           + 'member is removed and requires the actor and contact fields be anonymized '
+                           + 'in place — 010\'s own reason for app.user_profiles.user_id carrying no '
+                           + 'foreign key to auth.users. What DOES refuse a forged recipient is the '
+                           + 'policy rather than a constraint, and that is asserted as §8.6/2 and §12.6/5 '
+                           + 'rather than here: a notification addressed to somebody else is invisible, '
+                           + 'and no client role holds an INSERT to forge one with.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -771,8 +841,13 @@ export const SMOKE_COVERAGE = {
                            + 'found. Every batch from 010 to 040 said the same sentence — the positive '
                            + 'half is unasserted because the matrix marks no operation `S` and asserting '
                            + 'a success would mean inventing the permission first. **§8.4 MARKS '
-                           + '"Audit/security INSERT" `S`.** It is the first and only `S` cell any '
-                           + 'migration in this repository has reached, batch 010\'s own header named 140 '
+                           + '"Audit/security INSERT" `S`.** This note said it was "the first and only `S` '
+                           + 'cell any migration in this repository has reached"; that was true of batch '
+                           + '140\'s own branch and false of the tree it merged into, because 050 reached '
+                           + '§8.4\'s job payload cell in parallel and 051 has since reached its '
+                           + 'notification cell. The sentence is corrected in place with the reason '
+                           + 'recorded rather than deleted, which is what the 2026-09-07 integration did '
+                           + 'with the other four sites of the same claim. Batch 010\'s own header named 140 '
                            + 'as one of the batches that would inherit RFC-2026-016 §2\'s service-policy '
                            + 'shape, and the policy is STILL not written — because §2 conditions it on "a '
                            + 'server-set workspace GUC derived from CTR-TEN-001" that has no name, no '
@@ -799,7 +874,34 @@ export const SMOKE_COVERAGE = {
                            + 'four cases on the two `app` tables — two filtered reads and two POLICY-layer refused writes — '
                            + 'and gains nothing on the two `private` ones, where app_worker holds no grant at all and the '
                            + 'refusal is the privilege system for every identity alike.\n\n'
-                           + 'BATCH 061 IS ONE OF THE BATCHES THAT SENTENCE NAMES, AND IT ARRIVES WITH THE DECISION MADE AND STILL NOT IN EFFECT. RFC-2026-022 (approved 2026-09-08) splits the nine §8 `S` cells by whether the statement CARRIES its workspace or DISCOVERS it, classes §8.4\'s \'Usage ledger INSERT\' CARRIED, names the setting and pins its one legal spelling -- and declares itself NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So this row is still `negative-half`, and the negative half is now larger and better labelled: batch 061 records the classification as DATA in db/foundation/lint/service-policy-map.json, writes NO service policy, and asserts the present refusal in `service-cannot-write-a-usage-event` at the POLICY layer.\n\nTWO THINGS A LATER READER MUST NOT DO WITH THESE CASES. The first is to read `service-sees-zero-usage-events` or `service-sees-zero-usage-reservations` as pending. RFC-2026-022 §8 records that batch 050\'s equivalents are PERMANENT, and a service SELECT on a metering table is no more an `S` cell than a service SELECT on a job is: §8.4 puts the `S` on the ledger\'s INSERT alone. The second is to cite the confinement term as tenant isolation. RFC-2026-022 §5/4 measured that app_worker can set the setting the policy would read; the term confines ONE TRANSACTION to one tenant, which catches a worker computing the wrong workspace for a row, and it is not a boundary against the service role. No case in this suite is named or worded as though it were.\n\nTHE POSITIVE HALF IS STILL UNPAYABLE, for the reason it has been since batch 010 and for a narrower one now: it needs an identity that can BE app_worker, which RFC-2026-019 §4/3 leaves open and RFC-2026-022 §5/8 gives to the RFC that creates the worker (DATA-DEC-03, due before G1).' },
+                           + 'BATCH 061 IS ONE OF THE BATCHES THAT SENTENCE NAMES, AND IT ARRIVES WITH THE DECISION MADE AND STILL NOT IN EFFECT. RFC-2026-022 (approved 2026-09-08) splits the nine §8 `S` cells by whether the statement CARRIES its workspace or DISCOVERS it, classes §8.4\'s \'Usage ledger INSERT\' CARRIED, names the setting and pins its one legal spelling -- and declares itself NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So this row is still `negative-half`, and the negative half is now larger and better labelled: batch 061 records the classification as DATA in db/foundation/lint/service-policy-map.json, writes NO service policy, and asserts the present refusal in `service-cannot-write-a-usage-event` at the POLICY layer.\n\nTWO THINGS A LATER READER MUST NOT DO WITH THESE CASES. The first is to read `service-sees-zero-usage-events` or `service-sees-zero-usage-reservations` as pending. RFC-2026-022 §8 records that batch 050\'s equivalents are PERMANENT, and a service SELECT on a metering table is no more an `S` cell than a service SELECT on a job is: §8.4 puts the `S` on the ledger\'s INSERT alone. The second is to cite the confinement term as tenant isolation. RFC-2026-022 §5/4 measured that app_worker can set the setting the policy would read; the term confines ONE TRANSACTION to one tenant, which catches a worker computing the wrong workspace for a row, and it is not a boundary against the service role. No case in this suite is named or worded as though it were.\n\nTHE POSITIVE HALF IS STILL UNPAYABLE, for the reason it has been since batch 010 and for a narrower one now: it needs an identity that can BE app_worker, which RFC-2026-019 §4/3 leaves open and RFC-2026-022 §5/8 gives to the RFC that creates the worker (DATA-DEC-03, due before G1).\n\n'
+                           + 'BATCH 051 IS WHERE THAT GENERALISED FINDING WAS ANSWERED, AND THE ROW STILL '
+                           + 'DOES NOT MOVE — for a reason that has changed shape a second time and is '
+                           + 'now the narrowest it has been. RFC-2026-022 (approved 2026-09-08) took the '
+                           + 'question 050 and 140 both dispatched and split the nine `S` cells by '
+                           + 'whether the statement CARRIES its workspace or DISCOVERS it: a carried cell '
+                           + 'gets a policy `TO <service role>` whose predicate is the cell\'s own AND a '
+                           + 'pinned confinement term, and a discovered cell gets no policy, permanently, '
+                           + 'performed through a broker. §8.4\'s "Notification insert/delivery state" is '
+                           + 'CARRIED — the recipient and the workspace are inputs, because §8.4\'s other '
+                           + 'notification row is `O` and an inbox row cannot be addressed without '
+                           + 'knowing whose it is — and batch 051 records that classification, for BOTH '
+                           + 'statements the cell names, in db/foundation/lint/service-policy-map.json.\n\n'
+                           + 'SO THE BLOCKER IS NO LONGER "NO DOCUMENT NAMES THE GUC". It is that '
+                           + 'RFC-2026-022 IS APPROVED AND NOT IN EFFECT: measured 2026-09-08, the only '
+                           + 'member of app_worker is `postgres`, which BYPASSES row level security, so a '
+                           + 'policy naming that role would be a control with no observable behaviour at '
+                           + 'all — neither a denial nor a grant. The RFC\'s own §7 lists what must be '
+                           + 'true first, and none of it is this batch\'s to build. '
+                           + '`service-cannot-write-a-notification-row` is the POLICY-layer denial that '
+                           + 'will have to flip when it is, exactly as 140\'s two will.\n\n'
+                           + 'AND ONE SENTENCE THAT NO NOTE, COMMENT OR CASE IN BATCH 051 MAY CONTRADICT, '
+                           + 'because RFC-2026-022 makes it a condition of the decision: the workspace '
+                           + 'GUC is CONTAINMENT against defects in the service\'s own code and NEVER '
+                           + 'tenant isolation of the service path. The RFC measured twice that the role '
+                           + 'a service policy names can set the setting that policy reads. Nothing in '
+                           + 'this suite cites it as the latter, and identity-isolation.test.mjs asserts '
+                           + 'that absence rather than trusting it.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -871,7 +973,19 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'transaction and a vault write no role can perform. There is no passing client case on any of '
    + 'this batch\'s four tables, and counting the app_worker grant would report the absence of a '
    + 'client surface as coverage of one.\n\n'
-   + 'BATCH 061 HAS A PASSING CLIENT CASE AGAIN, ON ONE OF ITS THREE TABLES. §8.4 marks \'Usage/quota summary SELECT\' `Y` for the owner and `Y` for the admin, and the aggregate IS the summary, so app.quota_buckets carries four positives: the owner reads the workspace-level bucket, the ADMIN reads it, the admin reads the bucket inside their member scope, and the unscoped owner reads the one outside it. The admin cases exist because §12.6\'s identity list names no admin and half of the policy\'s role test would otherwise have gone unexercised. app.usage_events and app.usage_reservations have NO INSTANCE of this case at all, exactly as batch 140\'s two tables do not, and the disposition says so rather than counting a service grant as a pass.',
+   + 'BATCH 061 HAS A PASSING CLIENT CASE AGAIN, ON ONE OF ITS THREE TABLES. §8.4 marks \'Usage/quota summary SELECT\' `Y` for the owner and `Y` for the admin, and the aggregate IS the summary, so app.quota_buckets carries four positives: the owner reads the workspace-level bucket, the ADMIN reads it, the admin reads the bucket inside their member scope, and the unscoped owner reads the one outside it. The admin cases exist because §12.6\'s identity list names no admin and half of the policy\'s role test would otherwise have gone unexercised. app.usage_events and app.usage_reservations have NO INSTANCE of this case at all, exactly as batch 140\'s two tables do not, and the disposition says so rather than counting a service grant as a pass.\n\n'
+   + 'BATCH 051 CARRIES FOUR PASSING CASES, AND THE FOURTH IS A WRITE. §8.4\'s "Own notification '
+   + 'SELECT/mark read" is `O` for owner, admin, editor, approver and viewer alike, with no `P` to '
+   + 'resolve and no projection language attached — THE SAME SHAPE §8.1 GIVES "Own user profile '
+   + 'SELECT/UPDATE", which batch 010 implemented as a column-scoped grant plus an own-row policy '
+   + 'and which is therefore the precedent this batch follows. The difference is that a user profile '
+   + 'is NOT a tenant row (010\'s header says so in terms) and a notification is, so the predicate '
+   + 'here carries a membership term the profile\'s does not. So '
+   + '`owner-a-sees-their-own-notification`, `owner-b-sees-their-own-notification` and '
+   + '`editor-a-sees-their-own-notification` are the read half and '
+   + '`owner-a-can-mark-their-own-notification-read` is the write half. THE EDITOR\'S READ IS NOT '
+   + 'PADDING: without an identity that is not an owner passing, a policy that compared the reader\'s '
+   + 'ROLE instead of their identity would satisfy the other two and the refusals beside them.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -920,7 +1034,25 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'assignment. It is asserted at the GRANT layer beside the owner refused identically, so it '
    + 'stays true on the day a later batch implements the owner\'s `Y` and leaves the editor\'s `P` '
    + 'unimplemented, which is the state that batch should ship.\n\n'
-   + 'BATCH 061 CARRIES THIS CASE THREE TIMES ON ONE TABLE AND EACH IS A DIFFERENT CELL OF ONE MATRIX ROW. §8.4\'s \'Usage/quota summary SELECT\' reads `Y Y P N N P`, so the editor is refused a cell the matrix marks `P` -- refused because RFC-2026-020 §8 decides that no document defines the capability set -- while the approver and the viewer are refused cells it marks `N`. Three cases rather than one, because a single case would make the other two look like consequences of it, and because the day a capability set is defined exactly one of the three changes.',
+   + 'BATCH 061 CARRIES THIS CASE THREE TIMES ON ONE TABLE AND EACH IS A DIFFERENT CELL OF ONE MATRIX ROW. §8.4\'s \'Usage/quota summary SELECT\' reads `Y Y P N N P`, so the editor is refused a cell the matrix marks `P` -- refused because RFC-2026-020 §8 decides that no document defines the capability set -- while the approver and the viewer are refused cells it marks `N`. Three cases rather than one, because a single case would make the other two look like consequences of it, and because the day a capability set is defined exactly one of the three changes.\n\n'
+   + 'BATCH 051 PUTS A WRONG-IDENTITY REFUSAL HERE RATHER THAN A WRONG-ROLE ONE. §5 scopes '
+   + 'notification.core "workspace/USER" and §8.4 marks the cell `O`, so what a member meets on this '
+   + 'family is a refusal about WHOSE ROW IT IS: `owner-a-cannot-see-the-notification-of-editor-a` '
+   + 'and its mirror `editor-a-cannot-see-the-notification-of-owner-a` are two ACTIVE MEMBERS OF ONE '
+   + 'WORKSPACE, one of them its OWNER, refused each other\'s rows. THAT SEPARATION IS NOT NEW — '
+   + '`viewer-a-cannot-see-another-members-row` does it on app.workspace_members and '
+   + '`editor-a-cannot-see-another-members-member-scope` on app.workspace_member_scopes — and the '
+   + 'batch 051 pair is not offered as though it were. What differs is the identity: §8.1 gives the '
+   + 'member list to owner and admin, so an OWNER succeeds on those tables, and §8.4 gives the owner '
+   + 'no more than the viewer here. §8.6 case 2 reads "same Workspace + wrong role/capability", and '
+   + '"wrong recipient" is the nearest thing this family has to it; both '
+   + 'directions are asserted, because a predicate that admitted a row whenever the reader outranked '
+   + 'its recipient would pass one and fail the other. THREE FURTHER CASES BELONG HERE AND ARE ABOUT '
+   + 'COLUMNS RATHER THAN ROWS: `owner-a-cannot-read-the-delivery-state-of-their-own-notification`, '
+   + '`owner-a-cannot-read-the-dedupe-key-of-their-own-notification` and '
+   + '`owner-a-cannot-relabel-their-own-notification` are each refused on a row THE POLICY ADMITS, by '
+   + 'a column grant, which is §8.4\'s second row ("Notification insert/delivery state | N N N N N S") '
+   + 'implemented as a column list rather than as a projection.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -952,7 +1084,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'migration invariant 6 puts a cross-module foreign key in an integration batch. So this case '
    + 'is owed to 111 together with the table, and the gap is a registry gap rather than a coverage '
    + 'one — §5 names "bindings" in two module rows while §6 names one owner for its foreign key.\n\n'
-   + 'BATCH 061 IS A FAMILY THAT CAN CARRY THIS CASE AGAIN, AND IT CARRIES IT ON A CALLER THE MATRIX ALLOWS. §5 scopes metering.core `workspace/business`, so app.quota_buckets has a nullable business_profile_id tied to app.business_profiles by §3.3\'s composite foreign key, and `admin-a-cannot-read-the-quota-bucket-outside-their-narrowing` is refused by quota_buckets_scope_narrows_member -- AS RESTRICTIVE, because permissive policies OR together and cannot subtract -- AFTER the caller has already passed the role test. The positive beside it and the unscoped owner reading the same row are what make the refusal about scope rather than about role or about an empty table.\n\napp.usage_events IS THE OPPOSITE CASE ON THE SAME QUESTION and is worth naming: it too carries business_profile_id, and no policy reads it, because no client role holds a privilege on the ledger at all.',
+   + 'BATCH 061 IS A FAMILY THAT CAN CARRY THIS CASE AGAIN, AND IT CARRIES IT ON A CALLER THE MATRIX ALLOWS. §5 scopes metering.core `workspace/business`, so app.quota_buckets has a nullable business_profile_id tied to app.business_profiles by §3.3\'s composite foreign key, and `admin-a-cannot-read-the-quota-bucket-outside-their-narrowing` is refused by quota_buckets_scope_narrows_member -- AS RESTRICTIVE, because permissive policies OR together and cannot subtract -- AFTER the caller has already passed the role test. The positive beside it and the unscoped owner reading the same row are what make the refusal about scope rather than about role or about an empty table.\n\napp.usage_events IS THE OPPOSITE CASE ON THE SAME QUESTION and is worth naming: it too carries business_profile_id, and no policy reads it, because no client role holds a privilege on the ledger at all.\n\n'
+   + 'BATCH 051 CARRIES NO CASE FOR IT EITHER, and the reason is §5 rather than §4: notification.core '
+   + 'is scoped "workspace/user", so this family has no Business level for case 3 to be about. What '
+   + 'it has instead is a level §7\'s scope types do not describe — the RECIPIENT — and the cases '
+   + 'that level produces are counted under case 2, because a member reading another member\'s '
+   + 'notification is a wrong-identity refusal rather than a wrong-Business one.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -997,7 +1134,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'have one. 020\'s page scope and 021\'s `member_scope_covers_page` are named in 110\'s header '
    + 'as what a binding policy would be written against, and called by nothing — which is what a '
    + 'declared dependency looks like when the batch that declares it refuses the table.\n\n'
-   + 'BATCH 061 HAS NO INSTANCE OF THIS CASE AND THE ABSENCE IS THE DISPOSITION. §5 scopes metering.core `workspace/business` and stops there: no table in this batch carries a page_context_profile_id, §4\'s ERD hangs USAGE_EVENT off WORKSPACE and names no Page relation for the family, and inventing a Page column so that case 4 could be carried would be adding a scope level two source documents decline to give it. The narrowing policy therefore calls app.member_scope_admits_business and never app.member_scope_admits_page, and user_page_editor_a -- the identity batch 021 added for this case -- is refused a quota bucket by ROLE, which is case 2.',
+   + 'BATCH 061 HAS NO INSTANCE OF THIS CASE AND THE ABSENCE IS THE DISPOSITION. §5 scopes metering.core `workspace/business` and stops there: no table in this batch carries a page_context_profile_id, §4\'s ERD hangs USAGE_EVENT off WORKSPACE and names no Page relation for the family, and inventing a Page column so that case 4 could be carried would be adding a scope level two source documents decline to give it. The narrowing policy therefore calls app.member_scope_admits_business and never app.member_scope_admits_page, and user_page_editor_a -- the identity batch 021 added for this case -- is refused a quota bucket by ROLE, which is case 2.\n\n'
+   + 'BATCH 051 CARRIES NO CASE FOR IT, for the reason it carries none for case 3. §4\'s ERD reads '
+   + 'WORKSPACE ||--o{ NOTIFICATION : receives and hangs it off nothing else, so this family has no '
+   + 'Page level and no Business level; §7\'s three member-scope types all name a Business or a Page, '
+   + 'so a scoped member is neither helped nor hindered here, and no policy in batch 051 calls one of '
+   + '021\'s helpers. That is also why the batch writes no RESTRICTIVE policy: there is no narrowing '
+   + 'to express, and a restrictive policy ANDed with nothing can only refuse what is already '
+   + 'refused.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1037,7 +1181,19 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'both sides so the second case names a real row — and both are refused at the privilege layer, '
    + 'identically to each owner being refused their OWN row. What the pair proves is that the '
    + 'refusal is uniform, not that a boundary holds.\n\n'
-   + 'BATCH 061 CARRIES CASE 5 IN BOTH FORMS AT ONCE, WHICH A BATCH WITH ONE SHAPE OF TABLE CANNOT. On app.quota_buckets it is the case as written -- A\'s owner holds B\'s exact bucket id and reads nothing, B\'s owner reads it, and A\'s owner is refused in the other direction too. On app.usage_events it is 030\'s substitute, because no client identity can read the ledger: both owners are refused identically while each holds the id of a row in their OWN workspace. Having the two side by side in one batch is what makes the substitute legible AS a substitute rather than as a weaker version of the same claim.',
+   + 'BATCH 061 CARRIES CASE 5 IN BOTH FORMS AT ONCE, WHICH A BATCH WITH ONE SHAPE OF TABLE CANNOT. On app.quota_buckets it is the case as written -- A\'s owner holds B\'s exact bucket id and reads nothing, B\'s owner reads it, and A\'s owner is refused in the other direction too. On app.usage_events it is 030\'s substitute, because no client identity can read the ledger: both owners are refused identically while each holds the id of a row in their OWN workspace. Having the two side by side in one batch is what makes the substitute legible AS a substitute rather than as a weaker version of the same claim.\n\n'
+   + 'BATCH 051 CARRIES IT PROPERLY ON app.notifications AND NOT AT ALL ON THE OTHER TWO, and the '
+   + 'three dispositions are three different things. On the inbox the boundary is OBSERVABLE, because '
+   + 'a §8 client cell is implemented: `owner-a-cannot-see-the-notification-of-owner-b` runs while '
+   + 'holding B\'s exact id, `owner-b-sees-their-own-notification` is the far side, and '
+   + '`owner-a-cannot-mark-the-notification-of-owner-b-read` is the write. THAT CASE IS ALSO THE '
+   + 'WEAKEST OF THE THREE BOUNDARY CASES THIS BATCH HAS, which is worth saying: both terms of the '
+   + 'predicate refuse it independently, so a database that had lost either conjunct would still pass '
+   + 'it — the cases that isolate a single term are under §8.6/2 and §12.6/5. On '
+   + 'app.notification_preferences no identity can read a row, so both owners are refused identically '
+   + 'at the privilege layer (050\'s shape on a tenant table). On '
+   + 'private.push_subscription_references every identity is refused on the SCHEMA, so the far-side '
+   + 'case is not a boundary claim at all and is labelled as 060 labelled its own.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -1064,7 +1220,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'member is refused app.meta_connections and app.social_accounts by the privilege system, '
    + 'exactly as an active owner is, and each case declares the layer and the object so the '
    + 'distinction from a policy-filtered empty read is recorded rather than smoothed.\n\n'
-   + 'BATCH 061 CARRIES CASE 6 AS A REAL SUSPENSION CONTROL ON app.quota_buckets: the policy resolves app.workspace_member_role, which batch 011 defines to answer only for an ACTIVE membership, and an active owner and an active admin read the same row in the cases above it. On its other two tables it is in 140\'s position -- no client identity reads them at all -- and no case there is written as though suspension were doing the work.',
+   + 'BATCH 061 CARRIES CASE 6 AS A REAL SUSPENSION CONTROL ON app.quota_buckets: the policy resolves app.workspace_member_role, which batch 011 defines to answer only for an ACTIVE membership, and an active owner and an active admin read the same row in the cases above it. On its other two tables it is in 140\'s position -- no client identity reads them at all -- and no case there is written as though suspension were doing the work.\n\n'
+   + 'BATCH 051 IS WHERE IT STOPS BEING AN ANALOGUE. The fixture addresses a notification TO '
+   + 'user_suspended_a, so the recipient term of the policy ADMITS them and only '
+   + '`app.is_active_member(workspace_id)` refuses — with `editor-a-sees-their-own-notification` '
+   + 'beside it, showing an active member in exactly the same relationship to their own row reading '
+   + 'it. On 050, 060 and 140 the suspended cases had to be labelled analogues because a refusal that '
+   + 'holds for every active member too is the privilege system rather than suspension; this one is '
+   + 'suspension and nothing else. The MUTATION half is carried one step out — '
+   + '`suspended-a-cannot-mark-a-notification-read` targets another member\'s row — because a '
+   + '`no-effect` case needs a witness and no identity in this schema may read the suspended member\'s '
+   + 'own notification. That is stated in the case rather than averaged away.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -1098,7 +1264,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'What matters is unchanged: anon holds nothing anywhere, so the schema that refuses it is '
    + 'whichever one the statement names, and declaring which is what makes a widening fail a case '
    + 'instead of passing more quietly.\n\n'
-   + 'BATCH 061 ADDS THREE MORE ANONYMOUS REFUSALS, one per table, all declared on the SCHEMA for the same structural reason: the first anon grant is `grant usage on schema app` and it moves the denial layer of every object in `app` at once, so the three fail together or the decision has not changed.',
+   + 'BATCH 061 ADDS THREE MORE ANONYMOUS REFUSALS, one per table, all declared on the SCHEMA for the same structural reason: the first anon grant is `grant usage on schema app` and it moves the denial layer of every object in `app` at once, so the three fail together or the decision has not changed.\n\n'
+   + 'Batch 051 asserts it three times and one of the three names a DIFFERENT schema. The two reads '
+   + 'against `app` are refused there; `anonymous-cannot-read-a-push-subscription-reference` is '
+   + 'refused on `private`, which is the second table this suite has in that schema. §9.1 gives '
+   + 'SECRET-4 a client projection of "never returned after write" and lists "push token" as one of '
+   + 'its four examples, so this is the row an anonymous reader is furthest from — and the case '
+   + 'declares the schema so the day somebody writes `grant usage on schema private` the refusal '
+   + 'moves to the table and the case fails rather than passing more quietly.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -1150,7 +1323,19 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'constraint is asserted by the migration\'s apply-time block as a COLUMN SET rather than by a '
    + '`rejected` case, because a case demanding 23503 here would demand an outcome a correct '
    + 'database cannot produce.\n\n'
-   + 'BATCH 061 CARRIES NO FORGERY CASE EITHER, AND FOR TWO DIFFERENT REASONS THAT ARE BOTH WORTH STATING. There is no `created_by` on any of its three tables -- §3.2 asks for the actor columns on a row a USER mutates, §8.4 gives no client any write here, and CTR-USG-001\'s attribution names a job and a provider rather than a person -- so the columns would be nullable uuids nothing writes. And a forged SCOPE column is refused by nothing on app.usage_events, which carries no foreign key at all (§11.4 steps 7 and 8; see §12.6/7), while on app.quota_buckets and app.usage_reservations, which DO carry §3.3\'s composite key, no role holds INSERT through a policy -- so no caller exists to offer a mismatched triple and be refused by the constraint. What batch 061 carries instead is the UPDATE half of this case, twice: `service-cannot-retarget-a-quota-bucket` and `service-cannot-retarget-a-usage-reservation` are §8.5\'s \'ห้ามย้าย row ข้าม tenant ด้วย update\' refused BY A COLUMN LIST rather than by an absent verb, which is the distinction batch 060 had to be corrected on.',
+   + 'BATCH 061 CARRIES NO FORGERY CASE EITHER, AND FOR TWO DIFFERENT REASONS THAT ARE BOTH WORTH STATING. There is no `created_by` on any of its three tables -- §3.2 asks for the actor columns on a row a USER mutates, §8.4 gives no client any write here, and CTR-USG-001\'s attribution names a job and a provider rather than a person -- so the columns would be nullable uuids nothing writes. And a forged SCOPE column is refused by nothing on app.usage_events, which carries no foreign key at all (§11.4 steps 7 and 8; see §12.6/7), while on app.quota_buckets and app.usage_reservations, which DO carry §3.3\'s composite key, no role holds INSERT through a policy -- so no caller exists to offer a mismatched triple and be refused by the constraint. What batch 061 carries instead is the UPDATE half of this case, twice: `service-cannot-retarget-a-quota-bucket` and `service-cannot-retarget-a-usage-reservation` are §8.5\'s \'ห้ามย้าย row ข้าม tenant ด้วย update\' refused BY A COLUMN LIST rather than by an absent verb, which is the distinction batch 060 had to be corrected on.\n\n'
+   + 'BATCH 051 CARRIES NEITHER HALF AND THE REASON IS THE COLUMN THAT WOULD BE FORGED. All three of '
+   + 'its tables carry `workspace_id` with a foreign key to app.workspaces, so a forged WORKSPACE id '
+   + 'fails at the constraint — but that is 020\'s claim, already asserted through a composite foreign '
+   + 'key, and nothing is learned by re-asserting it on a fourth family. The id THIS family could '
+   + 'forge that no earlier one could is `user_id`, and NOTHING IN THIS SCHEMA REFUSES A FORGED ONE: '
+   + 'it is not FK-constrained, because §11.2 forbids cascade-deleting history when a member is '
+   + 'removed and requires the actor and contact fields be anonymized in place — 010\'s own reason for '
+   + 'app.user_profiles.user_id carrying no foreign key to auth.users. What IS asserted is the half a '
+   + 'forged column is usually asserted through: no client role holds an INSERT on any table in this '
+   + 'batch, so nobody can compose a notification addressed to somebody else — '
+   + '`owner-a-cannot-write-a-notification` at the grant layer, on a row that names the caller '
+   + 'themselves so that no scope check refuses it and only the absent grant does.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1256,7 +1441,27 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'has no broad user delete and every purge in this family is a retention sweep. Reading that as '
    + 'immutability would report the wrong control as green — a raw webhook row is MEANT to be '
    + 'purged, and §10\'s WEBHOOK-SHORT says when.\n\n'
-   + 'BATCH 061 CARRIES CASE 9 ON THE TABLE §8.6 NAMES IT FOR. The case is \'Immutable/LEDGER row -> update/delete fail\', app.usage_events is a ledger by §8.4\'s own row heading, and §3.2 and §4 invariant 8 both name USAGE history immutable beside audit history. Four cases: the owner and the service each refused UPDATE and DELETE, every one at the GRANT layer because no role holds either verb at all -- and 061_metering.sql re-asserts it against the live ACL AND against the live policy catalog, so a grant made by a LATER batch is caught by a file that could not have named it.\n\nTHE TRIGGER HALF OF §8.5\'s \'command/trigger/privilege defense ตามความเหมาะสม\' IS NOT TAKEN HERE, and that is a decision with a reason rather than a gap. Batch 140 took it and recorded what it cost: private.refuse_mutation() raises for EVERY role including the table owner, and 140\'s own blocker states the consequence -- \'THE RETENTION JOB CANNOT RUN, and batch 160 cannot fix it with a grant\'. §10 gives this family FINANCE-HISTORY, whose rule is \'anonymize nonrequired PII; retain ledger integrity\' over a seven-year window that ENDS in a purge, so the same trigger here would create the same contradiction a second time, knowingly, in a family whose retention class names the sweep it would block. The adversary it would stop is `postgres`, which owns the table and can also `alter table ... disable trigger all` -- which 140\'s blocker calls tamper RESISTANCE rather than tamper evidence. Reusing 140\'s function would also make a refusal on a usage ledger report SQLSTATE ZZ140, and writing a second function doing the same thing with a different code would be two functions for one rule with nothing keeping them equal. **Owed to A1 Security, who owns the immutability-mechanism question, and to batch 160, which owns the sweep. §8.5\'s \'ตามความเหมาะสม\' is a judgement, and this batch says which way it went rather than letting the absence read as an oversight.**',
+   + 'BATCH 061 CARRIES CASE 9 ON THE TABLE §8.6 NAMES IT FOR. The case is \'Immutable/LEDGER row -> update/delete fail\', app.usage_events is a ledger by §8.4\'s own row heading, and §3.2 and §4 invariant 8 both name USAGE history immutable beside audit history. Four cases: the owner and the service each refused UPDATE and DELETE, every one at the GRANT layer because no role holds either verb at all -- and 061_metering.sql re-asserts it against the live ACL AND against the live policy catalog, so a grant made by a LATER batch is caught by a file that could not have named it.\n\nTHE TRIGGER HALF OF §8.5\'s \'command/trigger/privilege defense ตามความเหมาะสม\' IS NOT TAKEN HERE, and that is a decision with a reason rather than a gap. Batch 140 took it and recorded what it cost: private.refuse_mutation() raises for EVERY role including the table owner, and 140\'s own blocker states the consequence -- \'THE RETENTION JOB CANNOT RUN, and batch 160 cannot fix it with a grant\'. §10 gives this family FINANCE-HISTORY, whose rule is \'anonymize nonrequired PII; retain ledger integrity\' over a seven-year window that ENDS in a purge, so the same trigger here would create the same contradiction a second time, knowingly, in a family whose retention class names the sweep it would block. The adversary it would stop is `postgres`, which owns the table and can also `alter table ... disable trigger all` -- which 140\'s blocker calls tamper RESISTANCE rather than tamper evidence. Reusing 140\'s function would also make a refusal on a usage ledger report SQLSTATE ZZ140, and writing a second function doing the same thing with a different code would be two functions for one rule with nothing keeping them equal. **Owed to A1 Security, who owns the immutability-mechanism question, and to batch 160, which owns the sweep. §8.5\'s \'ตามความเหมาะสม\' is a judgement, and this batch says which way it went rather than letting the absence read as an oversight.**\n\n'
+   + 'BATCH 051 CARRIES NO IMMUTABLE OR LEDGER ROW AT ALL, and says so rather than counting its four '
+   + 'DELETE refusals as this case. None of its three tables is append-only: a notification is marked '
+   + 'read and has its delivery state recorded, a preference is switched, a push subscription '
+   + 'reference is rotated and revoked. §3.2 lists what is immutable — "version/evidence/decision/'
+   + 'usage/audit/publish history" — and none of these is one, which is why all three carry '
+   + '`updated_at` and its trigger; omitting the column would have been declaring the row immutable, '
+   + 'which is a different claim (021\'s and 060\'s sentence). What the four DELETE cases assert is '
+   + '§8.5\'s "no broad user delete" plus §10\'s purge-by-retention-job — NOTIFICATION-INBOX and '
+   + 'PUSH-SECRET, both batch 160\'s — which is a different claim and is counted as §8.5.\n\n'
+   + 'A DEFECT IN THIS MAP, FOUND WHILE APPENDING TO IT AND FIXED RATHER THAN REPORTED. This object '
+   + 'carried the key `10` TWICE. In a JavaScript object literal the later wins silently, so the '
+   + 'first block was dead at runtime and present in the file — and its body was a byte-for-byte '
+   + 'duplicate of this entry\'s tail from BEFORE the 2026-09-07 integration corrected it, still '
+   + 'carrying the two ordinal claims that integration recorded as fixed: "BATCH 130 ADDS A FIFTH AND '
+   + 'A SIXTH IMMUTABLE TABLE" and "BATCH 140 ADDS THE FIFTH AND SIXTH IMMUTABLE TABLES". Nothing was '
+   + 'lost by deleting it, which was verified by diff rather than assumed: every line of the dead '
+   + 'block except one truncated clause appears in this entry in its corrected form. It is the seam '
+   + 'that PARSES which the integration\'s §4 warned the next four batches about, and the reason it '
+   + 'survived is that no rule read these keys as a set. One does now — see '
+   + 'identity-isolation.test.mjs.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -1344,7 +1549,36 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'provides instead is the columns each sweep would read — processed_at, failed_at, redacted_at, '
    + 'and a body_ref that can be emptied while the dedupe hash §10 says to keep longer stays — with '
    + 'an index over each. `service-cannot-purge-a-meta-webhook-delivery` asserts the present state.\n\n'
-   + 'BATCH 061 IS ONE OF THOSE BATCHES AND ARRIVES AFTER THE DECISION IT WAS WAITING FOR, WHICH CHANGES THE SHAPE OF THE DEBT WITHOUT PAYING IT. RFC-2026-022 (approved 2026-09-08) answers \'what does my `S` cell look like\' -- §8.4\'s \'Usage ledger INSERT\' is CARRIED, the setting is `app.workspace_id`, and it has exactly one legal spelling -- while its §5/8 declares the decision NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So case 10 is still unpayable and the reason has MOVED: it was \'no document names the GUC\' and it is now \'no identity can be the service\'.\n\nWHAT BATCH 061 PAYS TOWARD IT is the half a batch can pay: the cell is classified as DATA in db/foundation/lint/service-policy-map.json, which scripts/db/run.mjs reads in both directions, so the shape is a row a reviewer reads rather than an argument in a migration header. THE SECOND HALF OF CASE 10 -- \'+ expected audit/outbox\' -- is also still unreachable: a usage event that landed should announce itself, §3.4 requires an outbox row in the SAME TRANSACTION as the domain state, and batch 050 recorded that no write path in this schema can do that because no command function exists. **Owed to DATA-DEC-03, to RFC-2026-022 §7, and to the batch that brings the command surface; the AGGREGATE\'s writer is owed to batch 132 (§6: \'entitlement-metering resolver\', depending on 061 and 130), which is a named batch rather than \'a later batch\'.**',
+   + 'BATCH 061 IS ONE OF THOSE BATCHES AND ARRIVES AFTER THE DECISION IT WAS WAITING FOR, WHICH CHANGES THE SHAPE OF THE DEBT WITHOUT PAYING IT. RFC-2026-022 (approved 2026-09-08) answers \'what does my `S` cell look like\' -- §8.4\'s \'Usage ledger INSERT\' is CARRIED, the setting is `app.workspace_id`, and it has exactly one legal spelling -- while its §5/8 declares the decision NOT IN EFFECT, because the only member of app_worker is `postgres`, which bypasses row level security. So case 10 is still unpayable and the reason has MOVED: it was \'no document names the GUC\' and it is now \'no identity can be the service\'.\n\nWHAT BATCH 061 PAYS TOWARD IT is the half a batch can pay: the cell is classified as DATA in db/foundation/lint/service-policy-map.json, which scripts/db/run.mjs reads in both directions, so the shape is a row a reviewer reads rather than an argument in a migration header. THE SECOND HALF OF CASE 10 -- \'+ expected audit/outbox\' -- is also still unreachable: a usage event that landed should announce itself, §3.4 requires an outbox row in the SAME TRANSACTION as the domain state, and batch 050 recorded that no write path in this schema can do that because no command function exists. **Owed to DATA-DEC-03, to RFC-2026-022 §7, and to the batch that brings the command surface; the AGGREGATE\'s writer is owed to batch 132 (§6: \'entitlement-metering resolver\', depending on 061 and 130), which is a named batch rather than \'a later batch\'.**\n\n'
+   + 'BATCH 051 IS WHERE THAT FINDING WAS ANSWERED AND THE CASE STILL CANNOT BE PAID, AND THE '
+   + 'DISTANCE IT MOVED IS WORTH RECORDING PRECISELY. RFC-2026-022 (approved 2026-09-08) took the '
+   + 'question 050 and 140 both dispatched and split §8.2-§8.4\'s nine `S` cells by whether the '
+   + 'statement CARRIES its workspace or DISCOVERS it. §8.4\'s "Notification insert/delivery state" '
+   + 'is CARRIED — the recipient and the workspace are inputs, because the other notification row is '
+   + '`O` and an inbox row cannot be addressed without knowing whose it is — and batch 051 records '
+   + 'that classification for BOTH statements the cell names in '
+   + 'db/foundation/lint/service-policy-map.json. So "no document names the GUC" is no longer the '
+   + 'blocker; RFC-2026-022 names it and pins its spelling.\n\n'
+   + 'WHAT BLOCKS IT NOW IS THAT THE DECISION IS APPROVED AND NOT IN EFFECT. Measured 2026-09-08, the '
+   + 'only member of `app_worker` is `postgres`, which BYPASSES row level security — so a policy '
+   + 'naming that role would be a control with no observable behaviour in either direction, and the '
+   + 'RFC\'s own §7 lists what must be true first (a non-bypassing `app_queue` role, its pinned '
+   + 'broker, the confinement literal appearing once in the tree). None of that is a migration\'s to '
+   + 'build. `service-cannot-write-a-notification-row` is the POLICY-layer denial that flips when it '
+   + 'is, exactly as 140\'s two are.\n\n'
+   + 'AND THE OTHER HALF OF CASE 10 IS STILL MISSING FOR 050\'s AND 140\'s REASONS AT ONCE: the case '
+   + 'reads "Authorized server command → pass + expected AUDIT/OUTBOX", and this schema now has an '
+   + 'audit store nothing can write and an outbox nothing can write. A notification is the row those '
+   + 'two would produce a side effect FOR, and it joins them: three stores, no writer, one command '
+   + 'surface missing from all of them (RFC-2026-012 §4; RFC-2026-021 §10 records that no command '
+   + 'function exists).\n\n'
+   + 'ONE SENTENCE THAT NO NOTE, COMMENT, CASE OR TEST IN BATCH 051 MAY CONTRADICT, because '
+   + 'RFC-2026-022 makes it a condition of the decision rather than a remark about it: the workspace '
+   + 'GUC is CONTAINMENT against defects in the service\'s own code and NEVER tenant isolation of the '
+   + 'service path. The RFC measured twice that the role a service policy names can set the setting '
+   + 'that policy reads, and that the catalog cannot be asked who may. Nothing in this suite cites it '
+   + 'as tenant isolation, and identity-isolation.test.mjs asserts that absence over the whole file '
+   + 'rather than trusting this sentence.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -2079,6 +2313,115 @@ export function buildCases(id) {
     sql: 'delete from private.meta_webhook_inbox'
        + " where delivery_hash = sha256(convert_to($1, 'utf8')) returning id",
     params: [hash],
+  });
+
+  // -- Batch 051 builders and witnesses. --------------------------------------------------------
+  //
+  // THIS BLOCK HAS WITNESSES AGAIN, AND THAT IS THE FAMILY RATHER THAN A CHANGE OF STYLE. Batches
+  // 050, 060 and 140 needed none: every write on their tables is REFUSED at the privilege layer,
+  // and `denied` is the stronger assertion the helper module reserves for exactly that. Batch 051
+  // implements a §8 client cell — §8.4's "Own notification SELECT/mark read", `O` for all five
+  // built-in roles — so there is a client UPDATE that a policy FILTERS rather than refuses, which is
+  // the shape `no-effect` exists for: an empty result plus a witness that reads the value back.
+  const NOTIFICATION_OWNER_A = id('notification_owner_a');
+  const NOTIFICATION_EDITOR_A = id('notification_editor_a');
+  const NOTIFICATION_SUSPENDED_A = id('notification_suspended_a');
+  const NOTIFICATION_OWNER_B = id('notification_owner_b');
+
+  // The read the client cell grants, selecting a column the client MAY reach. `message_key` and not
+  // `delivery_state`: §8.4's second row marks delivery state `N` for every client role and batch 051
+  // implements that as a column list, so a case selecting it would be refused by the GRANT on every
+  // database — including one whose policy had been deleted — and would report a column-privilege
+  // finding under the name of a tenant boundary.
+  const NOTIFICATION_BY_ID = 'select message_key from app.notifications where id = $1';
+
+  // The two columns §8.4 row 2 marks `N`, read by name. These cases are the other direction of the
+  // same claim: not "the policy filtered me" but "the grant does not reach this column at all", so
+  // they are `denied` at the GRANT layer and would fail if a later batch widened the SELECT grant to
+  // the table.
+  const NOTIFICATION_DELIVERY_BY_ID =
+    'select delivery_state, delivery_failure_class from app.notifications where id = $1';
+  const NOTIFICATION_DEDUPE_BY_ID = 'select dedupe_key from app.notifications where id = $1';
+
+  const PREFERENCE_OF = 'select enabled from app.notification_preferences'
+    + ' where workspace_id = $1 and user_id = $2';
+
+  // The statement names `private.` deliberately, for the reason batch 060's does: a case may declare
+  // `deniedOn: { kind: 'schema', name: 'private' }` only when it names a private TABLE a migration
+  // creates, which no scaffolding failure can do.
+  const PUSH_SUBSCRIPTION_OF =
+    'select fingerprint from private.push_subscription_references where workspace_id = $1';
+
+  // "mark read", which is the one write §8.4 gives a client on this family. It sets a FIXED
+  // timestamp rather than now(): a witness that asserts a value has to know what value to expect,
+  // and a case whose content depends on when it ran is one whose failures depend on when they ran
+  // (030's rule about released_at, applied to a write instead of to a fixture).
+  const MARKED_READ_AT = '2026-08-01 00:00:00+00';
+  const markRead = (notificationId) => ({
+    sql: 'update app.notifications set read_at = $2 where id = $1 returning id',
+    params: [notificationId, MARKED_READ_AT],
+  });
+
+  // The witnesses for the two `no-effect` cases. Each runs as an identity that CAN see the target
+  // row — its own recipient — and reads `read_at` back, so "affected nothing" becomes "the row is
+  // still there and is still unread". A witness that only asserted the row exists would be
+  // expectNoRows wearing a different name.
+  //
+  // `read_at` is null on every notification the fixture loads, and `equals: null` is the assertion.
+  // That is the value the write would have changed, which is what makes the witness bite: if a
+  // policy ever admitted the row, the witness reads a timestamp and the case fails.
+  //
+  // THE WITNESS IDENTITY IS THE ROW'S OWN RECIPIENT AND IT HAS TO BE. On every earlier table a
+  // witness runs as the workspace's owner, because a workspace owner can read every row in it; here
+  // an owner cannot read another member's notification, so `workspaceANameUnchanged`'s shape does
+  // not transfer. The recipient is the only identity in this suite that can see one of these rows,
+  // which is the same fact the negatives are about, arriving on the other side.
+  const editorANotificationStillUnread = {
+    as: editorA,
+    sql: 'select read_at from app.notifications where id = $1',
+    params: [NOTIFICATION_EDITOR_A],
+    column: 'read_at',
+    equals: null,
+  };
+  const ownerBNotificationStillUnread = {
+    as: ownerB,
+    sql: 'select read_at from app.notifications where id = $1',
+    params: [NOTIFICATION_OWNER_B],
+    column: 'read_at',
+    equals: null,
+  };
+
+  // The writes §8.4's SECOND row marks `N` for every client role and `S` for the service. Each is
+  // written to be otherwise VALID — every CHECK the table carries is satisfied, the deep link
+  // matches CTR-NTF-001's grammar and asserts its permission flag, the delivery state is one of the
+  // contract's four — because a statement a correct database refuses at the privilege or policy
+  // layer would be refused whatever it contained, and a case whose row a CONSTRAINT would have
+  // rejected anyway proves nothing about the grant (140's rule).
+  //
+  // `dedupe_key` is unique per (workspace_id, user_id, dedupe_key) and every one of these uses a key
+  // no fixture row holds, so nothing below can come back 23505 where it demands 42501.
+  const writeNotification = (workspace, recipient, dedupeKey) => ({
+    sql: 'insert into app.notifications'
+       + ' (workspace_id, user_id, channel, message_key, dedupe_key,'
+       + ' deep_link_target_ref, deep_link_requires_permission, delivery_state)'
+       + " values ($1, $2, 'in_app', 'notification.case.attempted_write', $3,"
+       + " 'app:fixture/attempted', true, 'queued') returning id",
+    params: [workspace, recipient, dedupeKey],
+  });
+
+  // The delivery-state UPDATE, which is the other statement §8.4's `S` cell names and the one
+  // RFC-2026-022 classifies CARRIED beside the insert. It targets a column no client grant reaches
+  // and the service's own column-scoped grant does, so the layer that refuses it differs by identity
+  // — which is the whole point of asserting both.
+  const recordDelivery = (notificationId) => ({
+    sql: "update app.notifications set delivery_state = 'delivered' where id = $1 returning id",
+    params: [notificationId],
+  });
+
+  const setPreference = (workspace, user) => ({
+    sql: 'insert into app.notification_preferences (workspace_id, user_id, channel, enabled)'
+       + " values ($1, $2, 'line', false) returning workspace_id",
+    params: [workspace, user],
   });
 
   return [
@@ -7953,6 +8296,684 @@ export function buildCases(id) {
       why: 'A hold is RELEASED and never deleted: the row is what says a quota was held and then '
          + 'given back, and a delete would erase the fact rather than close it. No role holds the '
          + 'verb on any table in this batch.',
+    },
+    // Batch 051 — notification. A boundary with TWO terms, and a secret with no column.
+    // =========================================================================================
+    //
+    // §5 scopes `notification.core` **workspace/user**, and every tenant table this suite has run
+    // against is scoped by workspace alone. That one word changes what the cases have to prove.
+    //
+    // §8.4 gives the family exactly two cells:
+    //
+    //   | Own notification SELECT/mark read  | O | O | O | O | O | P |
+    //   | Notification insert/delivery state | N | N | N | N | N | S |
+    //
+    // The first is IMPLEMENTED — a SELECT policy and an UPDATE policy, both predicated on
+    // `user_id = (select auth.uid()) and app.is_active_member(workspace_id)` — and the second is
+    // classified CARRIED in db/foundation/lint/service-policy-map.json and gets no policy, because
+    // RFC-2026-022 is approved and NOT IN EFFECT.
+    //
+    // SO THIS BLOCK IS SHAPED UNLIKE THE THREE ABOVE IT. Batches 050, 060 and 140 have no `rows`
+    // case anywhere, because no client role holds any privilege on any of their tables. This one
+    // does, and the positives are what the negatives are measured against.
+    //
+    // **THE TWO TERMS FAIL SEPARATELY AND THE SUITE HAS TO SEE BOTH.** A conjunction is the one
+    // predicate shape where a test suite can be green while half the predicate is missing, because
+    // dropping either conjunct only widens what is visible — and every case in this suite before
+    // batch 051 is about two WORKSPACES, so none of them would notice the user term going. Two
+    // cases exist for that alone:
+    //
+    //   owner-a-cannot-see-the-notification-of-editor-a
+    //       Same workspace. Both identities are ACTIVE MEMBERS of it. user_owner_a is its OWNER,
+    //       which on every other table in this schema is the identity that sees the most. It holds
+    //       the row's exact id and reads nothing. Drop `user_id = (select auth.uid())` and this is
+    //       the only case in 3xx that fails.
+    //
+    //   suspended-a-sees-zero-notifications
+    //       The fixture addresses a notification TO user_suspended_a. Drop
+    //       `app.is_active_member(workspace_id)` and it comes back — and §12.6/5 ("sees zero tenant
+    //       rows") stops being true of a table it is true of today. This case is NOT the analogue
+    //       050, 060 and 140 had to label: on those tables a suspended member is refused where every
+    //       active member is also refused, so the refusal is the privilege system and says nothing
+    //       about suspension. Here an active member with the same recipient WOULD see the row, so
+    //       the empty read is suspension and nothing else.
+    //
+    // AND THE THIRD TABLE IS A SECRET WITH NO COLUMN FOR IT. §9.1 lists "push token" as an example
+    // of `SECRET-4`; a Web Push subscription is an endpoint — a bearer capability URL — plus two
+    // keys; and `private.push_subscription_references` holds a `vault://` LOCATOR and none of the
+    // three. Every case against it is refused on the SCHEMA, for every identity including the
+    // service, which is batch 060's shape for its credential reference and is asserted here so that
+    // the day somebody writes `grant usage on schema private` the refusal moves to the table and
+    // four cases fail.
+
+    // -- §12.6/1, §8.6/1 and §8.6/5. The tenant boundary, in both directions and on both sides. ---
+    {
+      id: 'owner-a-sees-their-own-notification',
+      covers: ['§12.6/1', '§8.6/1', '§8.4/own-notification'],
+      as: ownerA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'rows',
+      why: 'THE POSITIVE, AND THE FIRST ONE THIS SUITE HAS HAD ON A §8.4 ROW. Batch 050 owns §8.4\'s job '
+         + 'rows and could implement neither, because the client cell there grants a REDACTED STATUS — '
+         + 'a projection, which is a security_invoker view on an allowlist RFC-2026-021 keeps empty. '
+         + '§8.4\'s notification rows separate BY COLUMN instead: "own notification" is the message and '
+         + '"delivery state" is two columns marked `N`, so a column-scoped grant expresses the split '
+         + 'and no view is needed. Without this case every refusal below is satisfied by an empty '
+         + 'table.',
+    },
+    {
+      id: 'owner-b-sees-their-own-notification',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_OWNER_B],
+      expect: 'rows',
+      why: 'The far side reads its own row, which is what stops the cross-tenant negative below being '
+         + 'satisfied by a fixture that never loaded it. Batch 020 established that a tenant boundary '
+         + 'needs THREE cases and not two — A reads its own, A cannot read B\'s, and B CAN — and this '
+         + 'is the third.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-notification-of-owner-b',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_OWNER_B],
+      expect: 'no-rows',
+      why: 'Tenant A\'s owner holds tenant B\'s notification id exactly and the row is not there. BOTH '
+         + 'TERMS OF THE PREDICATE REFUSE IT INDEPENDENTLY here, which is why this case cannot stand in '
+         + 'for the two below: user_owner_a is not the recipient AND is not a member of workspace_b, so '
+         + 'a database that had lost either conjunct would still pass this one. That is the exact shape '
+         + 'a conjunction hides, and it is why the suite carries a case per term.',
+    },
+    {
+      id: 'owner-a-cannot-mark-the-notification-of-owner-b-read',
+      covers: ['§12.6/1', '§8.6/5', '§8.5'],
+      as: ownerA,
+      ...markRead(NOTIFICATION_OWNER_B),
+      expect: 'no-effect',
+      witness: ownerBNotificationStillUnread,
+      why: 'The write side of the boundary. The USING clause does not admit the row, so the statement '
+         + 'matches nothing and Postgres raises nothing — the witness, run as B\'s own recipient, is '
+         + 'what turns "returned nothing" into "the row is still there and is still unread". §8.5 '
+         + 'requires USING and WITH CHECK on an update policy and this case exercises the first; the '
+         + 'second has no client statement that can reach it, because `workspace_id` and `user_id` are '
+         + 'absent from the client UPDATE grant, so no client can even attempt to move a row across '
+         + 'scope.',
+    },
+
+    // -- THE USER HALF OF THE SCOPE. Two active members of ONE workspace, refused each other's ----
+    // -- rows — including the OWNER, whom §8.1 admits to the member list and §8.4 does not admit ----
+    // -- here. ------------------------------------------------------------------------------------
+    {
+      id: 'owner-a-cannot-see-the-notification-of-editor-a',
+      covers: ['§8.4/own-notification', '§8.6/2', '§5/workspace-user'],
+      as: ownerA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_EDITOR_A],
+      expect: 'no-rows',
+      why: 'THE CASE THIS BATCH EXISTS FOR, AND THE ATTACKER IS THE OWNER FOR A REASON. §5 scopes '
+         + 'notification.core "workspace/user" and §8.4 marks the cell `O` FOR ALL FIVE BUILT-IN '
+         + 'ROLES, so user_owner_a — an ACTIVE OWNER of the workspace this row lives in, holding its '
+         + 'exact id — reads nothing.\n\n'
+         + 'A ROW-LEVEL SEPARATION BETWEEN TWO MEMBERS OF ONE WORKSPACE IS NOT NEW AND THIS CASE DOES '
+         + 'NOT CLAIM TO BE: `viewer-a-cannot-see-another-members-row` does it on '
+         + 'app.workspace_members and `editor-a-cannot-see-another-members-member-scope` on '
+         + 'app.workspace_member_scopes. WHAT IS DIFFERENT IS WHICH IDENTITY IS REFUSED. §8.1 gives '
+         + 'the member list to owner and admin and 011\'s workspace_members_select_roster implements '
+         + 'it, so on those tables an OWNER succeeds; §8.4 gives the owner no more than the viewer '
+         + 'here. A predicate copied from the roster shape would pass every case in this suite except '
+         + 'this one and its mirror.',
+    },
+    {
+      id: 'owner-a-cannot-mark-the-notification-of-editor-a-read',
+      covers: ['§8.4/own-notification', '§8.6/2', '§8.5'],
+      as: ownerA,
+      ...markRead(NOTIFICATION_EDITOR_A),
+      expect: 'no-effect',
+      witness: editorANotificationStillUnread,
+      why: 'The write half of the same separation, and it is a different claim from the read: SELECT and '
+         + 'UPDATE are two policies with two predicates, and a batch that wrote the user term into one '
+         + 'and not the other would be caught by exactly one of this pair. The witness runs as the '
+         + 'ROW\'S OWN RECIPIENT rather than as the workspace owner, which is where this family departs '
+         + 'from every witness above it in this file — a workspace owner cannot see the row, so it '
+         + 'could not testify about it.',
+    },
+    {
+      id: 'editor-a-sees-their-own-notification',
+      covers: ['§8.4/own-notification', '§8.6/1'],
+      as: editorA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_EDITOR_A],
+      expect: 'rows',
+      why: 'And the editor CAN, which is what makes the two cases above about a RECIPIENT rather than '
+         + 'about a role. §8.4 marks the cell `O` for owner, admin, editor, approver and viewer alike, '
+         + 'so a suite that only showed the owner being refused would be consistent with a policy that '
+         + 'checked role instead of recipient.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-notification-of-owner-a',
+      covers: ['§8.4/own-notification', '§8.6/2'],
+      as: editorA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'no-rows',
+      why: 'THE SEPARATION IS SYMMETRIC, asserted rather than assumed. A predicate that compared the '
+         + 'reader\'s role to the recipient\'s — or that admitted a row whenever the reader outranked '
+         + 'its recipient — would pass `owner-a-cannot-see-the-notification-of-editor-a` in one '
+         + 'direction and fail here. Two directions, two cases.',
+    },
+
+    // -- §8.4's "mark read", which is the one write this family gives a client. --------------------
+    {
+      id: 'owner-a-can-mark-their-own-notification-read',
+      covers: ['§8.4/own-notification', '§8.6/1'],
+      as: ownerA,
+      ...markRead(NOTIFICATION_OWNER_A),
+      expect: 'rows',
+      why: 'THE POSITIVE OF THE WRITE CELL. §8.4 reads "Own notification SELECT/MARK READ" and the '
+         + 'second half is implemented as a one-column UPDATE grant plus an update policy carrying '
+         + 'both USING and WITH CHECK. Without this case the four refused writes beside it would be '
+         + 'consistent with a table nobody can write at all, which is what batches 050, 060 and 140 '
+         + 'actually have and what this one deliberately does not. It is also what exercises the '
+         + 'non-null state of read_at: the fixture loads every notification unread, so the column\'s '
+         + 'other value is produced by a policy admitting a write rather than by a row asserting a '
+         + 'literal.',
+    },
+    {
+      id: 'owner-a-cannot-relabel-their-own-notification',
+      covers: ['§8.4/own-notification', '§9.1/PII-2'],
+      as: ownerA,
+      sql: 'update app.notifications set message_key = $2 where id = $1 returning id',
+      params: [NOTIFICATION_OWNER_A, 'notification.case.rewritten'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'THE COLUMN GRANT IS THE CONTROL AND THIS IS WHAT PROVES IT. The policy above ADMITS this row '
+         + '— it is the caller\'s own notification in a workspace they are an active member of — so a '
+         + 'policy-shaped test would report a pass. What refuses the statement is that `read_at` is the '
+         + 'ONLY column in the client UPDATE grant, so the refusal is 42501 from the privilege system '
+         + 'and the layer is declared as such. A batch that widened the grant to the table would be '
+         + 'caught here and nowhere else, which is exactly what RFC-2026-021 §8.4 asks a rule to catch: '
+         + '"a table-wide grant is a finding even when it covers exactly the same columns today".',
+    },
+
+    // -- §12.6/5 and §12.6/6. Suspension, on a table where suspension is what refuses. -------------
+    {
+      id: 'suspended-a-sees-zero-notifications',
+      covers: ['§12.6/5', '§8.6/6', '§5/workspace-user'],
+      as: suspendedA,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_SUSPENDED_A],
+      expect: 'no-rows',
+      why: 'THE MEMBERSHIP HALF OF THE PREDICATE, AND THE STRONGEST FORM §12.6/5 HAS TAKEN IN THIS SUITE. '
+         + 'The fixture addresses this notification TO user_suspended_a, so the recipient term admits '
+         + 'them and only `app.is_active_member(workspace_id)` refuses. On batches 050, 060 and 140 the '
+         + 'suspended cases had to be labelled ANALOGUES, because a suspended member refused where '
+         + 'every active member is also refused has been refused by the privilege system rather than '
+         + 'by suspension; here an active member with this recipient WOULD read the row, which is '
+         + 'asserted one case up. §12.6/5 asks for zero TENANT rows and a notification is one — '
+         + 'unlike 010\'s user profile, whose own header places it outside that sentence.',
+    },
+    {
+      id: 'suspended-a-cannot-mark-a-notification-read',
+      covers: ['§12.6/5', '§8.6/6', '§8.5'],
+      as: suspendedA,
+      ...markRead(NOTIFICATION_EDITOR_A),
+      expect: 'no-effect',
+      witness: editorANotificationStillUnread,
+      why: '§12.6/5 asks for zero rows AND no mutation, and the second half is a separate claim: a '
+         + 'filtered read and a filtered write are two policies. THE TARGET IS ANOTHER MEMBER\'S ROW '
+         + 'AND NOT THE SUSPENDED MEMBER\'S OWN, WHICH IS A WEAKER CASE THAN IT LOOKS AND IS SAID SO '
+         + 'RATHER THAN LEFT TO BE NOTICED. The stronger statement — the suspended member marking '
+         + 'notification_suspended_a read — CANNOT BE WITNESSED BY ANY IDENTITY IN THIS SCHEMA: a '
+         + '`no-effect` case is an empty result PLUS a witness that reads the value back, the '
+         + 'recipient is the only client identity a policy admits to that row, and the recipient here '
+         + 'is the suspended member. The service holds SELECT and no policy, so it sees nothing '
+         + 'either, and a witness that sees nothing fails `expectRows` — which would make the case '
+         + 'fail on a CORRECT database. The read half above carries the own-row claim, where an empty '
+         + 'result IS the assertion and needs no witness; this carries the mutation half at the '
+         + 'granularity the harness can actually observe.',
+    },
+    {
+      id: 'anonymous-cannot-see-a-notification',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: NOTIFICATION_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app — which '
+         + 'RFC-2026-021 §7/4 makes an approved decision rather than an inherited convention. The day '
+         + 'somebody grants it, this refusal moves to the table and the case fails, which is the whole '
+         + 'reason the object is declared.',
+    },
+
+    // -- §8.4's SECOND ROW, "Notification insert/delivery state | N N N N N S", as columns. --------
+    //
+    // These four are the half of the batch that is a COLUMN LIST rather than a policy. Batch 050
+    // could not implement §8.4's client cell because "a redacted status" is a projection with no
+    // column list; here the two rows separate by column, and these cases are what holds that split
+    // to the grant rather than to a sentence in a header.
+    {
+      id: 'owner-a-cannot-read-the-delivery-state-of-their-own-notification',
+      covers: ['§8.4/notification-delivery', '§9.1/INTERNAL-3'],
+      as: ownerA,
+      sql: NOTIFICATION_DELIVERY_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'THE SHARPEST CASE IN THE BATCH. The row is the caller\'s OWN notification and the policy '
+         + 'admits it — one case above, the same identity reads `message_key` from the same row and '
+         + 'gets it. What refuses this statement is that `delivery_state` and `delivery_failure_class` '
+         + 'are absent from the client SELECT grant, because §8.4\'s second row marks delivery state '
+         + '`N` for every client role including the owner. The two §8.4 rows are ONE TABLE AND TWO '
+         + 'OBJECTS, as they are on app.jobs — and here the second object is a pair of columns rather '
+         + 'than a transformation, which is what makes a grant sufficient and a view unnecessary.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-dedupe-key-of-their-own-notification',
+      covers: ['§8.4/notification-delivery', '§8/no-row'],
+      as: ownerA,
+      sql: NOTIFICATION_DEDUPE_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'The third withheld column, and it is withheld for a REASON NOT IN §8.4 — which is why it is '
+         + 'a separate case rather than a second parameter to the one above. `dedupe_key` is ID-005\'s '
+         + 'idempotency key, the identity of the event that produced the notification; §8.4 names it in '
+         + 'neither of its two rows, and where a document is silent the cell is denied. A client that '
+         + 'could read it could enumerate which events the system decided not to notify about twice, '
+         + 'which is the "redacted status only" projection §9.1 gives INTERNAL-3 read one table over.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-notification',
+      covers: ['§8.4/notification-insert', '§8.6/8'],
+      as: ownerA,
+      ...writeNotification('__A__', '__SELF__', 'attempted-dedupe-owner-a'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'THE CASE §8.4\'s SECOND ROW EXISTS FOR. It marks the notification INSERT `N` for every '
+         + 'client role including the workspace owner, and the row this statement attempts is '
+         + 'ADDRESSED TO THE CALLER THEMSELVES in their own workspace — so no scope check refuses it '
+         + 'and every CHECK on the table is satisfied. Only the absent grant does, at the privilege '
+         + 'layer, which is a refusal a later policy edit cannot widen. A client that could write its '
+         + 'own inbox row could choose the deep link and the message key the product will render.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-notification-delivery',
+      covers: ['§8.4/notification-delivery', '§8.5'],
+      as: ownerA,
+      ...recordDelivery(NOTIFICATION_OWNER_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'The UPDATE half of §8.4\'s second row, on the caller\'s own row, so the policy admits it and '
+         + 'the column grant does not. It is a separate case from the read for the reason every pair '
+         + 'in this suite is two: SELECT and UPDATE are separate privileges, and a batch that granted '
+         + 'the client one of them on this column would be caught by exactly one of the two.',
+    },
+    {
+      id: 'owner-a-cannot-delete-their-own-notification',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from app.notifications where id = $1 returning id',
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'The fourth verb, so the grid on this table is complete rather than three cells and an '
+         + 'average. §8.5 has no broad user delete, and a notification has no lifecycle field to '
+         + 'soft-delete through: §10 purges the inbox by AGE (NOTIFICATION-INBOX, 180 days) rather '
+         + 'than by a user action, and batch 160 owns that sweep through app_maintenance, which this '
+         + 'batch grants nothing.',
+    },
+
+    // -- §12.6/8 and RFC-2026-017 §7. The service, granted and unpoliced, on the `S` cell. ---------
+    {
+      id: 'service-sees-zero-notification-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/own-notification'],
+      as: service,
+      sql: NOTIFICATION_DELIVERY_BY_ID,
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT on this table — INCLUDING the two delivery columns '
+         + 'no client may read — and NO POLICY, so an empty read is attributable to row level security '
+         + 'rather than to a forgotten GRANT, and a service role that had quietly acquired BYPASSRLS '
+         + 'would return the row instead. The statement selects the columns only the service can '
+         + 'reach, which makes the claim about the POLICY set rather than about a column list. §8.4 '
+         + 'marks the service `P` on this row, and a `P` nobody has defined is a permission nobody may '
+         + 'write.',
+    },
+    {
+      id: 'service-cannot-write-a-notification-row',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.4/notification-insert', 'RFC-2026-022§3'],
+      as: service,
+      // The recipient is the workspace owner's subject and NOT `__SELF__`: `as_service` sets a role
+      // and a claim set with no `sub`, and CI found the cost of forgetting that once already. No
+      // policy on this table reads the column for a service identity — there is no service policy —
+      // so the value is arbitrary and the case says so.
+      ...writeNotification('__A__', id('user_owner_a'), 'attempted-dedupe-service'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: '§8.4\'s `S` CELL, DENIED, AND THE FIRST ONE CLASSIFIED UNDER RFC-2026-022 RATHER THAN LEFT '
+         + 'AS AN OPEN QUESTION. Batches 050 and 140 each reached an `S` cell and each reported that '
+         + 'RFC-2026-016 §2 conditioned the service policy on a workspace GUC no document named; '
+         + 'RFC-2026-022 (approved 2026-09-08) disposed of that by splitting the nine `S` cells into '
+         + 'CARRIED and DISCOVERED, and it classifies this one CARRIED — "recipient and workspace are '
+         + 'inputs". db/foundation/lint/service-policy-map.json carries that classification for both '
+         + 'statements the cell names. NO POLICY IS WRITTEN, because the decision is APPROVED AND NOT '
+         + 'IN EFFECT: measured 2026-09-08, the only member of app_worker is postgres, which bypasses '
+         + 'RLS. So app_worker holds the INSERT grant, the refusal is row level security finding no '
+         + 'permissive policy, and the declared POLICY layer is what says so. It is one of the two '
+         + 'cases the CI negative control for app.notifications rests on: with row level security off, '
+         + 'this write SUCCEEDS and the case fails.',
+    },
+    {
+      id: 'service-cannot-record-a-notification-delivery-state',
+      // NOT labelled RFC-2026-017§7, following 020's note and 040's: that clause asks for the service
+      // to be denied BY ROW LEVEL SECURITY WITH AN ERROR, and an UPDATE whose USING clause filters
+      // the row reports zero rows and raises nothing. It is a `no-effect` and carries a witness.
+      covers: ['§8.4/notification-delivery', 'RFC-2026-022§3'],
+      as: service,
+      ...recordDelivery(NOTIFICATION_EDITOR_A),
+      expect: 'no-effect',
+      witness: editorANotificationStillUnread,
+      why: 'THE SECOND STATEMENT OF THE SAME `S` CELL, AND IT FAILS DIFFERENTLY FROM THE FIRST. §8.4 '
+         + 'reads "Notification insert/DELIVERY STATE", so the cell names two statements, and '
+         + 'RFC-2026-022 §7.2 keys its register on (cell, STATEMENT) rather than on the table — the '
+         + 'asset-hard-purge row in §3\'s table is BOTH shapes for exactly that reason. app_worker '
+         + 'holds a column-scoped UPDATE on delivery_state, so the privilege system admits the '
+         + 'statement and the empty policy set filters the row: nothing raises. The witness — run as '
+         + 'the row\'s own recipient — is what turns "returned nothing" into "the row is still there '
+         + 'and still unread", and it is reading a DIFFERENT column from the one the write targeted, '
+         + 'which is the strongest form available here: the recipient may not read delivery_state at '
+         + 'all.',
+    },
+    {
+      id: 'service-cannot-mark-a-notification-read',
+      covers: ['§8.4/own-notification', '§8/no-row'],
+      as: service,
+      ...markRead(NOTIFICATION_OWNER_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'THE COLUMN THE SERVICE MAY NOT TOUCH, which is the mirror of the two columns the client may '
+         + 'not. `read_at` is absent from the SERVICE UPDATE grant, because marking a notification read '
+         + 'is the recipient\'s act — §8.4 marks that cell `O` for the client and `P` for the service, '
+         + 'and `P` is "passes per policy/EXPLICIT capability" over a capability set no document '
+         + 'defines, which is the refusal 011, 020, 021 and 030 each recorded and RFC-2026-020 §8 '
+         + 'ratified. The refusal is the privilege system rather than the policy, so it would survive '
+         + 'a service policy being written, which is the point of asserting it separately.',
+    },
+    {
+      id: 'service-cannot-delete-a-notification-row',
+      covers: ['§8.5', '§8.6/9'],
+      as: service,
+      sql: 'delete from app.notifications where id = $1 returning id',
+      params: [NOTIFICATION_OWNER_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notifications' },
+      why: 'No role holds DELETE on any table in this batch. §8.5 has no broad user delete and hard '
+         + 'deletion is a retention sweep — NOTIFICATION-INBOX and PUSH-SECRET both name a purge — '
+         + 'which batch 160 owns through app_maintenance, granted nothing here.',
+    },
+
+    // -- app.notification_preferences. §8 IS SILENT, so every cell is denied. ----------------------
+    //
+    // THE CASE IDS HERE SAY `channel-preference` AND NOT `notification-preference`, AND THAT IS A
+    // CONTROL RATHER THAN A PREFERENCE ABOUT NAMES. The CI negative control matches a failed case by
+    // a regex per table, and `[a-z0-9-]*notification` — the pattern app.notifications needs — would
+    // also match every id containing `notification-preference`, so the preference table's entry
+    // could be satisfied by an inbox regression it did not cause. That is the overlap batch 130
+    // measured across the pre-existing entries and reported without being able to fix; it is
+    // avoidable here by naming, so it is avoided. `channel-preference` is not a euphemism: the row
+    // IS a per-channel switch, keyed on CTR-NTF-001's three-channel vocabulary, and that is the only
+    // axis any document gives a preference.
+    //
+    // These four are the batch's honest finding rather than its achievement. §6's registry gives 051
+    // "notification inbox/preferences/push" and §5's inventory names "preferences", so the table is
+    // assigned; §8's four matrices contain NO ROW for a notification preference, in either
+    // direction. Where a document is silent the cell is denied (030's reading), so no client role
+    // holds any privilege — which means a person can neither read nor set their own preference, and
+    // that is recorded as a blocker owed to §8.4's owner rather than repaired by inventing a cell.
+    {
+      id: 'owner-a-cannot-read-their-own-channel-preference',
+      covers: ['§8/no-row', '§9.1/TENANT-1'],
+      as: ownerA,
+      sql: PREFERENCE_OF,
+      params: ['__A__', '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notification_preferences' },
+      why: 'THE OWNER OF THE WORKSPACE, ASKING FOR THEIR OWN PREFERENCE ROW, REFUSED. §8 has no row for '
+         + 'a notification preference in any of its four matrices, so there is no cell to implement '
+         + 'and every operation is denied by default. §9.1 classes "settings" TENANT-1 with a client '
+         + 'projection "allowed through RLS", and 060 established what that sentence does and does not '
+         + 'do: it licenses the CONTENT and names no object, no tier and no mechanism, while '
+         + 'RFC-2026-021 §8.5 makes the list of inherited base-table grants CLOSED. A grant here would '
+         + 'be a client read with no §8 cell behind it. The fix is a row in §8.4 written by that '
+         + 'document\'s owner, not a grant written by this migration.',
+    },
+    {
+      id: 'owner-b-cannot-read-their-own-channel-preference',
+      covers: ['§8/no-row'],
+      as: ownerB,
+      sql: PREFERENCE_OF,
+      params: ['__B__', id('user_owner_b')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notification_preferences' },
+      why: 'The same refusal from the other tenant, on the other tenant\'s own row, and the pair is what '
+         + 'stops the case above being read as a tenant boundary: both rows exist, both owners hold '
+         + 'their own workspace\'s and their own subject\'s exact ids, and neither reaches anything. '
+         + 'That is batch 030\'s shape for a table no identity can read, on a row that DOES belong to a '
+         + 'tenant.',
+    },
+    {
+      id: 'owner-a-cannot-set-their-own-channel-preference',
+      covers: ['§8/no-row', '§8.6/8'],
+      as: ownerA,
+      ...setPreference('__A__', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notification_preferences' },
+      why: 'THE UNCOMFORTABLE ONE, AND IT IS ASSERTED RATHER THAN SOFTENED. A person cannot decline a '
+         + 'channel, and `line` — the channel this statement attempts — is an EXTERNAL side effect. '
+         + 'The batch that lands a §8 row for this cell arrives at a failing assertion instead of an '
+         + 'empty one, which is why the case exists in the shape it does.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-channel-preference',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PREFERENCE_OF,
+      params: ['__A__', id('user_owner_a')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, as every anonymous case on an `app` table in this suite is. anon holds no '
+         + 'USAGE on app (RFC-2026-021 §7/4), so name resolution refuses it before a table is reached.',
+    },
+    {
+      id: 'service-sees-zero-channel-preference-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8/no-row'],
+      as: service,
+      sql: PREFERENCE_OF,
+      params: ['__A__', id('user_owner_a')],
+      expect: 'no-rows',
+      why: 'THE ONE CASE ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason app_worker holds '
+         + 'a SELECT grant at all. Without the grant this refusal would be 42501 either way and would '
+         + 'prove only that somebody forgot a GRANT; with the grant and no policy, an empty read can '
+         + 'only have come from RLS, and a service role that had quietly acquired BYPASSRLS would '
+         + 'SUCCEED here. The service holds SELECT AND NOTHING ELSE — §8 has no row for a preference, '
+         + 'so a verb issued here would be a verb nobody reviews against a caller — so the CI negative '
+         + 'control for app.notification_preferences rests on THIS CASE ALONE, which batch 030 warned '
+         + 'is one deletion away from resting on none. That is said here and pinned by id in '
+         + 'identity-isolation.test.mjs rather than left to be counted.',
+    },
+    {
+      id: 'service-cannot-set-a-channel-preference-row',
+      covers: ['§8/no-row', '§12.6/8-negative'],
+      as: service,
+      ...setPreference('__A__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'notification_preferences' },
+      why: 'THE SERVICE READS AND DOES NOT WRITE, and the two layers on one table are asserted as two '
+         + 'claims. app_worker holds SELECT here and nothing else, so its read is refused by row level '
+         + 'security and its write by the privilege system — which is 060\'s shape on app.ai_models '
+         + 'and, unlike 060\'s app.ai_model_policies, is NOT accompanied by an INSERT grant issued to '
+         + 'make a control rounder. No document says a service sets a person\'s preference; a verb '
+         + 'issued ahead of a caller is a verb nobody reviews against one.',
+    },
+
+    // -- private.push_subscription_references. SECRET-4, and a refusal on the SCHEMA. --------------
+    //
+    // The second subject this suite has in `private`, and every case below declares
+    // `deniedOn: { kind: 'schema', name: 'private' }` for the reason batch 060's do: no role holds a
+    // privilege on the table and no role holds USAGE on the schema, so the first missing privilege
+    // is the schema's. A case may name `private` only when its own statement names a `private.`
+    // TABLE a migration creates, which no scaffolding failure can do, and
+    // identity-isolation.test.mjs holds these to that.
+    {
+      id: 'owner-a-cannot-read-a-push-subscription-reference',
+      covers: ['§9.1/SECRET-4', '§9.2', '§8/no-row'],
+      as: ownerA,
+      sql: PUSH_SUBSCRIPTION_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The owner of the workspace this subscription belongs to, refused before the table is '
+         + 'reached. §9.1 lists "PUSH TOKEN" as one of its four examples of SECRET-4 — so this is the '
+         + 'class the document assigns and not one read by analogy — and gives that class a client '
+         + 'projection of "never returned after write"; §3.1 puts secret references in `private` with '
+         + 'no direct grant. The refusal lands on the SCHEMA because that is where the first missing '
+         + 'privilege is, and asserting the schema rather than the table is what makes this case notice '
+         + 'the day somebody writes `grant usage on schema private to authenticated` — the grant that '
+         + 'would have to come first.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-push-subscription-reference',
+      covers: ['§9.1/SECRET-4', '§9.2'],
+      as: ownerB,
+      sql: PUSH_SUBSCRIPTION_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The other tenant\'s owner, holding workspace A\'s exact id, refused identically. On this '
+         + 'table the pair is NOT a tenant boundary and is not offered as one: nothing here '
+         + 'distinguishes the two owners, which is exactly the claim — a push subscription reference '
+         + 'is unreadable, not tenant-scoped-readable.',
+    },
+    {
+      id: 'service-cannot-read-a-push-subscription-reference',
+      // NOT labelled RFC-2026-017§7, for the reason 060's equivalent is not: §7's claim is that the
+      // service is denied BY ROW LEVEL SECURITY, and this table deliberately grants it nothing, so
+      // the refusal is the privilege system. That is the STRONGER refusal and it is a DIFFERENT one,
+      // which is the whole distinction the layer declaration exists to keep.
+      covers: ['§9.1/SECRET-4', '§12.6/8-negative'],
+      as: service,
+      sql: PUSH_SUBSCRIPTION_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE CASE THAT DEPARTS FROM THE app_worker SHAPE THE REST OF THIS BATCH USES, deliberately, '
+         + 'and 060 paid the same price one table over. Everywhere else the service holds a grant so '
+         + 'that a denial is attributable to RLS; here it holds none, because §9.1 gives SECRET-4 a '
+         + 'client projection of "never returned after write" and §8 gives a push subscription no cell '
+         + 'in any matrix. The price is that the CI negative control can have NO ENTRY for this table '
+         + '— disabling row level security restores no grant — and that absence is asserted in BOTH '
+         + 'DIRECTIONS in identity-isolation.test.mjs rather than left to be noticed.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-push-subscription-reference',
+      covers: ['§12.6/6', '§8.6/7', '§9.2'],
+      as: anonymous,
+      sql: PUSH_SUBSCRIPTION_OF,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'Anonymous refused on `private` rather than on `app`. anon holds nothing anywhere; the schema '
+         + 'that refuses it is the schema the statement names, which is why declaring the object is '
+         + 'what makes the case mean something rather than merely pass.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-push-subscription-reference',
+      covers: ['§9.2', '§8/no-row', 'RFC-2026-012§1'],
+      as: ownerA,
+      sql: 'insert into private.push_subscription_references'
+         + ' (workspace_id, user_id, provider, credential_reference)'
+         + " values ($1, $2, 'fixture-push', 'vault://fixture/attempted') returning id",
+      params: ['__A__', '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'REGISTERING A DEVICE FOR PUSH IS THE OPERATION A PERSON WOULD PERFORM, AND IT IS NOT '
+         + 'IMPLEMENTED. That is a refusal with a reason rather than an omission: a client grant on a '
+         + 'table in `private` is not one grant, it is `grant usage on schema private` first, which '
+         + 'would put private.as_user and every worker payload table a later batch puts there inside '
+         + 'the reach of every end user — RFC-2026-021 §7/4\'s structural argument about anon and '
+         + 'schema app, one schema over. §3.1 says the server reaches it through a typed service; '
+         + 'RFC-2026-012 §4 says what that is; RFC-2026-021 §10 records that no command function '
+         + 'exists. The day one does, this case is the one that has to change.',
+    },
+    {
+      id: 'owner-a-cannot-revoke-a-push-subscription-reference',
+      covers: ['§11.2/revoke', '§11.4/revoke'],
+      as: ownerA,
+      sql: 'update private.push_subscription_references set revoked_at = now()'
+         + ' where workspace_id = $1 returning id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'TWO CLAUSES NAME THIS REVOCATION IN TERMS AND NEITHER HAS A PATH. §11.2: "Push token/'
+         + 'session/active invitation revoke ทันที", triggered by a member being removed. §11.4 step '
+         + '2: "Revoke browser sessions, PUSH TOKENS, invitations, API/connector credentials", '
+         + 'triggered by a workspace closing. `revoked_at` is the column both would set and no role '
+         + 'can set it, which means both lifecycles have a store and no writer — stated as a case '
+         + 'rather than as a comment, so the batch that brings the retention job (160) or the command '
+         + 'surface arrives at a failing assertion instead of an empty one.',
+    },
+    {
+      id: 'service-cannot-rotate-a-push-subscription-reference',
+      covers: ['§9.1/SECRET-4', '§9.2'],
+      as: service,
+      sql: 'update private.push_subscription_references set rotated_at = now()'
+         + ' where workspace_id = $1 returning id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'Rotation is the operation a service performs — a browser reissues a subscription when its '
+         + 'endpoint changes — and this one cannot. It is a separate case from the read for the reason '
+         + 'every pair in this suite is two cases: SELECT and UPDATE are separate privileges, and a '
+         + 'batch that granted the service one of them would be caught by exactly one of the two.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-push-subscription-reference',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      sql: 'delete from private.push_subscription_references where workspace_id = $1 returning id',
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The fourth verb, so the grid on this table is complete. §8.5 has no broad user delete; '
+         + 'removing a push subscription is a revocation, which is a typed lifecycle field this table '
+         + 'has and no role can write, and a purge, which §10\'s PUSH-SECRET gives to batch 160.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

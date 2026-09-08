@@ -266,10 +266,19 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // database holding 130 and 140 while missing 110 is DIVERGENT rather than behind, and
 // pendingDeclarationLint refuses a declaration that is not a tail. Ten batches become eleven and the
 // tail stays contiguous, because 110 sorts between 060 and 130.
+// Batch 051 joins for the structural reason five of the others share and adds one of its own. Its
+// three tables reference app.workspaces, which 010 created and this instance has; but its two
+// policies CALL app.is_active_member, which 011 creates and this instance does not have, so the
+// migration could not apply here even if somebody wanted it to. What is worth naming is WHERE it
+// joins: it sorts BETWEEN 050 and 060, so it is not appended, and a resolver who appends it produces
+// an unsorted declaration that pendingDeclarationLint refuses with a message about a tail — which
+// reads like a missing batch rather than like a misplaced one. Batches 061, 110 and 131 are being
+// written in parallel and two of them sort into the middle as well, so this is the ordinary case
+// from here on rather than a peculiarity of 051.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql', '060_ai_gateway.sql', '061_metering.sql',
-  '110_meta_connector.sql', '130_billing.sql', '140_audit.sql'];
+  '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
+  '061_metering.sql', '110_meta_connector.sql', '130_billing.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -565,6 +574,30 @@ const ADDED_SYMBOLS = [
   // substitute to be ABOUT; this row exists only so that `service-sees-zero-usage-reservations` —
   // the case that table's negative control rests on — addresses a row rather than an empty table.
   'usage_reservation_a1',
+  // Batch 051. FOUR ROWS ON ONE TABLE, and two of them carry a control no fixture row in this
+  // repository has been able to carry before, because no table before app.notifications is scoped by
+  // WORKSPACE AND USER. §5 scopes notification.core "workspace/user" and §8.4 marks "Own
+  // notification SELECT/mark read" `O`, so the policy is a conjunction — the recipient AND active
+  // membership — and each term, dropped, leaks something the other does not catch:
+  //
+  //   notification_editor_a     is addressed to a DIFFERENT ACTIVE MEMBER of workspace_a. Without
+  //                             it, dropping `user_id = (select auth.uid())` from the predicate is
+  //                             invisible: every case in the suite is about two workspaces, and this
+  //                             is the only row about two people in one.
+  //   notification_suspended_a  is addressed to user_suspended_a. Without it, dropping
+  //                             `app.is_active_member(workspace_id)` is invisible too, because
+  //                             `suspended-a-sees-zero-notifications` would be satisfied by there
+  //                             being nothing addressed to them.
+  //
+  // The other two are the ordinary pair: an A-side row its own recipient READS, so the negatives
+  // beside it are not measured against an empty table, and a B-side row every A-side identity
+  // attacks while holding its exact id. A notification needs a SYMBOL for the reason a knowledge
+  // item and an audit record do — it has no natural key any document fixes — while this batch's
+  // other two tables need none, which the catalog records beside them.
+  'notification_editor_a',
+  'notification_owner_a',
+  'notification_owner_b',
+  'notification_suspended_a',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -1364,7 +1397,13 @@ test('the committed map classifies only cells on tables the migrations create', 
     .map((f) => readFile(`db/foundation/migrations/${f}`, 'utf8')))).join('\n');
   for (const cell of map.cells) {
     const qualified = cell.table.includes('.') ? cell.table : `app.${cell.table}`;
-    assert.doesNotMatch(text, new RegExp(`create\\s+policy[\\s\\S]{0,300}?\\bon\\s+${qualified.replace('.', '\\.')}\\b`, 'i'),
+    // The pattern names a SERVICE ROLE, which it did not when it was written. Every table
+    // classified then carried no policy at all, so "a policy on this table" and "a service policy
+    // on this table" were the same set and the narrower one was never needed. Batch 051 classifies
+    // app.notifications, which carries §8.4's `O` policy TO authenticated -- a CLIENT policy, which
+    // RFC-2026-022 neither grants nor forbids. Left as it was, this assertion would have refused a
+    // batch for writing exactly the policy its access-matrix row requires.
+    assert.doesNotMatch(text, new RegExp(`create\\s+policy[^;]*\\bon\\s+${qualified.replace('.', '\\.')}\\b[^;]*\\bto\\s+app_(worker|command|maintenance)\\b`, 'i'),
       `${qualified} is classified ${cell.shape} in the service-policy map and a migration writes a `
       + 'policy on it. RFC-2026-022 is NOT IN EFFECT: a batch classifies a cell here and writes no '
       + 'service policy until §7 holds, and a DISCOVERED cell gets none ever.');
@@ -1451,4 +1490,51 @@ test('every entry in the map names a table a migration creates, and none of them
       + 'spelling and §7.1/7 requires that literal to appear ONCE in the tree, in the lint — a second '
       + 'spelling in a migration is the failure M4 measured, and it fails open into an error.');
   }
+});
+
+// THIS ASSERTION CHANGED IN A DIFF, WHICH IS WHAT ITS PREDECESSOR SAID WOULD HAPPEN. It read
+// `assert.deepEqual(map.cells, [])` with the note "when the first entry lands this assertion changes
+// in a diff, which is the point". Batch 051 classified §8.4's notification cell, so the empty
+// assertion is replaced rather than deleted, and by a stronger one: the committed map is checked
+// against the REAL migration table set in BOTH directions — a row about a table no migration creates
+// is refused by the lint, and a row whose batch does not exist is refused here.
+//
+// What is deliberately NOT asserted is a COUNT of the cells. RFC-2026-022 §3 lists nine `S` cells
+// across §8.2-§8.4 and batches 061, 110 and 131 are being written in parallel with this one; a number
+// pinned here would be true of one branch and false of the tree it merged into, which is the defect
+// the 2026-09-07 integration recorded four times over.
+test('the committed service-policy map satisfies its own rule, and every entry names a real batch', async () => {
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint, tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  const files = await Promise.all(names.map(async (name) => ({ name, sql: await readFile(`${dir}/${name}`, 'utf8') })));
+  // `tenantTablesInMigrations` answers a DIFFERENT question -- which tables carry workspace_id --
+  // and it answers it with unqualified names. The rule's own set is `tablesCreatedByMigrations`,
+  // which is schema-qualified since batch 110 classified a cell on a table in `private`, and a
+  // `private` table is not a tenant table at all. The two happened to agree while every classified
+  // cell was on a tenant table in `app`; they do not agree now.
+  const tables = await tablesCreatedByMigrations(files);
+
+  assert.deepEqual(servicePolicyMapLint(map, tables), [],
+    'the committed map satisfies its own rule against the tables the migrations actually create');
+
+  for (const cell of map.cells) {
+    assert.ok(names.includes(cell.batch),
+      `${cell.table}.${cell.operation} is classified by ${cell.batch}, which is not a migration in ${dir}. `
+      + 'A classification attributed to a batch that does not exist is a row nobody can review against a '
+      + 'file.');
+    assert.match(cell.cell, /^§8\.[1-4] /,
+      `${cell.table}.${cell.operation}: the cell must be quoted from one of §8's four access matrices`);
+  }
+
+  // AND THE DECISION IS STILL NOT IN EFFECT, which is the property a non-empty map could quietly
+  // lose. RFC-2026-022's status line and this file's own `_not_in_effect` field both say a batch
+  // classifies here and writes NO service policy until §7 holds; the day somebody writes one, that
+  // field has to change first, and this is what says so.
+  assert.match(map._not_in_effect, /NOT IN EFFECT/,
+    'the map records that RFC-2026-022 is approved and not in effect — measured, the only member of '
+    + 'app_worker is postgres, which bypasses RLS. A classification authorises no policy, and a map '
+    + 'that stopped saying so would read as one that did.');
 });
