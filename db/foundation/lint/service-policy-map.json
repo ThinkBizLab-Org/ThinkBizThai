@@ -1,0 +1,17 @@
+{
+  "_what": "Which shape each §8 `S` cell takes, decided by RFC-2026-022 §3's test and recorded here rather than argued in each migration's header.",
+  "_why_this_file_exists_before_any_entry": [
+    "RFC-2026-022 names this file, and four batches are about to classify cells at the same time. If each created it, the merge would be a four-way conflict over a file whose whole purpose is to be one list — so it is created once, empty, with the rules that read it.",
+    "Empty is a claim: no §8 `S` cell has been classified yet. The rules below make that claim checkable rather than merely true today."
+  ],
+  "_shape": {
+    "cell": "the §8 row and column this entry classifies, quoted from the access matrix",
+    "table": "unqualified table name in the app schema, created by a migration in db/foundation/migrations/",
+    "operation": "select | insert | update | delete",
+    "shape": "carried | discovered",
+    "why": "which half of RFC-2026-022 §3's test the STATEMENT falls on, in a sentence someone can disagree with",
+    "batch": "the migration batch that classified it"
+  },
+  "_not_in_effect": "RFC-2026-022 is approved and NOT IN EFFECT: measured 2026-09-08, the only member of app_worker is postgres, which bypasses RLS. A batch classifies its cells here; it does not write a service policy until §7 holds.",
+  "cells": []
+}
