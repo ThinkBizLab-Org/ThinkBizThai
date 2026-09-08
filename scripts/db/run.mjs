@@ -662,6 +662,50 @@ export function tenantTableLint(catalog, { expected, forceExempt } = {}) {
   return problems;
 }
 
+// RFC-2026-022 §5: which shape each §8 `S` cell takes is recorded in a file the lint reads in both
+// directions, rather than argued in each migration's header where four batches would each argue it
+// once. The file is created empty and stays checkable while empty, which is the point: "no cell has
+// been classified" is a claim, and a rule that only wakes up once there is an entry cannot hold it.
+//
+// The decision is APPROVED AND NOT IN EFFECT — measured 2026-09-08, the only member of app_worker is
+// postgres, which bypasses RLS — so a well-formed entry classifies a cell and authorises no policy.
+// That is why this rule refuses a `shape` it does not know and does not ask whether a policy exists:
+// the policy is owed to §7, not to this file.
+export const SERVICE_POLICY_MAP = 'db/foundation/lint/service-policy-map.json';
+const SHAPES = ['carried', 'discovered'];
+const CELL_OPERATIONS = ['select', 'insert', 'update', 'delete'];
+
+export function servicePolicyMapLint(map, tablesInMigrations) {
+  const problems = [];
+  const cells = map?.cells;
+  if (!Array.isArray(cells)) {
+    return ['db/foundation/lint/service-policy-map.json has no `cells` array — RFC-2026-022 §5 makes this '
+      + 'file the record of which shape each `S` cell takes, and a file that cannot be read is not one'];
+  }
+  const seen = new Set();
+  for (const [index, c] of cells.entries()) {
+    const where = `service-policy-map.cells[${index}]`;
+    for (const field of ['cell', 'table', 'operation', 'shape', 'why', 'batch']) {
+      if (!c?.[field]) problems.push(`${where}: no ${field} — RFC-2026-022 §5 requires the cell, the table, the operation, the shape, the reason and the batch that classified it`);
+    }
+    if (c?.shape && !SHAPES.includes(c.shape)) {
+      problems.push(`${where}: shape ${JSON.stringify(c.shape)} is neither 'carried' nor 'discovered'. RFC-2026-022 §3's test has two outcomes, and a third would be a decision this file is not entitled to record`);
+    }
+    if (c?.operation && !CELL_OPERATIONS.includes(c.operation)) {
+      problems.push(`${where}: operation ${JSON.stringify(c.operation)} is not one of ${CELL_OPERATIONS.join(', ')}`);
+    }
+    if (c?.table && tablesInMigrations && !tablesInMigrations.has(c.table)) {
+      problems.push(`${where}: app.${c.table} is created by no migration — a classification of a cell on a table that does not exist is a claim about nothing`);
+    }
+    const key = `${c?.table}.${c?.operation}`;
+    if (c?.table && c?.operation) {
+      if (seen.has(key)) problems.push(`${where}: app.${key} is classified twice, and RFC-2026-022 §3's test has one answer per statement`);
+      seen.add(key);
+    }
+  }
+  return problems;
+}
+
 export async function catalogLint(snapshot, digest, exemptions) {
   const problems = [];
   const snap = snapshot ?? JSON.parse(await readFile(SNAPSHOT, 'utf8'));

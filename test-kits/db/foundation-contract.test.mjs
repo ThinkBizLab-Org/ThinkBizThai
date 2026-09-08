@@ -1207,3 +1207,54 @@ test('§6.1/7: a platform auth.uid() that moved fails the build instead of diver
   // to the original by a build rather than by memory.
   assert.ok(platformIdentityLint({}).some((p) => /records no platform auth\.uid\(\) definition/.test(p)));
 });
+
+// RFC-2026-022 §5's map, checkable WHILE EMPTY.
+//
+// The file is created before any batch classifies a cell, because four batches were about to
+// classify at the same time and each creating it would have made a four-way conflict over a file
+// whose whole purpose is to be one list. Empty is a claim — "no §8 `S` cell has been classified" —
+// and a rule that only wakes up once there is an entry cannot hold it, so every case below
+// constructs an entry rather than asserting on the file.
+test('the service-policy map is refused when an entry is incomplete, unknown-shaped, or about nothing', async () => {
+  const { servicePolicyMapLint } = await import('../../scripts/db/run.mjs');
+  const tables = new Set(['jobs', 'audit_logs']);
+  const good = { cell: '§8.4 Audit/security INSERT', table: 'audit_logs', operation: 'insert',
+    shape: 'carried', why: 'the server already resolved the tenant', batch: '140' };
+
+  assert.deepEqual(servicePolicyMapLint({ cells: [good] }, tables), [],
+    'a complete entry naming a table a migration creates is accepted; otherwise the file could never grow');
+
+  // RFC-2026-022 §3's test has TWO outcomes. A third would be a decision this file is not entitled
+  // to record, so it is refused rather than stored.
+  assert.ok(servicePolicyMapLint({ cells: [{ ...good, shape: 'partial' }] }, tables)
+    .some((p) => /neither 'carried' nor 'discovered'/.test(p)));
+
+  for (const field of ['cell', 'table', 'operation', 'shape', 'why', 'batch']) {
+    const entry = { ...good }; delete entry[field];
+    assert.ok(servicePolicyMapLint({ cells: [entry] }, tables).some((p) => p.includes(`no ${field}`)),
+      `an entry missing ${field} is not a weaker classification, it is one nobody can review`);
+  }
+
+  // A classification of a cell on a table no migration creates is a claim about nothing.
+  assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'not_a_table' }] }, tables)
+    .some((p) => /created by no migration/.test(p)));
+
+  // One statement, one answer.
+  assert.ok(servicePolicyMapLint({ cells: [good, { ...good, shape: 'discovered' }] }, tables)
+    .some((p) => /classified twice/.test(p)));
+
+  // And a file with no cells array at all is refused rather than read as an empty map — the shape
+  // this repository has been caught by twice, where "unmeasured" read as "passing".
+  assert.ok(servicePolicyMapLint({}, tables).some((p) => /has no `cells` array/.test(p)));
+});
+
+test('the map ships empty, and empty means no S cell has been classified yet', async () => {
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint } = await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+  assert.deepEqual(servicePolicyMapLint(map, new Set()), [],
+    'the committed map satisfies its own rule');
+  assert.deepEqual(map.cells, [],
+    'no cell is classified yet. RFC-2026-022 is APPROVED AND NOT IN EFFECT — the only member of '
+    + 'app_worker is postgres, which bypasses RLS — so a batch classifies here and writes no service '
+    + 'policy. When the first entry lands this assertion changes in a diff, which is the point.');
+});
