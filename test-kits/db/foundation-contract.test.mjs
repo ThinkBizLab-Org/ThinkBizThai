@@ -278,7 +278,8 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '110_meta_connector.sql', '130_billing.sql', '140_audit.sql'];
+  '061_metering.sql', '110_meta_connector.sql', '130_billing.sql',
+  '131_billing_projection.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -598,6 +599,30 @@ const ADDED_SYMBOLS = [
   'notification_owner_a',
   'notification_owner_b',
   'notification_suspended_a',
+  // Batch 131. TWO symbols for THREE tables, and the arithmetic is this list's own rule rather than
+  // restraint. A WEBHOOK RECEIPT is addressed by (provider, livemode, provider_event_hash) and a
+  // PAYMENT by (provider, livemode, provider_payment_hash) — §8.2 of the Stripe billing contract
+  // fixes the first as the inbound idempotency key and 131_billing_projection.sql makes both unique
+  // constraints — and both digests are COMPUTED, in the fixture and in the case file alike, from a
+  // synthetic label the two share. So neither needs an id of its own, exactly as a version row, a
+  // member scope, an industry assignment, a job and a ledger row did not.
+  //
+  // AN INVOICE'S ID IS A VALUE ANOTHER ROW MUST NAME, which is the one thing this catalog admits a
+  // symbol for once a natural key exists: app.billing_payments reaches an invoice through TWO
+  // composite foreign keys, one over (workspace_id, id) for §3.3's scope path and one over
+  // (id, livemode) for §5.2's mode separation. Batch 050 recorded the same reasoning for an outbox
+  // event, whose id a consumer ledger row must name.
+  //
+  // The two are NOT interchangeable. billing_invoice_a is SETTLED and carries a succeeded charge
+  // plus a partial refund, so `direction`'s two values and the append-only claim are both live as
+  // data; billing_invoice_b is UNSETTLED and its only payment FAILED, so `failure_code`'s CHECK — a
+  // code belongs to a failure — is satisfied in both directions by real rows. The pair is also what
+  // makes the two sides of the tenant boundary distinguishable rather than duplicates, which matters
+  // more here than usual: no identity can read either table, so the batch's substitute for a
+  // cross-tenant assertion is "both owners are refused identically" and that substitute is worth
+  // more when the rows differ in the column an owner would most want to read.
+  'billing_invoice_a',
+  'billing_invoice_b',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -1537,4 +1562,47 @@ test('the committed service-policy map satisfies its own rule, and every entry n
     'the map records that RFC-2026-022 is approved and not in effect — measured, the only member of '
     + 'app_worker is postgres, which bypasses RLS. A classification authorises no policy, and a map '
     + 'that stopped saying so would read as one that did.');
+});
+
+// The committed map is no longer empty, and this test moved with it in the diff the previous
+// version asked for by name: it said "when the first entry lands this assertion changes in a diff,
+// which is the point." What replaces `deepEqual(cells, [])` is not a weaker claim — an exact list
+// would have to be rewritten by every batch that classifies a cell, and four are being written at
+// once — but a claim about EVERY entry: each is well formed, each names a table a migration
+// actually creates, and each classifies a cell no other entry classifies.
+test('every classified S cell is well formed and names a table a migration creates', async () => {
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint, tablesCreatedByMigrations } =
+    await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+
+  // The tables the migration set actually creates, from the rule's OWN helper rather than from a
+  // regex written beside it. This test built the set itself with `create table app.(\w+)`, which is
+  // right up to the moment a cell is classified on a table outside `app`: batch 110's is on
+  // private.meta_webhook_inbox, and the names the rule compares against have been schema-qualified
+  // since. A second definition of "the tables the migrations create" does not merely duplicate the
+  // first, it drifts from it -- this is the seventh copy found in one integration round, and the
+  // one before it sat inside a `doesNotMatch`, where drift makes an assertion QUIETER rather than
+  // louder and nothing fails at all.
+  const tables = await tablesCreatedByMigrations();
+  assert.ok(tables.size >= 18, 'the table set is read from the migrations, not from a list in this file');
+
+  assert.deepEqual(servicePolicyMapLint(map, tables), [],
+    'the committed map satisfies its own rule against the tables the migration set creates');
+
+  // RFC-2026-022 is APPROVED AND NOT IN EFFECT — measured 2026-09-08, the only member of app_worker
+  // is postgres, which bypasses RLS — so an entry classifies a cell and authorises no policy. That
+  // is asserted as the SHAPE of every entry rather than as a count, because a count is the thing
+  // four parallel branches each get right about their own base and wrong about the merged tree.
+  assert.ok(Array.isArray(map.cells), 'the file is a list of classifications');
+  for (const cell of map.cells) {
+    assert.ok(['carried', 'discovered'].includes(cell.shape),
+      `${cell.cell}: RFC-2026-022 §3's test has two outcomes and a third would be a decision this file is `
+      + 'not entitled to record');
+    assert.match(cell.batch, /^\d{3}_[a-z_]+\.sql$/,
+      `${cell.cell}: the batch that classified it is named as a migration filename, so a reviewer can go and `
+      + 'read the statement the classification is about');
+    assert.ok(cell.why.length > 80,
+      `${cell.cell}: §5's shape requires the reason to be "a sentence someone can disagree with", and a `
+      + 'one-word reason is a verdict rather than an argument');
+  }
 });

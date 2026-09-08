@@ -47,6 +47,14 @@
       "shape": "carried",
       "why": "The delivery-state half of the same cell, classified separately because RFC-2026-022 §7.2 keys the register on (cell, STATEMENT) and never on the table alone -- the asset-hard-purge row in §3's table is BOTH shapes for exactly that reason. The statement is `update app.notifications set delivery_state = ..., delivery_failure_class = ... where id = $1`: it names one row by its id, and that row's workspace came back with it from the send that produced the report. Adding the confinement term to its WHERE changes nothing about which row it addresses. Contrast batch 050's claim on app.jobs, which is DISCOVERED because `for update skip locked` on the next due row has no workspace term to add without changing what the work is; a delivery report is written about a notification the service already holds, not selected across tenants by age or readiness.",
       "batch": "051_notification.sql"
+    },
+    {
+      "cell": "§8.3 Raw token/webhook SELECT — Service `S`",
+      "table": "billing_webhook_receipts",
+      "operation": "select",
+      "shape": "discovered",
+      "why": "RFC-2026-022 §3's operational test, applied to the statement rather than to the table. The statement a billing webhook processor issues is `select … where processed_at is null and dead_lettered_at is null and next_attempt_at <= now() order by received_at for update skip locked` — the next receipt nobody has resolved. Add the confinement term `and correlation_workspace_id = (select nullif(current_setting('app.workspace_id', true), '')::uuid)` and the work CHANGES: \"the next unprocessed receipt\" becomes \"the next unprocessed receipt of a tenant I already knew\". On this table it is worse than on a queue, because the column the term reads is NULL on exactly the rows the processor exists to resolve — §8.3 of the Stripe billing contract initialises `correlation_workspace_id` to null in its own minimum field list, since a provider event arrives outside any session and the workspace is what reading it resolves. So the workspace is the statement's OUTPUT, the cell is DISCOVERED, and per RFC-2026-022 §5/5 app_worker holds grants and NO POLICY on this table permanently rather than pending. Batch 131 writes no service policy: the decision is NOT IN EFFECT (§5/8 — measured 2026-09-08, the only member of app_worker is postgres, which bypasses RLS), and the broker §5/6 names has no identity to grant EXECUTE to. The confinement term is containment against defects in the service's own code and never tenant isolation of the service path (§5/4); no case, comment or assertion in batch 131 cites it as the latter.",
+      "batch": "131_billing_projection.sql"
     }
   ]
 }

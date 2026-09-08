@@ -303,7 +303,19 @@ export const SMOKE_COVERAGE = {
                            + 'IDENTITY CAN READ — §8 has no row for a preference in any of its four '
                            + 'matrices — so both owners are refused identically at the privilege layer, '
                            + 'which is 050\'s shape. private.push_subscription_references is refused on '
-                           + 'the SCHEMA for every identity alike, which is 060\'s.' },
+                           + 'the SCHEMA for every identity alike, which is 060\'s.\n\n'
+                           + 'BATCH 131 ADDS THREE MORE TABLES IN THAT SAME STATE AND ONE CASE THAT LOOKS '
+                           + 'LIKE A CROSS-TENANT PROOF AND IS NOT, which is why it is written down here '
+                           + 'rather than counted. `owner-a-cannot-read-the-billing-invoice-of-tenant-b` '
+                           + 'runs while holding tenant B\'s EXACT invoice id — the §12.6/1 control — and '
+                           + 'is refused at the PRIVILEGE layer, because batch 131 grants no client role '
+                           + 'anything. So it says "no client reads this table" and NOT "the tenant '
+                           + 'boundary holds", and on a database whose policies had all been deleted it '
+                           + 'would pass unchanged. The substitute 030 named carries the weight instead: '
+                           + 'both owners are refused identically on all three tables, and the two '
+                           + 'invoices are deliberately DIFFERENT rows — A\'s is settled and B\'s is not, '
+                           + 'and B\'s only payment failed — so a boundary that failed would leak a fact '
+                           + 'rather than a duplicate.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -566,7 +578,14 @@ export const SMOKE_COVERAGE = {
                            + 'this schema may read that row: the recipient is the suspended member, an '
                            + 'owner is refused by the recipient term, and the service holds no policy. '
                            + '`suspended-a-cannot-mark-a-notification-read` therefore targets another '
-                           + 'member\'s row, which the row\'s own recipient can witness.' },
+                           + 'member\'s row, which the row\'s own recipient can witness.\n\n'
+                           + 'BATCH 131 IS THE SAME ANSWER ON THREE MORE TABLES AND IS RECORDED RATHER '
+                           + 'THAN REPEATED: a suspended member is refused a webhook receipt, an invoice '
+                           + 'and a payment at the GRANT layer, identically to the ACTIVE OWNER beside '
+                           + 'them. §7\'s "only status active grants access" is a statement about a '
+                           + 'policy predicate, and there is no policy on any of these three, so the '
+                           + 'cases declare `denied` with the layer and the object rather than claiming '
+                           + 'a suspension control they do not exercise.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -653,7 +672,15 @@ export const SMOKE_COVERAGE = {
                            + 'the declared OBJECT is worth carrying at all — the schema that refuses an '
                            + 'anonymous read is the schema its statement names, and a case that declared '
                            + 'only the layer would be satisfied by the harness failing to reach a '
-                           + 'helper.' },
+                           + 'helper.\n\n'
+                           + 'BATCH 131 ADDS THREE MORE, ON THE SCHEMA, and one of them is about the '
+                           + 'class §9.2 forbids leaving the system at all. A billing webhook receipt is '
+                           + 'PROVIDER-3 — "private, redact/log hash", client projection "safe projection '
+                           + 'only" — and §11.1/5 excludes a raw webhook from a PDPA export even for the '
+                           + 'owner who requested it. An anonymous read of one is the furthest thing from '
+                           + 'a defensible client surface this schema contains, and it is refused where '
+                           + 'every other anonymous case is refused: at name resolution, because anon '
+                           + 'holds no USAGE on app.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -740,7 +767,21 @@ export const SMOKE_COVERAGE = {
                            + 'foreign key to auth.users. What DOES refuse a forged recipient is the '
                            + 'policy rather than a constraint, and that is asserted as §8.6/2 and §12.6/5 '
                            + 'rather than here: a notification addressed to somebody else is invisible, '
-                           + 'and no client role holds an INSERT to forge one with.' },
+                           + 'and no client role holds an INSERT to forge one with.\n\n'
+                           + 'BATCH 131 BUILDS THE CHECK 140 COULD NOT AND STILL ADDS NO CASE, which is a '
+                           + 'different disposition from 140\'s and is worth the distinction. Its two '
+                           + 'child tables DO carry composite foreign keys over the scope path — an '
+                           + 'invoice must agree with its subscription about the workspace, and a payment '
+                           + 'with its invoice about the workspace AND about `livemode` — so §4 invariant '
+                           + '10 IS enforced here, and §5.2\'s "ห้าม map ข้าม mode" with it, which turns '
+                           + '§13.1\'s LIVEMODE_MISMATCH from a reconciliation finding into a refusal. '
+                           + 'What is missing is a CALLER: a `rejected` case needs an identity holding '
+                           + 'INSERT so the constraint is what stops the row, and no role but app_worker '
+                           + 'holds INSERT while row level security refuses app_worker first. So the pair '
+                           + 'is asserted from the CATALOG at apply time — as column SETS, so a '
+                           + 'reordering does not fail and a dropped column does — and not as a case. The '
+                           + 'day an allowlist entry or a command surface gives some identity the verb, '
+                           + 'the case becomes writable and is owed to that batch.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -901,7 +942,43 @@ export const SMOKE_COVERAGE = {
                            + 'tenant isolation of the service path. The RFC measured twice that the role '
                            + 'a service policy names can set the setting that policy reads. Nothing in '
                            + 'this suite cites it as the latter, and identity-isolation.test.mjs asserts '
-                           + 'that absence rather than trusting it.' },
+                           + 'that absence rather than trusting it.\n\n'
+                           + 'BATCH 131 REACHES AN `S` CELL WITH RFC-2026-022 ALREADY APPROVED, AND THE '
+                           + 'ANSWER IT GETS IS THAT ITS HALF OF THIS ROW WILL NEVER BE PAID. §8.3 marks '
+                           + '"Raw token/webhook SELECT" `S` for the service, and '
+                           + 'RFC-2026-022 §3 classifies that cell DISCOVERED — a provider event arrives '
+                           + 'outside any session, §8.3 of the Stripe billing contract initialises '
+                           + '`correlation_workspace_id` to null in its own field list, and adding the '
+                           + 'confinement term to a claim excludes exactly the rows a processor exists to '
+                           + 'resolve. §5/5 gives a discovered cell NO POLICY PERMANENTLY, so no policy '
+                           + 'will ever admit app_worker to app.billing_webhook_receipts, and '
+                           + '`service-sees-zero-billing-webhook-receipts` is a PERMANENT assertion. '
+                           + 'RFC-2026-022 §8 says what flips instead: a NEW PAIR, in which a broker '
+                           + 'claim succeeds while the direct statement still returns zero — and it warns '
+                           + 'that a reader who takes the present case as pending will "fix" it by '
+                           + 'writing the unscoped service policy §4 option B rejects.\n\n'
+                           + 'THE TWO OTHER 131 TABLES ARE STILL PENDING AND ARE PENDING ON A DIFFERENT '
+                           + 'THING, which is why they are not folded in with the receipt. §8 has no row '
+                           + 'for an invoice or a payment in any of its four matrices, so what would move '
+                           + '`service-sees-zero-billing-invoices` or `service-sees-zero-billing-payments` '
+                           + 'is an RFC-2026-021 allowlist entry or a command surface, not RFC-2026-022. '
+                           + 'The row therefore stays `negative-half` and is now waiting on THREE '
+                           + 'different things across the batches that own it: a GUC plus a worker for '
+                           + 'the CARRIED cells (140, 051, 061, 070, 120), a broker plus a worker for the '
+                           + 'DISCOVERED ones (050, 110, 131), and an RFC for the tables §8 never '
+                           + 'mentions. RFC-2026-022 §5/8 is the blocking dependency for the first two: '
+                           + 'measured 2026-09-08, the only member of app_worker is postgres, which '
+                           + 'bypasses RLS.\n\n'
+                           + 'A CORRECTION THIS BATCH REPORTS AND DOES NOT MAKE. The paragraph above '
+                           + 'about batch 140 still calls its cell "the first and only `S` cell any '
+                           + 'migration in this repository has reached". That was true of 140\'s branch '
+                           + 'and is false of this tree: 050 owns §8.4\'s job payload cell, 131 owns '
+                           + '§8.3\'s webhook cell, and RFC-2026-022 §1 counts NINE `S` cells across '
+                           + '§8.2-§8.4. It is left in place rather than rewritten by a batch that does '
+                           + 'not own it — an assertion in identity-isolation.test.mjs pins that sentence '
+                           + 'and editing prose out from under another batch\'s test is how a merge loses '
+                           + 'a control — and it is recorded in this package\'s open blockers for the '
+                           + 'owner of 140\'s section to dispose of.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -985,7 +1062,19 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`editor-a-sees-their-own-notification` are the read half and '
    + '`owner-a-can-mark-their-own-notification-read` is the write half. THE EDITOR\'S READ IS NOT '
    + 'PADDING: without an identity that is not an owner passing, a policy that compared the reader\'s '
-   + 'ROLE instead of their identity would satisfy the other two and the refusals beside them.',
+   + 'ROLE instead of their identity would satisfy the other two and the refusals beside them.\n\n'
+   + 'BATCH 131 HAS NO CASE FOR IT EITHER, AND ITS ABSENCE IS THE ONE A DOCUMENT ARGUES AGAINST. On '
+   + 'the receipt table §8.3 is `N` in all five client columns, so there is nothing to pass. On the '
+   + 'invoice there IS a document saying the owner should: §6 of the Stripe billing contract gives '
+   + 'the Workspace Owner "ขอใบเสร็จ/ข้อมูล billing" with a ✓ and §11.1 puts the invoice read model '
+   + 'in the PDPA export minimum. It is still refused, because §9.1 makes the FIN-3 client '
+   + 'projection an "owner/admin SUMMARY", a summary is a security_invoker view, RFC-2026-021 keeps '
+   + 'that allowlist empty, and its C1 — a named CLIENT caller exists — fails while there is no '
+   + '`src/`. RFC-2026-021 §8.5 adds a second, independent reason: the list of inherited '
+   + 'base-table grants must be CLOSED, and a SELECT here would be another entry on it. '
+   + '`owner-a-cannot-read-a-billing-invoice` is the case that will have to flip when the RFC opens '
+   + 'it, and the column list such an entry would need is enumerated in 131_billing_projection.sql '
+   + 'so that RFC starts from a reading rather than from a blank page.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -1461,7 +1550,63 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'block except one truncated clause appears in this entry in its corrected form. It is the seam '
    + 'that PARSES which the integration\'s §4 warned the next four batches about, and the reason it '
    + 'survived is that no rule read these keys as a set. One does now — see '
-   + 'identity-isolation.test.mjs.',
+   + 'identity-isolation.test.mjs.\n\n'
+   + 'BATCH 131 ADDS app.billing_payments AND DELIBERATELY DOES NOT ADD A TRIGGER, which is the '
+   + 'reverse of 140\'s choice and turns on the ADVERSARY rather than on the strength of the '
+   + 'control. 140 needed one because an audit log\'s adversary can OWN the table: the operator '
+   + 'being audited is the operator who runs the migration. A payment ledger\'s adversary is the '
+   + 'person §12.1 names — Support editing the database "เพื่อแก้เร็ว" — who reaches it through a '
+   + 'GRANTED role, and the control that refuses that person is the absence of the verb. It is '
+   + 'asserted in both directions at apply time: no UPDATE or DELETE for any of the six roles, read '
+   + 'from the live ACL with has_any_column_privilege so a column-scoped grant is caught as well as '
+   + 'a table-wide one, AND no UPDATE or DELETE policy in pg_policy — because a policy with no grant '
+   + 'is inert and a grant with no policy is refused by RLS, which is weaker than immutability asks '
+   + 'for. Four cases carry it: the owner and the service are each refused an amend and a delete. '
+   + 'A REFUND IS A ROW AND NOT AN EDIT, which is what makes the immutability affordable rather than '
+   + 'merely strict — §12.1\'s workflow ends "อัปเดต ledger projection" and the ledger-correct form '
+   + 'of that update is another entry — and the fixture loads a charge and its partial refund so the '
+   + 'claim is visible as data rather than only as a comment.\n\n'
+   + 'AND THE RECEIPT IS THE OTHER SHAPE THIS ROW HAS: app.billing_webhook_receipts is immutable in '
+   + 'ONE HALF, which is 050\'s outbox rather than a version table. §5.1 calls a receipt "immutable '
+   + 'receipt metadata" while §8.3 gives the same row a processing state machine, and the boundary '
+   + 'is a column-scoped UPDATE grant naming seven columns with the other nine walked against six '
+   + 'roles at apply time. No isolation case can carry that half: a filtered UPDATE by the one role '
+   + 'holding the grant needs a witness read, and no identity in this schema can see the row.',
+  10: 'not applicable to batches 010-060 — no command function is specified for identity, for '
+   + 'BATCH 130 ADDS A FIFTH AND A SIXTH IMMUTABLE TABLE AND COMPLETES THE GRID ON BOTH. '
+   + 'app.billing_plan_versions is immutable by §3.2, §4 invariant 8 and §5.1\'s "immutable '
+   + 'mapping หลังมีลูกค้า; สร้าง revision ใหม่"; app.plan_entitlements by §5.1\'s "versioned '
+   + 'contract" and §5.3\'s requirement that changing an entitlement carry a version, a migration '
+   + 'impact and an approval. Eight cases, all four cells live on each: update and delete by the '
+   + 'workspace OWNER and by the SERVICE identity, every one at the GRANT layer because no role '
+   + 'holds either verb. 020 left one cell of its grid to an apply-time block and said so; this '
+   + 'batch leaves none, and the reason is what these rows hold — a price is the one value in the '
+   + 'schema whose rewriting changes what somebody was charged, and an entitlement is what a '
+   + 'paying customer was promised. 130\'s own apply-time block walks six roles against both '
+   + 'tables and raises if any cell holds either verb, which catches a grant made by a later '
+   + 'batch.\n\n'
+   + 'BATCH 140 ADDS THE FIFTH AND SIXTH IMMUTABLE TABLES AND IS THE FIRST BATCH TO CARRY THIS CASE '
+   + 'AGAINST THE ONE ADVERSARY THE OTHER FOUR ARE DEFENCELESS AGAINST. app.audit_logs and '
+   + 'app.security_events are append-only by §5, §3.2, §4 invariant 8 and §8.4\'s "Audit/security '
+   + 'UPDATE/DELETE | N N N N N N", and all four cells are live on each: update and delete by a '
+   + 'workspace OWNER and by the SERVICE identity, eight cases, every one declared at the GRANT '
+   + 'layer because no role holds either verb.\n\n'
+   + 'WHAT IS NEW IS THE THIRD MECHANISM. Batches 020, 030 and 040 expressed immutability as absent '
+   + 'grants and absent policies, which reaches every role our migrations can name and reaches '
+   + 'NOBODY ELSE: `postgres` owns every table in `app` and holds BYPASSRLS, so FORCE ROW LEVEL '
+   + 'SECURITY does not constrain it and neither does an absent grant it can issue to itself. On an '
+   + 'audit log that is the adversary that matters, because the record exists to be read against the '
+   + 'people who can reach the database. So 140 also carries a TRIGGER — §8.5\'s own "command/'
+   + 'trigger/privilege defense" for an immutable table, which no earlier batch used — refusing '
+   + 'UPDATE, DELETE and TRUNCATE for every role including the owner, and 140_audit.sql PROVES it by '
+   + 'execution at apply time: it writes a probe row as the migration role, attempts all three, '
+   + 'requires all three to raise, and rolls the probe back. No isolation case can carry that, '
+   + 'because no identity this harness can assume gets past the privilege system to reach the '
+   + 'trigger.\n\n'
+   + 'AND THE LIMIT IS RECORDED WITH THE CLAIM: the owner can disable the trigger in one statement. '
+   + 'It is tamper RESISTANCE and not tamper evidence, and CTR-AUD-001\'s freeze boundary leaves '
+   + '"the audit STORE, its append-only or immutability mechanism, and any tamper evidence" open '
+   + 'precisely because no source specifies a hash chain. This batch does not invent one.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -1578,7 +1723,36 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'service path. The RFC measured twice that the role a service policy names can set the setting '
    + 'that policy reads, and that the catalog cannot be asked who may. Nothing in this suite cites it '
    + 'as tenant isolation, and identity-isolation.test.mjs asserts that absence over the whole file '
-   + 'rather than trusting this sentence.',
+   + 'rather than trusting this sentence.\n\n'
+   + 'BATCH 131 ANSWERS THE HALF OF THAT FINDING THAT WAS ABOUT ITS OWN CELL, AND THE ANSWER IS THAT '
+   + 'THE SHAPE 140 WAS WAITING FOR IS NOT THE SHAPE THIS CELL GETS. RFC-2026-022 (approved '
+   + '2026-09-08) settled what an `S` cell looks like by splitting the nine of them: a cell whose '
+   + 'statement CARRIES its workspace gets a policy TO the service role whose predicate is the '
+   + 'cell\'s own AND a pinned confinement term, and a cell that DISCOVERS its workspace gets no '
+   + 'policy at all, permanently, with the operation performed through a SECURITY DEFINER broker '
+   + 'owned by a role that is not a path. §8.3\'s "Raw token/webhook SELECT" — this batch\'s cell — '
+   + 'is classified DISCOVERED by that RFC\'s own §3 table, and applying its operational test to the '
+   + 'statement confirms it: adding the confinement term to "the next unprocessed receipt" excludes '
+   + 'exactly the rows a processor exists to resolve, because §8.3 of the Stripe billing contract '
+   + 'initialises correlation_workspace_id to NULL. So the classification is recorded in '
+   + 'db/foundation/lint/service-policy-map.json, which the lint reads in both directions, and NO '
+   + 'SERVICE POLICY IS WRITTEN — not as a deferral but as the decision.\n\n'
+   + 'WHAT IS STILL MISSING IS THE SAME THING 140 IS MISSING AND IT IS NAMED RATHER THAN INFERRED. '
+   + 'RFC-2026-022 §5/8 puts the whole decision NOT IN EFFECT until a service identity exists: '
+   + 'measured 2026-09-08, the only member of app_worker is postgres, which bypasses RLS, so a '
+   + 'policy TO app_worker is unreachable except from an identity for which it is moot and a broker '
+   + 'has nobody to grant EXECUTE to. And the confinement term is a CONTAINMENT control against '
+   + 'defects in the service\'s own code — never tenant isolation of the service path, since the '
+   + 'role the policy names can set the setting the policy reads — so no case, comment or assertion '
+   + 'in this batch cites it as the latter, and the migration names no GUC at all.\n\n'
+   + 'THE SECOND HALF OF CASE 10 — "expected audit/outbox" — IS STILL UNPAID FOR BILLING AND THE '
+   + 'DEBT IS NOW SPECIFIC. §14.3 of the billing contract lists eleven audit events this family owes '
+   + '("checkout started, portal opened, subscription changed, entitlement changed, refund '
+   + 'requested/approved/executed, manual grant, replay, reconciliation repair, config/price mapping '
+   + 'change"), §6 fixes their content, and the store exists as of batch 140. What does not exist is '
+   + 'the WRITER and the table that would call it: `billing_operations` is §5.1\'s and no registry '
+   + 'row gives it to 130 or to 131, so this batch creates none and records the gap rather than '
+   + 'reserving a table.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -2433,6 +2607,127 @@ export function buildCases(id) {
     sql: 'insert into app.notification_preferences (workspace_id, user_id, channel, enabled)'
        + " values ($1, $2, 'line', false) returning workspace_id",
     params: [workspace, user],
+  });
+
+  // -- Batch 131 builders. ------------------------------------------------------------------------
+  //
+  // THE ROWS ARE ADDRESSED BY DIGEST, WHICH NO EARLIER BLOCK HAS HAD TO DO, and it follows from the
+  // batch rather than from a preference. Batch 131 stores §9.3's "stable hash for uniqueness" and
+  // refuses the raw provider identifier, so a webhook receipt and a payment have no id a document
+  // fixes and no id another row must name — their natural keys are `(provider, livemode, <digest>)`.
+  // The digest is COMPUTED here with the same `sha256(convert_to(…, 'utf8'))` the fixture uses and
+  // batch 010's invitation cases already use, so the case and the fixture agree by construction
+  // rather than by a pasted hex constant, which is what the fixture catalog exists to refuse.
+  //
+  // AN INVOICE IS DIFFERENT AND CARRIES A SYMBOL, because app.billing_payments reaches it through two
+  // composite foreign keys — one over the tenant path and one over the mode — so its id is a value
+  // another row must name. That is the catalog's own rule, recorded when batch 050 needed a symbol
+  // for an outbox event and not for a job or a ledger row.
+  const INVOICE_A = id('billing_invoice_a');
+  const INVOICE_B = id('billing_invoice_b');
+
+  const RECEIPT_BY_EVENT =
+    'select id from app.billing_webhook_receipts'
+    + " where provider = 'stripe' and livemode = false"
+    + " and provider_event_hash = sha256(convert_to($1, 'utf8'))";
+  const INVOICE_BY_ID = 'select id from app.billing_invoices where id = $1';
+  // `amount_due` and `settled_at` by name, for batch 130's reason about `unit_amount`: they are the
+  // values whose disclosure is a commercial fact about another business rather than a data one — what
+  // a competitor owes and whether they have paid — and a case selecting `id` would be refused
+  // identically while saying less about what it protects.
+  const INVOICE_AMOUNT_BY_ID =
+    'select amount_due, settled_at from app.billing_invoices where id = $1';
+  const PAYMENTS_OF_INVOICE =
+    'select direction, amount from app.billing_payments where billing_invoice_id = $1';
+
+  // THE WRITES, AND EACH IS A THING SOMEBODY WOULD WANT. Recording a webhook receipt is asserting
+  // that a provider said something; projecting an invoice is asserting that a workspace owes money;
+  // recording a payment is asserting that money moved. All three are refused, and WHICH LAYER refuses
+  // them differs by role, which is the whole of what these cases distinguish: for a client role the
+  // privilege is absent, and for the service the privilege is present and row level security refuses.
+  //
+  // Each statement is written to be OTHERWISE VALID — a correct provider name, a well-formed event
+  // type, digests of the right length, a whole period, a positive amount — because a statement a
+  // CHECK would have rejected anyway proves nothing about the grant. `expectDenied` refuses every
+  // SQLSTATE but 42501, so a database that had wrongly granted the verb answers 23505 or 23514 and
+  // the case still fails; it simply cannot be SATISFIED by a constraint standing in for a grant.
+  const recordWebhookReceipt = (workspace) => ({
+    sql: 'insert into app.billing_webhook_receipts'
+       + ' (provider, livemode, provider_event_hash, payload_hash, provider_event_type,'
+       + ' provider_created_at, correlation_workspace_id)'
+       + " values ('stripe', false, sha256(convert_to($2, 'utf8')),"
+       + " sha256(convert_to($3, 'utf8')), 'invoice.paid', now(), $1) returning id",
+    params: [workspace, 'attempted-billing-event', 'attempted-billing-payload'],
+  });
+
+  // The one write a receipt's PROCESSING half would make: claim the row by resolving its workspace.
+  // It is asserted against the UNRESOLVED fixture row, because that is the row RFC-2026-022 §3's test
+  // is about — the one a confinement predicate would exclude.
+  const resolveWebhookReceipt = (workspace) => ({
+    sql: 'update app.billing_webhook_receipts set correlation_workspace_id = $1,'
+       + ' processed_at = now(), attempt_count = attempt_count + 1'
+       + " where provider = 'stripe' and livemode = false"
+       + " and provider_event_hash = sha256(convert_to($2, 'utf8')) returning id",
+    params: [workspace, 'fixture-billing-event-unresolved'],
+  });
+
+  // THE SUBSCRIPTION ID HERE IS A WORKSPACE ID AND THAT IS DELIBERATE, so it is explained rather
+  // than left to look like a mistake. An `insert … select` reading app.billing_subscriptions would
+  // be WRONG for this case: the service holds SELECT and no policy on that table, so the select
+  // returns zero rows, the insert writes nothing, and the statement SUCCEEDS having done nothing —
+  // a case demanding a refusal would fail while reporting the wrong thing. So the row is built from
+  // VALUES, and the one column no catalog symbol can supply is filled with a uuid that is real and
+  // is not a subscription. Every CHECK and NOT NULL on the row is satisfied, so nothing is refused
+  // before row level security is reached; the only thing wrong with it is the composite FOREIGN KEY,
+  // which Postgres enforces with an AFTER ROW trigger and therefore never reaches. On a database
+  // that had wrongly granted the INSERT the answer is 23503, and `expectDenied` refuses every
+  // SQLSTATE but 42501 — so the case cannot be satisfied by a constraint standing in for a grant.
+  const projectInvoice = (workspace) => ({
+    sql: 'insert into app.billing_invoices'
+       + ' (workspace_id, billing_subscription_id, provider, livemode, provider_invoice_hash,'
+       + ' currency, amount_due, issued_at, provider_revision)'
+       + " values ($1, $1, 'stripe', false, sha256(convert_to($2, 'utf8')),"
+       + " 'THB', 0, now(), 1) returning id",
+    params: [workspace, 'attempted-billing-invoice'],
+  });
+
+  // Writing an invoice off is the update somebody with a database console and a sympathetic customer
+  // would make, and §12.1 forbids exactly that person: "ห้าม Support ปรับ subscription/entitlement
+  // โดยแก้ DB เพื่อ 'แก้เร็ว'". `voided_at` rather than `amount_due` because a void is the whole of
+  // the debt rather than part of it, and because a row that is already settled would then carry both
+  // timestamps — which the CHECK refuses, so a database that had granted the verb answers 23514 and
+  // the case still fails rather than passing for the constraint's reason.
+  const voidInvoice = (invoice) => ({
+    sql: 'update app.billing_invoices set voided_at = now() where id = $1 returning id',
+    params: [invoice],
+  });
+
+  const deleteInvoice = (invoice) => ({
+    sql: 'delete from app.billing_invoices where id = $1 returning id',
+    params: [invoice],
+  });
+
+  const recordPayment = (workspace, invoice) => ({
+    sql: 'insert into app.billing_payments'
+       + ' (workspace_id, billing_invoice_id, provider, livemode, provider_payment_hash,'
+       + ' direction, currency, amount, occurred_at, succeeded_at)'
+       + " values ($1, $2, 'stripe', false, sha256(convert_to($3, 'utf8')),"
+       + " 'charge', 'THB', 1, now(), now()) returning id",
+    params: [workspace, invoice, 'attempted-billing-payment'],
+  });
+
+  // The amendment §8.6 case 9 is about. `amount` and not `failure_code`, because the amount is the
+  // number a finance record exists to be right about, and because a payment whose amount can be
+  // edited after the fact is the defect the append-only shape is for.
+  const amendPayment = (invoice) => ({
+    sql: 'update app.billing_payments set amount = 0'
+       + " where billing_invoice_id = $1 and direction = 'charge' returning id",
+    params: [invoice],
+  });
+
+  const deletePayment = (invoice) => ({
+    sql: 'delete from app.billing_payments where billing_invoice_id = $1 returning id',
+    params: [invoice],
   });
 
   return [
@@ -8985,6 +9280,434 @@ export function buildCases(id) {
       why: 'The fourth verb, so the grid on this table is complete. §8.5 has no broad user delete; '
          + 'removing a push subscription is a revocation, which is a typed lifecycle field this table '
          + 'has and no role can write, and a purge, which §10\'s PUSH-SECRET gives to batch 160.',
+    },
+    // -- Batch 131 — the billing projection: the webhook receipt, the invoice, the payment. -------
+    //
+    // THERE IS NO `rows` CASE ANYWHERE IN THIS BLOCK, and it is the same shape batch 140's block has
+    // for the same reason: no client role holds any privilege on any of the three tables, and no
+    // policy is written for one, so no request-path identity has an operation to succeed at. What
+    // stands in place of a positive is batch 030's substitute, restated by 140 — "both owners are
+    // refused identically, at the privilege layer" — plus the two service cases per table that row
+    // level security actually decides.
+    //
+    // AND THERE IS NO WITNESS FUNCTION HERE EITHER. A `no-effect` case pairs an empty write with a
+    // witness read run as an identity that CAN see the target row, and there is no such identity.
+    // Every client write below is therefore REFUSED at the privilege layer, which is the stronger
+    // assertion the helper module reserves for exactly that; and the one filtered write this batch
+    // could have asserted — the service's own column-scoped UPDATE, which row level security empties
+    // rather than refuses — is ABSENT for the same reason batch 050 has no
+    // `service-cannot-update-a-job-row`. It is unassertable, not overlooked.
+    {
+      id: 'owner-a-cannot-read-a-billing-webhook-receipt',
+      covers: ['§8.3/raw-webhook-select', '§9.1/PROVIDER-3'],
+      as: ownerA,
+      sql: RECEIPT_BY_EVENT,
+      params: ['fixture-billing-event-a'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: '§8.3 "Raw token/webhook SELECT" is `N` for the owner — the strictest client cell in the '
+         + 'whole matrix short of "Plain credential SELECT" — and §11.1/5 excludes a raw webhook from '
+         + 'a PDPA export as well. The receipt this identity is refused is the one CORRELATED TO ITS '
+         + 'OWN WORKSPACE, so the refusal is about the table rather than about a tenant boundary.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-billing-webhook-receipt',
+      covers: ['§8.3/raw-webhook-select', '§8.6/1'],
+      as: ownerB,
+      sql: RECEIPT_BY_EVENT,
+      params: ['fixture-billing-event-b'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: 'The other owner, refused its own workspace\'s receipt identically. This pair is batch '
+         + '030\'s substitute for a cross-tenant assertion on a table no identity can read, and it is '
+         + 'what stops the case above being read as a tenant boundary it is not.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-billing-webhook-receipt',
+      covers: ['§12.6/5', '§8.6/6', '§8.3/raw-webhook-select'],
+      as: suspendedA,
+      sql: RECEIPT_BY_EVENT,
+      params: ['fixture-billing-event-a'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: '§12.6/5 asked of a table where membership is not what refuses. The suspended member is '
+         + 'refused at the same layer as the active owner, which is the honest reading: §7\'s "only '
+         + 'status active grants access" is about a policy, and there is no policy here.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-billing-webhook-receipt',
+      covers: ['§12.6/7', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: RECEIPT_BY_EVENT,
+      params: ['fixture-billing-event-a'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA and not on the table, because `anon` holds no USAGE on `app` and '
+         + 'name resolution stops first. RFC-2026-021 §7/4 decided that as a negative and gave the '
+         + 'structural reason; this case is what notices the day it changes.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-billing-webhook-receipt',
+      covers: ['§8.3/raw-webhook-select', '§8.6/2'],
+      as: ownerA,
+      ...recordWebhookReceipt('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: 'A client that could write an inbox row could assert that a provider said something. §8.1 '
+         + 'makes a receipt the product of a SIGNATURE CHECK — "ปฏิเสธ signature/ความเก่าเกิน tolerance" '
+         + '— and §14.3 names "ปลอม webhook" as its first threat. The refusal is at the privilege layer '
+         + 'because no client role holds INSERT, which is a stronger refusal than a policy an edit '
+         + 'could widen.',
+    },
+    {
+      id: 'owner-a-cannot-attribute-a-billing-webhook-receipt',
+      covers: ['§8.3/raw-webhook-select', '§8.6/2', 'RFC-2026-022§3'],
+      as: ownerA,
+      ...resolveWebhookReceipt('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: 'The one write the PROCESSING half of a receipt makes: claim the unresolved fixture row by '
+         + 'naming the workspace it belongs to. That row is the one RFC-2026-022 §3\'s test is about — '
+         + 'a confinement predicate on `correlation_workspace_id` excludes exactly the rows a '
+         + 'processor exists to resolve — and a client that could make this write could ATTRIBUTE '
+         + 'another tenant\'s provider event to itself.',
+    },
+    {
+      id: 'service-sees-zero-billing-webhook-receipts',
+      covers: ['§12.6/8', '§8.3/raw-webhook-select', 'RFC-2026-022§5'],
+      as: service,
+      sql: RECEIPT_BY_EVENT,
+      params: ['fixture-billing-event-a'],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT and NO POLICY, so this empty read can only have '
+         + 'come from row level security — a service role that had quietly acquired BYPASSRLS would '
+         + 'return the row. THIS ASSERTION IS PERMANENT AND NOT PENDING: RFC-2026-022 §3 classifies '
+         + 'this §8.3 `S` cell DISCOVERED and §5/5 gives a discovered cell no policy permanently, so '
+         + 'no policy will ever admit app_worker here. What will flip instead is a NEW PAIR — a broker '
+         + 'claim succeeds while this statement still returns zero (§7.3 c). A reader who takes this '
+         + 'case as pending will "fix" it by writing the unscoped service policy §4 option B rejects. '
+         + 'It is one of the two cases the negative control for this table rests on.',
+    },
+    {
+      id: 'service-cannot-record-a-billing-webhook-receipt',
+      covers: ['§12.6/8', '§8.3/raw-webhook-select', 'RFC-2026-022§5'],
+      as: service,
+      ...recordWebhookReceipt('__A__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: 'The RAISING half, and the second case the negative control rests on: app_worker holds the '
+         + 'INSERT grant §8.1/6\'s durable insert needs, so FORCE ROW LEVEL SECURITY with an empty '
+         + 'policy set is what refuses the row — with row level security off, the grant is enough and '
+         + 'the write lands. Only an INSERT can carry this claim: an UPDATE a USING clause filters '
+         + 'reports zero rows and raises nothing.',
+    },
+    {
+      id: 'service-cannot-delete-a-billing-webhook-receipt',
+      covers: ['§8.5', '§10/WEBHOOK-SHORT'],
+      as: service,
+      sql: 'delete from app.billing_webhook_receipts'
+         + " where provider = 'stripe' and livemode = false"
+         + " and provider_event_hash = sha256(convert_to($1, 'utf8')) returning id",
+      params: ['fixture-billing-event-a'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_webhook_receipts' },
+      why: 'No role holds DELETE on any table in this batch. §10\'s WEBHOOK-SHORT purge is a retention '
+         + 'sweep owned by batch 160 through app_maintenance, which this batch grants nothing. Not '
+         + 'labelled for row level security: a grant-layer refusal is not evidence about a policy.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-billing-invoice',
+      covers: ['§9.1/FIN-3', 'RFC-2026-021§3'],
+      as: ownerA,
+      sql: INVOICE_AMOUNT_BY_ID,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'ITS OWN INVOICE, and this is the sharpest refusal in the batch because it is the one a '
+         + 'document argues FOR: §6 of the billing contract gives the Workspace Owner "ขอใบเสร็จ/ข้อมูล '
+         + 'billing" with a ✓, and §11.1 puts the invoice read model in the PDPA export minimum. It is '
+         + 'still refused, because §9.1\'s FIN-3 client projection is an "owner/admin summary", a '
+         + 'summary is a security_invoker view, and RFC-2026-021 keeps that allowlist empty and its C1 '
+         + '— a named CLIENT caller exists — fails while there is no `src/`. This case is what a future '
+         + 'allowlist entry has to flip, deliberately.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-billing-invoice',
+      covers: ['§9.1/FIN-3', '§8.6/1'],
+      as: ownerB,
+      sql: INVOICE_AMOUNT_BY_ID,
+      params: [INVOICE_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'The other owner, refused its own invoice identically — 030\'s substitute for a positive on '
+         + 'a table nobody reads. The two invoices are deliberately DIFFERENT rows: A\'s is settled and '
+         + 'B\'s is not, so a boundary that failed would leak a fact rather than a duplicate.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-billing-invoice-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5', '§9.1/FIN-3'],
+      as: ownerA,
+      sql: INVOICE_AMOUNT_BY_ID,
+      params: [INVOICE_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'Tenant A\'s owner holds tenant B\'s EXACT invoice id and is refused — at the PRIVILEGE '
+         + 'layer, which is worth stating rather than counting as a tenant-isolation proof. On this '
+         + 'table there is no policy for a boundary to be expressed in, so this case says "no client '
+         + 'reads this table" and not "the tenant boundary holds"; the coverage map records the '
+         + 'difference instead of averaging it.',
+    },
+    {
+      id: 'viewer-a-cannot-read-a-billing-invoice',
+      covers: ['§8.6/2', '§9.1/FIN-3'],
+      as: viewerA,
+      sql: INVOICE_BY_ID,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'A viewer is refused where the owner is refused, so §8.6 case 2 is carried here in its weak '
+         + 'form only: the roles are not distinguished, because no role has the operation. Recorded '
+         + 'rather than counted — batch 130 carries the strong form of this cell on '
+         + 'app.billing_subscriptions, where the owner passes and the viewer does not.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-billing-invoice',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: INVOICE_BY_ID,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: '§12.6/5 on a table where membership decides nothing, for the reason the receipt case '
+         + 'gives: the refusal is at the privilege layer for every client identity alike.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-billing-invoice',
+      covers: ['§12.6/7', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: INVOICE_BY_ID,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA, for RFC-2026-021 §7/4\'s structural reason: the first anon grant is '
+         + '`usage on schema app`, which moves the denial layer of every object in app at once.',
+    },
+    {
+      id: 'owner-a-cannot-project-a-billing-invoice',
+      covers: ['§8.6/2', 'RFC-2026-012§1'],
+      as: ownerA,
+      ...projectInvoice('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'A client that could write an invoice could write a zero one. RFC-2026-012 decision 1 is '
+         + 'server-only mutation with zero exceptions at G0, and CONTRIBUTING_AGENTS.md derives '
+         + 'payment entitlement only from a verified webhook projection.',
+    },
+    {
+      id: 'owner-a-cannot-void-a-billing-invoice',
+      covers: ['§8.6/2', '§12.1'],
+      as: ownerA,
+      ...voidInvoice(INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'Writing off your own debt, refused at the privilege layer. §12.1 forbids the human version '
+         + 'of this in terms — "ห้าม Support ปรับ subscription/entitlement โดยแก้ DB" — and the '
+         + 'database version is refused by the absence of the verb rather than by a policy an edit '
+         + 'could widen.',
+    },
+    {
+      id: 'service-sees-zero-billing-invoices',
+      covers: ['§12.6/8', '§9.1/FIN-3'],
+      as: service,
+      sql: INVOICE_AMOUNT_BY_ID,
+      params: [INVOICE_A],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT and no policy, so this empty read can only have '
+         + 'come from row level security. It is one of the two cases the negative control for '
+         + 'app.billing_invoices rests on. Unlike the receipt\'s, this one IS pending rather than '
+         + 'permanent: §8 has no row for an invoice at all, so what would change it is an RFC-2026-021 '
+         + 'allowlist entry rather than RFC-2026-022, and the two absences are different absences.',
+    },
+    {
+      id: 'service-cannot-project-a-billing-invoice',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...projectInvoice('__A__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'The RAISING half. app_worker holds the INSERT grant the projection will need, so FORCE ROW '
+         + 'LEVEL SECURITY with an empty policy set is what refuses the row — with row level security '
+         + 'off the write lands, which is what makes this the second case the negative control rests '
+         + 'on. Batch 130 promised this batch would grant the SUBSCRIPTION writer; it does not, and the '
+         + 'migration header says why, so the projection this insert imitates still has no writer.',
+    },
+    {
+      id: 'service-cannot-delete-a-billing-invoice',
+      covers: ['§8.5', '§10/FINANCE-HISTORY'],
+      as: service,
+      ...deleteInvoice(INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_invoices' },
+      why: 'No role holds DELETE anywhere in this batch. §10\'s FINANCE-HISTORY keeps an invoice seven '
+         + 'years by engineering default and ends "retain ledger integrity"; the purge is batch 160\'s '
+         + 'through app_maintenance, which this batch grants nothing.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-billing-payment',
+      covers: ['§9.1/FIN-3', '§9.2'],
+      as: ownerA,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'The "payment refs" of §5\'s inventory row, refused to the tenant they belong to. The '
+         + 'statement selects `direction` and `amount` by name, so what is being protected is legible: '
+         + 'what moved and which way, which is a commercial fact rather than a data one. There is no '
+         + 'card column to protect — §9.2 and BILL-DEC-003 forbid the data and the migration refuses '
+         + 'the column shapes — so this refusal is about money and never about an instrument.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-billing-payment',
+      covers: ['§9.1/FIN-3', '§8.6/1'],
+      as: ownerB,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'Both owners refused identically, which is what this batch has instead of a positive. B\'s '
+         + 'payment FAILED where A\'s succeeded and was partly refunded, so the two sides of the '
+         + 'boundary are distinguishable rows rather than copies.',
+    },
+    {
+      id: 'approver-a-cannot-read-a-billing-payment',
+      covers: ['§8.6/2', '§9.1/FIN-3'],
+      as: approverA,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: '§6 of the billing contract gives an Admin/Approver "configurable" on every billing action '
+         + 'and ✗ on none of them, which is a capability set no document defines — the `P` refusal '
+         + 'every batch since 010 has made. Here it costs nothing to refuse, because the owner is '
+         + 'refused too.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-billing-payment',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: '§12.6/5 on the third of this batch\'s three tables, at the same layer for the same reason.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-billing-payment',
+      covers: ['§12.6/7', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'The third anonymous case, refused on the SCHEMA. All three declare the schema rather than '
+         + 'the table, because that is where name resolution stops for a role holding no USAGE.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-billing-payment',
+      covers: ['§8.6/2', 'RFC-2026-012§1'],
+      as: ownerA,
+      ...recordPayment('__A__', INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'A client that could write a payment row could assert that it had paid. That is the '
+         + 'sentence CONTRIBUTING_AGENTS.md, RFC-2026-012 decision 1 and §2.1, §3/2 and §12.1 of the '
+         + 'billing contract each forbid, arriving one table further along than batch 130 could put '
+         + 'it: 130 refused a client-asserted SUBSCRIPTION, and this refuses a client-asserted PAYMENT.',
+    },
+    {
+      id: 'owner-a-cannot-amend-a-billing-payment',
+      covers: ['§8.6/9', '§9.1/FIN-3'],
+      as: ownerA,
+      ...amendPayment(INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: '§8.6 case 9 — "Immutable/LEDGER row → update/delete fail" — for the client half. The '
+         + 'statement sets the AMOUNT, which is the number a finance record exists to be right about.',
+    },
+    {
+      id: 'service-sees-zero-billing-payments',
+      covers: ['§12.6/8', '§9.1/FIN-3'],
+      as: service,
+      sql: PAYMENTS_OF_INVOICE,
+      params: [INVOICE_A],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT and no policy, so the empty read is row level '
+         + 'security and not a forgotten grant. One of the two cases the negative control for '
+         + 'app.billing_payments rests on. Two rows sit behind this refusal — a charge and its partial '
+         + 'refund — so a policy widened to "any row" would return them rather than returning nothing.',
+    },
+    {
+      id: 'service-cannot-record-a-billing-payment',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...recordPayment('__A__', INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'The RAISING half and the second case the control rests on: app_worker holds INSERT — '
+         + 'appending is how a ledger changes, so the verb is granted — and the empty policy set is '
+         + 'what refuses the row. With row level security off the write lands.',
+    },
+    {
+      id: 'service-cannot-amend-a-billing-payment',
+      covers: ['§8.6/9', '§12.1'],
+      as: service,
+      ...amendPayment(INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'The append-only claim as the PRIVILEGE system holds it, for the one role that holds any '
+         + 'privilege here at all. No role has UPDATE on this table, so the refusal is about the VERB '
+         + 'and cannot be widened by editing a policy. Not labelled for RFC-2026-017 §7: a grant-layer '
+         + 'refusal is not evidence about row level security.',
+    },
+    {
+      id: 'service-cannot-delete-a-billing-payment',
+      covers: ['§8.6/9', '§10/FINANCE-HISTORY'],
+      as: service,
+      ...deletePayment(INVOICE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'billing_payments' },
+      why: 'The other half of §8.6 case 9. §10\'s FINANCE-HISTORY ends "retain ledger integrity" and a '
+         + 'deletable ledger has none; the purge is batch 160\'s and this batch grants app_maintenance '
+         + 'nothing. Together with the two amend cases, the whole of case 9 is live on this table from '
+         + 'both a client identity and the service.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

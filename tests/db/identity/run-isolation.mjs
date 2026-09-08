@@ -87,6 +87,14 @@ export const FIXTURE_SQL_FILES = [
   // `workspace_id` is NULL, which is what §5's "private workspace" scope commits a raw webhook
   // delivery to.
   'tests/db/identity/fixtures/110-meta-connector-fixture.sql',
+  // Batch 131's position IS a dependency, unlike batch 140's: an app.billing_invoices row reaches
+  // app.billing_subscriptions over §3.3's composite scope path, and that subscription is a row
+  // 130-billing-fixture.sql writes, so this entry may not precede that one. It is APPENDED rather
+  // than slotted between 130 and 140, because appending is the change that cannot reorder anything
+  // else (130's own sentence) and because three other batches are appending here at the same time —
+  // and 140 needs nothing from either billing fixture, so the batch order and the load order agree
+  // about everything that matters.
+  'tests/db/identity/fixtures/131-billing-projection-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
