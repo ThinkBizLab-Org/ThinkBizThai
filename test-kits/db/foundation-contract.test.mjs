@@ -269,8 +269,7 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '060_ai_gateway.sql', '061_metering.sql',
-  '110_meta_connector.sql', '130_billing.sql',
-  '140_audit.sql'];
+  '110_meta_connector.sql', '130_billing.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -1369,6 +1368,9 @@ test('the committed map classifies only cells on tables the migrations create', 
       `${qualified} is classified ${cell.shape} in the service-policy map and a migration writes a `
       + 'policy on it. RFC-2026-022 is NOT IN EFFECT: a batch classifies a cell here and writes no '
       + 'service policy until §7 holds, and a DISCOVERED cell gets none ever.');
+  }
+});
+
 // A RULE NO TARGET INVOKES IS A RULE NOBODY RUNS, which is the shape this repository has removed
 // twice already. `servicePolicyMapLint` shipped exported and exercised by the test above and was
 // composed into no target: `make db-schema-lint` was schemaLint + catalogLint and nothing else, so
@@ -1409,11 +1411,17 @@ test('every entry in the map names a table a migration creates, and none of them
   // creates rather than against a hand-kept list. The previous version passed an empty set, which
   // was correct while the map was empty and would have been a rule asking a question it could not
   // answer the moment it was not.
+  //
+  // AND IT READS THE SET THROUGH THE RULE'S OWN HELPER RATHER THAN REBUILDING IT. This test once
+  // globbed the migration directory itself and matched `create table app.(\w+)`, which yields
+  // UNQUALIFIED names. Batch 110 classifies a cell on `private.meta_webhook_inbox` and widened
+  // `table` to accept a schema-qualified name, so the hand-rolled set became the wrong SHAPE and
+  // the rule reported that two tables which plainly exist do not. A test that builds its own copy
+  // of the thing it is checking against is a second definition, and it drifts.
+  const { tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const created = await tablesCreatedByMigrations();
   const dir = 'db/foundation/migrations';
-  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
-  const sql = (await Promise.all(names.map((n) => readFile(`${dir}/${n}`, 'utf8')))).join('\n')
-    .replace(/--[^\n]*/g, '');
-  const created = new Set([...sql.matchAll(/create table (?:if not exists )?app\.(\w+)/gi)].map((m) => m[1]));
+  await readdir(dir);
   assert.ok(created.size > 0, 'the migration set creates tables, or this rule is asking nothing');
   assert.deepEqual(servicePolicyMapLint(map, created), [],
     'the committed map satisfies its own rule against the tables the migrations create');
@@ -1428,8 +1436,14 @@ test('every entry in the map names a table a migration creates, and none of them
   for (const cell of map.cells) {
     const migration = await readFile(`${dir}/${cell.batch}`, 'utf8');
     const code = migration.replace(/--[^\n]*/g, '');
-    assert.doesNotMatch(code, new RegExp(`create policy[^;]*on app\\.${cell.table}[^;]*to app_worker`, 'i'),
-      `${cell.batch} classifies app.${cell.table}.${cell.operation} in the service-policy map AND writes a `
+    // `cell.table` may be schema-qualified since batch 110 -- its own cell is on a table in
+    // `private` -- so the schema is taken from the name when it carries one and defaults to `app`
+    // when it does not, which is what the rule itself does. Hard-coding `app.` here would have
+    // built `on app.private.meta_webhook_inbox`, a pattern nothing can match, and the assertion
+    // would have passed by asking a question about a table that does not exist.
+    const qualified = cell.table.includes('.') ? cell.table : `app.${cell.table}`;
+    assert.doesNotMatch(code, new RegExp(`create policy[^;]*on ${qualified.replace('.', '\\.')}[^;]*to app_worker`, 'i'),
+      `${cell.batch} classifies ${qualified}.${cell.operation} in the service-policy map AND writes a `
       + 'service policy for it. RFC-2026-022 §5/8: a policy TO app_worker is unreachable today except from '
       + 'an identity for which it is moot.');
     assert.doesNotMatch(code, /current_setting\('app\.workspace_id'/,

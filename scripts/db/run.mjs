@@ -759,14 +759,14 @@ export async function servicePolicyMapCheck(mapPath = SERVICE_POLICY_MAP, files)
     return [`${mapPath} could not be read as JSON: ${failure.message}. RFC-2026-022 §5 makes this file the `
       + 'record of which shape each `S` cell takes, and a file that cannot be read is not one.'];
   }
-  const all = files ?? await migrationFiles();
-  const created = new Set();
-  for (const { sql } of all) {
-    for (const m of sql.replace(/--[^\n]*/g, '').matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?app\.(\w+)/gi)) {
-      created.add(m[1]);
-    }
-  }
-  return servicePolicyMapLint(map, created);
+  // The set comes from `tablesCreatedByMigrations`, which is the same function the rule's own
+  // tests use and the only place the shape of a table name is decided. This function once built
+  // its own set with a regex for `create table app.(\w+)`, which produced UNQUALIFIED names --
+  // correct while every classified cell was on an `app` table, and wrong the moment one was not.
+  // A second definition of "the tables the migrations create" does not merely duplicate the
+  // first: it drifts from it, and the drift shows up as the rule reporting that a table which
+  // plainly exists does not.
+  return servicePolicyMapLint(map, await tablesCreatedByMigrations(files));
 }
 
 export async function catalogLint(snapshot, digest, exemptions) {

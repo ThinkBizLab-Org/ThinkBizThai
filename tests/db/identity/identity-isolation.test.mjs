@@ -5910,9 +5910,13 @@ test('the §8.4 `S` cell is classified as data and no service policy is written'
   assert.match(cell.cell, /§8\.4/, 'the entry quotes the matrix row it classifies');
   assert.ok(cell.why.length > 200, 'the reason is a sentence someone can disagree with, per RFC-2026-022 §7.2');
   // The rule reads the file in both directions, and it accepts this entry.
-  const { servicePolicyMapLint } = await import('../../../scripts/db/run.mjs');
-  const created = new Set([...migrationText.matchAll(/create table (?:if not exists )?app\.(\w+)/gi)]
-    .map((m) => m[1]));
+  // The set comes from `tablesCreatedByMigrations` rather than from a regex over this batch's own
+  // text. Batch 110 widened `table` to accept a schema-qualified name -- its own cell is on a table
+  // in `private` -- so a locally-built set of unqualified `app` names is now the wrong SHAPE, and
+  // building one here would have made this test pass while the rule it claims to exercise read
+  // something else. The helper is the rule's own source of truth and it reads every migration.
+  const { servicePolicyMapLint, tablesCreatedByMigrations } = await import('../../../scripts/db/run.mjs');
+  const created = await tablesCreatedByMigrations();
   assert.deepEqual(servicePolicyMapLint(map, created), [],
     'the map this batch writes passes the rule that reads it, over the tables the migrations actually create');
   // AND NO POLICY. The decision is approved and NOT IN EFFECT.
