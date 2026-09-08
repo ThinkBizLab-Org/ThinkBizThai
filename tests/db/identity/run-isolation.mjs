@@ -66,6 +66,13 @@ export const FIXTURE_SQL_FILES = [
   // against an empty database. It is last because the list is an order and a new batch joins its
   // end, and because the ids it carries are the ids the earlier fixtures made real.
   'tests/db/identity/fixtures/140-audit-fixture.sql',
+  // Batch 110's connections hang off Workspaces from 010 and everything else in the batch hangs off
+  // a connection, so this entry could sit second. It is last because the list is applied in order
+  // and appending is the change that cannot reorder anything else. It is the second entry that
+  // writes into `private` — 060 was the first — and the first that writes a row there whose
+  // `workspace_id` is NULL, which is what §5's "private workspace" scope commits a raw webhook
+  // delivery to.
+  'tests/db/identity/fixtures/110-meta-connector-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
@@ -314,8 +321,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     'tests/db/identity/run-isolation.mjs is a library, not a command.\n'
     + '  It needs a driver — { begin, rollback, exec } — and the repository declares no Postgres\n'
     + '  client, because RFC-2026-001 forbids adding a dependency and DATA-DEC-02 leaves the tool\n'
-    + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying 000, 001, 010, 011, 020,\n'
-    + `  021, 030, 040, 041, 050, 060, 130 and, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
+    // The batch list used to be typed out here and had already fallen behind by one when batch 110
+    // read it: it named 000 through 130 and not 140, which had merged. A typed enumeration of a set
+    // that grows every batch is a sentence that goes stale silently, which is the defect this
+    // repository has now recorded about a test count, a floor and three ordinals. It names the
+    // DIRECTORY instead, which cannot fall behind, and the fixture list beside it is derived.
+    + '  choice to A0. Wire it behind `make db-rls-smoke`, after applying every migration in\n'
+    + `  db/foundation/migrations in filename order and then, in order, ${FIXTURE_SQL_FILES.join(' then ')}.\n`
     + '  Until that happens, tenant isolation for every batch this suite loads a fixture for is\n'
     + '  UNPROVEN. Nothing here says otherwise.\n');
   process.exit(1);

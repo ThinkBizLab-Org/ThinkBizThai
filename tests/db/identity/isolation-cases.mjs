@@ -263,7 +263,18 @@ export const SMOKE_COVERAGE = {
                            + 'instead is the substitute 030 named: BOTH OWNERS ARE REFUSED IDENTICALLY, on '
                            + 'both tables, while each holds the exact id of a row in their OWN workspace. '
                            + 'That is a stronger statement than a tenant boundary and a narrower one, and '
-                           + 'it is labelled rather than counted here.' },
+                           + 'it is labelled rather than counted here.\n\n'
+                           + 'BATCH 110 ADDS NO CROSS-TENANT EVIDENCE EITHER, AND THE HONEST ROW IS 060\'s. '
+                           + 'app.meta_connections and app.social_accounts ARE tenant tables — each carries workspace_id '
+                           + 'and the fixture loads a connection and a discovered account on each side — and no client '
+                           + 'identity can read either, because §8.3 grants a HEALTH PROJECTION rather than a row and '
+                           + 'RFC-2026-012 §3 with RFC-2026-021 puts a projection behind an allowlist that is empty. So '
+                           + '`owner-a-cannot-read-the-meta-connection-of-tenant-b` and '
+                           + '`owner-a-cannot-read-the-social-account-of-tenant-b` are asserted, and they are asserted as '
+                           + 'PRIVILEGE REFUSALS beside cases showing each owner refused their OWN row at the same layer '
+                           + 'with the same message. Counting that as a tenant boundary would be counting a refusal that '
+                           + 'holds for everybody, which 030 named about a global row and 050 and 060 named about tenant '
+                           + 'ones. The boundary on these two tables is owed to the batch that gives them a policy.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -329,7 +340,15 @@ export const SMOKE_COVERAGE = {
                            + 'true of them one step further out. user_editor_a IS refused the subscription '
                            + 'of their own workspace, and their member scope has nothing to do with it: '
                            + '§8.3 marks the editor `N` on that row and the ROLE is the whole of the '
-                           + 'refusal.' },
+                           + 'refusal.\n\n'
+                           + 'BATCH 110 CARRIES NO CASE FOR IT, AND THE REASON IS THE TABLE THIS BATCH REFUSES TO CREATE. '
+                           + '§5 scopes connector.meta "workspace/business/page", so a reader will look for a Business and '
+                           + 'a Page here — and the only entity in §4\'s ERD that has them is CHANNEL_BINDING, whose '
+                           + 'defining foreign key §6\'s registry gives to batch 111 (A0 Integration, "business-channel/'
+                           + 'social FK") and whose table §5 assigns to TWO module rows at once. A connection hangs off a '
+                           + 'Workspace and a discovered account off a connection; neither carries a Business column for a '
+                           + 'member scope to narrow, so 021\'s helpers are named in 110\'s header and called by nothing. '
+                           + 'The scope half of this family arrives with the binding, and so does this row\'s case.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -365,7 +384,13 @@ export const SMOKE_COVERAGE = {
            + 'tenant-a` is a refused READ, and §12.6/3 is about EDITING. It is recorded here because a '
            + 'reader who finds an approver case in batch 130 should be able to see that it was weighed '
            + 'and rejected rather than overlooked. Content is still batch 080\'s, and this row still '
-           + 'reads `knowledge-half`.' },
+           + 'reads `knowledge-half`.\n\n'
+                           + 'BATCH 110 CARRIES NO CASE FOR IT AND WEIGHS THE SAME QUESTION 130 WEIGHED. An approver '
+                           + 'refused a Meta connection would be a fifth in-scope analogue and still not the content and '
+                           + 'knowledge tables this sentence names — and here it would be weaker than 130\'s, because the '
+                           + 'approver is refused by the privilege system exactly as the owner is. §8.3 marks the approver '
+                           + '`N` on both connector rows, which is counted under §8.6/2 rather than here. Content is still '
+                           + 'batch 080\'s, and this row still reads `knowledge-half`.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -424,7 +449,15 @@ export const SMOKE_COVERAGE = {
                            + '"even the owner" is the claim. §8.4 marks the viewer `N` on every audit row, '
                            + 'and `viewer-a-cannot-read-the-audit-log` asserts that cell; it is counted '
                            + 'under §8.6/2 (wrong role) rather than here, because a refusal that holds for '
-                           + 'everyone is not evidence about a role.' },
+                           + 'everyone is not evidence about a role.\n\n'
+                           + 'ON BATCH 110 IT IS ABSENT IN EVERY VERB AND THE ROW SAYS SO RATHER THAN COUNTING THE SILENCE. '
+                           + 'No client role holds SELECT, INSERT, UPDATE or DELETE on any of the four tables, so a viewer '
+                           + 'refused one would be refused for want of a grant and would say nothing about a viewer. '
+                           + '`owner-a-cannot-create-a-meta-connection`, `owner-a-cannot-revoke-the-meta-connection-of-'
+                           + 'tenant-a` and `owner-a-cannot-rename-the-social-account-of-tenant-a` carry those refusals '
+                           + 'instead, where "even the owner" is the claim — and on this family "even the owner" is the '
+                           + 'sharper statement, because §8.3 marks the owner `Y` on connect/disconnect/re-auth and the '
+                           + 'refusal is therefore of a cell the matrix GRANTS.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -473,7 +506,14 @@ export const SMOKE_COVERAGE = {
                            + 'and the object rather than claiming the weaker outcome. The pair with an '
                            + 'ACTIVE owner refused identically is what stops that being read as a '
                            + 'suspension control: on these two tables suspension is not what refuses '
-                           + 'anybody.' },
+                           + 'anybody.\n\n'
+                           + 'BATCH 110 RE-ASKS IT AND RECORDS THE SAME LIMIT, ON TWO TABLES. '
+                           + '`suspended-a-cannot-read-the-meta-connection-of-tenant-a` and '
+                           + '`suspended-a-cannot-read-the-social-account-of-tenant-a` are ERRORS at the GRANT layer rather '
+                           + 'than empty reads, because no client role holds a privilege there — and each sits beside an '
+                           + 'ACTIVE owner refused identically, which is what stops the pair being read as a suspension '
+                           + 'control. On this family suspension is not what refuses anybody either, and the cases declare '
+                           + 'the layer and the object so the difference is recorded rather than inferred.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -515,9 +555,11 @@ export const SMOKE_COVERAGE = {
                            + 'catalog as its two examples of PUBLIC-0, so it is the second refusal '
                            + 'somebody might want to remove, and RFC-2026-021 §7/4 now decides against '
                            + 'it in terms rather than leaving it inherited. '
-                           + '`anonymous-cannot-read-a-credential-reference` is the new shape: the only '
-                           + 'anonymous case in the suite whose declared object is `private` rather than '
-                           + '`app`. anon holds nothing anywhere, so the schema that refuses it is '
+                           + '`anonymous-cannot-read-a-credential-reference` is the new shape: an '
+                           + 'anonymous case whose declared object is `private` rather than '
+                           + '`app`. (It said "the ONLY" such case until batch 110 added two more, and '
+                           + 'the correction is recorded in this note\'s batch 110 paragraph rather than '
+                           + 'made silently.) anon holds nothing anywhere, so the schema that refuses it is '
                            + 'whichever one the statement names — and declaring which is what makes the '
                            + 'two cases different assertions instead of one repeated.\n\n'
                            + 'BATCH 130 IS THE THIRD PLACE THE CASE STOPS BEING ROUTINE, AND THE MOST '
@@ -536,7 +578,19 @@ export const SMOKE_COVERAGE = {
                            + 'so if 030\'s catalog is the one family somebody might argue for exposing '
                            + 'anonymously, a raw security event is the last. Both cases are refused on '
                            + 'the SCHEMA, which is RFC-2026-021 §7/4 as an assertion rather than as a '
-                           + 'convention.' },
+                           + 'convention.\n\n'
+                           + 'BATCH 110 FALSIFIES A SENTENCE THIS NOTE CARRIED, AND THE CORRECTION IS THE POINT RATHER THAN '
+                           + 'THE BOOKKEEPING. Batch 060 wrote that `anonymous-cannot-read-a-credential-reference` was "the '
+                           + 'ONLY anonymous case in the suite whose declared object is `private` rather than `app`", and a '
+                           + 'static test pinned that word with assert.match. It was true of 060\'s branch and is false of '
+                           + 'this tree: batch 110 adds `anonymous-cannot-read-a-meta-credential-reference` and '
+                           + '`anonymous-cannot-read-a-meta-webhook-delivery`, both refused on `private`, and the pin would '
+                           + 'have kept the false sentence alive exactly as three ordinals did in the parallel round. The '
+                           + 'sentence now says WHAT THE SHAPE IS instead of how many there are, and the test pins the '
+                           + 'shape. WHAT THE THREE NEW CASES ADD is the raw webhook inbox — §8.3 marks "Raw token/webhook '
+                           + 'SELECT" N for all five built-in roles, §10 says "no tenant access" and §11.1/5 keeps it out '
+                           + 'of a PDPA export, so if a raw security event is the last thing somebody would expose '
+                           + 'anonymously, a raw provider delivery is beside it.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -600,7 +654,16 @@ export const SMOKE_COVERAGE = {
                            + 'and Workspace→Business→Page relation validation"), and batch 141 is where '
                            + 'a producer able to violate it will exist. A case asserting a refusal this '
                            + 'schema does not perform would be the suite claiming a control nobody '
-                           + 'built.' },
+                           + 'built.\n\n'
+                           + 'BATCH 110 ADDS NO FORGERY CASE AND CANNOT, FOR 060\'s REASON PLUS ONE OF ITS OWN. A forged '
+                           + 'column rides in on a permitted write, and no client role holds one here. What is new is that '
+                           + 'the CONSTRAINT a forgery would meet does exist and is unreachable: app.social_accounts and '
+                           + 'private.meta_credential_references each reference their connection by the whole scope path, '
+                           + 'so a mismatched (workspace, connection) pair fails at the database with 23503 — but the only '
+                           + 'identity holding an INSERT grant is app_worker, and row level security refuses it at 42501 '
+                           + 'before the constraint is consulted. A `rejected` case would demand an outcome a correct '
+                           + 'database cannot produce, which 140 called the suite claiming a control nobody built. The '
+                           + 'apply-time block asserts the constraint\'s column set instead.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -715,7 +778,20 @@ export const SMOKE_COVERAGE = {
                            + 'ones precisely so that they flip rather than staying green: app_worker '
                            + 'holds the INSERT grant already. THE FINDING GENERALISES — until that GUC '
                            + 'exists no `S` cell anywhere in §8.2 to §8.4 can be implemented by any '
-                           + 'batch, which reaches 050, 061, 070 and 120 as well as this one.' },
+                           + 'batch, which reaches 050, 061, 070 and 120 as well as this one.\n\n'
+                           + 'BATCH 110 REACHES THE SAME CELL FROM THE OTHER SIDE AND THE ANSWER IS DIFFERENT IN KIND. '
+                           + '§8.3\'s "Raw token/webhook SELECT" is `S`, and RFC-2026-022 (approved 2026-09-08) classifies '
+                           + 'that statement DISCOVERED — "an inbox row arrives from the provider; the workspace is what '
+                           + 'reading it resolves" — where 140\'s audit INSERT is CARRIED. §5/5 gives a DISCOVERED cell NO '
+                           + 'POLICY, PERMANENTLY, performed through a broker owned by a role that does not exist. So '
+                           + '`service-cannot-read-a-meta-webhook-delivery` and `service-cannot-process-a-meta-webhook-'
+                           + 'delivery` DO NOT FLIP: they are not waiting for the GUC, and a reader who takes them for '
+                           + 'pending will "fix" them by writing the unscoped policy that RFC refuses. The classification '
+                           + 'is recorded as data in db/foundation/lint/service-policy-map.json rather than argued here, '
+                           + 'and 131 owns the same cell for the payment inbox. The negative half this row is about gains '
+                           + 'four cases on the two `app` tables — two filtered reads and two POLICY-layer refused writes — '
+                           + 'and gains nothing on the two `private` ones, where app_worker holds no grant at all and the '
+                           + 'refusal is the privilege system for every identity alike.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -778,7 +854,15 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'there is no "allowed role" on either table to pass, and the two identities that hold a grant '
    + 'or a privilege at all — app_worker, and the migration role — are asserted in cases 9 and 10 '
    + 'instead. Counting a service grant here would be reporting the absence of a client surface as '
-   + 'coverage of one.',
+   + 'coverage of one.\n\n'
+   + 'BATCH 110 HAS NO INSTANCE OF THIS CASE EITHER, AND THE TWO CELLS THAT WOULD CARRY IT ARE '
+   + 'NAMED. §8.3 marks "Meta connection health SELECT" `Y` for the owner and the admin and '
+   + '"Connect/disconnect/re-auth Meta" `Y` for the owner — two granted cells, neither implemented. '
+   + 'The first grants a PROJECTION whose object is a security_invoker view on an empty allowlist; '
+   + 'the second is a COMMAND whose essential half is an OAuth exchange §3.4 forbids inside a '
+   + 'transaction and a vault write no role can perform. There is no passing client case on any of '
+   + 'this batch\'s four tables, and counting the app_worker grant would report the absence of a '
+   + 'client surface as coverage of one.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -819,7 +903,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'than one refusal standing for all of them. Only the viewer\'s is a wrong-role refusal in the '
    + 'ordinary sense; the other four are refusals of cells the matrix GRANTS, which is why each names '
    + 'its own reason in `why` and why the day an allowlist entry opens one of them exactly one line '
-   + 'changes here.',
+   + 'changes here.\n\n'
+   + 'BATCH 110 ADDS ONE, AND IT IS A REFUSAL OF A CELL THE MATRIX GRANTS RATHER THAN A '
+   + 'WRONG-ROLE REFUSAL. `editor-a-cannot-read-the-meta-connection-of-tenant-a` is §8.3\'s `P` for '
+   + 'the editor, and `P` is "ผ่านตาม policy/explicit capability" over a capability set no document '
+   + 'defines (RFC-2026-020 §8) — the refusal 020 made about a Business and 030 about an industry '
+   + 'assignment. It is asserted at the GRANT layer beside the owner refused identically, so it '
+   + 'stays true on the day a later batch implements the owner\'s `Y` and leaves the editor\'s `P` '
+   + 'unimplemented, which is the state that batch should ship.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -842,7 +933,15 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '"same Workspace, allowed Business A but row Business B", and none of batch 130\'s four '
    + 'tables has a Business at all — a subscription is scoped to the Workspace and the plan '
    + 'catalog is scoped to nothing. There is no Business boundary here to be inside or outside '
-   + 'of.',
+   + 'of.\n\n'
+   + 'BATCH 110 CARRIES NO CASE FOR IT AND THE ABSENCE HAS AN OWNER. §5 scopes connector.meta '
+   + '"workspace/business/page", so unlike 130 this family is SUPPOSED to have a Business level — '
+   + 'and the entity that would carry it, CHANNEL_BINDING, is the one §4\'s ERD hangs off '
+   + 'BUSINESS_PROFILE and PAGE_CONTEXT_PROFILE. Batch 110 does not create it: §6\'s registry gives '
+   + '110 "connection/account/webhook inbox" and gives the "business-channel/social FK" to 111, and '
+   + 'migration invariant 6 puts a cross-module foreign key in an integration batch. So this case '
+   + 'is owed to 111 together with the table, and the gap is a registry gap rather than a coverage '
+   + 'one — §5 names "bindings" in two module rows while §6 names one owner for its foreign key.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -881,7 +980,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'has no Page level for case 4 to be about and no Business level either. What it records '
    + 'instead is the consequence at the level it DOES have — user_page_editor_a and user_editor_a '
    + 'are refused the subscription of their own workspace by ROLE, and their scopes neither help '
-   + 'nor hinder.',
+   + 'nor hinder.\n\n'
+   + 'BATCH 110 CARRIES NO CASE FOR IT FOR THE SAME REASON, ONE LEVEL DOWN: a Page scope needs a '
+   + 'row with a page_context_profile_id, and the binding is the only row in this family that would '
+   + 'have one. 020\'s page scope and 021\'s `member_scope_covers_page` are named in 110\'s header '
+   + 'as what a binding policy would be written against, and called by nothing — which is what a '
+   + 'declared dependency looks like when the batch that declares it refuses the table.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -913,7 +1017,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '"A cannot reach B\'s" would be satisfied by a table nobody can read. What is asserted is that '
    + 'BOTH OWNERS ARE REFUSED IDENTICALLY on both tables while each holds the exact id of a row in '
    + 'their OWN workspace — `owner-a-cannot-read-the-audit-log-of-workspace-a` beside '
-   + '`owner-b-cannot-read-the-audit-log-of-workspace-b`, and the same pair on the security event.',
+   + '`owner-b-cannot-read-the-audit-log-of-workspace-b`, and the same pair on the security event.\n\n'
+   + 'BATCH 110 CARRIES THE CASE AND REFUSES TO COUNT IT AS A BOUNDARY, which is 060\'s disposition '
+   + 'and 050\'s. `owner-a-cannot-read-the-meta-connection-of-tenant-b` and '
+   + '`owner-a-cannot-read-the-social-account-of-tenant-b` run while holding tenant B\'s exact '
+   + 'connection id and tenant B\'s exact external account hash — the fixture loads the SAME hash on '
+   + 'both sides so the second case names a real row — and both are refused at the privilege layer, '
+   + 'identically to each owner being refused their OWN row. What the pair proves is that the '
+   + 'refusal is uniform, not that a boundary holds.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -935,7 +1046,11 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the suspended member is refused by the privilege system exactly as an active owner is. The '
    + 'case declares the layer and the object so the difference is recorded rather than smoothed: on '
    + 'these two tables suspension is not what refuses anybody, and the active-owner case beside it '
-   + 'is what says so.',
+   + 'is what says so.\n\n'
+   + 'BATCH 110 REPEATS THE SHAPE ON TWO MORE TABLES AND KEEPS THE SAME QUALIFIER. The suspended '
+   + 'member is refused app.meta_connections and app.social_accounts by the privilege system, '
+   + 'exactly as an active owner is, and each case declares the layer and the object so the '
+   + 'distinction from a policy-filtered empty read is recorded rather than smoothed.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -960,7 +1075,15 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'is what makes it checkable per table.\n\n'
    + 'Batch 140 asserts it on the two families §9.1 restricts most — AUTH-3 "restricted and '
    + 'append-only where needed" and SECURITY-4 "security/admin safe view only" — on the SCHEMA, '
-   + 'which is RFC-2026-021 §7/4 as a check rather than as a convention.',
+   + 'which is RFC-2026-021 §7/4 as a check rather than as a convention.\n\n'
+   + 'BATCH 110 ASSERTS IT ON FOUR TABLES ACROSS TWO SCHEMAS, and the split is the interesting '
+   + 'half: the two `app` tables refuse anonymous on schema `app`, and private.meta_credential_'
+   + 'references and private.meta_webhook_inbox refuse it on schema `private`. Batch 060 introduced '
+   + 'the second shape and called its case the only one of its kind; it is not, and the note on '
+   + '§12.6/6 records why that sentence could not have been checked by the branch that wrote it. '
+   + 'What matters is unchanged: anon holds nothing anywhere, so the schema that refuses it is '
+   + 'whichever one the statement names, and declaring which is what makes a widening fail a case '
+   + 'instead of passing more quietly.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -1002,7 +1125,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'batch 141 is where a producer able to violate it will exist. What IS asserted is the half a '
    + 'forged column is usually asserted through: no client role can insert at all, so the party a '
    + 'record is about cannot compose one — `owner-a-cannot-write-an-audit-log` and '
-   + '`owner-a-cannot-write-a-security-event`, both at the grant layer.',
+   + '`owner-a-cannot-write-a-security-event`, both at the grant layer.\n\n'
+   + 'BATCH 110 HAS NOTHING TO FORGE AGAINST AND THE REASON IS NEW. Its child tables DO carry the '
+   + 'composite foreign key §3.3 asks for — app.social_accounts and private.meta_credential_'
+   + 'references each reference their connection by the whole scope path — so a forged (workspace, '
+   + 'connection) pair fails at the database with 23503, which is §4 invariant 10 exactly. Nobody '
+   + 'can reach it: no client role holds an INSERT at all, and the one role that does, app_worker, '
+   + 'is refused by row level security at 42501 before the constraint is consulted. So the '
+   + 'constraint is asserted by the migration\'s apply-time block as a COLUMN SET rather than by a '
+   + '`rejected` case, because a case demanding 23503 here would demand an outcome a correct '
+   + 'database cannot produce.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1098,42 +1230,30 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'AND THE LIMIT IS RECORDED WITH THE CLAIM: the owner can disable the trigger in one statement. '
    + 'It is tamper RESISTANCE and not tamper evidence, and CTR-AUD-001\'s freeze boundary leaves '
    + '"the audit STORE, its append-only or immutability mechanism, and any tamper evidence" open '
-   + 'precisely because no source specifies a hash chain. This batch does not invent one.',
-  10: 'not applicable to batches 010-060 — no command function is specified for identity, for '
-   + 'BATCH 130 ADDS A FIFTH AND A SIXTH IMMUTABLE TABLE AND COMPLETES THE GRID ON BOTH. '
-   + 'app.billing_plan_versions is immutable by §3.2, §4 invariant 8 and §5.1\'s "immutable '
-   + 'mapping หลังมีลูกค้า; สร้าง revision ใหม่"; app.plan_entitlements by §5.1\'s "versioned '
-   + 'contract" and §5.3\'s requirement that changing an entitlement carry a version, a migration '
-   + 'impact and an approval. Eight cases, all four cells live on each: update and delete by the '
-   + 'workspace OWNER and by the SERVICE identity, every one at the GRANT layer because no role '
-   + 'holds either verb. 020 left one cell of its grid to an apply-time block and said so; this '
-   + 'batch leaves none, and the reason is what these rows hold — a price is the one value in the '
-   + 'schema whose rewriting changes what somebody was charged, and an entitlement is what a '
-   + 'paying customer was promised. 130\'s own apply-time block walks six roles against both '
-   + 'tables and raises if any cell holds either verb, which catches a grant made by a later '
-   + 'batch.\n\n'
-   + 'BATCH 140 ADDS THE FIFTH AND SIXTH IMMUTABLE TABLES AND IS THE FIRST BATCH TO CARRY THIS CASE '
-   + 'AGAINST THE ONE ADVERSARY THE OTHER FOUR ARE DEFENCELESS AGAINST. app.audit_logs and '
-   + 'app.security_events are append-only by §5, §3.2, §4 invariant 8 and §8.4\'s "Audit/security '
-   + 'UPDATE/DELETE | N N N N N N", and all four cells are live on each: update and delete by a '
-   + 'workspace OWNER and by the SERVICE identity, eight cases, every one declared at the GRANT '
-   + 'layer because no role holds either verb.\n\n'
-   + 'WHAT IS NEW IS THE THIRD MECHANISM. Batches 020, 030 and 040 expressed immutability as absent '
-   + 'grants and absent policies, which reaches every role our migrations can name and reaches '
-   + 'NOBODY ELSE: `postgres` owns every table in `app` and holds BYPASSRLS, so FORCE ROW LEVEL '
-   + 'SECURITY does not constrain it and neither does an absent grant it can issue to itself. On an '
-   + 'audit log that is the adversary that matters, because the record exists to be read against the '
-   + 'people who can reach the database. So 140 also carries a TRIGGER — §8.5\'s own "command/'
-   + 'trigger/privilege defense" for an immutable table, which no earlier batch used — refusing '
-   + 'UPDATE, DELETE and TRUNCATE for every role including the owner, and 140_audit.sql PROVES it by '
-   + 'execution at apply time: it writes a probe row as the migration role, attempts all three, '
-   + 'requires all three to raise, and rolls the probe back. No isolation case can carry that, '
-   + 'because no identity this harness can assume gets past the privilege system to reach the '
-   + 'trigger.\n\n'
-   + 'AND THE LIMIT IS RECORDED WITH THE CLAIM: the owner can disable the trigger in one statement. '
-   + 'It is tamper RESISTANCE and not tamper evidence, and CTR-AUD-001\'s freeze boundary leaves '
-   + '"the audit STORE, its append-only or immutability mechanism, and any tamper evidence" open '
-   + 'precisely because no source specifies a hash chain. This batch does not invent one.',
+   + 'precisely because no source specifies a hash chain. This batch does not invent one.\n\n'
+   + 'BATCH 110 ADDS NO IMMUTABLE TABLE AND SAYS SO RATHER THAN STRETCHING THE ROW TO FIT. §5 calls '
+   + 'the connection family "mutable + history" and the inbox "append/process/purge", and §3.2 '
+   + 'lists the immutable families by name — version, evidence, decision, usage, audit and publish '
+   + 'history — none of which is a connection, a discovered account, a credential reference or a '
+   + 'raw delivery. The neighbouring claim IS carried and is a different one: no role holds DELETE '
+   + 'on any of the four tables and the apply-time block walks six roles to say so, because §8.5 '
+   + 'has no broad user delete and every purge in this family is a retention sweep. Reading that as '
+   + 'immutability would report the wrong control as green — a raw webhook row is MEANT to be '
+   + 'purged, and §10\'s WEBHOOK-SHORT says when.',
+  // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
+  // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
+  // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
+  // batch 130's and batch 140's case-9 paragraphs, still saying "A FIFTH AND A SIXTH IMMUTABLE
+  // TABLE" and "THE FIFTH AND SIXTH IMMUTABLE TABLES": the exact ordinals the parallel-integration
+  // round corrected in the live copy of key 9. The correction landed and the false sentences
+  // survived beside it, in a key nothing reads.
+  //
+  // This is the defect class evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md §4 exists to
+  // record — a seam that falls INSIDE an expression, parses, runs, and reports nothing — landed
+  // rather than predicted. Nothing was lost by deleting it: every paragraph it held is present,
+  // corrected, in key 9. What is new is the guard, in tests/db/identity/identity-isolation.test.mjs:
+  // each coverage map's SOURCE must declare each key exactly once, which is a property the parsed
+  // object cannot be asked about.
   10: 'not applicable to batches 010-040 — no command function is specified for identity, for '
     + 'business.core, for industry.core or for knowledge.core, and audit (140) and outbox (050) do '
     + 'not exist yet. BATCH 040 MAKES THE GAP CONCRETE RATHER THAN LARGER: a client holding INSERT '
@@ -1188,7 +1308,25 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'present state — the service holds the INSERT grant and is refused by row level security — and '
    + 'the day the GUC is decided that case flips, in a diff, rather than a claim quietly becoming '
    + 'true. **The finding is larger than this batch: until that GUC exists, no `S` cell anywhere in '
-   + '§8.2 to §8.4 can be implemented, which reaches 050, 061, 070 and 120 as well.**',
+   + '§8.2 to §8.4 can be implemented, which reaches 050, 061, 070 and 120 as well.**\n\n'
+   + 'BATCH 110 IS WHERE THE MISSING COMMAND SURFACE STOPS BEING ONE GAP AND BECOMES THREE, ONE PER '
+   + 'VERB. §5 gives the raw webhook inbox the mutability "append/process/purge" — the only '
+   + 'three-verb lifecycle in the inventory — and this batch grants no role any of them:\n\n'
+   + 'APPEND has no writer. The route into `private` is "Server/worker ผ่าน typed service เท่านั้น" '
+   + '(§3.1), the typed service is RFC-2026-012 §4\'s SECURITY DEFINER command function, and '
+   + 'RFC-2026-021 §10 records that none exists.\n\n'
+   + 'PROCESS has no actor, and this is the half that is NOT waiting for the GUC. RFC-2026-022 §3 '
+   + 'classifies the statement DISCOVERED and §5/5 gives a discovered cell no policy permanently, '
+   + 'performed through a broker owned by a fifth not-a-path role. That role does not exist and '
+   + 'creating it belongs to the RFC that creates the worker (DATA-DEC-03, due before G1). Batch '
+   + '050 refused to build a writer for its outbox on the same ground; here the owner of the '
+   + 'missing writer is named rather than merely absent.\n\n'
+   + 'PURGE has no scheduler. §10\'s WEBHOOK-SHORT is a retention rule with a purge in it, batch '
+   + '160 owns the retention job, and §10\'s numbers need Product/Security/Legal approval (§15). So '
+   + 'no window is encoded in a constraint, where it would read as ratified, and what the batch '
+   + 'provides instead is the columns each sweep would read — processed_at, failed_at, redacted_at, '
+   + 'and a body_ref that can be emptied while the dedupe hash §10 says to keep longer stays — with '
+   + 'an index over each. `service-cannot-purge-a-meta-webhook-delivery` asserts the present state.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -1823,6 +1961,106 @@ export function buildCases(id) {
   const rewriteSecurityEvent = (eventId) => ({
     sql: 'update app.security_events set event_type = $2 where id = $1 returning id',
     params: [eventId, 'auth.session.rewritten'],
+  });
+
+  // -- Batch 110 builders. -----------------------------------------------------------------------
+  //
+  // THE TWO META CONNECTIONS, by fixture SYMBOL, one per Workspace. A connection is a tenant-owned
+  // row (§4: WORKSPACE ||--o{ META_CONNECTION), so unlike 030's pack and 130's plan it carries an
+  // `_a`/`_b` suffix — and unlike 020's business it is a tenant row NO CLIENT IDENTITY MAY READ, so
+  // the pair is not a cross-tenant boundary and is never offered as one. What the pair asserts is
+  // that both owners are refused their OWN connection, at the same layer, with the same message.
+  const META_CONNECTION_A = id('meta_connection_a');
+  const META_CONNECTION_B = id('meta_connection_b');
+
+  const CONNECTION_BY_ID = 'select display_name from app.meta_connections where id = $1';
+
+  // A social account is addressed by (workspace_id, external_account_hash), which
+  // 110_meta_connector.sql makes unique — a natural key spelled out of an id this catalog fixes plus
+  // text the fixture and this file share, exactly as a version row, a member scope, an industry
+  // assignment and a billing subscription are addressed. So the catalog needs no symbol for one.
+  //
+  // `sha256(convert_to(...))` from pg_catalog rather than pgcrypto's digest(), for the reason the
+  // invitation builder above records: `public.digest` does not exist on the provisioned instance.
+  const SOCIAL_ACCOUNT_KEY = 'social_account_a1';
+  const SOCIAL_ACCOUNT_IN =
+    'select display_name from app.social_accounts'
+    + " where workspace_id = $1 and external_account_hash = sha256(convert_to($2, 'utf8'))";
+
+  // THE SAME KEY TEXT ON BOTH SIDES OF THE TENANT BOUNDARY, which is what makes the workspace-scoped
+  // natural key legible: the fixture loads one account per Workspace carrying the SAME hash, so a
+  // key that had lost `workspace_id` would fail to LOAD rather than fail a case.
+
+  // The credential reference and the raw delivery both live in `private`, and both statements name
+  // `private.` deliberately: the refusal these cases assert lands on the SCHEMA, and a case that
+  // could not name the schema could not say which object refused it. 060 established the shape and
+  // identity-isolation.test.mjs holds a case naming `private` to naming a `private.` table a
+  // migration creates, so no scaffolding failure can wear this label.
+  const META_REFERENCE_OF =
+    'select fingerprint from private.meta_credential_references where meta_connection_id = $1';
+
+  const DELIVERY_A1 = 'meta_webhook_delivery_a1';
+  const DELIVERY_BY_HASH =
+    'select body_ref from private.meta_webhook_inbox'
+    + " where delivery_hash = sha256(convert_to($1, 'utf8'))";
+
+  // The writes, and each is a thing somebody would want. Connecting is granting yourself a
+  // publishing destination; discovering an account is adding one; revoking is claiming a credential
+  // was withdrawn. Every one is refused, and WHICH LAYER refuses is the whole of what separates
+  // them: a client is refused by the privilege system on tables it holds nothing on, and the service
+  // is refused by row level security on the two tables where it holds a grant.
+  //
+  // The two service INSERTs name only columns app_worker is actually granted. That is not tidiness:
+  // a statement naming an ungranted column would be refused at the privilege layer and would report
+  // `grant` where the case demands `policy`, so it would fail for the right reason and say the wrong
+  // thing — and the CI negative control that rests on it would rest on nothing.
+  const connectMeta = (workspace, actor) => ({
+    sql: 'insert into app.meta_connections (workspace_id, display_name, created_by, updated_by)'
+       + " values ($1, 'attempted connection', $2, $2) returning id",
+    params: [workspace, actor],
+  });
+
+  const discoverSocialAccount = (workspace, connection) => ({
+    sql: 'insert into app.social_accounts'
+       + ' (workspace_id, meta_connection_id, account_kind, display_name, external_account_hash)'
+       + " values ($1, $2, 'ig', 'attempted account',"
+       + " sha256(convert_to('social_account_attempted', 'utf8'))) returning id",
+    params: [workspace, connection],
+  });
+
+  const revokeConnection = (connection) => ({
+    sql: 'update app.meta_connections set revoked_at = now() where id = $1 returning id',
+    params: [connection],
+  });
+
+  const renameSocialAccount = (workspace) => ({
+    sql: 'update app.social_accounts set display_name = $2'
+       + " where workspace_id = $1 and external_account_hash = sha256(convert_to($3, 'utf8'))"
+       + ' returning id',
+    params: [workspace, 'attempted rename', SOCIAL_ACCOUNT_KEY],
+  });
+
+  const createMetaReference = (workspace, connection, actor) => ({
+    sql: 'insert into private.meta_credential_references'
+       + ' (workspace_id, meta_connection_id, credential_reference, created_by, updated_by)'
+       + " values ($1, $2, 'vault://fixture/attempted', $3, $3) returning id",
+    params: [workspace, connection, actor],
+  });
+
+  // The middle verb of "append/process/purge", written as the statement a processor would issue:
+  // stamp the delivery and record which Workspace it resolved to. It is the statement RFC-2026-022
+  // §3 classifies as DISCOVERED, and the case asserting its refusal is PERMANENT rather than pending
+  // — §5/5 gives a discovered cell no policy, ever, and performs it through a broker instead.
+  const processDelivery = (hash, workspace) => ({
+    sql: 'update private.meta_webhook_inbox set processed_at = now(), workspace_id = $2'
+       + " where delivery_hash = sha256(convert_to($1, 'utf8')) returning id",
+    params: [hash, workspace],
+  });
+
+  const purgeDelivery = (hash) => ({
+    sql: 'delete from private.meta_webhook_inbox'
+       + " where delivery_hash = sha256(convert_to($1, 'utf8')) returning id",
+    params: [hash],
   });
 
   return [
@@ -5796,10 +6034,11 @@ export function buildCases(id) {
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'schema', name: 'private' },
-      why: 'Anonymous is refused on `private` rather than on `app`, which is the one anonymous case in '
-         + 'the suite whose declared object is a different schema — and that is the point of declaring '
-         + 'the object at all. anon holds nothing anywhere; the schema that refuses it is the schema '
-         + 'the statement names.',
+      why: 'Anonymous is refused on `private` rather than on `app`, which is what declaring the object '
+         + 'is for: anon holds nothing anywhere, so the schema that refuses it is the schema the '
+         + 'statement names. This said "the one anonymous case in the suite whose declared object is a '
+         + 'different schema" until batch 110 added two more on its own `private` tables — a claim '
+         + 'about the whole suite that the branch making it could not check.',
     },
     {
       id: 'owner-a-cannot-create-a-credential-reference',
@@ -6676,6 +6915,482 @@ export function buildCases(id) {
       deniedOn: { kind: 'table', name: 'security_events' },
       why: 'The fourth cell of the second grid. Both tables now carry the whole of §8.4\'s mutation row '
          + 'as live cases rather than one table carrying it and the other inheriting the claim.',
+    },
+
+    // =========================================================================================
+    // Batch 110 — the Meta connector. Four tables, no policy, and a scope the statement discovers.
+    // =========================================================================================
+    //
+    // §8.3 gives this family three rows and not one of them becomes a policy, so every case below
+    // is a refusal and the only question each one answers is WHICH LAYER refused:
+    //
+    //   | Meta connection health SELECT   | Y | Y | P | N | N | P |
+    //   | Connect/disconnect/re-auth Meta | Y | P | N | N | N | P |
+    //   | Raw token/webhook SELECT        | N | N | N | N | N | S |
+    //
+    //   * The first grants a HEALTH PROJECTION, whose object is a security_invoker view on the read
+    //     allowlist RFC-2026-012 §3 and RFC-2026-021 give to an RFC. So no client grant, and every
+    //     client case on the two `app` tables is a privilege-layer refusal.
+    //   * The second is a COMMAND whose essential half is an OAuth exchange §3.4 forbids inside a
+    //     transaction and a vault write no role can perform.
+    //   * The third is the `S` cell, classified DISCOVERED by RFC-2026-022 §3 and given NO POLICY
+    //     PERMANENTLY by §5/5. Its cases do not flip. A later reader who takes them for
+    //     waiting-to-flip will "fix" them by writing the unscoped policy that RFC refuses, which is
+    //     the mistake the work package records about batch 050's `service-sees-zero-*` cases.
+    //
+    // WHAT ROW LEVEL SECURITY ACTUALLY DECIDES HERE IS FOUR CASES, and they are the four the CI
+    // negative control rests on: `service-sees-zero-meta-connection-rows` and
+    // `service-sees-zero-social-account-rows` are filtered reads, and
+    // `service-cannot-create-a-meta-connection` and `service-cannot-discover-a-social-account` are
+    // POLICY-layer refused writes — app_worker holds the INSERT grant, so with row level security
+    // off the write LANDS. Everything else on these tables is a grant-layer refusal that would pass
+    // unchanged with RLS disabled, which is why it is not counted.
+    //
+    // ON THE TWO `private` TABLES ROW LEVEL SECURITY DECIDES NOTHING AT ALL, and that is 060's
+    // situation followed rather than a weakness discovered: no role holds a grant there, so the
+    // refusal is the privilege system on the SCHEMA for every identity alike, and the CI negative
+    // control can have no entry for either — disabling row level security restores no grant. The
+    // absence is asserted in both directions in identity-isolation.test.mjs.
+    //
+    // NO CASE ID BELOW CONTAINS `workspace`, `business`, `page` OR `scope`. That is deliberate and
+    // it is measured: those four are the patterns of pre-existing control entries, the work package
+    // records sixteen entry-pairs sharing cases before batches 060 and 140 made it eighteen, and a
+    // batch whose ids matched another entry's pattern would make an entry satisfiable by a
+    // regression it did not cause. The cross-tenant cases say `of-tenant-b` for that reason.
+
+    // --- app.meta_connections. -------------------------------------------------------------------
+    {
+      id: 'owner-a-cannot-read-the-meta-connection-of-tenant-a',
+      covers: ['§8.3/meta-connection-health', 'RFC-2026-012§2', 'RFC-2026-021§4'],
+      as: ownerA,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'The owner of the workspace whose connection this is, holding its exact id, refused by the '
+         + 'PRIVILEGE system. §8.3 marks "Meta connection health SELECT" `Y` for the owner and the '
+         + 'object it grants is a HEALTH PROJECTION — §9.1 gives INTEGRATION-2 the client projection '
+         + '"health projection only" and the storage rule "redact external identifiers". A projection '
+         + 'is a security_invoker view (RFC-2026-012 §2), a view is an allowlist entry (§3), and '
+         + 'RFC-2026-021 keeps the allowlist empty until a client caller exists. There is no client.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-meta-connection-of-tenant-b',
+      covers: ['§8.3/meta-connection-health', 'RFC-2026-012§3'],
+      as: ownerB,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'THE SAME REFUSAL FROM THE OTHER TENANT, ON THAT TENANT\'S OWN ROW, and the pair is the '
+         + 'assertion this batch can actually make. Neither owner reaches their own connection, at '
+         + 'the same layer with the same message, so the refusal is a property of the table rather '
+         + 'than of one workspace being unlucky.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-meta-connection-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'THE CROSS-TENANT CASE, AND THE REASON IT IS NOT EVIDENCE ABOUT THE TENANT BOUNDARY. '
+         + "Tenant A's owner holds tenant B's exact connection id and is refused — at the same layer, "
+         + 'with the same message, as they are refused their OWN connection two cases earlier. '
+         + '§12.6/1 is claimed here as a REFUSAL and never as an isolation proof: this table has no '
+         + 'policy, so nothing about it distinguishes one workspace from another, and the coverage '
+         + 'note says so rather than counting a privilege refusal as a boundary.',
+    },
+    {
+      id: 'editor-a-cannot-read-the-meta-connection-of-tenant-a',
+      covers: ['§12.6/4', '§8.6/2', '§8.3/meta-connection-health'],
+      as: editorA,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: '§8.3 marks this cell `P` for the editor — "ผ่านตาม policy/explicit capability" — and the '
+         + 'capability set §7 names is defined by no document (RFC-2026-020 §8), which is the refusal '
+         + '020 made about the editor\'s `P` on a Business and 030 about an industry assignment. The '
+         + 'editor is refused at the same layer as the owner here, so this case is about the CELL '
+         + 'rather than about the row: it would still fail if a later batch implemented the owner\'s '
+         + '`Y` and left the editor\'s `P` unimplemented, which is the state that batch should ship.',
+    },
+    {
+      id: 'suspended-a-cannot-read-the-meta-connection-of-tenant-a',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: '§12.6/5 asked of the connector surface. It is an ERROR rather than an empty read, and the '
+         + 'distinction is worth keeping: on a table with a policy a suspended member reads zero rows '
+         + 'because app.workspace_member_role returns NULL, and here there is no policy to consult '
+         + 'because no client role holds a privilege at all. Asserting the layer is what stops the '
+         + 'two being read as the same control.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-meta-connection-of-tenant-a',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused during name resolution, on the SCHEMA, because anon holds no USAGE on app. '
+         + 'RFC-2026-021 §7/4 decides that as a negative and gives the structural reason: the first '
+         + 'anon grant is `grant usage on schema app`, which moves the denial layer of every object '
+         + 'in app at once. Declaring the schema is what makes this case fail rather than pass more '
+         + 'quietly the day somebody widens it.',
+    },
+    {
+      id: 'service-sees-zero-meta-connection-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.3/meta-connection-health'],
+      as: service,
+      sql: CONNECTION_BY_ID,
+      params: [META_CONNECTION_A],
+      expect: 'no-rows',
+      why: 'ONE OF THE TWO CASES ON THIS TABLE THAT ROW LEVEL SECURITY DECIDES, and the reason '
+         + 'app_worker holds a SELECT grant at all. Without the grant this refusal would be 42501 '
+         + 'either way and would prove only that somebody forgot a GRANT; with the grant and no '
+         + 'policy, an empty read can only have come from RLS — and a service role that had quietly '
+         + 'acquired BYPASSRLS would SUCCEED here. §8.3 marks the service `P` on this row, so what is '
+         + 'refused is a cell the matrix does not deny outright; what refuses it is the empty policy '
+         + 'set, and the policy that would open it is owed to the command surface.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-meta-connection',
+      covers: ['§8.3/connect-meta', 'RFC-2026-012§4', '§3.4'],
+      as: ownerA,
+      ...connectMeta('__A__', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'THE OWNER `Y` THIS BATCH REFUSES, AND THE REFUSAL HAS A REASON A POLICY COULD NOT FIX. '
+         + '§8.3 marks "Connect/disconnect/re-auth Meta" `Y` for the owner. Connecting means an OAuth '
+         + 'exchange with Meta, and §3.4 forbids calling an external provider while holding a '
+         + 'database transaction — so a client INSERT here could only ever write a connection row for '
+         + 'a credential that does not exist, in a transaction that may not go and get one. The cell '
+         + 'is owed to RFC-2026-012 §4\'s command surface and to DATA-DEC-03.',
+    },
+    {
+      id: 'owner-a-cannot-revoke-the-meta-connection-of-tenant-a',
+      covers: ['§8.3/connect-meta', '§11.4/step-2', '§8.5'],
+      as: ownerA,
+      ...revokeConnection(META_CONNECTION_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'THE THIRD VERB OF THAT CELL, AND THE ONE THAT LOOKS IMPLEMENTABLE. "disconnect" reduces in '
+         + 'this schema to setting one timestamp, so a reviewer will ask why it is not an UPDATE '
+         + 'policy. §11.4 step 2 spells the operation "Revoke browser sessions, push tokens, '
+         + 'invitations, API/connector credentials": the timestamp is the RECORD of a revocation, not '
+         + 'the revocation, and a path that let a client stamp it without revoking anything would '
+         + 'produce a row asserting something that did not happen. Refused at the privilege layer, so '
+         + 'no policy edit can open it.',
+    },
+    {
+      id: 'service-cannot-create-a-meta-connection',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.3/connect-meta'],
+      as: service,
+      ...connectMeta('__A__', ownerA.subject),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'meta_connections' },
+      why: 'THE SECOND CASE THE CI NEGATIVE CONTROL FOR THIS TABLE RESTS ON, and the only shape that '
+         + 'proves anything a filtered read cannot: app_worker HOLDS the INSERT grant on exactly '
+         + 'these columns, so with row level security ON the empty policy set refuses the row at the '
+         + 'POLICY layer, and with it OFF the write LANDS. It is the RAISING half of RFC-2026-017 §7 '
+         + '— only an INSERT can carry it, because an UPDATE a USING clause filters reports zero rows '
+         + 'and raises nothing.\n\n'
+         + '`created_by` names the workspace owner\'s subject rather than `__SELF__`, and the value is '
+         + 'arbitrary: `as_service` sets a role and a claim set with no `sub`, and app_worker holds NO '
+         + 'POLICY on this table, so there is no WITH CHECK to compare a subject against and the '
+         + 'refusal cannot be about that column. Batch 040 learned that from CI rather than from '
+         + 'argument.',
+    },
+
+    // --- app.social_accounts. --------------------------------------------------------------------
+    {
+      id: 'owner-a-cannot-read-the-social-account-of-tenant-a',
+      covers: ['§8.3/meta-connection-health', '§9.1/INTEGRATION-2', 'RFC-2026-021§4'],
+      as: ownerA,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__A__', SOCIAL_ACCOUNT_KEY],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: 'The second table of the same family and the same refusal, asserted separately because a '
+         + 'batch that withheld the grant on one and forgot the other would pass every case written '
+         + 'about the first. What is behind this boundary is what §9.1 calls "account display" beside '
+         + 'a stand-in for an external identifier the same row tells the schema to redact.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-social-account-of-tenant-b',
+      covers: ['§12.6/1', '§8.6/5', 'DB00-A03'],
+      as: ownerA,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__B__', SOCIAL_ACCOUNT_KEY],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: "Tenant A's owner holds tenant B's exact workspace id AND the exact external account hash "
+         + 'that identifies the row — the fixture loads the same hash on both sides on purpose — and '
+         + 'is refused. Claimed as a refusal and not as an isolation proof, for the reason the '
+         + 'connection\'s cross-tenant case gives: with no policy on the table, nothing distinguishes '
+         + 'one workspace from another.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-social-account-of-tenant-b',
+      covers: ['§8.3/meta-connection-health', 'RFC-2026-012§3'],
+      as: ownerB,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__B__', SOCIAL_ACCOUNT_KEY],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: 'The far side, refused identically on its own row. Without it the case above would be '
+         + 'satisfied by a fixture that never loaded tenant B\'s account, which is the shape this '
+         + 'suite refuses everywhere else and refuses here.',
+    },
+    {
+      id: 'suspended-a-cannot-read-the-social-account-of-tenant-a',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__A__', SOCIAL_ACCOUNT_KEY],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: '§12.6/5 asked of the second table, because a control stated per table is a control '
+         + 'checkable per table.',
+    },
+    {
+      id: 'anonymous-cannot-read-the-social-account-of-tenant-a',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__A__', SOCIAL_ACCOUNT_KEY],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, as every anonymous case against an `app` table in this suite is. A '
+         + 'connected destination is the kind of thing a public profile page might one day want to '
+         + 'show, which is exactly why the refusal is declared on the object rather than merely '
+         + 'observed.',
+    },
+    {
+      id: 'service-sees-zero-social-account-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: SOCIAL_ACCOUNT_IN,
+      params: ['__A__', SOCIAL_ACCOUNT_KEY],
+      expect: 'no-rows',
+      why: 'The filtered read on the second table. app_worker holds the SELECT grant and no policy, so '
+         + 'the empty result is row level security and not a forgotten GRANT — one of the two cases '
+         + 'the CI negative control for app.social_accounts rests on.',
+    },
+    {
+      id: 'owner-a-cannot-rename-the-social-account-of-tenant-a',
+      covers: ['§8.3/connect-meta', '§8.5'],
+      as: ownerA,
+      ...renameSocialAccount('__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: 'The one column of this table anything may ever update is `display_name`, and no client '
+         + 'holds it. The case names that column deliberately: an UPDATE of `meta_connection_id` or '
+         + 'of the external account hash is refused for every role INCLUDING the service, which the '
+         + 'migration asserts per column against the live ACL, so a client case about those columns '
+         + 'would be asking a weaker question than the apply-time block already answers.',
+    },
+    {
+      id: 'service-cannot-discover-a-social-account',
+      covers: ['§12.6/8', 'RFC-2026-017§7', '§8.3/meta-connection-health'],
+      as: service,
+      ...discoverSocialAccount('__A__', META_CONNECTION_A),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'social_accounts' },
+      why: 'THE SECOND CASE THE CONTROL FOR THIS TABLE RESTS ON, and the operation §4\'s ERD names: '
+         + 'META_CONNECTION ||--o{ SOCIAL_ACCOUNT : "discovers". Discovery is the service\'s act, '
+         + 'which is why this row carries no actor columns — and the service cannot perform it, '
+         + 'because the empty policy set refuses the INSERT it holds the grant for. The row it '
+         + 'attempts is well formed and names a real connection in the same workspace, so with row '
+         + 'level security disabled it LANDS: the composite foreign key and the unique key are both '
+         + 'satisfied, and the only thing standing between the statement and the table is RLS.',
+    },
+
+    // --- private.meta_credential_references. ------------------------------------------------------
+    //
+    // Batch 060's shape followed rather than re-derived: no role holds anything, so every refusal is
+    // the privilege system on the SCHEMA and the layer is the same for a workspace owner and for the
+    // service. That is what §8.3's "Plain credential SELECT | N N N N N N" asks for, in the one
+    // column — the service's — where every other row of the matrix gives something.
+    {
+      id: 'owner-a-cannot-read-a-meta-credential-reference',
+      covers: ['§8.3/plain-credential', '§9.2', '§4/invariant-9'],
+      as: ownerA,
+      sql: META_REFERENCE_OF,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The owner of the workspace whose credential this is, refused before the table is reached. '
+         + '§4 invariant 9 keeps a token out of an exposed row, §3.1 puts the reference in `private` '
+         + 'with no direct grant, and §8.3 marks "Plain credential SELECT" N for every role. The '
+         + 'refusal lands on the SCHEMA because that is where the first missing privilege is, and '
+         + 'asserting the schema is what makes this case notice the day somebody writes `grant usage '
+         + 'on schema private` — the grant that would have to come first.',
+    },
+    {
+      id: 'service-cannot-read-a-meta-credential-reference',
+      // NOT labelled RFC-2026-017§7: that section's claim is that the service is denied by ROW LEVEL
+      // SECURITY, and this table deliberately grants it nothing, so the refusal is the privilege
+      // system. That is a STRONGER refusal and a DIFFERENT one, which is the distinction the layer
+      // declaration exists to keep.
+      covers: ['§8.3/plain-credential', 'RFC-2026-012/connector', '§12.6/8-negative'],
+      as: service,
+      sql: META_REFERENCE_OF,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE HALF OF §8.3 THAT DENIES THE SERVICE TOO. "Plain credential SELECT" is N in the '
+         + 'service column as well, so this table departs from the app_worker shape every other '
+         + 'batch uses and holds no grant at all — which is batch 060\'s decision followed, not a new '
+         + 'one. The price is that the CI negative control can have no entry for this table, and '
+         + 'that absence is asserted in both directions rather than left to be noticed.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-meta-credential-reference',
+      covers: ['§12.6/6', '§8.6/7', '§9.2'],
+      as: anonymous,
+      sql: META_REFERENCE_OF,
+      params: [META_CONNECTION_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'anon holds nothing anywhere, so the schema that refuses it is whichever one the statement '
+         + 'names — and here that is `private` rather than `app`. Declaring which is what makes this a '
+         + 'different assertion from the anonymous cases on the two `app` tables above rather than '
+         + 'the same one repeated.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-meta-credential-reference',
+      covers: ['§8.3/connect-meta', 'RFC-2026-012§4', '§9.2'],
+      as: ownerA,
+      ...createMetaReference('__A__', META_CONNECTION_A, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The write half of §8.3\'s owner `Y`, refused on the schema. A client grant here is not one '
+         + 'grant: it is `grant usage on schema private` first, which opens private.as_user, '
+         + 'private.as_suspended_user, private.as_service and every worker payload table a later '
+         + 'batch puts there — to every end user, at once. That is RFC-2026-021 §7/4\'s structural '
+         + 'argument about anon and schema app, one schema over, and it is why the owner\'s Y is '
+         + 'reached the way §3.1 says it is reached: through a typed service.',
+    },
+
+    // --- private.meta_webhook_inbox. --------------------------------------------------------------
+    //
+    // §5's three verbs, one case each for the two that have a statement, plus the reads §8.3's `S`
+    // cell is about. Nothing here flips: RFC-2026-022 §5/5 gives a DISCOVERED cell no policy
+    // permanently, and the decision is NOT IN EFFECT besides, because the only member of app_worker
+    // is postgres, which bypasses row level security.
+    //
+    // THE UNRESOLVED DELIVERY IS NOT GIVEN A CASE OF ITS OWN, and the reason is worth stating so a
+    // later reader does not add one: it is refused identically to the resolved one, by the same
+    // missing schema privilege, so a case about it would assert nothing the case below does not.
+    // What the unresolved row is FOR is the static assertion that `workspace_id` is nullable and
+    // that the fixture exercises both states — identity-isolation.test.mjs holds that, where it can
+    // be checked without a database.
+    {
+      id: 'owner-a-cannot-read-a-meta-webhook-delivery',
+      covers: ['§8.3/raw-webhook', '§10/WEBHOOK-SHORT', '§11.1/5'],
+      as: ownerA,
+      sql: DELIVERY_BY_HASH,
+      params: [DELIVERY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'DOES A CLIENT EVER READ A RAW WEBHOOK BODY? This case is the answer. §8.3 marks "Raw '
+         + 'token/webhook SELECT" N for all five built-in roles, §10\'s WEBHOOK-SHORT says "no tenant '
+         + 'access", §11.1/5 keeps raw webhook out of a PDPA export the owner may request, and §14\'s '
+         + 'gate checklist requires the table not be exposed. The owner of the workspace this '
+         + 'delivery RESOLVED TO is refused, which is the strongest form of that claim available.',
+    },
+    {
+      id: 'service-cannot-read-a-meta-webhook-delivery',
+      covers: ['§8.3/raw-webhook', 'RFC-2026-022§3/discovered', '§12.6/8-negative'],
+      as: service,
+      sql: DELIVERY_BY_HASH,
+      params: [DELIVERY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE `S` CELL ITSELF, AND ITS REFUSAL IS PERMANENT RATHER THAN PENDING. §8.3 gives "Raw '
+         + 'token/webhook SELECT" to the service alone; RFC-2026-022 §3 classifies that statement '
+         + 'DISCOVERED — "an inbox row arrives from the provider; the workspace is what reading it '
+         + 'resolves" — and §5/5 gives a discovered cell NO POLICY, permanently, performed through a '
+         + 'SECURITY DEFINER broker owned by a role that does not exist. A later reader who takes '
+         + 'this for a case waiting to flip will "fix" it by writing the unscoped policy that RFC '
+         + 'refuses. The layer is `grant` and not `policy` because this table grants nobody anything, '
+         + 'which is a stronger refusal than the one the classification is about.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-meta-webhook-delivery',
+      covers: ['§12.6/6', '§8.6/7', '§8.3/raw-webhook'],
+      as: anonymous,
+      sql: DELIVERY_BY_HASH,
+      params: [DELIVERY_A1],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'The anonymous refusal on the raw inbox. It is asserted rather than assumed for the reason '
+         + 'every anonymous case in this suite is: anon holds nothing anywhere, and the case declares '
+         + 'the object so that a widening moves the refusal and fails the case.',
+    },
+    {
+      id: 'service-cannot-process-a-meta-webhook-delivery',
+      covers: ['§8.3/raw-webhook', 'RFC-2026-022§5/5', '§5/append-process-purge'],
+      as: service,
+      ...processDelivery(DELIVERY_A1, '__A__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE MIDDLE VERB, WHICH HAS NO ACTOR. §5 gives this row the mutability '
+         + '"append/process/purge" and processing is exactly this statement: stamp the delivery and '
+         + 'record which Workspace it resolved to. Nobody may issue it. Batch 050 refused to build a '
+         + 'writer for its outbox on the same ground — "a correctly shaped table with no writer, and '
+         + 'the writer is a decision with an owner rather than a column somebody forgot" — and here '
+         + 'the owner is named: RFC-2026-022 §5/6\'s broker, owed to the RFC that creates the worker '
+         + '(DATA-DEC-03, due before G1).',
+    },
+    {
+      id: 'service-cannot-purge-a-meta-webhook-delivery',
+      covers: ['§8.3/raw-webhook', '§10/WEBHOOK-SHORT', '§8.5'],
+      as: service,
+      ...purgeDelivery(DELIVERY_A1),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'private' },
+      why: 'THE THIRD VERB, AND THERE IS NO SCHEDULER. §10\'s WEBHOOK-SHORT is a retention rule with a '
+         + 'purge in it — "30 วันหลัง processed; 90 วัน failure/DLQ … redact/purge payload, retain '
+         + 'dedupe hash longer" — and batch 160 owns the retention job while §10\'s own numbers need '
+         + 'Product/Security/Legal approval (§15). So no role holds DELETE here, app_maintenance is '
+         + 'granted nothing by this batch, and no window is encoded in a constraint where it would '
+         + 'read as ratified. What the batch does provide is the columns the sweep will read — '
+         + 'processed_at, failed_at, redacted_at and a body_ref that can be emptied while the dedupe '
+         + 'hash stays — and an index over each.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

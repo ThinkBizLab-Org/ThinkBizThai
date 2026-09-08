@@ -672,6 +672,28 @@ export function tenantTableLint(catalog, { expected, forceExempt } = {}) {
 // That is why this rule refuses a `shape` it does not know and does not ask whether a policy exists:
 // the policy is owed to §7, not to this file.
 export const SERVICE_POLICY_MAP = 'db/foundation/lint/service-policy-map.json';
+
+// The set `servicePolicyMapLint` is checked AGAINST, and it did not exist while the map was empty:
+// the rule took `tablesInMigrations` as an argument and the only caller was a test that passed
+// `new Set()`, which is a set no entry can be in. That was fine for "no cell has been classified"
+// and useless the moment one was, so batch 110 derives the real set here rather than letting the
+// committed map be checked against nothing.
+//
+// It reads the same `create table` form `schemaLint` reads, on the same stripped text, deliberately:
+// two rules reading the migration text differently is how one of them starts describing a schema
+// that does not exist.
+export async function tablesCreatedByMigrations(files) {
+  const all = files ?? await migrationFiles();
+  const tables = new Set();
+  for (const { sql } of all) {
+    const stripped = sql.replace(/--[^\n]*/g, '');
+    for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(app|private)\.(\w+)/gi)) {
+      tables.add(`${m[1].toLowerCase()}.${m[2]}`);
+    }
+  }
+  return tables;
+}
+
 const SHAPES = ['carried', 'discovered'];
 const CELL_OPERATIONS = ['select', 'insert', 'update', 'delete'];
 
@@ -694,12 +716,23 @@ export function servicePolicyMapLint(map, tablesInMigrations) {
     if (c?.operation && !CELL_OPERATIONS.includes(c.operation)) {
       problems.push(`${where}: operation ${JSON.stringify(c.operation)} is not one of ${CELL_OPERATIONS.join(', ')}`);
     }
-    if (c?.table && tablesInMigrations && !tablesInMigrations.has(c.table)) {
-      problems.push(`${where}: app.${c.table} is created by no migration — a classification of a cell on a table that does not exist is a claim about nothing`);
+    // A6 META CONNECTOR CORRECTION, batch 110. `table` was read as an unqualified name in `app`, and
+    // the cell batch 110 classifies is on a table in `private`: §8.3's "Raw token/webhook SELECT" is
+    // about the raw webhook inbox, which §3.1 puts in `private` BY NAME and §14's gate checklist
+    // requires not be exposed. The rule could not express the entry it was written to receive, and a
+    // rule that cannot state a true classification is not a narrower rule.
+    //
+    // The widening is one line of meaning: a qualified name is taken as written, an unqualified one
+    // resolves to `app`, and the set is compared against qualified names. That changes NO VERDICT for
+    // a cell in `app` — an entry written the way RFC-2026-022 §7.2's example writes it still resolves
+    // to the same table — and it makes a `private` cell checkable instead of unstatable.
+    const qualified = c?.table && (c.table.includes('.') ? c.table : `app.${c.table}`);
+    if (qualified && tablesInMigrations && !tablesInMigrations.has(qualified)) {
+      problems.push(`${where}: ${qualified} is created by no migration — a classification of a cell on a table that does not exist is a claim about nothing`);
     }
-    const key = `${c?.table}.${c?.operation}`;
+    const key = `${qualified}.${c?.operation}`;
     if (c?.table && c?.operation) {
-      if (seen.has(key)) problems.push(`${where}: app.${key} is classified twice, and RFC-2026-022 §3's test has one answer per statement`);
+      if (seen.has(key)) problems.push(`${where}: ${key} is classified twice, and RFC-2026-022 §3's test has one answer per statement`);
       seen.add(key);
     }
   }

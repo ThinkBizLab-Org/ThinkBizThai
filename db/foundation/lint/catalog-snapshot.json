@@ -15,10 +15,11 @@
       "041_knowledge_resolution.sql",
       "050_async_kernel.sql",
       "060_ai_gateway.sql",
+      "110_meta_connector.sql",
       "130_billing.sql",
       "140_audit.sql"
     ],
-    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 10 batches long, and four of those batches -- 050, 060, 130 and 140 -- were written in parallel, each adding itself to this list without seeing the others. That is why this list is a UNION at merge and never a choice between sides: keeping one branch's line produces a declaration with a hole in it, and the lint refuses it for the reason above rather than accepting a shorter true-looking list."
+    "why": "The declaration must name a TAIL of the ordered migration set: a database holding a later batch while missing an earlier one is DIVERGENT rather than behind, and pendingDeclarationLint refuses a declaration that is not a tail. The tail is 11 batches long, and four of those batches -- 050, 060, 130 and 140 -- were written in parallel, each adding itself to this list without seeing the others. That is why this list is a UNION at merge and never a choice between sides: keeping one branch's line produces a declaration with a hole in it, and the lint refuses it for the reason above rather than accepting a shorter true-looking list. Batch 110 joins it for the STRUCTURAL reason 011, 020, 021, 030, 040, 041, 050 and 060 share rather than the one batch 140 gave: it creates four tables and a fixture the instance has never received, and the declaration must stay a TAIL \u2014 a database holding 130 and 140 while missing 110 would be DIVERGENT rather than behind. 110 sorts between 060 and 130, so the tail stays contiguous."
   },
   "catalog": {
     "roles_bypassing_rls": [

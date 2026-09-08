@@ -395,4 +395,49 @@ jobs:
           # case id contains `security-event`, and the same test asserts that no case matches both.
           control app.audit_logs              '[a-z0-9-]*audit-log'      140
           control app.security_events         '[a-z0-9-]*security-event' 140
+          # THE TWO CONNECTOR TABLES IN `app`, THE TWO IN `private` THAT DELIBERATELY HAVE NO ENTRY,
+          # AND A PATTERN CHOICE THAT IS ABOUT THIS STEP RATHER THAN ABOUT BATCH 110.
+          #
+          # Batch 110 writes NO POLICY on any table it creates. §8.3's "Meta connection health
+          # SELECT" grants a HEALTH PROJECTION — §9.1 gives INTEGRATION-2 the client projection
+          # "health projection only" — which is a security_invoker view on the read allowlist
+          # RFC-2026-012 §3 and RFC-2026-021 give to an RFC; "Connect/disconnect/re-auth Meta" is a
+          # command whose essential half is an OAuth exchange §3.4 forbids inside a transaction; and
+          # "Raw token/webhook SELECT" is the `S` cell RFC-2026-022 §3 classifies DISCOVERED and §5/5
+          # gives NO POLICY permanently. So every client case on these tables is a PRIVILEGE-layer
+          # refusal that disabling row level security does not restore.
+          #
+          # EACH ENTRY RESTS ON EXACTLY TWO CASES, and they are the two kinds batch 140 established.
+          # app_worker holds SELECT, INSERT and a column-scoped UPDATE on both tables and NO POLICY,
+          # so with row level security ON `service-sees-zero-meta-connection-rows` and
+          # `service-sees-zero-social-account-rows` read nothing and
+          # `service-cannot-create-a-meta-connection` and `service-cannot-discover-a-social-account`
+          # are refused AT THE POLICY LAYER — and with it OFF the reads return the fixture row and
+          # both writes LAND. The two INSERTs name only columns app_worker is granted and rows that
+          # satisfy every constraint, so nothing but RLS stands between them and the table; a
+          # statement naming an ungranted column would be refused at the privilege layer and this
+          # entry would rest on a case that never noticed.
+          #
+          # THERE IS NO ENTRY FOR private.meta_credential_references OR private.meta_webhook_inbox,
+          # AND THE ABSENCE IS THE FINDING RATHER THAN AN OVERSIGHT — the same situation batch 060
+          # recorded for private.ai_credential_references. No role holds any privilege on either:
+          # §3.1 gives `private` "ไม่มี direct grant", §8.3's "Plain credential SELECT" is N in every
+          # column including the service's, and RFC-2026-012's inventory says of the raw webhook
+          # inbox "server-only … private, no direct grant". Disabling row level security there
+          # restores no grant, so no case would fail and this step's own first failure message
+          # ("The isolation suite PASSED with row level security DISABLED") would fire on a correct
+          # database. tests/db/identity/identity-isolation.test.mjs asserts the absence IN BOTH
+          # DIRECTIONS: no entry while no migration grants anything on those tables, and an entry
+          # REQUIRED the moment one does.
+          #
+          # THE TWO PATTERNS DO NOT OVERLAP WITH EACH OTHER OR WITH ANY ENTRY ABOVE, and batch 110
+          # went further than checking: NO case id it adds contains `workspace`, `business`, `page`
+          # or `scope`. Those four are the patterns of pre-existing entries, the work package records
+          # the overlap they already cause (sixteen entry-pairs measured on batch 130's branch,
+          # eighteen after 060 and 140 landed), and a batch whose ids matched another entry's pattern
+          # would make that entry satisfiable by a regression it did not cause. That is why the
+          # cross-tenant cases here say `of-tenant-b` where every earlier batch says `workspace-b`,
+          # and the static suite asserts it pairwise across every entry in this step.
+          control app.meta_connections        '[a-z0-9-]*meta-connection' 110
+          control app.social_accounts         '[a-z0-9-]*social-account'  110
           echo "negative control: every family above failed the suite, as each must."
