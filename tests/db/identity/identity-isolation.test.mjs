@@ -7284,9 +7284,20 @@ test('the receipt discovers its workspace, and the S cell is classified rather t
   }
 
   assert.doesNotMatch(projectionCode, /current_setting\('app\.workspace_id'/,
-    'batch 131 has no CARRIED cell, so a confinement term here would be a control with nothing to confine — and '
-    + 'RFC-2026-022 §5/4 forbids any artefact describing that term as a boundary against the service role, '
-    + 'which is how a comment beside it would inevitably be read');
+    'batch 131 has no CARRIED cell, so a confinement term in the SQL would be a control with nothing to '
+    + 'confine. This rule reads the code with comments stripped, and on its own it is not enough — a first '
+    + 'probe added the expression as a COMMENT and this assertion did not notice, which is the whole failure '
+    + 'mode RFC-2026-022 §5/4 is about: the sentence beside the expression is what a later reader takes as the '
+    + 'claim. The two assertions below read the RAW file.');
+  assert.equal((projection.match(/current_setting/g) ?? []).length, 1,
+    'the expression appears in this migration EXACTLY ONCE, in the header, as the term RFC-2026-022 §3\'s '
+    + 'operational test asks a batch to add to its own statement in order to decide whether the cell is CARRIED '
+    + 'or DISCOVERED. A second occurrence is either a policy this batch may not write or a second sentence '
+    + 'about a control it does not have, and both are the thing §5/4 forbids.');
+  assert.match(projection, /THE WORKSPACE GUC IS NOT A TENANT BOUNDARY AND NOTHING IN THIS BATCH MAY BE READ AS SAYING IT IS/,
+    'and the one occurrence carries §5/4 beside it: the term confines one transaction against a defect in the '
+    + "service's own code, and is worth nothing against a worker that chooses to set it differently, because "
+    + 'the role the policy names sets the setting the policy reads');
   for (const c of cases.filter((k) => /billing-webhook-receipt|billing-invoice|billing-payment/.test(k.id))) {
     assert.doesNotMatch(String(c.why), /workspace GUC|current_setting/,
       `${c.id}: RFC-2026-022 §5/4 forbids any test citing the confinement setting as tenant isolation of the `
@@ -7512,6 +7523,16 @@ test('the batch 131 fixture writes only catalog identities and carries no card a
     'one receipt is UNRESOLVED — correlation_workspace_id null, never processed — which is §8.3\'s own initial '
     + 'value and the row a confinement predicate would exclude. Without it the DISCOVERED classification is a '
     + 'claim about a state no row is in.');
+  // AND IT IS ACTUALLY UNRESOLVED, which the name alone does not say. A first probe set that row's
+  // correlation_workspace_id to workspace A and nothing failed: the label survived while the state
+  // the label is about had gone. Counted rather than pattern-matched, because the position of a null
+  // inside a VALUES row is formatting and the NUMBER of tenant references is the fact.
+  const receipts = fixture.match(/insert into app\.billing_webhook_receipts[\s\S]*?on conflict[^;]*;/);
+  assert.ok(receipts, 'the fixture loads webhook receipts');
+  assert.equal((receipts[0].match(UUID) ?? []).length, 2,
+    'three receipts and TWO workspace references: one correlated to each tenant and one correlated to nothing. '
+    + 'A third reference means the unresolved row was given a workspace, and the DISCOVERED classification '
+    + 'RFC-2026-022 §3 records for this cell would then rest on a state no fixture row is in.');
   for (const value of ["'charge'", "'refund'"]) {
     assert.match(fixture, new RegExp(value), `the fixture loads a payment with direction ${value}`);
   }
