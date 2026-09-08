@@ -79,7 +79,7 @@ test('every branch in this repository resolves to exactly one package', async ()
     'agent/claude/WP-0A-CON-008-merge-parent-order',
     'agent/claude/WP-0A-A0-007-rls-service-policy-defect',
     'agent/claude/WP-0A-A0-006-db00-data-decisions',
-    'agent/claude/WP-0A-DB-00-batch-140',
+    'agent/claude/WP-0A-DB-00-parallel-integration',
     'agent/claude/WP-0A-A0-008-service-path',
   ]) {
     const report = reportFor(ref, await claimantsOf(ref));
@@ -131,7 +131,7 @@ const BRANCH_OWNERSHIP = {
   'agent/claude/WP-0A-CON-008-merge-parent-order': 'WP-0A-CON-008',
   'agent/claude/WP-0A-A0-007-rls-service-policy-defect': 'WP-0A-A0-007',
   'agent/claude/WP-0A-A0-006-db00-data-decisions': 'WP-0A-A0-006',
-  'agent/claude/WP-0A-DB-00-batch-140': 'WP-0A-DB-00',
+  'agent/claude/WP-0A-DB-00-parallel-integration': 'WP-0A-DB-00',
   'agent/claude/WP-0A-A0-008-service-path': 'WP-0A-A0-008',
   'agent/claude/WP-0A-A0-009-service-path-corrected': 'WP-0A-A0-009',
 };
