@@ -108,11 +108,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This branch adds one evidence file under evidence/WP-0A-DB-00/**, which this package owns outright, and records what the parallel-authorship round cost. The three amendments are the registries that move whenever a package renames its branch or a protected file changes: the branch-to-package mapping (pinned whole, so a row cannot be added quietly), the integrity digests, and the machine-written verification record."
+      "rationale": "This branch adds one evidence file under evidence/WP-0A-DB-00/**, which this package owns outright, and records what the parallel-authorship round cost. The three amendments are the registries that move whenever a package renames its branch or a protected file changes: the branch-to-package mapping (pinned whole, so a row cannot be added quietly), the integrity digests, and the machine-written verification record. The verification record was declared and did not move: this branch adds no test, so the generated file is byte-identical. Sixth time the scope guard has caught this run declaring a permission for work that never happened, and it has been right every time."
     }
   },
   "inputs": {

@@ -5,10 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "49f693afdbde23fcbddab290cb3b46ffb4b832dd",
-  "head_revision_or_patch_checksum": "49f693afdbde23fcbddab290cb3b46ffb4b832dd",
+  "head_revision_or_patch_checksum": "6005cb18355580958995dfcfbfa674cfa8f3e092",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md",
+    "evidence/WP-0A-DB-00/rfc-002-compliance-2026-09-08.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
