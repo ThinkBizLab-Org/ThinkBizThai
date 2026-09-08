@@ -1,6 +1,6 @@
 # RFC-2026-016 — The RLS policy set denies every service operation, and the platform it runs on
 
-Status: Approved 2026-09-05 by the Product Owner — the policy set is amended to carry service-role policies for every operation the matrix marks `S`; the platform is Supabase; DATA-DEC-03 closes only as far as §4 states and the service path remains undecided.
+Status: Approved 2026-09-05 by the Product Owner — the policy set is amended to carry service-role policies for every operation the matrix marks `S`; the platform is Supabase; DATA-DEC-03 closes only as far as §4 states and the service path remains undecided. §2 AMENDED 2026-09-08 by the Product Owner on RFC-2026-022: the service-policy shape is split carried/discovered, and the workspace GUC is containment against defects in the service's own code rather than tenant isolation of the service path — measured, the role the policy names can set the setting the policy reads.
 Date: 2026-09-04
 Author: /claude/a0_atlas (A0), on A1's security analysis of DATA-DEC-03
 Affects: the data package §8.5 RLS baseline; records the database platform; advances `DATA-DEC-03`
@@ -27,16 +27,62 @@ is the current state of the specification, found before any migration was writte
 
 ## 2. The fix
 
-Amend §8.5: a policy is `TO authenticated` for user paths **and `TO <service role>` for each
-operation the matrix already marks `S`**, with the service policy scoped by a server-set workspace
-GUC derived from the server-resolved tenant context `CTR-TEN-001` already requires.
+AMENDED 2026-09-08 BY THE PRODUCT OWNER, on `RFC-2026-022`. The original text of this section is
+kept below the amendment, because the reason it was wrong is the finding and deleting it would leave
+the record with the right answer and none of why.
 
-**This introduces no new permission.** Every `S` cell already says the service may perform that
-operation. The amendment only makes it expressible without a bypass.
+Amend §8.5: a policy is `TO authenticated` for user paths, and for each operation the matrix marks
+`S`, **one of two shapes, decided by whether the statement carries or discovers its workspace**:
 
-Rejected alternative: the service assumes `authenticated` with a synthetic claim. It makes
-`auth.uid()` null or synthetic on exactly the path that must be auditable, and collapses the two
-actor identities the audit trail exists to tell apart.
+* **CARRIED** — a policy `TO <service role>` whose `USING`/`WITH CHECK` is the cell's own predicate
+  **AND** the workspace confinement term
+  `(select nullif(current_setting('app.workspace_id', true), '')::uuid)`, set by the server from the
+  `CTR-TEN-001` context with `SET LOCAL`, never `SET`.
+* **DISCOVERED** — **no policy for the service role**, permanently. Such an operation is performed
+  through a `SECURITY DEFINER` function whose owner is a role that is not a path and that holds the
+  policy; the service role keeps its grants and no policy, so a service refusal remains attributable
+  to row level security.
+
+Which shape a cell takes is decided by the test in `RFC-2026-022` §3 and recorded in
+`db/foundation/lint/service-policy-map.json`, read by the schema lint in both directions.
+
+**The confinement term is a containment control against defects in the service's own code, not a
+boundary against the service role**, which can set the setting itself; no document, test or
+assertion may cite it as tenant isolation of the service path.
+
+This introduces no new permission **in the CARRIED shape**, because the cell's own predicate is
+retained; a policy whose whole predicate is the confinement term would introduce one, and is refused.
+
+### What this section said before, and why it was wrong
+
+> Amend §8.5: a policy is `TO authenticated` for user paths **and `TO <service role>` for each
+> operation the matrix already marks `S`**, with the service policy scoped by a server-set workspace
+> GUC derived from the server-resolved tenant context `CTR-TEN-001` already requires.
+
+Two things, both found by trying to implement it rather than by reading it.
+
+**The GUC cannot bound the role it is written for.** Measured on the provisioned instance and
+re-measured independently in review: running as `app_worker`, `app.workspace_id` was set twice, to
+two different tenants, inside one transaction, while
+`has_parameter_privilege(current_user,'app.workspace_id','SET')` answered `false`. The role the
+policy names sets the setting the policy reads, and the catalog cannot even be asked who may. So the
+term is containment, not a boundary — which is what the amendment above now says in the place a
+reader will look.
+
+**The shape does not fit a queue.** Batch `050` found it while writing the async kernel: §3.4
+specifies a lease claim with `FOR UPDATE SKIP LOCKED`, and a claim query cannot name a workspace
+because which workspace the next job belongs to is what reading the row tells you. A workspace-GUC
+policy there either refuses every claim or turns a queue into per-tenant polling. That is the
+carried/discovered split's reason for existing.
+
+Two smaller corrections this section also owes:
+
+* *"scoped by a server-set workspace GUC"* named no GUC and no setter. `RFC-2026-022` §5 supplies
+  both and §7.1 makes them assertable.
+* *"it must land in batch `000`"* did not happen and now cannot: `WP-0A-DB-00`'s scope excludes any
+  RLS policy from `000`, and migration invariant 1 forbids putting one there after the fact. It
+  lands in a forward batch, and this sentence exists so a later reader does not go looking in `000`
+  for a shape that is not there.
 
 This is an RLS change and therefore RFC-gated. It lands with DB-00, and it must land **in batch
 `000`**: DB-00's schema lint is where the assertion physically lives, migration invariant 1 forbids
