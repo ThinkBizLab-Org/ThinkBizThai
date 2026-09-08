@@ -440,4 +440,54 @@ jobs:
           # and the static suite asserts it pairwise across every entry in this step.
           control app.meta_connections        '[a-z0-9-]*meta-connection' 110
           control app.social_accounts         '[a-z0-9-]*social-account'  110
+          # THE THREE METERING TABLES. Batch 061 creates one table a client may read and two that no
+          # client role holds any privilege on, so it carries both of the shapes this step has met
+          # before — and its client-readable entry rests on a kind of case the entries above do not
+          # describe. What that kind is, is stated below rather than counted: this comment says what
+          # each entry rests on and does not rank it against the others, because the count of entries
+          # in this step is a property of the merged tree and no batch can check one.
+          #
+          # app.usage_events and app.usage_reservations are the shape batch 050 established. No
+          # client role holds a privilege on either — §8.4 says nothing about who may SELECT a usage
+          # event, and the reservation has no row in §8 at all — so every client case against them is
+          # a PRIVILEGE-layer refusal that disabling row level security does not restore. Each entry
+          # bites through the pair of grants that DOES exist: app_worker holds SELECT and INSERT with
+          # NO POLICY, so with RLS off `service-sees-zero-*` returns the fixture row AND
+          # `service-cannot-*` succeeds where it must be refused. THE LEDGER'S ENTRY RESTS ON TWO
+          # CASES AND THE RESERVATION'S ON TWO, and each pair is one filtered read plus one
+          # policy-layer refused write; the several `denied` cases beside them whose layer is `grant`
+          # would pass unchanged and are not counted.
+          #
+          # app.quota_buckets IS THE ONE WITH A CLIENT READ, and that is where this step gains
+          # something it does not have elsewhere. Six RLS-decided cases match its pattern and they
+          # fail for FOUR different reasons when row level security is off, one of which no entry
+          # above can produce today:
+          #
+          #   * the tenant boundary — workspace A's owner reads workspace B's quota bucket, which is
+          #     what another business is spending;
+          #   * the ROLE predicate — an active editor, approver and viewer of the workspace read a
+          #     row §8.4 marks `N` for their role;
+          #   * the suspended member and the service identity read rows they must not see;
+          #   * and THE MEMBER-SCOPE NARROWING — `admin-a-cannot-read-the-quota-bucket-outside-their-
+          #     narrowing` is refused by a RESTRICTIVE policy AFTER the caller has already passed the
+          #     role predicate, so it fails because a policy SUBTRACTED rather than because none
+          #     admitted. That is what it contributes to this entry: dropping the restrictive policy
+          #     while keeping the permissive one leaves the other five cases of this basis green.
+          #
+          # There is also a `no-effect` case in the basis —
+          # `service-cannot-rewrite-a-quota-bucket-total` — which is worth naming because its failure
+          # with RLS off is a WITNESS seeing a changed value rather than an absent refusal:
+          # app_worker holds a column-scoped UPDATE on the derived columns, so with the policies gone
+          # the write lands and workspace A's owner reads the new number back.
+          #
+          # The three patterns do not overlap with each other or with any entry above: a ledger case
+          # id contains `usage-event`, a reservation case `usage-reservation` and a bucket case
+          # `quota-bucket`, and no case id in this batch contains `workspace`, `business`, `page`,
+          # `scope`, `industry-`, `knowledge-`, `job-row`, `outbox-event`, `consumer-ledger`,
+          # `ai-model-`, `billing-`, `plan-`, `audit-log` or `security-event`. The static suite
+          # asserts that pairwise, across every entry in this step, rather than leaving it to
+          # inspection.
+          control app.usage_events            '[a-z0-9-]*usage-event'       061
+          control app.usage_reservations      '[a-z0-9-]*usage-reservation' 061
+          control app.quota_buckets           '[a-z0-9-]*quota-bucket'      061
           echo "negative control: every family above failed the suite, as each must."

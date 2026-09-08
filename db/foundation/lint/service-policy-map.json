@@ -23,6 +23,14 @@
       "shape": "discovered",
       "why": "The statement a processor issues is \"the next unprocessed delivery\", and it contains no workspace term because WHICH workspace is what reading the row resolves. Under RFC-2026-022 \u00a73's operational test, adding the confinement term to its WHERE does not narrow the same work \u2014 it turns \"the unprocessed webhook\" into \"the unprocessed webhook of a tenant I already knew\", which is not the work. The schema says the same thing: private.meta_webhook_inbox.workspace_id is NULLABLE, because a delivery arrives before anything knows whose it is and resolution can fail, and batch 110's apply-time block refuses a later NOT NULL.",
       "batch": "110_meta_connector.sql"
+    },
+    {
+      "cell": "§8.4 Usage ledger INSERT/UPDATE/DELETE (`S/N`) — the `S` half, which is the INSERT",
+      "table": "usage_events",
+      "operation": "insert",
+      "shape": "carried",
+      "why": "The statement's workspace is an INPUT and not an output. RFC-2026-022 §3 already classes this cell CARRIED, giving the reason 'a reservation is made against a known quota'; applying §3's own operational form to the STATEMENT gives a stronger one. Add `and workspace_id = (select nullif(current_setting('app.workspace_id', true), '')::uuid)` to this INSERT's WITH CHECK and it still writes the same row, because CTR-USG-001 makes attribution.workspace_id a REQUIRED property of the envelope and composes the dedupe_key with that same workspace as its second segment -- 061_metering.sql then constrains the key to start with the row's own workspace, so the workspace is something the row says twice before any policy reads it. Nothing here is a claim about the confinement term being a boundary: RFC-2026-022 §5/4 measured that app_worker can set the setting the policy would read, so the term is containment against defects in the service's own code and never tenant isolation of the service path. NO POLICY IS WRITTEN: the decision is approved and NOT IN EFFECT (§5/8, and the `_not_in_effect` note above), so this row classifies the cell and authorises nothing. §8.4's UPDATE and DELETE half is `N` for the service too, which is why this table has one entry and not three; app.usage_reservations and app.quota_buckets have none at all, because §8 has no row for either in any of its four matrices and inventing a `cell` value would be a claim about the access matrix made in a lint file.",
+      "batch": "061_metering.sql"
     }
   ]
 }

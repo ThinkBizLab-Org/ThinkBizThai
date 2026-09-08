@@ -36,6 +36,38 @@
       "uuid": "3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3",
       "role": "business under workspace_b, reachable only by user_owner_b"
     },
+    "user_admin_a": {
+      "uuid": "8912a12d-4421-5373-a8d2-073344f69923",
+      "role": "active ADMIN of workspace_a, scoped to business_a1. Added by batch 061, and it is the first identity this catalog carries for §7's second built-in role: §12.6 names an owner, an editor, an approver, a viewer and a suspended member, and no admin. §8.4 marks \"Usage/quota summary SELECT\" `Y` for the OWNER AND FOR THE ADMIN -- two unconditional cells, not one and a `P` -- so app.quota_buckets' SELECT policy resolves `app.workspace_member_role(workspace_id) in ('owner','admin')` and the admin half of that predicate could be asserted by no identity §12.6 names. It is SCOPED to business_a1 on purpose and the owner deliberately is not: batch 021 reads §7 as \"a member with no scope row is not narrowed\", so proving that batch 061's RESTRICTIVE narrowing subtracts anything at all needs a caller who passes the permissive policy AND holds a scope row, and the owner is the control for the other half."
+    },
+    "quota_bucket_a_all": {
+      "uuid": "8f90d88b-d9b8-5221-ae37-39942a8fd083",
+      "role": "the WORKSPACE-LEVEL quota bucket of workspace_a: business_profile_id is NULL. It exists because batch 061's restrictive policy has an explicit NULL branch -- 021's \"a WORKSPACE row is not inside any of [the scope types]\" -- and a branch no row exercises is a branch that could be inverted without any case failing. user_admin_a, who IS narrowed, must still read it."
+    },
+    "quota_bucket_a1": {
+      "uuid": "e0c96a63-9722-56c8-95f1-a28b24abf0d8",
+      "role": "the quota bucket of workspace_a scoped to business_a1, which is INSIDE user_admin_a's member scope. The positive half of the narrowing: without it, `admin-a-cannot-read-the-quota-bucket-outside-their-narrowing` would be satisfied by a policy that denied the admin everything."
+    },
+    "quota_bucket_a2": {
+      "uuid": "9d6c5152-2a18-5d68-a2eb-ac370d687de6",
+      "role": "the quota bucket of workspace_a scoped to business_a2, which is OUTSIDE user_admin_a's member scope -- business_a2 exists precisely to be the Business a scope excludes (batch 021). §8.6 case 3 at Business granularity, on a table whose caller has already passed the role predicate, so the refusal can only be the restrictive policy."
+    },
+    "quota_bucket_b": {
+      "uuid": "c4d33f90-e6f1-54ea-a554-5b3f73a5ad5d",
+      "role": "the workspace-level quota bucket of workspace_b. It is the row workspace_a's owner holds the exact id of and cannot read (§8.6 case 5), and the row user_owner_b CAN read -- the pair is what stops the cross-tenant negative being satisfied by a policy that denies everyone."
+    },
+    "usage_event_a1": {
+      "uuid": "cbcbfce1-edbc-51bd-8e13-448812346a56",
+      "role": "the `usage_id` of a ledger row in workspace_a. CTR-USG-001 makes usage_id the envelope's identity and app.usage_events has no other natural key a case could spell out of ids this catalog already fixes -- its dedupe_key is composed from a job_id, which would be one more constant rather than one fewer. NO REQUEST-PATH IDENTITY MAY READ IT: the row exists so that `service-sees-zero-usage-events` is about a row rather than about an empty table, which is what the CI negative control for app.usage_events rests on."
+    },
+    "usage_event_b1": {
+      "uuid": "bee401d4-396f-5d2d-88f0-bbf71c23f0dc",
+      "role": "the same, in workspace_b. Two tenants, because no client role holds a privilege on app.usage_events at all, so this suite's substitute for a cross-tenant claim is batch 030's and 140's -- both owners are refused identically, at the privilege layer -- and that substitute is about two real rows or it is about nothing."
+    },
+    "usage_reservation_a1": {
+      "uuid": "b25ea12f-1f46-5e99-88d8-1dbad22b39bb",
+      "role": "a hold in workspace_a, addressed by its own id because a reservation has no natural key any document fixes (batch 061's header records why inventing one would contradict CTR-USG-001). There is deliberately NO B-side reservation: §8 has no row for a reservation in any of its four matrices, so there is no cell for a both-owners-refused-identically substitute to be about, and this row exists only so that `service-sees-zero-usage-reservations` -- the case the CI negative control rests on -- addresses a row rather than an empty table."
+    },
     "industry_pack_interior": {
       "uuid": "e19d29b8-7c06-542c-8ea3-4919cf7e0ab6",
       "role": "the GLOBAL industry pack catalog row, `th.sme.interior-built-in`. It carries no _a or _b suffix and that is the point: every other symbol here ends in the workspace it lives in, because every other row is tenant-owned, and a suffix on this one would assert a tenant boundary the row does not have. Batch 030's cases attack it from BOTH tenants and from the service identity, and the assertion is never 'A cannot reach B's row' -- it is 'no request-path identity reaches it at all, and the one role holding a grant is refused by row level security'."

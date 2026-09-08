@@ -268,7 +268,8 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // tail stays contiguous, because 110 sorts between 060 and 130.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql', '060_ai_gateway.sql', '110_meta_connector.sql', '130_billing.sql',
+  '050_async_kernel.sql', '060_ai_gateway.sql', '061_metering.sql',
+  '110_meta_connector.sql', '130_billing.sql',
   '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
@@ -526,6 +527,45 @@ const ADDED_SYMBOLS = [
   // natural key legible as data: a key that had lost `workspace_id` would fail to LOAD.
   'meta_connection_a',
   'meta_connection_b',
+  // Batch 061. Eight symbols for three tables, itemised rather than summarised because eight is
+  // enough that a reader is entitled to ask what each one buys.
+  //
+  // THE IDENTITY IS THE ONE WORTH ARGUING WITH. §12.6 names an owner, an editor, an approver, a
+  // viewer and a suspended member of workspace_a, and no ADMIN — and §8.4's "Usage/quota summary
+  // SELECT" is `Y` for the owner AND `Y` for the admin, two unconditional cells rather than a `Y`
+  // and a `P`. Batch 061's SELECT policy therefore resolves `app.workspace_member_role(workspace_id)
+  // in ('owner', 'admin')`, and the admin half of that predicate could be exercised by no identity
+  // the specification names: it could have been inverted without a case failing. The member is also
+  // SCOPED to business_a1 while user_owner_a deliberately holds no scope row, because proving that
+  // 061's RESTRICTIVE narrowing subtracts anything needs a caller who passes the role predicate AND
+  // is narrowed, and 021's reading — "a member with no scope row is not narrowed" — needs the other
+  // half to stay unscoped.
+  'user_admin_a',
+  // FOUR BUCKETS, one control each, and none of them is a duplicate of another: a workspace-level
+  // bucket (business_profile_id NULL, the branch 021's scope types do not reach), one INSIDE the
+  // admin's scope, one OUTSIDE it under business_a2 — the Business that exists to be excluded —
+  // and one in workspace_b, which is both the cross-tenant target and user_owner_b's own positive.
+  // Drop any one and a case somewhere below stops being about what it says: without the b-side row
+  // the cross-tenant negative is satisfied by a policy that denies everyone, and without the
+  // inside-scope row the narrowing negative is.
+  'quota_bucket_a_all',
+  'quota_bucket_a1',
+  'quota_bucket_a2',
+  'quota_bucket_b',
+  // TWO LEDGER ROWS, addressed by CTR-USG-001's `usage_id`. app.usage_events has no natural key a
+  // case could spell out of ids this catalog already fixes — its dedupe_key is composed from a
+  // job_id, and batch 050 gave a job no symbol because a job has a key of its own — so this is the
+  // knowledge-item situation rather than the version-row one. Two tenants because NO REQUEST-PATH
+  // IDENTITY MAY READ EITHER: the suite's substitute for a cross-tenant claim on such a table is
+  // 030's and 140's, "both owners are refused identically", and that is about two real rows or it is
+  // about nothing.
+  'usage_event_a1',
+  'usage_event_b1',
+  // ONE HOLD, and the asymmetry with the pair above is deliberate. §8 has no row for a reservation
+  // in any of its four matrices, so there is no cell for a both-owners-refused-identically
+  // substitute to be ABOUT; this row exists only so that `service-sees-zero-usage-reservations` —
+  // the case that table's negative control rests on — addresses a row rather than an empty table.
+  'usage_reservation_a1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -1329,5 +1369,72 @@ test('the committed map classifies only cells on tables the migrations create', 
       `${qualified} is classified ${cell.shape} in the service-policy map and a migration writes a `
       + 'policy on it. RFC-2026-022 is NOT IN EFFECT: a batch classifies a cell here and writes no '
       + 'service policy until §7 holds, and a DISCOVERED cell gets none ever.');
+// A RULE NO TARGET INVOKES IS A RULE NOBODY RUNS, which is the shape this repository has removed
+// twice already. `servicePolicyMapLint` shipped exported and exercised by the test above and was
+// composed into no target: `make db-schema-lint` was schemaLint + catalogLint and nothing else, so
+// the map was read by a unit test and by no declared command. That was harmless while the file was
+// empty and stopped being harmless when batch 061 classified a cell.
+test('the schema-lint target reads the service-policy map, and rejects one it cannot read', async () => {
+  const { servicePolicyMapCheck } = await import('../../scripts/db/run.mjs');
+  assert.deepEqual(await servicePolicyMapCheck(), [],
+    'the committed map passes the check the declared command now runs over it');
+  // The wiring, asserted at the composition rather than only at the function: a check that exists
+  // and is not called is exactly the thing this test was added to stop.
+  const source = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.match(source, /target === 'schema-lint'[\s\S]{0,200}?servicePolicyMapCheck\(\)/,
+    'db-schema-lint must compose the map check. RFC-2026-022 §7.1/6 asks for a rule that reads the map in '
+    + 'BOTH directions, and a rule reachable only from a unit test is read in neither by the command '
+    + 'contract the data package declares.');
+  // And it REJECTS rather than passing on a file it cannot read as a map — the "unmeasured reads as
+  // passing" shape the map's own header says this repository has been caught by twice.
+  const refused = await servicePolicyMapCheck('db/foundation/seeds/fixture-catalog.json');
+  assert.ok(refused.some((p) => /has no `cells` array/.test(p)),
+    'a file with no cells array is refused rather than read as an empty map');
+  const missing = await servicePolicyMapCheck('db/foundation/lint/there-is-no-such-file.json');
+  assert.ok(missing.some((p) => /could not be read as JSON/.test(p)),
+    'and an absent file is a finding rather than a silent zero-problem answer');
+});
+
+test('every entry in the map names a table a migration creates, and none of them buys a policy', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint } = await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+
+  // THE ASSERTION THAT USED TO BE HERE WAS `assert.deepEqual(map.cells, [])`, and its own message
+  // said "when the first entry lands this assertion changes in a diff, which is the point". Batch
+  // 061 is that batch: it classifies §8.4's "Usage ledger INSERT" on app.usage_events. The empty
+  // claim is replaced rather than deleted, by the two claims that survive the file having content.
+  //
+  // FIRST: the map satisfies its own rule, measured against the tables the migration set ACTUALLY
+  // creates rather than against a hand-kept list. The previous version passed an empty set, which
+  // was correct while the map was empty and would have been a rule asking a question it could not
+  // answer the moment it was not.
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  const sql = (await Promise.all(names.map((n) => readFile(`${dir}/${n}`, 'utf8')))).join('\n')
+    .replace(/--[^\n]*/g, '');
+  const created = new Set([...sql.matchAll(/create table (?:if not exists )?app\.(\w+)/gi)].map((m) => m[1]));
+  assert.ok(created.size > 0, 'the migration set creates tables, or this rule is asking nothing');
+  assert.deepEqual(servicePolicyMapLint(map, created), [],
+    'the committed map satisfies its own rule against the tables the migrations create');
+
+  // SECOND, AND IT IS THE HALF THE EMPTY ASSERTION WAS REALLY PROTECTING: an entry classifies a
+  // cell and BUYS NO POLICY. RFC-2026-022 is APPROVED AND NOT IN EFFECT — measured, the only member
+  // of app_worker is postgres, which bypasses RLS — so a batch records the shape here and writes
+  // nothing to `pg_policy`. A map row appearing beside a service policy is that decision being put
+  // into effect by a migration rather than by the §7 conditions the RFC lists.
+  assert.match(String(map._not_in_effect), /NOT IN EFFECT/,
+    'the file says so where an author reads it, so an entry cannot be mistaken for an authorisation');
+  for (const cell of map.cells) {
+    const migration = await readFile(`${dir}/${cell.batch}`, 'utf8');
+    const code = migration.replace(/--[^\n]*/g, '');
+    assert.doesNotMatch(code, new RegExp(`create policy[^;]*on app\\.${cell.table}[^;]*to app_worker`, 'i'),
+      `${cell.batch} classifies app.${cell.table}.${cell.operation} in the service-policy map AND writes a `
+      + 'service policy for it. RFC-2026-022 §5/8: a policy TO app_worker is unreachable today except from '
+      + 'an identity for which it is moot.');
+    assert.doesNotMatch(code, /current_setting\('app\.workspace_id'/,
+      `${cell.batch} spells the confinement expression. RFC-2026-022 §5/2 gives it exactly one legal `
+      + 'spelling and §7.1/7 requires that literal to appear ONCE in the tree, in the lint — a second '
+      + 'spelling in a migration is the failure M4 measured, and it fails open into an error.');
   }
 });
