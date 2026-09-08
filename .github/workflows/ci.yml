@@ -490,4 +490,69 @@ jobs:
           control app.usage_events            '[a-z0-9-]*usage-event'       061
           control app.usage_reservations      '[a-z0-9-]*usage-reservation' 061
           control app.quota_buckets           '[a-z0-9-]*quota-bucket'      061
+          #
+          # THE TWO NOTIFICATION TABLES IN `app`, AND THE ONE ENTRY IN THIS STEP THAT RESTS ON A
+          # TENANT BOUNDARY A CLIENT CAN ACTUALLY SEE. On 050, 060, 130's plan catalog and 140 the
+          # entry rests on a service read or a service write alone, because none of them grants a
+          # client role anything and a privilege-layer refusal is not restored by disabling row level
+          # security. §8.4's "Own notification SELECT/mark read" is `O` for all five built-in roles
+          # and batch 051 implements it, so disabling row level security on app.notifications
+          # dissolves TWO boundaries rather than one.
+          #
+          # WHAT DISABLING IT LETS THROUGH, which is the sentence a reader needs at the point of use:
+          #
+          #   * TENANT A READS TENANT B'S INBOX. `owner-a-cannot-see-the-notification-of-owner-b`
+          #     and its write half fail.
+          #   * A MEMBER READS ANOTHER MEMBER OF THEIR OWN WORKSPACE'S INBOX, THE OWNER INCLUDED.
+          #     §5 scopes this family "workspace/user" and §8.4 gives the owner no more than the
+          #     viewer, where §8.1 gives the owner and admin the member list and 011's roster policy
+          #     implements it. `owner-a-cannot-see-the-notification-of-editor-a` and
+          #     `editor-a-cannot-see-the-notification-of-owner-a` fail.
+          #   * A SUSPENDED MEMBER READS AGAIN. The fixture addresses a notification TO
+          #     user_suspended_a, so `suspended-a-sees-zero-notifications` is about a row that would
+          #     become visible rather than about an empty table.
+          #   * THE SERVICE READS AND WRITES. app_worker holds column-scoped grants and no policy —
+          #     §8.4's `S` cell is classified CARRIED in db/foundation/lint/service-policy-map.json
+          #     and RFC-2026-022 is approved and NOT IN EFFECT — so `service-sees-zero-notification-
+          #     rows` returns the row and `service-cannot-write-a-notification-row` succeeds where it
+          #     must be refused.
+          #
+          # TEN CASES MATCHING THE PATTERN ARE RESTORED BY DISABLING IT, and
+          # tests/db/identity/identity-isolation.test.mjs pins five of them by id, by outcome and by
+          # layer so deleting one fails the build rather than quietly thinning the entry.
+          control app.notifications           '[a-z0-9-]*notification'   051
+          #
+          # AND app.notification_preferences RESTS ON EXACTLY ONE CASE, which is said here rather
+          # than left to be counted. §8 has NO ROW for a notification preference in any of its four
+          # matrices, so batch 051 grants no client role anything on it and every client case is a
+          # privilege-layer refusal that disabling row level security does not restore. What makes
+          # the entry bite is the single grant that does exist: app_worker holds a column-scoped
+          # SELECT and no policy, so `service-sees-zero-channel-preference-rows` returns the row with
+          # RLS off. The service is granted no INSERT — no document says a service sets a person's
+          # preference, and a verb issued ahead of a caller is a verb nobody reviews against one — so
+          # there is no second, policy-layer case to rest on, and this entry is in the state batch
+          # 030 warned about: one deletion away from resting on none. The static suite pins that one
+          # case by id, which is the refusal of that deletion.
+          #
+          # THE PATTERN IS `channel-preference` AND NOT `notification-preference` ON PURPOSE. The
+          # entry above needs `[a-z0-9-]*notification`, which would match every id containing
+          # `notification-preference` too, and this entry could then be satisfied by an inbox
+          # regression it did not cause — the overlap batch 130 measured across the pre-existing
+          # entries and could only report. Batch 051's case ids are named so that its own two
+          # patterns are disjoint, which identity-isolation.test.mjs asserts over the whole merged
+          # case set.
+          control app.notification_preferences '[a-z0-9-]*channel-preference' 051
+          #
+          # THERE IS NO ENTRY FOR private.push_subscription_references, AND THE ABSENCE IS ASSERTED
+          # IN BOTH DIRECTIONS. It is the same shape batch 060 established for
+          # private.ai_credential_references and the reason is the same: NO ROLE HOLDS ANY PRIVILEGE
+          # ON IT — not the client, not app_worker, not app_command, not app_maintenance, not
+          # app_authz — and no role holds USAGE on schema `private`, because §9.1 lists "push token"
+          # as an example of SECRET-4 and gives that class a client projection of "never returned
+          # after write". Disabling row level security on that table therefore restores no grant, no
+          # case would fail, and this step's own first failure message — "The isolation suite PASSED
+          # with row level security DISABLED" — would fire on a correct database. An entry here would
+          # report a pass it did not earn. identity-isolation.test.mjs requires the entry to be
+          # ABSENT while no migration grants a privilege on a table in `private`, and REQUIRED the
+          # moment one does.
           echo "negative control: every family above failed the suite, as each must."

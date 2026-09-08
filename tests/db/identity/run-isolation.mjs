@@ -66,6 +66,12 @@ export const FIXTURE_SQL_FILES = [
   // against an empty database. It is last because the list is an order and a new batch joins its
   // end, and because the ids it carries are the ids the earlier fixtures made real.
   'tests/db/identity/fixtures/140-audit-fixture.sql',
+  // Batch 051's POSITION IS A DEPENDENCY, unlike 140's, and the two entries above and below say
+  // which is which so the list stays honest about what it is. All three of its tables carry
+  // `workspace_id ... references app.workspaces (id)`, so these rows need 010's workspaces; nothing
+  // in the file names a Business, a job, a model or an audit record, so it could sit second. It is
+  // last because the list is an ORDER and a new batch joins its end.
+  'tests/db/identity/fixtures/051-notification-fixture.sql',
   // Batch 061's position IS a dependency and not only a convention. Its ledger rows resolve their
   // job attribution by subquery against app.jobs — CTR-USG-001 requires attribution.job_id and batch
   // 050 gave a job no catalog symbol, so a uuid literal here would have been an invented constant —

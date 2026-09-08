@@ -6209,3 +6209,898 @@ test('neither coverage map carries a duplicated key', async () => {
       + 'second `10:` label carrying ordinals the integration run had already corrected.');
   }
 });
+
+// =============================================================================================
+// Batch 051 — notification, whose tenant boundary is a CONJUNCTION of two terms.
+// =============================================================================================
+//
+// The tests below are shaped by three facts, and each of them is new to this file:
+//
+//   1. §5 scopes notification.core "workspace/USER". Every tenant table before app.notifications is
+//      scoped by workspace alone, so its policies are a CONJUNCTION — the recipient AND active
+//      membership — and a conjunction is the one predicate shape a suite can be green against while
+//      half of it is missing, because dropping either conjunct only widens what is visible.
+//   2. §8.4's two notification rows separate BY COLUMN, where §8.4's two JOB rows could not. Batch
+//      050 had to refuse its client cell because "a redacted status" is a transformation with no
+//      column list; here the client cell is a column-scoped grant and the `N` cell is the three
+//      columns left out of it. So the tests read the GRANT and not only the policy.
+//   3. §9.1 lists "push token" as an example of SECRET-4, so this batch's third table is the second
+//      one this repository has in `private` — and the controls on it are the ones that do not depend
+//      on recognising a secret, because a Web Push endpoint is an ordinary https URL that no
+//      scanner can tell from a link.
+const NOTIFICATION_MIGRATION = 'db/foundation/migrations/051_notification.sql';
+const NOTIFICATION_FIXTURE = 'tests/db/identity/fixtures/051-notification-fixture.sql';
+const notification = await readFile(NOTIFICATION_MIGRATION, 'utf8');
+const notificationCode = notification.replace(/--[^\n]*/g, '');
+const NOTIFICATIONS = 'notifications';
+const NOTIFICATION_PREFERENCES = 'notification_preferences';
+const PUSH_REFERENCES = 'push_subscription_references';
+// CTR-NTF-001's three channels, verbatim from the contract's own enum. PT-007 gives "in-app first;
+// email/LINE future" and the contract's x-source records the two future ones as a DECLARED
+// INFERENCE, listed so adding one is a visible contract change.
+const NOTIFICATION_CHANNELS = ['in_app', 'email', 'line'];
+// Its four delivery states, likewise. Unlike CTR-JOB-001 — whose freeze boundary reserves lifecycle
+// state names to an owner review, which is why batch 050 wrote no status column at all — this
+// contract ENUMERATES them and its x-source declares them, so §3.2's "text + named CHECK" applies to
+// a set a source of truth fixed.
+const DELIVERY_STATES = ['queued', 'delivered', 'failed', 'suppressed_duplicate'];
+// The three columns of app.notifications no client role may reach. The first two are §8.4's second
+// row; the third is §8's silence, which is a different reason and is why it is a separate case in
+// the suite as well as a separate entry here.
+const WITHHELD_FROM_CLIENTS = ['delivery_state', 'delivery_failure_class', 'dedupe_key'];
+// §9.2's permitted column list for a secret table, plus the four columns 051 adds with the clause
+// that permits each. The migration's apply-time block holds the live catalog to exactly this set.
+const SECRET_COLUMN_ALLOWLIST = ['id', 'workspace_id', 'user_id', 'provider', 'credential_reference',
+  'fingerprint', 'created_at', 'updated_at', 'rotated_at', 'expires_at', 'revoked_at', 'last_active_at'];
+
+test('every batch 051 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const [schema, table] of [['app', NOTIFICATIONS], ['app', NOTIFICATION_PREFERENCES],
+    ['private', PUSH_REFERENCES]]) {
+    assert.match(notificationCode, new RegExp(`create table (?:if not exists )?${schema}\\.${table}\\b`, 'i'));
+    assert.match(notificationCode, new RegExp(`alter table ${schema}\\.${table} enable row level security`, 'i'));
+    assert.match(notificationCode, new RegExp(`alter table ${schema}\\.${table} force row level security`, 'i'),
+      `${schema}.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint `
+      + 'rule reads only the first (RFC-2026-016 §4)');
+    assert.match(notificationCode, new RegExp(`comment on table ${schema}\\.${table} is`, 'i'));
+    assert.match(notificationCode,
+      new RegExp(`create table (?:if not exists )?${schema}\\.${table}[\\s\\S]{0,4000}?primary key`, 'i'));
+  }
+  // AND THE POLICY SETS, WHICH DIFFER PER TABLE AND ARE THE BATCH'S THREE DISPOSITIONS.
+  // app.notifications implements §8.4's client cell; the other two implement nothing, because §8 has
+  // no row for either object anywhere in its four matrices.
+  assert.match(notificationCode, /create policy notifications_select_own on app\.notifications/i);
+  assert.match(notificationCode, /create policy notifications_update_own_read_state on app\.notifications/i);
+  for (const [schema, table] of [['app', NOTIFICATION_PREFERENCES], ['private', PUSH_REFERENCES]]) {
+    assert.doesNotMatch(notificationCode, new RegExp(`create policy \\w+ on ${schema}\\.${table}\\b`, 'i'),
+      `${schema}.${table} carries a policy and §8 has no row for it in any of its four matrices. Where a `
+      + 'document is silent the cell is denied (030 met the same silence first); a policy here would be a '
+      + 'permission written by a migration for a caller no document names.');
+  }
+  // The empty policy sets are a DECISION written in the file, which is 030's rule.
+  assert.match(notification, /Both are ENABLE \+ FORCE with an EMPTY POLICY SET/,
+    'the migration states that the empty policy set is the decision, where a reader meets it');
+});
+
+// THE CENTRE OF THE BATCH, HALF ONE. §5's "workspace/user" as a predicate with two terms.
+test('the notification policies are a conjunction of recipient AND active membership', () => {
+  const policies = [...notificationCode.matchAll(
+    /create policy (\w+) on app\.notifications\s+for (\w+) to (\w+)([\s\S]*?);\n/gi)];
+  assert.equal(policies.length, 2, 'batch 051 writes exactly two policies: §8.4 gives this family one '
+    + 'client cell with two halves — "Own notification SELECT/mark read" — and nothing else');
+
+  for (const [, name, command, role, body] of policies) {
+    assert.equal(role, 'authenticated', `${name}: §8.5 requires a policy be written TO authenticated for a `
+      + 'user path. A service policy is a different thing and this batch writes none (RFC-2026-022 is '
+      + 'approved and NOT IN EFFECT).');
+    // USING AND WITH CHECK ARE TWO CATALOG COLUMNS AND ARE ASSERTED SEPARATELY, which is 040's rule:
+    // a gutted USING filters nothing on read while still refusing writes, so a test that reads the
+    // policy as one blob passes on a database where half of it is missing.
+    const halves = command === 'update'
+      ? [body.slice(body.indexOf('using'), body.indexOf('with check')), body.slice(body.indexOf('with check'))]
+      : [body];
+    assert.ok(halves.every((h) => h.length > 0), `${name}: an update policy has two halves and this has one`);
+    if (command === 'update') {
+      assert.match(body, /\busing\b/, `${name}: §8.5 requires USING on an update policy`);
+      assert.match(body, /\bwith check\b/, `${name}: §8.5 requires WITH CHECK on an update policy`);
+    }
+    for (const half of halves) {
+      assert.match(half, /user_id = \(select auth\.uid\(\)\)/,
+        `${name}: §8.4 marks the cell \`O\` — own row — so every half of every predicate tests the RECIPIENT. `
+        + "Dropping this term lets every active member of a workspace read every other member's inbox — "
+        + 'including the OWNER, which §8.1 admits on the member list (011\'s roster policy) and §8.4 does '
+        + 'not admit here, so a predicate copied from the roster shape passes everything except '
+        + '`owner-a-cannot-see-the-notification-of-editor-a` and its mirror.');
+      assert.match(half, /app\.is_active_member\(workspace_id\)/,
+        `${name}: §8.5 requires "active membership + capability + Workspace/Business/Page scope" of a SELECT, `
+        + '§3.3 makes a notification a tenant-owned row, and §12.6/5 requires a suspended member to see zero '
+        + 'TENANT rows. Dropping this term lets a suspended, left or removed member keep reading — which is '
+        + 'a DIFFERENT leak from the one above, and is why the suite carries a case per term.');
+    }
+  }
+  // Neither term is reached by joining the membership table, which RFC-2026-020 §5/5 makes uniform.
+  assert.doesNotMatch(notificationCode, /from app\.workspace_members\b/,
+    'no predicate in batch 051 reads app.workspace_members. Membership is resolved through 011\'s '
+    + 'app.is_active_member, which is SECURITY DEFINER and owned by app_authz; a policy that joined the '
+    + 'membership table would be the shape batch 011 was written to remove.');
+  // And 021's scope helpers are called nowhere, because there is nothing to narrow.
+  for (const helper of ['member_scope_covers_business', 'member_scope_covers_page',
+    'member_scope_admits_business', 'member_scope_admits_page', 'member_scope_is_narrowed']) {
+    assert.doesNotMatch(notificationCode, new RegExp(`app\\.${helper}\\b`),
+      `batch 051 calls app.${helper}. §7's three scope types all name a Business or a Page and a notification `
+      + 'is addressed by its Workspace and its recipient, so there is nothing for a member scope to narrow.');
+  }
+  // WHICH IS ALSO WHY THERE IS NO RESTRICTIVE POLICY, and the absence is asserted rather than assumed:
+  // a narrowing needs one, and this batch has no narrowing.
+  assert.doesNotMatch(notificationCode, /as restrictive/i,
+    'batch 051 writes no RESTRICTIVE policy. 021, 030 and 040 each wrote one because a permissive policy '
+    + 'cannot subtract from another permissive policy; here the two permissive policies are for DIFFERENT '
+    + 'COMMANDS, so they never OR together, and the other two tables have empty permissive sets a '
+    + 'restrictive policy could only refuse what is already refused in.');
+});
+
+// THE CENTRE OF THE BATCH, HALF TWO. §8.4's two rows as a column list, in both directions.
+test('the §8.4 client cell is a column grant, and the three withheld columns are withheld', () => {
+  const clientSelect = notificationCode.match(
+    /grant select \(([^)]*)\)\s*on app\.notifications to authenticated/i);
+  assert.ok(clientSelect, '§8.4 marks "Own notification SELECT/mark read" `O` for all five built-in roles — '
+    + 'the same shape §8.1 gives "Own user profile SELECT/UPDATE", which 010 implemented as a '
+    + 'column-scoped grant plus an own-row policy — and batch 051 implements it. A missing grant here would be '
+    + 'the cell going unimplemented without the header changing.');
+  const selectable = clientSelect[1].split(',').map((c) => c.trim());
+
+  for (const column of WITHHELD_FROM_CLIENTS) {
+    assert.ok(!selectable.includes(column),
+      `app.notifications.${column} is in the client SELECT grant. delivery_state and `
+      + 'delivery_failure_class are §8.4\'s SECOND row — "Notification insert/delivery state | N N N N N S" '
+      + '— and dedupe_key is named in NEITHER row, so where the document is silent the cell is denied. A '
+      + 'client holding it could enumerate which events the system decided not to notify about twice.');
+  }
+  // The positive half: the columns §8.4's FIRST row actually grants. Without this the test would be
+  // satisfied by a grant of nothing.
+  for (const column of ['id', 'workspace_id', 'user_id', 'channel', 'message_key', 'read_at']) {
+    assert.ok(selectable.includes(column),
+      `app.notifications.${column} is not in the client SELECT grant, so §8.4's "Own notification SELECT" `
+      + 'is not implemented for a column a reader would need');
+  }
+
+  // "mark read" is ONE COLUMN. §8.4's first row grants it and its second row denies everything else,
+  // and a one-column UPDATE grant is the difference expressed where RFC-2026-021 §8.4 asks for it:
+  // "a table-wide grant is a finding even when it covers exactly the same columns today".
+  assert.match(notificationCode, /grant update \(read_at\) on app\.notifications to authenticated/i,
+    '§8.4 reads "Own notification SELECT/MARK READ" and the second half is a one-column UPDATE grant. Any '
+    + 'wider grant would let a recipient change the channel, the message key or the deep link of a row the '
+    + 'product will render.');
+  // NO table-wide grant to a client anywhere in the batch.
+  for (const role of CLIENT_ROLES) {
+    assert.doesNotMatch(notificationCode,
+      new RegExp(`grant\\s+(?:select|insert|update|delete|all)[^(;]*\\bon\\s+app\\.\\w+\\s+to\\s+${role}\\b`, 'i'),
+      `batch 051 makes a table-wide grant to ${role}. §8.5 requires column-scoped grants and RFC-2026-021 §8.4 `
+      + 'makes a table-wide one a finding even when it covers the same columns today — which is exactly the '
+      + 'defect independent review found in batch 060, where a table-wide UPDATE included the tenant column '
+      + 'while two shipped comments said no UPDATE existed at all.');
+  }
+  // `anon` is granted nothing anywhere in the batch (RFC-2026-021 §7/4).
+  assert.doesNotMatch(notificationCode, /\bto\s+anon\b/i);
+  // And the apply-time block checks the same claim against the LIVE ACL, because a grant made by a
+  // later batch would not appear in this file at all.
+  assert.match(notificationCode, /a client role reaches a column §8\.4 marks N/,
+    'the migration asserts the withheld columns against the live catalog and not only against its own grant '
+    + 'text. A rule that reads the file it lives in cannot see the batch that widens it.');
+});
+
+test('a notification cannot be re-identified, moved between tenants or re-addressed by an update', () => {
+  // §8.5's "ห้ามย้าย row ข้าม tenant/scope ด้วย update", and on this table the SCOPE IS TWO COLUMNS
+  // rather than one: user_id is as much a scope as workspace_id, because §8.4's cell is `O`.
+  const updateGrants = [...notificationCode.matchAll(
+    /grant update \(([^)]*)\)\s*on app\.notifications to (\w+)/gi)];
+  assert.equal(updateGrants.length, 2, 'two UPDATE grants on app.notifications: one column for the client '
+    + '(read_at) and the two delivery columns for the service. Marking read is the recipient\'s act and '
+    + 'recording delivery is the service\'s, and neither role holds the other\'s column.');
+  for (const [, columns, role] of updateGrants) {
+    for (const forbidden of ['id', 'workspace_id', 'user_id', 'dedupe_key']) {
+      assert.ok(!columns.split(',').map((c) => c.trim()).includes(forbidden),
+        `${role} holds UPDATE on app.notifications.${forbidden}. §8.5 forbids moving a row across tenant or `
+        + 'scope with an update; dedupe_key is in this list because a deduplication key that can be edited '
+        + "after the fact deduplicates nothing (050's reason for app.jobs).");
+    }
+  }
+  // read_at is the CLIENT's column and not the service's; the delivery columns are the service's and
+  // not the client's. Asserted as the pair, because a batch that swapped them would satisfy each half.
+  const [clientUpdate] = updateGrants.filter(([, , role]) => role === 'authenticated');
+  const [serviceUpdate] = updateGrants.filter(([, , role]) => role === 'app_worker');
+  assert.deepEqual(clientUpdate[1].split(',').map((c) => c.trim()), ['read_at']);
+  assert.deepEqual(serviceUpdate[1].split(',').map((c) => c.trim()), ['delivery_state', 'delivery_failure_class'],
+    'app_worker does NOT hold read_at: §8.4 marks "Own notification SELECT/mark read" `P` for the service, '
+    + 'and `P` is "passes per policy/EXPLICIT capability" over a capability set no document defines — the '
+    + 'refusal 011, 020, 021 and 030 each recorded and RFC-2026-020 §8 ratified.');
+  // And the live-ACL half of the same claim.
+  assert.match(notificationCode, /an identity, scope or dedupe column of app\.notifications is updatable/,
+    'the migration asserts §8.5 per column against the live catalog rather than against its own grant text');
+  // No DELETE anywhere, for any role, on any of the three tables.
+  assert.doesNotMatch(notificationCode, /grant[^;]*\bdelete\b[^;]*on (app|private)\./i,
+    '§8.5 has no broad user delete and hard deletion of these three families is a retention sweep — '
+    + 'NOTIFICATION-INBOX and PUSH-SECRET both name a purge — which batch 160 owns through app_maintenance, '
+    + 'granted nothing here.');
+});
+
+// THE SECRET-4 TABLE. Everything else in this batch argues that a push subscription cannot be READ;
+// these are the assertions about it not being STORED.
+test('the push subscription table holds a reference and has no column a credential could be in', () => {
+  // §3.1 puts "secret references" in `private` by name, with no direct grant. §14's gate checklist
+  // requires a secret table not be exposed, and `app` is the exposed schema.
+  assert.match(notificationCode, /create table (?:if not exists )?private\.push_subscription_references\b/i,
+    '§9.1 lists "push token" as one of its four examples of SECRET-4 — this is the class the document '
+    + 'assigns, not one read by analogy — and §3.1 puts a secret reference in `private`. A SECRET-4 table in '
+    + "`app` fails §14's gate checklist on the day somebody reads it.");
+
+  // THE VALUE COLUMNS THAT DO NOT EXIST, BY NAME. A Web Push subscription is an ENDPOINT — a bearer
+  // capability URL — plus the p256dh and auth KEYS. None of the three has a column here, and neither
+  // does any ciphertext or wrapped form of one.
+  for (const forbidden of ['endpoint', 'p256dh', 'auth_secret', 'auth_key', 'push_token', 'ciphertext',
+    'subscription_json', 'keys']) {
+    assert.doesNotMatch(notificationCode,
+      new RegExp(`^\\s+${forbidden}\\s+(text|bytea|jsonb|json)\\b`, 'mi'),
+      `private.push_subscription_references declares a column called ${forbidden}. §9.2 is an ABSOLUTE `
+      + 'PROHIBITION and fixes the permitted column list of a secret table exhaustively; §9.1 gives SECRET-4 '
+      + '"vault/encrypted secret store; never plaintext DB/log". The endpoint is a bearer capability and the '
+      + 'two keys are keys.');
+  }
+
+  // THE ALLOWLIST, WHICH IS THE CONTROL RATHER THAN THE LIST ABOVE. A denylist of column names
+  // somebody thought of is defeated by the one they did not — and on this table the one they did not
+  // think of is `endpoint`, which is an ordinary https URL that no secret scanner can recognise. So
+  // the migration asserts the column set against the live catalog at APPLY TIME, as an allowlist.
+  const allowlist = notificationCode.match(/a\.attname::text <> all \(array\[([\s\S]*?)\]\)/);
+  assert.ok(allowlist, "the migration must hold private.push_subscription_references to §9.2's permitted "
+    + 'column list at apply time. Without it a later batch adding `endpoint text` fails the code review '
+    + 'instead of the migration, which is the difference between a prohibition and a control.');
+  const permitted = [...allowlist[1].matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
+  assert.deepEqual(permitted, [...SECRET_COLUMN_ALLOWLIST].sort(),
+    "the apply-time allowlist is §9.2's permitted columns plus exactly four this batch adds with the clause "
+    + "that permits each: workspace_id (§3.3), user_id (§5's \"workspace/user\" and §11.2's per-member push "
+    + 'revocation), revoked_at (§11.4 step 2 and §11.2, both by name) and last_active_at (§10\'s PUSH-SECRET, '
+    + '"active + 30 วัน inactive"). A fifth that arrived without a clause would be a column nobody '
+    + 'classified.');
+  // The declared columns and the allowlist must be the same set in both directions: an allowlist
+  // entry with no column is a permission nobody uses, and a column with no entry fails only at apply
+  // time, on a database this repository does not run against on every check.
+  const tableStart = notificationCode.indexOf('create table if not exists private.push_subscription_references');
+  const declared = notificationCode.slice(tableStart, notificationCode.indexOf('comment on table private.'));
+  for (const column of SECRET_COLUMN_ALLOWLIST) {
+    assert.match(declared, new RegExp(`^\\s+${column}\\s+\\w`, 'm'),
+      `private.push_subscription_references does not declare ${column}, which its own apply-time allowlist `
+      + 'permits. An allowlist entry with no column is a permission nobody uses and a rule nobody checks.');
+  }
+  // §9.2's own "fingerprint/last-four-like identifier", as a CEILING. Sixteen characters cannot hold
+  // a push endpoint (a URL) or a p256dh key (65 bytes, base64url). It is the mirror of 010's 32-byte
+  // FLOOR on token_hash, which stopped a plaintext token fitting a digest column.
+  assert.match(notificationCode, /fingerprint is null or \(length\(btrim\(fingerprint\)\) between 1 and 16\)/,
+    'the fingerprint ceiling is what stops a whole endpoint or key being written into the one column §9.2 '
+    + 'describes as "last-four-like"');
+  // And the provider vocabulary is a SHAPE and not a value set, because no decision names a push
+  // provider — where DEC-014 names five AI providers and batch 060 could therefore write a CHECK.
+  assert.match(notificationCode, /push_subscription_references_provider_form/,
+    '§15 forbids an agent choosing an open decision, and no decision in this repository enumerates a push '
+    + 'transport. 060 constrained model_key in FORM and never in VALUE under OPEN-004 for the same reason.');
+  assert.doesNotMatch(notificationCode, /push_subscription_references_provider_known/,
+    'a value CHECK here would be inventing the provider vocabulary DEC-014 gives batch 060 and no decision '
+    + 'gives this one');
+});
+
+test('no role holds any privilege on the push subscription table, and none holds USAGE on private', () => {
+  // The strongest form of §9.1's "never returned after write" and §3.1's "ไม่มี direct grant": not a
+  // policy refusing a read, but no grant for a policy to be reached through.
+  assert.doesNotMatch(notificationCode, /\bon\s+(?:table\s+)?private\.push_subscription_references\s+to\b/i,
+    'a role holds a privilege on private.push_subscription_references. Batch 060 established this shape for '
+    + 'private.ai_credential_references and it is adopted unamended, so this schema has ONE secret-handling '
+    + 'convention rather than two: RFC-2026-012\'s inventory says "no read by anyone, INCLUDING SERVICE" and '
+    + '§8 has no row for a push subscription in any of its four matrices.');
+  assert.doesNotMatch(notificationCode, /grant\s+usage\s+on\s+schema\s+private/i,
+    'and no role is granted USAGE on schema `private`, which is the grant that would have to come first — '
+    + 'and which would put private.as_user, private.as_suspended_user, private.as_service and every worker '
+    + "payload table a later batch puts there inside the reach of whoever received it (RFC-2026-021 §7/4's "
+    + 'structural argument about anon and schema app, one schema over).');
+  // The live-ACL half, asserted at apply time over all six roles.
+  assert.match(notificationCode, /a role holds a privilege on private\.push_subscription_references/,
+    'the migration walks the six roles against the live ACL, because a grant made by a later batch would not '
+    + 'appear in this file');
+  // AND THE COST, STATED WHERE IT IS PAID. It is the same trade 060 made and it is what the CI control
+  // test below holds this batch to.
+  assert.match(notification, /THE CI NEGATIVE CONTROL CAN HAVE NO ENTRY/i,
+    'the migration states the price of granting the service nothing: every refusal on this table is a '
+    + 'privilege-layer refusal on the SCHEMA, so disabling row level security restores nothing and the '
+    + 'control step can have no entry. A batch that took that trade silently would be leaving a table '
+    + 'un-controlled without saying so.');
+});
+
+// The `S` cell, RFC-2026-022, and the one sentence the decision forbids anybody writing.
+test('the S cell is classified rather than implemented, and no service policy is written', () => {
+  for (const role of ['app_worker', 'app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(notificationCode,
+      new RegExp(`create\\s+policy[\\s\\S]{0,600}?\\bto\\s+${role}\\b`, 'i'),
+      `batch 051 writes a policy TO ${role}. RFC-2026-022 is APPROVED AND NOT IN EFFECT — measured `
+      + '2026-09-08, the only member of app_worker is postgres, which BYPASSES row level security — so a '
+      + 'batch classifies its cells in db/foundation/lint/service-policy-map.json and writes no service '
+      + 'policy until §7 of that RFC holds.');
+  }
+  // The grants exist so the denial is attributable to RLS rather than to a forgotten GRANT, which is
+  // 010's shape and 010's reason. Without them `service-cannot-write-a-notification-row` would be a
+  // 42501 that proves only that somebody forgot a GRANT.
+  assert.match(notificationCode, /grant insert \([^)]*\)\s*on app\.notifications to app_worker/i);
+  assert.match(notificationCode, /grant select \([^)]*\)\s*on app\.notification_preferences to app_worker/i);
+  // And app_worker holds SELECT and NOTHING ELSE on the preference table.
+  const preferenceGrants = [...notificationCode.matchAll(
+    /grant (\w+) \([^)]*\)\s*on app\.notification_preferences to (\w+)/gi)];
+  assert.deepEqual(preferenceGrants.map((m) => `${m[2]}:${m[1]}`), ['app_worker:select'],
+    'app_worker holds SELECT and nothing else on app.notification_preferences, and no client role holds '
+    + 'anything. §8 has no row for a preference, so a verb issued here is a verb nobody reviews against a '
+    + "caller (060's sentence about app.ai_models) — and the consequence, that the CI control for that "
+    + 'table rests on ONE case, is stated in the workflow rather than repaired by granting a verb to make a '
+    + 'test rounder.');
+});
+
+test("the service-policy map classifies this batch's S cell, in both statements, as CARRIED", async () => {
+  const map = JSON.parse(await readFile('db/foundation/lint/service-policy-map.json', 'utf8'));
+  const mine = map.cells.filter((c) => c.batch === '051_notification.sql');
+  assert.equal(mine.length, 2, '§8.4\'s cell reads "Notification insert/delivery state" and names TWO '
+    + 'statements. RFC-2026-022 §7.2 keys the register on (cell, STATEMENT) and never on the table alone — '
+    + 'its own asset-hard-purge row is BOTH shapes for exactly that reason — so a single row here would be '
+    + 'classifying one statement and leaving the other unanswered.');
+  assert.deepEqual(mine.map((c) => c.operation).sort(), ['insert', 'update']);
+  for (const cell of mine) {
+    assert.equal(cell.table, NOTIFICATIONS, 'the cell is about the inbox: §8.4 has no row for a preference '
+      + 'or a push subscription, so neither has an `S` cell to classify');
+    assert.equal(cell.shape, 'carried', "RFC-2026-022 §3's test asks where the statement GETS the workspace "
+      + "it acts on. Both of these carry it: §8.4's other notification row is `O`, so an inbox row cannot "
+      + "be addressed without knowing whose it is, and the recipient and the workspace are in the INSERT's "
+      + "own VALUES list and in the UPDATE's WHERE by id. Adding the confinement term to either changes "
+      + 'nothing about which work it addresses, which is the operational form §3 spells.');
+    assert.match(cell.cell, /^§8\.4 Notification insert\/delivery state/);
+    assert.ok(cell.why.length > 200, 'the reason must be a sentence somebody can disagree with, not a label');
+  }
+  // AND THE SENTENCE RFC-2026-022 MAKES A CONDITION OF THE DECISION. Nothing in this batch may cite
+  // the workspace GUC as tenant isolation of the service path: the RFC measured twice that the role a
+  // service policy names can set the setting that policy reads, and that the catalog cannot be asked
+  // who may.
+  //
+  // The coverage notes are read as EVALUATED STRINGS and not as source: in the file they are a
+  // concatenation of string literals, so `' + '` sits between every line and a source-text regex
+  // measures the quoting rather than the sentence.
+  const claim = /workspace GUC[\s\S]{0,240}?tenant isolation of the service path/gi;
+  // THE SENTENCE IS REQUIRED where a reader meets the classification: in the migration that made it
+  // and in the two coverage notes that record what the batch could and could not pay. A batch that
+  // classifies a cell and never states the condition has taken the decision without it.
+  for (const [what, text] of [['the migration', notification],
+    ['the §12.6/8 coverage note', SMOKE_COVERAGE[8].note],
+    ['the §8.6 case 10 disposition', String(AUTHORIZATION_CASE_COVERAGE[10])]]) {
+    assert.match(text, /CONTAINMENT/,
+      `${what} does not carry RFC-2026-022's containment sentence. The RFC makes it a condition of the `
+      + 'decision — the GUC is containment against defects in the service\'s own code and NEVER tenant '
+      + 'isolation of the service path, measured twice — so a batch that classifies a cell and never states '
+      + 'it has taken the decision without its condition.');
+  }
+  // AND THE NEGATION IS REQUIRED EVERYWHERE THE TWO IDEAS APPEAR TOGETHER, which is the half that
+  // catches a later edit rather than this one. The map and the whole case list are included: the RFC
+  // says no comment, note or test may cite the GUC as tenant isolation, and a rule that only read the
+  // files this batch wrote would stop holding the moment somebody wrote it somewhere else.
+  for (const [what, text] of [['the migration', notification],
+    ['the §12.6/8 coverage note', SMOKE_COVERAGE[8].note],
+    ['the §8.6 case 10 disposition', String(AUTHORIZATION_CASE_COVERAGE[10])],
+    ['the case list', await readFile(CASES_FILE, 'utf8')],
+    ['the service-policy map', JSON.stringify(map)]]) {
+    for (const hit of text.matchAll(claim)) {
+      assert.match(hit[0], /NEVER|never/,
+        `${what} associates the workspace GUC with tenant isolation of the service path without the word `
+        + 'that negates it. RFC-2026-022 makes it a condition of the decision that the GUC is CONTAINMENT '
+        + "against defects in the service's own code and NEVER tenant isolation, because the role a service "
+        + 'policy names can set the setting that policy reads — measured twice — and that no comment, note '
+        + 'or test cite it as the latter.');
+    }
+  }
+});
+
+test('batch 051 adds to the merged batches and rewrites none of them', () => {
+  assert.doesNotMatch(notificationCode, /drop policy if exists \w+ on app\.(?!notifications\b)/i,
+    'a `drop policy` in batch 051 may only name a policy this batch creates. Migration invariant 1 forbids '
+    + "rewriting a merged migration, and dropping another batch's policy is that with extra steps.");
+  const drops = [...notificationCode.matchAll(/drop trigger if exists (\w+) on (app|private)\.(\w+)/g)];
+  assert.equal(drops.length, 3, 'one drop per trigger this batch creates, and no others');
+  for (const [, name, schema, table] of drops) {
+    assert.ok([NOTIFICATIONS, NOTIFICATION_PREFERENCES, PUSH_REFERENCES].includes(table),
+      `batch 051 drops a trigger on ${schema}.${table}, which it does not create`);
+    assert.match(notificationCode,
+      new RegExp(`create trigger ${name} before[\\s\\S]{0,80}on ${schema}\\.${table}\\b`),
+      `${name} is dropped by batch 051 and not created by it`);
+  }
+  for (const table of ['workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items', 'jobs', 'outbox_events',
+    'consumer_ledger', 'audit_logs']) {
+    assert.doesNotMatch(notificationCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 051 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  assert.doesNotMatch(notificationCode, /\bto\s+app_authz\b/i,
+    'no grant and no policy names app_authz (RFC-2026-020 §5/3 and §6.1/6)');
+  assert.match(notificationCode, /pg_catalog\.pg_roles/,
+    'pg_roles and never pg_authid: pg_authid needs a superuser, so a migration reading it passes in CI and '
+    + 'fails on the platform (batch 020 found this)');
+  assert.doesNotMatch(notificationCode, /pg_authid/);
+  assert.ok(!notificationCode.includes("(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid"),
+    'the inlined platform identity expression belongs to batch 011 alone — scripts/db/run.mjs holds it to a '
+    + 'count of exactly two');
+  assert.match(notificationCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(notificationCode, /(public|extensions)\.gen_random_uuid/);
+  assert.match(notificationCode, /private\.set_updated_at\(\)/,
+    'updated_at is stamped by batch 000\'s helper on all three tables, because all three rows are MUTABLE — '
+    + 'omitting the column would be declaring the row immutable, which §3.2 says of versions, evidence, '
+    + 'decisions, usage, audit and publish history and does not say of any of these');
+  for (const synonym of ['tenant_id', 'organization_id', 'brand_id', 'page_id']) {
+    assert.doesNotMatch(notificationCode, new RegExp(`\\b${synonym}\\b`),
+      `§3.3 forbids the synonym ${synonym} outright in the canonical domain schema`);
+  }
+  // §3.3 fixes no canonical field name for the USER scope, which is a gap this batch had to cross and
+  // records rather than resolving silently: `user_id` is the spelling batch 010 established.
+  assert.match(notification, /§3\.3 FIXES NO CANONICAL FIELD NAME FOR THE USER SCOPE/,
+    '§3.3 names workspace_id, business_profile_id, page_context_profile_id and social_account_id and no user '
+    + 'field, so a batch scoped "workspace/user" has to choose one. Choosing the spelling two merged '
+    + 'migrations already use is the narrow answer; doing it without saying so would be inventing a '
+    + 'canonical name in a file nobody reads for that.');
+});
+
+test("the notification row is CTR-NTF-001's shape, and every field it declines is declared", () => {
+  // The contract sits at position 2 of CONTRIBUTING_AGENTS.md's conflict order and this repository's
+  // data package at 4, so where §5's silence about columns and the contract's field list disagree,
+  // the contract wins — 140's reading of CTR-AUD-001 and 050's of CTR-JOB-001.
+  for (const [column, why] of [
+    ['channel', "CTR-NTF-001's channel enum"],
+    ['message_key', "CTR-NTF-001's message_key, with its own pattern"],
+    ['dedupe_key', "ID-005's dedupe key, which the contract requires"],
+    ['deep_link_target_ref', "the deep_link object's target_ref, flattened"],
+    ['deep_link_requires_permission', "the deep_link object's requires_permission, flattened"],
+    ['delivery_state', "the delivery object's state, flattened"],
+    ['delivery_failure_class', "the delivery object's failure_class, flattened"],
+  ]) {
+    assert.match(notificationCode, new RegExp(`^\\s+${column}\\s+\\w`, 'm'),
+      `app.notifications does not carry ${column} — ${why}. A migration that ignores a frozen contract is `
+      + 'worse than one that contradicts it, because nothing downstream finds out.');
+  }
+  // The vocabularies are the contract's, as text + named CHECKs (§3.2).
+  for (const channel of NOTIFICATION_CHANNELS) {
+    assert.match(notificationCode, new RegExp(`notifications_channel_known[\\s\\S]{0,120}?'${channel}'`),
+      `the channel vocabulary must contain ${channel}, which CTR-NTF-001 enumerates`);
+  }
+  for (const state of DELIVERY_STATES) {
+    assert.match(notificationCode, new RegExp(`notifications_delivery_state_known[\\s\\S]{0,200}?'${state}'`),
+      `the delivery vocabulary must contain ${state}, which CTR-NTF-001 enumerates`);
+  }
+  // THE TWO DECLINED FIELDS, EACH DECLARED. A refusal a reader has to infer from an absence is a
+  // refusal nobody reviewed.
+  assert.doesNotMatch(notificationCode, /^\s+kind\s+text/m,
+    '`kind` distinguishes the two DOCUMENT SHAPES on the wire — a command and a result — and an inbox row is '
+    + 'neither: it is the notification, and it carries the delivery state a result reports.');
+  assert.doesNotMatch(notificationCode, /^\s+locale\s+text/m,
+    'CTR-NTF-001 makes locale `enum: ["th-TH"]` — one value — and §3.2 fixes th-TH globally. 140\'s '
+    + 'sentence: a constant is not a field.');
+  assert.match(notification, /NO `kind` COLUMN/, 'and the migration says so where a reader meets it');
+  assert.match(notification, /NO `locale` COLUMN/);
+  // THE TWO PLACES THE CONTRACT IS SHORT OF AN INBOX, which is a finding rather than a licence.
+  assert.match(notification, /THE RECIPIENT\. The contract has no recipient field at all/,
+    'CTR-NTF-001 models a channel-neutral command/result PAIR and not the row that sits in somebody\'s '
+    + 'inbox, so it carries no recipient — while §5 scopes the family "workspace/user", §8.4 marks the cell '
+    + '`O` and §10 says "user notifications ... delete with user/workspace". Three documents require the '
+    + 'column and the contract is short of it.');
+  assert.match(notification, /WHETHER IT HAS BEEN READ/,
+    'and `read_at` likewise: §8.4 grants "mark read" and the contract has no read field, because being read '
+    + 'is a property of an inbox and the contract models a message');
+  // The unbounded fields are REPORTED and not invented around (050's rule about CTR-JOB-001).
+  assert.match(notification, /WHAT THE CONTRACT LEAVES UNBOUNDED, REPORTED AND NOT FIXED/,
+    "four of the contract's string fields carry a minLength or a pattern and NO maxLength, where "
+    + 'CTR-EVT-001 bounded every equivalent in RFC-2026-009 and CTR-JOB-001 bounds its references at 256. A '
+    + 'CHECK enforcing a bound the contract does not state would make the database stricter than the wire.');
+});
+
+test('the two cross-field rules CTR-NTF-001 states are two constraints and deliberately not one', () => {
+  // allOf[2]: a failed delivery names its class (CT-007 requires transient and permanent be
+  // distinguishable). allOf[3]: a delivered one carries none — the rule independent testing of the
+  // contract added after finding `state: delivered` with `failure_class: permanent` accepted.
+  assert.match(notificationCode,
+    /notifications_failure_names_its_class[\s\S]{0,200}?delivery_state <> 'failed'/,
+    'CTR-NTF-001 allOf[2]: "a failure stating neither is unusable to a retry policy"');
+  assert.match(notificationCode,
+    /notifications_delivered_carries_no_failure_class[\s\S]{0,200}?delivery_state <> 'delivered'/,
+    'CTR-NTF-001 allOf[3], which independent testing of that contract found missing');
+  // AND NOT THE TIDIER BICONDITIONAL, which is the assertion. Batch 140 wrote
+  // `(outcome = 'succeeded') = (error_code is null)` as ONE constraint because CTR-AUD-001's two
+  // rules there really were one biconditional over two states. Here they are two rules over FOUR
+  // states: `queued` and `suppressed_duplicate` are unconstrained by both, so the tidier form would
+  // make this database refuse a document the contract admits.
+  assert.doesNotMatch(notificationCode,
+    /\(delivery_state = '\w+'\) = \(delivery_failure_class is (not )?null\)/,
+    'a biconditional here would be STRICTER THAN THE CONTRACT. Two of the four delivery states are '
+    + "unconstrained by both allOf rules, and 050's rule applies: a CHECK enforcing something the contract "
+    + 'does not state makes the database reject envelopes the schema accepts.');
+  assert.match(notification, /TWO constraints and not one biconditional/,
+    'and the migration says why, because the tidier form is what a later reader will try to write');
+  // The deep link's const-plus-required pair, which the contract's own x-source explains.
+  assert.match(notificationCode, /deep_link_requires_permission\s+boolean\s+not null/,
+    'CTR-NTF-001 puts requires_permission in `required` AS WELL AS `const: true`, because "a const never '
+    + 'fires on an ABSENT property: without the requirement the permission check failed open silently. '
+    + 'Independent testing found it." NOT NULL is the requirement half.');
+  assert.match(notificationCode, /check \(deep_link_requires_permission\)/,
+    'and the CHECK is the const half. Either alone is the failure the contract records.');
+  // And the target_ref grammar, verbatim, which is what stops a notification carrying a link out of
+  // the product: a closed scheme list, no leading slash, no `..` segment, no public URL.
+  assert.match(notificationCode, /notifications_deep_link_target_ref_form/);
+  assert.match(notificationCode, /\^\(app\|content\|asset\|job\):/,
+    "the deep-link grammar is CTR-NTF-001's own, whose x-source records it as the catalog reference form "
+    + 'adopted from CTR-IDM-001');
+});
+
+test('the dedupe key is unique per recipient and deliberately not per channel', () => {
+  assert.match(notificationCode, /unique \(workspace_id, user_id, dedupe_key\)/,
+    'ID-005 requires that "a completed or retried event must not notify a USER twice beyond policy", and a '
+    + 'dedupe key that is not unique deduplicates nothing. workspace_id is in the key because CTR-IDM-001 '
+    + 'makes an idempotency key\'s scope include the workspace BY CONTRACT and §11.1/9 states the principle; '
+    + "user_id is in it because ID-005's sentence names the user.");
+  assert.doesNotMatch(notificationCode, /unique \([^)]*channel[^)]*dedupe_key/,
+    'channel is deliberately NOT in the key. Including it would let one dedupe_key notify a person once per '
+    + 'channel — an in-app card AND an email AND a LINE message for one event — and email and LINE are '
+    + 'EXTERNAL SIDE EFFECTS, which CONTRIBUTING_AGENTS.md makes stop-the-line when duplicated while a '
+    + "suppressed duplicate is not. That is 050's reason for excluding job_type from app.jobs' key.");
+  // THE CHANNEL VOCABULARY HAS TWO HOMES AND THEY MAY NOT DRIFT — asserted here as a SET COMPARISON
+  // and not only as the apply-time block's presence, which is a probe result rather than a design
+  // choice: reversing the preference CHECK to two channels was noticed by nothing static, because
+  // the apply-time assertion is text this file matched for and a database this repository does not
+  // reach on every check is what would have run it. The comparison below is the static half.
+  const channelSets = ['notifications_channel_known', 'notification_preferences_channel_known']
+    .map((name) => {
+      const m = notificationCode.match(new RegExp(`${name}[\\s\\S]{0,200}?check \\(channel in \\(([^)]*)\\)\\)`));
+      assert.ok(m, `${name} is missing or is not a channel value CHECK`);
+      return [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1]).sort();
+    });
+  assert.deepEqual(channelSets[0], [...NOTIFICATION_CHANNELS].sort(),
+    "app.notifications.channel must carry CTR-NTF-001's three channels and no others");
+  assert.deepEqual(channelSets[0], channelSets[1],
+    'the two channel vocabularies have drifted. A channel app.notifications accepts and '
+    + 'app.notification_preferences does not is a channel WITH NO OPT-OUT, and email and LINE are '
+    + 'EXTERNAL SIDE EFFECTS; the reverse is a preference for a channel nothing can be sent on. The '
+    + 'migration asserts the same thing at apply time by comparing the two deparsed constraint '
+    + "definitions (060's device), and this is the half that runs without a database.");
+  assert.match(notificationCode, /the channel vocabulary differs between its two homes/,
+    'app.notifications.channel and app.notification_preferences.channel carry the same three names, and the '
+    + "apply-time block requires the two deparsed CHECK definitions to be BYTE-IDENTICAL — 060's device for "
+    + 'a vocabulary with two homes. Drift would produce a channel with no opt-out, and email and LINE are '
+    + 'external side effects.');
+});
+
+test('the tables batch 051 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 13, 'the control runs per table family, and batch 051 adds two');
+
+  // A case is RESTORED by disabling row level security when it is a filtered read, a filtered write,
+  // or a POLICY-layer refusal. 040 counted only the first two; 060 corrected it, because a `denied`
+  // case whose layer is `policy` is exactly what an empty policy set produces over an existing grant.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+
+  // app.notifications rests on TEN and app.notification_preferences on ONE, and the difference is the
+  // difference between a family with an implemented §8 cell and a family §8 is silent about.
+  for (const [table, floor] of [[NOTIFICATIONS, 10], [NOTIFICATION_PREFERENCES, 1]]) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on one `
+      + "table and requires a failed case whose id matches that table's pattern; a batch that adds a table "
+      + "and no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '051', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.ok(detectable.length >= floor,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would change behaviour with row `
+      + `level security disabled, and this entry needs at least ${floor}. A control naming a pattern nothing `
+      + 'matches reports a pass it did not earn.');
+  }
+
+  // THE TWO PATTERNS MUST NOT OVERLAP, and on this batch that took a naming decision rather than a
+  // lucky accident: `notification-preference` contains `notification`, so the preference case ids say
+  // `channel-preference` instead. Without that the preference entry would be satisfied by an inbox
+  // regression it did not cause — the overlap batch 130 measured across the pre-existing entries and
+  // could only report.
+  const inboxPattern = new RegExp(`^${controls.find(([, n]) => n === NOTIFICATIONS)[2]}`);
+  const preferencePattern = new RegExp(`^${controls.find(([, n]) => n === NOTIFICATION_PREFERENCES)[2]}`);
+  for (const c of cases) {
+    assert.ok(!(inboxPattern.test(c.id) && preferencePattern.test(c.id)),
+      `${c.id} matches BOTH batch 051 control patterns, so each entry could be satisfied by the other `
+      + "table's regression");
+  }
+
+  // WHAT EACH ENTRY RESTS ON, pinned by id and by outcome so deleting one fails the build. The five
+  // for app.notifications cover all four ways it can be broken: the tenant boundary, the recipient
+  // boundary, suspension, and the service's read and its write.
+  for (const [table, name, expect, layer] of [
+    [NOTIFICATIONS, 'owner-a-cannot-see-the-notification-of-owner-b', 'no-rows', undefined],
+    [NOTIFICATIONS, 'owner-a-cannot-see-the-notification-of-editor-a', 'no-rows', undefined],
+    [NOTIFICATIONS, 'suspended-a-sees-zero-notifications', 'no-rows', undefined],
+    [NOTIFICATIONS, 'service-sees-zero-notification-rows', 'no-rows', undefined],
+    [NOTIFICATIONS, 'service-cannot-write-a-notification-row', 'denied', 'policy'],
+    [NOTIFICATION_PREFERENCES, 'service-sees-zero-channel-preference-rows', 'no-rows', undefined],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the outcome is what disabling row level security changes`);
+    assert.equal(found.deniedBy, layer, `${name}: the layer is what makes it change`);
+    assert.ok(restoredByDisablingRls(found), `${name} would not be restored by disabling row level security`);
+  }
+
+  // AND THE ABSENCE, IN BOTH DIRECTIONS, which is the whole of this batch's control story for the
+  // SECRET-4 table. 060 established the shape; there are now two tables it has to hold.
+  const privateGrants = /grant\s+[\s\S]{0,400}?\bon\s+(?:table\s+)?private\./i.test(migrationText);
+  const privateEntry = [...workflow.matchAll(/^\s*control\s+private\.(\w+)/gm)];
+  if (privateGrants) {
+    assert.ok(privateEntry.length > 0,
+      'a migration now grants a privilege on a table in `private`, so some identity can reach it and the '
+      + 'negative control must have an entry that disables row level security there. The entry was absent '
+      + 'only because no grant existed.');
+  } else {
+    assert.deepEqual(privateEntry.map((m) => m[1]), [],
+      'no role holds any privilege on private.push_subscription_references or on '
+      + 'private.ai_credential_references, so disabling row level security on either restores nothing and '
+      + 'NO case would fail. An entry would make the step\'s own first failure message — "The isolation '
+      + 'suite PASSED with row level security DISABLED" — fire on a correct database, which is a control '
+      + 'reporting a pass it did not earn.');
+  }
+  assert.match(workflow, /THERE IS NO ENTRY FOR private\.push_subscription_references/,
+    'and the workflow says so beside the entries, because a control whose mechanism lives only in a test is '
+    + 'a control nobody reads at the point of use');
+  assert.match(workflow, /THE TWO NOTIFICATION TABLES IN `app`/,
+    'each entry says beside itself what disabling row level security on that table would let through');
+  assert.match(workflow, /app\.notification_preferences RESTS ON EXACTLY ONE CASE/,
+    'and the weaker of the two entries says so where it lives, rather than leaving the count to be derived '
+    + 'from the suite — batch 030 established that an entry resting on one case is one deletion away from '
+    + 'resting on none');
+});
+
+test('the batch 051 fixture writes only catalog identities and carries both halves of the scope', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(NOTIFICATION_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['notification_owner_a', 'notification_editor_a', 'notification_suspended_a',
+    'notification_owner_b']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // THE TWO ROWS THAT MAKE THE CONJUNCTION FALSIFIABLE, asserted by the identity they are addressed
+  // to rather than by their own id — because what makes each one work is WHOSE it is.
+  assert.ok(used.has(id('user_editor_a')),
+    'notification_editor_a is addressed to user_editor_a, an ACTIVE MEMBER of workspace_a who is not its '
+    + 'owner. Without that, `owner-a-cannot-see-the-notification-of-editor-a` would be a second cross-tenant '
+    + 'case and dropping `user_id = (select auth.uid())` would go unnoticed.');
+  assert.ok(used.has(id('user_suspended_a')),
+    'notification_suspended_a is addressed to user_suspended_a. Without it, '
+    + '`suspended-a-sees-zero-notifications` is satisfied by there being nothing addressed to them, and '
+    + 'dropping `app.is_active_member(workspace_id)` would go unnoticed too.');
+  // Both tenants, so the boundary case is about two real rows.
+  assert.ok(used.has(id('workspace_a')) && used.has(id('workspace_b')),
+    'both sides of the boundary are loaded, or the refusal on the far side is about a missing row');
+
+  // ALL FOUR DELIVERY STATES ACROSS FOUR ROWS. A fixture whose rows all take the same branch of every
+  // CHECK leaves the other branch permitted and never satisfied (040's rule, 140's words) — and here
+  // it matters more than usual, because the two delivery constraints are NOT a biconditional and the
+  // two states neither of them mentions are the ones that show the difference.
+  for (const state of DELIVERY_STATES) {
+    assert.match(fixture, new RegExp(`'${state}'`),
+      `the fixture must load a notification in the ${state} state, or that branch of CTR-NTF-001's `
+      + 'delivery rules is permitted by a CHECK and satisfied by nothing');
+  }
+  assert.match(fixture, /'failed', 'transient'/,
+    'allOf[2]: a failed delivery names its class, which CT-007 requires so a retry policy can act on it');
+  assert.match(fixture, /'delivered', null/,
+    'allOf[3]: a delivered notification carries NO failure class — the rule independent testing of the '
+    + 'contract added after finding `delivered` with `permanent` accepted');
+  // EVERY NOTIFICATION LOADS UNREAD, because two `no-effect` witnesses assert `read_at` is still
+  // null and a witness asserts a VALUE. THE FIRST VERSION OF THIS COUNTED `null, timestamptz '`
+  // OCCURRENCES AND A PROBE WALKED THROUGH IT: setting read_at on one row leaves the count at four,
+  // because the failure_class null before it still sits beside a timestamp. So the assertion is
+  // structural instead — inside the notifications insert alone, no two timestamps may be adjacent,
+  // which is what a set read_at looks like next to created_at.
+  const inbox = fixture.slice(fixture.indexOf('insert into app.notifications'),
+    fixture.indexOf('insert into app.notification_preferences'));
+  assert.ok(inbox.length > 0, 'the fixture must load the inbox');
+  assert.doesNotMatch(inbox, /timestamptz '[^']*',\s*timestamptz/,
+    'a notification loads with read_at already set. A `no-effect` witness asserts a VALUE, and null is the '
+    + 'value a refused mark-read would have changed — with a timestamp there the witness would pass on a '
+    + 'database where the write had landed. The non-null state of the column is produced by '
+    + '`owner-a-can-mark-their-own-notification-read` instead, which is stronger evidence because it shows '
+    + 'a policy ADMITTING a write rather than a row asserting a literal.');
+  assert.equal((inbox.match(/,\s*null,\s*timestamptz '/g) ?? []).length, 4,
+    'and all four rows are there with a null read_at beside their created_at, so the rule above is about '
+    + 'four rows rather than about a slice that failed to match');
+
+  // BOTH BRANCHES OF THE ONE BOOLEAN THE PREFERENCE TABLE HOLDS.
+  assert.match(fixture, /'in_app', true\)/, 'a preference that is on');
+  assert.match(fixture, /'email', false\)/,
+    'and one that is off, so a case cannot be satisfied by a column that is the same value everywhere');
+
+  // THE SECRET-4 ROW CARRIES NO CREDENTIAL. The repository's secret scan runs over this file on every
+  // `npm run check` and could not save us here — a push endpoint is an ordinary https URL at a vendor
+  // host and no scanner can tell one from a link. This is the same claim asserted where a reader sees
+  // it.
+  assert.match(fixture, new RegExp(`insert into private\\.${PUSH_REFERENCES}`),
+    'the fixture loads a push subscription reference. Every case against that table is refused at name '
+    + 'resolution, which passes whether or not the table has rows — so the row is what stops the negatives '
+    + 'being satisfied by an empty table.');
+  assert.match(fixture, /vault:\/\/fixture\//,
+    'the reference is a readable synthetic LOCATOR. §9.2 permits a reference and forbids the values it '
+    + 'points at — the endpoint and the p256dh and auth keys — appearing in this database, a log, an event, '
+    + 'a job payload or a fixture.');
+  for (const shape of [/fcm\.googleapis/, /updates\.push\.services\.mozilla/, /\bsk-[A-Za-z0-9]/,
+    /\beyJ[A-Za-z0-9_-]/, /-{5}BEGIN/, /BN[A-Za-z0-9_-]{80,}/]) {
+    assert.doesNotMatch(fixture, shape,
+      'the fixture carries nothing shaped like a real push endpoint or key. The first two are the vendor '
+      + "hosts a Web Push endpoint actually lives at and the last is a p256dh key's base64url form; none of "
+      + 'them is a secret a scanner would flag, which is exactly why the control is that the columns do not '
+      + 'exist rather than that a scanner would notice.');
+  }
+  assert.doesNotMatch(fixture, /\bnow\(\)/,
+    'every timestamp is FIXED: a fixture whose content depends on when it ran is one whose failures depend '
+    + "on when they ran (030's sentence about released_at). Fixing created_at and expires_at also makes "
+    + 'push_subscription_references_expiry_after_creation hold on every run rather than until an interval '
+    + 'elapses.');
+  assert.match(fixture, /on conflict \(id\) do nothing/,
+    'the notifications are idempotent on the primary key, because a notification has no natural key any '
+    + 'document fixes');
+  assert.match(fixture, /on conflict \(workspace_id, user_id, channel\) do nothing/,
+    'the preferences are idempotent on their COMPOSITE PRIMARY KEY, which is why they need no fixture '
+    + 'symbol: every id in that tuple is already in the catalog');
+  assert.match(fixture, /on conflict \(credential_reference\) do nothing/,
+    'and the subscription on its unique reference, which is why it needs none either — no case addresses it '
+    + 'by id, because no identity may read it');
+});
+
+test('the coverage map records what a two-term boundary can carry and what §8 silence cannot', () => {
+  // NO §12.6 ROW MOVES, which is the honest answer rather than a modest one — every row batch 051
+  // touches was already `true`, and the one that stays partial stays partial for a stated reason.
+  assert.equal(SMOKE_COVERAGE[1].covered, true, 'the row does not move — it was true before this batch');
+  assert.match(SMOKE_COVERAGE[1].note, /BATCH 051 ADDS app\.notifications WITH ALL THREE CASES/,
+    "§12.6/1 needs three cases and not two — A reads its own, A cannot read B's, and B CAN — which batch "
+    + '020 established and this batch carries on its one readable table');
+  assert.match(SMOKE_COVERAGE[1].note, /refused by BOTH terms of the predicate independently/,
+    "and the note says which of this batch's cases is the WEAK one, because a cross-tenant case on a "
+    + 'two-term predicate is satisfied by either term surviving');
+
+  // §12.6/5 IS WHERE THIS BATCH CHANGES WHAT AN ASSERTION MEANS, and the note has to say so, because
+  // three batches in a row had to label their suspended cases analogues.
+  assert.equal(SMOKE_COVERAGE[5].covered, true);
+  assert.match(SMOKE_COVERAGE[5].note, /BATCH 051 IS WHERE THIS ASSERTION FINALLY BITES/,
+    '§12.6/5 asks for zero TENANT rows. On 050, 060 and 140 a suspended member was refused where every '
+    + 'ACTIVE member is also refused, so the refusal was the privilege system rather than suspension and the '
+    + 'cases were labelled analogues. Here the fixture addresses a notification TO the suspended member and '
+    + 'an active member in the same relationship reads theirs, so the empty result is suspension.');
+  assert.match(SMOKE_COVERAGE[5].note, /THE MUTATION HALF IS CARRIED AT A WEAKER GRANULARITY/,
+    'and the note says where the claim stops: the strongest mutation case cannot be written, because a '
+    + "`no-effect` case needs a witness and no identity in this schema may read the suspended member's own "
+    + 'notification');
+  // No batch 051 case is labelled an analogue, which is the machine-checkable half of that claim.
+  const analogues = cases.filter((c) => (c.covers ?? []).includes('§12.6/5-analogue')
+    && /notification|channel-preference|push-subscription/.test(c.id));
+  assert.deepEqual(analogues, [], 'no batch 051 case needs the analogue label, because on app.notifications '
+    + 'suspension is genuinely what refuses');
+
+  // §12.6/8 STAYS `negative-half`, and what it is waiting for has moved again.
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 051 owns an `S` cell, classifies it, and still writes no service policy — so the positive half '
+    + 'stays unasserted. Asserting it would mean writing a policy RFC-2026-022 says is not in effect.');
+  assert.match(SMOKE_COVERAGE[8].note, /RFC-2026-022/,
+    "the note names the decision that answered 050's and 140's question, because the next reader should "
+    + 'find the answer where the question was sent');
+  assert.match(SMOKE_COVERAGE[8].note, /APPROVED AND NOT IN EFFECT/,
+    'and names what blocks it NOW, which is no longer "no document names the GUC" but "the decision that '
+    + 'names it is not in effect": the only member of app_worker bypasses row level security');
+  assert.match(SMOKE_COVERAGE[8].note, /CONTAINMENT[\s\S]{0,240}?NEVER/,
+    'and carries the sentence RFC-2026-022 makes a condition of the decision');
+  // The old ordinal is corrected in place rather than deleted, with the reason recorded.
+  assert.match(SMOKE_COVERAGE[8].note, /This note said it was "the first and only `S` cell/,
+    "the note claimed 140 reached the first and only `S` cell in the repository. That was true of 140's "
+    + 'branch and false of the tree it merged into — 050 reached §8.4\'s job cell in parallel — and batch '
+    + '051 has now reached a third. The 2026-09-07 integration corrected four sites of the same claim and '
+    + 'this one was missed, which is what a coverage note is for.');
+
+  // §8.6: the dispositions this family needs, and the ones it does not.
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[1]), /BATCH 051 CARRIES FOUR PASSING CASES/,
+    '§8.6 case 1 is "same Workspace + allowed role/scope → pass", and this batch has one — and a passing '
+    + 'WRITE. §8.4 reads "Own notification SELECT/MARK READ" and the second half is implemented, which '
+    + 'is what the passing write is about.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[2]), /BATCH 051 PUTS A WRONG-IDENTITY REFUSAL HERE/,
+    '§8.6 case 2 is "wrong role/capability", and on a family scoped "workspace/user" the refusal a member '
+    + 'meets is a wrong-RECIPIENT one. The disposition says so rather than filing it as a role refusal.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[3]), /BATCH 051 CARRIES NO CASE FOR IT EITHER/,
+    '§8.6 case 3 is the Business boundary and this family has no Business level');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[9]), /BATCH 051 CARRIES NO IMMUTABLE OR LEDGER ROW/,
+    "§8.6 case 9 is the immutable or ledger row, and none of this batch's three tables is one — a "
+    + 'notification is marked read, a preference is switched, a subscription is rotated. Counting the four '
+    + "DELETE refusals as this case would be reporting §8.5 under case 9's name.");
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[10]), /BATCH 051 IS WHERE THAT FINDING WAS ANSWERED/,
+    '§8.6 case 10 is "authorized server command → pass + expected audit/outbox", and this batch adds a third '
+    + 'store nothing can write to the two 050 and 140 left');
+
+  // The labels this batch introduced are cited by cases, so the reasoning cannot stop being asserted
+  // while every §12.6 row stays green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.4/own-notification', '§8.4/notification-insert', '§8.4/notification-delivery',
+    '§5/workspace-user', '§9.1/SECRET-4', '§11.2/revoke', 'RFC-2026-022§3']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 051 rests on and no case cites it`);
+  }
+});
+
+// THE DEFECT THIS BATCH FOUND WHILE APPENDING TO THE COVERAGE MAPS, AS A RULE RATHER THAN AS A NOTE.
+//
+// AUTHORIZATION_CASE_COVERAGE carried the key `10` TWICE. In a JavaScript object literal the later
+// definition wins silently, so the first was dead at runtime while present in the file — and its body
+// was a byte-for-byte copy of case 9's tail from BEFORE the 2026-09-07 integration corrected it,
+// still carrying two of the ordinal claims that integration recorded as fixed ("A FIFTH AND A SIXTH
+// IMMUTABLE TABLE", "THE FIFTH AND SIXTH IMMUTABLE TABLES"). Nothing was lost by deleting it, which
+// was verified by diff; everything is gained by a rule, because this is precisely the seam §4 of that
+// integration warned the next four batches about — a resolution that PARSES, where git cannot see the
+// loss, the linters cannot see it, and the tests that would have caught it are the ones removed.
+test('neither coverage map declares a key twice, and both cover exactly the range they claim', async () => {
+  const source = await readFile(CASES_FILE, 'utf8');
+  for (const [name, map, span] of [
+    ['SMOKE_COVERAGE', SMOKE_COVERAGE, 8],
+    ['AUTHORIZATION_CASE_COVERAGE', AUTHORIZATION_CASE_COVERAGE, 10],
+  ]) {
+    const start = source.indexOf(`export const ${name}`);
+    const end = source.indexOf('\n};', start);
+    const region = source.slice(start, end);
+    // Top-level keys only: a key line starts at exactly two spaces of indentation.
+    const declared = [...region.matchAll(/^ {2}(\d+): /gm)].map((m) => Number(m[1]));
+    assert.deepEqual(declared, [...declared].sort((a, b) => a - b),
+      `${name}: the keys are out of order, which is how a duplicate arrives unnoticed in a hand merge`);
+    assert.equal(new Set(declared).size, declared.length,
+      `${name} declares a key twice. A JavaScript object literal keeps the LAST definition and discards the `
+      + 'earlier one SILENTLY, so the discarded block stays in the file for a reader to trust while nothing '
+      + 'reads it. That is what happened to AUTHORIZATION_CASE_COVERAGE[10] between the 2026-09-07 '
+      + 'integration and batch 051, and the discarded block still carried two ordinal claims that '
+      + 'integration had corrected everywhere a program could see.');
+    assert.deepEqual(declared, Array.from({ length: span }, (_, i) => i + 1),
+      `${name} must declare exactly ${span} keys, one per §12.6 assertion or §8.6 case, with none missing `
+      + 'and none invented — 030 refused to add a ninth §12.6 key for a shape that document has no row for, '
+      + 'and this is that refusal as a rule.');
+    assert.deepEqual(Object.keys(map).map(Number), declared,
+      `${name}: what the module EXPORTS must equal what the file DECLARES. If they differ, a key was `
+      + 'discarded at parse time and the file is telling a reader something the program does not know.');
+  }
+});
+
+// A WITNESS CANNOT COMPARE TO NULL, BECAUSE THE DRIVER CANNOT ENCODE ONE.
+//
+// This rule exists because batch 051 shipped two witnesses declared `column: 'read_at',
+// equals: null` and four of its cases failed the FIRST time a database ran them, on a branch whose
+// whole suite was green on the author's machine every time it was checked. The driver reads psql's
+// CSV output and CSV has no NULL: an unset timestamp arrives as the empty string, so a strict
+// comparison against `null` can never hold, and `run-isolation.mjs` reported "the write was NOT
+// stopped" about a write that was stopped perfectly.
+//
+// The tempting repair is `equals: ''`, and it is worse than the bug: it would hold equally for a
+// column somebody had set TO the empty string, so the case would pass while asserting something
+// weaker than it says. The predicate belongs where NULL exists -- `select (x is null) as ...` --
+// and the harness compares two values the encoding can carry.
+//
+// Nothing local can catch this. The isolation suite needs Postgres, the repository declares no
+// client, and DATA-DEC-02 leaves the runner to A0; the only machine that runs these cases is CI.
+// So the rule is stated where a machine without a database can still enforce it.
+test('no witness compares against a value the driver cannot encode', async () => {
+  const withWitness = cases.filter((c) => c.witness);
+  assert.ok(withWitness.length > 0, 'there are witnesses to check, or this rule is asking nothing');
+  for (const c of withWitness) {
+    assert.notEqual(c.witness.equals, null,
+      `${c.id}: its witness compares ${c.witness.column} against null. psql's CSV renders NULL and the `
+      + 'empty string identically, so this comparison cannot hold however correct the database is. Ask '
+      + "the database instead — `select (col is null) as ...` — and compare 't'.");
+    assert.notEqual(c.witness.equals, undefined,
+      `${c.id}: its witness declares no expected value, so it asserts that the column equals undefined `
+      + 'and would fail against every database.');
+  }
+});
