@@ -147,6 +147,14 @@
     "workspace_b": {
       "uuid": "43fd5c24-ebea-528f-9ce9-eedf1f8f9765",
       "role": "tenant B — the workspace nothing on the A side may ever reach"
+    },
+    "meta_connection_a": {
+      "uuid": "d01a6cd3-0bf0-5d97-a627-7bfcf620687d",
+      "role": "the Meta connection workspace_a holds, and the parent of every other batch 110 row on the A side: the social account discovered under it, the credential reference in `private` that names it, and the webhook delivery that would resolve to it. It carries an `_a` suffix because a connection is a tenant-owned row (\u00a74's ERD reads WORKSPACE ||--o{ META_CONNECTION), unlike the global catalog rows this file also holds. Every batch 110 case that addresses it is a refusal, and the assertion is never 'A cannot reach B's row': no client identity reaches app.meta_connections at all, because \u00a78.3 grants a HEALTH PROJECTION rather than the row and the read allowlist is empty. The one role holding a grant is app_worker, and what refuses it is row level security -- which is what the CI negative control for that table rests on."
+    },
+    "meta_connection_b": {
+      "uuid": "d83a993a-1cec-598f-9a8d-c1b2566c5bdb",
+      "role": "the same row for workspace_b, and it is not decoration. A refusal that holds for one tenant because the other tenant has no row is a refusal about a missing fixture, so both sides carry a connection and a discovered social account, and the batch's substitute for a cross-tenant claim -- 'both owners are refused identically, at the same layer, with the same message' -- is about two real rows. It is also what makes app.social_accounts' workspace-scoped natural key legible as data: the SAME external account hash is loaded on both sides, and the unique constraint is over (workspace_id, external_account_hash), so neither insert can report that the other tenant already holds that account."
     }
   },
   "_why_a_knowledge_item_needs_a_symbol_when_a_version_does_not": "Batch 040 adds FIVE symbols and no earlier batch added more than four, which is worth explaining rather than leaving as a number. A version row is addressed by its parent and its ordinal, a member scope by its member and its target, an industry assignment by the Business it belongs to -- every one of those is a natural key some document fixes. A KNOWLEDGE ITEM HAS NONE. Nothing in §4, §5 or §8 says a Business holds one voice profile, and inventing a `unique (business_profile_id, kind)` so that the fixture could address a row without a symbol would be encoding a product decision into a constraint in order to save five constants. So the items are named here and their versions are not: app.knowledge_item_versions makes (knowledge_item_id, version_number) unique, and every case that addresses a version addresses it through an item id this file fixes.",

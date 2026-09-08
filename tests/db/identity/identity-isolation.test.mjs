@@ -3615,12 +3615,33 @@ test('the schema lint holds a private table to the same rules, and that changes 
   "and a private table with no primary key is a finding, because §12.3's list is written about "
     + 'tables rather than about exposure');
   // The rule was widened in the batch that needed it, and it must not have changed any verdict for
-  // the batches already merged. None of them creates a table outside `app`, so the claim is checkable
-  // rather than merely plausible.
-  assert.deepEqual([...migrationText.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
-    .map((m) => m[1]), [AI_REFERENCES],
-  'batch 060 creates the only table in `private` in the whole migration set, so widening the lint '
-    + 'to reach that schema changes no verdict for batches 000-040');
+  // the batches already merged. That is checked by re-running the lint over the migrations that
+  // predate the widening rather than by counting tables.
+  //
+  // A6 META CONNECTOR CORRECTION, batch 110. This read `deepEqual(..., [AI_REFERENCES])` with the
+  // message "batch 060 creates the ONLY table in `private` in the whole migration set" — an ordinal
+  // that was true of 060's branch and is false as soon as any later batch puts a table there, which
+  // batch 110 does twice (§3.1 names "raw webhook" and "secret references" in the same row). The
+  // inertness claim never needed the count: what it is about is that batches 000-040 create nothing
+  // outside `app`, which is a statement about THOSE FILES and stays true however many tables later
+  // batches add.
+  const beforeTheWidening = await Promise.all(migrationNamesInOrder
+    .filter((n) => n < '050')
+    .map(async (n) => ({ name: n, sql: await readFile(`${MIGRATIONS_DIR}/${n}`, 'utf8') })));
+  assert.deepEqual(beforeTheWidening.flatMap(({ sql }) =>
+    [...sql.replace(/--[^\n]*/g, '').matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
+      .map((m) => m[1])), [],
+  'no migration up to 040 creates a table outside `app`, so widening the lint to reach `private` '
+    + 'changed no verdict for any batch merged before it');
+  assert.deepEqual(await schemaLint(beforeTheWidening), [],
+    'and the widened rule still passes every one of them, which is the inertness claim itself rather '
+    + 'than a proxy for it');
+  // The tables that ARE in `private` today, so a batch putting one there without the four properties
+  // fails the rule above rather than escaping it by prefix.
+  const inPrivate = [...migrationText.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
+    .map((m) => m[1]);
+  assert.ok(inPrivate.includes(AI_REFERENCES),
+    'batch 060 put the reference in `private`, which is the case this widening was written for');
 });
 
 test('batch 060 adds to the merged batches and rewrites none of them', () => {
@@ -3773,8 +3794,14 @@ test('the coverage map records what batch 060 could carry and what a table with 
   assert.match(SMOKE_COVERAGE[7].note, /BATCH 060 ADDS NO FORGERY CASE AND CANNOT/,
     'a forged column rides in on a permitted write, and no client role holds one here');
   // The two rows it genuinely extends.
-  assert.match(SMOKE_COVERAGE[6].note, /only anonymous case in the suite whose declared object is `private`/,
-    '§12.6/6 gains a shape it has never had: an anonymous refusal on a schema that is not `app`');
+  // THE PIN IS ON THE SHAPE AND NO LONGER ON A COUNT. It read
+  // /only anonymous case in the suite whose declared object is `private`/ until batch 110 added two
+  // more such cases on its own `private` tables. The word "only" was a claim about the whole suite,
+  // which the branch that wrote it could not check and which this assertion would have kept alive —
+  // the same failure three ordinals produced in the parallel-authorship round. What batch 060
+  // actually contributed is the SHAPE, which is what a later batch can extend without falsifying.
+  assert.match(SMOKE_COVERAGE[6].note, /anonymous case whose declared object is `private` rather than `app`/,
+    '§12.6/6 gains a shape it did not have: an anonymous refusal on a schema that is not `app`');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'batch 060 gives the service a grant and no policy on two more tables and NO grant at all on a '
     + 'third, which is more negative evidence and not a positive');
@@ -4980,5 +5007,602 @@ test('the coverage map records what a table nobody can read can and cannot carry
     assert.notEqual(c.expect, 'rows',
       `${c.id}: a passing case on these tables would mean somebody granted a client role a privilege, `
       + 'which RFC-2026-021 §3 gives to an RFC and takes away from a pull request');
+  }
+});
+
+// =============================================================================================
+// Batch 110 — the Meta connector. Where a token does not go, and a scope the statement discovers.
+// =============================================================================================
+//
+// The static half of this batch carries what an apply-time block may not, following 030's rule and
+// 021's scar: 011's apply-time policy count is an APPLIED migration's self-assertion that 021 had
+// to route around rather than amend. So the three claims an approved decision is EXPECTED to change
+// — no client grant, no policy, and no grant at all on the two tables in `private` — live here,
+// where the batch that lands an allowlist entry, a command surface or RFC-2026-022 §7's broker
+// edits a line a reviewer reads.
+const CONNECTOR_MIGRATION = 'db/foundation/migrations/110_meta_connector.sql';
+const CONNECTOR_FIXTURE = 'tests/db/identity/fixtures/110-meta-connector-fixture.sql';
+const connector = await readFile(CONNECTOR_MIGRATION, 'utf8');
+const connectorCode = connector.replace(/--[^\n]*/g, '');
+const META_CONNECTIONS = 'meta_connections';
+const SOCIAL_ACCOUNTS = 'social_accounts';
+// Spelled without the word the repository's own secret scanner looks for. Its
+// `secret-named-assignment` rule fires on an UPPERCASE identifier containing CREDENTIAL assigned a
+// literal of eight characters or more, and batch 060 recorded hitting it on the first draft of the
+// equivalent line. A scanner that cannot tell a table name from a handle is behaving correctly; the
+// fix is the constant's name.
+const META_REFERENCES = 'meta_credential_references';
+const META_INBOX = 'meta_webhook_inbox';
+const CONNECTOR_APP_TABLES = [META_CONNECTIONS, SOCIAL_ACCOUNTS];
+// §9.2's permitted column list for a secret table, plus §3.3's canonical scope fields, §3.2's
+// convention columns and the one column §11.4 step 2 names. This is the SAME list the migration's
+// apply-time block holds the live catalog to, and the test below requires the two to agree — a
+// permitted set with two homes that can differ is a permitted set nobody maintains.
+const REFERENCE_COLUMNS_PERMITTED = ['id', 'workspace_id', 'meta_connection_id',
+  'credential_reference', 'fingerprint', 'created_at', 'updated_at', 'rotated_at', 'expires_at',
+  'revoked_at', 'created_by', 'updated_by'];
+// And the inbox's, which is NOT §9.2's list — that sentence is about a table whose purpose is to
+// hold a secret, and this row is PROVIDER-3 carrying a SECRET-4 hazard inside a body it therefore
+// does not store. The list is derived from §10's WEBHOOK-SHORT sentence and §3.2's conventions, and
+// it is asserted the same way because the failure it prevents is the same one.
+const INBOX_COLUMNS_PERMITTED = ['id', 'workspace_id', 'delivery_hash', 'body_ref', 'received_at',
+  'processed_at', 'failed_at', 'redacted_at', 'updated_at'];
+
+test('every batch 110 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  for (const [schema, table] of [['app', META_CONNECTIONS], ['app', SOCIAL_ACCOUNTS],
+    ['private', META_REFERENCES], ['private', META_INBOX]]) {
+    assert.match(connectorCode, new RegExp(`create table if not exists ${schema}\\.${table}\\b`),
+      `${schema}.${table} is created by batch 110`);
+    assert.match(connectorCode, new RegExp(`alter table ${schema}\\.${table} enable row level security`),
+      `${schema}.${table} enables row level security`);
+    assert.match(connectorCode, new RegExp(`alter table ${schema}\\.${table} force row level security`),
+      `${schema}.${table} FORCES it — ENABLE alone leaves the table owner exempt, and on a table with `
+      + 'no policy the owner is the only identity FORCE has left to refuse');
+    assert.match(connectorCode, new RegExp(`comment on table ${schema}\\.${table} is`),
+      `${schema}.${table} carries an owner comment (§3.1)`);
+    assert.match(connector.slice(connector.indexOf(`create table if not exists ${schema}.${table}`)).slice(0, 5000),
+      /primary key/i, `${schema}.${table} declares a primary key`);
+  }
+});
+
+test('batch 110 writes no policy and no client grant, and names the silence that decides each cell', () => {
+  assert.equal((connectorCode.match(/create\s+policy/gi) ?? []).length, 0,
+    'batch 110 writes no policy at all. §8.3 gives this family three rows: a HEALTH PROJECTION whose '
+    + 'object is a view on an empty allowlist, a COMMAND whose essential half is outside the database, '
+    + 'and an `S` cell RFC-2026-022 §3 classifies DISCOVERED and §5/5 gives no policy permanently.');
+  assert.equal((connectorCode.match(/drop\s+policy/gi) ?? []).length, 0,
+    "and it drops none either, so it cannot have touched a merged batch's policy set");
+
+  // THE OTHER DIRECTION, over the WHOLE migration set, which is what makes the claim about the
+  // SCHEMA rather than about one file: a policy added by a LATER batch would not appear in
+  // 110_meta_connector.sql at all, and it would silently turn grant-layer refusals into policy-layer
+  // ones while every case still declared `grant`.
+  for (const target of [`app.${META_CONNECTIONS}`, `app.${SOCIAL_ACCOUNTS}`,
+    `private.${META_REFERENCES}`, `private.${META_INBOX}`]) {
+    assert.doesNotMatch(migrationText, new RegExp(`create\\s+policy[\\s\\S]{0,300}?\\bon\\s+${target.replace('.', '\\.')}\\b`, 'i'),
+      `a migration attaches a policy to ${target}, and no §8.3 cell and no RFC authorises one yet`);
+  }
+
+  // No client grant anywhere in the batch, so RFC-2026-021 §8.5's CLOSED list of inherited
+  // base-table grants gains nothing. 030, 040 and 130 each grew it while recording the debt; this
+  // batch leaves it where it was, which is a consequence of the refusals above rather than a virtue.
+  for (const role of ['authenticated', 'anon']) {
+    assert.doesNotMatch(connectorCode, new RegExp(`grant\\s+[\\s\\S]{0,400}?\\bto\\s+${role}\\b`, 'i'),
+      `batch 110 grants ${role} something. §8.3's client cells grant a projection and a command, `
+      + 'neither of which is a base table, and RFC-2026-021 fixes what an allowlist entry is and who '
+      + 'may add one.');
+  }
+  // app_worker holds grants and no policy on the two `app` tables, which is what makes a service
+  // denial attributable to row level security rather than to a forgotten GRANT.
+  for (const table of CONNECTOR_APP_TABLES) {
+    assert.match(connectorCode, new RegExp(`grant select \\([^)]*\\)\\s*\\n?\\s*on app\\.${table} to app_worker`),
+      `app_worker holds a column-scoped SELECT on app.${table}, so an empty read can only be RLS`);
+  }
+});
+
+test('the credential reference lives in private and holds only the columns §9.2 permits', () => {
+  assert.match(connectorCode, new RegExp(`create table if not exists private\\.${META_REFERENCES}\\b`),
+    'the reference is in `private` (§3.1, "secret references"), not in the exposed schema');
+  assert.doesNotMatch(connectorCode, new RegExp(`create table[^;]*app\\.${META_REFERENCES}\\b`),
+    "and not in `app`, which §14's gate checklist would fail on the day somebody read it");
+
+  const body = connectorCode.slice(connectorCode.indexOf(`create table if not exists private.${META_REFERENCES}`));
+  const definition = body.slice(0, body.indexOf(');'));
+  const declared = [...definition.matchAll(/^\s{2}(\w+)\s{2,}(?:uuid|text|timestamptz|bytea)\b/gm)].map((m) => m[1]);
+  assert.ok(declared.length >= 10, `the column list was parsed, got ${JSON.stringify(declared)}`);
+  for (const column of declared) {
+    assert.ok(REFERENCE_COLUMNS_PERMITTED.includes(column),
+      `private.${META_REFERENCES}.${column} is outside §9.2's permitted list. A column outside that `
+      + "list plus §3.2/§3.3's conventions is either a token, a ciphertext of one, or a field nobody "
+      + 'classified. All three are stop-the-line under CONTRIBUTING_AGENTS.md.');
+  }
+  assert.ok(declared.includes('credential_reference'),
+    'and the reference itself is there: an allowlist alone is satisfied by a table with no columns, '
+    + 'and the whole design is that the database holds a reference INSTEAD of the token');
+
+  // The apply-time block carries the same list, so the live catalog is held to what the text says.
+  const anchor = connectorCode.indexOf("'credential_reference', 'fingerprint'");
+  assert.ok(anchor > 0, 'the apply-time block still holds the reference table to an allowlist');
+  const allowlistInBlock = connectorCode.slice(anchor - 400, anchor + 400);
+  for (const column of REFERENCE_COLUMNS_PERMITTED) {
+    assert.match(allowlistInBlock, new RegExp(`'${column}'`),
+      `the apply-time allowlist names ${column}, so text and catalog are held to one list`);
+  }
+  // A denylist of names somebody thought of is defeated by the one they did not, which is why the
+  // rule above is an allowlist. These are asserted anyway, because they are the names §9.2's
+  // absolute prohibitions and this repository's own scanner exist to catch.
+  for (const forbidden of ['api_key', 'access_token', 'refresh_token', 'ciphertext', 'signing_secret']) {
+    assert.doesNotMatch(definition, new RegExp(`\\b${forbidden}\\b`),
+      `private.${META_REFERENCES} declares no ${forbidden} column (§9.2's absolute prohibitions)`);
+  }
+  // §9.2 calls the fingerprint "last-four-like", and the ceiling is what makes that a shape rather
+  // than a hope: 010 put a 32-byte FLOOR on token_hash so a plaintext token could not fit a digest
+  // column, and this is the mirror image.
+  assert.match(definition, /fingerprint[\s\S]{0,200}?between 1 and 16/,
+    'the fingerprint is capped so a whole access token does not fit a column §9.2 calls last-four-like');
+  // §3.3's relation rule, which is 060's one declared departure: this reference hangs off a
+  // CONNECTION, so it cannot claim a Workspace its connection is not in.
+  assert.match(definition, /foreign key \(workspace_id, meta_connection_id\)\s*\n?\s*references app\.meta_connections \(workspace_id, id\)/,
+    'the reference is tied to its connection by the whole scope path (§3.3, §4 invariant 10)');
+});
+
+test('the raw webhook inbox holds a locator and a dedupe hash, and no column a body could be in', () => {
+  assert.match(connectorCode, new RegExp(`create table if not exists private\\.${META_INBOX}\\b`),
+    '§3.1 names "raw webhook" in the `private` row by name, and §14\'s gate checklist requires it '
+    + 'not be exposed');
+  const body = connectorCode.slice(connectorCode.indexOf(`create table if not exists private.${META_INBOX}`));
+  const definition = body.slice(0, body.indexOf(');'));
+  const declared = [...definition.matchAll(/^\s{2}(\w+)\s{2,}(?:uuid|text|timestamptz|bytea|bigint)\b/gm)].map((m) => m[1]);
+  assert.ok(declared.length >= 8, `the column list was parsed, got ${JSON.stringify(declared)}`);
+  for (const column of declared) {
+    assert.ok(INBOX_COLUMNS_PERMITTED.includes(column),
+      `private.${META_INBOX}.${column} is outside the list batch 110 permits. §5 puts SECRET-4 on `
+      + 'this row because a provider body can carry a token, §9.1 forbids a SECRET-4 value in a '
+      + "plaintext database column, §9.2 forbids raw Authorization and Cookie headers, and §5's word "
+      + 'ban forbids a payload column with no JSON Schema version, maximum size, prohibited fields or '
+      + 'owner. A column outside the list is the body arriving by another name.');
+  }
+  // §5's word ban, and the names a body would most plausibly wear.
+  for (const forbidden of ['payload', 'body', 'headers', 'signature', 'raw_response', 'metadata']) {
+    assert.doesNotMatch(definition, new RegExp(`\\b${forbidden}\\b`),
+      `the inbox declares no ${forbidden} column`);
+  }
+  assert.ok(declared.includes('delivery_hash') && declared.includes('body_ref'),
+    '§10 says "redact/purge payload, RETAIN DEDUPE HASH LONGER", so the two are separate columns — a '
+    + 'schema that stored the body and its hash in one place could not obey that sentence');
+  assert.match(definition, /body_ref ~ '\^webhook:/,
+    "the locator has a named grammar. CTR-JOB-001's x-reference-rule records the deny-list form "
+    + 'accepting file:// and javascript:, and this is a reference a worker will dereference.');
+  assert.match(definition, /octet_length\(delivery_hash\) = 32/,
+    'one sha256, exactly, as on the social account');
+  assert.match(definition, /unique \(delivery_hash\)/,
+    "a dedupe key that is not unique deduplicates nothing (050's sentence about its ledger)");
+  assert.doesNotMatch(definition, /unique \(workspace_id, delivery_hash\)/,
+    'and it is NOT workspace-scoped, which is the one place this batch parts from 050: at insert '
+    + 'time the row has no workspace, so a key including it would be a key over a null');
+  assert.match(definition, /bigint generated always as identity/,
+    "§3.2's append-only key, ALWAYS rather than BY DEFAULT so a writer cannot choose its own "
+    + 'position in an ordered log');
+});
+
+test('the inbox scope column is nullable, which is what "private workspace" commits the row to', () => {
+  const body = connectorCode.slice(connectorCode.indexOf(`create table if not exists private.${META_INBOX}`));
+  const definition = body.slice(0, body.indexOf(');'));
+  assert.match(definition, /workspace_id\s+uuid\s+references app\.workspaces \(id\)/,
+    'workspace_id carries no NOT NULL. §5 scopes this row "private workspace" — the one scope in the '
+    + 'inventory spelled that way — and RFC-2026-022 §3 classifies the statement that reads it as '
+    + 'DISCOVERED: the workspace is what reading the row RESOLVES, and resolution can fail. NOT NULL '
+    + 'would make an unknown, replayed or forged delivery unstorable, which deletes exactly the rows '
+    + 'a security investigation wants.');
+  assert.doesNotMatch(definition, /workspace_id\s+uuid\s+not null/,
+    'and it is asserted as a negative, because that is the direction a later batch would break it in');
+  // The apply-time block refuses a later NOT NULL against the live catalog, so the claim is not only
+  // about this file's text.
+  assert.match(connectorCode, /attnotnull[\s\S]{0,400}?a discovered scope cannot be/,
+    'the migration asks the catalog the same question on every apply');
+  // And every OTHER scope column in this batch is NOT NULL, so the nullability is a decision about
+  // one row rather than a habit.
+  for (const table of CONNECTOR_APP_TABLES) {
+    const start = connectorCode.indexOf(`create table if not exists app.${table}`);
+    const def = connectorCode.slice(start, connectorCode.indexOf(');', start));
+    assert.match(def, /workspace_id\s+uuid\s+not null/,
+      `app.${table}.workspace_id is NOT NULL, as §3.3 requires of a tenant-owned row`);
+  }
+});
+
+test('no role holds any privilege on either private table, in any migration', () => {
+  // Read across the WHOLE migration set, not just this batch: the claim is a property of the schema,
+  // and a grant made by a later batch would not appear in 110_meta_connector.sql at all. This is the
+  // static home of an assertion batch 110 deliberately does NOT make at apply time — the command
+  // surface RFC-2026-012 §4 names, and RFC-2026-022 §5/6's broker, will one day need a grant in
+  // `private`, and an applied migration whose self-assertion an approved RFC makes false is the trap
+  // 011 set for 021.
+  const grants = [...migrationText.matchAll(/grant\s+[\s\S]{0,400}?\bon\s+(?:table\s+)?private\.(\w+)/gi)];
+  assert.deepEqual(grants.map((m) => m[1]), [],
+    'no migration grants any privilege on any table in `private`. §3.1 gives that schema "ไม่มี '
+    + 'direct grant"; §8.3\'s "Plain credential SELECT" is N in every column including the service\'s; '
+    + "and RFC-2026-012's inventory says of the raw webhook inbox \"server-only … private, no direct "
+    + 'grant". These are the tables where app_worker deliberately holds NOTHING, which is a departure '
+    + "from batch 010's shape and is argued in the migration rather than assumed.");
+  assert.doesNotMatch(migrationText, /grant\s+usage\s+on\s+schema\s+private/i,
+    'and no role holds USAGE on schema `private`, which is the grant that would have to come first — '
+    + 'and which would open private.as_user, private.as_suspended_user and private.as_service to '
+    + 'every end user in the same statement');
+  // The refusal is therefore on the SCHEMA for every identity alike, and the cases say so.
+  for (const name of ['owner-a-cannot-read-a-meta-credential-reference',
+    'service-cannot-read-a-meta-credential-reference', 'owner-a-cannot-read-a-meta-webhook-delivery',
+    'service-cannot-read-a-meta-webhook-delivery']) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `${name} is missing`);
+    assert.deepEqual(found.deniedOn, { kind: 'schema', name: 'private' },
+      `${name}: the refusal is declared on the SCHEMA, so the day somebody grants USAGE on private `
+      + 'this case fails rather than passing more quietly');
+  }
+});
+
+test('§8.3 gives this family three rows and each refusal names what owes it', () => {
+  for (const cell of ['Meta connection health SELECT', 'Connect/disconnect/re-auth Meta',
+    'Raw token/webhook SELECT', 'Plain credential SELECT']) {
+    assert.ok(connector.includes(cell),
+      `the migration names §8.3's "${cell}" cell, so a refusal is in the file rather than inferred`);
+  }
+  // The command half, and the reason no policy could substitute for it: §3.4 forbids the external
+  // call the operation is made of.
+  assert.match(connector, /ห้ามเรียก external provider ขณะถือ DB transaction/,
+    '§3.4 is quoted rather than summarised, because it is the reason "Connect" cannot be an INSERT '
+    + 'policy: a client transaction may not go and get the credential the row would name');
+  assert.match(connector, /RFC-2026-012 §4/, 'and the mechanism that owes the cell is named');
+  // The projection half.
+  assert.match(connector, /health projection only/,
+    "§9.1's INTEGRATION-2 client projection is quoted, which is what makes the cell an object "
+    + 'question rather than a role question');
+  // And the cases that assert each refusal exist, with the layer each rests on.
+  for (const [name, layer] of [['owner-a-cannot-create-a-meta-connection', 'grant'],
+    ['owner-a-cannot-revoke-the-meta-connection-of-tenant-a', 'grant'],
+    ['editor-a-cannot-read-the-meta-connection-of-tenant-a', 'grant'],
+    ['service-cannot-create-a-meta-connection', 'policy'],
+    ['service-cannot-discover-a-social-account', 'policy']]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `${name} is missing`);
+    assert.equal(found.deniedBy, layer, `${name}: the layer is what distinguishes these refusals`);
+  }
+});
+
+test('the channel binding is refused, and the registry gap is named rather than filled', () => {
+  assert.doesNotMatch(migrationText, /create table[^;]*\bapp\.channel_bindings?\b/i,
+    'no migration creates a channel binding. §6\'s registry gives 110 "connection/account/webhook '
+    + 'inbox" and gives the "business-channel/social FK" to 111 (A0 Integration), and migration '
+    + 'invariant 6 puts a cross-module foreign key in an integration batch — so the two ways to '
+    + 'create it here are a dangling uuid column or a foreign key this batch may not write. Batch '
+    + '020 declined it from the other side for the same rule.');
+  assert.match(connector, /CHANNEL_BINDING/,
+    'and the migration names the entity it refuses, so the refusal is in the file');
+  assert.match(connector, /111/, 'with the batch that owes it');
+  // The consequence, stated: §4's relation invariant 2 is enforced by nothing in this schema.
+  assert.match(connector, /relation invariant 2/,
+    '"Social Account ผูก Active Business เดียวในช่วงเวลาเดียวกัน" is a constraint ON the binding, and '
+    + 'an invariant enforced by a table nobody owns is an invariant enforced by nothing. The migration '
+    + 'says so rather than leaving a reader to discover it.');
+  // And no dangling scope column stands in for the table that is not created.
+  const businessColumns = [...connectorCode.matchAll(/\bbusiness_profile_id\b|\bpage_context_profile_id\b/g)];
+  assert.deepEqual(businessColumns.map((m) => m[0]), [],
+    'and no table in this batch carries a Business or Page column, which would be the dangling '
+    + 'column 020 refused wearing a different name');
+});
+
+test('the external account identifier is stored as a hash and never in the exposed schema', () => {
+  const start = connectorCode.indexOf(`create table if not exists app.${SOCIAL_ACCOUNTS}`);
+  const definition = connectorCode.slice(start, connectorCode.indexOf(');', start));
+  assert.match(definition, /external_account_hash\s+bytea\s+not null/,
+    '§9.3: "External account ID: raw encrypted/private reference + stable hash for uniqueness". This '
+    + "is the hash half, and it is 010's treatment of an invitation token — \"store cryptographic "
+    + 'hash only" — applied to the identifier one row over.');
+  assert.match(definition, /octet_length\(external_account_hash\) = 32/,
+    "exactly one sha256. An EQUALITY rather than 010's floor, because §9.3 asks for a stable hash "
+    + 'rather than for a minimum size, and a different digest is a migration a reviewer reads.');
+  assert.match(definition, /unique \(workspace_id, external_account_hash\)/,
+    "workspace-scoped, for 050's reason about its consumer ledger: a conflicting insert on a global "
+    + 'key is an oracle telling one tenant that another already holds that account, and §11.1/9 '
+    + 'forbids a retry reaching across scope');
+  // And the raw identifier has no column anywhere in the batch, which is the control §9.1's "redact
+  // external identifiers" actually asks for.
+  for (const forbidden of ['external_account_id', 'external_id', 'provider_account_id']) {
+    assert.doesNotMatch(connectorCode, new RegExp(`\\b${forbidden}\\b`),
+      `no table in batch 110 declares ${forbidden}. The raw identifier needs either an encryption `
+      + 'mechanism no decision in this repository names or a private reference reachable through the '
+      + "typed service that does not exist; storing it plainly in `app` is the one thing §9.1's "
+      + '"redact external identifiers" forbids. Owed to the typed service and to batch 120.');
+  }
+  assert.match(connector, /Owed to the batch that brings the typed service and to 120/,
+    'and the refusal names its owner rather than reading as an oversight');
+});
+
+test('CONNECTION-HISTORY is a retention class §10 does not define, and the batch reports it', async () => {
+  const spec = await readFile('docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md', 'utf8');
+  assert.match(spec, /CONNECTION-HISTORY/,
+    '§5 assigns the class to connector.meta, so the name is real');
+  assert.doesNotMatch(spec, /^\| `CONNECTION-HISTORY` \|/m,
+    "§10's table has no row for it. This is the third family where §5 names a class §10 omits — 030 "
+    + 'reported it for CATALOG and 050 for LEDGER — and it is REPORTED rather than resolved, because '
+    + "§10's numbers need Product/Security/Legal approval and §15 forbids an agent choosing an open "
+    + 'decision. If this assertion ever fails, §10 gained the row and batch 160 has a number to use.');
+  assert.match(spec, /^\| `WEBHOOK-SHORT` \|/m,
+    "the second row's class IS defined, and everything batch 110 does about retention comes from it");
+  assert.match(connector, /CONNECTION-HISTORY` IS NOT A CLASS §10 DEFINES/,
+    'the migration records the gap where the next author reads it');
+  // No retention window is encoded in a constraint, where it would read as ratified (§15).
+  for (const window of ['30 days', '90 days', "interval '30", "interval '90"]) {
+    assert.ok(!connectorCode.includes(window),
+      `the migration encodes no retention window (${window}). Batch 160 owns the retention job and `
+      + "§10's own approval owns the numbers; what this batch provides is the columns each sweep "
+      + 'reads and an index over them.');
+  }
+  for (const column of ['processed_at', 'failed_at', 'redacted_at']) {
+    assert.match(connectorCode, new RegExp(`\\b${column}\\b`),
+      `and ${column} exists, because §10's WEBHOOK-SHORT names the window it belongs to`);
+  }
+});
+
+test('the S cell is classified as data and no service policy is written for it', async () => {
+  const map = JSON.parse(await readFile('db/foundation/lint/service-policy-map.json', 'utf8'));
+  const entry = map.cells.find((c) => c.batch === '110_meta_connector.sql');
+  assert.ok(entry, 'batch 110 classifies its §8 `S` cell in the map RFC-2026-022 §7.2 names, rather '
+    + 'than arguing it in the migration header where four batches would each argue it once');
+  assert.equal(entry.shape, 'discovered',
+    'RFC-2026-022 §3\'s own table assigns "Raw token/webhook SELECT" to batches 110 and 131 and calls '
+    + 'it DISCOVERED: an inbox row arrives from the provider and the workspace is what reading it '
+    + 'resolves. §5/5 gives a discovered cell NO POLICY, permanently.');
+  assert.equal(entry.table, `private.${META_INBOX}`);
+  assert.equal(entry.operation, 'select');
+  // THE DECISION IS NOT IN EFFECT, so the classification authorises nothing. Asserted as a negative
+  // over the whole migration set, because §7.1/5 makes it one: "app_worker holds no policy on any
+  // table the map classes DISCOVERED".
+  assert.doesNotMatch(migrationText, /create\s+policy[\s\S]{0,300}?\bto\s+app_worker\b/i,
+    'no migration writes a policy TO app_worker anywhere. RFC-2026-022 §5/8 measures why it would be '
+    + 'moot — the only member of app_worker is postgres, which BYPASSES row level security — and §5/5 '
+    + 'makes the refusal on a DISCOVERED cell permanent rather than pending.');
+  // AND THE GUC IS NOT CITED AS TENANT ISOLATION ANYWHERE IN THIS BATCH. RFC-2026-022 §5/4 forbids
+  // it in terms, having measured that the role a policy names can set the setting the policy reads.
+  assert.match(connector, /WORKSPACE GUC IS CONTAINMENT AND NEVER TENANT ISOLATION/i,
+    "the migration says what the setting IS worth, in RFC-2026-022 §5/4's own words, rather than "
+    + 'leaving a reader to assume the stronger claim');
+  assert.doesNotMatch(connectorCode, /GUC[^.]{0,80}\b(?:provides|gives|enforces|is)\s+tenant isolation\b/i,
+    'and nowhere describes it AS tenant isolation of the service path. §5/4 measured the reason: the '
+    + 'role a policy names can set the setting the policy reads, twice in one transaction, and '
+    + 'has_parameter_privilege cannot even be asked who may.');
+  // The cases assert the present state and say it is permanent, so a later reader does not "fix"
+  // them by writing the unscoped policy that RFC refuses.
+  const discovered = cases.find((c) => c.id === 'service-cannot-read-a-meta-webhook-delivery');
+  assert.match(discovered.why, /PERMANENT/,
+    'the case says so in the text that prints in suite output, which is where the next author reads it');
+});
+
+test('batch 110 adds to the merged batches and rewrites none of them', async () => {
+  const files = await readdir(MIGRATIONS_DIR);
+  assert.ok(files.includes('110_meta_connector.sql'), 'the batch is a file in the migration set');
+  // The only `drop` it issues is `drop trigger if exists` on its own tables, which is the idempotent
+  // form every batch uses.
+  const drops = [...connectorCode.matchAll(/\bdrop\s+(\w+)\s+if exists\s+([\w.]+)/gi)];
+  assert.ok(drops.length > 0, 'the drop statements were parsed');
+  for (const [, kind, name] of drops) {
+    assert.equal(kind.toLowerCase(), 'trigger', `batch 110 drops a ${kind}, which is not its to drop`);
+    assert.equal(name.toLowerCase(), 'set_updated_at', `batch 110 drops ${name}`);
+  }
+  // And it does not alter a merged batch's tables.
+  for (const merged of ['app.workspaces', 'app.workspace_members', 'app.business_profiles',
+    'app.jobs', 'app.ai_model_policies', 'app.audit_logs']) {
+    assert.doesNotMatch(connectorCode, new RegExp(`alter table ${merged.replace('.', '\\.')}\\b`, 'i'),
+      `batch 110 alters ${merged}, and migration invariant 1 forbids rewriting a merged migration`);
+  }
+  // §3.3's forbidden synonyms, read with line comments stripped and string literals kept — batch 020
+  // records that writing a forbidden token even to say it is forbidden fails the build, which is the
+  // rule behaving correctly.
+  for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'page_id']) {
+    assert.doesNotMatch(connectorCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+      `§3.3 forbids the synonym ${synonym}; the canonical fields are workspace_id, `
+      + 'business_profile_id, page_context_profile_id and social_account_id');
+  }
+  // `gen_random_uuid()` unqualified, and no pg_authid — 010's and 020's rules, unchanged.
+  assert.doesNotMatch(connectorCode, /(?:public|extensions)\.gen_random_uuid/i,
+    'gen_random_uuid() is called unqualified, because the extension schema differs between the CI '
+    + 'container and the provisioned instance');
+  assert.doesNotMatch(connectorCode, /pg_authid/i,
+    'pg_roles and never pg_authid: pg_authid is readable only by a superuser, and a migration that '
+    + 'needs one cannot be applied on the platform it targets');
+});
+
+test('the tables batch 110 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 20, 'the control runs per table family, and batch 110 adds two');
+
+  // A case is restored by disabling row level security if it is a filtered read, a filtered write
+  // with a witness, or a POLICY-layer refused write. A grant-layer refusal would pass unchanged and
+  // is not counted — batch 140 established the third kind and both of this batch's entries need it.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+  for (const table of CONNECTOR_APP_TABLES) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. A batch that adds a table and no `
+      + "entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '110', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.equal(detectable.length, 2,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level `
+      + 'security disabled, and this entry rests on exactly two — one filtered read and one '
+      + 'policy-layer refused write. Stated as an equality rather than a floor because a control '
+      + 'resting on a number nobody checked is a control nobody can audit.');
+  }
+  // The specific four, pinned by id, outcome and layer, so deleting one fails the build instead of
+  // leaving an entry that disables something nothing notices.
+  for (const [table, name, expect, layer] of [
+    [META_CONNECTIONS, 'service-sees-zero-meta-connection-rows', 'no-rows', undefined],
+    [META_CONNECTIONS, 'service-cannot-create-a-meta-connection', 'denied', 'policy'],
+    [SOCIAL_ACCOUNTS, 'service-sees-zero-social-account-rows', 'no-rows', undefined],
+    [SOCIAL_ACCOUNTS, 'service-cannot-discover-a-social-account', 'denied', 'policy'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the entry rests on this outcome kind`);
+    if (layer) assert.equal(found.deniedBy, layer, `${name}: and on this layer`);
+    assert.ok(restoredByDisablingRls(found),
+      `${name}: only a case row level security actually decides is restored by disabling it`);
+  }
+
+  // AND THE ABSENCE, IN BOTH DIRECTIONS, for the two tables in `private`.
+  const privateGrants = /grant\s+[\s\S]{0,400}?\bon\s+(?:table\s+)?private\./i.test(migrationText);
+  const privateEntry = [...workflow.matchAll(/^\s*control\s+private\.(\w+)/gm)];
+  if (privateGrants) {
+    assert.ok(privateEntry.length > 0,
+      'a migration now grants a privilege on a table in `private`, so some identity can reach it and '
+      + 'the negative control must have an entry that disables row level security there');
+  } else {
+    assert.deepEqual(privateEntry.map((m) => m[1]), [],
+      'no role holds any privilege on private.meta_credential_references or '
+      + 'private.meta_webhook_inbox, so disabling row level security on either restores nothing and '
+      + "NO case would fail. An entry would make the step's own first failure message fire on a "
+      + 'correct database.');
+  }
+  assert.match(workflow, /THERE IS NO ENTRY FOR private\.meta_credential_references OR private\.meta_webhook_inbox/,
+    'and the workflow says so beside the entries, because a control whose mechanism lives only in a '
+    + 'test is a control nobody reads at the point of use');
+});
+
+test('no batch 110 case id can satisfy another control entry, and none enlarges the known overlap', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  const mine = cases.filter((c) => /meta-connection|social-account/.test(c.id));
+  assert.ok(mine.length >= 18, `batch 110 adds cases matching its own two patterns, got ${mine.length}`);
+
+  // THE MEASUREMENT THIS TEST EXISTS FOR. `[a-z0-9-]*workspace`, `[a-z0-9-]*business`,
+  // `[a-z0-9-]*page` and `[a-z0-9-]*scope` are the patterns of pre-existing entries, and each matches
+  // any id containing that word — which is how batches 060 and 140 took the measured overlap from
+  // sixteen entry-pairs to eighteen while each asserted only that its OWN two patterns were disjoint.
+  // Batch 110 asserts the other direction: not one of its ids matches ANY other entry.
+  for (const c of mine) {
+    for (const [, table, pattern, batch] of controls) {
+      if (table === META_CONNECTIONS || table === SOCIAL_ACCOUNTS) continue;
+      assert.doesNotMatch(c.id, new RegExp(`^${pattern}`),
+        `${c.id} matches the control pattern /${pattern}/ for app.${table} (batch ${batch}), so that `
+        + "entry could be satisfied by batch 110's regression rather than by its own. The four broad "
+        + 'words are why this batch says `of-tenant-b` where earlier batches say `workspace-b`.');
+    }
+  }
+  // And this batch's own two do not overlap with each other.
+  const connectionPattern = new RegExp(`^${controls.find(([, n]) => n === META_CONNECTIONS)[2]}`);
+  const accountPattern = new RegExp(`^${controls.find(([, n]) => n === SOCIAL_ACCOUNTS)[2]}`);
+  for (const c of cases) {
+    assert.ok(!(connectionPattern.test(c.id) && accountPattern.test(c.id)),
+      `${c.id} matches BOTH batch 110 control patterns`);
+  }
+});
+
+test('the batch 110 fixture writes only catalog identities and loads both inbox states', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(CONNECTOR_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  for (const found of new Set([...fixture.matchAll(UUID)].map((m) => m[0]))) {
+    assert.ok(known.has(found), `the batch 110 fixture writes ${found}, which is not a catalog identity`);
+  }
+  // BOTH INBOX STATES ARE REAL, which is what the nullable scope column is asserted against. A
+  // fixture carrying only resolved deliveries would let a later NOT NULL land green.
+  assert.match(fixture, /\(null,\s*\n?\s*sha256\(convert_to\('meta_webhook_delivery_unresolved/,
+    'one delivery is UNRESOLVED — workspace_id null — which is the state a webhook is in when it '
+    + 'arrives and the state it stays in when its account matches nothing');
+  assert.match(fixture, /sha256\(convert_to\('meta_webhook_delivery_a1/,
+    'and one is RESOLVED to workspace_a, so the pair is two states rather than one repeated');
+  // THE SAME EXTERNAL ACCOUNT HASH ON BOTH SIDES, which is what makes the workspace-scoped natural
+  // key legible: a key that had lost workspace_id would fail to LOAD rather than fail a case.
+  const accountHashes = [...fixture.matchAll(/sha256\(convert_to\('(social_account_[a-z0-9_]+)'/g)].map((m) => m[1]);
+  assert.equal(accountHashes.length, 2, 'two discovered accounts, one per Workspace');
+  assert.equal(accountHashes[0], accountHashes[1],
+    'and they carry the SAME hash, on purpose: with two different hashes the workspace-scoped key '
+    + 'and a global one would both accept both rows, and the fixture would prove nothing about which '
+    + 'constraint the migration wrote');
+  // Nothing that looks like a token. §9.2 forbids a plaintext credential in a fixture as firmly as
+  // in a table, and both references are readable synthetic locators (060's rule).
+  const locators = [...fixture.matchAll(/'(vault:\/\/[^']*)'/g)].map((m) => m[1]);
+  assert.equal(locators.length, 2, 'one credential reference per Workspace');
+  for (const value of locators) {
+    assert.match(value, /^vault:\/\/fixture\//,
+      `${value} is not visibly a synthetic locator. A handle that looked like a secret would be a `
+      + 'fixture nobody could distinguish from the thing this batch exists to keep out of the database.');
+  }
+  assert.doesNotMatch(fixture, /\bEAA[A-Za-z0-9]{10,}/,
+    "and nothing shaped like a Meta access token, which the repository's own scanner looks for");
+});
+
+test('the coverage map records what a family with no policy and a discovered scope can carry', () => {
+  // NO ROW MOVES, which is the honest answer rather than a modest one — 030's, 050's and 060's
+  // disposition. What changes is the notes, and each says what batch 110 could NOT pay.
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /110/.test(v.note));
+  assert.equal(mentions.length, 8,
+    'batch 110 extends every one of the eight §12.6 notes and moves none. Six of them say what it '
+    + 'could not pay, which is the point: a batch whose tables have no client surface has to record '
+    + 'the assertions it cannot make, or a later reader counts its silence as coverage.');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 110 gives the service a grant and no policy on two more tables and NO grant at all on two '
+    + 'more, which is more negative evidence and not a positive');
+  assert.match(SMOKE_COVERAGE[1].note, /BATCH 110 ADDS NO CROSS-TENANT EVIDENCE EITHER/,
+    '§12.6/1 is about a tenant boundary, and neither `app` table has a policy — so its cross-tenant '
+    + 'case is a privilege refusal indistinguishable from the one every identity gets');
+  assert.match(SMOKE_COVERAGE[2].note, /BATCH 110 CARRIES NO CASE FOR IT/,
+    "§7's three scope types all name a Business or a Page, and the only row in this family that "
+    + 'would have one is the binding this batch refuses');
+  assert.match(SMOKE_COVERAGE[7].note, /BATCH 110 ADDS NO FORGERY CASE AND CANNOT/,
+    'a forged column rides in on a permitted write, and the composite foreign key that would refuse '
+    + 'one is unreachable behind a policy-layer refusal');
+  assert.match(SMOKE_COVERAGE[8].note, /DISCOVERED/,
+    "§12.6/8's note names the classification, because this batch's `S` cell does NOT flip the way "
+    + "140's does and a reader who takes it for pending will write the policy RFC-2026-022 refuses");
+  for (const [key, expected] of [[1, /BATCH 110 HAS NO INSTANCE OF THIS CASE EITHER/],
+    [3, /BATCH 110 CARRIES NO CASE FOR IT AND THE ABSENCE HAS AN OWNER/],
+    [8, /BATCH 110 HAS NOTHING TO FORGE AGAINST/],
+    [9, /BATCH 110 ADDS NO IMMUTABLE TABLE/],
+    [10, /ONE PER\s+VERB/]]) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), expected,
+      `§8.6 case ${key} states batch 110's disposition rather than leaving it to be inferred`);
+  }
+  // The labels this batch rests on are cited by cases, so the reasoning cannot stop being asserted
+  // while every §12.6 row stays green.
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.3/meta-connection-health', '§8.3/connect-meta', '§8.3/raw-webhook',
+    '§8.3/plain-credential', '§9.1/INTEGRATION-2', '§10/WEBHOOK-SHORT', '§11.1/5',
+    'RFC-2026-022§3/discovered', 'RFC-2026-022§5/5', '§5/append-process-purge',
+    'RFC-2026-012/connector', '§4/invariant-9', '§11.4/step-2']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 110 rests on and no case cites it`);
+  }
+  // And every batch 110 case is a refusal or an empty read: there is no passing client case to be
+  // had, and one appearing would mean a grant was made without an allowlist entry.
+  for (const c of cases.filter((k) => /meta-connection|social-account|meta-credential|meta-webhook/.test(k.id))) {
+    assert.notEqual(c.expect, 'rows',
+      `${c.id}: a passing case on these tables would mean somebody granted a client role a privilege, `
+      + 'which RFC-2026-021 §3 gives to an RFC and takes away from a pull request');
+  }
+});
+
+test('each coverage map declares each key exactly once, which the parsed object cannot be asked', async () => {
+  // A GUARD FOR A DEFECT THAT HAD ALREADY LANDED. `AUTHORIZATION_CASE_COVERAGE` declared key `10`
+  // TWICE on `main`: JavaScript keeps the last, so thirty-five lines were unreachable — and they
+  // were the PRE-CORRECTION copies of batches 130's and 140's case-9 paragraphs, still carrying the
+  // two ordinals the parallel-integration round had corrected in the live copy. The correction
+  // landed and the false sentences survived beside it, in a key nothing reads.
+  //
+  // evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md §4 predicted exactly this shape — a seam
+  // that falls INSIDE an expression, parses, runs, and reports nothing — and nothing in the
+  // repository could see it, because a duplicate key is invisible to the parsed object and to every
+  // assertion written about it. It is visible in the SOURCE, and that is where this reads it.
+  const source = await readFile(CASES_FILE, 'utf8');
+  for (const name of ['SMOKE_COVERAGE', 'AUTHORIZATION_CASE_COVERAGE']) {
+    const start = source.indexOf(`export const ${name} = {`);
+    assert.ok(start > 0, `${name} is declared in ${CASES_FILE}`);
+    const block = source.slice(start, source.indexOf('\n};', start));
+    const keys = [...block.matchAll(/^ {2}(\d+): /gm)].map((m) => m[1]);
+    assert.ok(keys.length > 0, `${name}'s keys were parsed from the source`);
+    assert.deepEqual([...new Set(keys)], keys,
+      `${name} declares a key more than once. JavaScript keeps the LAST, so an earlier definition — `
+      + 'and every paragraph a batch wrote into it — is unreachable, while the object still looks '
+      + 'complete to every test written about it. That is the merge seam this repository has recorded '
+      + 'as its most dangerous, and it is only visible in the source.');
   }
 });

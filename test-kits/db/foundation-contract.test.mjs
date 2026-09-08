@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import test from 'node:test';
 
@@ -259,9 +259,17 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // the migration role to prove the append-only trigger fires for the one identity FORCE ROW LEVEL
 // SECURITY does not reach. Doing that to a live database in order to make a lint pass is the
 // inversion 011's header refuses, one table further along and on an audit log.
+//
+// BATCH 110 JOINS THE LIST AND ITS REASON IS THE STRUCTURAL ONE, not 140's. It depends on
+// app.workspaces, which batch 010 creates and the instance HAS — but its own children hang off
+// app.meta_connections, and more to the point the declaration must name a TAIL of the ordered set: a
+// database holding 130 and 140 while missing 110 is DIVERGENT rather than behind, and
+// pendingDeclarationLint refuses a declaration that is not a tail. Ten batches become eleven and the
+// tail stays contiguous, because 110 sorts between 060 and 130.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
-  '050_async_kernel.sql', '060_ai_gateway.sql', '130_billing.sql', '140_audit.sql'];
+  '050_async_kernel.sql', '060_ai_gateway.sql', '110_meta_connector.sql', '130_billing.sql',
+  '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -498,6 +506,26 @@ const ADDED_SYMBOLS = [
   'audit_log_b1',
   'security_event_a1',
   'security_event_b1',
+  // Batch 110. TWO symbols for FOUR tables, and the arithmetic is this list's rule rather than
+  // restraint. A social account is addressed by (workspace_id, external_account_hash), which
+  // 110_meta_connector.sql makes unique; a credential reference by the connection it belongs to; a
+  // raw delivery by its delivery_hash, which the same file makes unique because a dedupe key that is
+  // not unique deduplicates nothing. All three are natural keys spelled out of ids this catalog
+  // already fixes plus text the fixture and the case file share — exactly as a version row, a member
+  // scope, an industry assignment and a billing subscription are.
+  //
+  // A META CONNECTION HAS NONE. §4's ERD reads WORKSPACE ||--o{ META_CONNECTION with no ordinal and
+  // no natural key, and inventing a `unique (workspace_id, display_name)` so the fixture could
+  // address a row without a symbol would be writing a product decision into a constraint — a
+  // Workspace may hold two connections and nothing says otherwise.
+  //
+  // THE TWO ARE NOT INTERCHANGEABLE, and neither is decoration. Every case on this family is a
+  // refusal, so a refusal that holds for tenant A because tenant B has no row would be a refusal
+  // about a missing fixture. Both sides carry a connection AND a discovered account whose external
+  // account hash is THE SAME on both, which is what makes app.social_accounts' workspace-scoped
+  // natural key legible as data: a key that had lost `workspace_id` would fail to LOAD.
+  'meta_connection_a',
+  'meta_connection_b',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -1217,7 +1245,10 @@ test('§6.1/7: a platform auth.uid() that moved fails the build instead of diver
 // constructs an entry rather than asserting on the file.
 test('the service-policy map is refused when an entry is incomplete, unknown-shaped, or about nothing', async () => {
   const { servicePolicyMapLint } = await import('../../scripts/db/run.mjs');
-  const tables = new Set(['jobs', 'audit_logs']);
+  // QUALIFIED NAMES, since batch 110. The set is what the migrations actually create and a cell may
+  // name a table in either schema our migrations own; an entry that writes the bare name still means
+  // `app`, which is the form RFC-2026-022 §7.2's own example uses.
+  const tables = new Set(['app.jobs', 'app.audit_logs', 'private.meta_webhook_inbox']);
   const good = { cell: '§8.4 Audit/security INSERT', table: 'audit_logs', operation: 'insert',
     shape: 'carried', why: 'the server already resolved the tenant', batch: '140' };
 
@@ -1237,7 +1268,19 @@ test('the service-policy map is refused when an entry is incomplete, unknown-sha
 
   // A classification of a cell on a table no migration creates is a claim about nothing.
   assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'not_a_table' }] }, tables)
-    .some((p) => /created by no migration/.test(p)));
+    .some((p) => /app\.not_a_table is created by no migration/.test(p)),
+  'an unqualified name resolves to `app` and is checked there');
+
+  // A CELL ON A TABLE IN `private`, which the rule could not express until batch 110 needed it.
+  // §8.3's "Raw token/webhook SELECT" is about the raw webhook inbox, and §3.1 puts "raw webhook" in
+  // `private` by name — so a rule that only understood `app` could not record a true classification.
+  // Both directions: the qualified name is accepted when the migrations create it, and refused when
+  // they do not, so the widening did not turn the check off for the schema it was widened for.
+  assert.deepEqual(servicePolicyMapLint({ cells: [{ ...good, table: 'private.meta_webhook_inbox' }] }, tables), [],
+    'a cell on a table in `private` is a classification the rule can state');
+  assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'private.not_a_table' }] }, tables)
+    .some((p) => /private\.not_a_table is created by no migration/.test(p)),
+  'and a qualified name is still checked against the migrations rather than trusted');
 
   // One statement, one answer.
   assert.ok(servicePolicyMapLint({ cells: [good, { ...good, shape: 'discovered' }] }, tables)
@@ -1248,13 +1291,43 @@ test('the service-policy map is refused when an entry is incomplete, unknown-sha
   assert.ok(servicePolicyMapLint({}, tables).some((p) => /has no `cells` array/.test(p)));
 });
 
-test('the map ships empty, and empty means no S cell has been classified yet', async () => {
-  const { SERVICE_POLICY_MAP, servicePolicyMapLint } = await import('../../scripts/db/run.mjs');
+test('the committed map classifies only cells on tables the migrations create', async () => {
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint, tablesCreatedByMigrations } =
+    await import('../../scripts/db/run.mjs');
   const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
-  assert.deepEqual(servicePolicyMapLint(map, new Set()), [],
-    'the committed map satisfies its own rule');
-  assert.deepEqual(map.cells, [],
-    'no cell is classified yet. RFC-2026-022 is APPROVED AND NOT IN EFFECT — the only member of '
-    + 'app_worker is postgres, which bypasses RLS — so a batch classifies here and writes no service '
-    + 'policy. When the first entry lands this assertion changes in a diff, which is the point.');
+
+  // THE ENTRY LANDED, WHICH IS THE DIFF THE PREVIOUS VERSION OF THIS TEST EXISTED TO PRODUCE. It
+  // asserted `map.cells` deepEqual [] and said "when the first entry lands this assertion changes in
+  // a diff, which is the point". Batch 110 classifies §8.3's "Raw token/webhook SELECT", which
+  // RFC-2026-022 §3's own table assigns to batches 110 and 131, so the empty assertion is replaced
+  // by the one it was standing in for: the map is checked against the tables that exist.
+  //
+  // AND IT IS CHECKED AGAINST THE REAL SET NOW. The old call passed `new Set()`, which no entry can
+  // be in — fine while the file was empty and useless the moment it was not, because "unmeasured
+  // reads as passing" is the shape this file exists to refuse.
+  const tables = await tablesCreatedByMigrations();
+  assert.ok(tables.has('private.meta_webhook_inbox') && tables.has('app.jobs'),
+    'the table set was derived from the migrations, in both schemas');
+  assert.deepEqual(servicePolicyMapLint(map, tables), [],
+    'the committed map satisfies its own rule against the tables the migrations create');
+
+  assert.ok(Array.isArray(map.cells) && map.cells.length >= 1,
+    'at least one §8 `S` cell is classified. RFC-2026-022 is APPROVED AND NOT IN EFFECT — the only '
+    + 'member of app_worker is postgres, which bypasses RLS — so a batch classifies here and writes '
+    + 'no service policy.');
+
+  // A CLASSIFICATION AUTHORISES NO POLICY, and that is the half a reader is most likely to get
+  // wrong. Every cell in the map is checked against the migration text: a `discovered` cell may have
+  // no policy on its table at all (RFC-2026-022 §5/5 and §7.1/5, "permanently, not pending"), and no
+  // migration may name a service role in a policy on any classified table while §7 does not hold.
+  const migrations = await readdir('db/foundation/migrations');
+  const text = (await Promise.all(migrations.sort()
+    .map((f) => readFile(`db/foundation/migrations/${f}`, 'utf8')))).join('\n');
+  for (const cell of map.cells) {
+    const qualified = cell.table.includes('.') ? cell.table : `app.${cell.table}`;
+    assert.doesNotMatch(text, new RegExp(`create\\s+policy[\\s\\S]{0,300}?\\bon\\s+${qualified.replace('.', '\\.')}\\b`, 'i'),
+      `${qualified} is classified ${cell.shape} in the service-policy map and a migration writes a `
+      + 'policy on it. RFC-2026-022 is NOT IN EFFECT: a batch classifies a cell here and writes no '
+      + 'service policy until §7 holds, and a DISCOVERED cell gets none ever.');
+  }
 });

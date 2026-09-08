@@ -6,12 +6,23 @@
   ],
   "_shape": {
     "cell": "the §8 row and column this entry classifies, quoted from the access matrix",
-    "table": "unqualified table name in the app schema, created by a migration in db/foundation/migrations/",
+    "table": "table name created by a migration in db/foundation/migrations/, schema-qualified as `app.<name>` or `private.<name>`; an unqualified name means `app`",
     "operation": "select | insert | update | delete",
     "shape": "carried | discovered",
     "why": "which half of RFC-2026-022 §3's test the STATEMENT falls on, in a sentence someone can disagree with",
     "batch": "the migration batch that classified it"
   },
   "_not_in_effect": "RFC-2026-022 is approved and NOT IN EFFECT: measured 2026-09-08, the only member of app_worker is postgres, which bypasses RLS. A batch classifies its cells here; it does not write a service policy until §7 holds.",
-  "cells": []
+  "_what_batch_110_classified": "Batch 110 classifies one cell here: \u00a78.3's \"Raw token/webhook SELECT\", which RFC-2026-022 \u00a73's own table assigns to batches 110 and 131 and calls DISCOVERED. 131 owns the same cell for the payment inbox and adds its own row; the register keys on (cell, statement), so two rows for one cell on two tables is the shape \u00a75/1 describes rather than a duplicate.",
+  "_a_private_table_needed_the_rule_to_say_so": "The `table` field was documented as \"unqualified table name in the app schema\", and this cell's table is in `private` \u2014 \u00a73.1 puts \"raw webhook\" there by name and \u00a714's gate checklist requires it not be exposed. The rule could not express the entry it was written to receive. It now accepts a schema-qualified name and resolves an unqualified one to `app`, which changes no verdict for a cell in `app` and is asserted in test-kits/db/foundation-contract.test.mjs in both directions.",
+  "cells": [
+    {
+      "cell": "\u00a78.3 Raw token/webhook SELECT",
+      "table": "private.meta_webhook_inbox",
+      "operation": "select",
+      "shape": "discovered",
+      "why": "The statement a processor issues is \"the next unprocessed delivery\", and it contains no workspace term because WHICH workspace is what reading the row resolves. Under RFC-2026-022 \u00a73's operational test, adding the confinement term to its WHERE does not narrow the same work \u2014 it turns \"the unprocessed webhook\" into \"the unprocessed webhook of a tenant I already knew\", which is not the work. The schema says the same thing: private.meta_webhook_inbox.workspace_id is NULLABLE, because a delivery arrives before anything knows whose it is and resolution can fail, and batch 110's apply-time block refuses a later NOT NULL.",
+      "batch": "110_meta_connector.sql"
+    }
+  ]
 }
