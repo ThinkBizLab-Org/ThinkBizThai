@@ -7073,3 +7073,34 @@ test('neither coverage map declares a key twice, and both cover exactly the rang
       + 'discarded at parse time and the file is telling a reader something the program does not know.');
   }
 });
+
+// A WITNESS CANNOT COMPARE TO NULL, BECAUSE THE DRIVER CANNOT ENCODE ONE.
+//
+// This rule exists because batch 051 shipped two witnesses declared `column: 'read_at',
+// equals: null` and four of its cases failed the FIRST time a database ran them, on a branch whose
+// whole suite was green on the author's machine every time it was checked. The driver reads psql's
+// CSV output and CSV has no NULL: an unset timestamp arrives as the empty string, so a strict
+// comparison against `null` can never hold, and `run-isolation.mjs` reported "the write was NOT
+// stopped" about a write that was stopped perfectly.
+//
+// The tempting repair is `equals: ''`, and it is worse than the bug: it would hold equally for a
+// column somebody had set TO the empty string, so the case would pass while asserting something
+// weaker than it says. The predicate belongs where NULL exists -- `select (x is null) as ...` --
+// and the harness compares two values the encoding can carry.
+//
+// Nothing local can catch this. The isolation suite needs Postgres, the repository declares no
+// client, and DATA-DEC-02 leaves the runner to A0; the only machine that runs these cases is CI.
+// So the rule is stated where a machine without a database can still enforce it.
+test('no witness compares against a value the driver cannot encode', async () => {
+  const withWitness = cases.filter((c) => c.witness);
+  assert.ok(withWitness.length > 0, 'there are witnesses to check, or this rule is asking nothing');
+  for (const c of withWitness) {
+    assert.notEqual(c.witness.equals, null,
+      `${c.id}: its witness compares ${c.witness.column} against null. psql's CSV renders NULL and the `
+      + 'empty string identically, so this comparison cannot hold however correct the database is. Ask '
+      + "the database instead — `select (col is null) as ...` — and compare 't'.");
+    assert.notEqual(c.witness.equals, undefined,
+      `${c.id}: its witness declares no expected value, so it asserts that the column equals undefined `
+      + 'and would fail against every database.');
+  }
+});

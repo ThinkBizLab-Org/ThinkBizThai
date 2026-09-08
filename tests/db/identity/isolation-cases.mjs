@@ -2367,9 +2367,20 @@ export function buildCases(id) {
   // still there and is still unread". A witness that only asserted the row exists would be
   // expectNoRows wearing a different name.
   //
-  // `read_at` is null on every notification the fixture loads, and `equals: null` is the assertion.
+  // `read_at` is null on every notification the fixture loads, and STILL NULL is the assertion.
   // That is the value the write would have changed, which is what makes the witness bite: if a
   // policy ever admitted the row, the witness reads a timestamp and the case fails.
+  //
+  // THE DATABASE ANSWERS "IS IT NULL", AND THE HARNESS DOES NOT. These two witnesses were written
+  // as `column: 'read_at', equals: null` and every one of the four cases that use them FAILED IN
+  // CI while the whole suite was green on this machine, because the driver reads psql's CSV and
+  // CSV HAS NO NULL: an unset timestamp arrives as the empty string, so `'' !== null` and the
+  // witness reported "the write was NOT stopped" about a write that was stopped. Comparing to `''`
+  // instead would have made the case pass and made it wrong -- it would then hold equally for a
+  // read_at somebody set to the empty string, which is a different fact. So the predicate is
+  // evaluated where NULL exists, in Postgres, and the harness compares two booleans it can encode.
+  // No local run could have caught this: the isolation suite needs a database, and the database is
+  // in CI.
   //
   // THE WITNESS IDENTITY IS THE ROW'S OWN RECIPIENT AND IT HAS TO BE. On every earlier table a
   // witness runs as the workspace's owner, because a workspace owner can read every row in it; here
@@ -2378,17 +2389,17 @@ export function buildCases(id) {
   // which is the same fact the negatives are about, arriving on the other side.
   const editorANotificationStillUnread = {
     as: editorA,
-    sql: 'select read_at from app.notifications where id = $1',
+    sql: 'select (read_at is null) as still_unread from app.notifications where id = $1',
     params: [NOTIFICATION_EDITOR_A],
-    column: 'read_at',
-    equals: null,
+    column: 'still_unread',
+    equals: 't',
   };
   const ownerBNotificationStillUnread = {
     as: ownerB,
-    sql: 'select read_at from app.notifications where id = $1',
+    sql: 'select (read_at is null) as still_unread from app.notifications where id = $1',
     params: [NOTIFICATION_OWNER_B],
-    column: 'read_at',
-    equals: null,
+    column: 'still_unread',
+    equals: 't',
   };
 
   // The writes §8.4's SECOND row marks `N` for every client role and `S` for the service. Each is
