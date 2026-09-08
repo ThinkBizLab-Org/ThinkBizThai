@@ -555,4 +555,41 @@ jobs:
           # report a pass it did not earn. identity-isolation.test.mjs requires the entry to be
           # ABSENT while no migration grants a privilege on a table in `private`, and REQUIRED the
           # moment one does.
+          # THE THREE BILLING-PROJECTION TABLES, AND WHY ONE OF THEM RESTS ON A CASE THAT WILL
+          # NEVER FLIP. Batch 131 grants NO CLIENT ROLE ANYTHING on any of its three tables: §8.3's
+          # "Raw token/webhook SELECT" is `N` in all five client columns, and §8 has no row for an
+          # invoice or a payment in any of its four matrices. So every client case against them is a
+          # PRIVILEGE-layer refusal that disabling row level security does not restore, exactly as on
+          # batches 050, 060 and 140.
+          #
+          # Each entry bites through the pair of grants that DOES exist: app_worker holds a
+          # column-scoped SELECT and INSERT (and, on the receipt and the invoice, a column-scoped
+          # UPDATE) with NO POLICY. With RLS off, `service-sees-zero-*` returns the row AND
+          # `service-cannot-*` succeeds where it must be refused — a filtered read and a policy-layer
+          # write refusal, which are the two outcomes disabling RLS actually changes. So each of these
+          # three rests on TWO cases and neither is a `deniedBy: 'grant'` case, which would pass
+          # unchanged; tests/db/identity/identity-isolation.test.mjs pins all six by id, by outcome
+          # kind and by layer.
+          #
+          # THE RECEIPT'S PAIR IS PERMANENT AND THE OTHER TWO ARE PENDING, and the difference is
+          # recorded here because it decides what a later batch is allowed to do to them.
+          # app.billing_webhook_receipts holds §8.3's `S` cell, which RFC-2026-022 §3 classifies
+          # DISCOVERED and §5/5 gives NO POLICY permanently — so `service-sees-zero-billing-webhook-
+          # receipts` is an assertion that never flips, and RFC-2026-022 §8 warns that a reader who
+          # treats it as pending will "fix" it by writing the unscoped service policy §4 option B
+          # rejects. What flips instead is a new pair: a broker claim succeeds while the direct
+          # statement still returns zero. app.billing_invoices and app.billing_payments have no §8 row
+          # at all, so what would change theirs is an RFC-2026-021 allowlist entry — an owner reading
+          # their own invoices is the strongest candidate this family produces and it fails C1 today.
+          #
+          # The three patterns do not overlap with each other or with any entry above: a receipt case
+          # id contains `billing-webhook-receipt`, an invoice case `billing-invoice` and a payment case
+          # `billing-payment`, none of them contains `billing-subscription`, `billing-plan-catalog`,
+          # `plan-price` or `plan-entitlement`, and none contains `workspace`, `business`, `page`,
+          # `scope`, `industry-`, `knowledge-`, `job-row`, `outbox-event`, `consumer-ledger`,
+          # `ai-model-`, `audit-log` or `security-event`. The static suite asserts that pairwise across
+          # every entry in this step rather than leaving it to inspection.
+          control app.billing_webhook_receipts '[a-z0-9-]*billing-webhook-receipt' 131
+          control app.billing_invoices         '[a-z0-9-]*billing-invoice'         131
+          control app.billing_payments         '[a-z0-9-]*billing-payment'         131
           echo "negative control: every family above failed the suite, as each must."

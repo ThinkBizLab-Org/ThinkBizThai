@@ -7104,3 +7104,554 @@ test('no witness compares against a value the driver cannot encode', async () =>
       + 'and would fail against every database.');
   }
 });
+
+
+// ---------------------------------------------------------------------------
+// Batch 131 — the billing projection, and the two words in §5 that decide it.
+// =============================================================================================
+//
+// The tests below are shaped by three facts about this batch, and each one removes a kind of
+// assertion an earlier section could make:
+//
+//   * NO TABLE HERE CARRIES A POLICY, so there is no predicate to assert about, no membership
+//     helper to check a call to, and no narrowing to prove restrictive.
+//   * NO CLIENT ROLE HOLDS A PRIVILEGE, so there is no client grant to hold to a column list and
+//     no positive case for a negative to be measured against.
+//   * THE BATCH IS MOSTLY WHAT IS ABSENT — no card column, no payment instrument, no raw provider
+//     identifier, no payload, no service policy — and an absence cannot be asserted by reading the
+//     text that would have contained it. So the rules below read the CREATE TABLE BODIES, the GRANT
+//     text and the apply-time block's own queries, and the live half is `make db-rls-smoke`.
+//
+// One rule is shaped the way batch 130's is and for the same reason: this migration's own text has
+// to NAME every shape it refuses — its apply-time block greps for `pan|cvv|card|last4` and for
+// `payment_method|bank_account`, and its header explains why a `last4` and a Stripe object id are
+// absent. A rule reading the whole file would be satisfied by the refusal and would fail on the
+// batch that wrote it. The column rules read the table bodies, which is where a column arrives.
+const PROJECTION_MIGRATION = 'db/foundation/migrations/131_billing_projection.sql';
+const PROJECTION_FIXTURE = 'tests/db/identity/fixtures/131-billing-projection-fixture.sql';
+// `SERVICE_POLICY_MAP_FILE` is declared once, by the batch 061 section above, with the same value
+// this section wrote for itself. Two batches naming the same file is not a collision worth
+// renaming around; a second `const` at module scope is a parse error, so the redeclaration is
+// dropped rather than the constant.
+const projection = await readFile(PROJECTION_MIGRATION, 'utf8');
+const projectionCode = projection.replace(/--[^\n]*/g, '');
+const RECEIPT_TABLE = 'billing_webhook_receipts';
+const INVOICE_TABLE = 'billing_invoices';
+const PAYMENT_TABLE = 'billing_payments';
+const PROJECTION_TABLES = [RECEIPT_TABLE, INVOICE_TABLE, PAYMENT_TABLE];
+const projectionTableBodies = [...projectionCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const bodyOf = (table) => projectionTableBodies.find((b) => b.includes(`app.${table} (`));
+
+test('every batch 131 table carries RLS, FORCE, a primary key and an owner comment, and no policy', () => {
+  for (const table of PROJECTION_TABLES) {
+    assert.match(projectionCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(projectionCode, new RegExp(`alter table app\\.${table} enable row level security`));
+    assert.match(projectionCode, new RegExp(`alter table app\\.${table} force row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. On a table with no policy, FORCE is the whole control.');
+    assert.match(projectionCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(projectionCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,400}?primary key`));
+  }
+  assert.equal([...projectionCode.matchAll(/create policy/g)].length, 0,
+    'batch 131 writes no policy. §8.3 marks "Raw token/webhook SELECT" N for every client role and S for '
+    + 'the service, and §8 has no row for an invoice or a payment at all — so there is no client cell to '
+    + 'implement, and the service cell is one RFC-2026-022 §3 classifies DISCOVERED.');
+  assert.equal([...projectionCode.matchAll(/drop policy/g)].length, 0,
+    'and it drops none, so it cannot remove a policy a merged batch owns (migration invariant 1)');
+  assert.match(projection, /There are none, and on one of the three that is PERMANENT/,
+    'a forced table with no policy is unreachable by every role, and an absence is not a decision until '
+    + "somebody writes down that it is one (010's rule, kept by 030, 050, 060 and 130)");
+});
+
+test('no batch 131 table has a column a payment instrument could arrive in', () => {
+  const FORBIDDEN = ['pan', 'cvv', 'cvc', 'card', 'card_number', 'cardholder', 'last4', 'brand',
+    'exp_month', 'exp_year', 'expiry', 'security_code', 'fingerprint', 'iin', 'bin', 'mandate',
+    'payment_method', 'payment_token', 'bank_account', 'account_number', 'routing', 'promptpay'];
+  for (const body of projectionTableBodies) {
+    for (const name of FORBIDDEN) {
+      assert.doesNotMatch(body, new RegExp(`\\b${name}\\b`, 'i'),
+        `a batch 131 table declares a column named for ${name}. §5's inventory says "payment REFS", and a `
+        + 'reference to a payment EVENT is not a handle on a payment INSTRUMENT. §9.2 and BILL-DEC-003 forbid '
+        + 'the DATA; the column is refused because a column named for a card is the column somebody eventually '
+        + 'writes a card into, and RFC-2026-008 records that a PAN reaching `main` is a disclosure this '
+        + 'repository has no mechanism to undo — the scan walks the working tree and RFC-2026-002 forbids the '
+        + 'force-push that would remediate it.');
+    }
+  }
+  assert.match(projectionCode, /a table batch 131 creates carries a payment-instrument column/,
+    'the refusal is a check that runs on every apply, not a comment');
+  assert.match(projectionCode, /payment_method\|payment_token\|bank_account\|account_number\|routing/,
+    'the apply-time pattern covers the names a PAYMENT table attracts that a subscription table does not');
+  assert.doesNotMatch(projectionCode, /c\.relname in \('billing_plans'/,
+    "the card rule is scoped to this batch's own tables and does not reach batch 130's — §14.1 permits "
+    + "brand/last4/expiry after a privacy review, so a rule over schema `app` would make this applied "
+    + "migration's self-assertion false the day such a review approves a column elsewhere");
+});
+
+test('a provider identifier is stored as a digest and never raw', () => {
+  for (const [table, column] of [[RECEIPT_TABLE, 'provider_event_hash'], [INVOICE_TABLE, 'provider_invoice_hash'],
+    [PAYMENT_TABLE, 'provider_payment_hash']]) {
+    const body = bodyOf(table);
+    assert.ok(body, `app.${table} has no CREATE TABLE body`);
+    assert.match(body, new RegExp(`${column}\\s+bytea`),
+      `app.${table}.${column} is §9.3's "stable hash for uniqueness" and must be a digest, not text`);
+    assert.match(body, new RegExp(`check \\(octet_length\\(${column}\\) >= 32\\)`),
+      "a FLOOR, which is batch 010's treatment of token_hash — it stops a raw provider id fitting a column "
+      + 'the schema calls a digest');
+  }
+  for (const body of projectionTableBodies) {
+    for (const raw of ['stripe_customer_id', 'stripe_subscription_id', 'stripe_invoice_id',
+      'stripe_price_id', 'stripe_product_id', 'payment_intent_id', 'provider_customer_id',
+      'provider_invoice_id', 'provider_event_id', 'provider_payment_id']) {
+      assert.doesNotMatch(body, new RegExp(`\\b${raw}\\b`, 'i'),
+        '§9.3 requires an external identifier to be a "raw encrypted/private reference + stable hash for '
+        + 'uniqueness". There is no encryption mechanism, §14.1 permits a Stripe object id only after a privacy '
+        + 'review that has not happened, and Gate G0 authorizes no provider integration — so the hash is stored '
+        + 'and the raw reference is owed to the RFC that decides where it lives.');
+    }
+    assert.match(body, /livemode\s+boolean\s+not null/,
+      '§5.2: "Production/test records ต้องแยกด้วย environment และ livemode; ห้าม map ข้าม mode". Batch 130 '
+      + 'refused this column in terms and named batch 131.');
+  }
+  assert.match(projectionCode, /unique \(provider, livemode, provider_event_hash\)/,
+    '§8.2: "unique constraint (provider, livemode, event_id)". All three terms earn their place — a second '
+    + 'provider is a different namespace, and a test event must not suppress a live one carrying the same id. '
+    + 'It is what makes §14.3\'s replay control ("event ซ้ำ 10 ครั้ง") a constraint rather than a hope.');
+});
+
+test('the webhook receipt holds no payload, and an allowlist keeps it that way', () => {
+  const body = bodyOf(RECEIPT_TABLE);
+  for (const name of ['payload', 'raw_body', 'body', 'signature', 'headers', 'request_headers',
+    'raw_event', 'provider_payload']) {
+    assert.doesNotMatch(body, new RegExp(`\\b${name}\\b(?!_hash)`, 'i'),
+      '§8.1/7 forbids logging the header signature, the full payload, customer PII or a secret, and a column '
+      + 'is a stronger form of a log. §5.1\'s alternative to a hash is an "encrypted payload policy" that does '
+      + 'not exist, and §10\'s WEBHOOK-SHORT says to "redact/purge payload, retain dedupe hash longer" — so the '
+      + 'hash is the half that survives. This table is in `app` rather than in `private` BECAUSE it holds no '
+      + 'payload; a column here makes that argument false and the schema wrong.');
+  }
+  assert.match(body, /payload_hash\s+bytea\s+not null/,
+    '§8.1/5 requires the inbox to record a payload hash, so a redelivery whose body differs under the same '
+    + 'event id is detectable by comparison rather than by trust');
+  assert.match(projectionCode,
+    /a\.attname::text <> all \(array\['id', 'provider', 'livemode', 'provider_event_hash',/,
+    'the permitted column set is asserted at apply time against the live catalog — 060\'s mechanism, written as '
+    + 'an ALLOWLIST because a denylist of column names somebody thought of is defeated by the one they did not');
+  assert.match(projectionCode, /carries column\(s\) a receipt may not hold/,
+    'and the failure names what the rule is about');
+  assert.match(projection, /THERE IS NO `processing_status` COLUMN/,
+    '§8.3 draws a five-state machine and this batch stores timestamps instead; the departure is argued in the '
+    + 'file rather than left as an absence');
+  assert.doesNotMatch(body, /\bprocessing_status\b|\bstatus\b/,
+    "three of §8.3's five states are the presence or absence of a column beside them, and the two that are not "
+    + 'are distinguishable only by a lease, which is batch 050\'s. A status column would be a second source of '
+    + 'truth for three states and an invented vocabulary for the fourth — the lifecycle naming CTR-JOB-001\'s '
+    + 'freeze boundary reserves to an owner review.');
+});
+
+test('the receipt discovers its workspace, and the S cell is classified rather than policed', async () => {
+  const body = bodyOf(RECEIPT_TABLE);
+  assert.match(body, /correlation_workspace_id\s+uuid\s+references app\.workspaces \(id\)/,
+    "§8.3 spells the field `correlation_workspace_id` and initialises it null. It is a real foreign key, so an "
+    + 'attribution that IS made names a workspace that exists.');
+  assert.doesNotMatch(body, /correlation_workspace_id\s+uuid\s+not null/,
+    'a NOT NULL here would force the ingress to invent an attribution before verifying one, or to refuse the '
+    + 'durable insert §8.1/6 requires');
+
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP_FILE, 'utf8'));
+  const entry = (map.cells ?? []).find((c) => c.table === RECEIPT_TABLE && c.operation === 'select');
+  assert.ok(entry, 'RFC-2026-022 §5/1 records the classification as DATA so a later batch reads the answer '
+    + 'rather than re-deriving it, and §7.1/6 makes the file the only answer. A cell with no row is a cell '
+    + 'nobody classified.');
+  assert.equal(entry.shape, 'discovered',
+    'RFC-2026-022 §3\'s own table classifies "Raw token/webhook SELECT" for 110 and 131 as DISCOVERED, and the '
+    + 'operational test agrees: adding the confinement term to "the next unprocessed receipt" excludes exactly '
+    + 'the rows a processor exists to resolve, because §8.3 initialises the workspace column null.');
+  assert.equal(entry.batch, '131_billing_projection.sql');
+  assert.match(entry.why, /RFC-2026-022 §3/,
+    'the reason cites the test it applies rather than asserting a verdict');
+
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    assert.doesNotMatch(sql, new RegExp(`create policy \\w+ on app\\.${RECEIPT_TABLE}\\b`, 'i'),
+      `${name} writes a policy on app.${RECEIPT_TABLE}. RFC-2026-022 §5/5 gives a DISCOVERED cell NO POLICY, `
+      + 'permanently rather than pending — the operation is performed through a SECURITY DEFINER broker owned '
+      + 'by a role that is not a path, so app_worker keeps its grants and no policy and a service refusal stays '
+      + 'attributable to row level security. §7.1/5 asks a lint to hold exactly this negative. If this is that '
+      + 'broker landing, it needs no policy on the SERVICE role, and changing decision 5 needs an RFC rather '
+      + 'than a migration.');
+  }
+
+  assert.doesNotMatch(projectionCode, /current_setting\('app\.workspace_id'/,
+    'batch 131 has no CARRIED cell, so a confinement term in the SQL would be a control with nothing to '
+    + 'confine. This rule reads the code with comments stripped, and on its own it is not enough — a first '
+    + 'probe added the expression as a COMMENT and this assertion did not notice, which is the whole failure '
+    + 'mode RFC-2026-022 §5/4 is about: the sentence beside the expression is what a later reader takes as the '
+    + 'claim. The two assertions below read the RAW file.');
+  assert.equal((projection.match(/current_setting/g) ?? []).length, 1,
+    'the expression appears in this migration EXACTLY ONCE, in the header, as the term RFC-2026-022 §3\'s '
+    + 'operational test asks a batch to add to its own statement in order to decide whether the cell is CARRIED '
+    + 'or DISCOVERED. A second occurrence is either a policy this batch may not write or a second sentence '
+    + 'about a control it does not have, and both are the thing §5/4 forbids.');
+  assert.match(projection, /THE WORKSPACE GUC IS NOT A TENANT BOUNDARY AND NOTHING IN THIS BATCH MAY BE READ AS SAYING IT IS/,
+    'and the one occurrence carries §5/4 beside it: the term confines one transaction against a defect in the '
+    + "service's own code, and is worth nothing against a worker that chooses to set it differently, because "
+    + 'the role the policy names sets the setting the policy reads');
+  for (const c of cases.filter((k) => /billing-webhook-receipt|billing-invoice|billing-payment/.test(k.id))) {
+    assert.doesNotMatch(String(c.why), /workspace GUC|current_setting/,
+      `${c.id}: RFC-2026-022 §5/4 forbids any test citing the confinement setting as tenant isolation of the `
+      + 'service path, and a case that mentions it at all is one a later reader will cite that way');
+  }
+});
+
+test('the payment ledger is append-only as an absent grant AND an absent policy, in both directions', async () => {
+  const body = bodyOf(PAYMENT_TABLE);
+  assert.doesNotMatch(body, /updated_at/,
+    "an immutable row has no update to stamp (020's words, kept by 030, 040, 050 and 130)");
+  assert.doesNotMatch(projectionCode,
+    new RegExp(`create trigger set_updated_at before update on app\\.${PAYMENT_TABLE}`),
+    'and therefore no trigger');
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const role of [...CLIENT_ROLES, ...SERVICE_ROLES, 'app_authz']) {
+      for (const verb of ['update', 'delete']) {
+        assert.doesNotMatch(sql,
+          new RegExp(`grant\\s[^;]*\\b${verb}\\b[^;]*\\bon\\s+app\\.${PAYMENT_TABLE}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} ${verb.toUpperCase()} on app.${PAYMENT_TABLE}. A payment record is the record `
+          + 'that money moved; a correction is another movement, which §12.1 calls updating the ledger '
+          + 'projection and which this schema spells as a row with direction `refund`. §12.1 also forbids '
+          + 'Support editing the database to "แก้เร็ว", and the absence of the verb is what refuses that person. '
+          + 'If this is a batch that legitimately needs it, name the decision that authorises the writer and '
+          + 'move the four `*-amend/delete-a-billing-payment` cases to whatever layer now refuses them.');
+      }
+    }
+  }
+  assert.match(projectionCode, /has_any_column_privilege\(r\.rolname, c\.oid, 'UPDATE'\)/,
+    'the grant half is asked with has_any_column_privilege, so a column-scoped grant is caught as well as a '
+    + 'table-wide one, and against the LIVE ACL because a grant made by a later batch would not appear here');
+  assert.match(projectionCode, /and pol\.polcmd in \('w', 'd'\)/,
+    'and the policy half is asked of pg_policy: a policy with no grant is inert, and a grant with no policy is '
+    + 'refused by RLS instead of by privilege, which is a weaker refusal than immutability asks for');
+  assert.match(projectionCode, /billing_payments_direction_known check \(direction in \('charge', 'refund'\)\)/,
+    'a refund is a DIRECTION and not a negative amount, because a sign in a money column is a value somebody '
+    + 'eventually sums without reading it');
+  assert.match(projectionCode, /billing_payments_amount_not_negative check \(amount >= 0\)/);
+});
+
+test('the invoice is mutable on purpose, and the receipt is immutable in exactly one half', () => {
+  assert.match(projectionCode,
+    new RegExp(`create trigger set_updated_at before update on app\\.${INVOICE_TABLE}`),
+    '§3.2 requires updated_at on a MUTABLE row and batch 000 supplied the trigger. §8.4 requires a projection '
+    + 'to re-fetch the latest object and to store a projection revision, which describes a row that is '
+    + 'overwritten; declaring it append-only would turn a read model into a log.');
+  assert.match(projectionCode, /provider_revision\s+bigint\s+not null/,
+    '§8.4: "เก็บ provider_created_at, processed_at, provider object ID และ projection revision"');
+  assert.match(projection, /MONOTONICITY OF `provider_revision` IS A WRITE-PATH OBLIGATION AND IS NOT ENFORCED HERE/,
+    'a CHECK cannot see the old row, and the two in-database alternatives are batch 140\'s trigger — for an '
+    + 'adversary this table does not have — and a command function that does not exist. The obligation is '
+    + 'recorded rather than half-built.');
+  const invoiceBody = bodyOf(INVOICE_TABLE);
+  assert.doesNotMatch(invoiceBody, /amount_paid|paid_amount|balance/,
+    'a column beside the payment rows would be a second source of truth for a MONEY fact, and the two could '
+    + 'disagree with nothing here able to say which was right — 021 refusing current_version_id, 030 refusing '
+    + 'industry_pack_id, 040 refusing kind, 050 refusing an attempt table, 130 refusing cancel_at_period_end');
+  assert.doesNotMatch(invoiceBody, /provider_status|\bstatus\b/,
+    '§9 requires the mapping from a provider\'s state words to be "อยู่ใน versioned policy" and none exists; '
+    + 'the lifecycle here is issued_at, due_at, settled_at and voided_at, which is 010\'s refusal about an '
+    + 'invitation status arriving for the fifth time');
+  assert.doesNotMatch(invoiceBody, /\btax\b|\bvat\b|proration/i,
+    'BILL-DEC-009, BILL-OQ-04 and BILL-OQ-07 are OPEN and §15 forbids an agent closing an open decision');
+  assert.match(projectionCode,
+    /grant update \(correlation_workspace_id, attempt_count, next_attempt_at, processed_at,\s*dead_lettered_at, last_error_code, updated_at\)/,
+    '§5.1 calls a receipt "immutable receipt metadata" and §8.3 gives the same row a processing machine. What '
+    + "the provider said is fixed at insert; what we did about it is these seven columns. That is batch 050's "
+    + 'outbox shape on a table whose envelope came from outside.');
+  assert.match(projectionCode, /a column of the webhook receipt outside the processing set is updatable/,
+    'and the other nine are walked per column against the live ACL, because a role that could rewrite what the '
+    + 'provider said could re-aim a signed statement after the fact');
+});
+
+test("batch 131 adds to the merged batches, and its one alter is a forward fix with its invariant paid", async () => {
+  for (const table of ['workspaces', 'workspace_members', 'workspace_member_scopes', 'business_profiles',
+    'page_context_profiles', 'industry_assignments', 'knowledge_items', 'jobs', 'outbox_events',
+    'consumer_ledger', 'ai_models', 'ai_model_policies', 'audit_logs', 'security_events',
+    'billing_plans', 'billing_plan_versions', 'plan_entitlements']) {
+    assert.doesNotMatch(projectionCode, new RegExp(`alter table app\\.${table}\\b`, 'i'),
+      `batch 131 must not alter app.${table}, which belongs to a merged batch`);
+  }
+  const alters = [...projectionCode.matchAll(/alter table app\.(\w+)\s+(\w+)/gi)]
+    .filter((m) => !/enable|force/i.test(m[2]));
+  assert.equal(alters.length, 1, 'exactly one alter that is not ENABLE/FORCE ROW LEVEL SECURITY');
+  assert.equal(alters[0][1], 'billing_subscriptions');
+  assert.match(alters[0][2], /^add$/i,
+    'it ADDS a unique constraint and drops, renames and redefines nothing. Migration invariant 1 is "Merge '
+    + 'แล้วห้ามแก้ migration ย้อนหลัง; ใช้ forward-fix", and 130_billing.sql is not edited by one byte.');
+  assert.match(projectionCode, /add constraint billing_subscriptions_workspace_key unique \(workspace_id, id\)/,
+    '§3.3 requires a child of a tenant parent to take a COMPOSITE foreign key and §4 invariant 10 states the '
+    + 'failure: an invoice must not be able to name workspace A while its subscription belongs to workspace B. '
+    + 'Batch 130 had no child and therefore no occasion to add the pair, and its PARTIAL unique index cannot '
+    + 'serve — Postgres will not accept a partial index as a foreign key target.');
+  assert.match(projectionCode, /set lock_timeout = '5s';/,
+    'migration invariant 3: "DDL ที่เสี่ยง lock ต้องมี lock_timeout, statement_timeout, rollout และ recovery '
+    + 'note". ADD CONSTRAINT ... UNIQUE takes an ACCESS EXCLUSIVE lock and builds an index, so it is that DDL.');
+  assert.match(projectionCode, /set statement_timeout = '60s';/);
+  assert.match(projectionCode, /set lock_timeout = default;[\s\S]{0,120}set statement_timeout = default;/,
+    'both are RESET immediately after, so the setting does not leak into the next migration applied on the same '
+    + 'session — the failure SET LOCAL avoids inside a transaction and a bare SET does not');
+  assert.match(projection, /ROLLOUT: app\.billing_subscriptions is empty on every instance/);
+  assert.match(projection, /RECOVERY: `alter table app\.billing_subscriptions drop constraint/);
+  assert.match(projectionCode, /if not exists \(\s*select 1 from pg_catalog\.pg_constraint con/,
+    'the re-runnability every other statement gets from `if not exists` is provided by a guard block here, '
+    + 'because ADD CONSTRAINT has no such clause');
+  const migrations = await allMigrations();
+  const billing130 = migrations.find(([name]) => name === '130_billing.sql')[1];
+  assert.doesNotMatch(billing130, /contype = 'u'/,
+    'batch 130 makes no apply-time assertion about the unique constraints on its own tables, so adding one '
+    + "cannot make an applied migration's self-assertion false — which is the 011 trap that rule exists to "
+    + 'avoid, and it is checked here rather than argued');
+});
+
+test('a child row must agree with its parent about the tenant and about the mode', () => {
+  assert.match(projectionCode,
+    /foreign key \(workspace_id, billing_subscription_id\)\s*references app\.billing_subscriptions \(workspace_id, id\)/,
+    '§3.3\'s composite foreign key over the scope path, and §4 invariant 10\'s "Workspace/Business/Page UUID '
+    + 'ที่ไม่สัมพันธ์กันต้อง fail ที่ DB … แม้ actor มีสิทธิ์ในแต่ละ entity แยกกัน"');
+  assert.match(projectionCode,
+    /foreign key \(workspace_id, billing_invoice_id\)\s*references app\.billing_invoices \(workspace_id, id\)/,
+    'and again one table further down');
+  assert.match(projectionCode,
+    /foreign key \(billing_invoice_id, livemode\)\s*references app\.billing_invoices \(id, livemode\)/,
+    '§5.2 forbids mapping across modes and §13.1 calls a LIVEMODE_MISMATCH a "critical incident; no '
+    + 'auto-repair". A live payment cannot attach to a test invoice, and the refusal is a constraint rather '
+    + "than a reconciliation finding — batch 130's move on DUPLICATE_ACTIVE_SUBS, one table over.");
+  assert.match(projectionCode, /constraint billing_invoices_scope_key unique \(workspace_id, id\)/);
+  assert.match(projectionCode, /constraint billing_invoices_mode_key unique \(id, livemode\)/,
+    'TWO keys and not one wider one: a payment must agree with its invoice about two different things for two '
+    + 'different reasons, and a single three-column key would collapse them into one constraint whose failure '
+    + 'message could not say which rule was broken');
+  assert.match(projectionCode, /a foreign key in the billing projection is not one batch 131 declares/,
+    "read as column SETS so a reordering does not fail and a dropped column does — 050's rule about its own "
+    + 'natural keys, which would have passed every other check in this repository if a term had been dropped');
+});
+
+test('no client role holds a privilege on a batch 131 table, and app_worker holds grants and no policy', async () => {
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const table of PROJECTION_TABLES) {
+      for (const role of CLIENT_ROLES) {
+        assert.doesNotMatch(sql,
+          new RegExp(`grant\\s[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+          `${name} grants ${role} a privilege on app.${table}. §8.3 marks "Raw token/webhook SELECT" N for `
+          + 'every client role, and §8 has no row for an invoice or a payment at all. An owner reading their '
+          + 'own invoices is a real RFC-2026-021 allowlist candidate — §6 of the billing contract gives the '
+          + 'Owner "ขอใบเสร็จ/ข้อมูล billing" with a ✓ and §11.1 puts the read model in the PDPA export '
+          + 'minimum — and it fails C1 while there is no `src/`, while §8.5 separately requires the inherited '
+          + 'base-table grant list to be CLOSED. If this is that RFC landing, an entry is five objects and a '
+          + 'registry row, not a base-table grant.');
+      }
+    }
+  }
+  for (const table of PROJECTION_TABLES) {
+    assert.match(projectionCode, new RegExp(`grant select \\([^)]*\\)\\s*on app\\.${table} to app_worker`, 's'),
+      `app.${table}: without a grant a service refusal is 42501 either way and proves only that somebody forgot `
+      + 'one; with the grant and no policy an empty read can only have come from row level security, and a role '
+      + 'that had quietly acquired BYPASSRLS would SUCCEED where the suite demands a refusal');
+    assert.match(projectionCode, new RegExp(`grant insert \\([^)]*\\)\\s*on app\\.${table} to app_worker`, 's'));
+    assert.doesNotMatch(projectionCode, new RegExp(`grant[^;]*\\bdelete\\b[^;]*on app\\.${table}`, 'i'),
+      '§8.5 has no broad user delete and every purge in this family is a retention sweep batch 160 owns');
+  }
+  for (const m of projectionCode.matchAll(/grant\s+(select|insert|update)\s+on app\.(\w+)/gi)) {
+    assert.fail(`batch 131 grants ${m[1]} table-wide on app.${m[2]}. Every grant here is column-scoped, which `
+      + 'RFC-2026-021 M3 measured is a different and better shape — a column added later is unreadable until '
+      + 'somebody writes a new GRANT — and a table-wide UPDATE is the defect independent review found in batch '
+      + '060, where it silently included the tenant scope column.');
+  }
+  for (const role of ['app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(projectionCode, new RegExp(`\\bto\\s+${role}\\b`, 'i'),
+      `${role} is granted nothing: there is no specified command surface for billing.core (RFC-2026-012 §4 `
+      + 'names the mechanism and RFC-2026-021 §10 records it does not exist), the retention path is batch 160, '
+      + "and RFC-2026-020 §6.1/6 pins app_authz's grant set");
+  }
+  assert.doesNotMatch(projectionCode, /\bto\s+anon\b/i,
+    'RFC-2026-021 §7/4: anon holds nothing anywhere our migrations reach');
+  assert.match(projectionCode, /pg_catalog\.pg_roles/);
+  assert.doesNotMatch(projectionCode, /pg_authid/,
+    'a migration that reads pg_authid passes in CI and fails on the platform, where postgres is not a superuser '
+    + '(batch 020 found this)');
+  assert.match(projectionCode, /gen_random_uuid\(\)/,
+    'unqualified, so it resolves from pg_catalog, which is always on the search path (batch 004)');
+  assert.doesNotMatch(projectionCode, /(public|extensions)\.gen_random_uuid/);
+  assert.match(projectionCode, /private\.set_updated_at\(\)/,
+    "§3.2's updated_at comes from batch 000's helper and is not reimplemented");
+});
+
+test("batch 131 grants no writer on batch 130's tables, and says which decision would be needed", () => {
+  for (const table of ['billing_subscriptions', 'billing_plans', 'billing_plan_versions', 'plan_entitlements']) {
+    assert.doesNotMatch(projectionCode, new RegExp(`grant[^;]*on app\\.${table}\\b`, 'i'),
+      `batch 131 grants nothing on app.${table}. Batch 130 wrote that "the verb this table's writer will need `
+      + 'is INSERT and UPDATE … and its writer is batch 131 — so 131 grants them, in the change that brings the '
+      + 'thing that needs them." The thing that needs them has not arrived: §8.3 marks the service `P` on both '
+      + 'billing rows, `P` is "passes per policy/explicit capability" with no document defining the capability '
+      + 'set (RFC-2026-020 §8, left standing by RFC-2026-022 §9), and RFC-2026-012 §4\'s command function does '
+      + "not exist. So 130's own assertion across the migration set stays true against this file, deliberately.");
+  }
+  assert.match(projection, /NO NEW GRANT ON app\.billing_subscriptions, WHICH IS A PROMISE BATCH 130 MADE/,
+    'a promise declined silently is a promise a reviewer has to go and check');
+});
+
+test('the batch 131 fixture writes only catalog identities and carries no card and no raw provider id', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(PROJECTION_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity`);
+  }
+  for (const symbol of ['billing_invoice_a', 'billing_invoice_b', 'workspace_a', 'workspace_b']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  assert.equal((fixture.match(/sha256\(convert_to\(/g) ?? []).length, 11,
+    'eleven computed digests: an event digest and a payload digest on each of three receipts, an invoice digest '
+    + 'on each of two invoices, and a payment digest on each of three payments. Every one is computed with '
+    + "pg_catalog's sha256, the way batch 010's fixture builds an invitation token digest, because a pasted hex "
+    + 'constant is exactly the unverifiable value the fixture catalog exists to refuse.');
+  assert.doesNotMatch(fixture, /\\x[0-9a-f]{16,}/i,
+    'and no pasted byte literal anywhere. This is the half the count cannot make: a fourth hashed column added '
+    + 'tomorrow with a literal would keep the count at eleven for the columns that already have one.');
+  assert.match(fixture, /fixture-billing-event-unresolved/,
+    'one receipt is UNRESOLVED — correlation_workspace_id null, never processed — which is §8.3\'s own initial '
+    + 'value and the row a confinement predicate would exclude. Without it the DISCOVERED classification is a '
+    + 'claim about a state no row is in.');
+  // AND IT IS ACTUALLY UNRESOLVED, which the name alone does not say. A first probe set that row's
+  // correlation_workspace_id to workspace A and nothing failed: the label survived while the state
+  // the label is about had gone. Counted rather than pattern-matched, because the position of a null
+  // inside a VALUES row is formatting and the NUMBER of tenant references is the fact.
+  const receipts = fixture.match(/insert into app\.billing_webhook_receipts[\s\S]*?on conflict[^;]*;/);
+  assert.ok(receipts, 'the fixture loads webhook receipts');
+  assert.equal((receipts[0].match(UUID) ?? []).length, 2,
+    'three receipts and TWO workspace references: one correlated to each tenant and one correlated to nothing. '
+    + 'A third reference means the unresolved row was given a workspace, and the DISCOVERED classification '
+    + 'RFC-2026-022 §3 records for this cell would then rest on a state no fixture row is in.');
+  for (const value of ["'charge'", "'refund'"]) {
+    assert.match(fixture, new RegExp(value), `the fixture loads a payment with direction ${value}`);
+  }
+  assert.match(fixture, /fixture_declined/,
+    "and a FAILED payment, so `failure_code`'s CHECK — a code belongs to a failure — is satisfied in both "
+    + 'directions by real rows rather than only permitted by a constraint');
+  assert.doesNotMatch(fixture, /\bnow\(\)/,
+    'every timestamp is FIXED: a fixture whose content depends on when it ran is one whose failures depend on '
+    + "when they ran (030's sentence about released_at)");
+  assert.doesNotMatch(fixture, /\b\d{13,19}\b/,
+    'a long digit run in a billing fixture is the shape RFC-2026-008 exists to report. Nothing here needs one, '
+    + 'and a published provider test card is reported rather than exempted — the fixture exemption RFC-2026-008 '
+    + 'says must be designed before a payment package starts does not exist yet.');
+});
+
+test('the tables batch 131 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 14, 'the control runs per table family, and batch 131 adds three');
+
+  // 040's rule as 140 corrected it: a case is RESTORED by disabling row level security when it is a
+  // filtered read, a filtered write, or a POLICY-layer refusal. A `deniedBy: 'grant'` case would pass
+  // unchanged and is not counted.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+
+  for (const table of PROJECTION_TABLES) {
+    const entry = controls.find(([, named]) => named === table);
+    assert.ok(entry, `app.${table} has no negative-control entry. The step disables row level security on one `
+      + "table and requires a failed case whose id matches that table's pattern; a batch that adds a table and "
+      + "no entry widens the gap the step's own blocker names.");
+    assert.equal(entry[3], '131', `app.${table}: the entry is attributed to the batch that owes it`);
+    const pattern = new RegExp(`^${entry[2]}`);
+    const detectable = cases.filter((c) => pattern.test(c.id) && restoredByDisablingRls(c));
+    assert.ok(detectable.length >= 2,
+      `app.${table}: ${detectable.length} case(s) matching /${entry[2]}/ would fail with row level security `
+      + 'disabled, and the entry needs at least two. Batch 030 recorded that an entry resting on ONE case is one '
+      + 'deletion away from resting on none; each of these rests on two — a filtered read and a policy-layer '
+      + 'refused write — and both are pinned below.');
+  }
+  const mine = PROJECTION_TABLES.map((t) => [t, new RegExp(`^${controls.find(([, n]) => n === t)[2]}`)]);
+  for (const [table, pattern] of mine) {
+    for (const [, otherTable, otherRaw] of controls) {
+      if (otherTable === table) continue;
+      const otherPattern = new RegExp(`^${otherRaw}`);
+      const both = cases.filter((c) => pattern.test(c.id) && otherPattern.test(c.id));
+      assert.deepEqual(both.map((c) => c.id), [],
+        `case(s) match BOTH app.${table}'s control pattern and app.${otherTable}'s, so one entry could be `
+        + "satisfied by the other table's regression");
+    }
+  }
+  for (const [table, name, expect, layer] of [
+    [RECEIPT_TABLE, 'service-sees-zero-billing-webhook-receipts', 'no-rows', undefined],
+    [RECEIPT_TABLE, 'service-cannot-record-a-billing-webhook-receipt', 'denied', 'policy'],
+    [INVOICE_TABLE, 'service-sees-zero-billing-invoices', 'no-rows', undefined],
+    [INVOICE_TABLE, 'service-cannot-project-a-billing-invoice', 'denied', 'policy'],
+    [PAYMENT_TABLE, 'service-sees-zero-billing-payments', 'no-rows', undefined],
+    [PAYMENT_TABLE, 'service-cannot-record-a-billing-payment', 'denied', 'policy'],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `app.${table}'s negative-control entry rests on ${name}, which is missing`);
+    assert.equal(found.expect, expect, `${name}: the outcome is what disabling row level security changes`);
+    assert.equal(found.deniedBy, layer, `${name}: the layer is what makes it change`);
+    assert.ok(restoredByDisablingRls(found), `${name} would not be restored by disabling row level security`);
+  }
+  assert.match(workflow, /THE THREE BILLING-PROJECTION TABLES, AND WHY ONE OF THEM RESTS ON A CASE THAT WILL/,
+    'each entry says beside itself what disabling row level security on that table would let through, because a '
+    + 'control whose mechanism lives only in a test is a control nobody reads at the point of use');
+  assert.match(workflow, /PERMANENT AND THE OTHER TWO ARE PENDING/,
+    'and it says which of the three cases will never flip, because RFC-2026-022 §8 warns that a reader who '
+    + 'treats a permanent assertion as pending will "fix" it by writing the unscoped service policy §4 option B '
+    + 'rejects');
+});
+
+test('the coverage map records what batch 131 pays and what it leaves owed, with the batch that owes it', () => {
+  const mentions = Object.values(SMOKE_COVERAGE).filter((v) => /131/.test(v.note));
+  assert.ok(mentions.length >= 5,
+    'batch 131 extends five §12.6 notes and moves no row. If a note stopped naming it, either the assertion '
+    + "stopped being carried on this batch's tables or the note was rewritten by somebody who did not know it "
+    + 'was load-bearing.');
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'batch 131 pays no part of §12.6/3. An approver refused a PAYMENT read is another in-scope analogue and is '
+    + 'still not the content and knowledge tables that sentence names; content is batch 080.');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'and §12.6/8 stays a labelled partial. What CHANGED is that one of the things it waits on now has an answer '
+    + "and the answer is a refusal: RFC-2026-022 §5/5 gives this batch's `S` cell no policy PERMANENTLY, so that "
+    + 'half of the row is not pending — it is decided, and what flips instead is a broker pair.');
+  assert.match(SMOKE_COVERAGE[8].note, /PERMANENT assertion/,
+    'the note says which of its cases will never flip, so a later batch does not "fix" it');
+  assert.match(SMOKE_COVERAGE[8].note, /A CORRECTION THIS BATCH REPORTS AND DOES NOT MAKE/,
+    "batch 140's paragraph still calls its cell the first and only `S` cell any migration has reached, which was "
+    + "true of its branch and is false of this tree — 050 owns §8.4's job payload cell and 131 owns §8.3's "
+    + 'webhook cell. It is reported rather than rewritten, because an assertion in this file pins that sentence '
+    + "and editing prose out from under another batch's test is how a merge loses a control.");
+  assert.match(SMOKE_COVERAGE[1].note, /LOOKS LIKE A CROSS-TENANT PROOF AND IS NOT/,
+    '§12.6/1 is where a privilege-layer refusal is most likely to be counted as a tenant boundary, and this '
+    + "batch has a case that holds tenant B's exact invoice id and still proves only \"no client reads this "
+    + 'table"');
+  assert.match(SMOKE_COVERAGE[7].note, /LIVEMODE_MISMATCH/,
+    '§12.6/7 is the forged-id assertion. Batch 131 BUILDS the check batch 140 could not — composite keys over '
+    + 'the tenant path and over the mode — and still adds no case, because a `rejected` case needs an identity '
+    + 'holding INSERT and none exists. The note says so rather than letting the absence read as an oversight.');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[1]), /BATCH 131 HAS NO CASE FOR IT EITHER/,
+    '§8.6 case 1 is "same Workspace + allowed role → pass", and here the absence is the one a document argues '
+    + 'against — §6 of the billing contract gives the Owner "ขอใบเสร็จ/ข้อมูล billing" with a ✓');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[9]), /DELIBERATELY DOES NOT ADD A TRIGGER/,
+    'case 9 is the immutable row, and 131 makes the reverse choice from 140 on the ADVERSARY rather than on the '
+    + 'strength of the control');
+  assert.match(String(AUTHORIZATION_CASE_COVERAGE[10]), /DISCOVERED/,
+    'case 10 is "authorized server command → pass + expected audit/outbox", and what this batch adds to it is '
+    + "the shape its own `S` cell gets");
+  const cited = new Set(cases.flatMap((c) => c.covers ?? []));
+  for (const label of ['§8.3/raw-webhook-select', '§9.1/PROVIDER-3', '§9.1/FIN-3', 'RFC-2026-022§3',
+    'RFC-2026-022§5', '§10/WEBHOOK-SHORT', '§10/FINANCE-HISTORY', '§12.1']) {
+    assert.ok(cited.has(label), `${label} is reasoning batch 131 rests on and no case cites it`);
+  }
+  for (const c of cases.filter((k) => /billing-webhook-receipt|billing-invoice|billing-payment/.test(k.id))) {
+    assert.notEqual(c.expect, 'rows',
+      `${c.id}: a passing case on these tables would mean somebody granted a client role a privilege, which `
+      + 'RFC-2026-021 §3 gives to an RFC and takes away from a pull request');
+  }
+});

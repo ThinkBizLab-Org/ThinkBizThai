@@ -16,6 +16,14 @@
       "uuid": "eac2ef2e-c61c-5400-a208-d8be90d87b10",
       "role": "revision 1 of billing_plan_starter: the published plan contract, carrying the PRICE. GLOBAL and immutable, and the row workspace_a and workspace_b are BOTH subscribed to -- which is what proves the plan catalog is global rather than replicated per tenant, since each owner sees only their own subscription while both name this one id. It is also the row every immutability case addresses, because a price is the one value in this schema whose history being rewritable would change what somebody was charged."
     },
+    "billing_invoice_a": {
+      "uuid": "44774513-4410-5d72-9d37-1ceb2aec1925",
+      "role": "the invoice of workspace_a, settled, with a succeeded charge and a partial refund against it. It carries a symbol where a webhook receipt and a payment do not, and the rule is this catalog's own: a receipt is addressed by (provider, livemode, event digest) and a payment by (provider, livemode, payment digest), both unique constraints in 131_billing_projection.sql spelled out of text the fixture and the case file share -- while an INVOICE's id is a value ANOTHER ROW MUST NAME, because app.billing_payments reaches it through a composite foreign key over (workspace_id, id) and a second one over (id, livemode). That is exactly the case batch 050 recorded for an outbox event, and it is the only kind of row this catalog admits a symbol for once a natural key exists."
+    },
+    "billing_invoice_b": {
+      "uuid": "08997b86-7491-595f-aefc-c338b4e7d127",
+      "role": "the invoice of workspace_b, held by its EXACT id by every A-side identity and reached by none of them -- and not by user_owner_b either, which is what makes batch 131's refusal a claim about the table rather than about a tenant boundary. It is deliberately UNSETTLED where billing_invoice_a is settled, and its only payment row FAILED: the two invoices differ in the column an owner would most want to read, so the pair is two distinguishable rows rather than two copies, and the failed row is what makes `failure_code`'s CHECK -- a code belongs to a failure -- satisfied in both directions by real rows."
+    },
     "business_a1": {
       "uuid": "dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a",
       "role": "business under workspace_a, inside the editor and approver scope"
