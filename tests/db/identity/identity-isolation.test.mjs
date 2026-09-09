@@ -3456,7 +3456,7 @@ test('batch 060 writes no policy and no client grant, and says which silence dec
   }
 });
 
-test('the credential reference lives in private and holds only the columns §9.2 permits', () => {
+test('batch 060\'s AI credential reference lives in private and holds only the columns §9.2 permits', () => {
   // §3.1 puts "secret references" in `private`, with no direct grant, reachable by server or worker
   // through a typed service only; §14's gate checklist requires a secret table not be exposed; and
   // `app` is the exposed schema. A batch that put this table in `app` would fail that box on the
@@ -5100,7 +5100,7 @@ test('batch 110 writes no policy and no client grant, and names the silence that
   }
 });
 
-test('the credential reference lives in private and holds only the columns §9.2 permits', () => {
+test('batch 110\'s Meta credential reference lives in private and holds only the columns §9.2 permits', () => {
   assert.match(connectorCode, new RegExp(`create table if not exists private\\.${META_REFERENCES}\\b`),
     'the reference is in `private` (§3.1, "secret references"), not in the exposed schema');
   assert.doesNotMatch(connectorCode, new RegExp(`create table[^;]*app\\.${META_REFERENCES}\\b`),
@@ -7653,5 +7653,40 @@ test('the coverage map records what batch 131 pays and what it leaves owed, with
     assert.notEqual(c.expect, 'rows',
       `${c.id}: a passing case on these tables would mean somebody granted a client role a privilege, which `
       + 'RFC-2026-021 §3 gives to an RFC and takes away from a pull request');
+  }
+});
+
+// NO SUITE DECLARES THE SAME TEST NAME TWICE, AND THE GUARD THAT LOOKS LIKE IT CHECKS THIS DOES NOT.
+//
+// `verify-test-coverage-floor.mjs` digests each file's test NAMES so a suite hollowed into
+// `placeholder 1..10` fails. It builds that digest from `new Set(names)` -- deduplicated, because
+// the digest is about which names exist rather than how many times each appears. That is the right
+// shape for what it guards and it is why a duplicate NAME is invisible to it: adding a second test
+// called exactly what an existing one is called changes the set not at all, so the digest does not
+// move and nothing reports anything.
+//
+// It happened. Batch 060 wrote `the credential reference lives in private and holds only the columns
+// §9.2 permits` about private.ai_credential_references, and batch 110 wrote a test with the SAME
+// NAME about private.meta_credential_references. Both are real tests and both pass; what is lost is
+// that a failure report names one of them and a reader cannot tell which table failed -- which is
+// the property a test name exists to carry. They are now named for their batches.
+//
+// This rule reads the SOURCE of every file the floor protects, not the parsed suite: two `test(...)`
+// calls with the same string are two entries in `node --test`'s output and nothing in the runtime
+// object model to ask about.
+test('no protected suite declares the same test name twice', async () => {
+  // The list comes from TEST_NAME_DIGEST_BY_FILE, which is exactly the set of suites whose names
+  // the floor digests — the same files this rule is about, named in one place rather than two.
+  const { TEST_NAME_DIGEST_BY_FILE } = await import('../../../scripts/test-suite-contract.mjs');
+  const protectedSuites = Object.keys(TEST_NAME_DIGEST_BY_FILE);
+  assert.ok(protectedSuites.length > 0, 'there are protected suites to read, or this rule asks nothing');
+  for (const file of protectedSuites) {
+    const source = await readFile(file, 'utf8');
+    const names = [...source.matchAll(/^test\(\s*[`'"](.+?)[`'"]\s*,/gm)].map((m) => m[1]);
+    const repeated = names.filter((n, i) => names.indexOf(n) !== i);
+    assert.deepEqual(repeated, [],
+      `${file} declares ${repeated.length} test name(s) more than once: ${repeated.join(' | ')}. `
+      + 'The name digest cannot see this — it is built from a Set, so a repeated name changes nothing '
+      + 'in it — and a failure report that names a duplicated test does not say which one failed.');
   }
 });

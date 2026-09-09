@@ -41,36 +41,36 @@ export const FIXTURE_SQL_FILES = [
   'tests/db/identity/fixtures/020-business-fixture.sql',
   'tests/db/identity/fixtures/021-member-scope-fixture.sql',
   'tests/db/identity/fixtures/030-industry-fixture.sql',
-  // Batch 040's items name Businesses from 020 and page_a1_sibling from 021, so this entry is last
-  // for the same reason every other one is where it is: the list is an ORDER, not a set.
+  // Batch 040's items name Businesses from 020 and page_a1_sibling from 021, so this entry was
+  // APPENDED for the same reason every other one is where it is: the list is an ORDER, not a set.
   'tests/db/identity/fixtures/040-knowledge-fixture.sql',
   // Batch 050's rows hang off Workspaces from 010 and name Businesses from 020 in their event
-  // subjects, so this entry could sit anywhere after the second. It is last because the list is an
-  // order and a new batch appends to it, which is also what keeps a reader from having to work out
-  // whether the position meant something.
+  // subjects, so this entry could sit anywhere after the second. It was APPENDED because the list
+  // is an order and appending is the change that cannot reorder anything else, which is also what
+  // keeps a reader from having to work out whether the position meant something.
   'tests/db/identity/fixtures/050-async-kernel-fixture.sql',
   // Batch 060 names only Workspaces (010) and its own global model row, so it could sit anywhere
-  // after the first entry; it is last because the list is also the ORDER OF THE BATCHES, and a
-  // reader who finds a fixture out of migration order has to check whether that was deliberate.
+  // after the first entry; it was APPENDED because the list is also the ORDER OF THE BATCHES, and
+  // a reader who finds a fixture out of migration order has to check whether that was deliberate.
   // It is the first entry that writes into `private`, which §3.1 makes the home of secret
   // references and which no fixture before it had a table in.
   'tests/db/identity/fixtures/060-ai-gateway-fixture.sql',
   // Batch 130's subscriptions name only Workspaces, which 010 creates, so this file could sit
-  // second. It is last because the list is applied in order and appending is the change that cannot
-  // reorder anything else — and because a reader who sees a batch number out of sequence should be
-  // able to read the dependency from the file rather than from the position.
+  // second. It was APPENDED because the list is applied in order and appending is the change that
+  // cannot reorder anything else — and because a reader who sees a batch number out of sequence
+  // should be able to read the dependency from the file rather than from the position.
   'tests/db/identity/fixtures/130-billing-fixture.sql',
   // Batch 140 is the first entry whose POSITION is not a dependency, and saying so keeps the list
   // honest about what it is: app.audit_logs and app.security_events carry no foreign key at all
   // (140_audit.sql's header gives §11.4's required order as the reason), so these rows would load
-  // against an empty database. It is last because the list is an order and a new batch joins its
-  // end, and because the ids it carries are the ids the earlier fixtures made real.
+  // against an empty database. It was APPENDED because the list is an order and appending cannot
+  // reorder anything else, and because the ids it carries are the ids the earlier fixtures made real.
   'tests/db/identity/fixtures/140-audit-fixture.sql',
   // Batch 051's POSITION IS A DEPENDENCY, unlike 140's, and the two entries above and below say
   // which is which so the list stays honest about what it is. All three of its tables carry
   // `workspace_id ... references app.workspaces (id)`, so these rows need 010's workspaces; nothing
-  // in the file names a Business, a job, a model or an audit record, so it could sit second. It is
-  // last because the list is an ORDER and a new batch joins its end.
+  // in the file names a Business, a job, a model or an audit record, so it could sit second. It was
+  // APPENDED because the list is an ORDER and appending cannot reorder anything else.
   'tests/db/identity/fixtures/051-notification-fixture.sql',
   // Batch 061's position IS a dependency and not only a convention. Its ledger rows resolve their
   // job attribution by subquery against app.jobs — CTR-USG-001 requires attribution.job_id and batch
@@ -81,8 +81,8 @@ export const FIXTURE_SQL_FILES = [
   // reorder anything else.
   'tests/db/identity/fixtures/061-metering-fixture.sql',
   // Batch 110's connections hang off Workspaces from 010 and everything else in the batch hangs off
-  // a connection, so this entry could sit second. It is last because the list is applied in order
-  // and appending is the change that cannot reorder anything else. It is the second entry that
+  // a connection, so this entry could sit second. It was APPENDED because the list is applied in
+  // order and appending is the change that cannot reorder anything else. It is the second entry that
   // writes into `private` — 060 was the first — and the first that writes a row there whose
   // `workspace_id` is NULL, which is what §5's "private workspace" scope commits a raw webhook
   // delivery to.
