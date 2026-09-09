@@ -73,11 +73,18 @@ including a fresh `taken_against_migrations`. The lint tells you the digest it e
 ## Fixtures
 
 `seeds/fixture-catalog.json` fixes the fourteen identities §12.6 names **plus the ones a batch had to
-add and declared**, which is FOURTEEN more as of batch `060`. This sentence used to say "fourteen"
-flat and was wrong from batch `020` onward; it said "seven more" and was wrong the moment `040`
-landed; it said "thirteen more" and was wrong the moment `060` did. It is corrected each time rather than left, because a count nobody maintains is how the
-closed-set assertion below stops meaning anything — and a sentence that has now been wrong twice is
-a sentence to be suspicious of rather than one to trust because it was recently edited. Every UUID is
+add and declared**. **THE NUMBER OF ADDITIONS IS DELIBERATELY NOT WRITTEN HERE ANY MORE, AND THAT IS
+THE FOURTH CORRECTION TO THIS SENTENCE RATHER THAN THE THIRD.** It said "fourteen" flat and was wrong
+from batch `020` onward; it said "seven more" and was wrong the moment `040` landed; it said
+"thirteen more" and was wrong the moment `060` did; it said "FOURTEEN more as of batch `060`" and was
+wrong the moment `051`, `061`, `110` and `131` did, because four batches written in parallel each
+added symbols without seeing the others. A count in prose is edited by whoever notices, and the
+batches that do not notice are the ones that make it false — which is the same defect this repository
+has now recorded about a test count, a floor, an ordinal and a list of batch numbers in
+`tests/db/identity/run-isolation.mjs`. **The list lives in `ADDED_SYMBOLS` in
+`test-kits/db/foundation-contract.test.mjs`, each entry naming the batch that needed it and the case
+it exists for, and the closed-set assertion below is over §12.6's list plus exactly that.** Read it
+there; it cannot fall behind, because a symbol that is not in it fails the build. Every UUID is
 `uuid5(namespace, 'thinkbizthai.fixture.' || symbol)` — a pure function of the symbol, so anyone can
 recompute them and nobody has to trust the file. A test recomputes **all** of them on every run and
 holds the catalog to exactly §12.6's list plus the declared additions, each of which names the batch
@@ -105,6 +112,19 @@ pack needed a symbol: a catalog no case can address is a catalog no case can be 
 `model_key` is deliberately synthetic, because `OPEN-004` owns the BYOK model allowlist, it is open,
 and §15 forbids an agent choosing an open decision — a fixture naming a real model would read as one
 having been chosen.
+
+Batch `070` added symbols for rows in four of its five tables and **none for the fifth**, which is
+the rule this list has applied since `020` arriving at a table where it points the other way. A run,
+a citation, an evidence item and a suggestion have no natural key any document fixes, and `070`
+refused to invent one for each — nothing in §4, §5 or §8 says a run cites a URL once or that a source
+supports one piece of evidence — so each is addressed by an id fixed here. A **research snapshot**
+has a natural key: `(workspace_id, research_source_id, content_hash)`, because that triple is what
+`app.research_evidence.snapshot_content_hash` has to name single-valued once §10's purge has removed
+the locator. So a case addresses a capture by its DIGEST, exactly as `010`'s cases address an
+invitation by its token hash, and the fixture composes the same digest from the same synthetic
+string — which is a demonstration that the hash IS an address, and that is the whole reason §10 says
+to preserve it. The string is this repository's own: §9.2 names `fixture` among the surfaces a full
+research snapshot may not reach.
 
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding

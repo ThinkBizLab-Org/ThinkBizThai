@@ -325,7 +325,22 @@ export const SMOKE_COVERAGE = {
                            + 'control for. A case holding workspace_b\'s id here would have been '
                            + 'refused by batch 130\'s policy and batch 061\'s, both already asserted '
                            + 'above, and would have credited this batch with a boundary it did not '
-                           + 'build.' },
+                           + 'build.\n\n'
+                           + 'BATCH 070 CARRIES THE THREE-CASE SHAPE ON FOUR OF ITS FIVE TABLES AND '
+                           + 'DELIBERATELY NOT ON THE FIFTH. app.research_runs, app.research_sources, '
+                           + 'app.research_evidence and app.research_suggestions each get A reads its own, A '
+                           + 'cannot read B\'s while holding B\'s EXACT id, and B CAN — §8.2 marks '
+                           + '"Knowledge/Research SELECT" `Y` for all five built-in roles, so the boundary '
+                           + 'here is one a client can actually see and a failure would leak what another '
+                           + 'business researched rather than what it is called. app.research_snapshots gets '
+                           + 'NONE of it, and the reason is §9.1 rather than an omission: a research snapshot '
+                           + 'is COPYRIGHT-3 with the client projection "approved excerpt only", nothing in '
+                           + 'this repository defines an approval, and no client role is granted anything — '
+                           + 'so both owners are refused IDENTICALLY at the privilege layer, which is 030\'s '
+                           + 'substitute and says "no client reads this table" rather than "the boundary '
+                           + 'holds". The two captures behind that refusal are different rows and not copies: '
+                           + 'A\'s is live and B\'s has been PURGED, which is §10\'s "purge object + locator; '
+                           + 'preserve permitted hash/citation metadata" as data.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -400,7 +415,21 @@ export const SMOKE_COVERAGE = {
                            + 'Workspace and a discovered account off a connection; neither carries a Business column for a '
                            + 'member scope to narrow, so 021\'s helpers are named in 110\'s header and called by nothing. '
                            + 'The scope half of this family arrives with the binding, and so does this row\'s case.\n\n'
-                           + 'BATCH 061 CARRIES THIS ASSERTION ON A CALLER THE MATRIX ALLOWS, WHICH IS WHAT MAKES IT ABOUT SCOPE RATHER THAN ABOUT ROLE. Every table since 021 has narrowed an EDITOR, and on batch 061\'s one client-readable table §8.4 marks the editor `P` -- so an editor refused a quota bucket proves nothing about member scope. user_admin_a is an ADMIN, whose `Y` §8.4 gives unconditionally, holding a `business` scope on business_a1: they read quota_bucket_a1 and are refused quota_bucket_a2, while user_owner_a -- unscoped -- reads BOTH. The three cases together are 021\'s reading of §7 as an assertion: a scope narrows a caller the matrix already admits, and does not narrow a caller who holds no scope row.' },
+                           + 'BATCH 061 CARRIES THIS ASSERTION ON A CALLER THE MATRIX ALLOWS, WHICH IS WHAT MAKES IT ABOUT SCOPE RATHER THAN ABOUT ROLE. Every table since 021 has narrowed an EDITOR, and on batch 061\'s one client-readable table §8.4 marks the editor `P` -- so an editor refused a quota bucket proves nothing about member scope. user_admin_a is an ADMIN, whose `Y` §8.4 gives unconditionally, holding a `business` scope on business_a1: they read quota_bucket_a1 and are refused quota_bucket_a2, while user_owner_a -- unscoped -- reads BOTH. The three cases together are 021\'s reading of §7 as an assertion: a scope narrows a caller the matrix already admits, and does not narrow a caller who holds no scope row.\n\n'
+                           + 'BATCH 070 CARRIES IT AT A GRANULARITY THE ROW\'S OWN WORDS ASK FOR AND ONE '
+                           + 'STEP FURTHER THAN THAT. §12.6/2 reads "user_editor_a sees Business A1/Page A1, '
+                           + 'never A2/Page A2", and app.research_runs is a table whose scope is BOTH columns '
+                           + '(§4 invariant 3 names Research beside Knowledge), so the Business half and the '
+                           + 'Page half are separate cases with separate positives: the editor reads the run '
+                           + 'of business_a1 and not the one under business_a2, and user_page_editor_a reads '
+                           + 'the run pinned to page_a1 and not the one pinned to its sibling while still '
+                           + 'reading the business-level run above both. THE STEP FURTHER IS THE CHILD: a '
+                           + 'source, an evidence item and a suggestion carry no page column of their own, so '
+                           + 'each one\'s narrowing resolves through its parent, and '
+                           + '`pinned-editor-a-cannot-see-the-research-source-of-a-sibling-target-run` is the '
+                           + 'case that proves the resolution rather than a copy of the predicate — it is the '
+                           + 'only case that fails if the child\'s exists() is replaced by '
+                           + 'member_scope_admits_business over the child\'s own columns.' },
   3: { covered: 'knowledge-half',
        note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
@@ -443,7 +472,16 @@ export const SMOKE_COVERAGE = {
                            + 'approver is refused by the privilege system exactly as the owner is. §8.3 marks the approver '
                            + '`N` on both connector rows, which is counted under §8.6/2 rather than here. Content is still '
                            + 'batch 080\'s, and this row still reads `knowledge-half`.\n\n'
-           + 'BATCH 061 MOVES NOTHING HERE AND THE REASON IS SHORT. §12.6/3 is about an approver EDITING content or knowledge; a quota bucket is neither, and `approver-a-sees-zero-quota-buckets` is a READ refusal counted under §8.6/2. Content is still batch 080\'s and this row still reads `knowledge-half`.' },
+           + 'BATCH 061 MOVES NOTHING HERE AND THE REASON IS SHORT. §12.6/3 is about an approver EDITING content or knowledge; a quota bucket is neither, and `approver-a-sees-zero-quota-buckets` is a READ refusal counted under §8.6/2. Content is still batch 080\'s and this row still reads `knowledge-half`.\n\n'
+           + 'BATCH 070 MOVES NOTHING HERE EITHER, AND A READER WILL EXPECT IT TO, so the reason is '
+           + 'stated rather than left. §12.6/3 names CONTENT and KNOWLEDGE. Research is neither: §5 gives '
+           + 'it its own module row, §8.2 gives it its own operations, and reading "Knowledge/Research '
+           + 'SELECT" as licence to count a research refusal against a sentence that says "knowledge" '
+           + 'would be the analogue rule this map has refused five times. What batch 070 DOES assert '
+           + 'about the approver is that they cannot SAVE a research suggestion — §8.2 marks them `P` on '
+           + '"Suggestion save/dismiss/use" while the other three are `Y` — and that is counted under '
+           + '§8.6/2 where it belongs. Content is still batch 080\'s and this row still reads '
+           + '`knowledge-half`.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -511,7 +549,17 @@ export const SMOKE_COVERAGE = {
                            + 'instead, where "even the owner" is the claim — and on this family "even the owner" is the '
                            + 'sharper statement, because §8.3 marks the owner `Y` on connect/disconnect/re-auth and the '
                            + 'refusal is therefore of a cell the matrix GRANTS.\n\n'
-                           + 'BATCH 061 ADDS `viewer-a-sees-zero-quota-buckets`, WHICH IS ALSO NOT THIS ROW. §12.6/4 is about a viewer refused an INSERT, an UPDATE or a DELETE, and that refusal on all three metering tables holds for every client role including the workspace OWNER, at the grant layer -- so it is not evidence about a viewer either. What batch 061 does contribute is the pairing that makes a viewer case legible at all: on app.quota_buckets the viewer is refused a READ that an owner and an admin of the same workspace both perform, so the refusal is attributable to the role, and it is counted under §8.6/2 where it belongs rather than here.' },
+                           + 'BATCH 061 ADDS `viewer-a-sees-zero-quota-buckets`, WHICH IS ALSO NOT THIS ROW. §12.6/4 is about a viewer refused an INSERT, an UPDATE or a DELETE, and that refusal on all three metering tables holds for every client role including the workspace OWNER, at the grant layer -- so it is not evidence about a viewer either. What batch 061 does contribute is the pairing that makes a viewer case legible at all: on app.quota_buckets the viewer is refused a READ that an owner and an admin of the same workspace both perform, so the refusal is attributable to the role, and it is counted under §8.6/2 where it belongs rather than here.\n\n'
+                           + 'BATCH 070 ADDS TWO VIEWER WRITE REFUSALS THAT ARE THIS ROW RATHER THAN A '
+                           + 'neighbouring one, and the property that makes them so is that the viewer READS '
+                           + 'the row they cannot write. `viewer-a-cannot-cancel-a-research-run` and '
+                           + '`viewer-a-cannot-save-a-research-suggestion` are `no-effect` cases against '
+                           + 'tables where §8.2 marks the viewer `Y` on SELECT and gives them neither of the '
+                           + 'write cells — so the refusal is about the OPERATION, not about the table being '
+                           + 'out of reach, which is what separated 061\'s and 131\'s cases from this row. '
+                           + 'Each is paired with a witness read as the workspace owner, because a filtered '
+                           + 'UPDATE raises nothing and an empty result is also what an update returns when '
+                           + 'the row is simply absent.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -596,7 +644,15 @@ export const SMOKE_COVERAGE = {
                            + 'them. §7\'s "only status active grants access" is a statement about a '
                            + 'policy predicate, and there is no policy on any of these three, so the '
                            + 'cases declare `denied` with the layer and the object rather than claiming '
-                           + 'a suspension control they do not exercise.' },
+                           + 'a suspension control they do not exercise.\n\n'
+                           + 'BATCH 070 CARRIES BOTH FORMS AT ONCE AND LABELS WHICH IS WHICH. On '
+                           + 'app.research_runs, app.research_sources, app.research_evidence and '
+                           + 'app.research_suggestions the suspended member is FILTERED to zero rows by '
+                           + 'app.is_active_member, beside an active viewer of the same workspace who reads '
+                           + 'the same row — which is the pairing that makes a suspension case a suspension '
+                           + 'case. On app.research_snapshots they are refused at the GRANT layer, '
+                           + 'identically to the active owner, so `suspended-a-cannot-read-a-research-'
+                           + 'snapshot` says "no client reads this table" and is recorded as saying less.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -692,7 +748,15 @@ export const SMOKE_COVERAGE = {
                            + 'owner who requested it. An anonymous read of one is the furthest thing from '
                            + 'a defensible client surface this schema contains, and it is refused where '
                            + 'every other anonymous case is refused: at name resolution, because anon '
-                           + 'holds no USAGE on app.' },
+                           + 'holds no USAGE on app.\n\n'
+                           + 'BATCH 070 ADDS FIVE, ONE PER TABLE, AND ONE OF THEM IS AGAINST THE CLASS §9.2 '
+                           + 'NAMES A FIXTURE IN. A research snapshot is COPYRIGHT-3 and §9.2\'s absolute '
+                           + 'prohibitions end with "full research snapshot ที่ client ไม่มีสิทธิ์ทำซ้ำ", '
+                           + 'listing `fixture` among the surfaces it may not reach — so '
+                           + '`anonymous-cannot-read-a-research-snapshot` is the anonymous case against the '
+                           + 'most restricted material this schema holds, and it is refused where every '
+                           + 'other one is: at name resolution, on the SCHEMA, because anon holds no USAGE '
+                           + 'on app.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -794,7 +858,17 @@ export const SMOKE_COVERAGE = {
                            + 'is asserted from the CATALOG at apply time — as column SETS, so a '
                            + 'reordering does not fail and a dropped column does — and not as a case. The '
                            + 'day an allowlist entry or a command surface gives some identity the verb, '
-                           + 'the case becomes writable and is owed to that batch.' },
+                           + 'the case becomes writable and is owed to that batch.\n\n'
+                           + 'BATCH 070 ASSERTS THE FORGED-ACTOR HALF ON AN UPDATE, WHICH IS WHERE THIS '
+                           + 'FAMILY CAN CARRY IT AT ALL. §8.2 marks "Research run/source/evidence INSERT" '
+                           + '`N` for every client role, so there is no client INSERT to forge a scope '
+                           + 'column on — a forged workspace or Business id is refused by an absent GRANT '
+                           + 'here, which is a weaker statement than a policy refusal and is labelled as '
+                           + 'one. What IS asserted is the other half of §8.5\'s user-action rule: '
+                           + '`owner-a-cannot-forge-the-actor-on-a-research-run-cancel` and '
+                           + '`owner-a-cannot-forge-the-actor-on-a-research-suggestion-save` set updated_by '
+                           + 'to another member of the SAME workspace, so the USING half admits the row and '
+                           + 'the WITH CHECK half is what refuses it.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -1008,7 +1082,24 @@ export const SMOKE_COVERAGE = {
                            + 'flip. RFC-2026-022 classifies §8 `S` cells; §8 has no row for a '
                            + 'plan-catalog read, so batch 132 classifies nothing in '
                            + 'db/foundation/lint/service-policy-map.json and declines the policy batch '
-                           + '130\'s own case `service-sees-zero-plan-entitlements` says is owed to it.' },
+                           + '130\'s own case `service-sees-zero-plan-entitlements` says is owed to it.\n\n'
+                           + 'BATCH 070 KEEPS THE ROW AT `negative-half` AND ADDS THE NEGATIVE ON FIVE MORE '
+                           + 'TABLES, WITH THE POSITIVE\'S ABSENCE NOW NAMED PRECISELY FOR THIS FAMILY. '
+                           + '§8.2\'s "Research run/source/evidence INSERT" is the `S` cell, and '
+                           + 'RFC-2026-022 §3\'s own table does NOT classify it — the RFC names 050, 051, '
+                           + '061, 110, 120, 131 and the asset purge — so batch 070 applied §3\'s '
+                           + 'operational test to its own three statements and recorded the result as data '
+                           + 'in db/foundation/lint/service-policy-map.json: all three CARRIED, because a '
+                           + 'run\'s workspace is what the requester asked about and a source\'s and an '
+                           + 'evidence row\'s are copied from a run the worker already holds and held to it '
+                           + 'by a composite foreign key. NO SERVICE POLICY IS WRITTEN, because §5/8 puts '
+                           + 'the decision NOT IN EFFECT: the only member of app_worker is postgres, which '
+                           + 'bypasses row level security. So the positive half is still unassertable, and '
+                           + 'what it is waiting for is a service identity rather than a shape. The four '
+                           + '`service-cannot-*` INSERT cases are the policy-layer denials that flip when '
+                           + 'it exists; the snapshot and the suggestion have NO cell in that map at all, '
+                           + 'because §8 has no row for either and inventing one would be a claim about the '
+                           + 'access matrix made in a lint file.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1114,7 +1205,15 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'three refusals beside it rest on — without it, a database where the owner could read neither '
    + 'table would satisfy every one of them — and it is the whole of what a client can assemble '
    + 'toward an effective limit, because the third join reaches app.plan_entitlements and is refused '
-   + 'at the privilege layer.',
+   + 'at the privilege layer.\n\n'
+   + 'BATCH 070 CARRIES IT ON FOUR TABLES WITH READS AND ON TWO WITH WRITES, and the writes are the '
+   + 'part worth naming: `editor-a-can-cancel-the-research-run-of-a1` and '
+   + '`editor-a-can-save-the-research-suggestion-of-a1` are the two halves of §8.2 this schema can '
+   + 'reach — "Start/CANCEL Research" and "Suggestion SAVE/dismiss/use" — performed by a SCOPED '
+   + 'editor inside their own Business, which is what makes every refusal beside them a statement '
+   + 'about the caller rather than about the table. The fifth table has no passing case of any kind, '
+   + 'and that is §9.1 rather than a gap: app.research_snapshots is COPYRIGHT-3 and no client role '
+   + 'is granted anything on it.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -1181,7 +1280,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`owner-a-cannot-read-the-dedupe-key-of-their-own-notification` and '
    + '`owner-a-cannot-relabel-their-own-notification` are each refused on a row THE POLICY ADMITS, by '
    + 'a column grant, which is §8.4\'s second row ("Notification insert/delivery state | N N N N N S") '
-   + 'implemented as a column list rather than as a projection.',
+   + 'implemented as a column list rather than as a projection.\n\n'
+   + 'BATCH 070 CARRIES THE APPROVER AND THE VIEWER ON TWO WRITE CELLS AND THE `P` REFUSAL ON ONE OF '
+   + 'THEM BY NAME. §8.2 marks the approver and the viewer `N` on "Start/cancel Research" and marks '
+   + 'the approver `P` and the viewer `N` on "Suggestion save/dismiss/use" — so '
+   + '`approver-a-cannot-save-a-research-suggestion` is a refusal of a cell the matrix leaves OPEN '
+   + 'rather than one it closes, which is the distinction RFC-2026-020 §8 makes an approved decision: '
+   + 'no document defines the capability set, so `P` cannot be implemented and refusing is the only '
+   + 'honest state. All four are `no-effect` with a witness, because a filtered UPDATE raises '
+   + 'nothing. AND ON app.research_snapshots THE EDITOR IS REFUSED A READ THE OWNER IS ALSO REFUSED, '
+   + 'so that case says nothing about role and is labelled §9.1 rather than counted here.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -1218,7 +1326,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'is scoped "workspace/user", so this family has no Business level for case 3 to be about. What '
    + 'it has instead is a level §7\'s scope types do not describe — the RECIPIENT — and the cases '
    + 'that level produces are counted under case 2, because a member reading another member\'s '
-   + 'notification is a wrong-identity refusal rather than a wrong-Business one.',
+   + 'notification is a wrong-identity refusal rather than a wrong-Business one.\n\n'
+   + 'BATCH 070 CARRIES IT AS A READ AND AS A WRITE ON THE SAME ROW PAIR. '
+   + '`editor-a-cannot-see-the-research-run-outside-their-narrowing` and '
+   + '`editor-a-cannot-cancel-the-research-run-outside-their-narrowing` are both about '
+   + 'research_run_a2, which is under business_a2 — the Business user_editor_a\'s scope deliberately '
+   + 'excludes — and both are refused AFTER the caller has passed the permissive policy, because a '
+   + 'restrictive one is the only shape that can subtract. The positives beside them '
+   + '(`editor-a-sees-the-research-run-inside-their-narrowing`, and user_owner_a reading BOTH runs '
+   + 'while holding no scope row) are what stop the pair being satisfied by a narrowing that denied '
+   + 'the editor everything.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -1270,7 +1387,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'so a scoped member is neither helped nor hindered here, and no policy in batch 051 calls one of '
    + '021\'s helpers. That is also why the batch writes no RESTRICTIVE policy: there is no narrowing '
    + 'to express, and a restrictive policy ANDed with nothing can only refuse what is already '
-   + 'refused.',
+   + 'refused.\n\n'
+   + 'BATCH 070 CARRIES IT ON A PARENT AND ON A CHILD, AND THE CHILD IS THE ONE THAT SAYS SOMETHING '
+   + 'NEW. On app.research_runs it is 040\'s shape: user_page_editor_a reads the run pinned to page_a1 '
+   + 'and is refused the run pinned to page_a1_sibling, both under business_a1, both inside a '
+   + 'Business the caller IS admitted to — which is what separates this case from case 3. On '
+   + 'app.research_sources the same caller is refused a source whose own columns say nothing about a '
+   + 'Page at all: a source carries no page_context_profile_id, because a nullable copy of its run\'s '
+   + 'could not be held equal to it under MATCH SIMPLE, so its restrictive policy resolves through '
+   + 'the run and this case is what proves the resolution rather than a copied predicate. '
+   + '`pinned-editor-a-sees-the-research-source-of-the-unpinned-run` is its control.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1322,7 +1448,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'app.notification_preferences no identity can read a row, so both owners are refused identically '
    + 'at the privilege layer (050\'s shape on a tenant table). On '
    + 'private.push_subscription_references every identity is refused on the SCHEMA, so the far-side '
-   + 'case is not a boundary claim at all and is labelled as 060 labelled its own.',
+   + 'case is not a boundary claim at all and is labelled as 060 labelled its own.\n\n'
+   + 'BATCH 070 CARRIES IT AS A REAL BOUNDARY ON FOUR TABLES AND AS THE WEAKER SUBSTITUTE ON ONE, '
+   + 'AND LABELS WHICH IS WHICH. On the run, the source, the evidence and the suggestion, tenant A\'s '
+   + 'owner holds tenant B\'s EXACT id, reads nothing, and tenant B\'s owner reads the same row — a '
+   + 'three-case shape against a client-visible boundary, plus a WRITE half on two of them '
+   + '(`owner-a-cannot-cancel-the-research-run-of-tenant-b` and '
+   + '`owner-a-cannot-save-the-research-suggestion-of-tenant-b`, each `no-effect` with the witness '
+   + 'run as B\'s own owner, because no A-side identity can see the row it has to prove unchanged). '
+   + 'On app.research_snapshots there is no boundary claim to make: both owners are refused '
+   + 'identically at the privilege layer, and on a database whose policies had all been deleted those '
+   + 'two cases would pass unchanged.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -1359,7 +1495,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'suspension and nothing else. The MUTATION half is carried one step out — '
    + '`suspended-a-cannot-mark-a-notification-read` targets another member\'s row — because a '
    + '`no-effect` case needs a witness and no identity in this schema may read the suspended member\'s '
-   + 'own notification. That is stated in the case rather than averaged away.',
+   + 'own notification. That is stated in the case rather than averaged away.\n\n'
+   + 'BATCH 070 ADDS FIVE, AND FOUR OF THEM ARE THE STRONGER FORM. On app.research_runs, '
+   + 'app.research_sources, app.research_evidence and app.research_suggestions the suspended member '
+   + 'is FILTERED to zero rows by app.is_active_member while an ACTIVE viewer of the same workspace '
+   + 'reads the same row — the pairing that makes a suspension case about suspension. On '
+   + 'app.research_snapshots the refusal is at the grant layer and holds for the active owner too, so '
+   + 'it is recorded as saying less.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -1400,7 +1542,12 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'SECRET-4 a client projection of "never returned after write" and lists "push token" as one of '
    + 'its four examples, so this is the row an anonymous reader is furthest from — and the case '
    + 'declares the schema so the day somebody writes `grant usage on schema private` the refusal '
-   + 'moves to the table and the case fails rather than passing more quietly.',
+   + 'moves to the table and the case fails rather than passing more quietly.\n\n'
+   + 'BATCH 070 ADDS FIVE, ONE PER TABLE, ALL DECLARING THE SCHEMA. One of them is against '
+   + 'COPYRIGHT-3 material — the class §9.2 forbids leaving the system at all, in a list that names '
+   + '`client`, `API`, `event`, `job`, `log` and `fixture` — so `anonymous-cannot-read-a-research-'
+   + 'snapshot` is refused at name resolution rather than by a policy, which is the furthest layer '
+   + 'out this schema has.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -1464,7 +1611,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'forged column is usually asserted through: no client role holds an INSERT on any table in this '
    + 'batch, so nobody can compose a notification addressed to somebody else — '
    + '`owner-a-cannot-write-a-notification` at the grant layer, on a row that names the caller '
-   + 'themselves so that no scope check refuses it and only the absent grant does.',
+   + 'themselves so that no scope check refuses it and only the absent grant does.\n\n'
+   + 'BATCH 070 CARRIES THE ACTOR HALF ON AN UPDATE, WHICH IS THE ONLY PLACE THIS FAMILY HAS FOR IT. '
+   + '§8.2 marks "Research run/source/evidence INSERT" `N` for every client role and §8 has no cell '
+   + 'at all for creating a snapshot or a suggestion, so there is no client INSERT anywhere in the '
+   + 'family and the scope half of this case is refused by an absent GRANT — a weaker statement, '
+   + 'labelled as one. The actor half is real: §8.5\'s "user action ตรวจ created_by = (select '
+   + 'auth.uid())" is written into the two UPDATE policies as `updated_by`, and '
+   + '`owner-a-cannot-forge-the-actor-on-a-research-run-cancel` and its suggestion twin set that '
+   + 'column to ANOTHER MEMBER OF THE SAME WORKSPACE — so the USING half admits the row, the WITH '
+   + 'CHECK half refuses it, and the refusal is attributable to the second clause rather than to the '
+   + 'first.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1612,7 +1769,30 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'receipt metadata" while §8.3 gives the same row a processing state machine, and the boundary '
    + 'is a column-scoped UPDATE grant naming seven columns with the other nine walked against six '
    + 'roles at apply time. No isolation case can carry that half: a filtered UPDATE by the one role '
-   + 'holding the grant needs a witness read, and no identity in this schema can see the row.',
+   + 'holding the grant needs a witness read, and no identity in this schema can see the row.\n\n'
+   + 'BATCH 070 CARRIES THIS CASE ON THE ONE OBJECT §5 NAMES, AND ON A SECOND IT ARGUES FOR ITSELF. '
+   + '§5\'s mutability column for research.core reads "mixed; evidence immutable", which names one of '
+   + 'five objects and leaves four decisions to the batch — the same sentence shape 131 met in '
+   + '"versioned + ledger-like". app.research_evidence is the named one: four cases, the owner and '
+   + 'the service each refused an amend and a delete, every one at the GRANT layer because no role '
+   + 'holds either verb, and 070_research.sql re-asserts it against the live ACL AND the live policy '
+   + 'catalog so a grant made by a later batch is caught by a file that could not have named it. '
+   + 'app.research_sources is APPEND-ONLY on batch 070\'s own reading and the reading is stated so a '
+   + 'reviewer can refuse it: §10 preserves "permitted hash/citation metadata" after the captured '
+   + 'object is purged, so a citation editable once its snapshot is gone is a claim about a document '
+   + 'nobody can check. Three cases carry it — the owner refused an update and a delete, the SERVICE '
+   + 'refused an update — and no trigger is written, for 131\'s reason rather than 140\'s: this '
+   + 'family\'s adversary reaches the row through a granted role, not by owning the table.\n\n'
+   + 'AND THE THIRD SHAPE IS 050\'s OUTBOX, ON A TABLE NO ISOLATION CASE CAN CARRY THE WHOLE OF. '
+   + 'app.research_snapshots is append-only in every column but two: §10\'s "purge object + locator; '
+   + 'preserve permitted hash/citation metadata" requires the row to LOSE its locator and record that '
+   + 'it did, so `object_ref` and `purged_at` move and everything that says what was captured does '
+   + 'not. The half a case can carry is asserted — `service-cannot-rewrite-the-digest-of-a-research-'
+   + 'snapshot` and `service-cannot-extend-the-retention-of-a-research-snapshot`, both grant-layer, '
+   + 'the second because DATA-DEC-07 is OPEN and a retention window a granted path could push forward '
+   + 'would not be one. The half a case cannot carry is the same one 131 named: a filtered UPDATE by '
+   + 'the one role holding the grant needs a witness read, and no identity in this schema can see a '
+   + 'research snapshot. It is asserted per column at apply time instead.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -1768,7 +1948,27 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'batch, and what batch 132 adds is the reason it will stay that way until three separate things '
    + 'land: a decision on the four reconciliation questions batch 061 recorded, a mapping between '
    + 'app.plan_entitlements.feature_key and app.quota_buckets.dimension, and a service identity. Each '
-   + 'is in this package\'s open blockers with the owner named.',
+   + 'is in this package\'s open blockers with the owner named.\n\n'
+   + 'BATCH 070 LEAVES BOTH HALVES OF CASE 10 UNPAID AND MAKES THE FIRST HALF\'S DEBT SPECIFIC IN A '
+   + 'WAY EARLIER BATCHES COULD NOT. The "authorized server command" half: §8.2 marks "Start/cancel '
+   + 'Research" `Y` for the owner, the admin and the editor, and this batch implements the CANCEL and '
+   + 'not the START — because the row\'s own INSERT is `N` for every client column on the next line '
+   + 'of the same matrix, so starting research is a command function\'s act and RFC-2026-021 §10 '
+   + 'records that none exists. That is the sharpest form this debt has taken: a `Y` cell the matrix '
+   + 'grants unconditionally, half implemented, with the missing half named as a mechanism rather '
+   + 'than as a policy. The "expected audit/outbox" half is unpaid for the same reason it is unpaid '
+   + 'everywhere: an audit store nothing can write and an outbox nothing can write.\n\n'
+   + 'AND THE SERVICE HALF IS CLASSIFIED RATHER THAN IMPLEMENTED, WITH ONE DIFFERENCE FROM 051, 061, '
+   + '110 AND 131. RFC-2026-022 §3\'s own table does NOT name §8.2\'s "Research run/source/evidence '
+   + 'INSERT", so this batch applied §3\'s operational test to its own three statements instead of '
+   + 'checking a verdict against them, and recorded all three as CARRIED in '
+   + 'db/foundation/lint/service-policy-map.json with the derivation in each row\'s `why`. No service '
+   + 'policy is written: §5/8 puts the decision NOT IN EFFECT because the only member of app_worker '
+   + 'is postgres, which bypasses row level security. The workspace GUC is CONTAINMENT against '
+   + 'defects in the service\'s own code and NEVER tenant isolation of the service path — no note, '
+   + 'comment, case or test in batch 070 says otherwise, the migration names the expression exactly '
+   + 'once and in the paragraph that derives the classification, and identity-isolation.test.mjs '
+   + 'asserts both.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -9806,6 +10006,852 @@ export function buildCases(id) {
          + 'here rather than left implicit because a resolver that later projected this column to a '
          + 'client would be telling a tenant how far behind a job is.',
     },
+
+    // -- BATCH 070 — research: the run, the citation, the capture, the evidence, the suggestion. --
+    //
+    // Five tables and three shapes of case, because §8.2 gives this family four rows and §9.1 takes
+    // one table back out of the first of them.
+    //
+    //   * app.research_runs, app.research_sources, app.research_evidence and app.research_suggestions
+    //     carry §8.2's "Knowledge/Research SELECT | Y | Y | Y | Y | Y", so every negative below has a
+    //     POSITIVE beside it and the boundary is a client-visible one — which is what lets this batch
+    //     assert §8.6 cases 1 through 5 as reads rather than as privilege refusals.
+    //   * app.research_snapshots carries §9.1's COPYRIGHT-3 instead, whose client projection is
+    //     "approved excerpt only" and whose approval nothing defines, so NO client role holds
+    //     anything on it and its every client case is a grant-layer refusal. Its substitute for a
+    //     cross-tenant claim is 030's and 140's: both owners refused identically.
+    //   * The two client WRITE cells — §8.2's "Start/cancel Research" and "Suggestion
+    //     save/dismiss/use" — are asserted from five identities each, and §8.6 case 8 lives on the
+    //     UPDATE rather than on an INSERT, because §8.2 gives clients no INSERT anywhere in this
+    //     family.
+    {
+      id: 'owner-a-sees-the-research-run-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against. §8.2 marks "Knowledge/Research '
+         + 'SELECT" `Y` for all five built-in roles, so the policy tests active membership and not '
+         + 'role, and user_owner_a holds no member scope row at all — 021 reads §7 as "a scope '
+         + 'narrows, it does not grant", so the restrictive narrowing subtracts nothing here.',
+    },
+    {
+      id: 'viewer-a-sees-the-research-run-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: viewerA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'rows',
+      why: 'The `Y` at the far end of §8.2\'s SELECT row. A viewer reads research and cannot touch '
+         + 'it, and both halves are asserted: this case and viewer-a-cannot-cancel-a-research-run.',
+    },
+    {
+      id: 'editor-a-sees-the-research-run-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and this run is under it, so '
+         + 'app.member_scope_admits_business is true. Without this positive the case below would be '
+         + 'satisfied by a narrowing that denied the editor everything.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-research-run-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on this family: same Workspace, a Business the member scope does not cover. '
+         + 'The permissive policy admits it — the editor is an active member — and the RESTRICTIVE '
+         + 'narrowing subtracts it, which is the only shape that can subtract at all.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-unpinned-research-run-of-a1',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'rows',
+      why: 'A consequence of 021\'s definition, consumed rather than re-decided: '
+         + 'member_scope_covers_business counts a `page` scope row on its parent Business, because '
+         + '"a member scoped to one Page must be able to read the Business that Page hangs from". So '
+         + 'a page-scoped editor reaches business-level research, which reaches every Page beneath '
+         + 'it. 040 met the same consequence one family over; if it is wrong it is wrong in 021.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-research-run-pinned-to-their-own-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1_page')],
+      expect: 'rows',
+      why: 'The `else` branch of the run\'s narrowing — app.member_scope_admits_page — reached by the '
+         + 'one identity in this suite whose scope is a single Page. A branch no row exercises is a '
+         + 'branch that could be inverted without any case failing.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-research-run-pinned-to-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1_sibling_page')],
+      expect: 'no-rows',
+      why: '§8.6 case 4, which no identity §12.6 names can carry: both the editor and the approver '
+         + 'are scoped at BUSINESS level and §7 gives a business scope every Page beneath it. This '
+         + 'refusal is by PAGE inside a Business the caller is otherwise admitted to — the case above '
+         + 'proves the caller is admitted — which is what distinguishes it from case 3.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-research-run-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_b1')],
+      expect: 'no-rows',
+      why: 'The attack is run while HOLDING tenant B\'s exact run id, which is the whole of §12.6\'s '
+         + 'control: proving A cannot reach B by guessing is worthless.',
+    },
+    {
+      id: 'owner-b-sees-the-research-run-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_b1')],
+      expect: 'rows',
+      why: 'THE THIRD CASE, and without it the negative above is satisfied by a fixture that never '
+         + 'loaded the row. Batch 020 established that a cross-tenant claim is three cases and not '
+         + 'two; this is the far side of the boundary reading what the near side cannot.',
+    },
+    {
+      id: 'suspended-a-sees-zero-research-runs',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access. app.is_active_member is where that lives for this table, '
+         + 'and the predicate has no `status` term of its own.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-research-run',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA rather than the table: `anon` holds no USAGE on app, so name '
+         + 'resolution stops before a table is reached. RFC-2026-021 §7/4 makes that an approved '
+         + 'decision, and declaring the schema is what makes this case notice the day it changes.',
+    },
+    {
+      id: 'editor-a-can-cancel-the-research-run-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: editorA,
+      ...researchCancelRun(id('research_run_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The half of §8.2\'s "Start/cancel Research" this schema can reach. The row\'s INSERT is '
+         + '`N` for every client role on the very next line of the matrix, so starting is a command '
+         + 'RFC-2026-012 §4 names and RFC-2026-021 §10 records does not exist; cancelling is an '
+         + 'update of an existing row and the editor is one of its three `Y` roles.',
+    },
+    {
+      id: 'approver-a-cannot-cancel-a-research-run',
+      covers: ['§8.6/2', '§12.6/3'],
+      as: approverA,
+      ...researchCancelRun(id('research_run_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchRunStillOpen(ownerA, id('research_run_a1')),
+      why: '§8.2 marks the approver `N` on "Start/cancel Research". The USING half does not admit the '
+         + 'row, so the statement matches nothing and RAISES NOTHING — which is why the witness is '
+         + 'half the assertion: with row level security off the update lands and the witness reads '
+         + '`cancelled`.',
+    },
+    {
+      id: 'viewer-a-cannot-cancel-a-research-run',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...researchCancelRun(id('research_run_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchRunStillOpen(ownerA, id('research_run_a1')),
+      why: '§12.6/4 on this table, and it says something here that it cannot say everywhere: the '
+         + 'viewer READS this row (viewer-a-sees-the-research-run-of-a1) and still cannot write it, '
+         + 'so the refusal is about the operation rather than about the table being unreachable.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-research-run-cancel',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...researchCancelRun(id('research_run_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_runs' },
+      why: '§8.6 case 8 — a forged actor column — asserted on an UPDATE, because §8.2 gives clients '
+         + 'no INSERT anywhere in this family and the case would otherwise have nowhere to live. The '
+         + 'UPDATE policy\'s WITH CHECK requires updated_by = (select auth.uid()); the USING half '
+         + 'admits the row, so this refusal is the second half of the policy and not the first.',
+    },
+    {
+      id: 'owner-a-cannot-cancel-the-research-run-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...researchCancelRun(id('research_run_b1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchRunStillOpen(ownerB, id('research_run_b1')),
+      why: 'The write half of the cross-tenant case, holding B\'s exact id. The witness runs as B\'s '
+         + 'own owner, because no A-side identity can see the row it has to prove is unchanged.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-the-research-run-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...researchCancelRun(id('research_run_a2'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchRunStillOpen(ownerA, id('research_run_a2')),
+      why: 'The write half of the member-scope narrowing. It is refused AFTER the caller has passed '
+         + 'the role predicate — an editor is one of the three `Y` roles — so it fails because a '
+         + 'RESTRICTIVE policy subtracted rather than because no permissive one admitted.',
+    },
+    {
+      id: 'owner-a-cannot-start-a-research-run',
+      covers: ['§8.2', 'RFC-2026-012§4'],
+      as: ownerA,
+      ...researchStartRun(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_runs' },
+      why: '§8.2\'s "Research run/source/evidence INSERT" is `N` in all five client columns, so the '
+         + 'START half of the row above it has no path through the request path at all. It is a '
+         + 'command function\'s job and none exists; the refusal is an ABSENT GRANT, which cannot be '
+         + 'widened by editing a policy.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-the-brief-of-a-research-run',
+      covers: ['§8.5', '§8.2'],
+      as: ownerA,
+      ...researchRewriteBrief(id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_runs' },
+      why: 'The client UPDATE grant names cancel_requested_at and updated_by and nothing else, so '
+         + '§8.5\'s "no row moves across tenant or scope by an update" holds here by a COLUMN LIST. '
+         + 'The brief is in that list for its own reason: a run whose brief changed after it ran is a '
+         + 'record of work nobody requested.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-research-run',
+      covers: ['§8.5', '§10/RESEARCH-RUN'],
+      as: ownerA,
+      ...researchDeleteRun(id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_runs' },
+      why: '§8.5 has no broad user delete. Hard deletion here is a retention sweep — RESEARCH-RUN '
+         + 'names one — and batch 160 owns it through app_maintenance, which batch 070 grants '
+         + 'nothing.',
+    },
+    {
+      id: 'service-sees-zero-research-runs',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: RESEARCH_RUN_BY_ID,
+      params: [id('research_run_a1')],
+      expect: 'no-rows',
+      why: 'app_worker holds a column-scoped SELECT and NO POLICY, so the empty read is row level '
+         + 'security and not a forgotten grant — and a service role that had quietly acquired '
+         + 'BYPASSRLS would return the row here. One of the two cases the negative control for '
+         + 'app.research_runs rests on.',
+    },
+    {
+      id: 'service-cannot-start-a-research-run',
+      covers: ['§12.6/8', 'RFC-2026-022§3'],
+      as: service,
+      ...researchStartRun(A, BUSINESS_A1, id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_runs' },
+      why: 'The RAISING half, and the second case the control rests on: app_worker holds the INSERT '
+         + '§8.2\'s `S` gives it, and the empty policy set is what refuses the row. RFC-2026-022 §3\'s '
+         + 'test classifies this statement CARRIED in db/foundation/lint/service-policy-map.json and '
+         + 'the decision is approved and NOT IN EFFECT, so no service policy exists to admit it.',
+    },
+    {
+      id: 'owner-a-sees-the-research-source-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: ownerA,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1')],
+      expect: 'rows',
+      why: 'The citation half of §8.2\'s SELECT row, and the positive the child-narrowing negatives '
+         + 'are measured against.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-research-source-of-the-unpinned-run',
+      covers: ['§8.6/1', '§4/3'],
+      as: pageEditorA,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1')],
+      expect: 'rows',
+      why: 'A source carries no page column of its own, so its restrictive policy resolves through '
+         + 'its run. This is that resolution answering TRUE, and it is the control for the case '
+         + 'below: without it, an exists() that had been replaced by a constant false would still '
+         + 'pass.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-research-source-of-a-sibling-target-run',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'THE CASE THIS BATCH OWES MOST. A child\'s reach IS its parent\'s reach, asserted rather '
+         + 'than copied — a nullable copy of the run\'s page could not be held equal to it under any '
+         + 'foreign key this schema can write. The caller is admitted to the Business (the case '
+         + 'above) and refused this row only because the RUN it belongs to is pinned to a Page the '
+         + 'caller\'s scope does not cover. Replace the exists() with '
+         + 'member_scope_admits_business(workspace_id, business_profile_id) and this is the only case '
+         + 'that fails.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-research-source-of-tenant-b',
+      covers: ['§8.6/5'],
+      as: ownerA,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_b1')],
+      expect: 'no-rows',
+      why: 'Holding tenant B\'s exact source id.',
+    },
+    {
+      id: 'owner-b-sees-the-research-source-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_b1')],
+      expect: 'rows',
+      why: 'The third case on the citation table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-research-sources',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1')],
+      expect: 'no-rows',
+      why: '§12.6/5 on the second of this batch\'s five tables.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-research-source',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, for the reason every anonymous case in this suite declares one.',
+    },
+    {
+      id: 'owner-a-cannot-cite-a-research-source',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...researchCiteSource(A, BUSINESS_A1, id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_sources' },
+      why: '§8.2\'s "Research run/source/evidence INSERT" names the source explicitly and marks it '
+         + '`N` for every client role. A client that could write a citation could put a URL of its '
+         + 'choosing in front of whatever dereferences one.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-research-source',
+      covers: ['§8.6/9', '§10/RESEARCH-SNAPSHOT'],
+      as: ownerA,
+      ...researchRewriteSource(id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_sources' },
+      why: 'The append-only claim as the privilege system holds it. §5 names only evidence immutable, '
+         + 'so this disposition is batch 070\'s own reading: §10 preserves "permitted hash/citation '
+         + 'metadata" after the capture is purged, and a citation editable once its snapshot is gone '
+         + 'is a claim about a document nobody can check.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-research-source',
+      covers: ['§8.6/9', '§8.5'],
+      as: ownerA,
+      ...researchDeleteSource(id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_sources' },
+      why: 'The other half of §8.6 case 9 on the citation.',
+    },
+    {
+      id: 'service-sees-zero-research-sources',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: RESEARCH_SOURCE_BY_ID,
+      params: [id('research_source_a1')],
+      expect: 'no-rows',
+      why: 'One of the two cases the negative control for app.research_sources rests on.',
+    },
+    {
+      id: 'service-cannot-cite-a-research-source',
+      covers: ['§12.6/8', 'RFC-2026-022§3'],
+      as: service,
+      ...researchCiteSource(A, BUSINESS_A1, id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_sources' },
+      why: 'The RAISING half and the second case that control rests on. The statement is CARRIED by '
+         + 'RFC-2026-022 §3\'s test — the source copies its workspace from a run the worker already '
+         + 'holds — and no policy is written, because the decision is NOT IN EFFECT.',
+    },
+    {
+      id: 'service-cannot-rewrite-a-research-source',
+      covers: ['§8.6/9'],
+      as: service,
+      ...researchRewriteSource(id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_sources' },
+      why: 'Append-only for the SERVICE too, which is the half that matters: appending is the only '
+         + 'thing §8.2\'s `S` licenses, and no role holds UPDATE on this table at all. Not labelled '
+         + 'for RFC-2026-017 §7 — a grant-layer refusal is not evidence about row level security.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-research-snapshot',
+      covers: ['§9.1/COPYRIGHT-3', '§9.2'],
+      as: ownerA,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_a1'), RESEARCH_CAPTURE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'THE COPYRIGHT-3 REFUSAL, and it is refused for the OWNER of the workspace whose research '
+         + 'produced the capture — §8.2\'s SELECT row would have admitted them. §9.1 gives this class '
+         + 'the client projection "approved excerpt only", nothing in this repository defines an '
+         + 'approval, and §9.2 forbids a full research snapshot in a client surface at all. The row '
+         + 'is addressed by (source, content hash), which is the natural key 070 makes unique.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-research-snapshot',
+      covers: ['§9.1/COPYRIGHT-3', '§8.6/1'],
+      as: ownerB,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_b1'), RESEARCH_CAPTURE_B],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'Both owners refused identically, which is what this table has instead of a cross-tenant '
+         + 'positive (030\'s substitute, kept by 140 and 131). The two captures are distinguishable '
+         + 'rows and not copies: B\'s has been PURGED — object_ref null, purged_at stamped — which is '
+         + '§10\'s "purge object + locator; preserve permitted hash/citation metadata" as data.',
+    },
+    {
+      id: 'editor-a-cannot-read-a-research-snapshot',
+      covers: ['§9.1/COPYRIGHT-3', '§8.6/2'],
+      as: editorA,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_a1'), RESEARCH_CAPTURE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'The editor reads the SOURCE and the EVIDENCE that name this capture and cannot read the '
+         + 'capture, which is the whole shape of §9.1\'s split: CONTENT-2 goes through RLS and '
+         + 'COPYRIGHT-3 does not go at all until somebody defines an approval.',
+    },
+    {
+      id: 'suspended-a-cannot-read-a-research-snapshot',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_a1'), RESEARCH_CAPTURE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: '§12.6/5 at the GRANT layer rather than as a filtered read, which is the form it takes on '
+         + 'every table no client role may reach. It says less than the same case on '
+         + 'app.research_runs does, and that is recorded rather than counted.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-research-snapshot',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_a1'), RESEARCH_CAPTURE_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema, like every other anonymous case here.',
+    },
+    {
+      id: 'owner-a-cannot-capture-a-research-snapshot',
+      covers: ['§9.1/COPYRIGHT-3', '§9.2'],
+      as: ownerA,
+      ...researchCaptureSnapshot(A, BUSINESS_A1, id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'A client that could write a capture row could point a locator at anything and give it a '
+         + 'retention limit of its own choosing, on the one table DATA-DEC-07 is about.',
+    },
+    {
+      id: 'service-sees-zero-research-snapshots',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: RESEARCH_SNAPSHOT_BY_CAPTURE,
+      params: [id('research_source_a1'), RESEARCH_CAPTURE_A],
+      expect: 'no-rows',
+      why: 'The FIRST of exactly two cases the negative control for app.research_snapshots rests on, '
+         + 'and it is the whole of the live evidence about that table: no client role holds anything, '
+         + 'so nothing else on it is decided by row level security. app_worker holds a column-scoped '
+         + 'SELECT and no policy.',
+    },
+    {
+      id: 'service-cannot-capture-a-research-snapshot',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...researchCaptureSnapshot(A, BUSINESS_A1, id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'The SECOND of those two, and the raising one. app_worker holds the INSERT — a capture has '
+         + 'to be written by something — and the empty policy set refuses the row. §8.2\'s `S` names '
+         + 'the run, the source and the evidence and NOT the snapshot, so this table has no cell in '
+         + 'db/foundation/lint/service-policy-map.json either: where a document is silent the cell is '
+         + 'denied.',
+    },
+    {
+      id: 'service-cannot-extend-the-retention-of-a-research-snapshot',
+      covers: ['§15/DATA-DEC-07', '§8.5'],
+      as: service,
+      ...researchExtendRetention(id('research_source_a1'), RESEARCH_CAPTURE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'THE DATA-DEC-07 CASE. `retention_until` is outside every UPDATE grant to every role, so a '
+         + 'retention window cannot be pushed forward through any granted path. The decision is OPEN '
+         + '(30 days max default, owner Research+Legal), the column is NOT NULL with no default so no '
+         + 'row inherits a number nobody approved, and this is the half that keeps the number a row '
+         + 'DID state from being edited afterwards. A grant-layer refusal, so not labelled for '
+         + 'RFC-2026-017 §7.',
+    },
+    {
+      id: 'service-cannot-rewrite-the-digest-of-a-research-snapshot',
+      covers: ['§9.3', '§10/RESEARCH-SNAPSHOT'],
+      as: service,
+      ...researchRewriteDigest(id('research_source_a1'), RESEARCH_CAPTURE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: '§10 preserves the hash after the object is purged and app.research_evidence names a '
+         + 'capture by it, so a role that could rewrite it could re-point a piece of evidence at a '
+         + 'document nobody captured. A capture whose hash changed is a different capture.',
+    },
+    {
+      id: 'service-cannot-delete-a-research-snapshot',
+      covers: ['§8.5', '§10/RESEARCH-SNAPSHOT'],
+      as: service,
+      ...researchDeleteSnapshot(id('research_source_a1'), RESEARCH_CAPTURE_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_snapshots' },
+      why: 'A snapshot is PURGED and not deleted: §10 says "purge object + locator; PRESERVE '
+         + 'permitted hash/citation metadata", which is an update of two columns and not the removal '
+         + 'of a row — the row is what a later evidence lookup and a later audit both read.',
+    },
+    {
+      id: 'owner-a-sees-the-research-evidence-of-a1',
+      covers: ['§8.2', '§11.1'],
+      as: ownerA,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_a1')],
+      expect: 'rows',
+      why: '§11.1\'s minimum export domain is "Research citation/evidence metadata", and metadata is '
+         + 'all this row holds: which source, and the digest of the capture it was taken from. There '
+         + 'is no excerpt column, so the client read is of the citation and never of the material.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-research-evidence-of-tenant-b',
+      covers: ['§8.6/5'],
+      as: ownerA,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_b1')],
+      expect: 'no-rows',
+      why: 'Holding tenant B\'s exact evidence id. B\'s row carries a NULL capture digest where A\'s '
+         + 'carries one, so the two sides are distinguishable rows.',
+    },
+    {
+      id: 'owner-b-sees-the-research-evidence-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_b1')],
+      expect: 'rows',
+      why: 'The third case on the evidence table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-research-evidence-rows',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_a1')],
+      expect: 'no-rows',
+      why: '§12.6/5 on the evidence table.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-research-evidence-row',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-research-evidence-row',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...researchRecordEvidence(A, BUSINESS_A1, id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: '§8.2 names evidence in its INSERT row and marks it `N` for every client role. A client '
+         + 'that could write evidence could manufacture the support for its own claim.',
+    },
+    {
+      id: 'owner-a-cannot-amend-a-research-evidence-row',
+      covers: ['§8.6/9', '§5'],
+      as: ownerA,
+      ...researchAmendEvidence(id('research_evidence_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: '§8.6 case 9 on the one object §5 names immutable. The statement clears the capture digest, '
+         + 'which is the column that says WHICH document this evidence was taken from.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-research-evidence-row',
+      covers: ['§8.6/9', '§8.5'],
+      as: ownerA,
+      ...researchDeleteEvidence(id('research_evidence_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: 'The other half of case 9.',
+    },
+    {
+      id: 'service-sees-zero-research-evidence-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: RESEARCH_EVIDENCE_BY_ID,
+      params: [id('research_evidence_a1')],
+      expect: 'no-rows',
+      why: 'One of the two cases the negative control for app.research_evidence rests on.',
+    },
+    {
+      id: 'service-cannot-record-a-research-evidence-row',
+      covers: ['§12.6/8', 'RFC-2026-022§3'],
+      as: service,
+      ...researchRecordEvidence(A, BUSINESS_A1, id('research_source_a1')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: 'The raising half, and the third of batch 070\'s three CARRIED statements. app_worker holds '
+         + 'the INSERT §8.2\'s `S` gives it and the empty policy set refuses the row.',
+    },
+    {
+      id: 'service-cannot-amend-a-research-evidence-row',
+      covers: ['§8.6/9', '§5'],
+      as: service,
+      ...researchAmendEvidence(id('research_evidence_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: 'Immutable for the SERVICE too, which is the half §5 actually turns on: §8.2 gives the '
+         + 'service the INSERT and nothing else, and no role holds UPDATE on this table at all.',
+    },
+    {
+      id: 'service-cannot-delete-a-research-evidence-row',
+      covers: ['§8.6/9', '§8.5'],
+      as: service,
+      ...researchDeleteEvidence(id('research_evidence_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_evidence' },
+      why: 'And the delete half for the service. Together with the two amend cases, the whole of §8.6 '
+         + 'case 9 is live on this table from both a client identity and the service.',
+    },
+    {
+      id: 'owner-a-sees-the-research-suggestion-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: ownerA,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_a1')],
+      expect: 'rows',
+      why: 'The positive the four write negatives below are measured against.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-research-suggestion-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_b1')],
+      expect: 'no-rows',
+      why: 'The READ half of the cross-tenant case, holding tenant B\'s exact suggestion id — the write '
+         + 'half is below. Both are needed: a caller refused a write it could still READ would be '
+         + 'refused by the role predicate rather than by the tenant boundary, and this batch asserts '
+         + 'both predicates on this table.',
+    },
+    {
+      id: 'editor-a-can-save-the-research-suggestion-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: editorA,
+      ...researchSaveSuggestion(id('research_suggestion_a1'), '__SELF__'),
+      expect: 'rows',
+      why: '§8.2\'s "Suggestion save/dismiss/use" is `Y` for owner, admin and editor. The fixture row '
+         + 'carries all three verb timestamps NULL, so this write changes something — a case that set '
+         + 'what was already there would pass against a database where the write did nothing.',
+    },
+    {
+      id: 'approver-a-cannot-save-a-research-suggestion',
+      covers: ['§8.6/2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...researchSaveSuggestion(id('research_suggestion_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchSuggestionStillUnsaved(ownerA, id('research_suggestion_a1')),
+      why: 'THE `P` REFUSAL, and this is the cell it is about: §8.2 marks the approver `P` on '
+         + '"Suggestion save/dismiss/use" while marking the other three `Y`. RFC-2026-020 §8 makes it '
+         + 'an approved decision that `P` cannot be implemented until somebody defines the capability '
+         + 'set, so the approver is refused and the refusal is recorded as owed rather than as final.',
+    },
+    {
+      id: 'viewer-a-cannot-save-a-research-suggestion',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...researchSaveSuggestion(id('research_suggestion_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchSuggestionStillUnsaved(ownerA, id('research_suggestion_a1')),
+      why: '§8.2 marks the viewer `N`. The viewer can READ this row, so the refusal is about the '
+         + 'operation and not about the table.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-research-suggestion-save',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...researchSaveSuggestion(id('research_suggestion_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_suggestions' },
+      why: '§8.6 case 8 on the second of this batch\'s two client write paths. The USING half admits '
+         + 'the row and the WITH CHECK half refuses the forged actor, which is why the outcome is a '
+         + 'RAISED refusal rather than a filtered one.',
+    },
+    {
+      id: 'owner-a-cannot-save-the-research-suggestion-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...researchSaveSuggestion(id('research_suggestion_b1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: researchSuggestionStillUnsaved(ownerB, id('research_suggestion_b1')),
+      why: 'The cross-tenant write, holding B\'s exact suggestion id. It names `saved_at` and not '
+         + '`used_at` on purpose: B\'s row is already DISMISSED, and a case that stamped `used_at` '
+         + 'would be refused by research_suggestions_one_outcome as well, so the refusal it observes '
+         + 'could not be attributed to the policy.',
+    },
+    {
+      id: 'owner-b-sees-the-research-suggestion-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_b1')],
+      expect: 'rows',
+      why: 'The third case on the suggestion table, and the row the cross-tenant WRITE above is '
+         + 'about — so that negative is a refusal against something rather than against nothing.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-the-title-of-a-research-suggestion',
+      covers: ['§8.5', '§8.2'],
+      as: ownerA,
+      ...researchRewriteTitle(id('research_suggestion_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_suggestions' },
+      why: '§8.2\'s three verbs are save, dismiss and use. Rewriting what a run PROPOSED is none of '
+         + 'them, and the refusal is an absent column in the grant rather than a policy clause.',
+    },
+    {
+      id: 'owner-a-cannot-propose-a-research-suggestion',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...researchProposeSuggestion(A, BUSINESS_A1, id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_suggestions' },
+      why: '§8 has NO cell anywhere for creating a suggestion — §4\'s ERD says a RUN proposes one — '
+         + 'and where a document is silent the cell is denied. A client that could propose its own '
+         + 'suggestion could put words into the research\'s mouth.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-research-suggestion',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...researchDeleteSuggestion(id('research_suggestion_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'research_suggestions' },
+      why: '§8.5 has no broad user delete. Dismissing is the typed lifecycle field §8.2 names in the '
+         + 'operation itself, which is 040\'s reading of the same rule for an archived knowledge item.',
+    },
+    {
+      id: 'suspended-a-sees-zero-research-suggestions',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_a1')],
+      expect: 'no-rows',
+      why: '§12.6/5 on the last of this batch\'s five tables.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-research-suggestion',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema.',
+    },
+    {
+      id: 'service-sees-zero-research-suggestions',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: RESEARCH_SUGGESTION_BY_ID,
+      params: [id('research_suggestion_a1')],
+      expect: 'no-rows',
+      why: 'One of the two cases the negative control for app.research_suggestions rests on.',
+    },
+    {
+      id: 'service-cannot-propose-a-research-suggestion',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      ...researchProposeSuggestion(A, BUSINESS_A1, id('research_run_a1')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'research_suggestions' },
+      why: 'The raising half. §8.2 gives the service no cell for this table either — its `S` names the '
+         + 'run, the source and the evidence — so app_worker holds the INSERT a producer needs, holds '
+         + 'no policy, and is refused by row level security. That is why there is no entry for this '
+         + 'table in db/foundation/lint/service-policy-map.json: inventing a `cell` value for a row '
+         + '§8 does not have would be a claim about the access matrix made in a lint file.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -10020,3 +11066,240 @@ export const EFFECTIVE_LIMIT_QUESTION =
 // would be a statement two different absences could explain.
 export const BUCKET_WATERMARK_OF_WORKSPACE =
   'select computed_through from app.quota_buckets where workspace_id = $1::uuid';
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 070 — the statements the research cases run.
+// ---------------------------------------------------------------------------------------------
+//
+// They are module-level constants declared AFTER buildCases rather than locals declared inside it,
+// and the reason is a merge rule rather than a style: other batches are appending to this file at
+// the same time, and the only resolution that cannot silently lose another batch's work is "main's
+// version plus this branch's own section, contiguous and last". A `const` here is in scope inside
+// buildCases at CALL time — the module has finished evaluating by then — so the whole of batch 070's
+// contribution to this file is two appended blocks and no edit anywhere else in it.
+//
+// They exist at all for the reason every earlier batch's builders exist: a negative and the positive
+// it is paired with have to be visibly THE SAME STATEMENT with one argument changed, and a reader
+// comparing two inline strings is checking that by eye.
+
+export const RESEARCH_RUN_BY_ID = 'select id from app.research_runs where id = $1';
+export const RESEARCH_SOURCE_BY_ID = 'select id from app.research_sources where id = $1';
+export const RESEARCH_EVIDENCE_BY_ID = 'select id from app.research_evidence where id = $1';
+export const RESEARCH_SUGGESTION_BY_ID = 'select id from app.research_suggestions where id = $1';
+
+// A CAPTURE IS ADDRESSED BY ITS DIGEST AND NOT BY AN ID, and that is the fixture catalog's own rule
+// arriving as SQL: 070_research.sql makes (workspace_id, research_source_id, content_hash) unique
+// because that triple is what app.research_evidence.snapshot_content_hash has to name single-valued
+// once §10's purge has removed the locator, so a snapshot needs no catalog symbol. The two strings
+// below are the ones the fixture digests; they are synthetic and belong to this repository, because
+// §9.2 names `fixture` among the surfaces a research snapshot may not reach.
+//
+// `sha256()` from pg_catalog rather than pgcrypto's `digest()`, for batch 010's measured reason:
+// `public.digest` does not exist on the provisioned instance, where pgcrypto lives in `extensions`.
+export const RESEARCH_CAPTURE_A = 'fixture research capture a1';
+export const RESEARCH_CAPTURE_B = 'fixture research capture b1';
+export const RESEARCH_SNAPSHOT_BY_CAPTURE =
+  'select id from app.research_snapshots '
+  + "where research_source_id = $1::uuid and content_hash = sha256(convert_to($2, 'utf8'))";
+
+// The witnesses. Each reads a DERIVED ANSWER rather than the column itself, and that is the rule §6.4
+// of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md exists for: the driver reads psql's CSV,
+// CSV has no NULL, and an unset timestamptz arrives as the empty string — so a witness comparing
+// against `null` holds against every correct database. The comparison happens in SQL and the case
+// asserts the WORD.
+export function researchRunStillOpen(as, runId) {
+  return {
+    as,
+    sql: "select case when cancel_requested_at is null then 'open' else 'cancelled' end as state "
+       + 'from app.research_runs where id = $1',
+    params: [runId],
+    column: 'state',
+    equals: 'open',
+  };
+}
+
+export function researchSuggestionStillUnsaved(as, suggestionId) {
+  return {
+    as,
+    sql: "select case when saved_at is null then 'unsaved' else 'saved' end as state "
+       + 'from app.research_suggestions where id = $1',
+    params: [suggestionId],
+    column: 'state',
+    equals: 'unsaved',
+  };
+}
+
+// §8.2's "Start/CANCEL Research", as the two columns the client UPDATE grant names. The actor is a
+// parameter rather than `(select auth.uid())` so that the forged-actor case is visibly the same
+// statement with one argument changed — which is what §8.6 case 8 has to be in order to attribute its
+// refusal to the WITH CHECK half rather than to the USING half.
+export function researchCancelRun(runId, actor) {
+  return {
+    sql: 'update app.research_runs set cancel_requested_at = now(), updated_by = $2::uuid '
+       + 'where id = $1::uuid returning id',
+    params: [runId, actor],
+  };
+}
+
+// §8.2's START, which no client role holds and which the service holds without a policy. No `id` is
+// passed: the column defaults to gen_random_uuid(), the row is rolled back with its transaction, and
+// no case has a reason to hold the id of a row it is creating. The Business is a live one under the
+// Workspace, so when the CI negative control disables row level security the insert LANDS rather than
+// failing on a foreign key — a case that could not succeed proves nothing about the policy that
+// refuses it.
+export function researchStartRun(workspace, business, createdBy) {
+  return {
+    sql: 'insert into app.research_runs (workspace_id, business_profile_id, brief, created_by) '
+       + "values ($1::uuid, $2::uuid, 'attempted research brief', $3::uuid) returning id",
+    params: [workspace, business, createdBy],
+  };
+}
+
+// The column the client UPDATE grant does NOT name. §8.5 holds here by a column list rather than by
+// the absence of a verb, and this is the case that says so.
+export function researchRewriteBrief(runId) {
+  return {
+    sql: "update app.research_runs set brief = 'rewritten research brief' where id = $1::uuid returning id",
+    params: [runId],
+  };
+}
+
+export function researchDeleteRun(runId) {
+  return { sql: 'delete from app.research_runs where id = $1::uuid returning id', params: [runId] };
+}
+
+// A citation. `example.com` is RFC 2606's reserved name, for the reason the fixture gives: §9.2 names
+// `fixture` among the surfaces a research snapshot may not reach, and a real publisher's URL in a
+// test is the first step of a worker fetching it. The value satisfies research_sources_uri_scheme and
+// research_sources_uri_no_traversal, so a refusal cannot be a CHECK standing in for a missing grant,
+// and the insert lands when the negative control disables row level security.
+export function researchCiteSource(workspace, business, runId) {
+  return {
+    sql: 'insert into app.research_sources (workspace_id, business_profile_id, research_run_id, source_uri) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, 'https://example.com/attempted') returning id",
+    params: [workspace, business, runId],
+  };
+}
+
+// The append-only claim, as a statement. No role holds UPDATE on this table at all, so both forms of
+// this case are grant-layer refusals and neither is evidence about row level security.
+export function researchRewriteSource(sourceId) {
+  return {
+    sql: "update app.research_sources set source_uri = 'https://example.com/rewritten' "
+       + 'where id = $1::uuid returning id',
+    params: [sourceId],
+  };
+}
+
+export function researchDeleteSource(sourceId) {
+  return { sql: 'delete from app.research_sources where id = $1::uuid returning id', params: [sourceId] };
+}
+
+// A capture. Its digest is over a DIFFERENT synthetic string from either fixture row's, so a refusal
+// cannot be research_snapshots_one_per_capture standing in for a missing grant, and so the write
+// LANDS when the CI negative control disables row level security. `retention_until` is a fixed
+// literal seven days after `captured_at` and is deliberately NOT thirty: DATA-DEC-07 is open, §10
+// says "30 วัน default หรือสั้นกว่าตาม source policy", and a case carrying exactly the default would
+// read as the open decision having been chosen.
+export function researchCaptureSnapshot(workspace, business, sourceId) {
+  return {
+    sql: 'insert into app.research_snapshots '
+       + '(workspace_id, business_profile_id, research_source_id, object_ref, content_hash, '
+       + 'captured_at, retention_until) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, 'snapshot:research/attempted/capture-1', "
+       + "        sha256(convert_to('attempted research capture', 'utf8')), "
+       + "        timestamptz '2026-09-03 09:00:00+00', timestamptz '2026-09-10 09:00:00+00') "
+       + 'returning id',
+    params: [workspace, business, sourceId],
+  };
+}
+
+// THE DATA-DEC-07 STATEMENT. `retention_until` is outside every UPDATE grant to every role, so this is
+// refused by the PRIVILEGE system and not by a policy — which is the property that makes an open
+// decision safe to leave open: a row states its own limit once and nothing can push it forward.
+export function researchExtendRetention(sourceId, capture) {
+  return {
+    sql: "update app.research_snapshots set retention_until = timestamptz '2099-01-01 00:00:00+00' "
+       + "where research_source_id = $1::uuid and content_hash = sha256(convert_to($2, 'utf8')) "
+       + 'returning id',
+    params: [sourceId, capture],
+  };
+}
+
+export function researchRewriteDigest(sourceId, capture) {
+  return {
+    sql: "update app.research_snapshots set content_hash = sha256(convert_to('rewritten', 'utf8')) "
+       + "where research_source_id = $1::uuid and content_hash = sha256(convert_to($2, 'utf8')) "
+       + 'returning id',
+    params: [sourceId, capture],
+  };
+}
+
+export function researchDeleteSnapshot(sourceId, capture) {
+  return {
+    sql: 'delete from app.research_snapshots '
+       + "where research_source_id = $1::uuid and content_hash = sha256(convert_to($2, 'utf8')) "
+       + 'returning id',
+    params: [sourceId, capture],
+  };
+}
+
+// An evidence row. `snapshot_content_hash` is NULL rather than a digest, because the nullable branch
+// is the one a piece of evidence takes when no capture was made — and because a digest here would
+// have to be one of the fixture's, which would make the statement a claim about a specific capture
+// instead of about the grant.
+export function researchRecordEvidence(workspace, business, sourceId) {
+  return {
+    sql: 'insert into app.research_evidence '
+       + '(workspace_id, business_profile_id, research_source_id, snapshot_content_hash) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, null) returning id',
+    params: [workspace, business, sourceId],
+  };
+}
+
+// §8.6 case 9 on the one object §5 names immutable. It clears the column that says WHICH document the
+// evidence was taken from, which is the edit a forger would actually want.
+export function researchAmendEvidence(evidenceId) {
+  return {
+    sql: 'update app.research_evidence set snapshot_content_hash = null where id = $1::uuid returning id',
+    params: [evidenceId],
+  };
+}
+
+export function researchDeleteEvidence(evidenceId) {
+  return { sql: 'delete from app.research_evidence where id = $1::uuid returning id', params: [evidenceId] };
+}
+
+// §8.2's SAVE, one of its three verbs, with the actor as a parameter for the reason
+// researchCancelRun's is one. `saved_at` and not `used_at`: research_suggestion_b1 is loaded
+// DISMISSED, and research_suggestions_one_outcome would refuse a `used_at` on it — so a cross-tenant
+// case naming `used_at` could be satisfied by a CHECK rather than by the policy it exists to prove.
+export function researchSaveSuggestion(suggestionId, actor) {
+  return {
+    sql: 'update app.research_suggestions set saved_at = now(), updated_by = $2::uuid '
+       + 'where id = $1::uuid returning id',
+    params: [suggestionId, actor],
+  };
+}
+
+export function researchRewriteTitle(suggestionId) {
+  return {
+    sql: "update app.research_suggestions set title = 'rewritten suggestion' where id = $1::uuid returning id",
+    params: [suggestionId],
+  };
+}
+
+export function researchProposeSuggestion(workspace, business, runId) {
+  return {
+    sql: 'insert into app.research_suggestions (workspace_id, business_profile_id, research_run_id, title) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, 'attempted suggestion') returning id",
+    params: [workspace, business, runId],
+  };
+}
+
+export function researchDeleteSuggestion(suggestionId) {
+  return {
+    sql: 'delete from app.research_suggestions where id = $1::uuid returning id',
+    params: [suggestionId],
+  };
+}
