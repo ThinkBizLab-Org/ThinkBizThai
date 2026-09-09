@@ -4,11 +4,31 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "fd258f9cc51474d186dfa7658304c31d7b5542b3",
-  "head_revision_or_patch_checksum": "fd258f9cc51474d186dfa7658304c31d7b5542b3",
+  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
+  "head_revision_or_patch_checksum": "d763260348e4c84b5f605200a1ff94260d1dc8b1",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/migrations/070_research.sql",
+    "evidence/WP-0A-DB-00/a2-batch-070-probes-2026-09-09.md",
+    "tests/db/identity/fixtures/070-research-fixture.sql"
+  ],
+  "files_modified": [
+    ".github/workflows/ci.yml",
+    "db/foundation/README.md",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/service-policy-map.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-01",
@@ -19,7 +39,8 @@
   "assumptions": [
     "AUTHORSHIP OF THIS INCREMENT: batch 070 (`research.core`) was written by the run `/claude/a2_research` under this package's author role, which work-packages/WP-0A-DB-00.json assigns to `/claude/a0_atlas` and which `agent_run_id` above therefore names -- handoff-conformance.test.mjs holds those two to each other, and the run that did the work is recorded HERE rather than by overwriting the role. It is stated because batch 060 shipped batch 040's handoff with this sentence unchanged and the parallel-integration record names that as a defect. The increment creates five tables, ten policies and seventy-three isolation cases on a main carrying 051, 061, 110, 130, 131 and 140, and it adds no migration outside its own reserved batch number.",
     "§5 GIVES THIS FAMILY FIVE OBJECTS, TWO SENSITIVITY CLASSES AND ONE MUTABILITY WORD THAT NAMES ONLY ONE OF THE FIVE. Everything decided here follows from those three facts: five tables (one of which neither §6's registry nor §4's ERD names), a client-readable half and a COPYRIGHT-3 half, and four dispositions the word \"mixed\" leaves to the batch.",
-    "DATA-DEC-07 IS OPEN AND WAS NOT CLOSED. §15 forbids an agent closing an open decision, so no retention number appears in this migration in any form -- not as a default, not as a CHECK, not as an interval literal -- and three apply-time negatives plus one static rule keep it that way."
+    "DATA-DEC-07 IS OPEN AND WAS NOT CLOSED. §15 forbids an agent closing an open decision, so no retention number appears in this migration in any form -- not as a default, not as a CHECK, not as an interval literal -- and three apply-time negatives plus one static rule keep it that way.",
+    "REBASED ONTO f3d3102 AFTER BATCH 132 MERGED FIRST, AND THE TEN SHARED FILES WERE COMPOSED RATHER THAN CHOSEN. Both branches were cut from fd258f9 and both edited the same eleven registry files, so every one of the ten that conflicted was classified by §6.1 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md before it was touched, and all ten came back REWRITE rather than append -- so §4's rebuild rule was NOT applied to any of them. Three joins are worth a reviewer's time because git put the marker inside a construct: identity-isolation.test.mjs and isolation-cases.mjs each had a `test(` and a case object left unclosed on the HEAD side, whose closing lines sat OUTSIDE the conflict and were relied on by BOTH sides, and the fix was to close HEAD's own copy rather than to delete a marker. The four keyed-prose blocks in isolation-cases.mjs were merged BY KEY per §6.2: both batches appended a paragraph to one string and both paragraphs are kept, with 070's placed before 132's in catalog-snapshot.json's `why` because 070's opens on \"that reason\" and refers to 131's, which 132's sentence would otherwise separate it from. THE ONE FILE THAT LOOKED LIKE A LIST AND IS NOT: test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, and a manifest declares one, so keeping both rows would have failed the guard -- the row follows the manifest and batch-132's was dropped. Every count was recomputed from the merge base plus BOTH deltas and then MEASURED against the merged file rather than trusted: 194+9+15 = 218 declared tests, 1435+59+113 = 1607 assertions, 538+9+15 = 562 for the suite, each confirmed by the run recorded in evidence/VERIFICATION.md. The name digest was recomputed from the merged file (5fe77f75e8afb781) because a digest is never mergeable, and the duplicate-test-name rule this package added in 9aee8bb reports 218 unique names for 218 tests, so neither batch's block shadows the other's."
   ],
   "acceptance_results": [
     {
