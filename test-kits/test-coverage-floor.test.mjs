@@ -463,3 +463,63 @@ test('the behaviour ratchet puts enough reversals through each suite', async () 
   assert.doesNotMatch(source, /reversals\.slice\(/,
     'the reversal list must reach the loop intact');
 });
+
+// `regexCanStartHere` used to answer "may a regex literal begin here" by scanning the WHOLE of the
+// buffer built so far -- `before.replace(/\s+$/, '').slice(-1)` -- once per `/` in a code position.
+// Two things turned that from wasteful into quadratic: the buffer grows to the size of the file,
+// and `keepNewlines` rewrites every comment and string literal as a RUN OF SPACES, so `/\s+$/` had
+// a long run to consume and then reject at each candidate start.
+//
+// Measured on this repository before the fix: 29,160ms for identity-isolation.test.mjs at 622KB,
+// against 18ms for isolation-cases.mjs at 701KB -- the LARGER file being three orders of magnitude
+// faster, because its slashes sit inside string literals where the scan is never reached. The
+// answer is now carried in a variable updated on the only append that can change it.
+//
+// The two tests below guard the two halves of that claim, because either alone would pass a broken
+// version: the first pins the ANSWER and the second pins the COST.
+test('a comment, a string and a whitespace run do not change where a regex may begin', async () => {
+  // Each case is `code` plus what the slash after it must be read as. If the incremental variable
+  // and the old scan ever disagree, they disagree HERE: every prefix ends in something
+  // `keepNewlines` blanks, so a version that forgot to skip blanked spans reads the wrong
+  // character and mistakes a division for a regex -- which opens a literal that swallows the rest
+  // of the line and silently removes real code from the count.
+  const cases = [
+    ['const a = /x/;', 'regex', 'a bare operator'],
+    ['const a = /* c */ /x/;', 'regex', 'a block comment between the operator and the slash'],
+    ["const a = 'str' + /x/;", 'regex', 'a string literal before the operator'],
+    ['const a = b\n  / c;', 'division', 'an identifier, across a newline'],
+    ["const a = 'y' /* c */\n  .length / 2;", 'division', 'a comment and a newline before a division'],
+    ['const a = (1) / 2;', 'division', 'a closing paren is not an operator'],
+  ];
+  for (const [code, reading, why] of cases) {
+    const stripped = stripNonCode(code);
+    assert.equal(stripped.length, code.length, `${why}: stripNonCode must preserve length`);
+    // A regex literal is blanked; a division is code and survives as a `/`.
+    const slashes = (stripped.match(/\//g) ?? []).length;
+    if (reading === 'regex') {
+      assert.equal(slashes, 0, `${why}: the regex literal must be blanked, not read as division`);
+    } else {
+      assert.ok(slashes >= 1, `${why}: the division must survive as code, not be eaten as a regex`);
+    }
+  }
+});
+
+test('stripNonCode does not rescan its own output as the buffer grows', async () => {
+  // The real corpus rather than a synthetic string, because the defect was content-dependent: it
+  // needed many slashes in CODE positions, which is what a suite full of `assert.match(x, /re/)`
+  // has and a file of data does not.
+  const files = (await discoverTestFiles('tests')).concat(await discoverTestFiles('test-kits'));
+  const sources = await Promise.all(files.map((f) => readFile(f, 'utf8')));
+  const largest = sources.reduce((a, b) => (b.length > a.length ? b : a));
+  assert.ok(largest.length > 200_000,
+    `the largest suite is ${largest.length} bytes; this test is only meaningful on a large one`);
+  const started = process.hrtime.bigint();
+  stripNonCode(largest);
+  const elapsed = Number(process.hrtime.bigint() - started) / 1e6;
+  // The budget is deliberately loose: the fixed version does this in ~11ms and the quadratic one
+  // took 29,160ms, so two seconds is 180x headroom over the fix and still 14x inside the defect.
+  // A tighter budget would make this flaky on a loaded runner; a looser one would stop biting.
+  assert.ok(elapsed < 2000,
+    `stripNonCode took ${elapsed.toFixed(0)}ms on ${largest.length} bytes. The whole-buffer scan is `
+    + 'back: find the last significant character incrementally rather than by re-reading `out`.');
+});
