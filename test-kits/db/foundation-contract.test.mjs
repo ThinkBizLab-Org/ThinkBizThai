@@ -279,7 +279,7 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
   '061_metering.sql', '110_meta_connector.sql', '130_billing.sql',
-  '131_billing_projection.sql', '140_audit.sql'];
+  '131_billing_projection.sql', '132_entitlement_resolution.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
