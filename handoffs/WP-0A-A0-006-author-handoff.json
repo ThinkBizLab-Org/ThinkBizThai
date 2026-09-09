@@ -4,21 +4,13 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "963990ff920c341899c408846e33e38b4cff6800",
-  "head_revision_or_patch_checksum": "1a9f5894ac78d865e67b477ff2c294bb4b8a45b3",
+  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
+  "head_revision_or_patch_checksum": "PENDING",
   "task_ids": [],
-  "files_added": [
-    "architecture/decisions/RFC-2026-015-db00-data-foundation-decisions.md",
-    "evidence/WP-0A-A0-006/blocker-re-audit.md",
+  "files_added": [],
+  "files_modified": [
     "handoffs/WP-0A-A0-006-author-handoff.json",
     "work-packages/WP-0A-A0-006.json"
-  ],
-  "files_modified": [
-    "handoffs/WP-0A-CON-008-author-handoff.json",
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs"
   ],
   "files_deleted": [],
   "decisions_consumed": [
@@ -29,73 +21,64 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending. A decision record in Proposed state is reversible, synthetic-only work and binds nothing.",
-    "The data package's rule governs: an open decision does not authorise an agent to choose it. Both decisions are therefore PROPOSED, not taken."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It corrects three sentences in this package's own open_blockers that were true when written and false afterwards, and it removes one that is fully discharged. Same defect class as commit 9aee8bb, which repaired six such sentences in a test helper; this is the manifest version of it.",
+    "ONE BLOCKER IS DISCHARGED AND THEREFORE REMOVED. It said RFC-2026-015 was Proposed and that DB-00 must neither start on DATA-DEC-02 nor merge on DATA-DEC-01 until the record was disposed. That record was disposed on 2026-09-04, DATA-DEC-01 as `app` and DATA-DEC-02 as the wrapper command contract; read the RFC's status line for its wording rather than this file. DB-00 has since built and merged on both -- db/foundation/migrations/000_foundation.sql through 140_audit.sql and the Makefile command contract are on main -- so the blocker is not stale, it is spent, and it leaves open_blockers instead of being reworded.",
+    "THE OTHER THREE ARE CORRECTED RATHER THAN DROPPED, because each had a true half. The DATA-DEC-03 referral is discharged while the QUESTION it referred is not, and RFC-2026-022 §5/8's measurement is why: the only member of app_worker is postgres, which bypasses row level security. prefer_cross_vendor_review is untouched by any disposition. G0's restriction still stands while the clause that justified it -- \"which a Proposed decision record is\" -- stopped being true.",
+    "amends_without_owning IS EMPTIED, and that is a change to a record rather than an oversight. It carried five paths from this package's earlier increment; this branch touches none of them, and verify-branch-scope refuses a declaration that explains nothing the branch changed. The five are named in the manifest's new rationale and remain in git history.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. An Author may move work only as far as in_review, and doing so would be a claim about completeness rather than the correction of a false sentence, which is all this increment is."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "Every corrected sentence was checked against the artifact it describes",
+      "result": "met",
+      "evidence": "RFC-2026-015's status line carries a disposition dated 2026-09-04. RFC-2026-016 §4 and RFC-2026-017's status line carry the partial DATA-DEC-03 closure. RFC-2026-022 §5/8 carries the app_worker measurement. evidence/g0-tracker-th.md still reads Specification Baseline Complete / External Verification Pending."
     },
     {
-      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "A blocker is removed only when spent, not when merely inconvenient",
+      "result": "met",
+      "evidence": "One of four removed; three kept with the false clause corrected and the correction stated inside the blocker, so a reader sees what moved and why."
     },
     {
-      "criterion": "No contract status changes anywhere in the repository.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "CTR-NTF-001 is not assessed.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "No decision, code, migration, contract or status changes",
+      "result": "met",
+      "evidence": "Two files, both owned by this package under ownership.writable_paths: its own manifest and this handoff."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-006",
+      "exit_code": 0,
+      "result": "both changed paths are owned by this package and no amendment is declared"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role or contract is touched.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "DATA-DEC-03 is referred to A1 and deliberately unanswered. A0 co-owns it but must not close it alone; proposing it would repeat the ownership irregularity graded High twice in this repository (CTR-NTF-001 by A0 for A5, CTR-MOD-001 against CTR-SEC-001).",
-    "The nine stale blockers this audit identified are NOT cleared from their manifests. Each belongs to the package that recorded it; removing those lines is that package's act.",
-    "CON-006 #12 and #13 are reported as unknown, not closed. Re-measuring them with a different definition and presenting it as an update would be the same defect the audit exists to catch.",
-    "This record was regenerated after its branch was squash-merged. The squash orphaned every commit it originally cited, so the range now names the squashed commit on main. The repository stops squash-merging for this reason."
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English. The control that would catch this class ties a blocker naming a decision record to that record's status, and it is not written here -- WP-0A-DB-00 reached the same conclusion about position claims and gave the same reason: a lint that reads English will be wrong about English.",
+    "THREE SIBLING PACKAGES CARRY THE SAME DEFECT AND ARE NOT FIXED HERE. WP-0A-A0-007, -008 and -009 each hold blockers a disposition falsified. Each manifest is owned by its own package, so each correction is its own increment on its own declared branch; the audit for all four is in this handoff's recommended_next_work_packages.",
+    "THIS BRANCH IS CUT FROM main, WHICH DOES NOT YET CARRY THE QUADRATIC-STRIP FIX, so npm run check takes about fourteen minutes here rather than forty seconds. That is a property of the base, not of this increment."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-015 is Proposed. DB-00 must not start coding (DATA-DEC-02) or merge (DATA-DEC-01) until the Product Owner disposes it.",
-    "prefer_cross_vendor_review is not satisfied; recorded as an exception, not waived."
+    "The three corrected blockers remain OPEN and are listed in the manifest. This increment closes none of them."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. One Proposed decision record and one evidence file; no schema, migration, contract, persisted data, provider state or credential touched.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to four blockers, one of which describes a record that was disposed on 2026-09-04, and to five amendment paths this branch does not touch.",
   "recommended_next_work_packages": [
-    "Product Owner disposition of RFC-2026-015 on a disposition branch.",
-    "A1 to answer DATA-DEC-03 before G1.",
-    "DB-00 dispatch with exact allowed paths, once RFC-2026-015 is Approved.",
-    "Each of CON-002, CON-003 and CON-006 to clear its own stale blocker lines using this audit as input."
+    "WP-0A-A0-007: blocker 1 is spent -- RFC-2026-016 was disposed 2026-09-05 and its §2 amended 2026-09-08 -- and blocker 4 carries the same false G0 tail. Blockers 0, 2 and 3 are still true.",
+    "WP-0A-A0-008: blocker 0 is spent (RFC-2026-017 disposed 2026-09-05, and 001_service_roles.sql creates the roles on main). Blockers 1 and 2 need rewriting rather than removing: \"No tenant table exists\" is false against 45 tables and 554 isolation cases, of which 116 are service cases, but RFC-2026-017 §7's negative is still undischarged because app_worker's only member is postgres. Blocker 3 carries the G0 tail.",
+    "WP-0A-A0-009: blockers 0, 1 and 2 are all spent -- the record was disposed 2026-09-06, RFC-2026-018's status line now records the supersession, and the three lint rules RFC-2026-019 §5 names are written at scripts/db/run.mjs:307, :632 and :1003. Blocker 4 needs rewriting: the lint rules exist, and what is still owed is the isolation case that cannot be written before a command function exists. Blockers 3 and 5 are still true.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
   ],
   "reviewer_instructions": [
-    "Check that RFC-2026-015 proposes only DATA-DEC-01 and DATA-DEC-02, and that DATA-DEC-03 carries a question and no answer.",
-    "Check that the RFC status line reads Proposed. An agent writing Approved is the failure this package exists to avoid.",
-    "Spot-check any row of evidence/WP-0A-A0-006/blocker-re-audit.md by running the claim yourself; the audit's whole premise is that the recorded text is not evidence."
+    "Check the removal first: read RFC-2026-015's status line, confirm it records a disposition, then confirm 000..140 and the Makefile command contract are on main.",
+    "For each of the three kept blockers, check that the half retained is still true and the half corrected was actually false. The DATA-DEC-03 one is the one to press on, because it claims a PARTIAL closure and partial is a harder claim than either extreme.",
+    "Check that emptying amends_without_owning lost nothing a reader needs: the five earlier paths are named in the manifest rationale.",
+    "Confirm nothing outside this package's two owned files changed."
   ],
   "superseded_by": null
 }

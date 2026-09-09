@@ -98,14 +98,8 @@
       "migrations/**"
     ],
     "amends_without_owning": {
-      "paths": [
-        "handoffs/WP-0A-CON-008-author-handoff.json",
-        "scripts/verify-test-coverage-floor.mjs",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/repository-json.test.mjs"
-      ],
-      "rationale": "The four registries that must move when a package, a branch or a decision record is added, and which exist precisely so that adding one is a deliberate act in a diff rather than something that happens quietly. RFC-2026-015 is added to the protected-file list and to the pinned set of decision records, and digested; this branch is added to the branch-to-package mapping. None of the four is edited in any other way: no floor is lowered, no existing row is changed, and nothing is removed. Also repairs WP-0A-CON-008's author handoff, which cited the pre-squash branch tip that the squash merge of PR #44 orphaned. That commit exists in no clone, so the conformance guard failed in CI while passing locally where the object was still reachable. The range is repointed at the squashed commit on main and the two files missing from its list are added; no claim in that handoff is changed. Repairing another package's record is normally that package's act, but the record names a commit that does not exist and CON-008 is merged, so there is no branch left to repair it from.",
+      "paths": [],
+      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE, and the list is emptied rather than left carrying the previous increment's five paths. verify-branch-scope reads the declaration in BOTH directions, and a path declared here that this branch does not touch is a standing permission over another package's file granted for work that never happened -- which is what the guard refuses in its second direction. The five paths the earlier increment amended (handoffs/WP-0A-CON-008-author-handoff.json, scripts/verify-test-coverage-floor.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json and test-kits/repository-json.test.mjs) are recorded in git history and in that increment's diff; this field describes the increment on this branch, as WP-0A-DB-00's manifest also uses it.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
@@ -159,10 +153,9 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. The package adds one decision record in Proposed state and one evidence file. No schema, migration, contract, persisted data, provider state or credential is touched, and a Proposed RFC binds nothing until the Product Owner disposes it.",
   "open_blockers": [
-    "RFC-2026-015 is Proposed. DB-00 coding must not start on DATA-DEC-02 and DB-00 must not merge on DATA-DEC-01 until the Product Owner disposes it.",
-    "DATA-DEC-03 is referred to A1 and unanswered. It is due before G1, not before DB-00, so it does not gate the DB-00 dispatch — but it must be answered by A1, not inferred here.",
-    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work, which a Proposed decision record is."
+    "DATA-DEC-03 IS CLOSED ONLY AS FAR AS RFC-2026-016 §4 STATES, AND THE PART IT TURNS ON IS STILL OPEN. This blocker used to read that the decision was referred to A1 and unanswered, which was true when written and stopped being true on 2026-09-05: RFC-2026-016 closed it to the extent §4 states and RFC-2026-017 records that closure. What remains open is the service path, which RFC-2026-016 §4 says in terms is undecided and RFC-2026-022 §5/8 measures as not in effect -- the only member of app_worker is postgres, which bypasses row level security. So the referral is discharged and the QUESTION is not, and it is still A1's to answer rather than this package's to infer.",
+    "prefer_cross_vendor_review is not satisfied; see independence.cross_vendor_exception. Recorded as an exception, not waived. Unchanged by the 2026-09-04 disposition: an approved decision record is not a cross-vendor review of the package that proposed it.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work, which a decision record is whether it is Proposed or Approved. The tail of this sentence used to read \"which a Proposed decision record is\", and the disposition on 2026-09-04 made that clause false while leaving the restriction it justifies true -- so the clause is corrected rather than the blocker dropped."
   ],
   "review_and_test_gates": [
     "author_complete",
