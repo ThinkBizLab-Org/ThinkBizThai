@@ -14,6 +14,11 @@ because each branch's tests assert what its own files say.
 batches (`051`, `061`, `110`, `131`) are unblocked and will collide in the same files for the same
 reasons, so the collisions and the resolutions are written here rather than rediscovered.
 
+**Those four have since been written and merged, and §6 records what §3 and §4 got wrong about
+them.** Three of the four merges broke a rule stated here as though it were general; the rules are
+narrowed there rather than withdrawn, because each was still right about the case it came from.
+Read §6 beside §3 and §4, not after them.
+
 Two limits, stated before the content:
 
 - The reviewers are subagent runs in A0's vendor and model family. This is a second reading, not a
@@ -350,3 +355,123 @@ The sentence is billed as "the whole of what is new" about the batch, so a reade
 
 
 The substantive half is correct — there is no bare `LEDGER` class, and the neighbouring claim that batch 030 reported the same about `CATALOG` for industry.core also checks out. But the count is the evidence offered for exhaustiveness in a blocker whose whole purpose is to be precise enough for A1 Data to act on, and a reader who recounts and gets a different number has to re-derive the rest of it.
+
+---
+
+## 6. The second round, 2026-09-08/09: what §3 and §4 got wrong
+
+Run: `/claude/a0_atlas` (A0 Integration). Subject: batches `051`, `061`, `110`, `131`, authored
+simultaneously in separate worktrees, then rebased and merged **one at a time** in that order —
+110, 061, 051, 131 — each onto a `main` carrying the ones before it.
+
+This section exists because §3 and §4 were written as rules and three of the four merges broke
+them. They are not withdrawn; they are narrowed to the case they were derived from.
+
+### 6.1 The rule in §4 holds only where the section really was APPENDED
+
+§4 says to rebuild the static suite as "`main`'s version plus this branch's own section". That is
+right, and it is right for the reason §4 gives, and it silently destroys work when two batches did
+not append but **replaced the same construct**.
+
+`test-kits/db/foundation-contract.test.mjs` carried one test — `the map ships empty, and empty means
+no S cell has been classified yet` — whose own message said it would be replaced when the first
+entry landed. Four batches each replaced it, with a different test. Applying §4's rule produced two
+`test(` openings sharing one body: an unterminated file, `SyntaxError: Unexpected end of input`, and
+**46 tests silently absent from the run** because the whole file failed to load. The suite reported
+459 tests instead of 505 and did not say why.
+
+The same happened once in `tests/db/identity/identity-isolation.test.mjs`, where git placed the
+`=======` marker INSIDE the last test of one side.
+
+**The narrowed rule.** Before applying §4, ask the merge base whether the branch APPENDED:
+
+```
+diff <(git show :1:PATH) <(git show :3:PATH) | grep -E '^[0-9]'
+```
+
+A single `NNNaNNN,NNN` at the end of the file means append, and §4's rule applies unchanged. Any
+`NNNcNNN` means at least one construct was rewritten, and the sides must be read: extract each
+side's COMPLETE construct from its own revision (`git show <rev>:PATH | sed -n 'A,Bp'`) and compose
+them. Do not remove conflict markers by hand in a file where a construct was rewritten.
+
+### 6.2 Prose with keys is merged BY KEY, never by line
+
+`SMOKE_COVERAGE` and `AUTHORIZATION_CASE_COVERAGE` are objects whose values are long strings that
+every batch appends a paragraph to. A line-level union — main's lines, then the branch's — produced
+the right text three times running, and then batch `131` did not only append a paragraph to key 9,
+it **rewrote key 10**. The line-level union emitted `10:` twice, and the second label landed on top
+of text belonging to key 9.
+
+**The object parsed. The suite ran.** JavaScript keeps the LAST definition of a duplicated key and
+reports nothing about the one it discards. Three guards — written independently by `110`, `051` and
+`131`, after `110` found exactly this defect already sitting on `main` — failed together and named
+it. That is the outcome that justifies three batches writing the same guard.
+
+**The rule.** Extract the map from all three revisions, split each into `key → lines`, and for each
+key take `main`'s value plus whatever the branch's value has BEYOND the merge base's. Separate the
+comment lines that sit BETWEEN keys from the value they follow before appending anything: attaching
+them to the preceding key is what lets a new key's opening line be spliced into the previous key's
+text.
+
+### 6.3 A second copy of the set a rule checks against does not duplicate it — it drifts, and it drifts QUIET
+
+Batch `110` classified a service-policy cell on a table in `private`, so it widened
+`servicePolicyMapLint` to accept a schema-qualified name and gave it `tablesCreatedByMigrations` as
+the one source of that shape. **Seven other places had built the same set themselves**, each with
+its own `create table app.(\w+)` regex, in `scripts/db/run.mjs` and in four test files across three
+batches.
+
+Six of them failed loudly at the rebase, reporting that tables which plainly exist do not. **The
+seventh did not fail.** It sat inside a `doesNotMatch`, where it composed the pattern
+`on app.private.meta_webhook_inbox` — a string nothing can match — so the assertion passed by asking
+a question about a table that has never existed.
+
+That asymmetry is the finding: a hand-built copy inside a POSITIVE assertion gets louder when it
+drifts, and the same copy inside a NEGATIVE assertion gets quieter. A test suite made of refusals is
+made mostly of negative assertions.
+
+### 6.4 An assertion written while a set is empty is too broad, and nothing says so until the set is not
+
+The rule that a classified cell buys no service policy was written as "no `create policy` on this
+table" while every classified table carried no policy at all. In that state "no policy" and "no
+SERVICE policy" are the same set, and the broader one reads as correct.
+
+Batch `051` classified `app.notifications`, which carries §8.4's `O` policy `TO authenticated` — a
+CLIENT policy the decision neither grants nor forbids. Left as written, the assertion would have
+refused a batch for writing exactly the policy its access-matrix row requires.
+
+**The rule.** When an assertion is written over an empty or single-element set, state in the
+assertion's own message which property is load-bearing, so the next author reads the intent rather
+than inferring it from a pattern that happens to hold.
+
+### 6.5 What a green local suite does not mean, measured this round
+
+Batches `051` and `131` were each authored, checked and committed with the full suite green on the
+author's machine, and neither had ever opened a pull request — so **their isolation cases met a
+database for the first time at merge**. Four of `051`'s failed immediately, and not because of any
+isolation defect: two witnesses compared `read_at` against `null`, the driver reads psql's CSV, and
+CSV has no NULL. `'' !== null` holds against every correct database.
+
+The static suite — 522 tests at that moment — asserts that cases are WRITTEN correctly: ids read
+from the catalog, layers attributed, SQLSTATEs declared. It cannot assert that a case WORKS. Only CI
+has Postgres.
+
+**The process rule this implies, stated rather than left implicit:** a batch is not merged until CI
+has run ITS OWN cases. Branch protection makes that true today as a side effect of a required check;
+it should be a rule, because the side effect is what someone would remove to unblock a queue.
+
+`identity-isolation.test.mjs` now refuses any witness whose `equals` is `null` or `undefined` — a
+rule a machine WITHOUT a database can enforce, about a defect that needs one to observe. That shape
+is worth copying: when CI finds something local cannot, look for the half of it that is static.
+
+### 6.6 Scoreboard
+
+| | before this round | after |
+|---|---|---|
+| registry batches on `main` | 12 of 31 | **16 of 31** |
+| isolation cases | 343 | **477** |
+| tests | 470 | **538** |
+| table families under negative control | 20 | **30** |
+
+Every defect in §6 was created by writing four batches in parallel and none by any batch being
+wrong about its own schema. Not one was an RLS error.
