@@ -13,7 +13,7 @@
 //   VERBOSITY is set to verbose and the SQLSTATE is parsed out. If it cannot be parsed, the error is
 //   reported WITHOUT a code rather than with a guessed one — `expectDenied` then refuses it, which
 //   is the correct outcome for an outcome nobody can classify.
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -260,4 +260,121 @@ export const asService = () =>
 export async function inIdentity(identitySql, statement, options = {}) {
   const sql = `begin;\n${identitySql}\n${statement}\nrollback;`;
   return query(sql, options);
+}
+
+// ONE psql PROCESS FOR A WHOLE RUN, and the reason the `--command` path above exists at all is
+// that this did not. `psql --command` exits between invocations, so a transaction cannot span two
+// of them, so `bufferedDriver` had to REPLAY a case from its first statement on every step.
+// Measured on the merged tree: 554 cases cost 1,797 psql invocations -- about 3.2 per case, each
+// re-running everything before it -- at ~21ms of process and connection overhead locally and ~42ms
+// in CI. A session removes the replay rather than making it cheaper: `begin` begins, `exec`
+// executes, `rollback` rolls back, and nothing is re-run.
+//
+// FOUR THINGS THIS HAS TO GET RIGHT, and the first three are why it is not merely faster:
+//
+//   ORDERING. An error arrives on stderr and a result on stdout, and nothing orders two pipes
+//   against each other. Read separately, an error could be attributed to the wrong statement --
+//   which is precisely how "the policy refused this" stops being distinguishable from "the
+//   statement before it had a typo", and this whole harness exists to tell those apart. psql is
+//   therefore launched through a shell that merges stderr into stdout with `2>&1`, so the kernel
+//   orders them and the region between one statement's markers holds that statement's output and
+//   nothing else.
+//
+//   SURVIVING AN ERROR. `ON_ERROR_STOP=1` ends the session on the first refusal, and this suite is
+//   mostly refusals, so it is OFF here -- the one place this driver deliberately differs from the
+//   invocation above. What makes that safe is not this file: `runOne` in run-isolation.mjs rolls
+//   back in a `finally` on every path, so an aborted transaction never outlives its case. If that
+//   `finally` is ever removed, every case after the first refusal fails with 25P02 -- loudly, at
+//   the assume-identity phase, rather than quietly passing.
+//
+//   MARKERS DATA CANNOT FORGE. The `--command` path selects a FIXED marker and refuses unless it
+//   printed exactly twice, because a value carrying it would move the result boundary. A session
+//   can do strictly better: the marker carries a counter that increments per statement, so a value
+//   would have to predict the NEXT one rather than repeat a constant. It is still COUNTED -- one
+//   open and one close in the text consumed, or the read is refused -- because a stream read that
+//   stops at its first match is a boundary the data can still move EARLIER.
+//
+//   BACKSLASH IS A COMMAND ON STDIN AND WAS NOT ON --command. psql reads meta-commands from stdin,
+//   so a line beginning `\` is psql's rather than the server's. psql's lexer is SQL-aware and does
+//   not see one inside a quoted literal, and every parameter reaches here already doubled into a
+//   literal by the adapter -- but that is now a property this driver DEPENDS on rather than a
+//   convenience, so rls-smoke asserts it directly with a parameter carrying a newline and a `\q`.
+export function openSession({ env = process.env, url = null } = {}) {
+  const connection = url ?? connectionString(env);
+  // `sh -c ... 2>&1` rather than Node's three pipes: merging in the shell is what makes the
+  // ordering the kernel's rather than the event loop's.
+  const child = spawn('sh',
+    ['-c', 'exec psql "$1" --no-psqlrc --quiet --no-align --csv --set ON_ERROR_STOP=0 --set VERBOSITY=verbose 2>&1',
+      'sh', connection],
+    {
+      stdio: ['pipe', 'pipe', 'inherit'],
+      env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
+    });
+
+  let buffer = '';
+  let notify = null;
+  let exited = null;
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => { buffer += chunk; if (notify) notify(); });
+  child.on('error', (failure) => {
+    exited = failure.code === 'ENOENT'
+      ? 'psql is not on PATH. The live targets need it; they do not have a fallback that pretends to pass.'
+      : String(failure.message);
+    if (notify) notify();
+  });
+  child.on('exit', (code, signal) => {
+    exited ??= `psql exited (code ${code}, signal ${signal}) with the session still open`;
+    if (notify) notify();
+  });
+
+  let counter = 0;
+  const waitFor = (marker) => new Promise((resolve, reject) => {
+    const check = () => {
+      if (buffer.includes(marker)) { notify = null; resolve(); return; }
+      if (exited !== null) { notify = null; reject(new Error(exited)); }
+    };
+    notify = check;
+    check();
+  });
+
+  return {
+    async exec(sql) {
+      counter += 1;
+      const open = `__psql_session_open_${counter}__`;
+      const close = `__psql_session_close_${counter}__`;
+      buffer = '';
+      child.stdin.write(`\\echo ${open}\n${sql}\n\\echo ${close}\n`);
+      try {
+        await waitFor(close);
+      } catch (failure) {
+        return { error: { code: null, message: redactConnection(failure.message, connection) } };
+      }
+      const text = buffer;
+      const opens = occurrencesOf(text, open);
+      const closes = occurrencesOf(text, close);
+      // Counted for the same reason RESULT_BOUNDARY is counted, one layer down: `\echo` prints its
+      // argument ONCE, so anything else means output carried a marker and the boundary would be
+      // decided by the data.
+      if (opens !== 1 || closes !== 1) {
+        return { error: { code: null, message: `the session markers printed ${opens} open and ${closes} close, `
+          + 'where \\echo prints each exactly once. Output somewhere carries a marker, so this driver will not '
+          + 'choose an occurrence and call the answer a result.' } };
+      }
+      const start = text.indexOf('\n', text.indexOf(open));
+      const end = text.indexOf(close);
+      if (start === -1 || end < start) {
+        return { error: { code: null, message: 'the session markers printed out of order, so no region of this output is the statement\'s result' } };
+      }
+      const region = text.slice(start + 1, end);
+      // The error text is IN the region, because stderr was merged into stdout upstream.
+      if (/^(ERROR|FATAL|PANIC):/m.test(region)) {
+        return { error: parseError(redactConnection(region, connection)) };
+      }
+      return { rows: rowsFromCsv(region) };
+    },
+    async close() {
+      if (exited === null) child.stdin.end('\\q\n');
+      await new Promise((resolve) => { child.once('close', resolve); child.once('error', resolve); });
+    },
+  };
 }

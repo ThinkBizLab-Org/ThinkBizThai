@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-quadratic-strip",
+    "branch": "agent/claude/WP-0A-DB-00-one-psql-session",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -111,12 +111,10 @@
       "paths": [
         "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
-        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/test-coverage-floor.test.mjs"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This increment creates no table and adds no migration, and it is the first in this package whose subject is a guard's COST rather than its verdict. Two of the six paths belong to WP-0A-A0-002 and are amended for one reason stated in the diff itself: `scripts/verify-test-coverage-floor.mjs` answered \"may a regex literal begin here\" by rescanning the whole accumulated buffer once per slash in a code position, which is quadratic because `keepNewlines` rewrites comments and strings as long runs of spaces -- measured 29,160ms on identity-isolation.test.mjs at 622KB against 18ms on isolation-cases.mjs at 701KB, the LARGER file. The fix carries the answer in a variable updated on the only append that can change it, and `test-kits/test-coverage-floor.test.mjs` is amended in the SAME change because a fix to a guard that nothing would catch regressing is not finished: two tests are added, one pinning the answer across a blanked comment and string, one pinning the cost on the real corpus. The equivalence is not argued -- old and new were run over all 54 .mjs files in the tree and produced BYTE-IDENTICAL output. `.github/workflows/ci.yml` is NOT declared here and the previous increment's rationale says why the reverse would be wrong: this branch does not change it, and an amendment that explains nothing the branch changed is what verify-branch-scope refuses in its other direction. The remaining four paths are the registries any increment that changes a test count has to touch."
+      "rationale": "This increment creates no table and adds no migration. Its subject is the harness itself: scripts/db/psql-driver.mjs and scripts/db/rls-smoke.mjs are `scripts/db/**`, which this package OWNS, and the tests are `test-kits/db/**`, also owned -- so unlike the increment below it, nothing here reaches into another package's code. The four declared paths are the registries any increment that changes a test count has to touch: the floors, the digests, the pinned branch row and the recorded verification. `scripts/verify-test-coverage-floor.mjs` and test-kits/test-coverage-floor.test.mjs are NOT declared here -- they belong to the increment below, and an amendment explaining nothing THIS branch changed is what verify-branch-scope refuses in its other direction."
     }
   },
   "inputs": {

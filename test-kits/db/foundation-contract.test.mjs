@@ -1654,3 +1654,69 @@ test('every classified S cell is well formed and names a table a migration creat
       + 'one-word reason is a verdict rather than an argument');
   }
 });
+
+
+// `sessionDriver` carries the same privilege decision `bufferedDriver` does, and these check it
+// WITHOUT a database, because that decision is statically decidable and a control only a live
+// target can check is a control most runs do not check.
+//
+// The fake records what the driver assembled. That is the seam the buffered driver's own comment
+// argues for: "a test that cannot see the SQL this driver actually assembles cannot check one".
+const recordingSession = (results = {}) => {
+  const sent = [];
+  return {
+    sent,
+    async exec(sql) { sent.push(sql); return results[sql] ?? { rows: [] }; },
+  };
+};
+
+test('the session driver resets role immediately before an identity call and never otherwise', async () => {
+  const { sessionDriver } = await import('../../scripts/db/rls-smoke.mjs');
+  const session = recordingSession();
+  const driver = sessionDriver(session);
+  await driver.begin();
+  await driver.exec('select private.as_user($1)', ['11111111-1111-1111-1111-111111111111']);
+  assert.deepEqual(session.sent, [
+    'begin;',
+    'reset role;',
+    "select private.as_user('11111111-1111-1111-1111-111111111111');",
+  ], 'reset role must be the statement immediately before the identity call, inside the transaction');
+
+  // A0's review D7 and A3's batch-060 correction as one case: a table in `private` whose NAME
+  // begins `as_` must not buy a role reset, and neither must a case passing `private.as_` as a
+  // VALUE. Either would run a case's own statement as the role that BYPASSES row level security.
+  const other = recordingSession();
+  const d2 = sessionDriver(other);
+  await d2.exec('select * from private.as_of_date where label = $1', ['private.as_user(']);
+  assert.equal(other.sent.length, 1, 'a read of a private TABLE must not emit reset role');
+  assert.doesNotMatch(other.sent[0], /reset role/, 'no reset role for a table read');
+  assert.match(other.sent[0], /'private\.as_user\('/, 'the parameter must arrive as a literal, not as code');
+});
+
+test('the session driver stops if the role reset it needs was refused', async () => {
+  const { sessionDriver } = await import('../../scripts/db/rls-smoke.mjs');
+  // A reset that failed and was ignored would run the identity call as whatever role the session
+  // already held, and the case would then assert against the wrong identity WHILE PASSING.
+  const session = recordingSession({ 'reset role;': { error: { code: '42501', message: 'denied' } } });
+  const driver = sessionDriver(session);
+  const out = await driver.exec('select private.as_service()', []);
+  assert.equal(out.error?.code, '42501', 'the refusal must be returned, not swallowed');
+  assert.deepEqual(session.sent, ['reset role;'], 'the identity call must not be issued after a failed reset');
+});
+
+test('both drivers inline parameters through one escaping function, not two', async () => {
+  const smoke = await import('../../scripts/db/rls-smoke.mjs');
+  assert.equal(typeof smoke.inlineParams, 'function');
+  assert.equal(typeof smoke.assumesIdentityCall, 'function');
+  assert.equal(smoke.inlineParams('select $1', ["o'brien"]), "select 'o''brien'");
+  const withNul = 'a' + String.fromCharCode(0) + 'b';
+  assert.throws(() => smoke.inlineParams('select $1', [withNul]), /NUL byte/,
+    'a NUL byte must be refused rather than truncated somewhere downstream');
+  // §6.3 of the parallel-integration record: ONE copy of a privilege decision. A second spelling
+  // of either rule is exactly the drift that rule exists for, so the source is checked for one.
+  const source = (await readFile('scripts/db/rls-smoke.mjs', 'utf8')).replace(/^\s*\/\/.*$/gm, '');
+  assert.equal((source.match(/standard_conforming_strings/g) ?? []).length, 0,
+    'the escaping rule belongs in a comment on inlineParams, not restated in code');
+  assert.equal((source.match(/private\\\.as_/g) ?? []).length, 1,
+    'the anchored identity-call pattern must appear exactly once in code');
+});
