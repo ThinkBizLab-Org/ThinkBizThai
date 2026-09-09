@@ -1,0 +1,472 @@
+-- Batch 132 — entitlement-metering resolution: the join between what a plan grants and what a
+-- workspace consumed, and the reason it cannot be written yet.
+--
+-- Owner: A0 Integration + A6. The migration ownership registry (§6) reserves 132 to this pairing,
+-- describes it in four words — "entitlement-metering resolver" — depends it on 061 and 130, and
+-- marks the shared-file column "A0 only". Both dependencies are merged.
+--
+-- Depends on: 061 (app.usage_events, app.usage_reservations, app.quota_buckets) and 130
+-- (app.billing_plans, app.billing_plan_versions, app.plan_entitlements, app.billing_subscriptions).
+-- Migration invariant 1 forbids rewriting a merged migration and NOTHING BELOW DOES: this file
+-- contains one `do $$` block and no `create`, no `alter`, no `drop`, no `grant` and no `revoke` at
+-- all. A static test asserts that rather than trusting this sentence.
+--
+-- THIS BATCH CREATES NO TABLE, NO VIEW, NO FUNCTION, NO POLICY AND NO GRANT, and the whole of this
+-- header is why. What it produces instead is a measured record of what an effective limit resolver
+-- would have to join, which of its terms exist, and which decisions it would have to close in order
+-- to exist at all. Batch 004 is the shape: a migration whose entire content is an assertion.
+--
+--
+-- ============================================================================================
+-- 1. THIS BATCH HAS NO §5 INVENTORY ROW, AND THAT IS THE FIRST THING TO SETTLE
+-- ============================================================================================
+--
+-- §5's Canonical Data Dictionary Summary has a row for `metering.core` — "reservations/events/quota
+-- buckets", scope `workspace/business`, mutability "append-only ledger + aggregate", sensitivity
+-- FIN-3, retention FINANCE-HISTORY, owner A0/A6 Metering — and a row for `billing.core` —
+-- "plans/prices/subscriptions/invoices/payment refs", scope `global/workspace`, mutability
+-- "versioned + ledger-like", sensitivity PII-2/FIN-3, retention FINANCE-HISTORY, owner A6 Billing.
+-- Batches 061, 130 and 131 implement those two rows between them.
+--
+-- THERE IS NO THIRD ROW. §5 names no family for a resolver, and §6's registry gives this batch four
+-- words and a Deliverable column reading "effective limit resolver". A batch with no inventory row
+-- has NO DECLARED TABLE SET, NO DECLARED SCOPE, NO DECLARED MUTABILITY AND NO DECLARED RETENTION
+-- CLASS, and inventing any of them is a claim about the data model made in a migration.
+--
+-- THE ABSENCE IS NOT SYMMETRICAL WITH 041's, and the difference is worth stating because 041 is the
+-- nearest precedent. 041 had no §5 row either and needed none: it creates one function over columns
+-- batch 040's row already declares, so every property §5 assigns comes from `knowledge.core`. A
+-- resolver spans TWO families whose §5 rows disagree on three of the five columns — scope
+-- (`workspace/business` against `global/workspace`), mutability ("append-only ledger + aggregate"
+-- against "versioned + ledger-like") and sensitivity (FIN-3 against PII-2/FIN-3). A row of the
+-- resolved thing would have to pick one of each, and picking is the decision §5 exists to record.
+--
+-- THE ONE PLACE A SHAPE IS NAMED IS THE BILLING CONTRACT, AND IT IS NAMED AS A TABLE OF
+-- `billing.core` RATHER THAN OF A NEW FAMILY. §5.1: "`workspace_entitlements` | workspace, feature,
+-- effective value, source, valid period | คำนวณซ้ำได้จาก source". Batch 130 read that row, declined
+-- to create the table, and said why in terms: "a recomputable projection created by the batch that
+-- owns its inputs would be a second source of truth for a value 132 exists to derive". Batch 061
+-- said the same from the other side: "what a WORKSPACE is entitled to is `app.workspace_entitlements`
+-- … and 130 declined to create it for exactly this reason".
+--
+-- So the inventory question has an answer and it is not the answer the Deliverable column implies:
+-- the resolved entitlement belongs to `billing.core`'s row, which A6 Billing owns, and the resolver
+-- that computes it belongs to a batch the registry gives to a PAIR. Nothing in §5 says what the
+-- resolved row's scope, mutability or sensitivity are, and this file does not decide them.
+--
+--
+-- ============================================================================================
+-- 2. WHAT AN EFFECTIVE LIMIT RESOLVER JOINS, AND THE JOIN THAT DOES NOT EXIST
+-- ============================================================================================
+--
+-- "May this workspace start this work" is one comparison with two sides:
+--
+--     an ALLOWANCE, keyed by `app.plan_entitlements.feature_key`, reached from the workspace through
+--     app.billing_subscriptions.billing_plan_version_id;
+--
+--     a CONSUMPTION, keyed by `app.quota_buckets.dimension`, or by the same column on
+--     app.usage_events and app.usage_reservations beneath it.
+--
+-- THE TWO KEYS ARE DIFFERENT VOCABULARIES FROM DIFFERENT SOURCES, AND NO DOCUMENT MAPS THEM. This is
+-- measured over the merged tree rather than argued:
+--
+--   * `dimension` is a CLOSED SET of six values — `ai_tokens`, `research_search`, `storage_bytes`,
+--     `egress_bytes`, `media_processing`, `publish_operation` — fixed by `CTR-USG-001` and written
+--     as a named CHECK in three homes, which 061's apply-time block requires to be byte-identical.
+--   * `feature_key` is an OPEN FORM: `^[a-z0-9]+(_[a-z0-9]+)*$` and nothing else. Batch 130 refused
+--     to enumerate it and said why — §5.3's five keys are labelled "ตัวอย่าง", BILL-OQ-01 leaves the
+--     package set open, and "enumerating them in a CHECK would ratify an example as a decision" —
+--     and it named this batch as the one that resolves them: "The set of keys is owed to Product and
+--     to batch 132, which resolves them."
+--   * `feature_key` appears in exactly one migration (130) and `dimension` in exactly one (061). NO
+--     RELATION IN THIS SCHEMA CARRIES BOTH COLUMNS, and no foreign key, CHECK or comment relates one
+--     vocabulary to the other. The join has no ON clause and no home for one.
+--
+-- §5.3's OWN FIVE EXAMPLE KEYS INTERSECT THE SIX DIMENSIONS IN NOTHING. `workspace_users`,
+-- `connected_channels`, `scheduled_posts_per_month`, `ai_generation_mode`, `asset_storage_bytes` —
+-- not one of the five is one of the six, and the five fail for four different reasons, each of which
+-- a mapping would have to decide rather than discover:
+--
+--   * `asset_storage_bytes` against `storage_bytes` — A STOCK AGAINST A FLOW. The entitlement is
+--     bytes HELD; a usage event of that dimension is a measurement of unit `byte` taken at an
+--     instant, and `CTR-USG-001` says nowhere whether it is a level or a delta. A bucket sums it
+--     (061: `consumed_amount` is "the sum of app.usage_events.quantity_amount over this bucket's own
+--     key"), and summing levels is wrong while comparing a sum of deltas against a stock is also
+--     wrong. Which one it is decides whether every storage answer this resolver gives is correct or
+--     monotonically increasing nonsense.
+--   * `scheduled_posts_per_month` against `publish_operation` — THE PERIOD IS IN THE ALLOWANCE'S NAME
+--     AND IN NO COLUMN. `app.plan_entitlements` carries no period at all; `app.quota_buckets` carries
+--     an arbitrary `(period_start, period_end)` pair with only "period_end > period_start" to
+--     constrain it; `app.billing_subscriptions` carries `(current_period_start, current_period_end)`;
+--     and NOTHING TIES ANY TWO OF THE THREE. 061's fixture aligned a bucket's month with a
+--     subscription's by hand and wrote down that it had: "Nothing joins the two — §6's registry gives
+--     that join to batch 132 — and the alignment is there so that when 132 writes the join it is not
+--     the first to discover that the two families disagreed about what a period is." They do not yet
+--     disagree; nothing makes them agree either.
+--   * `workspace_users` and `connected_channels` — NOT METERED AT ALL. None of the six dimensions
+--     measures a member count or a connected channel. Their limits are enforced by counting rows in
+--     `identity.core` and `connector.meta`, which is a different mechanism from subtracting a ledger
+--     and is not what "effective limit resolver" describes. A resolver that silently returned "no
+--     limit" for them would answer two of §5.3's own five keys wrongly.
+--   * `ai_generation_mode` — KIND `value`, NOT `limit`. 130 types it as a policy word with
+--     `limit_value` null by constraint, so there is no number for a consumption to be compared with.
+--
+-- AND THE FIXTURES MEASURE THE SAME GAP, WHICH IS THE HALF A READER CAN RUN. 130's fixture loads
+-- three entitlements — `workspace_users`, `asset_storage_bytes`, `ai_generation_mode` — and 061's
+-- loads buckets, a ledger row and a hold in ONE dimension, `ai_tokens`. The intersection is empty, so
+-- the merged fixture set cannot demonstrate the join even once: the effective limit of `ai_tokens`
+-- for workspace A is undefined because no entitlement names that dimension, and the consumption of
+-- `asset_storage_bytes` is undefined because no bucket carries it. That is not a fixture defect and
+-- must not be repaired by adding a row. Each fixture loaded its own source document's own
+-- vocabulary, faithfully; the emptiness is the finding.
+--
+--
+-- ============================================================================================
+-- 3. THE FOUR THINGS 061 RECORDED AS UNDECIDED, AND WHY THIS BATCH NEEDS ALL FOUR
+-- ============================================================================================
+--
+-- 061's header lists what a mechanism keeping the ledger and the bucket equal would have to decide,
+-- and says it wrote none because "a trigger here would be this batch writing `132`, in the quietest
+-- place available". Applied to a resolver rather than to a reconciliation, every one of the four is
+-- load-bearing, and saying which are avoidable would have been the useful answer if any were:
+--
+--   1. WHICH EVENTS FALL IN WHICH BUCKET WHEN AN EVENT ARRIVES AFTER ITS PERIOD CLOSED. NEEDED. The
+--      comparison is per period, so period membership is the denominator of every answer. A resolver
+--      reading `consumed_amount` inherits whatever a recompute decided; a resolver summing the ledger
+--      itself decides it in a `where` clause, and the two candidate columns are already in the schema
+--      pointing different ways — `occurred_at` is when the measurement was TAKEN and is what
+--      `usage_events_bucket_recompute_idx` is keyed on, while `computed_through` is a watermark over
+--      rows CREATED at or before an instant. Both are needed and which one bounds the period is
+--      unwritten.
+--   2. WHETHER A `provider_reported` EVENT SUPERSEDING AN `estimated` ONE SUBTRACTS THE ESTIMATE OR
+--      IS ADDED BESIDE IT. NEEDED, and it is the one that cannot be evaded by any spelling.
+--      `sum(quantity_amount)` over a period IS the answer "added beside it", written in an aggregate
+--      where nobody reads it. `CTR-USG-001`'s freeze boundary puts this outside the contract by name:
+--      "the provider price list, the conversion between currencies, THE RECONCILIATION ALGORITHM
+--      (OB-008) and the safe metric-label set (OB-006) are NOT inferred here." 061 built the columns
+--      the question is about — `supersedes_usage_id`, and a partial unique index so no two events
+--      supersede one estimate — and deliberately built no arithmetic over them.
+--   3. WHETHER AN EXPIRED RESERVATION IS RELEASED BY THE SWEEP OR BY THE NEXT RECOMPUTE. NEEDED,
+--      because "may I start this work" subtracts holds as well as measurements — 061: "a hold exists
+--      precisely so that concurrent work cannot overspend a quota the ledger has not yet recorded".
+--      A hold whose `expires_at` has passed while `released_at` is still null either occupies quota
+--      or does not, and 061 refused to write that into an index predicate for the reason it gives:
+--      "an index predicate is a quieter place to put a lifecycle decision than a CHECK constraint,
+--      not a weaker one." A `where` clause in a resolver is quieter still.
+--   4. WHETHER THE BUCKET IS AUTHORITATIVE BETWEEN RECOMPUTES. NEEDED, and 061 wrote this one in this
+--      batch's own words — "which is what a caller asking 'may I start this work' actually depends
+--      on". `computed_through` makes a disagreement between the bucket and the ledger DETECTABLE and
+--      decides nothing about what to do when one is found. A resolver has to do something. Trusting
+--      the bucket answers the question "yes"; reading the ledger past the watermark answers it "no";
+--      reading the ledger and ignoring the bucket answers it "the bucket is not authoritative at
+--      all", which contradicts the table existing.
+--
+-- SO THIS BATCH IS BLOCKED ON A DECISION AND NOT ON AN IMPLEMENTATION. Question 2 is frozen outside
+-- `CTR-USG-001` by that contract's own boundary; questions 1, 3 and 4 have no owner named anywhere
+-- except this registry row, which is the loop this file exists to break by writing it down rather
+-- than closing it. §15 forbids an agent closing an open decision.
+--
+--
+-- ============================================================================================
+-- 4. THE BILLING SIDE IS BLOCKED TOO, ON FOUR DIFFERENT THINGS
+-- ============================================================================================
+--
+-- Even with a mapped key and an authoritative consumption, the ALLOWANCE half is not resolvable:
+--
+--   (a) THE STATE-TO-ENTITLEMENT MAPPING IS A VERSIONED POLICY THAT DOES NOT EXIST. §9 of the billing
+--       contract requires the mapping from Stripe's status to `local_access_state` to live "ใน
+--       versioned policy", and 130 recorded that no such policy exists and stored no provider status
+--       at all. The mapping a resolver needs is one step further along — from `local_access_state` to
+--       WHAT THE WORKSPACE MAY DO — and §9's own table states it for some states and not others:
+--       `ACTIVE` is "paid entitlement", `NO_PLAN` is "free/no paid entitlement", `TRIALING` is "trial
+--       entitlement ตาม policy" (a policy that does not exist), `GRACE` is "คงสิทธิ์ชั่วคราว",
+--       `RESTRICTED` is "อ่าน/ส่งออกได้; ห้าม generate/post/upload ใหม่ตาม policy" (the same absent
+--       policy), `CANCELED` is "read-only/retention policy" (a third), `CANCEL_SCHEDULED` is "ใช้ถึง
+--       period end", `MANUAL_FALLBACK` is "สิทธิ์มีวันหมดอายุชัดเจน" with no number, and `PENDING` is
+--       "เดิมหรือ free" — which is two answers depending on a prior state this schema does not record.
+--       So three of the eight states batch 130 enumerates defer to a policy nobody has written and a
+--       fourth defers to history nothing stores, and a resolver reading `local_access_state in
+--       ('active')` would be deciding all four by omission.
+--   (b) THE MOST COMMON INPUT IS THE ABSENCE OF A ROW. 130 made `NO_PLAN` the absence of a
+--       subscription rather than a state value, deliberately and with a reason. So the resolver's
+--       commonest case reads no `billing_plan_version_id` at all, and what a workspace with no
+--       subscription is entitled to lives in no row of `app.plan_entitlements`: there is no free plan
+--       revision, and BILL-OQ-01 leaves the package set open. Returning zero for every feature decides
+--       that a workspace without a subscription may do nothing, which §9's "free" contradicts;
+--       returning "unbounded" is worse.
+--   (c) `source` IS A VOCABULARY NOBODY HAS WRITTEN. §5.1 makes it a column of the resolved row. Its
+--       values would have to include at least the plan, the Manual Billing Grant §2.1 requires to
+--       carry evidence, an expiry and an approver, a trial (BILL-DEC-007, OPEN) and a coupon
+--       (BILL-DEC-008, OPEN). 010 refused to invent a status vocabulary for an invitation, 021 for a
+--       member scope, 061 for a reservation and 130 for a cancellation reason; this is the same
+--       refusal on the same grounds.
+--   (d) THE ANSWER IS NOT A BOOLEAN. §5.3: "downgrade ที่ทำให้ usage เกิน limit ต้องไม่ลบข้อมูลทันที
+--       ใช้ read-only/ห้ามสร้างเพิ่ม + แจ้งวิธีแก้". Over-limit is read-only-and-no-new rather than
+--       blocked, so "may this workspace start this work" has at least three outcomes and no document
+--       names them. A function returning `boolean` would answer a question nobody asked.
+--
+--
+-- ============================================================================================
+-- 5. TABLE, VIEW OR FUNCTION — ASKED SEPARATELY, REFUSED SEPARATELY
+-- ============================================================================================
+--
+-- The registry's four words do not say which. Each has a different consequence under
+-- `FORCE ROW LEVEL SECURITY` and under `RFC-2026-021`'s empty client read allowlist, so each is
+-- answered rather than one being chosen and the other two left implied.
+--
+-- A TABLE — `app.workspace_entitlements`, the row §5.1 names. REFUSED, on three grounds and the
+-- third is the one that decides. (i) §5.1's own rule for it is "คำนวณซ้ำได้จาก source", and the
+-- recompute rule is precisely what §2, §3 and §4 above say does not exist; a projection whose
+-- recompute is undecided is a stored answer nobody can check, which is the state 061 built
+-- `computed_through` to make impossible for a quota bucket. (ii) It would need a writer, and the
+-- writer named in any document is §4 of the billing contract's `entitlement-service` module, which
+-- does not exist; `RFC-2026-012` §4 names `SECURITY DEFINER` command functions as the mechanism and
+-- `RFC-2026-021` §10 records that none exists. That is 050's outbox — a correctly shaped table with
+-- no writer — with the recompute missing as well, which is strictly worse because the outbox's
+-- contents are at least defined. (iii) A table would fix a scope, a mutability and a retention class
+-- for a family §5 has no row for, which is §1 above.
+--
+-- A VIEW. REFUSED, on `RFC-2026-021` and on 041's reason, and the two are independent.
+-- `RFC-2026-021` §3 makes an exposed view FIVE OBJECTS plus a registry row — the `security_invoker`
+-- view, a column-scoped base grant, a grant on the view, a SELECT policy on each base table, and
+-- schema USAGE — approved by RFC and countersigned by A1 Security, and §7/3 keeps the allowlist
+-- EMPTY. C1 fails here exactly as it failed for the industry catalog and for the plan catalog: there
+-- is no client caller because there is no `src/`. C4 would need a SELECT policy on
+-- `app.plan_entitlements` naming a client role, which no row of §8 licenses (see §6 below). And
+-- `db/foundation/lint/read-allowlist.json`, the file §8.1 requires to exist as an empty array on
+-- approval, IS NOT IN THIS TREE — `db/foundation/lint/` holds the catalog snapshot, the exemption
+-- register and the service-policy map and nothing else — so there is not even an empty registry for
+-- an entry to be absent from. That gap belongs to `RFC-2026-021` §8 and to A0, is recorded in this
+-- package's open blockers, and is a second reason rather than the reason.
+-- 041's reason stands on its own and applies unchanged: "A view would have to choose a projection,
+-- and the projection is the part … that is undecided."
+--
+-- A FUNCTION. REFUSED, and this is the one worth the most words, because 041 is the precedent that
+-- says a resolver CAN be a function and this batch is not entitled to ignore it.
+-- 041 built `app.knowledge_scope_applies` because its predicate's inputs were decided and present:
+-- two scope columns batch 040 had created, a rule quoted from five documents, and a body that reads
+-- NO RELATION — "the body names no table, no function, no type, no cast and no schema". The analogue
+-- here would be a pure predicate over four numbers: an allowance, a consumed total, a reserved total
+-- and a requested amount. It is refused twice over.
+--   * ITS ARGUMENTS CANNOT BE SUPPLIED. §2 says the two keys do not join, so nothing can produce the
+--     allowance and the consumption for the same subject. A predicate whose inputs nothing can
+--     compose is what `scripts/db/run.mjs` calls a claim about nothing, in its own words about a
+--     classification of a cell on a table that does not exist.
+--   * ITS BODY WOULD ANSWER §3 AND §4(d) IN ARITHMETIC. Whether the reserved total counts, whether
+--     the comparison is strict, and whether the result is a boolean or one of three outcomes are all
+--     undecided, and each would arrive as an operator.
+-- AND A FUNCTION THAT READ THE RELATIONS INSTEAD IS WORSE IN A WAY WORTH NAMING. Under
+-- `security invoker` — 041's mode — it answers from what the CALLER can see, and no client role holds
+-- any privilege on `app.plan_entitlements`, so it would return "entitled to nothing" for every
+-- authenticated caller, forever, and correctly. A resolver whose refusal is spelled identically to
+-- its answer is unfalsifiable: no case could distinguish "this workspace has no entitlement" from
+-- "this caller cannot read the catalog", which is the shape `RFC-2026-016` §5 found in the data
+-- package's own smoke set and the shape this repository keeps removing. Under `security definer` it
+-- is the projection bypass `RFC-2026-021` §3 and `RFC-2026-012` §4 give to an RFC and to a command
+-- surface that does not exist, owned by `postgres`, which bypasses row level security (`RFC-2026-021`
+-- M2).
+--
+-- SO THE ANSWER TO "TABLE, VIEW OR FUNCTION" IS NONE OF THE THREE, ON THE AUTHORITY OF THE DOCUMENTS
+-- ABOVE RATHER THAN ON CAUTION. 050 refused to build a writer, 110 refused a table the registry
+-- assigns to nobody, 130 refused `workspace_entitlements` and 131 declined a grant 130 expected it to
+-- make. This is that disposition applied to a whole batch, and the deliverable is the record.
+--
+--
+-- ============================================================================================
+-- 6. WHO COULD RUN IT, AND WHAT THAT BLOCKS
+-- ============================================================================================
+--
+-- Nobody, and the chain is short. `RFC-2026-022` §5/8 and its measurement M9: the only member of
+-- `app_worker` is `postgres`, which holds `rolbypassrls`, so a policy `TO app_worker` "is unreachable
+-- except from an identity for which it is moot". `RFC-2026-019` §4/3 leaves `app_worker`'s connection
+-- method open until a background worker exists, and `DATA-DEC-03` owns that and is due before G1. The
+-- fifth role `RFC-2026-022` §5/6 proposes for a broker — `app_queue` — does not exist either.
+-- `app_command` owns no command function (`RFC-2026-021` §10).
+--
+-- WHAT THAT BLOCKS, STATED THE WAY 061 AND 131 STATE IT. A resolver run by `postgres` proves nothing
+-- about isolation, because `postgres` bypasses row level security and `RFC-2026-016` §5 records that
+-- "a service path that succeeds because it holds `BYPASSRLS` is indistinguishable from one that
+-- succeeds because a policy admitted it". So even if every decision in §3 and §4 were closed
+-- tomorrow, the resolver would have no identity to run as and no way to demonstrate that its reads
+-- are confined. The dependency is named rather than assumed: this batch is blocked on a service
+-- identity as well as on four metering decisions and four billing ones, and the service identity is
+-- not this batch's to create.
+--
+--
+-- ============================================================================================
+-- 7. WHAT IS CLASSIFIED IN THE SERVICE-POLICY MAP: NOTHING, AND THE POLICY 130 EXPECTED
+-- ============================================================================================
+--
+-- `RFC-2026-022` classifies §8 `S` CELLS. §8's four matrices contain no row for an entitlement
+-- resolution and no row for a read of the plan catalog: §8.4's two metering rows are the usage/quota
+-- summary SELECT and the usage ledger INSERT/UPDATE/DELETE, both 061's; §8.3's two billing rows are
+-- "Billing/subscription SELECT" and "Plan/payment action", both 130's, and 130's own header records
+-- that "§8's four matrices contain no row for a plan catalog anywhere". There is therefore no cell for
+-- this batch to classify, and inventing a `cell` value for the map would be a claim about the access
+-- matrix made in a lint file — 061's sentence about its own reservation and bucket, unchanged.
+--
+-- SO `db/foundation/lint/service-policy-map.json` GAINS NO ROW FROM THIS BATCH, and gains a note
+-- recording that, so the absence is a decision a later reader can disagree with rather than an
+-- omission they have to infer. A static assertion holds the negative in the shape the map's own
+-- entries are held in.
+--
+-- AND THIS BATCH DECLINES A SERVICE POLICY BATCH 130 EXPECTED IT TO WRITE. 130's isolation case
+-- `service-sees-zero-plan-entitlements` carries, in its own `why`: "Batch 132 is the resolver that
+-- will have to read this table, and the policy that lets it is owed to that batch." It is not owed,
+-- and the reason is 130's own two paragraphs earlier in the same file. `RFC-2026-022` sanctions a
+-- service policy for an §8 `S` cell and for nothing else; a plan-catalog read has no row in any of
+-- §8's four matrices, so a policy `TO app_worker` on `app.plan_entitlements` would be a permission no
+-- matrix row grants, written to make a resolver work that cannot be written anyway. `app_worker`
+-- keeps its SELECT grant and no policy there, which is 010's shape and what keeps that table's
+-- negative control resting on a refusal row level security produced.
+-- 131 met the same situation from the other side — 130 promised that 131 would grant the writer, and
+-- 131 declined and said which decision would be needed. This is that, one table over. The expectation
+-- is not edited out of 130's case: migration invariant 1 forbids rewriting a merged migration, a
+-- static test pins that sentence, and editing prose out from under another batch's test is how a
+-- merge loses a control.
+--
+--
+-- ============================================================================================
+-- 8. THE ALLOWLIST CANDIDATE, NAMED AND NOT ADDED
+-- ============================================================================================
+--
+-- An effective-limit projection for the workspace owner is a plausible `RFC-2026-021` allowlist
+-- candidate and it is named here rather than added. §9.1 gives `FIN-3` the client projection
+-- "owner/admin summary"; §8.3 marks "Billing/subscription SELECT" `Y` for the owner; §8.4 marks
+-- "Usage/quota summary SELECT" `Y` for the owner and `Y` for the admin. Both halves of the summary
+-- already have a matrix row, which is a difference from the industry catalog and from the plan
+-- catalog rather than a ranking of them: §8 contains no row for either of those reads at all.
+--
+-- IT STILL FAILS C1 AND IT FAILS SOMETHING ELSE AS WELL. C1 is "a named caller exists, and it is a
+-- client", and there is no `src/`; 130 recorded the plan catalog as a candidate on the same footing
+-- and did not add it, and 041 did not add one either. The something else is particular to this
+-- candidate and is worth stating: C2 requires an explicit column list with a sensitivity beside each
+-- column, and the column that makes this projection worth having is a NUMBER NOBODY CAN COMPUTE. An
+-- entry cannot enumerate a projection whose central value has no definition, so this candidate is
+-- blocked by §2, §3 and §4 before it is blocked by C1.
+--
+--
+-- ============================================================================================
+-- 9. WHAT IS NOT HERE, NAMED RATHER THAN LEFT FOR A REVIEWER TO FIND
+-- ============================================================================================
+--
+--   * NO `app.workspace_entitlements`. §5.1 names it; §1 and §5 above say why this batch does not
+--     create it. Owed to the decisions in §3 and §4, then to A6 Billing in a batch of its own.
+--   * NO FEATURE-KEY-TO-DIMENSION MAP, in any form — no table, no CHECK, no comment and no lint
+--     entry. Which feature is metered by which dimension is a product decision about what is
+--     charged for, and §2 shows that three of §5.3's five example keys have no dimension at all.
+--     Owed to Product, to `CTR-USG-001`'s owners (A0+A6) and to the batch that gets 130's
+--     `feature_key` vocabulary.
+--   * NO RECONCILIATION. No trigger on `app.usage_events`, no materialized view, no recompute
+--     function, no function that reads any table in either family. 061 refused the same objects for
+--     the same four reasons and named this batch; this batch inherits the refusal rather than
+--     discharging it.
+--   * NO FIXTURE. This batch adds no file to `FIXTURE_SQL_FILES`. Its isolation cases run against
+--     130's and 061's rows, which is what makes them a measurement of the merged tree rather than of
+--     a set-up written to produce an answer, and a fixture for a table that does not exist would be
+--     rows nothing can hold.
+--   * NO CI NEGATIVE-CONTROL ENTRY, because the step disables row level security on a TABLE and this
+--     batch creates none. 041 recorded the same and its reason is unchanged. What follows from it is
+--     recorded rather than hidden: the four cases this batch adds are held by the static suite, which
+--     pins them by id, and by their own positive-negative pairing — not by the negative control. Two
+--     of the four are grant-layer refusals, which `.github/workflows/ci.yml` itself says "would pass
+--     unchanged" with row level security disabled, and the other two name more than one table, which
+--     no single-table control can restore on its own.
+--   * NO ENTRY IN THE EXEMPTION REGISTER AND NO CHANGE TO ANY LINT RULE. This batch creates no
+--     object to exempt and reads no set a rule checks against; the one lint file it edits gains a
+--     note and no cell.
+--   * NOTHING ABOUT WORKSPACE LIFECYCLE VISIBILITY, unchanged from 020's, 030's, 040's, 130's and
+--     061's headers. Owed to an RFC plus batch 170.
+--
+--
+-- ============================================================================================
+-- 10. WHAT IS ASSERTED HERE, AND WHY IT IS ONE THING
+-- ============================================================================================
+--
+-- The apply-time block below asserts ONE property, in both directions, and the shortness is the
+-- discipline rather than a shortage. 030's rule and 021's scar: an applied migration must not assert
+-- a property an approved decision or an already-named batch is EXPECTED to change. Almost every fact
+-- this file records is about a state a later batch exists to change — that `feature_key` is not
+-- enumerated, that no relation carries both keys, that `app.workspace_entitlements` does not exist,
+-- that no reconciliation is written. Every one of those is pinned in the STATIC suite instead, where
+-- the batch that changes it edits a line a reviewer reads, and where a failure is a diff rather than
+-- a migration that can no longer be applied.
+--
+-- WHAT IS ASSERTED IS THE SEPARATION THE RESOLVER RESTS ON: an allowance table records an allowance
+-- and a consumption table records consumption, and neither stores the other's number. That is 061's
+-- refusal — "NO `limit`, `allowance` OR `entitlement` COLUMN ON `app.quota_buckets`. A bucket records
+-- CONSUMPTION and not ALLOWANCE" — and 130's — "It is what a PLAN grants; what a WORKSPACE
+-- effectively has is app.workspace_entitlements" — asserted against a live catalog rather than
+-- stated in two headers, which is where both of them left it. It is permanent in the sense the rule
+-- requires: a stored remainder on either side is the second source of truth both batches refused,
+-- and reversing that needs an RFC rather than a column.
+--
+-- IT IS A DENYLIST OF COLUMN NAMES AND SAYS SO. 060 and 131 both record that "a denylist of column
+-- names somebody thought of is defeated by the one they did not", and both answered it with an
+-- ALLOWLIST over their OWN tables. That answer is not available here, because these seven tables
+-- belong to 061 and 130 and pinning their column sets from this file would be this batch legislating
+-- their schemas. So the rule is a denylist, it is scoped to the seven tables the resolver would join,
+-- and its limitation is written down rather than left to be discovered.
+--
+-- `pg_roles` and never `pg_authid`, for batch 020's reason — except that this block reads no role at
+-- all, which is itself the point: it asks about columns, and columns are the only thing this batch
+-- has an opinion about.
+do $$
+declare
+  offending text;
+begin
+  -- THE CONSUMPTION SIDE MAY NOT STORE AN ALLOWANCE. §8.4's "Usage/quota summary" is a consumed
+  -- total; §5.1's `plan_entitlements` is "what a plan grants". A `limit`, `allowance`, `entitlement`,
+  -- `granted` or `remaining` column on a metering table would be the allowance copied into the place
+  -- it is compared against, which makes the comparison unfalsifiable — a wrong copy and a wrong plan
+  -- are then the same observation.
+  select string_agg(format('%s.%s', c.relname, a.attname), ', ') into offending
+    from pg_catalog.pg_attribute a
+    join pg_catalog.pg_class c on c.oid = a.attrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and c.relname in ('usage_events', 'usage_reservations', 'quota_buckets')
+     and a.attnum > 0 and not a.attisdropped
+     and a.attname ~ '(^|_)(limit|allowance|entitlement|granted|remaining|quota)($|_)';
+  if offending is not null then
+    raise exception 'a metering table carries an allowance column: %', offending
+      using hint = 'Batch 061 refused this in terms — "A bucket records CONSUMPTION and not '
+                   'ALLOWANCE" — because what a plan grants is app.plan_entitlements and a copy is a '
+                   'second source of truth for a value batch 132 exists to derive. This is a DENYLIST '
+                   'of names and is defeated by a name nobody thought of; the property it is about is '
+                   'that the resolver DERIVES its comparison and stores neither side of it.';
+  end if;
+
+  -- AND THE ALLOWANCE SIDE MAY NOT STORE A CONSUMPTION. The same rule from the other end, because
+  -- either half alone is satisfiable while the other is wrong: a plan revision that carried a
+  -- consumed total would make a GLOBAL, IMMUTABLE row hold a per-tenant number that changes, which
+  -- is a contradiction 130 spent its version tables avoiding.
+  select string_agg(format('%s.%s', c.relname, a.attname), ', ') into offending
+    from pg_catalog.pg_attribute a
+    join pg_catalog.pg_class c on c.oid = a.attrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and c.relname in ('billing_plans', 'billing_plan_versions', 'plan_entitlements',
+                       'billing_subscriptions')
+     and a.attnum > 0 and not a.attisdropped
+     and a.attname ~ '(^|_)(consumed|used|usage|spent|balance|remaining)($|_)';
+  if offending is not null then
+    raise exception 'a billing table carries a consumption column: %', offending
+      using hint = 'What a workspace has consumed is app.usage_events and its aggregate '
+                   'app.quota_buckets, whose watermark records what the aggregate covers. A consumed '
+                   'total on a global immutable plan row is a per-tenant number on a row that belongs '
+                   'to no tenant; on a subscription it is an aggregate with no watermark, which is '
+                   'the unfalsifiable shape batch 061 built computed_through to prevent.';
+  end if;
+
+  -- Both halves ran. The two queries above are the whole of what this batch asserts against a live
+  -- catalog, and a block that silently asked nothing would be indistinguishable from one that asked
+  -- and found nothing — the failure mode this repository has removed everywhere else.
+  if to_regclass('app.quota_buckets') is null or to_regclass('app.plan_entitlements') is null then
+    raise exception 'batch 132 asserts a separation between two tables and at least one of them is absent'
+      using hint = 'app.quota_buckets is batch 061''s and app.plan_entitlements is batch 130''s, and '
+                   '§6''s registry depends batch 132 on both. A rule about columns of a table that '
+                   'does not exist is a rule that passes by asking nothing, which is the defect the '
+                   'parallel-integration record calls a question about a table that has never existed.';
+  end if;
+end $$;

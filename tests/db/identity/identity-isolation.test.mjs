@@ -7690,3 +7690,362 @@ test('no protected suite declares the same test name twice', async () => {
       + 'in it — and a failure report that names a duplicated test does not say which one failed.');
   }
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 132 — what can be proven about a batch that creates nothing.
+// ---------------------------------------------------------------------------------------------
+//
+// Owner: A0 Integration + A6. Appended as ONE CONTIGUOUS BLOCK at the end of the file, which is
+// §4's rule as §6.1 narrows it: this batch APPENDS and rewrites no construct, so "main's version
+// plus this branch's own section" is a resolution that cannot lose another batch's test.
+//
+// Every rule below is about an ABSENCE, because the deliverable of batch 132 is a refusal. An
+// absence is not a control until something fails when it ends, so each one names the property that
+// is load-bearing rather than only the shape it forbids — which is §6.4's rule about an assertion
+// written over an empty set, arriving in a batch whose whole subject is empty sets.
+//
+// The set "the tables the migrations create" is IMPORTED from scripts/db/run.mjs and never rebuilt
+// here (§6.3): seven hand-built copies of it existed, six broke at a merge and the seventh passed by
+// asking about a table that has never existed.
+
+const ENTITLEMENT_MIGRATION = 'db/foundation/migrations/132_entitlement_resolution.sql';
+const METERING_MIGRATION_132 = 'db/foundation/migrations/061_metering.sql';
+// `SERVICE_POLICY_MAP_FILE` and `LINT_DIR` are NOT redeclared here. The first is already declared by
+// the batch 061 section with the same value, and a second `const` of that name is a SyntaxError that
+// takes the whole file out of the run — which is §6.1's finding, where two `test(` openings sharing
+// one body removed 46 tests and the suite reported the smaller number without saying why. Batch 061
+// left the same note for the same reason; this is that note being useful.
+const LINT_DIR_132 = 'db/foundation/lint';
+const ENTITLEMENT_CASE_IDS = [
+  'owner-a-reads-a-consumed-total-beside-its-subscription',
+  'owner-a-cannot-reach-the-allowance-that-would-bound-a-consumed-total',
+  'service-reads-no-effective-limit',
+  'owner-a-cannot-read-a-quota-bucket-watermark',
+];
+
+const entitlementMigration = await readFile(ENTITLEMENT_MIGRATION, 'utf8');
+const entitlementCode = entitlementMigration.replace(/--[^\n]*/g, '');
+// Comment prose with the `--` markers and the line wrapping removed, so a sentence this batch quotes
+// from another migration can be matched as a sentence rather than as whatever the wrap produced.
+const flatten132 = (text) => text.replace(/^[ \t]*--[ \t]?/gm, '').replace(/\s+/g, ' ');
+
+test("batch 132 creates nothing, and the set that claim is checked against is the lint rule's own", async () => {
+  const { tablesCreatedByMigrations } = await import('../../../scripts/db/run.mjs');
+
+  const mine = await tablesCreatedByMigrations([{ name: ENTITLEMENT_MIGRATION, sql: entitlementMigration }]);
+  assert.deepEqual([...mine], [],
+    'batch 132 creates no table. The load-bearing property is not that this list is short — it is that '
+    + 'the registry gives this batch a DELIVERABLE ("effective limit resolver") and §5 gives it no '
+    + 'inventory row, so a table here would fix a scope, a mutability and a retention class for a '
+    + 'family the data dictionary does not describe.');
+
+  for (const [kind, pattern] of [
+    ['view', /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i],
+    ['function', /create\s+(?:or\s+replace\s+)?function\b/i],
+    ['policy', /create\s+policy\b/i],
+    ['index', /create\s+(?:unique\s+)?index\b/i],
+    ['trigger', /create\s+trigger\b/i],
+    ['grant', /\bgrant\b/i],
+    ['revoke', /\brevoke\b/i],
+    ['alter table', /\balter\s+table\b/i],
+    ['drop', /\bdrop\b/i],
+  ]) {
+    assert.doesNotMatch(entitlementCode, pattern,
+      `batch 132 writes no ${kind}. Read from the STATEMENT text with comments stripped, because the `
+      + 'header argues about grants, policies and views at length and a rule over the raw file would be '
+      + 'a rule about how much this batch explains itself.');
+  }
+  assert.match(entitlementCode, /do \$\$/,
+    "and it is not an empty file: its whole content is one apply-time block, which is batch 004's shape");
+
+  const created = await tablesCreatedByMigrations();
+  assert.ok(!created.has('app.workspace_entitlements'),
+    'no migration creates app.workspace_entitlements. The load-bearing property is that §5.1 of the '
+    + 'billing contract NAMES this table and batch 130 declined to create it in favour of batch 132 — so '
+    + 'its absence is a claim by two batches rather than an oversight, and the day a migration creates '
+    + "it this rule is what makes somebody say which of §3 and §4 of 132's header they closed.");
+  for (const table of ['app.plan_entitlements', 'app.quota_buckets', 'app.billing_subscriptions']) {
+    assert.ok(created.has(table), `${table} is an input batch 132 reasons about and must exist for that `
+      + 'reasoning to be about anything');
+  }
+});
+
+test('the two keys an effective limit would join live in different migrations, so no relation carries both', async () => {
+  const withColumn = async (column) => {
+    const found = [];
+    for (const name of migrationNamesInOrder) {
+      const code = (await readFile(`${MIGRATIONS_DIR}/${name}`, 'utf8')).replace(/--[^\n]*/g, '');
+      if (new RegExp(`\\b${column}\\b`).test(code)) found.push(name);
+    }
+    return found;
+  };
+  assert.deepEqual(await withColumn('feature_key'), ['130_billing.sql'],
+    'feature_key is declared by batch 130 and by nothing else');
+  assert.deepEqual(await withColumn('dimension'), ['061_metering.sql'],
+    'dimension is declared by batch 061 and by nothing else. THE LOAD-BEARING PROPERTY IS THAT THE TWO '
+    + 'LISTS ARE DISJOINT: an effective limit compares an allowance keyed by feature_key against a '
+    + 'consumption keyed by dimension, and while no migration declares both columns there is no relation '
+    + 'for a join to be written over. The day one file declares both, somebody has decided which feature '
+    + 'is metered by which dimension, which is a product decision about what is charged for.');
+
+  // The vocabularies themselves, READ from the two batches rather than copied into this file. Batch
+  // 061 fixes the dimension list in a CHECK; batch 130 refuses to fix a feature-key list at all, so
+  // the keys come from the fixture, which is the only place any of them is written down.
+  const metering = (await readFile(METERING_MIGRATION_132, 'utf8')).replace(/--[^\n]*/g, '');
+  const check = metering.match(/constraint quota_buckets_dimension_known\s*check \(dimension in \(([^)]*)\)\)/);
+  assert.ok(check, 'batch 061 fixes the dimension vocabulary in a named CHECK');
+  const dimensions = [...check[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.equal(dimensions.length, 6, 'CTR-USG-001 enumerates six dimensions');
+
+  const billingFixture = (await readFile('tests/db/identity/fixtures/130-billing-fixture.sql', 'utf8'))
+    .replace(/--[^\n]*/g, '');
+  const entitlements = billingFixture.match(/insert into app\.plan_entitlements[\s\S]*?on conflict/);
+  assert.ok(entitlements, "batch 130's fixture loads plan entitlements");
+  const featureKeys = [...entitlements[0].matchAll(/'([a-z_]+)',\s*'(?:limit|value)'/g)].map((m) => m[1]);
+  assert.ok(featureKeys.length >= 3, 'and it loads more than one feature key');
+
+  assert.deepEqual(featureKeys.filter((k) => dimensions.includes(k)), [],
+    'no feature key the fixtures load is one of the six dimensions the fixtures meter. The load-bearing '
+    + 'property is that this is an EMPTY INTERSECTION and not a small one: the merged fixture set cannot '
+    + `demonstrate the join even once. Keys loaded: ${featureKeys.join(', ')}. Dimensions available: `
+    + `${dimensions.join(', ')}. That is not a fixture defect and must not be repaired by adding a row — `
+    + "each side loaded its own source document's own vocabulary, and the emptiness is the measurement "
+    + 'batch 132 exists to record.');
+});
+
+test('batch 132 needs all four questions batch 061 left open, and quotes them from batch 061 and from the contract', async () => {
+  const metering = flatten132(await readFile(METERING_MIGRATION_132, 'utf8'));
+  const mine = flatten132(entitlementMigration);
+
+  const OPEN_QUESTIONS = [
+    'which events fall in which bucket when an event arrives after its period closed',
+    'subtracts the estimate or is added beside it',
+    'whether an expired reservation is released by the sweep or by the next recompute',
+    'whether the bucket is authoritative between recomputes',
+  ];
+  for (const question of OPEN_QUESTIONS) {
+    const pattern = new RegExp(question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    assert.match(metering, pattern,
+      `batch 061 records "${question}" as undecided, and batch 132's header rests on that record`);
+    assert.match(mine, pattern,
+      `batch 132 must name "${question}" rather than answering it in a where clause. A resolver that `
+      + 'read the ledger or the bucket would decide this one whichever spelling it chose, and §15 forbids '
+      + 'an agent closing an open decision.');
+  }
+  assert.equal((mine.match(/\bNEEDED\b/g) ?? []).length, OPEN_QUESTIONS.length,
+    'and it says NEEDED against each of the four rather than against some of them. The load-bearing '
+    + 'property is that NONE is avoidable: a batch that found one avoidable would have a smaller blocker '
+    + 'to report, and reporting four when three are real is as wrong as reporting three when four are.');
+
+  // The freeze boundary is quoted from the contract's own manifest rather than from memory, so the
+  // quotation is checked against its source in the same run that relies on it.
+  const manifest = JSON.parse(await readFile('contract-catalog/shared-kernel/ctr-usg-001/manifest.json', 'utf8'));
+  assert.match(manifest.freeze_boundary, /reconciliation algorithm \(OB-008\)/i,
+    'CTR-USG-001 puts OB-008 outside itself, which is why question two has no owner inside the contract');
+  assert.match(mine, /reconciliation algorithm \(OB-008\)/i,
+    'and batch 132 cites that boundary rather than paraphrasing it');
+  assert.equal(manifest.status, 'Draft',
+    'and the contract is still a Draft, so its owners (A0+A6) can still move the thing this batch is blocked on');
+});
+
+test('batch 132 classifies no S cell and declines the service policy batch 130 expected of it', async () => {
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP_FILE, 'utf8'));
+  assert.deepEqual(map.cells.filter((c) => /132/.test(c.batch ?? '')).map((c) => c.cell), [],
+    'batch 132 adds no row to the service-policy map. The load-bearing property is WHY it adds none: '
+    + "RFC-2026-022 classifies §8 `S` CELLS, and §8's four matrices have no row for an entitlement "
+    + "resolution and none for a read of the plan catalog — batch 130's own header says so. A row here "
+    + 'would be a claim about the access matrix made in a lint file.');
+  assert.match(map._what_batch_132_classified ?? '', /plan_entitlements/,
+    'and the file says so in its own notes, naming the table whose service policy is declined, so the '
+    + 'absence is a decision a later reader can disagree with rather than one they have to infer');
+
+  const owed = cases.find((c) => c.id === 'service-sees-zero-plan-entitlements');
+  assert.ok(owed, "batch 130's case that names the expectation must still exist");
+  assert.match(owed.why, /the policy that lets it is owed to that batch/,
+    "batch 130's case says the service policy on app.plan_entitlements is owed to batch 132. It is left "
+    + 'exactly as written: migration invariant 1 forbids rewriting a merged migration, this suite pins '
+    + "that sentence, and editing prose out from under another batch's record is how a merge loses a "
+    + 'control. What batch 132 does instead is decline it in its own file, with the reason.');
+  assert.match(flatten132(entitlementMigration), /DECLINES A SERVICE POLICY BATCH 130 EXPECTED IT TO WRITE/,
+    'and the declination is in the migration a reviewer reads, not only in a test');
+  assert.doesNotMatch(migrationText, /create\s+policy[^;]*on\s+app\.plan_entitlements/i,
+    'no migration in the set writes a policy on app.plan_entitlements. app_worker keeps its SELECT grant '
+    + "and no policy there, which is what keeps that table's negative control resting on a refusal row "
+    + 'level security produced rather than on a grant nobody made.');
+});
+
+test('the effective limit cases are one statement with one join added, and the four are pinned by id', async () => {
+  const { BUCKET_WATERMARK_OF_WORKSPACE, EFFECTIVE_LIMIT_QUESTION, ENTITLEMENT_HALF_OMITTED } =
+    await import('./isolation-cases.mjs');
+
+  for (const sql of [ENTITLEMENT_HALF_OMITTED, EFFECTIVE_LIMIT_QUESTION]) {
+    assert.match(sql, /from app\.billing_subscriptions s join app\.quota_buckets q on q\.workspace_id = s\.workspace_id/,
+      'both statements reach the consumption through the tenant scope both families carry, identically');
+  }
+  assert.doesNotMatch(ENTITLEMENT_HALF_OMITTED, /plan_entitlements/,
+    'the positive omits the allowance entirely, so what it proves is that the OTHER two tables are readable');
+  assert.match(EFFECTIVE_LIMIT_QUESTION, /join app\.plan_entitlements e on e\.billing_plan_version_id = s\.billing_plan_version_id/,
+    'and the question adds exactly one join, over the foreign key batch 130 already built');
+  assert.doesNotMatch(EFFECTIVE_LIMIT_QUESTION, /e\.feature_key\s*=\s*q\.dimension/,
+    'and it does NOT relate feature_key to dimension. The load-bearing property is that no such term '
+    + 'could be written: the two vocabularies live in different migrations with nothing mapping them, so a '
+    + 'join written here would be this suite inventing the product decision batch 132 refuses to make.');
+  assert.match(BUCKET_WATERMARK_OF_WORKSPACE, /^select computed_through from app\.quota_buckets/,
+    'the watermark is read ALONE, so its refusal is about the column rather than about the row');
+
+  const found = ENTITLEMENT_CASE_IDS.map((wanted) => {
+    const c = cases.find((k) => k.id === wanted);
+    assert.ok(c, `${wanted} is missing. These four are held by this suite and by nothing else: batch 132 `
+      + 'adds no negative-control entry, because it adds no table.');
+    return c;
+  });
+  const [positive, refused, serviceCase, watermark] = found;
+  assert.equal(positive.expect, 'rows',
+    'without the positive, the three refusals beside it are satisfied by a database where the owner reads nothing');
+  assert.equal(refused.expect, 'denied');
+  assert.equal(refused.deniedBy, 'grant');
+  assert.deepEqual(refused.deniedOn, { kind: 'table', name: 'plan_entitlements' },
+    'and the refusal names the ONE table of the three `authenticated` holds nothing on — which is the '
+    + 'measurement, because the other two are readable in the case above');
+  assert.equal(serviceCase.expect, 'no-rows');
+  assert.equal(serviceCase.deniedBy, undefined,
+    'app_worker holds every grant the statement needs, so there is no layer to attribute — the empty '
+    + 'result is row level security on all three tables at once');
+  assert.equal(watermark.expect, 'denied');
+  assert.equal(watermark.deniedBy, 'grant');
+  assert.deepEqual(watermark.deniedOn, { kind: 'table', name: 'quota_buckets' });
+  for (const c of found) {
+    assert.deepEqual(c.params, [id('workspace_a')],
+      `${c.id}: every one of the four asks about workspace A, whose subscription, entitlements and quota `
+      + 'buckets the merged fixtures all load — so a refusal is about privileges and never about an absent row');
+  }
+});
+
+test('batch 132 adds no negative-control entry, and its cases say what holds them instead', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const controls = [...workflow.matchAll(/^\s*control\s+app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)];
+  assert.ok(controls.length >= 20, 'the control runs per table family');
+  assert.deepEqual(controls.filter((m) => m[3] === '132').map((m) => m[1]), [],
+    'no control entry is attributed to batch 132. The load-bearing property is that the step disables row '
+    + 'level security on a TABLE and batch 132 creates none, so an entry here would name a table this batch '
+    + "does not own — which is the opposite defect from the one the step's blocker describes and is not an "
+    + 'improvement on it. Batch 041 recorded the same about its own increment.');
+
+  // 040's rule as 140 corrected it, restated here rather than shared, because what this test needs it
+  // for is the reverse question: which of these cases a control COULD have credited.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+
+  for (const wanted of ENTITLEMENT_CASE_IDS) {
+    const c = cases.find((k) => k.id === wanted);
+    const matching = controls.filter((m) => new RegExp(`^${m[2]}`).test(c.id)).map((m) => m[1]);
+    if (matching.length === 0) continue;
+    assert.ok(!restoredByDisablingRls(c),
+      `${c.id} matches the control pattern for app.${matching.join(', app.')} AND would be restored by `
+      + 'disabling row level security there, so that control could be credited to a case batch 132 added '
+      + "rather than to the batch that owns the table. It must be a grant-layer refusal, which ci.yml says "
+      + 'passes unchanged, or it must not match the pattern.');
+  }
+  const serviceCase = cases.find((c) => c.id === 'service-reads-no-effective-limit');
+  assert.ok((serviceCase.sql.match(/\bapp\.\w+/g) ?? []).length > 1,
+    'and the one case of the four that a control could otherwise have restored names more than one table, '
+    + 'so no entry that opens ONE of them restores it. That is stated rather than hidden: this case is held '
+    + 'by this suite and by the grant topology it asserts, not by the negative control.');
+});
+
+test('the effective-limit projection is named as an allowlist candidate and not added, and the registry RFC-2026-021 asks for is not in the tree', async () => {
+  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?view\b/i,
+    'no migration creates a view. RFC-2026-021 §7/3 keeps the client read allowlist empty and the batch '
+    + 'that would create a first entry is NOT YET ASSIGNED; batch 132 does not become it by writing a '
+    + 'projection for a caller that does not exist.');
+
+  const lintFiles = await readdir(LINT_DIR_132);
+  assert.ok(!lintFiles.includes('read-allowlist.json'),
+    'db/foundation/lint/read-allowlist.json is not in this tree. THIS ASSERTION IS A FINDING RATHER THAN A '
+    + 'RULE, and it is written down so that it stops being one deliberately: RFC-2026-021 §8.1 requires that '
+    + 'file to exist "as an empty array on approval" and to be the only place the question "is this on the '
+    + 'allowlist" is answered, and §8.2 makes the lint read it in BOTH directions. Neither exists. The gap '
+    + "is RFC-2026-021 §8's and A0's, it is in this package's open blockers, and batch 132 records it "
+    + 'because it is one of the reasons a view was not available to this batch. When the file lands, this '
+    + 'assertion is the line the batch that lands it edits.');
+
+  const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
+  assert.deepEqual(snapshot.catalog.exposed_views, [],
+    'and the catalog measures the same thing from the other end: no view exists in app on the instance');
+
+  const mine = flatten132(entitlementMigration);
+  assert.match(mine, /THE ALLOWLIST CANDIDATE, NAMED AND NOT ADDED/,
+    'batch 132 names the candidate. §9.1 gives FIN-3 the client projection "owner/admin summary" and both '
+    + 'halves of that summary have a `Y` cell — §8.3 for the subscription, §8.4 for the quota summary — '
+    + 'which is more than the industry catalog or the plan catalog had, and is still not C1.');
+  assert.match(mine, /NUMBER NOBODY CAN COMPUTE/,
+    'and it says the thing that blocks the candidate BEFORE C1 does: C2 wants an explicit column list, and '
+    + 'the column such a projection exists to carry is a number this batch has just finished proving nobody '
+    + 'can compute');
+});
+
+test("batch 132's one apply-time assertion holds the allowance apart from the consumption, in both directions", () => {
+  const block = entitlementCode.match(/do \$\$[\s\S]*\$\$;/);
+  assert.ok(block, 'the migration carries an apply-time block');
+  const body = block[0];
+
+  for (const table of ['usage_events', 'usage_reservations', 'quota_buckets',
+    'billing_plans', 'billing_plan_versions', 'plan_entitlements', 'billing_subscriptions']) {
+    assert.match(body, new RegExp(`'${table}'`),
+      `${table} is one of the seven tables an effective limit would join, and the separation is asserted `
+      + 'over all seven or over an arbitrary subset');
+  }
+  assert.equal((body.match(/raise exception/g) ?? []).length, 3,
+    'two directions and a vacuity guard. The guard is the one that matters most: both sweeps return null '
+    + 'against a database with neither table, so a block without it would pass by asking nothing — the '
+    + 'defect the parallel-integration record calls a question about a table that has never existed.');
+
+  const allowanceWords = body.match(/\(\^\|_\)\(limit\|[^)]*\)\(\$\|_\)/);
+  const consumptionWords = body.match(/\(\^\|_\)\(consumed\|[^)]*\)\(\$\|_\)/);
+  assert.ok(allowanceWords && consumptionWords,
+    'the two sweeps use two different word lists, and this test needs both to compare them');
+  const allowance = new RegExp(allowanceWords[0]);
+  const consumption = new RegExp(consumptionWords[0]);
+
+  // THE RULE BITES. A denylist that matched nothing anybody would write is a denylist that passes.
+  for (const name of ['remaining_amount', 'quota_limit', 'entitlement_value', 'granted_amount']) {
+    assert.match(name, allowance, `${name} on a metering table is the allowance copied into the place it `
+      + 'is compared against, and the rule must refuse it');
+  }
+  for (const name of ['consumed_amount', 'usage_total', 'balance_remaining']) {
+    assert.match(name, consumption, `${name} on a billing table is a per-tenant number on rows that are `
+      + 'global and immutable, and the rule must refuse it');
+  }
+
+  // AND IT DOES NOT BITE THE COLUMNS THAT LEGITIMATELY EXIST, which is why there are two lists and not
+  // one. `limit_value` is batch 130's own column and matches the ALLOWANCE list exactly as intended —
+  // so a single list applied to all seven tables would have failed on a column the schema requires.
+  for (const name of ['reserved_amount', 'reserved_at', 'consumed_amount', 'consumed_usage_id',
+    'computed_through', 'released_at']) {
+    assert.doesNotMatch(name, allowance, `${name} is a column batch 061 declares and the rule must not flag it`);
+  }
+  for (const name of ['limit_value', 'text_value', 'entitlement_kind', 'unit_amount', 'grace_expires_at']) {
+    assert.doesNotMatch(name, consumption, `${name} is a column batch 130 declares and the rule must not flag it`);
+  }
+  assert.match('limit_value', allowance,
+    "and this is why the two lists differ rather than being one list over seven tables: batch 130's "
+    + 'limit_value is an allowance ON THE ALLOWANCE SIDE, where it belongs. A combined rule would have '
+    + 'refused the column §5.1 requires.');
+});
+
+test('batch 132 writes no ordinal claim about the schema it is describing', async () => {
+  const ORDINAL = /\bthe (first|only|second|third|fourth|fifth|sixth|seventh) (batch|table|case|migration|policy|family|column|entry|grant|view|function|fixture)\b/i;
+  const surfaces = [
+    [ENTITLEMENT_MIGRATION, entitlementMigration],
+    ['db/foundation/lint/service-policy-map.json',
+      JSON.parse(await readFile(SERVICE_POLICY_MAP_FILE, 'utf8'))._what_batch_132_classified],
+  ];
+  for (const [where, text] of surfaces) {
+    const hit = String(text).match(ORDINAL);
+    assert.equal(hit, null,
+      `${where} contains "${hit?.[0]}". An ordinal is a claim about the WHOLE schema and a batch cannot `
+      + 'check one: seven such sentences went false in a single merge round and one of them was pinned by '
+      + 'an assert.match, so the test kept the false sentence alive. Say what this batch does; do not rank it.');
+  }
+});

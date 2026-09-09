@@ -316,7 +316,16 @@ export const SMOKE_COVERAGE = {
                            + 'both owners are refused identically on all three tables, and the two '
                            + 'invoices are deliberately DIFFERENT rows — A\'s is settled and B\'s is not, '
                            + 'and B\'s only payment failed — so a boundary that failed would leak a fact '
-                           + 'rather than a duplicate.' },
+                           + 'rather than a duplicate.\n\n'
+                           + 'BATCH 132 ADDS NO CROSS-TENANT CASE, AND THAT IS A STATEMENT ABOUT WHAT '
+                           + 'ITS CASES ARE FOR RATHER THAN A GAP. It creates no table, so it has no '
+                           + 'tenant boundary of its own to attack, and its four cases are about '
+                           + 'whether the effective limit question can be ASSEMBLED at all — a claim '
+                           + 'about privileges over two families, which the tenant boundary is not the '
+                           + 'control for. A case holding workspace_b\'s id here would have been '
+                           + 'refused by batch 130\'s policy and batch 061\'s, both already asserted '
+                           + 'above, and would have credited this batch with a boundary it did not '
+                           + 'build.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -983,7 +992,23 @@ export const SMOKE_COVERAGE = {
                            + 'not own it — an assertion in identity-isolation.test.mjs pins that sentence '
                            + 'and editing prose out from under another batch\'s test is how a merge loses '
                            + 'a control — and it is recorded in this package\'s open blockers for the '
-                           + 'owner of 140\'s section to dispose of.' },
+                           + 'owner of 140\'s section to dispose of.\n\n'
+                           + 'BATCH 132 LEAVES THIS ROW WHERE IT IS AND ADDS THE ONE ANSWER IT CAN. '
+                           + 'The row waits on a positive that needs a service identity, and batch 132 '
+                           + 'measured that the identity still does not exist: RFC-2026-022 §5/8 and '
+                           + 'its M9 record that the only member of app_worker is postgres, which '
+                           + 'bypasses row level security, and RFC-2026-019 §4/3 leaves the connection '
+                           + 'method open to DATA-DEC-03. What batch 132 adds to the NEGATIVE half is '
+                           + '`service-reads-no-effective-limit`: the one identity holding every grant '
+                           + 'a three-table statement needs — SELECT on app.billing_subscriptions and '
+                           + 'app.plan_entitlements from 130, a column-scoped SELECT on '
+                           + 'app.quota_buckets from 061 — and a policy on none of them, so the empty '
+                           + 'result is row level security across two families at once rather than one '
+                           + 'table\'s refusal. It is deliberately NOT a case a service policy would '
+                           + 'flip. RFC-2026-022 classifies §8 `S` cells; §8 has no row for a '
+                           + 'plan-catalog read, so batch 132 classifies nothing in '
+                           + 'db/foundation/lint/service-policy-map.json and declines the policy batch '
+                           + '130\'s own case `service-sees-zero-plan-entitlements` says is owed to it.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1080,7 +1105,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'base-table grants must be CLOSED, and a SELECT here would be another entry on it. '
    + '`owner-a-cannot-read-a-billing-invoice` is the case that will have to flip when the RFC opens '
    + 'it, and the column list such an entry would need is enumerated in 131_billing_projection.sql '
-   + 'so that RFC starts from a reading rather than from a blank page.',
+   + 'so that RFC starts from a reading rather than from a blank page.\n\n'
+   + 'BATCH 132 PAYS CASE 1 IN THE ONLY FORM ITS SUBJECT ADMITS, AND THE FORM IS WORTH NAMING. '
+   + '`owner-a-reads-a-consumed-total-beside-its-subscription` is "same Workspace + allowed role → '
+   + 'pass" for a statement rather than for a table: §8.3 marks "Billing/subscription SELECT" `Y` for '
+   + 'the owner and §8.4 marks "Usage/quota summary SELECT" `Y` for the owner, so one identity holds '
+   + 'both cells and the two families join on the tenant scope both carry. It is the positive the '
+   + 'three refusals beside it rest on — without it, a database where the owner could read neither '
+   + 'table would satisfy every one of them — and it is the whole of what a client can assemble '
+   + 'toward an effective limit, because the third join reaches app.plan_entitlements and is refused '
+   + 'at the privilege layer.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -1725,7 +1759,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'change"), §6 fixes their content, and the store exists as of batch 140. What does not exist is '
    + 'the WRITER and the table that would call it: `billing_operations` is §5.1\'s and no registry '
    + 'row gives it to 130 or to 131, so this batch creates none and records the gap rather than '
-   + 'reserving a table.',
+   + 'reserving a table.\n\n'
+   + 'BATCH 132 IS THE BATCH §6\'s REGISTRY NAMES FOR THE COMMAND THIS CASE IS ABOUT, AND IT WRITES '
+   + 'NONE. §4 of the billing contract gives "effective access/limits per workspace" to an '
+   + '`entitlement-service` module; RFC-2026-012 §4 names SECURITY DEFINER command functions as the '
+   + 'mechanism and RFC-2026-021 §10 records that none exists; and the identity that would invoke one '
+   + 'does not exist either (RFC-2026-022 §5/8). So case 10 stays not applicable for a third billing '
+   + 'batch, and what batch 132 adds is the reason it will stay that way until three separate things '
+   + 'land: a decision on the four reconciliation questions batch 061 recorded, a mapping between '
+   + 'app.plan_entitlements.feature_key and app.quota_buckets.dimension, and a service identity. Each '
+   + 'is in this package\'s open blockers with the owner named.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -9682,6 +9725,87 @@ export function buildCases(id) {
          + 'nothing. Together with the two amend cases, the whole of case 9 is live on this table from '
          + 'both a client identity and the service.',
     },
+
+    // -- BATCH 132 — the effective limit question, asked in one statement so the refusal has an ------
+    // -- object rather than an argument. -----------------------------------------------------------
+    //
+    // Four cases, and none of them is about a table batch 132 creates, because it creates none. What
+    // they measure is the SHAPE of the question the registry gives this batch: an allowance reached
+    // through a subscription, minus a consumption reached through a quota bucket. Three of the four
+    // run the same statement with one join added or removed, so the difference between them is the
+    // difference between "assemblable" and "refused" and nothing else.
+    //
+    // WHAT HOLDS THEM, STATED BECAUSE IT IS NOT THE NEGATIVE CONTROL. Batch 132 adds no control entry
+    // — the step disables row level security on a TABLE and this batch creates none — so these four
+    // rest on the static suite, which pins each of them by id, and on the positive that sits beside
+    // the negatives. Two are grant-layer refusals, which ci.yml's own comment says "would pass
+    // unchanged" with row level security disabled; the other two name more than one table, and a
+    // control that opens one table at a time cannot restore a statement that needs three.
+    {
+      id: 'owner-a-reads-a-consumed-total-beside-its-subscription',
+      covers: ['§8.3/billing-subscription-select', '§8.4/usage-quota-summary-select', '§9.1/FIN-3'],
+      as: ownerA,
+      sql: ENTITLEMENT_HALF_OMITTED,
+      params: ['__A__'],
+      expect: 'rows',
+      why: 'THE POSITIVE THE THREE NEGATIVES REST ON, and the half of the effective limit question '
+         + 'that IS assemblable today. §8.3 marks "Billing/subscription SELECT" `Y` for the owner and '
+         + '§8.4 marks "Usage/quota summary SELECT" `Y` for the owner, so one identity holds both '
+         + 'cells, and this statement joins the two families on workspace_id and returns rows. '
+         + 'Without it, the next case would be satisfied by a database where the owner could read '
+         + 'neither table and the refusal would say nothing about WHICH half is missing.',
+    },
+    {
+      id: 'owner-a-cannot-reach-the-allowance-that-would-bound-a-consumed-total',
+      covers: ['RFC-2026-012§2', 'RFC-2026-012§3', 'RFC-2026-021§4/C1', '§9.1/FIN-3'],
+      as: ownerA,
+      sql: EFFECTIVE_LIMIT_QUESTION,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'plan_entitlements' },
+      why: 'THE SAME STATEMENT WITH ONE JOIN ADDED, and the added join is where the answer stops '
+         + 'being assemblable. `authenticated` holds a column-scoped SELECT on app.billing_subscriptions '
+         + '(130) and on app.quota_buckets (061) and NOTHING on app.plan_entitlements, so the refusal '
+         + 'is at the privilege layer and names that table — which is the layer distinction '
+         + 'RFC-2026-021 M4 measured live on a different column. It flips the day an allowlist entry '
+         + 'admits an effective-limit projection, which batch 132 names as a candidate and does not '
+         + 'add: RFC-2026-021 §7/3 keeps the allowlist empty, C1 fails because there is no client '
+         + 'caller, and the number such a projection exists to carry has no definition yet.',
+    },
+    {
+      id: 'service-reads-no-effective-limit',
+      covers: ['§12.6/8', 'RFC-2026-017§7', 'RFC-2026-022§5'],
+      as: service,
+      sql: EFFECTIVE_LIMIT_QUESTION,
+      params: ['__A__'],
+      expect: 'no-rows',
+      why: 'THE ONE IDENTITY THAT HOLDS EVERY GRANT THE STATEMENT NEEDS, and it still reads nothing. '
+         + 'app_worker holds SELECT on app.billing_subscriptions and app.plan_entitlements (130) and a '
+         + 'column-scoped SELECT on app.quota_buckets (061), and a policy on NONE of the three, so the '
+         + 'empty result is row level security rather than a forgotten grant — 010\'s shape, asked of '
+         + 'a statement that spans two families. It is deliberately not the case a service policy '
+         + 'would flip: RFC-2026-022 classifies §8 `S` cells, §8 has no row for a plan-catalog read, '
+         + 'and batch 132 therefore declines the policy batch 130\'s own case says is owed to it.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-quota-bucket-watermark',
+      covers: ['§9.1/INTERNAL-3', '§9.1/FIN-3', 'RFC-2026-021§4/C3'],
+      as: ownerA,
+      sql: BUCKET_WATERMARK_OF_WORKSPACE,
+      params: ['__A__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quota_buckets' },
+      why: 'The one column of app.quota_buckets `authenticated` is NOT granted, and batch 061 says '
+         + 'whose it is: computed_through "describes the resolver\'s own progress, which is the shape '
+         + '§9.1 gives INTERNAL-3 rather than the summary §9.1 gives FIN-3, and batch 132 owns it". '
+         + 'The owner reads every other column of the same row in the positive above, so this is the '
+         + 'COLUMN boundary of a column-scoped grant and not a row one — RFC-2026-021 M3\'s '
+         + 'measurement, which is why a column-scoped grant is a drift control at all. It is asserted '
+         + 'here rather than left implicit because a resolver that later projected this column to a '
+         + 'client would be telling a tenant how far behind a job is.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -9849,3 +9973,50 @@ export function meteringOpenReservation(workspace, jobId) {
     params: [workspace, jobId],
   };
 }
+
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 132 — the three statements the effective-limit cases run.
+// ---------------------------------------------------------------------------------------------
+//
+// Module-level constants declared after buildCases, which is batch 061's placement and its reason:
+// a `const` here is in scope inside buildCases at CALL time, so the whole of batch 132's
+// contribution to this file is its case block and this one, both appended, and no edit anywhere
+// else in it.
+//
+// THEY ARE WRITTEN OUT IN FULL RATHER THAN BUILT, and that is the opposite choice from 061's
+// builders for a reason particular to what these cases assert. The first two statements differ by
+// exactly one join, and the whole claim is that the added join is where the effective limit stops
+// being assemblable — so a reader has to be able to see the two texts side by side. A builder taking
+// a flag would hide the difference inside a branch.
+
+// The half that works: a subscription and a consumed total, joined on the tenant scope both
+// families carry. No allowance term at all.
+export const ENTITLEMENT_HALF_OMITTED =
+  'select s.local_access_state, q.consumed_amount '
+  + 'from app.billing_subscriptions s '
+  + 'join app.quota_buckets q on q.workspace_id = s.workspace_id '
+  + 'where s.workspace_id = $1::uuid';
+
+// The whole question. The third join reaches what the PLAN grants, through the revision the
+// subscription pins — the one path between the two families that batch 130's foreign keys already
+// make walkable.
+//
+// AND THE `on` CLAUSE IS WHERE THE FINDING IS. It joins a plan revision to its entitlements and
+// stops there, because there is no term that could relate `e.feature_key` to `q.dimension`: one is
+// CTR-USG-001's closed six-value vocabulary and the other is an open form batch 130 deliberately did
+// not enumerate, no relation in this schema carries both columns, and no document maps one onto the
+// other. So this statement is a cartesian product of allowances and consumptions rather than a
+// resolver, and that is exactly what makes it the right statement for these cases: it is the most a
+// caller could assemble, and it is refused before the missing join could matter.
+export const EFFECTIVE_LIMIT_QUESTION =
+  'select s.local_access_state, q.consumed_amount, e.feature_key, e.limit_value '
+  + 'from app.billing_subscriptions s '
+  + 'join app.quota_buckets q on q.workspace_id = s.workspace_id '
+  + 'join app.plan_entitlements e on e.billing_plan_version_id = s.billing_plan_version_id '
+  + 'where s.workspace_id = $1::uuid';
+
+// The watermark, alone, so the refusal is about the COLUMN. Reading it beside a granted column
+// would be a statement two different absences could explain.
+export const BUCKET_WATERMARK_OF_WORKSPACE =
+  'select computed_through from app.quota_buckets where workspace_id = $1::uuid';
