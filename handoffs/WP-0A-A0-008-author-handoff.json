@@ -4,19 +4,13 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "8df25e82a417598b736279d17db454c713df19ae",
-  "head_revision_or_patch_checksum": "e95957c97798254b205d9eef45fc52a832bfffd1",
+  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
+  "head_revision_or_patch_checksum": "PENDING",
   "task_ids": [],
-  "files_added": [
-    "architecture/decisions/RFC-2026-017-service-path-identity.md",
+  "files_added": [],
+  "files_modified": [
     "handoffs/WP-0A-A0-008-author-handoff.json",
     "work-packages/WP-0A-A0-008.json"
-  ],
-  "files_modified": [
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs"
   ],
   "files_deleted": [],
   "decisions_consumed": [
@@ -25,71 +19,63 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "RFC-2026-016 is Approved and left the service path open, explicitly forbidding any document from claiming forced RLS constrains it until answered.",
-    "A decision record in Proposed state creates no role and applies no migration."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It removes one spent blocker and rewrites two whose STATED REASON went false while their conclusion stayed true. That distinction is the whole of this increment: the conclusion \"tenant isolation is not proven\" still holds, and every reason this manifest gave for it has been superseded.",
+    "SPENT, THEREFORE REMOVED: the blocker saying RFC-2026-017 was Proposed and that no role is created and no policy written until it was disposed. That record was disposed on 2026-09-05 and db/foundation/migrations/001_service_roles.sql creates app_worker, app_command and app_maintenance on main. The work the blocker forbade has shipped.",
+    "REWRITTEN, NOT REMOVED -- \"No tenant table exists\". False from batch 010 onward: 45 tables are created across 010_identity.sql to 140_audit.sql and make db-rls-smoke runs 554 isolation cases against them. What survives is narrower and harder to state: RFC-2026-017 §7's negative -- the service identity refused an operation the §8 matrix marks N for service, with an error rather than an empty result -- is still undischarged, and RFC-2026-022 §5/8 gives the measurement that explains why. The only member of app_worker is postgres, which holds rolbypassrls, so a refusal observed today attributes to an absent grant rather than to a policy.",
+    "REWRITTEN, NOT REMOVED -- \"the negative assertion does not exist\". It does: 116 cases in tests/db/identity/isolation-cases.mjs have an id beginning `service`, and batch 070's header calls its four `service-cannot-*` INSERT cases the policy-layer denials that flip when a service identity exists. So the assertion is written and its SUBJECT is missing. The debt also changed hands: it was recorded as owed by whoever writes the first tenant table, and it is owed by the RFC that creates a worker.",
+    "amends_without_owning IS EMPTIED. It carried four paths from this package's earlier increment and this branch touches none of them; verify-branch-scope refuses a declaration explaining nothing the branch changed. All four are named in the manifest's new rationale.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. An Author may move work only as far as in_review, and moving it would be a claim about completeness rather than the correction of a false sentence."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "Each rewritten reason was checked against the tree rather than against memory",
+      "result": "met",
+      "evidence": "45 create-table statements across db/foundation/migrations/*.sql; 554 cases reported by make db-rls-smoke; 116 case ids beginning `service` in tests/db/identity/isolation-cases.mjs; RFC-2026-022 §5/8 carries the app_worker measurement; 001_service_roles.sql creates the three roles."
     },
     {
-      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "A conclusion that is still true is not dropped because its reason went false",
+      "result": "met",
+      "evidence": "Two blockers rewritten and kept. Tenant isolation is still unproven and both blockers still say so; only the reason changed, and the new reason is a measurement in a disposed record rather than a claim in this manifest."
     },
     {
-      "criterion": "No contract status changes anywhere in the repository.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "CTR-NTF-001 is not assessed.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "No decision, code, migration, contract or status changes",
+      "result": "met",
+      "evidence": "Two files, both owned by this package: its own manifest and this handoff."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-008",
+      "exit_code": 0,
+      "result": "both changed paths are owned by this package and no amendment is declared"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "security_privacy_cost_impact": "None to the code. The privacy-relevant point is what the manifest now SAYS: it no longer implies that no tenant table exists, which a reader could take as meaning there is nothing yet to isolate. There are 45 tables and the isolation of the service path is still unproven, and those two facts are now in the same sentence.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "Tenant isolation is NOT proven by this package. No tenant table exists, so no cross-tenant assertion has ever run.",
-    "The data package smoke set would not detect a regression in this decision: assertions 1 to 7 run as client roles, which FORCE never affected, and assertion 8 asserts only that the server helper succeeds -- indistinguishable from succeeding via BYPASSRLS.",
-    "The roles this RFC names do not exist. Creating them is a migration and belongs to the batch A0 owns, not to a decision record."
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English.",
+    "THE TWO REWRITTEN BLOCKERS NOW CITE COUNTS -- 45 tables, 554 cases, 116 service cases -- AND A COUNT IN PROSE IS THE EXACT THING THIS REPOSITORY HAS WATCHED GO STALE five times. They are written as facts about a measurement taken on a named revision rather than as standing properties, which is the best a sentence can do; a batch that adds a table makes them understatements rather than falsehoods, which is the safe direction."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-017 is Proposed. No role is created and no policy written until it is disposed, and A1 must countersign the topology because DATA-DEC-03 is owned A0+A1."
+    "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-017 is a Proposed decision record: no role created, no policy written, no migration applied, and nothing on the provisioned instance touched.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to four blockers, one forbidding work that is on main and two giving reasons that stopped being true, and to four amendment paths this branch does not touch.",
   "recommended_next_work_packages": [
-    "Product Owner disposition of RFC-2026-017.",
-    "A1 countersignature on the role topology.",
-    "An A0-owned migration creating app_worker, app_command and app_maintenance.",
-    "Batch 010 by A1 Identity, writing tables and their policies together."
+    "WP-0A-A0-009: blockers 0, 1 and 2 are spent -- the record was disposed 2026-09-06, RFC-2026-018's status line now records the supersession, and the three lint rules RFC-2026-019 §5 names are written at scripts/db/run.mjs:307, :632 and :1003. Blocker 4 needs rewriting for the same reason as blockers 1 and 2 here: its conclusion is stale, not just its wording.",
+    "The RFC that creates a worker identity that is not postgres. Until it exists, RFC-2026-017 §7's negative cannot be discharged and 116 service cases are asserting against an absent grant rather than a policy.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
   ],
   "reviewer_instructions": [
-    "Re-run the two role queries against the instance and confirm the table in section 2.",
-    "Confirm the RFC nowhere claims tenant isolation is proven.",
-    "Confirm section 7 names the missing negative assertion rather than implying the smoke set covers it."
+    "Press hardest on the two rewrites, because a rewrite can hide a downgrade. Check that each new sentence still refuses what the old one refused: tenant isolation is not proven, and the service negative is not discharged.",
+    "Verify the counts yourself -- 45 tables, 554 cases, 116 service ids -- and check that the new wording would be an understatement rather than a falsehood after another batch lands.",
+    "Read RFC-2026-022 §5/8 and confirm it carries the app_worker measurement the new blockers rest on.",
+    "Confirm nothing outside this package's two owned files changed."
   ],
   "superseded_by": null
 }

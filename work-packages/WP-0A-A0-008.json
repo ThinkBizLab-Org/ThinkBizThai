@@ -98,13 +98,8 @@
       "migrations/**"
     ],
     "amends_without_owning": {
-      "paths": [
-        "scripts/verify-test-coverage-floor.mjs",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/repository-json.test.mjs"
-      ],
-      "rationale": "The four registries that must move when a branch or a decision record is added, and which exist so that adding one is a deliberate act in a diff. RFC-2026-017 joins the protected-file list and the pinned decision-record set, and is digested; this branch joins the branch-to-package mapping. No floor is lowered and no existing row is changed.",
+      "paths": [],
+      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE. It removes one spent blocker and rewrites two whose stated reason went false, touching only the manifest and the handoff this package owns. The list is emptied rather than left carrying the earlier increment's paths (scripts/verify-test-coverage-floor.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json, test-kits/repository-json.test.mjs), because verify-branch-scope reads the declaration in both directions and a path declared here that this branch does not touch is a standing permission over another package's file granted for work that never happened. Those paths remain in git history.",
       "recorded_on": [
         "work-packages/WP-0A-A0-002.json"
       ]
@@ -154,10 +149,9 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-017 is a Proposed decision record: no role is created, no policy written, no migration applied, and nothing on the provisioned instance is touched by it.",
   "open_blockers": [
-    "RFC-2026-017 is Proposed. No role is created and no policy is written until it is disposed.",
-    "Tenant isolation is NOT proven. No tenant table exists, so DB00-A03 and the smoke assertions have never run, and the data package's own smoke set would not detect a regression in this decision: every assertion runs as a client role and one asserts only that the server helper succeeds.",
-    "The negative assertion that WOULD detect it -- the service identity denied an operation the matrix marks N for service, with an error rather than an empty result -- does not exist and is owed by whoever writes the first tenant table.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a Proposed decision record is reversible, synthetic-only work."
+    "TENANT ISOLATION IS STILL NOT PROVEN, AND THE REASON IS NO LONGER THE ONE THIS BLOCKER GAVE. It used to read \"No tenant table exists, so DB00-A03 and the smoke assertions have never run\", which was true when written and false from batch 010 onward: 45 tables are created across db/foundation/migrations/010_identity.sql to 140_audit.sql, and make db-rls-smoke runs 554 isolation cases against them. What is still undischarged is narrower and harder -- RFC-2026-017 §7's negative assertion, that the SERVICE identity is refused an operation the §8 matrix marks N for service, with an error rather than an empty result. RFC-2026-022 §5/8 says why it cannot be discharged yet, in a measurement rather than an opinion: the only member of app_worker is postgres, which holds rolbypassrls, so a refusal observed today attributes to the absent grant rather than to a policy.",
+    "THE 116 SERVICE CASES THAT EXIST DO NOT YET DISCHARGE THAT NEGATIVE, AND THIS BLOCKER USED TO SAY THEY DID NOT EXIST AT ALL. They do: tests/db/identity/isolation-cases.mjs carries 116 cases whose id begins `service`, and batch 070's own header calls its four `service-cannot-*` INSERT cases \"the policy-layer denials that flip when it exists\" -- `it` being a service identity that is not postgres. So the assertion is WRITTEN and its subject is missing, which is a different debt from the one recorded here before, and it is owed to the RFC that creates a worker rather than to whoever writes the first tenant table.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a decision record is reversible, synthetic-only work whether it is Proposed or disposed. The tail of this sentence used to read \"a Proposed decision record is reversible, synthetic-only work\", and the 2026-09-05 disposition made that clause false while leaving the restriction it justifies true."
   ],
   "review_and_test_gates": [
     "author_complete",
