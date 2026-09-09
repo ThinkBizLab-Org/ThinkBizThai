@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-DB-00",
+  "agent_run_id": "/claude",
+  "final_status": "in_progress",
+  "base_revision": "c4577dd559b9949cd258a0be9fd8e540f9d5da79",
+  "head_revision_or_patch_checksum": "PENDING",
+  "task_ids": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-quadratic-strip.md",
+    "handoffs/WP-0A-DB-00-product-owner-quadratic-strip-handoff.json"
+  ],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS IS A TRANSCRIPTION, NOT AN ASSESSMENT. Three questions were put to the Product Owner about the increment at 2857a3e; one was answered and two were not. The agent run recording it decided none of the three.",
+    "ONE ANSWER, THREE QUESTIONS, AND THE RECORD SAYS SO. The reply was \"ยอม แก้ต่อได้เลย\" -- four words permitting the amendment and telling the author to carry on. It is recorded as a disposition on QUESTION 1 ONLY. Reading \"carry on\" as also settling the timing assertion and the unguarded fifth append would put two decisions in the Owner's mouth that the Owner did not make, and those two are the ones a later reader is most likely to want attributed correctly.",
+    "QUESTION 1 WAS THE ONE THAT NEEDED AN OWNER AND THE OTHER TWO WERE NOT. Questions 2 and 3 are engineering trade-offs inside a package's own work. Question 1 asks whether one package may change another's code while that other package waits at in_review, which CONTRIBUTING_AGENTS.md places above implementation choices in its conflict order -- and the run proposing the amendment is the same run that wrote the repair, which is the shape no_self_approval exists for.",
+    "IT FILLS NO ROLE FIELD. role_assignments.product_reviewer_agent_run_id wants an independent Product/UX AGENT RUN -- the one package carrying a value has /root/a5_loom -- and nothing here writes to role_assignments in either package.",
+    "THIS BRANCH IS TWO COMMITS BEHIND ITS BASE BRANCH, which advanced when batch 070's own disposition landed. It is deliberately NOT rebased here: PR #104 merging will retarget this PR to main and force a rebase anyway, so rebasing now would spend a 68-minute CI run to reach a state that a merge invalidates. The commit is made now so the record exists in git; the push waits for the rebase."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The disposition is recorded against the question actually answered, and the unanswered ones are marked unanswered",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-quadratic-strip.md carries three headed sections: 'Question 1 - answered', 'Question 2 - put, not answered', 'Question 3 - put, not answered', each with the alternative that was offered."
+    },
+    {
+      "criterion": "The reason to REFUSE question 1 is recorded, not just the reason to permit",
+      "result": "met",
+      "evidence": "The file states it as it was put: WP-0A-A0-002 is itself at in_review, so a package reaching into its code while it waits means whoever reviews it reviews something that has since changed."
+    },
+    {
+      "criterion": "The permission is bounded",
+      "result": "met",
+      "evidence": "Explicit limits records that it does not extend to any other file owned by WP-0A-A0-002 nor to any future increment, and that it does not tell that package's reviewer what to do about the change."
+    },
+    {
+      "criterion": "No role assignment, status, decision record, migration or contract changes",
+      "result": "met",
+      "evidence": "Two files added, both under paths this package owns. Nothing modified."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    }
+  ],
+  "security_privacy_cost_impact": "None to the code. One governance point is worth naming: the permission recorded here lets a package change a GUARD owned by another package -- the coverage floor is one of the controls that keeps a protected suite from being hollowed. What makes that safe is not the permission but the evidence beside it: old and new output byte-identical over 54 files, and floors raised rather than lowered.",
+  "migration_and_data_impact": "None. No migration is added or altered.",
+  "compatibility_impact": "None.",
+  "known_limitations": [
+    "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT. Nothing in the repository can prove the quoted statement was made; the evidence file names its origin and that is the whole of the control.",
+    "TWO OF THE THREE QUESTIONS REMAIN OPEN AND THE INCREMENT SHIPS ANYWAY. That is the honest state and not a comfortable one: the timing assertion is in the protected suite and the fifth-append gap is guarded by a comment, both on the author's judgement. Recording them as unanswered keeps them askable; it does not make them safe.",
+    "WP-0A-A0-002's REVIEWER HAS NOT BEEN TOLD. The disposition permits the change and explicitly does not direct that package's reviewer, which leaves a real gap: that package sits at in_review and its code moved. Nothing in this increment notifies anyone."
+  ],
+  "open_risks_or_blockers": [
+    "PR #105 IS NOT AUTHORISED TO MERGE BY THIS. It is a draft and carries none of the four role signatures RFC-2026-002 requires: /claude/c0_contract_reviewer, /claude/q0_sentinel, /claude/a1_bastion, /claude/r0_steward.",
+    "QUESTIONS 2 AND 3 ARE STILL OPEN. The wall-clock budget in the protected suite and the fifth append that no test would catch.",
+    "WP-0A-A0-002 IS AT in_review WITH TWO OF ITS FILES CHANGED BY ANOTHER PACKAGE. Permitted, recorded, and still a thing its reviewer needs to know."
+  ],
+  "rollback_or_forward_fix": "ROLLBACK: delete the two added files. Nothing depends on them and no field, status or decision changes either way. Question 1 returns to being an open authorisation the increment cannot give itself.",
+  "recommended_next_work_packages": [
+    "Answers to questions 2 and 3, which this increment shipped without.",
+    "Telling WP-0A-A0-002's reviewer that two of its files moved while it waited at in_review. The disposition permits the change and deliberately does not do this.",
+    "The four independent role runs on PR #105."
+  ],
+  "reviewer_instructions": [
+    "Read the three question sections and check that exactly one carries a disposition. If a reader comes away thinking the Owner settled the timing assertion, this file has failed.",
+    "Check the Explicit limits section bounds the permission to THIS diff and no further.",
+    "Check the equivalence claim yourself rather than reading it: extract stripNonCode from this revision and its parent and compare output over every .mjs file in the tree.",
+    "Do not treat this file as one of the four role signatures. It is none of them."
+  ]
+}
