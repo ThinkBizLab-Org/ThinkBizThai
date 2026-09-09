@@ -5,7 +5,7 @@
   "agent_run_id": "/claude",
   "final_status": "in_progress",
   "base_revision": "8a28c8b454f634a727e92a77e8280f6e57161f58",
-  "head_revision_or_patch_checksum": "PENDING",
+  "head_revision_or_patch_checksum": "f8a240df28dc50ce985a1a863686cc01b65924ad",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/product-owner-disposition-batch-070.md",
