@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-131",
+    "branch": "agent/claude/WP-0A-DB-00-stale-position-claims",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -109,13 +109,12 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".github/workflows/ci.yml",
         "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "Batch 131's migration, fixture, isolation cases, static suite, fixture catalog, service-policy-map entry and catalog-snapshot declaration are db/foundation/**, tests/db/identity/** and test-kits/db/**, all owned outright. The five amendments are the registries a package moves whenever it adds a table or a test. .github/workflows/ci.yml gains ONE negative-control entry per new table, because that step is where a table that nothing would notice becoming readable is caught, and no test in the repository asserts that the entry count matches the table count in the other direction -- so an entry omitted here is a batch whose cases silently stop being exercised. scripts/test-suite-contract.mjs carries the per-file test floor, assertion floor and test-name digest for the two suites this batch extends; both floors are RAISED to this branch's own measured counts and neither is lowered, and the numbers are re-derived from the files rather than typed from a base, which is the defect two parallel branches shipped last week. test-kits/branch-identity.test.mjs pins the branch-to-package mapping whole, in two places, and this branch is repointed in both. test-kits/integrity-manifest.json is REGENERATED with npm run regenerate:manifest rather than hand-picked, because a hand-picked hash passes review and fails the integrity check for an unrelated reason. evidence/VERIFICATION.md is machine-written by npm run record:verification against a live run and an edited value fails its own check."
+      "rationale": "This increment adds no table and no migration, so it amends FOUR registries rather than the five a batch touches. `.github/workflows/ci.yml` is deliberately NOT declared: the negative control gains an entry per new table and this increment creates none, and a declaration that explains nothing in the diff is a standing permission over another package's file granted for work that never happened -- which is what verify-branch-scope.mjs refuses in the other direction too. evidence/VERIFICATION.md is written by the verifier, never by hand, and moves whenever the count does. scripts/test-suite-contract.mjs carries the per-file floors and the test-name digests: this increment adds one test and renames two, so the count, the assertion count and the digest all move, and every one of them is re-derived from the MERGED tree rather than from either side of a merge. test-kits/branch-identity.test.mjs holds the single-slot registry that names which branch owns this package. test-kits/integrity-manifest.json is regenerated over the protected files this increment touches."
     }
   },
   "inputs": {
