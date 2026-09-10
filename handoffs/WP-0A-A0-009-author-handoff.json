@@ -4,11 +4,14 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "edb22abe95e285469d6edf6bd69a53c5cc7644c7",
-  "head_revision_or_patch_checksum": "edb22abe95e285469d6edf6bd69a53c5cc7644c7",
+  "base_revision": "acf0571d5d16bc2e79c0e6e8902c8f4c7bf8d236",
+  "head_revision_or_patch_checksum": "066a469a7b721dcc7495b711c02b07561ee642aa",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    "handoffs/WP-0A-A0-009-author-handoff.json",
+    "work-packages/WP-0A-A0-009.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-03"
@@ -18,94 +21,73 @@
     "None. This increment proposes a decision and changes no contract, schema or role."
   ],
   "assumptions": [
-    "RFC-2026-016 is Approved and left the service path open, explicitly forbidding any document from claiming forced RLS constrains it until answered.",
-    "A decision record in Proposed state creates no role and applies no migration."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. Three of this package's six blockers are spent, and the two that remain beside G0 had claims that went false.",
+    "SPENT: RFC-2026-019 was Proposed and awaiting disposition; it was disposed 2026-09-06. SPENT, and this was the interesting one: RFC-2026-018's status line recorded only that it was disposed while the record had been superseded, and the blocker called that the most dangerous shape a record can have -- one that must not be implemented reading as one that may. That line now carries the supersession explicitly, dated 2026-09-06, with NEVER IN EFFECT and the reason. SPENT: the three §5 lint rules said to be unwritten are written.",
+    "AN EARLIER VERSION OF THIS INCREMENT CITED THE WRONG LINE AND AN INDEPENDENT CHECK FOUND IT. It gave scripts/db/run.mjs:307 for §5's first rule. Line 307 is inside authzLint and belongs to RFC-2026-020's app_authz rule -- a different decision, 670 lines from the rule it was standing in for. The citations are now 976-986, 629-635 and 1003-1013, read at f3d3102, and each is paired with what the rule asserts so a reader whose line has drifted can still find it.",
+    "REWRITTEN: \"A1 has not seen this RFC\". False. evidence/WP-0A-DB-00/a1-rfc-022-measurements-2026-09-08.md:338, authored by /claude/a1_bastion, records that RFC-2026-019 §4/1 holds today, measured. The earlier version of this increment checked whether any evidence file had the RFC as its SUBJECT, found none, and kept the blocker -- but the blocker's sentence was wider than the test run against it. The load-bearing half survives and is kept: measuring that one clause holds is not agreeing with the proposal.",
+    "REWRITTEN: \"Nothing in the tree implements the decision, deliberately.\" False in its main clause and true in a part. §5 names FOUR rules and says the fourth cannot be written before a command function exists; three are written and none exists.",
+    "amends_without_owning's `recorded_on` IS REMOVED. It named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has never carried an entry for this package, so the reference was dangling before this branch, and with `paths` already empty it pointed at no amendment at all.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. Half its blockers went away in one increment, which is the shape most likely to be misread as completion."
   ],
   "acceptance_results": [
     {
-      "criterion": "The RFC states the measurement it rests on, names the instance and the date, and cites no vendor documentation in place of a reading.",
-      "result": "see the RFC section named in the criterion"
+      "criterion": "Each removal was checked against the artifact, not against the others",
+      "result": "met",
+      "evidence": "RFC-2026-019's status line carries a disposition dated 2026-09-06. RFC-2026-018's carries SUPERSEDED by RFC-2026-019 on 2026-09-06, plus NEVER IN EFFECT and the reason."
     },
     {
-      "criterion": "It records that authenticator holds no membership in any service role, which is the fact that makes RFC-2026-017 §3's present tense false today.",
-      "result": "see the RFC section named in the criterion"
+      "criterion": "Every line citation is read at the declared base and paired with the rule it points to",
+      "result": "met",
+      "evidence": "At f3d3102: rule 1 at scripts/db/run.mjs:976-986 (SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH), rule 2 at 629-635 (inside tenantTableLint), rule 3 at 1003-1013 (owner recorded at 1008, empty search_path at 1012). An earlier version cited 307, which is RFC-2026-020's app_authz rule."
     },
     {
-      "criterion": "Every candidate is recorded with what it makes true AND what it costs, including the one that is refused, so a reader can see the option was considered rather than unavailable.",
-      "result": "see the RFC section named in the criterion"
+      "criterion": "A blocker is rewritten when its sentence is wider than the test run against it",
+      "result": "met",
+      "evidence": "'A1 has not seen this RFC' was checked by asking whether any evidence file had the RFC as its subject. a1-rfc-022-measurements-2026-09-08.md:338 measures RFC-2026-019 §4/1 without having it as a subject, which falsifies the sentence and leaves its second half true."
     },
     {
-      "criterion": "The security question option A raises is answered directly rather than deferred: the capability is already held through service_role, and the option narrows it rather than widening it.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "The RFC names what must be true before it can close, in artefacts a build can check, and states that until then RFC-2026-017 §3 stays wrong.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "It names what it does NOT decide, including the background worker path and JWT custody.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "It changes no migration, no lint and no role. A Proposed decision that has already changed the tree is not a proposal.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "RFC-2026-019 states what RFC-2026-018 got wrong in its own words, including which comparison RFC-2026-018 made and which one decides the question.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "It names the root error in a form that generalises: a missing COMPONENT was read as a missing GRANT.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "Every clause of its decision is assertable against the database as it stands, and it says which rules carry them — including the negative, that authenticator holds no membership in any service role.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "It records that the error was not caught by the review, nor by the conflict order, but by reading the two decisions together.",
-      "result": "see the RFC section named in the criterion"
-    },
-    {
-      "criterion": "It changes no role, no grant and no migration, exactly as RFC-2026-018 did not.",
-      "result": "see the RFC section named in the criterion"
+      "criterion": "No decision, code, migration, contract or status changes",
+      "result": "met",
+      "evidence": "Two files, both owned by this package: its own manifest and this handoff."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-009",
+      "exit_code": 0,
+      "result": "both changed paths are owned by this package and no amendment is declared"
     }
   ],
-  "security_privacy_cost_impact": "The RFC records a security consequence rather than creating one: option A makes app_command reachable by anyone able to sign a JWT with the project secret, which is the same holder who can already claim service_role and bypass RLS entirely. Nothing in this increment grants anything.",
-  "migration_and_data_impact": "None. The migration this RFC proposes is named in §5 and belongs to WP-0A-DB-00, which will write it if and when the Product Owner disposes this.",
-  "compatibility_impact": "None. Two Proposed decision records and their work package. No migration, no lint rule, no grant. RFC-2026-019 supersedes RFC-2026-018 and neither ever changed the tree.",
+  "security_privacy_cost_impact": "None to the code. One security-relevant statement did change meaning: the manifest no longer says the three RFC-2026-019 §5 lint rules are unwritten, because they are written and they are the assertions that keep `authenticator` out of the service roles and keep app_command from owning a table. A reader who believed the old blocker would have thought those negatives were unasserted.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "RFC-2026-019 is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision.",
-    "RFC-2026-018 is Approved and superseded, and its status line still says only Approved. Recording the supersession is a decision-record status change and belongs to a disposition branch, not to this one. Until that happens the repository holds an approved decision that must not be implemented, and that is the most dangerous shape a record can have here.",
-    "The three lint rules RFC-2026-019 §5 names are not written. They belong to WP-0A-DB-00. Two of them assert states measured true today -- authenticator holds no service-role membership, and app_command owns no table in app -- so they are assertable immediately rather than someday.",
-    "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
-    "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English.",
+    "LINE NUMBERS DRIFT AND THREE ARE CITED HERE. Each is paired with what the rule asserts, which is the mitigation and not a guarantee -- and one citation in an earlier version of this increment was wrong from the moment it was written, so the pairing is the part a reader should trust.",
+    "THE RULE-3 LIST HAS NO COMPLETENESS CHECK. catalog-snapshot.json's security_definer_functions holds one entry and, unlike tenantTableLint, nothing asserts the list is complete in either direction -- so \"every SECURITY DEFINER function\" is only as strong as the snapshot. Recorded rather than fixed: run.mjs is not this package's file.",
+    "HALF THIS PACKAGE'S BLOCKERS WENT AWAY IN ONE INCREMENT. The status is unchanged and this handoff says so twice.",
+    "REBASED THREE TIMES, ONTO ff12b8b, 2e18f75 AND acf0571, as PRs #104 through #109 merged. The three run.mjs line citations were RE-READ at every base and are unchanged at 976-986, 629-635 and 1003-1013; git diff confirms none of those PRs touches scripts/db/run.mjs. Re-read rather than assumed each time, because a rebase is exactly the event that silently invalidates a line number."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-019 is Proposed and awaits Product Owner disposition. This run wrote it and may not dispose its own decision.",
-    "RFC-2026-018 is Approved and superseded, and its status line still says only Approved. Recording the supersession is a decision-record status change and belongs to a disposition branch, not to this one. Until that happens the repository holds an approved decision that must not be implemented, and that is the most dangerous shape a record can have here.",
-    "The three lint rules RFC-2026-019 §5 names are not written. They belong to WP-0A-DB-00. Two of them assert states measured true today -- authenticator holds no service-role membership, and app_command owns no table in app -- so they are assertable immediately rather than someday.",
-    "A1 has not seen this RFC. Its countersignature identified the gap -- the topology is built and not connected -- but identifying a gap is not agreeing with a proposal for filling it.",
-    "Nothing in the tree implements the decision, deliberately. The migration, the lint rule and the isolation case named in §5 belong to WP-0A-DB-00 and are not written here.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
+    "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them: it removes ones already discharged elsewhere.",
+    "AN A1 REVIEW OF RFC-2026-019 AS A WHOLE DOES NOT EXIST. One clause has been measured by an A1 run; the proposal has not been agreed with, and that is the oldest open item on this package."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. Reverting removes the correction and leaves an approved decision that must not be implemented, which is worse than either document alone.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to six blockers, three describing states that no longer hold and one claiming nothing in the tree implements a decision that is implemented three ways.",
   "recommended_next_work_packages": [
-    "WP-0A-DB-00"
+    "An A1 review of RFC-2026-019 as a proposal rather than a measurement of one of its clauses.",
+    "The command function §5's fourth rule waits on. Until one exists the fourth rule cannot be written, which RFC-2026-019's own status line already says.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose. Four manifests have now been corrected by hand for one class of defect, and two of those corrections were themselves wrong on first attempt."
   ],
   "reviewer_instructions": [
-    "Read RFC-2026-019 §1 against RFC-2026-017 §3 directly. The whole correction turns on one line: app_command OWNS the SECURITY DEFINER command functions, so it is not a role a caller switches to.",
-    "§1's comparison table is the argument. If granting app_command to authenticator is a narrowing against the design rather than against service_role, the correction is wrong and RFC-2026-018 stands.",
-    "Nothing in the tree implements either RFC. If you find a grant or a migration in this diff, that is the defect."
+    "Check the three line citations at f3d3102 and match each to the rule it claims. One was wrong in an earlier version of this increment, which is why they are now paired with the assertion.",
+    "Read a1-rfc-022-measurements-2026-09-08.md:338 and confirm the new wording: measured, not reviewed.",
+    "Check the three removals against the artifacts, not against each other. The RFC-2026-018 one matters most, because the blocker it retires named the shape it was retiring.",
+    "Confirm the status is still in_progress and nothing outside this package's two owned files changed."
   ],
   "superseded_by": null,
   "outputs": null
