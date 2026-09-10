@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude",
   "final_status": "in_progress",
-  "base_revision": "c4577dd559b9949cd258a0be9fd8e540f9d5da79",
-  "head_revision_or_patch_checksum": "6e623554b6598eb769b25bd680a18551ce9d94ce",
+  "base_revision": "865db1eb454ded4cd1c1380d05d8c8f03e20e40b",
+  "head_revision_or_patch_checksum": "604371c463e1409a02a9d87672ceb13d78890648",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/product-owner-disposition-quadratic-strip.md",
@@ -21,7 +21,7 @@
     "ONE ANSWER, THREE QUESTIONS, AND THE RECORD SAYS SO. The reply was \"ยอม แก้ต่อได้เลย\" -- four words permitting the amendment and telling the author to carry on. It is recorded as a disposition on QUESTION 1 ONLY. Reading \"carry on\" as also settling the timing assertion and the unguarded fifth append would put two decisions in the Owner's mouth that the Owner did not make, and those two are the ones a later reader is most likely to want attributed correctly.",
     "QUESTION 1 WAS THE ONE THAT NEEDED AN OWNER AND THE OTHER TWO WERE NOT. Questions 2 and 3 are engineering trade-offs inside a package's own work. Question 1 asks whether one package may change another's code while that other package waits at in_review, which CONTRIBUTING_AGENTS.md places above implementation choices in its conflict order -- and the run proposing the amendment is the same run that wrote the repair, which is the shape no_self_approval exists for.",
     "IT FILLS NO ROLE FIELD. role_assignments.product_reviewer_agent_run_id wants an independent Product/UX AGENT RUN -- the one package carrying a value has /root/a5_loom -- and nothing here writes to role_assignments in either package.",
-    "THIS BRANCH IS TWO COMMITS BEHIND ITS BASE BRANCH, which advanced when batch 070's own disposition landed. It is deliberately NOT rebased here: PR #104 merging will retarget this PR to main and force a rebase anyway, so rebasing now would spend a 68-minute CI run to reach a state that a merge invalidates. The commit is made now so the record exists in git; the push waits for the rebase."
+    "REBASED ONTO ff12b8b AFTER PR #104 MERGED, and pushed at that point rather than held. The earlier note said the push waited because a merge would invalidate the state it reached; that merge has happened, so the wait is over and the record travels with the branch it is about."
   ],
   "acceptance_results": [
     {
