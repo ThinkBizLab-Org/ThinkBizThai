@@ -24,6 +24,7 @@
     "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It removes one spent blocker from this package's own list and corrects the false tail of another. Same defect class as commit 9aee8bb, which repaired six sentences that were true when written and false by the next merge.",
     "SPENT, THEREFORE REMOVED: the blocker saying RFC-2026-016 was Proposed and that batch 000 must not be written against the authenticated-only policy shape. That record was disposed on 2026-09-05 and its §2 was amended on 2026-09-08 on RFC-2026-022; read those status lines for their wording rather than this file. Batch 000 is on main as db/foundation/migrations/000_foundation.sql, so the restriction has not merely lapsed -- the work it forbade has shipped.",
     "CORRECTED: the G0 blocker. The restriction still stands and the clause justifying it -- \"a Proposed decision record is reversible, synthetic-only work\" -- stopped being true when the record was disposed. Dropping the blocker would remove a live restriction on the strength of a clause merely worded for a status the record no longer has, so the tail is corrected instead.",
+    "A SECOND STALE BLOCKER WAS MISSED ON THE FIRST PASS AND AN INDEPENDENT CHECK FOUND IT. \"The service path is undecided\", unqualified, was left untouched as still-true. It is not: RFC-2026-017 decided the identity on 2026-09-05 and RFC-2026-019 decided the components on 2026-09-06. What RFC-2026-019 §4/3 leaves open is app_worker's CONNECTION METHOD, in its own words \"not decided here, and saying so is the decision\", until a background worker exists -- and RFC-2026-022 §5/8 supplies the measurement that makes it bite. The blocker is narrowed to that. Its tail, that no document may state forced RLS constrains the service path, is unchanged and still true. This is the same staleness the increment corrected two blockers away, missed in the one place it was least expected.",
     "THREE BLOCKERS ARE UNCHANGED BECAUSE THEY ARE STILL TRUE, and two of them are worth a reader's attention: the service path is still undecided, which RFC-2026-022 §5/8 measures rather than asserts -- the only member of app_worker is postgres, which bypasses row level security -- and the analysis this package rests on was spawned from the same session that wrote it, which no_self_approval does not accept.",
     "amends_without_owning IS EMPTIED. It carried two paths from this package's earlier increment and this branch touches neither; verify-branch-scope refuses a declaration explaining nothing the branch changed. Both are named in the manifest's new rationale.",
     "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress, for the same reason its sibling increment gives -- an Author may move work only as far as in_review, and moving it would be a claim about completeness rather than the correction of a false sentence."
@@ -43,6 +44,11 @@
       "criterion": "No decision, code, migration, contract or status changes",
       "result": "met",
       "evidence": "Two files, both owned by this package: its own manifest and this handoff."
+    },
+    {
+      "criterion": "A blocker left untouched as still-true is actually still true, checked clause by clause",
+      "result": "met",
+      "evidence": "'The service path is undecided' was falsified by RFC-2026-017's and RFC-2026-019's status lines and is now narrowed to app_worker's connection method per RFC-2026-019 §4/3, with RFC-2026-022 §5/8's measurement. The remaining three untouched blockers were each re-read against their artifact."
     }
   ],
   "tests": [
@@ -62,7 +68,8 @@
   "compatibility_impact": "None.",
   "known_limitations": [
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English; the rule that would catch this class ties a blocker naming a decision record to that record's status and is not written here.",
-    "THE §2 AMENDMENT BLOCKER IS KEPT VERBATIM AND IS THE ONE MOST LIKELY TO GO STALE NEXT. It describes the shape of a record -- the original text kept below the amendment rather than replaced -- and that shape holds only while nobody tidies the file."
+    "THE §2 AMENDMENT BLOCKER IS KEPT VERBATIM AND IS THE ONE MOST LIKELY TO GO STALE NEXT. It describes the shape of a record -- the original text kept below the amendment rather than replaced -- and that shape holds only while nobody tidies the file.",
+    "THE FIRST PASS OF THIS INCREMENT CHECKED WHICH BLOCKERS TO REMOVE AND NOT WHICH TO NARROW. Two were corrected and three were declared still-true; one of those three was stale in exactly the way the other two were. An audit that asks 'is this spent' and not 'is every clause of this still true' finds fewer defects than it appears to."
   ],
   "open_risks_or_blockers": [
     "Four blockers remain OPEN and are listed in the manifest. This increment closes none of them."
@@ -75,6 +82,7 @@
   ],
   "reviewer_instructions": [
     "Check the removal first: read RFC-2026-016's status line, confirm it records a disposition and an amendment, then confirm 000_foundation.sql is on main.",
+    "Re-read the three blockers this increment leaves untouched, clause by clause rather than as wholes. One of them was left untouched on the first pass and was stale.",
     "Check that the three untouched blockers really are still true. The service-path one is the load bearing claim and RFC-2026-022 §5/8 is where to check it.",
     "Confirm nothing outside this package's two owned files changed."
   ],
