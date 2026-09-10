@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "ff12b8bf1b937407cdae3f197bb4f8d0a444a679",
-  "head_revision_or_patch_checksum": "ca58583a133173ef147efb9ffc5a4e9d96a67e12",
+  "base_revision": "2e18f75dbc72ec3c03cb9e5966c7f1cb65fa592a",
+  "head_revision_or_patch_checksum": "b0ff5d252f472efcd1852de12e9d2dd6612e936f",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -70,7 +70,7 @@
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English; the rule that would catch this class ties a blocker naming a decision record to that record's status and is not written here.",
     "THE §2 AMENDMENT BLOCKER IS KEPT VERBATIM AND IS THE ONE MOST LIKELY TO GO STALE NEXT. It describes the shape of a record -- the original text kept below the amendment rather than replaced -- and that shape holds only while nobody tidies the file.",
     "THE FIRST PASS OF THIS INCREMENT CHECKED WHICH BLOCKERS TO REMOVE AND NOT WHICH TO NARROW. Two were corrected and three were declared still-true; one of those three was stale in exactly the way the other two were. An audit that asks 'is this spent' and not 'is every clause of this still true' finds fewer defects than it appears to.",
-    "REBASED ONTO ff12b8b AFTER PR #104 MERGED, AND THAT MOVED THE GROUND UNDER THIS INCREMENT'S OWN SENTENCES. The base this branch declares now carries batch 070, so any count taken at f3d3102 is stale by exactly what that batch adds. Every figure in this package was re-measured at the new base rather than carried across."
+    "REBASED TWICE, ONTO ff12b8b AND THEN 2e18f75, AS PRs #104, #105 AND #106 MERGED. This package's blockers cite RFC section numbers rather than counts or line numbers, which is the only reason a moving base did not falsify any of them again."
   ],
   "open_risks_or_blockers": [
     "Four blockers remain OPEN and are listed in the manifest. This increment closes none of them."
