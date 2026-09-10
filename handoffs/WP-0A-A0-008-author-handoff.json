@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
-  "head_revision_or_patch_checksum": "b31ea6d397077df235b09cd98a2488c1f97e81dd",
+  "base_revision": "ff12b8bf1b937407cdae3f197bb4f8d0a444a679",
+  "head_revision_or_patch_checksum": "dad675738081a0e28af378b8d737f86ec7e1f03e",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -30,7 +30,7 @@
     {
       "criterion": "Every count is measured against the revision this branch declares as its base",
       "result": "met",
-      "evidence": "At f3d3102: 40 create-table statements for app./private. across db/foundation/migrations/*.sql; 58 blocks in isolation-cases.mjs declaring covers RFC-2026-017§7, 26 of them expect denied; 100 case ids beginning `service`. An earlier version of this increment carried 45/554/116, which are the counts on an unmerged branch."
+      "evidence": "At ff12b8b, which is origin/main after PR #104 merged: 45 create-table statements for app./private. across db/foundation/migrations/*.sql; 65 blocks in isolation-cases.mjs declaring covers RFC-2026-017§7, 28 of them expect denied; 116 case ids beginning `service`; 554 cases reported by make db-rls-smoke. Two earlier versions of this increment carried counts from a different tree — 45/554/116 taken on an unmerged branch when the base was f3d3102, then 40/481/100 correct for f3d3102 and stale the moment #104 merged."
     },
     {
       "criterion": "No sentence asserts the opposite of what the repository asserts",
@@ -71,7 +71,8 @@
   "known_limitations": [
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English. The rule that would catch this class ties a blocker naming a decision record to that record's status, and it is not written here.",
     "THE REWRITTEN BLOCKERS STILL CITE COUNTS, AND A COUNT IN PROSE IS WHAT WENT WRONG HERE ONCE ALREADY. They now name the revision the counts were taken at (f3d3102), which is the difference between a fact and a claim -- but nothing checks that the revision named is the revision the reader is looking at.",
-    "WHETHER §7 IS DISCHARGED IS LEFT UNANSWERED ON PURPOSE, and that leaves a blocker open that may not deserve to be. The alternative was for this package to close its own condition, which is the shape no_self_approval exists to refuse."
+    "WHETHER §7 IS DISCHARGED IS LEFT UNANSWERED ON PURPOSE, and that leaves a blocker open that may not deserve to be. The alternative was for this package to close its own condition, which is the shape no_self_approval exists to refuse.",
+    "THIS PACKAGE'S COUNTS HAVE NOW BEEN WRONG TWICE FOR OPPOSITE REASONS, and the second time was predictable. First they were measured on an unmerged branch while the manifest declared f3d3102. Then they were corrected to f3d3102 -- and PR #104 merged, moving the base to ff12b8b and making the corrected figures stale by exactly the five tables, seventy-three cases and sixteen service ids batch 070 adds. A count in prose is only true against a named revision, and a rebase renames the revision. The figures here name ff12b8b; the next rebase invalidates them again, and nothing in the repository will notice."
   ],
   "open_risks_or_blockers": [
     "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them.",
