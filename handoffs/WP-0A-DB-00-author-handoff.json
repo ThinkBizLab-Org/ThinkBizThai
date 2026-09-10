@@ -5,13 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "c4577dd559b9949cd258a0be9fd8e540f9d5da79",
-  "head_revision_or_patch_checksum": "5023b0a3871b6d8ac0cb9dd5186c0e06760504e2",
+  "head_revision_or_patch_checksum": "6383486d7b5871bb13614ec40aa129e381bcdfb6",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md"
   ],
   "files_modified": [
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/psql-driver.mjs",
     "scripts/db/rls-smoke.mjs",
     "scripts/test-suite-contract.mjs",
@@ -104,7 +105,8 @@
     "WRITING SQL TO psql's STDIN STILL RESTS ON ANOTHER PROGRAM'S LEXER. Safety depends on psql not seeing a meta-command inside a quoted literal. Measured true; pinned by no test here, because no test in this repository can pin psql's lexer. What the tests now pin is the escaping on our side -- which is the half that was actually broken, and was broken for `$10` and for any value carrying a later placeholder.",
     "FOUR OF THIRTY-FIVE CONTROL ENTRIES WERE RUN. The other thirty-one are asserted only by CI.",
     "NOTHING HERE IS EVIDENCE ABOUT SUPABASE. Plain PostgreSQL 17.11 plus the shim, whose own header says it is not the platform. RFC-2026-022 §7.3 (a)-(d) remain open by their own terms.",
-    "THE FIRST VERSION PASSED CI AND A SELF-REVIEW. It was green, it had four live measurements behind it, and it was wrong in the worst available way. That is the strongest argument in this handoff for the independent roles RFC-2026-002 requires, and it is an argument against trusting this handoff too."
+    "THE FIRST VERSION PASSED CI AND A SELF-REVIEW. It was green, it had four live measurements behind it, and it was wrong in the worst available way. That is the strongest argument in this handoff for the independent roles RFC-2026-002 requires, and it is an argument against trusting this handoff too.",
+    "THIS HANDOFF OMITTED ITSELF FROM files_modified AND CI CAUGHT IT WHILE THE AUTHOR'S OWN RUN DID NOT. The reason is an ordering mistake rather than a subtle rule: npm run check was run BEFORE the last two commits, so the range it compared the declaration against was not the range the branch ends on. A handoff that changes must declare itself, and once declared it stays declared however many times it is touched again -- which is why the fix is stable and the process error is the part worth recording."
   ],
   "open_risks_or_blockers": [
     "THIS BRANCH'S HISTORY CONTAINS A COMMIT THAT SHIPPED A FALSE-PASS PATH. It is repaired in a later commit on the same branch rather than rebased away, so a reviewer can read what was wrong and what the repair actually changed. A squash merge would erase that; whether it should is the Integration Owner's call.",
