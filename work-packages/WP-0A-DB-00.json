@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-one-psql-session",
+    "branch": "agent/claude/WP-0A-DB-00-disposition-generation-run",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -109,12 +109,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "This increment creates no table and adds no migration. Its subject is the harness itself: scripts/db/psql-driver.mjs and scripts/db/rls-smoke.mjs are `scripts/db/**`, which this package OWNS, and the tests are `test-kits/db/**`, also owned -- so unlike the increment below it, nothing here reaches into another package's code. The four declared paths are the registries any increment that changes a test count has to touch: the floors, the digests, the pinned branch row and the recorded verification. `scripts/verify-test-coverage-floor.mjs` and test-kits/test-coverage-floor.test.mjs are NOT declared here -- they belong to the increment below, and an amendment explaining nothing THIS branch changed is what verify-branch-scope refuses in its other direction."
+      "rationale": "THIS INCREMENT RECORDS A PRODUCT OWNER DISPOSITION AND CHANGES NO CODE. It adds one evidence file and one handoff, both under paths this package owns, and amends exactly two it does not, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it. test-kits/integrity-manifest.json then follows, because branch-identity.test.mjs is digested and the coverage-floor guard exits 87 on a digest that no longer matches its file -- any package editing a protected file must regenerate it or the build stops."
     }
   },
   "inputs": {

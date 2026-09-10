@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-DB-00",
+  "agent_run_id": "/claude",
+  "final_status": "in_progress",
+  "base_revision": "2b8f6b35479a346c50834caa8c236ff0b8d6a584",
+  "head_revision_or_patch_checksum": "2e9232e1f3fc84f2c59fd64d1981398cf0e59b50",
+  "task_ids": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md",
+    "handoffs/WP-0A-DB-00-product-owner-generation-run-handoff.json"
+  ],
+  "files_modified": [
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
+  "files_deleted": [],
+  "decisions_consumed": [],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS IS A TRANSCRIPTION, NOT AN ASSESSMENT. The Product Owner answered one question about batch 080 and this increment writes the answer into the repository. The agent run recording it decided nothing.",
+    "IT IS RECORDED NOW RATHER THAN WITH BATCH 080, AND THE REASON IS DURABILITY. The question was put and answered while preparing 080; the draft lived in a session-scoped scratch directory that may be cleaned. A Product Owner decision must not exist only there, so it reaches the repository ahead of the batch that will cite it.",
+    "THE QUESTION WAS A SCOPE QUESTION AND THEREFORE NOT AN AGENT'S. §4.6 gives batch 080 two `generation_run_id` columns; `app.generation_runs` exists nowhere and is assigned to NOBODY in §6's 000-180 registry. Batch 060 records that in its own header and cites batch 021's refusal to reserve a table no registry row gives it. Whether 080 may reference, reserve, or must refuse a table outside its registry row is a question about 080's scope, and an agent must not settle its own scope. Verified at 2e18f75: no migration mentions `generation_run` at all.",
+    "THREE OPTIONS WERE PUT WITH THEIR COSTS and the answer names one of them. Option ka keeps the columns as references with no foreign key -- batch 131's precedent for a reference whose target is absent. The cost is stated in the evidence file rather than discovered later: nothing enforces the reference until a command function exists, and `content_versions` is immutable, so a column written now cannot be tightened without a forward migration."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The question is recorded in the form it was put, with all three options and their costs",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md reproduces the question, quotes batch 060's header verbatim on the registry gap, and tabulates ka/kho/kho with what each costs."
+    },
+    {
+      "criterion": "The claim that the table is unassigned is verified rather than repeated",
+      "result": "met",
+      "evidence": "At 2e18f75, no file under db/foundation/migrations/ mentions `generation_run`. Batch 060's header states the registry gives no batch a generation-run table and 061 is metering rather than run history."
+    },
+    {
+      "criterion": "What the disposition does NOT settle is written down",
+      "result": "met",
+      "evidence": "Four items: the registry gap stays open, nothing enforces the reference, the column's type and nullability are 080's to decide, and content_versions' immutability makes ka harder to reverse than kho. Plus an Explicit limits section modelled on the two earlier dispositions."
+    },
+    {
+      "criterion": "Nothing outside this package's own files changes except the two that must follow",
+      "result": "met",
+      "evidence": "test-kits/branch-identity.test.mjs is amended because BRANCH_OWNERSHIP is deepEqual'd against the branch each manifest declares; test-kits/integrity-manifest.json follows because that file is digested and the coverage-floor guard exits 87 on a stale digest. Both are declared with that reason in the manifest."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    }
+  ],
+  "security_privacy_cost_impact": "None to the code. One consequence is worth naming: option ka means a generation_run_id may name a run that never existed, because no foreign key and no command function constrain it. That is a provenance weakness rather than a tenant-isolation one -- the column records WHICH generation produced a version, and an unconstrained value makes that record unreliable rather than leaky.",
+  "migration_and_data_impact": "None. No migration is added or altered.",
+  "compatibility_impact": "None.",
+  "known_limitations": [
+    "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT. Nothing in the repository can prove the quoted statement was made; the evidence file names its origin and that is the whole control.",
+    "THE ANSWER IS THREE WORDS AND THE OPTIONS WERE LETTERED. \"080 เอาข้อ ก\" maps to option ka by the letter, and the evidence file reproduces the lettered table so the mapping is checkable rather than merely plausible. It is still an interpretation of three words.",
+    "THIS DISPOSITION WILL BE CITED BY A BATCH THAT DOES NOT EXIST YET. If batch 080 is written differently from what was put here -- a different column shape, a different table set -- the disposition may not cover what it is cited for, and nothing will notice."
+  ],
+  "open_risks_or_blockers": [
+    "app.generation_runs REMAINS UNASSIGNED IN §6's REGISTRY. This disposition permits a reference to it and assigns nobody to build it. Batch 060's blocker on the subject stands, owed to A0 and to whichever batch the registry is amended to name.",
+    "THE REFERENCE IS UNENFORCED UNTIL A COMMAND FUNCTION EXISTS, and RFC-2026-021 §10 records that none does -- the same absence batch 070's `used_at` rests on.",
+    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE. Reviewer /claude/c0_contract_reviewer, Tester /claude/q0_sentinel, Security /claude/a1_bastion and Integration Owner /claude/r0_steward evidence is absent, as it is on every increment in this package's history."
+  ],
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The two added files go, the manifest's branch and the pinned row return to the previous increment's, and the question returns to being one batch 080 must escalate before it can write either column.",
+  "recommended_next_work_packages": [
+    "Batch 080 itself, which may now be written: option ka answers the one question that blocked it, and the evidence file records three further facts its author would otherwise rediscover -- content has no §8 `S` cell, content_targets.social_account_id belongs to 081, and content_items.status carries the same half-implemented shape already dispositioned for research.",
+    "An owner for app.generation_runs in §6's registry, which needs A0 and probably an RFC.",
+    "The independent role runs, on this and on every other open increment."
+  ],
+  "reviewer_instructions": [
+    "Read the question in the evidence file before the answer, and check batch 060's header quote against db/foundation/migrations/060_ai_gateway.sql.",
+    "Verify the unassigned claim yourself: grep db/foundation/migrations/ for `generation_run` at 2e18f75 and check §6's registry for a row naming it.",
+    "Check that the Explicit limits section is no narrower than the two earlier dispositions in this package's evidence directory.",
+    "This file is none of the four role signatures and says so."
+  ]
+}
