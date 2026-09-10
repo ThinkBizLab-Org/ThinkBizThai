@@ -36,15 +36,31 @@ import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../.
 // ordinary character. A NUL byte cannot appear in a Postgres text value at all, so it is refused
 // rather than truncated silently somewhere downstream.
 export function inlineParams(statement, params) {
-  let sql = statement;
-  (params ?? []).forEach((value, index) => {
-    const text = String(value);
-    if (text.includes('\u0000')) {
+  const values = params ?? [];
+  for (const value of values) {
+    if (String(value).includes('\u0000')) {
       throw new Error('refusing to inline a parameter containing a NUL byte: Postgres text cannot hold one');
     }
-    sql = sql.split(`$${index + 1}`).join(`'${text.split("'").join("''")}'`);
+  }
+  // ONE PASS, and the reason is a defect an adversarial read found in the version this replaces.
+  // It substituted with `sql.split('$'+n).join(literal)` for n = 1, 2, 3 ... over the ALREADY
+  // SUBSTITUTED string, so pass n could rewrite text that pass n-1 had just inserted:
+  //
+  //   inlineParams('select $1 as a, $2 as b', ['x$2y', 'B'])
+  //     -> "select 'x'B'y' as a, 'B' as b"      the value escaped its own literal
+  //   inlineParams('select $10 as a', [...])
+  //     -> "select 'v1'0 as a"                  $10 eaten by the $1 pass
+  //
+  // Harmless while psql read only `--command`, which does not execute meta-commands mixed into a
+  // `-c` string. NOT harmless now: this driver writes SQL to psql's stdin, where a line beginning
+  // `\` is psql's. A single regex pass reads each placeholder from the ORIGINAL text exactly once,
+  // so an inserted value is never re-scanned, and `$10` is matched before `$1` because `\d+` is
+  // greedy.
+  return String(statement).replace(/\$(\d+)/g, (whole, digits) => {
+    const index = Number(digits) - 1;
+    if (index < 0 || index >= values.length) return whole;
+    return `'${String(values[index]).split("'").join("''")}'`;
   });
-  return sql;
 }
 
 // DECIDED FROM THE STATEMENT, NEVER FROM THE STATEMENT WITH VALUES IN IT (C0's review D7): a case
@@ -136,6 +152,8 @@ export function sessionDriver(session) {
     async begin() { return session.exec('begin;'); },
     // Always issued, from runOne's `finally`, and the session DEPENDS on it: an error leaves the
     // transaction aborted, and this is what clears it before the next case.
+    // Returned rather than discarded. runOne throws this value away today, but the driver's
+    // ON_ERROR_STOP=0 safety DEPENDS on this rollback landing, so it must at least be observable.
     async rollback() { return session.exec('rollback;'); },
     async exec(statement, params) {
       const assumesIdentity = assumesIdentityCall(statement);

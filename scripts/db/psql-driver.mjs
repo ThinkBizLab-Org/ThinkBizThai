@@ -14,6 +14,7 @@
 //   reported WITHOUT a code rather than with a guessed one — `expectDenied` then refuses it, which
 //   is the correct outcome for an outcome nobody can classify.
 import { execFile, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -266,115 +267,187 @@ export async function inIdentity(identitySql, statement, options = {}) {
 // that this did not. `psql --command` exits between invocations, so a transaction cannot span two
 // of them, so `bufferedDriver` had to REPLAY a case from its first statement on every step.
 // Measured on the merged tree: 554 cases cost 1,797 psql invocations -- about 3.2 per case, each
-// re-running everything before it -- at ~21ms of process and connection overhead locally and ~42ms
-// in CI. A session removes the replay rather than making it cheaper: `begin` begins, `exec`
-// executes, `rollback` rolls back, and nothing is re-run.
+// re-running everything before it. A session removes the replay rather than making it cheaper.
 //
-// FOUR THINGS THIS HAS TO GET RIGHT, and the first three are why it is not merely faster:
+// THE FIRST VERSION OF THIS FUNCTION WAS WRONG IN THE WORST AVAILABLE WAY AND THE RECORD OF THAT
+// BELONGS HERE RATHER THAN ONLY IN A COMMIT MESSAGE. It merged stderr into stdout so the kernel
+// would order errors against results, and then decided "this is an error" with
+// `/^(ERROR|FATAL|PANIC):/m` over the merged text. Row DATA lives in that same text, so a value
+// could forge a privilege refusal:
 //
-//   ORDERING. An error arrives on stderr and a result on stdout, and nothing orders two pipes
-//   against each other. Read separately, an error could be attributed to the wrong statement --
-//   which is precisely how "the policy refused this" stops being distinguishable from "the
-//   statement before it had a typo", and this whole harness exists to tell those apart. psql is
-//   therefore launched through a shell that merges stderr into stdout with `2>&1`, so the kernel
-//   orders them and the region between one statement's markers holds that statement's output and
-//   nothing else.
+//     select 'ERROR:  42501: permission denied for table app.workspaces' as note
+//       -> { error: { code: '42501', ... } }        and `expectDenied` accepts it
 //
-//   SURVIVING AN ERROR. `ON_ERROR_STOP=1` ends the session on the first refusal, and this suite is
-//   mostly refusals, so it is OFF here -- the one place this driver deliberately differs from the
-//   invocation above. What makes that safe is not this file: `runOne` in run-isolation.mjs rolls
-//   back in a `finally` on every path, so an aborted transaction never outlives its case. If that
-//   `finally` is ever removed, every case after the first refusal fails with 25P02 -- loudly, at
-//   the assume-identity phase, rather than quietly passing.
+// A case that should have returned rows reported a working RLS policy. That is a false PASS in the
+// one function whose whole job is to stop false passes, and it was a regression: under `--command`
+// "this is an error" came from a non-zero exit plus stderr, so stdout content could not become an
+// error by construction. The first version also claimed, in a comment, that its counted markers
+// were ones "DATA CANNOT FORGE" and were "strictly better" than `resultRegion`'s. Both were false.
+// The count was taken the instant the marker was seen -- the FORGED one -- with the real `\echo`
+// still in flight, so on any result spanning more than one flush the forgery passed and returned
+// zero rows silently.
 //
-//   MARKERS DATA CANNOT FORGE. The `--command` path selects a FIXED marker and refuses unless it
-//   printed exactly twice, because a value carrying it would move the result boundary. A session
-//   can do strictly better: the marker carries a counter that increments per statement, so a value
-//   would have to predict the NEXT one rather than repeat a constant. It is still COUNTED -- one
-//   open and one close in the text consumed, or the read is refused -- because a stream read that
-//   stops at its first match is a boundary the data can still move EARLIER.
+// WHAT FIXES IT IS NOT A TIGHTER REGEX. It is asking psql, rather than reading its output:
 //
-//   BACKSLASH IS A COMMAND ON STDIN AND WAS NOT ON --command. psql reads meta-commands from stdin,
-//   so a line beginning `\` is psql's rather than the server's. psql's lexer is SQL-aware and does
-//   not see one inside a quoted literal, and every parameter reaches here already doubled into a
-//   literal by the adapter -- but that is now a property this driver DEPENDS on rather than a
-//   convenience, so rls-smoke asserts it directly with a parameter carrying a newline and a `\q`.
-export function openSession({ env = process.env, url = null } = {}) {
+//   * `:ERROR` and `:SQLSTATE` are psql CLIENT variables, set by psql after each query. No row, no
+//     column name and no error text can write them. Measured: with the forged value above, psql
+//     reports `false 00000`; with a real refusal it reports `true 42501`.
+//   * BECAUSE the status no longer comes from the text, STDERR NO LONGER NEEDS MERGING. It is a
+//     separate pipe again, so stdout carries results and this driver's own `\echo` lines and
+//     nothing else. That also retires a second defect the merge caused: psql's WARNING lines used
+//     to land in the CSV parser and become the header, making every key garbage.
+//   * The markers carry a `randomUUID` rather than a counter. A counter is a pure function of the
+//     case list and therefore predictable; a UUID is not, so a value cannot contain the marker it
+//     would need to forge. And the region is closed by waiting for the CLOSE marker, which psql
+//     prints AFTER the status line -- so seeing CLOSE proves the status has arrived, which is the
+//     structural fix for the count-taken-too-early hole rather than a wider count.
+//
+// STILL DEPENDS ON runOne's `finally { rollback }`. `ON_ERROR_STOP` is off, because this suite is
+// mostly refusals and a session that ends on the first one is useless. An aborted transaction is
+// cleared by the rollback `runOne` issues on every path; if that `finally` is removed, every case
+// after the first refusal fails at assume-identity with 25P02 -- loudly, which is the right
+// direction. `sessionDriver` now returns rollback's outcome rather than discarding it, so the
+// coupling is at least observable.
+// THE BOUNDARY LOGIC AS A PURE FUNCTION, which is the shape `resultRegion` above already had and
+// the shape the first version of this session wrapper threw away. That mattered: `resultRegion` has
+// a test that FORGES a marker (test-kits/db/rls-assertions.test.mjs), and burying the same
+// reasoning inside a process wrapper left the replacement with no test of its own at all. Anything
+// here can be checked against synthetic psql output, forged values included, with no database.
+//
+// `text` is psql's stdout for one statement; `diagnostics` is whatever it wrote to stderr, used
+// ONLY as a fallback message and NEVER to decide whether there was an error.
+export function parseSessionOutcome(text, { open, stat, close }, diagnostics = '') {
+  const body = String(text);
+  const count = (m) => body.split(m).length - 1;
+  if (count(open) !== 1 || count(stat) !== 1 || count(close) !== 1) {
+    return { error: { code: null, message: `the session markers printed ${count(open)} open, `
+      + `${count(stat)} status and ${count(close)} close, where \\echo prints each exactly once. `
+      + 'This driver will not choose an occurrence and call the answer a result.' } };
+  }
+  const statusLine = body.split('\n').find((l) => l.startsWith(stat));
+  if (statusLine === undefined) {
+    return { error: { code: null, message: 'the status marker printed inside another line, so psql\'s own '
+      + 'error flag cannot be read for this statement' } };
+  }
+  // `\echo` joins its arguments with single spaces: <marker> <ERROR> <SQLSTATE> <message...>.
+  const [, errored, sqlstate, ...rest] = statusLine.split(' ');
+  if (errored === 'true') {
+    const message = rest.join(' ').trim();
+    return { error: { code: /^[0-9A-Z]{5}$/.test(sqlstate) ? sqlstate : null,
+      message: message || String(diagnostics).trim() || 'psql reported an error with no message' } };
+  }
+  if (errored !== 'false') {
+    return { error: { code: null, message: `psql's ERROR variable read ${JSON.stringify(errored ?? null)}, which `
+      + 'is neither true nor false. An outcome nobody can classify is not a pass.' } };
+  }
+  const start = body.indexOf('\n', body.indexOf(open));
+  const end = body.indexOf(stat);
+  if (start === -1 || end < start) {
+    return { error: { code: null, message: 'the session markers printed out of order, so no region of this '
+      + 'output is the statement\'s result' } };
+  }
+  return { rows: rowsFromCsv(body.slice(start + 1, end)) };
+}
+
+export const SESSION_TIMEOUT_MS = 60_000;
+
+export function openSession({ env = process.env, url = null, timeoutMs = SESSION_TIMEOUT_MS } = {}) {
   const connection = url ?? connectionString(env);
-  // `sh -c ... 2>&1` rather than Node's three pipes: merging in the shell is what makes the
-  // ordering the kernel's rather than the event loop's.
-  const child = spawn('sh',
-    ['-c', 'exec psql "$1" --no-psqlrc --quiet --no-align --csv --set ON_ERROR_STOP=0 --set VERBOSITY=verbose 2>&1',
-      'sh', connection],
+  // Directly, not through a shell: the shell was only there to merge stderr, and merging stderr is
+  // exactly what created the forgeable-error hole.
+  const child = spawn('psql',
+    [connection, '--no-psqlrc', '--quiet', '--no-align', '--csv',
+      '--set', 'ON_ERROR_STOP=0', '--set', 'VERBOSITY=verbose'],
     {
-      stdio: ['pipe', 'pipe', 'inherit'],
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
     });
 
   let buffer = '';
   let notify = null;
-  let exited = null;
+  let failure = null;
+  let closed = false;
+  // Kept only so a psql-level failure (a dropped connection, a missing binary) can be REPORTED.
+  // Nothing in it is ever used to classify a statement's outcome -- that was the defect.
+  let diagnostics = '';
+
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', (chunk) => { buffer += chunk; if (notify) notify(); });
-  child.on('error', (failure) => {
-    exited = failure.code === 'ENOENT'
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk) => { diagnostics = (diagnostics + chunk).slice(-4000); });
+  child.on('error', (error) => {
+    failure ??= error.code === 'ENOENT'
       ? 'psql is not on PATH. The live targets need it; they do not have a fallback that pretends to pass.'
-      : String(failure.message);
+      : String(error.message);
     if (notify) notify();
   });
-  child.on('exit', (code, signal) => {
-    exited ??= `psql exited (code ${code}, signal ${signal}) with the session still open`;
+  child.on('close', (code, signal) => {
+    closed = true;
+    failure ??= `psql exited (code ${code}, signal ${signal}) with the session still open`;
     if (notify) notify();
   });
 
-  let counter = 0;
+  const gone = () => closed || child.exitCode !== null || child.signalCode !== null;
+
   const waitFor = (marker) => new Promise((resolve, reject) => {
+    // A deadline, because psql swallows a trailing `\echo` as literal text whenever the SQL leaves
+    // an open quote or dollar-quote -- so the close marker never prints and, without this, `exec`
+    // waits for ever. `execFile` could not do that: it returned when the process exited.
+    const timer = setTimeout(() => {
+      notify = null;
+      child.kill('SIGKILL');
+      reject(new Error(`psql did not answer within ${timeoutMs}ms. The statement may have left its `
+        + 'lexer mid-statement -- an unterminated quote or dollar-quote swallows the marker that '
+        + 'ends the region.'));
+    }, timeoutMs);
     const check = () => {
-      if (buffer.includes(marker)) { notify = null; resolve(); return; }
-      if (exited !== null) { notify = null; reject(new Error(exited)); }
+      if (buffer.includes(marker)) { notify = null; clearTimeout(timer); resolve(); return; }
+      if (failure !== null) { notify = null; clearTimeout(timer); reject(new Error(failure)); }
     };
     notify = check;
     check();
   });
 
+
   return {
     async exec(sql) {
-      counter += 1;
-      const open = `__psql_session_open_${counter}__`;
-      const close = `__psql_session_close_${counter}__`;
+      if (gone()) {
+        return { error: { code: null, message: redactConnection(failure ?? 'the psql session is closed', connection) } };
+      }
+      // Unpredictable per statement. A counter is a pure function of the case list, so a fixture
+      // value could carry the next one; a UUID cannot be guessed by data that was written first.
+      const id = randomUUID();
+      const open = `__pd_open_${id}__`;
+      const stat = `__pd_stat_${id}__`;
+      const close = `__pd_close_${id}__`;
       buffer = '';
-      child.stdin.write(`\\echo ${open}\n${sql}\n\\echo ${close}\n`);
+      child.stdin.write(`\\echo ${open}\n${sql}\n\\echo ${stat} :ERROR :SQLSTATE :LAST_ERROR_MESSAGE\n\\echo ${close}\n`);
       try {
         await waitFor(close);
-      } catch (failure) {
-        return { error: { code: null, message: redactConnection(failure.message, connection) } };
+      } catch (error) {
+        return { error: { code: null, message: redactConnection(error.message, connection) } };
       }
-      const text = buffer;
-      const opens = occurrencesOf(text, open);
-      const closes = occurrencesOf(text, close);
-      // Counted for the same reason RESULT_BOUNDARY is counted, one layer down: `\echo` prints its
-      // argument ONCE, so anything else means output carried a marker and the boundary would be
-      // decided by the data.
-      if (opens !== 1 || closes !== 1) {
-        return { error: { code: null, message: `the session markers printed ${opens} open and ${closes} close, `
-          + 'where \\echo prints each exactly once. Output somewhere carries a marker, so this driver will not '
-          + 'choose an occurrence and call the answer a result.' } };
+      const outcome = parseSessionOutcome(buffer, { open, stat, close }, diagnostics);
+      if (outcome.error) {
+        return { error: { ...outcome.error, message: redactConnection(outcome.error.message, connection) } };
       }
-      const start = text.indexOf('\n', text.indexOf(open));
-      const end = text.indexOf(close);
-      if (start === -1 || end < start) {
-        return { error: { code: null, message: 'the session markers printed out of order, so no region of this output is the statement\'s result' } };
-      }
-      const region = text.slice(start + 1, end);
-      // The error text is IN the region, because stderr was merged into stdout upstream.
-      if (/^(ERROR|FATAL|PANIC):/m.test(region)) {
-        return { error: parseError(redactConnection(region, connection)) };
-      }
-      return { rows: rowsFromCsv(region) };
+      return outcome;
     },
     async close() {
-      if (exited === null) child.stdin.end('\\q\n');
-      await new Promise((resolve) => { child.once('close', resolve); child.once('error', resolve); });
+      // The first version awaited a `'close'` that had already fired and hung for ever. In
+      // rls-smoke.mjs the report is written AFTER this, so a mid-run psql death produced an
+      // indefinite hang with no report printed at all -- a CI job that burns to its timeout and
+      // says nothing.
+      if (gone()) return;
+      child.stdin.end('\\q\n');
+      await new Promise((resolve) => {
+        const done = () => resolve();
+        child.once('close', done);
+        child.once('error', done);
+        setTimeout(() => { child.kill('SIGKILL'); resolve(); }, 5_000);
+      });
     },
+    // For a test that needs to know what psql said without letting it decide anything.
+    diagnostics: () => redactConnection(diagnostics, connection),
   };
 }

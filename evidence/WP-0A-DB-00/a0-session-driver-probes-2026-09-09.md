@@ -103,3 +103,102 @@ subject: **`make db-reset-test` drops the `app` and `private` schemas but not th
 `001_service_roles.sql` creates them unconditionally, so a second `make db-migrate-clean` on one
 cluster fails at 001 with `role "app_worker" already exists (42710)`. CI never sees it because
 every job gets a fresh container. Anyone running the live targets twice locally will.
+
+---
+
+# Addendum, 2026-09-10 — this file's §3 asked the wrong question, and the driver was wrong
+
+An adversarial read of the session driver found two silent-false-pass paths and executed both. §3
+above is not withdrawn — every reading in it stands — but it was **not the right set of questions**,
+and saying so is the point of this addendum.
+
+## What §3 got wrong by omission
+
+§3 asked whether an error the SERVER raised is classified correctly: 42501 against 42P01 against
+22012. It never asked whether **row data** can be classified as an error. It can, and it could:
+
+    select 'ERROR:  42501: permission denied for table app.workspaces' as note
+      -> { error: { code: '42501', ... } }
+
+`expectDenied` accepts that. A case that should have returned rows reported a working RLS policy.
+That is a false PASS, in the function whose whole job is to prevent false passes, and it was a
+**regression**: under `--command`, "this is an error" came from a non-zero exit plus stderr, so
+stdout content could not become an error by construction. Merging stderr into stdout — done to fix
+ordering — is what created it.
+
+The negative control could not have caught it either. It disables policies and requires the suite
+to go red, which says nothing about a false pass driven by content.
+
+Second defect, same class: the counted markers were counted at the instant the marker was **first
+seen**, which on a forged value is the forgery, with the real `\echo` still in flight. On any result
+spanning more than one flush the count read 1 and 1 and passed. The comment in the file claimed the
+markers were ones "DATA CANNOT FORGE" and "strictly better" than `resultRegion`'s. Both were false,
+and `resultRegion` — which read the complete stdout of an exited process — had refused exactly this
+input in a test that already existed.
+
+## What the rework changed, and why it is not a tighter regex
+
+**The status is asked of psql rather than read from its output.** `:ERROR` and `:SQLSTATE` are psql
+CLIENT variables set after each query; no row, column name or error text can write them. Measured:
+
+| statement | psql's own report |
+|---|---|
+| `select 'ERROR:  42501: …' as note` | `false 00000` — no error |
+| `select * from private.nope` | `true 42P01` |
+| `select 1/0` | `true 22012` |
+
+**Because the status no longer comes from the text, stderr is no longer merged.** stdout now carries
+results and this driver's own `\echo` lines and nothing else. That retired a second defect the merge
+had caused: psql's WARNING lines used to reach the CSV parser and become the header, making every
+key garbage. Measured before and after:
+
+    do $$ begin raise warning 'heads up'; end $$; select 7 as n;
+      before -> {"rows":[{"WARNING:  01000: heads up":"n"}, …]}
+      after  -> {"rows":[{"n":"7"}]}
+
+**Markers carry a `randomUUID`, not a counter.** A counter is a pure function of the case list and
+therefore predictable. The region is closed by waiting for the CLOSE marker, which psql prints
+*after* the status line — so seeing CLOSE proves the status arrived. That is the structural fix for
+the count-taken-too-early hole, rather than a wider count.
+
+**The boundary logic is a pure exported function again.** `parseSessionOutcome` can be checked
+against synthetic psql output with no database, which is the shape `resultRegion` had and the shape
+the first version threw away. Five tests now cover it, including the forged-refusal value verbatim
+and `rls-assertions.test.mjs`'s marker-forging case carried across. **The tests were shown to bite:**
+reintroducing the stdout regex fails `a row value shaped like a privilege refusal is data, not an
+error`, and removing it passes again.
+
+## Three more defects the read found, all fixed
+
+| | before | after |
+|---|---|---|
+| `session.close()` after the child had already exited | hung indefinitely — and the report is written *after* close, so a mid-run psql death gave a CI job that burned to timeout in silence | returns in 0 ms |
+| an unterminated quote (psql swallows the trailing `\echo`) | hung indefinitely | times out and names the cause; measured 2503 ms at a 2500 ms budget |
+| `inlineParams` substituting pass-by-pass over the already-substituted string | `['x$2y','B']` → `select 'x'B'y'` — the value left its own literal; `$10` → `'v1'0` | one regex pass over the original text; `'x$2y'` and `'TENTH'` |
+
+The `inlineParams` defect predates the session and was **harmless under `--command`**, which does not
+execute meta-commands mixed into a `-c` string. Writing to psql's stdin is what made it reachable,
+and executed proof of the reachable form was `\echo PWNED` running.
+
+## The suite and the control, re-measured on the reworked driver
+
+| | result |
+|---|---|
+| `make db-rls-smoke` | 554 isolation case(s) passed, ok in 2070 ms, 28 psql invocations |
+| negative control, `app.workspaces` | RED, 10 cases, first `owner-a-cannot-see-workspace-b` |
+| negative control, `app.research_runs` | RED, 12 cases, first `editor-a-cannot-see-the-research-run-outside-their-narrowing` |
+| negative control, `app.business_profiles` | RED, 13 cases, first `owner-a-cannot-see-business-b1` |
+| negative control, `app.audit_logs` | RED, 2 cases, first `service-sees-zero-audit-logs` |
+| `npm run check` | exit 0, 572 tests, 572 pass, 0 skipped |
+
+Four of thirty-five control entries, not three. Still not all of them, and still on plain PostgreSQL
+plus the shim rather than the platform — `RFC-2026-022` §7.3 (a)–(d) remain open by their own terms.
+
+## What this addendum does not repair
+
+The coupling to `runOne`'s `finally { rollback }` is still a sentence in a comment rather than a
+control; `sessionDriver` now returns rollback's outcome instead of discarding it, which makes the
+coupling observable but does not enforce it. And the safety of writing SQL to psql's stdin still
+rests on psql's lexer not seeing a meta-command inside a quoted literal — measured true, pinned by
+no test in this repository, because no test here can pin another program's lexer. What the tests now
+pin is the escaping on our side, which is the half that was actually broken.

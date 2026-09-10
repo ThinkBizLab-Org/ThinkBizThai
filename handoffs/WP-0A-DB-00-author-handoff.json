@@ -26,10 +26,23 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "AUTHORSHIP AND POSITION: A0's, and STACKED ON THE QUADRATIC-STRIP INCREMENT, which is itself stacked on batch 070 (PR #104). base_revision is that branch's tip, so verify-branch-scope judges only the nine paths this increment changed. Everything it touches in code is owned by this package -- scripts/db/** and test-kits/db/** -- so unlike the increment below it, this one reaches into no other package's files.",
+    "THE FIRST VERSION OF THIS INCREMENT SHIPPED TWO SILENT FALSE-PASS PATHS AND AN ADVERSARIAL READ EXECUTED BOTH. It decided \"this is an error\" with a regex over merged stdout+stderr, so a row value could forge a privilege refusal -- `select 'ERROR:  42501: permission denied …' as note` came back as `{error:{code:'42501'}}` and expectDenied accepted it. And its counted markers were counted at the instant the marker was first seen, which on a forged value is the forgery, so on any result spanning more than one flush the count read 1 and 1 and passed. A comment in the file claimed those markers were ones \"DATA CANNOT FORGE\" and \"strictly better\" than resultRegion's; both were false, and resultRegion had a test that already refused exactly that input.",
+    "THE FIX IS TO ASK psql RATHER THAN READ ITS OUTPUT. `:ERROR` and `:SQLSTATE` are psql CLIENT variables that no row, column name or error text can write -- measured: the forged value above reports `false 00000` and a real refusal reports `true 42501`. Because the status no longer comes from the text, STDERR IS NO LONGER MERGED, which also retired the defect where psql's WARNING lines reached the CSV parser and became the header. Markers now carry a randomUUID rather than a counter, and the region is closed by waiting for the CLOSE marker psql prints AFTER the status, so a short read cannot make the count pass.",
+    "THE BOUNDARY LOGIC IS A PURE EXPORTED FUNCTION AGAIN, which is the shape resultRegion had and the first version threw away -- leaving the replacement with no test at all while the code it retired kept a marker-forging one. parseSessionOutcome takes synthetic psql output, needs no database, and has five tests including the forged-refusal value verbatim. THE TESTS WERE SHOWN TO BITE: reintroducing the stdout regex fails `a row value shaped like a privilege refusal is data, not an error`, and removing it passes again.",
     "THE MEASUREMENT WAS TAKEN ON PLAIN POSTGRESQL, NOT ON THE PLATFORM. PostgreSQL 17.11 (Homebrew, aarch64) with db/foundation/ci/supabase-shim.sql applied first and then make db-migrate-clean through 140 -- the same order and shim CI uses. The shim's header says it is not Supabase; nothing in this increment claims otherwise, and RFC-2026-022 §7.3 (a)-(d) stay OPEN by their own terms because they name the provisioned instance and forbid a citation in place of a reading.",
     "THE 40x IS NOT THE CLAIM THAT MATTERS. A faster suite that stopped detecting would be a worse suite, so the load-bearing evidence is §2 of the probes file: the negative control was run locally on three tables and each went RED with a first-failing case matching that table's own control pattern. Three of thirty-five, which establishes that the mechanism detects and does not re-run the control -- that is CI's job."
   ],
   "acceptance_results": [
+    {
+      "criterion": "Row data cannot be classified as an error, shown by reversal rather than asserted",
+      "result": "met",
+      "evidence": "parseSessionOutcome is driven with the exact forged value and returns rows. Reintroducing the /^(ERROR|FATAL|PANIC):/m branch makes that test fail and removing it makes it pass — a reversal probe, not a claim."
+    },
+    {
+      "criterion": "Three further defects the read found are fixed and measured",
+      "result": "met",
+      "evidence": "close() after the child exited: hung indefinitely, now returns in 0ms. An unterminated quote: hung indefinitely, now times out at 2503ms against a 2500ms budget and names the cause. inlineParams substituting pass-by-pass: ['x$2y','B'] gave select 'x'B'y', now gives select 'x$2y'; $10 gave 'v1'0, now gives 'TENTH'."
+    },
     {
       "criterion": "The per-exec psql invocation is removed, counted rather than estimated",
       "result": "met",
@@ -60,39 +73,41 @@
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "567/567 in 37s — see evidence/VERIFICATION.md"
+      "result": "572 tests, 572 pass, 0 fail, 0 skipped — see evidence/VERIFICATION.md"
     },
     {
       "command": "make db-rls-smoke (live, PostgreSQL 17.11 + shim)",
       "exit_code": 0,
-      "result": "554 isolation case(s) passed; db-authz-proofs ok, 6 claims discharged; ok in 979ms against 38,584ms before"
+      "result": "554 isolation case(s) passed, ok in 2070ms, 28 psql invocations against 1,797 before"
     },
     {
-      "command": "make db-schema-lint (live)",
+      "command": "negative control, four tables, as ci.yml runs it",
       "exit_code": 0,
-      "result": "ok in 20ms"
+      "result": "app.workspaces RED 10 cases; app.research_runs RED 12; app.business_profiles RED 13; app.audit_logs RED 2 — each first-failing case matches that entry's pattern"
     },
     {
-      "command": "negative control, three tables, as ci.yml runs it",
+      "command": "reversal probe: reintroduce the stdout error regex, run the static suite, restore",
       "exit_code": 0,
-      "result": "all three went RED with a first-failing case matching that table's pattern"
+      "result": "one test fails with the defect present and 56/56 pass without it"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs <quadratic-strip tip> WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 9 changed path(s) are declared, and every amendment explains one"
+      "result": "every changed path is declared"
     }
   ],
-  "security_privacy_cost_impact": "This is the increment in this package with the largest security surface so far, because it rewrites the code that decides whether an error is a policy refusal (42501) or something else -- get that wrong and an isolation case passes for the wrong reason, which is a report that tenant isolation holds when nothing was tested. Three things were done about it rather than argued: stderr is merged into stdout IN THE SHELL so the kernel orders errors against results and an error cannot be attributed to the neighbouring statement; the classification was executed against a live database and 42501, 42P01 and 22012 came back distinct; and the negative control was run until the suite went red. No grant, policy, role or schema object is touched. A1 SECURITY REVIEW IS REQUIRED, not optional, and the probes file names what it should re-run.",
+  "security_privacy_cost_impact": "THIS INCREMENT SHIPPED A SECURITY DEFECT AND THEN REPAIRED IT, and the repair is the part that should be reviewed hardest. The defect let row data present itself as SQLSTATE 42501, which means an isolation case could report that a tenant boundary held while testing nothing. The three mitigations the first version listed -- the shell merge, a live SQLSTATE probe, the negative control -- addressed ordering and detection and none of them addressed data-forged classification; the negative control cannot, because it checks that the suite goes RED and says nothing about a false PASS driven by content. The repair moves the decision to psql's own client variables and stops merging stderr, and it is pinned by a reversal probe. A1 SECURITY REVIEW IS REQUIRED and should start from the addendum in evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md.",
   "migration_and_data_impact": "None. No migration is added or altered.",
   "compatibility_impact": "bufferedDriver is KEPT, exported and still tested -- it is the --command path and the seam that existing tests drive. main() now uses sessionDriver. Both call the same two decision functions, so there is no second copy of the escaping or of the identity-call test to drift.",
   "known_limitations": [
-    "ON_ERROR_STOP IS OFF IN THE SESSION, WHICH IS A COUPLING TO CODE IN ANOTHER FILE. It is safe only because runOne rolls back in a `finally` on every path. That coupling is stated in the driver's comment and nothing enforces it: if the `finally` is removed, every case after the first refusal fails at assume-identity with 25P02. Loud, but the guard is a sentence rather than a test.",
-    "A BACKSLASH ON STDIN IS A SURFACE THE OLD DRIVER DID NOT HAVE. Safety rests on psql's SQL-aware lexer not treating a backslash inside a quoted literal as a meta-command, measured true here with a parameter carrying a newline and `\\q`. It is one psql behaviour away from being wrong, and the static test pins the ESCAPING rather than psql's lexer, which no test in this repository can pin.",
-    "THREE OF THIRTY-FIVE CONTROL ENTRIES WERE RUN. The other thirty-two are asserted only by CI.",
-    "NOTHING HERE IS EVIDENCE ABOUT SUPABASE. Plain PostgreSQL plus the shim."
+    "THE COUPLING TO runOne's `finally { rollback }` IS STILL A SENTENCE, NOT A CONTROL. sessionDriver now RETURNS rollback's outcome instead of discarding it, which makes the coupling observable; nothing enforces it. Remove that `finally` and every case after the first refusal fails at assume-identity with 25P02 -- loudly, which is the right direction, but by accident rather than by design.",
+    "WRITING SQL TO psql's STDIN STILL RESTS ON ANOTHER PROGRAM'S LEXER. Safety depends on psql not seeing a meta-command inside a quoted literal. Measured true; pinned by no test here, because no test in this repository can pin psql's lexer. What the tests now pin is the escaping on our side -- which is the half that was actually broken, and was broken for `$10` and for any value carrying a later placeholder.",
+    "FOUR OF THIRTY-FIVE CONTROL ENTRIES WERE RUN. The other thirty-one are asserted only by CI.",
+    "NOTHING HERE IS EVIDENCE ABOUT SUPABASE. Plain PostgreSQL 17.11 plus the shim, whose own header says it is not the platform. RFC-2026-022 §7.3 (a)-(d) remain open by their own terms.",
+    "THE FIRST VERSION PASSED CI AND A SELF-REVIEW. It was green, it had four live measurements behind it, and it was wrong in the worst available way. That is the strongest argument in this handoff for the independent roles RFC-2026-002 requires, and it is an argument against trusting this handoff too."
   ],
   "open_risks_or_blockers": [
+    "THIS BRANCH'S HISTORY CONTAINS A COMMIT THAT SHIPPED A FALSE-PASS PATH. It is repaired in a later commit on the same branch rather than rebased away, so a reviewer can read what was wrong and what the repair actually changed. A squash merge would erase that; whether it should is the Integration Owner's call.",
     "`make db-reset-test` DROPS THE app AND private SCHEMAS BUT NOT THE ROLES, and 001_service_roles.sql creates them unconditionally, so a second make db-migrate-clean on one cluster fails at 001 with `role \"app_worker\" already exists (42710)`. CI never sees it because every job gets a fresh container; anyone running the live targets twice locally does. Found while reproducing CI locally and NOT fixed here -- it is a change to a declared command's semantics and belongs to whoever owns §12.5's reset contract.",
     "THE 42.4-MINUTE CI STEP IS NOT PROVEN FIXED BY THIS INCREMENT. Local is 40x; the CI figure is CI's to produce, and the negative control runs the suite 35 times rather than once, so the saving should compound -- but that sentence is a prediction and this handoff does not record predictions as results."
   ],

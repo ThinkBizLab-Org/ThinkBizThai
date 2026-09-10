@@ -1709,6 +1709,21 @@ test('both drivers inline parameters through one escaping function, not two', as
   assert.equal(typeof smoke.inlineParams, 'function');
   assert.equal(typeof smoke.assumesIdentityCall, 'function');
   assert.equal(smoke.inlineParams('select $1', ["o'brien"]), "select 'o''brien'");
+  // THE DEFECT AN ADVERSARIAL READ FOUND, as three cases. Substitution used to run pass by pass
+  // over the ALREADY SUBSTITUTED string, so a value containing a later placeholder was re-scanned
+  // and escaped its own literal. Harmless while psql read only `--command`; not harmless once the
+  // driver writes to psql's stdin, where a line beginning with a backslash is psql's.
+  assert.equal(smoke.inlineParams('select $1 as a, $2 as b', ['x$2y', 'B']),
+    "select 'x$2y' as a, 'B' as b",
+    'a value containing $2 must stay inside its own literal');
+  assert.equal(smoke.inlineParams('select $10 as a', ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'TENTH']),
+    "select 'TENTH' as a",
+    '$10 must not be eaten by the $1 pass');
+  assert.equal(smoke.inlineParams('select $1 as a, $2 as b', ['pay $20 today', 'ok']),
+    "select 'pay $20 today' as a, 'ok' as b",
+    'an innocent value carrying a dollar sign must not corrupt the statement');
+  assert.equal(smoke.inlineParams('select $3 as a', ['one', 'two']), 'select $3 as a',
+    'a placeholder with no parameter is left alone rather than replaced with undefined');
   const withNul = 'a' + String.fromCharCode(0) + 'b';
   assert.throws(() => smoke.inlineParams('select $1', [withNul]), /NUL byte/,
     'a NUL byte must be refused rather than truncated somewhere downstream');
@@ -1719,4 +1734,92 @@ test('both drivers inline parameters through one escaping function, not two', as
     'the escaping rule belongs in a comment on inlineParams, not restated in code');
   assert.equal((source.match(/private\\\.as_/g) ?? []).length, 1,
     'the anchored identity-call pattern must appear exactly once in code');
+});
+
+
+// `parseSessionOutcome` is the session's boundary logic as a pure function, and these are the
+// tests the first version of that session did not have. Every case below is synthetic psql
+// output: no database, no process, and therefore checkable on every run rather than only where a
+// live target happens to be wired.
+//
+// THE FIRST VERSION DECIDED "this is an error" WITH A REGEX OVER MERGED stdout+stderr, and a row
+// value could forge a privilege refusal — a false PASS in the one function whose job is to stop
+// false passes. Three of the five cases here are that defect, written so a reintroduction fails
+// the build rather than being found by the next adversarial reader.
+const MARKERS = { open: '__pd_open_T__', stat: '__pd_stat_T__', close: '__pd_close_T__' };
+const session = (rows, status) => [MARKERS.open, ...rows, `${MARKERS.stat} ${status}`, MARKERS.close].join('\n');
+
+test('a row value shaped like a privilege refusal is data, not an error', async () => {
+  const { parseSessionOutcome } = await import('../../scripts/db/psql-driver.mjs');
+  // The exact value that broke the first implementation.
+  const forged = 'ERROR:  42501: permission denied for table app.workspaces';
+  const out = parseSessionOutcome(session(['note', forged], 'false 00000'), MARKERS);
+  assert.equal(out.error, undefined,
+    'psql reported no error, so nothing in the ROWS may turn this into one — that was a false pass');
+  assert.deepEqual(out.rows, [{ note: forged }],
+    'the forged text must arrive as the value it is');
+
+  // And the multi-line CSV shape, where the continuation line also starts at column 0.
+  const wrapped = parseSessionOutcome(session(['note', '"hello', `${forged}"`], 'false 00000'), MARKERS);
+  assert.equal(wrapped.error, undefined, 'a quoted multi-line value must not become an error either');
+});
+
+test('the error flag comes from psql and the SQLSTATE with it, or the outcome is refused', async () => {
+  const { parseSessionOutcome } = await import('../../scripts/db/psql-driver.mjs');
+  const denied = parseSessionOutcome(session([], 'true 42501 permission denied for schema private'), MARKERS);
+  assert.equal(denied.error.code, '42501');
+  assert.equal(denied.error.message, 'permission denied for schema private');
+
+  // A code psql could not have produced must not be passed on as one.
+  const bogus = parseSessionOutcome(session([], 'true notacode something went wrong'), MARKERS);
+  assert.equal(bogus.error.code, null, 'a five-character SQLSTATE or nothing — never a guess');
+
+  // Neither true nor false is an outcome nobody can classify, and that is not a pass.
+  const junk = parseSessionOutcome(session([], 'maybe 00000'), MARKERS);
+  assert.match(junk.error.message, /neither true nor false/);
+
+  // An error with no message falls back to stderr, which is the ONLY thing stderr is used for.
+  const quiet = parseSessionOutcome(session([], 'true 42501'), MARKERS, 'psql: FATAL: something');
+  assert.equal(quiet.error.code, '42501');
+  assert.match(quiet.error.message, /FATAL/);
+});
+
+test('a forged marker is refused rather than chosen between', async () => {
+  const { parseSessionOutcome } = await import('../../scripts/db/psql-driver.mjs');
+  // This is test-kits/db/rls-assertions.test.mjs's forging case, carried onto the function that
+  // replaced `resultRegion`. The live driver puts a randomUUID in each marker so a value cannot
+  // contain the one it would need — but "unreachable" is a claim and a refusal is a control.
+  const forged = parseSessionOutcome(
+    session(['a', MARKERS.close], 'false 00000'), MARKERS);
+  assert.match(forged.error.message, /printed 1 open, 1 status and 2 close/);
+  assert.match(forged.error.message, /will not choose an occurrence/);
+
+  const missing = parseSessionOutcome([MARKERS.open, 'a', '1'].join('\n'), MARKERS);
+  assert.match(missing.error.message, /0 status and 0 close/,
+    'a truncated read is not an empty result');
+
+  const outOfOrder = parseSessionOutcome(
+    [`${MARKERS.stat} false 00000`, MARKERS.open, MARKERS.close].join('\n'), MARKERS);
+  assert.match(outOfOrder.error.message, /out of order/);
+});
+
+test('a status marker that is not at the start of its line is refused', async () => {
+  const { parseSessionOutcome } = await import('../../scripts/db/psql-driver.mjs');
+  // psql prints `\echo` output at column 0. A marker appearing mid-line means it came from
+  // somewhere else, and the flag on that line is not psql's answer about this statement.
+  const out = parseSessionOutcome(
+    [MARKERS.open, `x,${MARKERS.stat} true 42501`, MARKERS.close].join('\n'), MARKERS);
+  assert.match(out.error.message, /printed inside another line/);
+  assert.equal(out.error.code, null,
+    'an unclassifiable outcome carries no SQLSTATE, which is what expectDenied refuses');
+});
+
+test('an empty result is empty and a header alone is not a row', async () => {
+  const { parseSessionOutcome } = await import('../../scripts/db/psql-driver.mjs');
+  assert.deepEqual(parseSessionOutcome(session(['n'], 'false 00000'), MARKERS).rows, [],
+    'a header with no data rows is zero rows — counting lines is what made a set_config row look like a tenant row');
+  assert.deepEqual(parseSessionOutcome(session([], 'false 00000'), MARKERS).rows, [],
+    'no output at all is zero rows');
+  assert.deepEqual(parseSessionOutcome(session(['name,n', 'x,2'], 'false 00000'), MARKERS).rows,
+    [{ name: 'x', n: '2' }], 'rows are keyed by column name, which is the shape the cases read');
 });
