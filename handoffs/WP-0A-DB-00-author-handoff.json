@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "57a1bfa444bf7954e275f53cdf06be5c7386cf95",
-  "head_revision_or_patch_checksum": "beffb5075a84c5f624b728afcaf72fdea0dd71f7",
+  "base_revision": "2b8f6b35479a346c50834caa8c236ff0b8d6a584",
+  "head_revision_or_patch_checksum": "2e9232e1f3fc84f2c59fd64d1981398cf0e59b50",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md",
@@ -68,7 +68,7 @@
     "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT, and the answer is three words mapped onto lettered options. The evidence file reproduces the letters so the mapping is checkable rather than merely plausible.",
     "THIS DISPOSITION WILL BE CITED BY A BATCH THAT DOES NOT EXIST YET. If batch 080 is written with a different column shape, the disposition may not cover what it is cited for and nothing will notice.",
     "THE PACKAGE NOW CARRIES THREE DISPOSITION RECORDS AND ONE AUTHOR HANDOFF THAT HAS BEEN REWRITTEN FOUR TIMES. A reader looking for what this package DID has to read the git history, not this file, because the author handoff always describes only the increment on the branch it is on.",
-    "THIS BRANCH WAS CUT FROM 2e18f75 AND REBASED ONTO 57a1bfa WHEN PR #107 MERGED WHILE IT WAS BEING WRITTEN. For a moment its handoff cited a base the branch was not on, and the file-list guard caught it by reporting another package's files inside this range. That is the fifth time in this session's work that a moving base falsified a declaration, and the fourth caught by a guard rather than by the author."
+    "THIS BRANCH WAS REBASED THREE TIMES WHILE IT WAS BEING WRITTEN, as PRs #107 through #110 merged under it. Once its handoff cited a base the branch was not on, and the file-list guard caught it by reporting another package's files inside this range. Across today's work a moving base falsified a declaration six times and a guard caught five of them before the author did."
   ],
   "open_risks_or_blockers": [
     "app.generation_runs REMAINS UNASSIGNED IN §6's REGISTRY. This disposition permits a reference and assigns nobody to build the table; batch 060's blocker stands, owed to A0.",

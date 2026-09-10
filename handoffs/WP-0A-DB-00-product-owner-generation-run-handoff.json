@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude",
   "final_status": "in_progress",
-  "base_revision": "57a1bfa444bf7954e275f53cdf06be5c7386cf95",
-  "head_revision_or_patch_checksum": "beffb5075a84c5f624b728afcaf72fdea0dd71f7",
+  "base_revision": "2b8f6b35479a346c50834caa8c236ff0b8d6a584",
+  "head_revision_or_patch_checksum": "2e9232e1f3fc84f2c59fd64d1981398cf0e59b50",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md",
