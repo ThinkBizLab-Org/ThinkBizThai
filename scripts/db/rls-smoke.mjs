@@ -14,7 +14,7 @@
 import { readFile } from 'node:fs/promises';
 import { argv, env, exit, stdout, stderr } from 'node:process';
 
-import { query, queryFinal, connectionString } from './psql-driver.mjs';
+import { query, queryFinal, connectionString, openSession } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
 
@@ -23,29 +23,63 @@ import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../.
 // result is needed, runs the buffer so far and returns that result; `rollback` discards.
 // `runQuery` is a seam, not a convenience: the `reset role;` decision below is a privilege
 // decision, and a test that cannot see the SQL this driver actually assembles cannot check one.
+// THE TWO DECISIONS BOTH DRIVERS MAKE, LIFTED SO THERE IS ONE COPY OF EACH.
+//
+// §6.3 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md as a rule: batch 110 found seven
+// hand-built copies of one set, six of which failed loudly at a rebase and the seventh of which
+// passed by asking about a table that never existed. A privilege decision with two copies is that
+// defect where it costs the most, so `sessionDriver` below calls these rather than restating them.
+
+// psql has no bind parameters through --command and none through stdin either, so values are
+// inlined as SQL literals. A single quote is doubled, which is the whole of SQL string-literal
+// escaping under standard_conforming_strings -- on by default since 9.1, so a backslash is an
+// ordinary character. A NUL byte cannot appear in a Postgres text value at all, so it is refused
+// rather than truncated silently somewhere downstream.
+export function inlineParams(statement, params) {
+  const values = params ?? [];
+  for (const value of values) {
+    if (String(value).includes('\u0000')) {
+      throw new Error('refusing to inline a parameter containing a NUL byte: Postgres text cannot hold one');
+    }
+  }
+  // ONE PASS, and the reason is a defect an adversarial read found in the version this replaces.
+  // It substituted with `sql.split('$'+n).join(literal)` for n = 1, 2, 3 ... over the ALREADY
+  // SUBSTITUTED string, so pass n could rewrite text that pass n-1 had just inserted:
+  //
+  //   inlineParams('select $1 as a, $2 as b', ['x$2y', 'B'])
+  //     -> "select 'x'B'y' as a, 'B' as b"      the value escaped its own literal
+  //   inlineParams('select $10 as a', [...])
+  //     -> "select 'v1'0 as a"                  $10 eaten by the $1 pass
+  //
+  // Harmless while psql read only `--command`, which does not execute meta-commands mixed into a
+  // `-c` string. NOT harmless now: this driver writes SQL to psql's stdin, where a line beginning
+  // `\` is psql's. A single regex pass reads each placeholder from the ORIGINAL text exactly once,
+  // so an inserted value is never re-scanned, and `$10` is matched before `$1` because `\d+` is
+  // greedy.
+  return String(statement).replace(/\$(\d+)/g, (whole, digits) => {
+    const index = Number(digits) - 1;
+    if (index < 0 || index >= values.length) return whole;
+    return `'${String(values[index]).split("'").join("''")}'`;
+  });
+}
+
+// DECIDED FROM THE STATEMENT, NEVER FROM THE STATEMENT WITH VALUES IN IT (C0's review D7): a case
+// passing the literal text `private.as_` as a VALUE -- and the cases do pass free text like
+// 'renamed by the service' -- would otherwise make its own statement run as the connection role
+// instead of the identity under test.
+//
+// ANCHORED ON THE SHAPE OF A CALL rather than on a substring (A3's correction, batch 060). The
+// pattern was `/\bprivate\.as_/`, and batch 060 put a real subject in `private`, so a substring
+// test was ONE TABLE NAME away -- `private.as_of_date`, say -- from turning every case that reads
+// it into a connection-role statement that passes while asserting nothing.
+export function assumesIdentityCall(statement) {
+  return /^\s*select\s+private\.as_\w+\s*\(/i.test(statement);
+}
+
 export function bufferedDriver(runQuery = queryFinal) {
   let buffer = [];
   const run = async (statement, params) => {
-    // psql has no bind parameters through --command, so values are inlined as SQL literals.
-    //
-    // The first version permitted only fixture UUIDs, on the theory that restricting the SHAPE
-    // prevented SQL being assembled from arbitrary text. It refused legitimate values instead —
-    // the cases pass token seeds and ordinary strings like 'renamed by the service' — so the rule
-    // blocked the suite rather than an attacker, and CI said so on seven cases.
-    //
-    // Escaping is the right control; shape is not. A single quote is doubled, which is the whole of
-    // SQL string-literal escaping under standard_conforming_strings — on by default since 9.1, and
-    // a backslash is therefore an ordinary character. A NUL byte cannot appear in a Postgres text
-    // value at all, so it is refused rather than truncated silently somewhere downstream.
-    let sql = statement;
-    (params ?? []).forEach((value, index) => {
-      const text = String(value);
-      if (text.includes('\u0000')) {
-        throw new Error('refusing to inline a parameter containing a NUL byte: Postgres text cannot hold one');
-      }
-      sql = sql.split(`$${index + 1}`).join(`'${text.split("'").join("''")}'`);
-    });
-    return sql;
+    return inlineParams(statement, params);
   };
   return {
     async begin() { buffer = ['begin;']; },
@@ -82,7 +116,7 @@ export function bufferedDriver(runQuery = queryFinal) {
       // case would pass while asserting nothing. So the test is anchored on the SHAPE of an identity
       // call — a `select` of a `private.as_*` FUNCTION — which the four helpers have and no `select
       // ... from private.<table>` can acquire.
-      const assumesIdentity = /^\s*select\s+private\.as_\w+\s*\(/i.test(statement);
+      const assumesIdentity = assumesIdentityCall(statement);
       const sql = await run(statement, params);
       if (assumesIdentity) buffer.push('reset role;');
       const final = sql.trim().endsWith(';') ? sql : `${sql};`;
@@ -93,6 +127,43 @@ export function bufferedDriver(runQuery = queryFinal) {
       const outcome = await runQuery({ prelude: [...buffer], statement: final, epilogue: ['rollback;'] });
       buffer.push(final);
       return outcome;
+    },
+  };
+}
+
+// The same driver interface over ONE session, and it is SHORTER than the buffered one because the
+// buffer was never the point: it existed only because psql exited between commands, so a case had
+// to be replayed from its first statement to get a transaction back. With a session, `begin`
+// begins, `exec` executes, `rollback` rolls back, and the replay is gone -- 1,797 psql invocations
+// for 554 cases becomes one process for the whole run.
+//
+// WHAT IS DELIBERATELY IDENTICAL: the two decisions above are called, not restated. The `reset
+// role;` emission is still made from the STATEMENT rather than from the statement with values in
+// it, and it is still emitted immediately before an identity call and inside the surrounding
+// transaction, so the privilege boundary this harness rests on is the same one -- the only change
+// is what carries the statement to the server.
+//
+// WHAT IS NOT: this driver reads one statement's result at a time from a stream, so the fencing
+// and the refusal to guess a boundary live in openSession rather than in queryFinal. `runQuery` is
+// kept as a seam here for the same reason it is a seam above: a test that cannot see what the
+// driver assembles cannot check a privilege decision.
+export function sessionDriver(session) {
+  return {
+    async begin() { return session.exec('begin;'); },
+    // Always issued, from runOne's `finally`, and the session DEPENDS on it: an error leaves the
+    // transaction aborted, and this is what clears it before the next case.
+    // Returned rather than discarded. runOne throws this value away today, but the driver's
+    // ON_ERROR_STOP=0 safety DEPENDS on this rollback landing, so it must at least be observable.
+    async rollback() { return session.exec('rollback;'); },
+    async exec(statement, params) {
+      const assumesIdentity = assumesIdentityCall(statement);
+      const sql = inlineParams(statement, params);
+      if (assumesIdentity) {
+        const reset = await session.exec('reset role;');
+        if (reset?.error) return reset;
+      }
+      const final = sql.trim().endsWith(';') ? sql : `${sql};`;
+      return session.exec(final);
     },
   };
 }
@@ -136,7 +207,14 @@ async function main() {
 
   const resolve = await fixtureResolver();
   const cases = buildCases(resolve);
-  const result = await runCases(cases, bufferedDriver());
+  // One session for every case, closed in a `finally` so a throw does not leave psql running.
+  const session = openSession();
+  let result;
+  try {
+    result = await runCases(cases, sessionDriver(session));
+  } finally {
+    await session.close();
+  }
   stdout.write(formatReport(result));
 
   // RFC-2026-020 §6.2, executed here rather than cited anywhere.
