@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-006",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
-  "head_revision_or_patch_checksum": "4585b5f62947bd2a1a7c1d78947bb2a89048379a",
+  "base_revision": "ff12b8bf1b937407cdae3f197bb4f8d0a444a679",
+  "head_revision_or_patch_checksum": "f82ef993e6dc8de69e0d30a8be9ff45054dba4a1",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -64,7 +64,8 @@
     "THREE SIBLING PACKAGES CARRY THE SAME DEFECT AND ARE NOT FIXED HERE. WP-0A-A0-007, -008 and -009 each hold blockers a disposition falsified. Each manifest is owned by its own package, so each correction is its own increment on its own declared branch; the audit for all four is in this handoff's recommended_next_work_packages.",
     "THIS BRANCH IS CUT FROM main, WHICH DOES NOT YET CARRY THE QUADRATIC-STRIP FIX, so npm run check takes about fourteen minutes here rather than forty seconds. That is a property of the base, not of this increment.",
     "THE TALLY IN THIS HANDOFF'S SIBLINGS WAS OFF BY ONE CLASS. Across the four packages the counts were reported as 6 spent / 7 corrected / 6 untouched; measured, they are 6 / 8 / 5, because this package's prefer_cross_vendor_review blocker gained a sentence and was counted as untouched. The original clause is preserved verbatim so the substance is unaffected -- only the arithmetic was wrong, which is the same class of defect as everything else this increment repairs.",
-    "amends_without_owning CARRIED A DANGLING `recorded_on` AND IT IS NOW REMOVED. It named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has entries for WP-0A-A0-005, WP-0A-CON-007 and WP-0A-CON-008 and never for this package. The reference was dangling before this branch and became meaningless once `paths` was emptied."
+    "amends_without_owning CARRIED A DANGLING `recorded_on` AND IT IS NOW REMOVED. It named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has entries for WP-0A-A0-005, WP-0A-CON-007 and WP-0A-CON-008 and never for this package. The reference was dangling before this branch and became meaningless once `paths` was emptied.",
+    "REBASED ONTO ff12b8b AFTER PR #104 MERGED, AND THAT MOVED THE GROUND UNDER THIS INCREMENT'S OWN SENTENCES. The base this branch declares now carries batch 070, so any count taken at f3d3102 is stale by exactly the five tables, seventy-three cases and sixteen service ids that batch adds. Every figure in this package was re-measured at the new base rather than carried across, which is the third time in this increment's life that the same defect class had to be caught -- once by an independent check, once by CI, and once here by expecting it."
   ],
   "open_risks_or_blockers": [
     "The three corrected blockers remain OPEN and are listed in the manifest. This increment closes none of them."
