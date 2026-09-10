@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "2e18f75dbc72ec3c03cb9e5966c7f1cb65fa592a",
-  "head_revision_or_patch_checksum": "11dc8268eabc5185dac84e79370523130097e64e",
+  "base_revision": "5abee8bf4cf06512bf478cdcb6422ed30ee7882d",
+  "head_revision_or_patch_checksum": "6f7233fbbd681bc69f48005c64b2fd9ea55b2167",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -30,7 +30,7 @@
     {
       "criterion": "Every count is measured against the revision this branch declares as its base",
       "result": "met",
-      "evidence": "At 2e18f75, which is origin/main after PRs #104, #105 and #106 merged: 45 create-table statements for app./private. across db/foundation/migrations/*.sql; 65 blocks in isolation-cases.mjs declaring covers RFC-2026-017§7, 28 of them expect denied; 116 case ids beginning `service`; 554 cases reported by make db-rls-smoke. The figures are unchanged from ff12b8b because neither #105 nor #106 touches a migration, isolation-cases.mjs or run.mjs -- VERIFIED with git diff rather than assumed. Earlier versions of this increment carried 45/554/116 measured on an unmerged branch while declaring f3d3102, then 40/481/100 correct for f3d3102 and stale the moment #104 merged."
+      "evidence": "At 5abee8b, origin/main after PRs #104 through #108 merged: 45 create-table statements for app./private.; 65 blocks declaring covers RFC-2026-017§7, 28 expecting denied; 116 case ids beginning `service`; 554 cases from make db-rls-smoke. Unchanged across bases ff12b8b, 2e18f75 and 5abee8b, VERIFIED each time with git diff over migrations, isolation-cases.mjs and run.mjs rather than assumed. Earlier versions carried 45/554/116 measured on an unmerged branch while declaring f3d3102, then 40/481/100 correct for f3d3102 and stale the moment #104 merged."
     },
     {
       "criterion": "No sentence asserts the opposite of what the repository asserts",
