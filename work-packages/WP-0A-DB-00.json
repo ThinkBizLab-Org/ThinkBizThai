@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-070",
+    "branch": "agent/claude/WP-0A-DB-00-quadratic-strip",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -109,13 +109,14 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".github/workflows/ci.yml",
         "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
+        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json"
+        "test-kits/integrity-manifest.json",
+        "test-kits/test-coverage-floor.test.mjs"
       ],
-      "rationale": "Batch 070 creates five tables, so it amends the FIVE registries a table-creating batch touches. `.github/workflows/ci.yml` IS declared this time and the previous increment's rationale says why it was not: the per-family negative control gains one `control` line per new table, and this increment creates app.research_runs, app.research_sources, app.research_snapshots, app.research_evidence and app.research_suggestions, so five lines are added with a comment saying what each entry rests on -- and the entry for app.research_snapshots states that its basis is exactly two cases, because §9.1 classes a research snapshot COPYRIGHT-3 and no client role is granted anything on it. evidence/VERIFICATION.md is written by the verifier, never by hand, and moves whenever the count does; it is regenerated with `npm run record:verification` rather than edited, because five branches once wrote five different totals into the same two lines and the one that happened to equal main's auto-merged to a number wrong by thirteen. scripts/test-suite-contract.mjs carries the per-file floors and the test-name digests: this increment adds fifteen tests and about a hundred and thirteen assertions to tests/db/identity/identity-isolation.test.mjs, so the declared-test floor moves 194 -> 209, the assertion floor 1435 -> 1548 and the name digest with them. NO FLOOR IS LOWERED, and both numbers are re-derived from the MERGED tree rather than from either side of a merge -- two branches once declared a floor BELOW main's while their own rationale said no floor was lowered. test-kits/branch-identity.test.mjs holds the single-slot registry naming which branch owns this package, repointed in its two places (the ref list and the BRANCH_OWNERSHIP row); the field holds ONE value, so this is a replacement rather than an addition. test-kits/integrity-manifest.json is regenerated over the protected files this increment touches."
+      "rationale": "This increment creates no table and adds no migration, and it is the first in this package whose subject is a guard's COST rather than its verdict. Two of the six paths belong to WP-0A-A0-002 and are amended for one reason stated in the diff itself: `scripts/verify-test-coverage-floor.mjs` answered \"may a regex literal begin here\" by rescanning the whole accumulated buffer once per slash in a code position, which is quadratic because `keepNewlines` rewrites comments and strings as long runs of spaces -- measured 29,160ms on identity-isolation.test.mjs at 622KB against 18ms on isolation-cases.mjs at 701KB, the LARGER file. The fix carries the answer in a variable updated on the only append that can change it, and `test-kits/test-coverage-floor.test.mjs` is amended in the SAME change because a fix to a guard that nothing would catch regressing is not finished: two tests are added, one pinning the answer across a blanked comment and string, one pinning the cost on the real corpus. The equivalence is not argued -- old and new were run over all 54 .mjs files in the tree and produced BYTE-IDENTICAL output. `.github/workflows/ci.yml` is NOT declared here and the previous increment's rationale says why the reverse would be wrong: this branch does not change it, and an amendment that explains nothing the branch changed is what verify-branch-scope refuses in its other direction. The remaining four paths are the registries any increment that changes a test count has to touch."
     }
   },
   "inputs": {

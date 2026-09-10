@@ -189,12 +189,33 @@ export function assertPackageScripts(scripts) {
 // way to do this without a parser.
 function regexCanStartHere(before) {
   const previous = before.replace(/\s+$/, '').slice(-1);
+  return regexCanFollow(previous);
+}
+
+// The same question asked of ONE character instead of a whole buffer. `stripNonCode` knows the
+// last significant character it appended, so it does not have to find it again.
+function regexCanFollow(previous) {
   return previous === '' || '(,=:[!&|?{};+-*%~^<>'.includes(previous);
 }
 
 export function stripNonCode(source) {
   let out = '';
   let i = 0;
+  // The last NON-WHITESPACE character appended to `out`, maintained as we go.
+  //
+  // This used to be recovered by `before.replace(/\s+$/, '').slice(-1)` over the whole of `out`,
+  // on every `/` in a code position. Two things made that quadratic rather than merely wasteful:
+  // `out` grows to the size of the file, and `keepNewlines` turns every comment and string into a
+  // RUN OF SPACES, so `/\s+$/` had a long run to consume and reject at each candidate start.
+  // Measured on this repository: 42,323ms for identity-isolation.test.mjs (622KB) against 18ms
+  // for isolation-cases.mjs (701KB, larger) -- the difference being how many slashes sit in code
+  // positions rather than inside string literals.
+  //
+  // Only four things are ever appended, and all four are whitespace: keepNewlines() output for a
+  // comment, a regex literal or a string literal. The single-character code append below is the
+  // ONLY one that can change the answer, which is what makes an incremental variable exact rather
+  // than an approximation of the scan it replaces.
+  let lastSignificant = '';
   const keepNewlines = (text) => text.replace(/[^\n]/g, ' ');
   while (i < source.length) {
     const two = source.slice(i, i + 2);
@@ -215,7 +236,7 @@ export function stripNonCode(source) {
     // A regex literal may contain quotes, slashes and `/*`. Without tracking it, `/[/*]/`
     // opened a phantom block comment running to end of file. Distinguish it from division
     // by the last significant character before it.
-    if (source[i] === '/' && regexCanStartHere(out)) {
+    if (source[i] === '/' && regexCanFollow(lastSignificant)) {
       let j = i + 1;
       let inClass = false;
       while (j < source.length) {
@@ -248,6 +269,7 @@ export function stripNonCode(source) {
       continue;
     }
     out += source[i];
+    if (source[i].trim() !== '') lastSignificant = source[i];
     i += 1;
   }
   return out;
