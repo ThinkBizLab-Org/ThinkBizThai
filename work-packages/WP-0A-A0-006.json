@@ -99,10 +99,7 @@
     ],
     "amends_without_owning": {
       "paths": [],
-      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE, and the list is emptied rather than left carrying the previous increment's five paths. verify-branch-scope reads the declaration in BOTH directions, and a path declared here that this branch does not touch is a standing permission over another package's file granted for work that never happened -- which is what the guard refuses in its second direction. The five paths the earlier increment amended (handoffs/WP-0A-CON-008-author-handoff.json, scripts/verify-test-coverage-floor.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json and test-kits/repository-json.test.mjs) are recorded in git history and in that increment's diff; this field describes the increment on this branch, as WP-0A-DB-00's manifest also uses it.",
-      "recorded_on": [
-        "work-packages/WP-0A-A0-002.json"
-      ]
+      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE, and the list is emptied rather than left carrying the previous increment's five paths. verify-branch-scope reads the declaration in BOTH directions, and a path declared here that this branch does not touch is a standing permission over another package's file granted for work that never happened -- which is what the guard refuses in its second direction. The five paths the earlier increment amended (handoffs/WP-0A-CON-008-author-handoff.json, scripts/verify-test-coverage-floor.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json and test-kits/repository-json.test.mjs) are recorded in git history and in that increment's diff; this field describes the increment on this branch, as WP-0A-DB-00's manifest also uses it."
     }
   },
   "inputs": {
