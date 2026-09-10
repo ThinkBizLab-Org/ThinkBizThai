@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-009",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
-  "head_revision_or_patch_checksum": "4f02a2cd092f73f794b86677a874a229294231bd",
+  "base_revision": "ff12b8bf1b937407cdae3f197bb4f8d0a444a679",
+  "head_revision_or_patch_checksum": "15676f4c4492ba7c7ca75b7f48e9aa9c38741a91",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -70,7 +70,8 @@
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English.",
     "LINE NUMBERS DRIFT AND THREE ARE CITED HERE. Each is paired with what the rule asserts, which is the mitigation and not a guarantee -- and one citation in an earlier version of this increment was wrong from the moment it was written, so the pairing is the part a reader should trust.",
     "THE RULE-3 LIST HAS NO COMPLETENESS CHECK. catalog-snapshot.json's security_definer_functions holds one entry and, unlike tenantTableLint, nothing asserts the list is complete in either direction -- so \"every SECURITY DEFINER function\" is only as strong as the snapshot. Recorded rather than fixed: run.mjs is not this package's file.",
-    "HALF THIS PACKAGE'S BLOCKERS WENT AWAY IN ONE INCREMENT. The status is unchanged and this handoff says so twice."
+    "HALF THIS PACKAGE'S BLOCKERS WENT AWAY IN ONE INCREMENT. The status is unchanged and this handoff says so twice.",
+    "REBASED ONTO ff12b8b AFTER PR #104 MERGED. The three run.mjs line citations were re-read at the new base and are unchanged -- batch 070 does not touch scripts/db/run.mjs -- but they were re-read rather than assumed, because a rebase is exactly the event that silently invalidates a line number."
   ],
   "open_risks_or_blockers": [
     "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them: it removes ones already discharged elsewhere.",
