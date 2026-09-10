@@ -21,30 +21,29 @@
     "None. This increment proposes a decision and changes no contract, schema or role."
   ],
   "assumptions": [
-    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. Three of this package's six blockers are spent and one had a conclusion that went false; two are untouched because they are still true.",
-    "SPENT: the blocker saying RFC-2026-019 was Proposed and awaiting disposition. That record was disposed on 2026-09-06; read its status line for the wording rather than this file.",
-    "SPENT, AND THIS ONE IS THE INTERESTING REMOVAL. The blocker said RFC-2026-018's status line still recorded only that it was disposed, while the record had been superseded -- and it called that \"the most dangerous shape a record can have here\", a record that must not be implemented reading as one that may. That line now carries the supersession explicitly, dated 2026-09-06, along with the fact that it was NEVER IN EFFECT and why. The dangerous shape is gone, so the blocker that named it goes with it.",
-    "SPENT: the blocker saying the three lint rules RFC-2026-019 §5 names are not written. All three are, and each was checked against the file rather than assumed -- authenticator's non-membership at scripts/db/run.mjs:307, the app_command owner refusal at :632, and the SECURITY DEFINER search_path plus recorded owner at :1003 against catalog-snapshot.json's security_definer_functions list.",
-    "REWRITTEN, NOT REMOVED: \"Nothing in the tree implements the decision, deliberately.\" That is now false in its main clause and still true in a part. §5 names FOUR rules and says plainly that the fourth cannot be written before a command function exists; three are written and no command function exists. So the blocker keeps the fourth and drops the claim that nothing is implemented.",
-    "TWO ARE UNCHANGED BECAUSE THEY ARE STILL TRUE, and one was verified rather than assumed: the countersignature in evidence/WP-0A-DB-00/a1-countersignature-role-topology.md is against RFC-2026-016 and RFC-2026-017, not this record, and no evidence file in the tree is a review of RFC-2026-019. The G0 blocker carries no false tail here, unlike its siblings in -006, -007 and -008, so it is left exactly as written.",
-    "amends_without_owning IS EMPTIED. Four paths from the earlier increment, none touched here.",
-    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. An Author may move work only as far as in_review, and moving it would be a claim about completeness rather than the correction of false sentences. It is worth saying for THIS package in particular, because half its blockers just went away and that could easily be read as the package being finished."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. Three of this package's six blockers are spent, and the two that remain beside G0 had claims that went false.",
+    "SPENT: RFC-2026-019 was Proposed and awaiting disposition; it was disposed 2026-09-06. SPENT, and this was the interesting one: RFC-2026-018's status line recorded only that it was disposed while the record had been superseded, and the blocker called that the most dangerous shape a record can have -- one that must not be implemented reading as one that may. That line now carries the supersession explicitly, dated 2026-09-06, with NEVER IN EFFECT and the reason. SPENT: the three §5 lint rules said to be unwritten are written.",
+    "AN EARLIER VERSION OF THIS INCREMENT CITED THE WRONG LINE AND AN INDEPENDENT CHECK FOUND IT. It gave scripts/db/run.mjs:307 for §5's first rule. Line 307 is inside authzLint and belongs to RFC-2026-020's app_authz rule -- a different decision, 670 lines from the rule it was standing in for. The citations are now 976-986, 629-635 and 1003-1013, read at f3d3102, and each is paired with what the rule asserts so a reader whose line has drifted can still find it.",
+    "REWRITTEN: \"A1 has not seen this RFC\". False. evidence/WP-0A-DB-00/a1-rfc-022-measurements-2026-09-08.md:338, authored by /claude/a1_bastion, records that RFC-2026-019 §4/1 holds today, measured. The earlier version of this increment checked whether any evidence file had the RFC as its SUBJECT, found none, and kept the blocker -- but the blocker's sentence was wider than the test run against it. The load-bearing half survives and is kept: measuring that one clause holds is not agreeing with the proposal.",
+    "REWRITTEN: \"Nothing in the tree implements the decision, deliberately.\" False in its main clause and true in a part. §5 names FOUR rules and says the fourth cannot be written before a command function exists; three are written and none exists.",
+    "amends_without_owning's `recorded_on` IS REMOVED. It named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has never carried an entry for this package, so the reference was dangling before this branch, and with `paths` already empty it pointed at no amendment at all.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. Half its blockers went away in one increment, which is the shape most likely to be misread as completion."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each removal was checked against the artifact, not inferred from the others",
+      "criterion": "Each removal was checked against the artifact, not against the others",
       "result": "met",
-      "evidence": "RFC-2026-019's status line carries a disposition dated 2026-09-06. RFC-2026-018's status line carries SUPERSEDED by RFC-2026-019 on 2026-09-06 plus NEVER IN EFFECT and the reason. The three lint rules are at scripts/db/run.mjs:307, :632 and :1003."
+      "evidence": "RFC-2026-019's status line carries a disposition dated 2026-09-06. RFC-2026-018's carries SUPERSEDED by RFC-2026-019 on 2026-09-06, plus NEVER IN EFFECT and the reason."
     },
     {
-      "criterion": "A blocker whose main clause went false is rewritten rather than deleted where a part survives",
+      "criterion": "Every line citation is read at the declared base and paired with the rule it points to",
       "result": "met",
-      "evidence": "§5 names four rules and states the fourth cannot be written before a command function exists. Three are written; none exists. The blocker keeps the fourth."
+      "evidence": "At f3d3102: rule 1 at scripts/db/run.mjs:976-986 (SERVICE_ROLES_NOT_FOR_THE_REQUEST_PATH), rule 2 at 629-635 (inside tenantTableLint), rule 3 at 1003-1013 (owner recorded at 1008, empty search_path at 1012). An earlier version cited 307, which is RFC-2026-020's app_authz rule."
     },
     {
-      "criterion": "A blocker is left alone when it is still true, and that is verified rather than assumed",
+      "criterion": "A blocker is rewritten when its sentence is wider than the test run against it",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a1-countersignature-role-topology.md names RFC-2026-016 and RFC-2026-017 as its subject; grep over evidence/ finds no file whose subject is RFC-2026-019. The blocker stands."
+      "evidence": "'A1 has not seen this RFC' was checked by asking whether any evidence file had the RFC as its subject. a1-rfc-022-measurements-2026-09-08.md:338 measures RFC-2026-019 §4/1 without having it as a subject, which falsifies the sentence and leaves its second half true."
     },
     {
       "criterion": "No decision, code, migration, contract or status changes",
@@ -69,22 +68,24 @@
   "compatibility_impact": "None.",
   "known_limitations": [
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English.",
-    "THE THREE LINT RULES ARE CITED BY LINE NUMBER, WHICH IS THE SAME KIND OF CLAIM THIS REPOSITORY HAS WATCHED GO STALE. A line number moves on the next edit to that file. They are cited by line AND by what the rule asserts, so a reader whose line number is wrong can still find the rule; the pairing is the mitigation and it is not a guarantee.",
-    "HALF THIS PACKAGE'S BLOCKERS WENT AWAY IN ONE INCREMENT, and that is the shape most likely to be misread as completion. The status is unchanged and the handoff says so twice."
+    "LINE NUMBERS DRIFT AND THREE ARE CITED HERE. Each is paired with what the rule asserts, which is the mitigation and not a guarantee -- and one citation in an earlier version of this increment was wrong from the moment it was written, so the pairing is the part a reader should trust.",
+    "THE RULE-3 LIST HAS NO COMPLETENESS CHECK. catalog-snapshot.json's security_definer_functions holds one entry and, unlike tenantTableLint, nothing asserts the list is complete in either direction -- so \"every SECURITY DEFINER function\" is only as strong as the snapshot. Recorded rather than fixed: run.mjs is not this package's file.",
+    "HALF THIS PACKAGE'S BLOCKERS WENT AWAY IN ONE INCREMENT. The status is unchanged and this handoff says so twice."
   ],
   "open_risks_or_blockers": [
-    "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them: it removes ones that were already discharged elsewhere."
+    "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them: it removes ones already discharged elsewhere.",
+    "AN A1 REVIEW OF RFC-2026-019 AS A WHOLE DOES NOT EXIST. One clause has been measured by an A1 run; the proposal has not been agreed with, and that is the oldest open item on this package."
   ],
   "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to six blockers, three describing states that no longer hold and one claiming nothing in the tree implements a decision that is implemented three ways.",
   "recommended_next_work_packages": [
-    "A review of RFC-2026-019 by the co-owner of the question it answers. That blocker is the one this increment could not discharge and it is the oldest open item on this package.",
-    "The command function §5's fourth rule waits on. Until one exists, the fourth rule cannot be written and RFC-2026-017 §3's present tense stays wrong, which RFC-2026-019's own status line already says.",
-    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose. Four manifests have now been corrected by hand for one class of defect, which is the point at which a control is usually cheaper than the next repair."
+    "An A1 review of RFC-2026-019 as a proposal rather than a measurement of one of its clauses.",
+    "The command function §5's fourth rule waits on. Until one exists the fourth rule cannot be written, which RFC-2026-019's own status line already says.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose. Four manifests have now been corrected by hand for one class of defect, and two of those corrections were themselves wrong on first attempt."
   ],
   "reviewer_instructions": [
-    "Check the three removals against the artifacts, not against each other. The RFC-2026-018 one matters most: read that status line and confirm it now records the supersession, because the blocker called that shape the most dangerous one a record can have.",
-    "Check the three lint rules exist and assert what the blocker says they assert. Line numbers are given but the assertion is the thing to match.",
-    "Check that the untouched A1 blocker really is still true -- grep evidence/ for a review whose subject is RFC-2026-019 and confirm the countersignature that exists is about RFC-2026-016 and RFC-2026-017.",
+    "Check the three line citations at f3d3102 and match each to the rule it claims. One was wrong in an earlier version of this increment, which is why they are now paired with the assertion.",
+    "Read a1-rfc-022-measurements-2026-09-08.md:338 and confirm the new wording: measured, not reviewed.",
+    "Check the three removals against the artifacts, not against each other. The RFC-2026-018 one matters most, because the blocker it retires named the shape it was retiring.",
     "Confirm the status is still in_progress and nothing outside this package's two owned files changed."
   ],
   "superseded_by": null,
