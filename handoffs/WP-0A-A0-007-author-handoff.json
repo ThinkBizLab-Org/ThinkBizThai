@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-A0-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3d3102a3d3540b4ad98e956c62e2780648b9bf5",
-  "head_revision_or_patch_checksum": "5b0394f9cceea195e469900626a7552a28b7d029",
+  "base_revision": "ff12b8bf1b937407cdae3f197bb4f8d0a444a679",
+  "head_revision_or_patch_checksum": "ca58583a133173ef147efb9ffc5a4e9d96a67e12",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -69,7 +69,8 @@
   "known_limitations": [
     "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English; the rule that would catch this class ties a blocker naming a decision record to that record's status and is not written here.",
     "THE §2 AMENDMENT BLOCKER IS KEPT VERBATIM AND IS THE ONE MOST LIKELY TO GO STALE NEXT. It describes the shape of a record -- the original text kept below the amendment rather than replaced -- and that shape holds only while nobody tidies the file.",
-    "THE FIRST PASS OF THIS INCREMENT CHECKED WHICH BLOCKERS TO REMOVE AND NOT WHICH TO NARROW. Two were corrected and three were declared still-true; one of those three was stale in exactly the way the other two were. An audit that asks 'is this spent' and not 'is every clause of this still true' finds fewer defects than it appears to."
+    "THE FIRST PASS OF THIS INCREMENT CHECKED WHICH BLOCKERS TO REMOVE AND NOT WHICH TO NARROW. Two were corrected and three were declared still-true; one of those three was stale in exactly the way the other two were. An audit that asks 'is this spent' and not 'is every clause of this still true' finds fewer defects than it appears to.",
+    "REBASED ONTO ff12b8b AFTER PR #104 MERGED, AND THAT MOVED THE GROUND UNDER THIS INCREMENT'S OWN SENTENCES. The base this branch declares now carries batch 070, so any count taken at f3d3102 is stale by exactly what that batch adds. Every figure in this package was re-measured at the new base rather than carried across."
   ],
   "open_risks_or_blockers": [
     "Four blockers remain OPEN and are listed in the manifest. This increment closes none of them."
