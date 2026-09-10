@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude",
   "final_status": "in_progress",
-  "base_revision": "2e18f75dbc72ec3c03cb9e5966c7f1cb65fa592a",
-  "head_revision_or_patch_checksum": "PENDING",
+  "base_revision": "57a1bfa444bf7954e275f53cdf06be5c7386cf95",
+  "head_revision_or_patch_checksum": "beffb5075a84c5f624b728afcaf72fdea0dd71f7",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md",
@@ -13,6 +13,7 @@
   ],
   "files_modified": [
     "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -42,9 +43,9 @@
       "evidence": "Four items: the registry gap stays open, nothing enforces the reference, the column's type and nullability are 080's to decide, and content_versions' immutability makes ka harder to reverse than kho. Plus an Explicit limits section modelled on the two earlier dispositions."
     },
     {
-      "criterion": "Nothing outside this package's own files changes except the one pin that must move",
+      "criterion": "Nothing outside this package's own files changes except the two that must follow",
       "result": "met",
-      "evidence": "test-kits/branch-identity.test.mjs is amended because BRANCH_OWNERSHIP is deepEqual'd against the branch each manifest declares; declaring a new branch for this package is impossible without it."
+      "evidence": "test-kits/branch-identity.test.mjs is amended because BRANCH_OWNERSHIP is deepEqual'd against the branch each manifest declares; test-kits/integrity-manifest.json follows because that file is digested and the coverage-floor guard exits 87 on a stale digest. Both are declared with that reason in the manifest."
     }
   ],
   "tests": [

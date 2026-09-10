@@ -4,20 +4,16 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "94bdd8f412493870d3b6da304af1f9df151c7f1a",
-  "head_revision_or_patch_checksum": "efea926b3f3f151422c8488b8adf550530a1cd0a",
+  "base_revision": "57a1bfa444bf7954e275f53cdf06be5c7386cf95",
+  "head_revision_or_patch_checksum": "beffb5075a84c5f624b728afcaf72fdea0dd71f7",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md"
+    "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md",
+    "handoffs/WP-0A-DB-00-product-owner-generation-run-handoff.json"
   ],
   "files_modified": [
-    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/psql-driver.mjs",
-    "scripts/db/rls-smoke.mjs",
-    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
@@ -26,105 +22,70 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "AUTHORSHIP AND POSITION: A0's, and STACKED ON THE QUADRATIC-STRIP INCREMENT, which is itself stacked on batch 070 (PR #104). base_revision is that branch's tip, so verify-branch-scope judges only the nine paths this increment changed. Everything it touches in code is owned by this package -- scripts/db/** and test-kits/db/** -- so unlike the increment below it, this one reaches into no other package's files.",
-    "THE FIRST VERSION OF THIS INCREMENT SHIPPED TWO SILENT FALSE-PASS PATHS AND AN ADVERSARIAL READ EXECUTED BOTH. It decided \"this is an error\" with a regex over merged stdout+stderr, so a row value could forge a privilege refusal -- `select 'ERROR:  42501: permission denied …' as note` came back as `{error:{code:'42501'}}` and expectDenied accepted it. And its counted markers were counted at the instant the marker was first seen, which on a forged value is the forgery, so on any result spanning more than one flush the count read 1 and 1 and passed. A comment in the file claimed those markers were ones \"DATA CANNOT FORGE\" and \"strictly better\" than resultRegion's; both were false, and resultRegion had a test that already refused exactly that input.",
-    "THE FIX IS TO ASK psql RATHER THAN READ ITS OUTPUT. `:ERROR` and `:SQLSTATE` are psql CLIENT variables that no row, column name or error text can write -- measured: the forged value above reports `false 00000` and a real refusal reports `true 42501`. Because the status no longer comes from the text, STDERR IS NO LONGER MERGED, which also retired the defect where psql's WARNING lines reached the CSV parser and became the header. Markers now carry a randomUUID rather than a counter, and the region is closed by waiting for the CLOSE marker psql prints AFTER the status, so a short read cannot make the count pass.",
-    "THE BOUNDARY LOGIC IS A PURE EXPORTED FUNCTION AGAIN, which is the shape resultRegion had and the first version threw away -- leaving the replacement with no test at all while the code it retired kept a marker-forging one. parseSessionOutcome takes synthetic psql output, needs no database, and has five tests including the forged-refusal value verbatim. THE TESTS WERE SHOWN TO BITE: reintroducing the stdout regex fails `a row value shaped like a privilege refusal is data, not an error`, and removing it passes again.",
-    "THE MEASUREMENT WAS TAKEN ON PLAIN POSTGRESQL, NOT ON THE PLATFORM. PostgreSQL 17.11 (Homebrew, aarch64) with db/foundation/ci/supabase-shim.sql applied first and then make db-migrate-clean through 140 -- the same order and shim CI uses. The shim's header says it is not Supabase; nothing in this increment claims otherwise, and RFC-2026-022 §7.3 (a)-(d) stay OPEN by their own terms because they name the provisioned instance and forbid a citation in place of a reading.",
-    "THE 40x IS NOT THE CLAIM THAT MATTERS. A faster suite that stopped detecting would be a worse suite, so the load-bearing evidence is §2 of the probes file: the negative control was run locally on three tables and each went RED with a first-failing case matching that table's own control pattern. Three of thirty-five, which establishes that the mechanism detects and does not re-run the control -- that is CI's job."
+    "THIS INCREMENT RECORDS A PRODUCT OWNER DISPOSITION AND CHANGES NO CODE. Its substance is in evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md and in the disposition handoff beside it; this file exists because the protocol asks the package's author handoff to describe the branch, and the previous one described the session-driver increment that is now on main.",
+    "THE QUESTION WAS WHETHER BATCH 080 MAY REFERENCE A TABLE NOBODY OWNS. §4.6 gives it two `generation_run_id` columns; `app.generation_runs` exists nowhere and is assigned to no batch in §6's 000-180 registry. Verified at 2e18f75: no migration mentions `generation_run` at all. Batch 060 records the gap in its own header and cites batch 021's refusal to reserve a table no registry row gives it.",
+    "IT WAS A SCOPE QUESTION AND THEREFORE NOT AN AGENT'S. Three options were put with their costs and the Owner named the first: keep both columns as references carrying no foreign key.",
+    "RECORDED AHEAD OF BATCH 080 FOR DURABILITY. The draft lived in a session-scoped scratch directory that may be cleaned, and a Product Owner decision must not exist only there."
   ],
   "acceptance_results": [
     {
-      "criterion": "Row data cannot be classified as an error, shown by reversal rather than asserted",
+      "criterion": "The disposition reaches the repository rather than a scratch directory",
       "result": "met",
-      "evidence": "parseSessionOutcome is driven with the exact forged value and returns rows. Reintroducing the /^(ERROR|FATAL|PANIC):/m branch makes that test fail and removing it makes it pass — a reversal probe, not a claim."
+      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md, in the shape the two earlier dispositions in this directory use, with the question, the three lettered options, the answer verbatim, what it does not settle, and Explicit limits."
     },
     {
-      "criterion": "Three further defects the read found are fixed and measured",
+      "criterion": "The unassigned-table claim is verified rather than repeated",
       "result": "met",
-      "evidence": "close() after the child exited: hung indefinitely, now returns in 0ms. An unterminated quote: hung indefinitely, now times out at 2503ms against a 2500ms budget and names the cause. inlineParams substituting pass-by-pass: ['x$2y','B'] gave select 'x'B'y', now gives select 'x$2y'; $10 gave 'v1'0, now gives 'TENTH'."
+      "evidence": "At 2e18f75 no file under db/foundation/migrations/ mentions `generation_run`; batch 060's header states §6's registry gives no batch a generation-run table."
     },
     {
-      "criterion": "The per-exec psql invocation is removed, counted rather than estimated",
+      "criterion": "Only the two files that must follow are amended outside this package",
       "result": "met",
-      "evidence": "A counting wrapper ahead of psql on PATH: 1,797 invocations before, 28 after, for the same 554 cases. 38,584ms -> 955ms locally."
+      "evidence": "branch-identity.test.mjs because BRANCH_OWNERSHIP is deepEqual'd against each manifest's declared branch, and integrity-manifest.json because that file is digested and the coverage-floor guard exits 87 on a stale digest. Both declared with that reason."
     },
     {
-      "criterion": "The isolation suite still detects a disabled policy set",
+      "criterion": "npm run check stays green with no test skipped and no floor lowered",
       "result": "met",
-      "evidence": "Negative control run locally per ci.yml: app.workspaces RED (10 cases, first owner-a-cannot-see-workspace-b), app.research_runs RED (12, first editor-a-cannot-see-the-research-run-outside-their-narrowing), app.business_profiles RED (13, first owner-a-cannot-see-business-b1). Each first-failing case matches that entry's grep pattern."
-    },
-    {
-      "criterion": "A privilege refusal is still distinguishable from any other error",
-      "result": "met",
-      "evidence": "Executed as authenticated against the live instance: 42501 for private, 42P01 for a missing relation, 22012 for divide-by-zero. The SQLSTATE survives the stderr-into-stdout merge."
-    },
-    {
-      "criterion": "The privilege decision has one copy, not one per driver",
-      "result": "met",
-      "evidence": "inlineParams and assumesIdentityCall lifted out of bufferedDriver and called by both. Three static tests in test-kits/db/foundation-contract.test.mjs, one of which greps the source for a second spelling of either rule."
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped and no declared floor lowered",
-      "result": "met",
-      "evidence": "567 tests, 567 pass, 0 fail, 0 skipped, recorded by npm run record:verification. Floors for foundation-contract.test.mjs RAISED 48->51 tests and 181->193 assertions."
+      "evidence": "see evidence/VERIFICATION.md; this increment adds no test and changes no count."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "572 tests, 572 pass, 0 fail, 0 skipped — see evidence/VERIFICATION.md"
+      "result": "see evidence/VERIFICATION.md"
     },
     {
-      "command": "make db-rls-smoke (live, PostgreSQL 17.11 + shim)",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "554 isolation case(s) passed, ok in 2070ms, 28 psql invocations against 1,797 before"
-    },
-    {
-      "command": "negative control, four tables, as ci.yml runs it",
-      "exit_code": 0,
-      "result": "app.workspaces RED 10 cases; app.research_runs RED 12; app.business_profiles RED 13; app.audit_logs RED 2 — each first-failing case matches that entry's pattern"
-    },
-    {
-      "command": "reversal probe: reintroduce the stdout error regex, run the static suite, restore",
-      "exit_code": 0,
-      "result": "one test fails with the defect present and 56/56 pass without it"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs <quadratic-strip tip> WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "every changed path is declared"
+      "result": "all 5 changed path(s) are declared, and every amendment explains one"
     }
   ],
-  "security_privacy_cost_impact": "THIS INCREMENT SHIPPED A SECURITY DEFECT AND THEN REPAIRED IT, and the repair is the part that should be reviewed hardest. The defect let row data present itself as SQLSTATE 42501, which means an isolation case could report that a tenant boundary held while testing nothing. The three mitigations the first version listed -- the shell merge, a live SQLSTATE probe, the negative control -- addressed ordering and detection and none of them addressed data-forged classification; the negative control cannot, because it checks that the suite goes RED and says nothing about a false PASS driven by content. The repair moves the decision to psql's own client variables and stops merging stderr, and it is pinned by a reversal probe. A1 SECURITY REVIEW IS REQUIRED and should start from the addendum in evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md.",
+  "security_privacy_cost_impact": "None to the code. Option ka means a generation_run_id may name a run that never existed, because neither a foreign key nor a command function constrains it -- a provenance weakness rather than a tenant-isolation one.",
   "migration_and_data_impact": "None. No migration is added or altered.",
-  "compatibility_impact": "bufferedDriver is KEPT, exported and still tested -- it is the --command path and the seam that existing tests drive. main() now uses sessionDriver. Both call the same two decision functions, so there is no second copy of the escaping or of the identity-call test to drift.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "THE COUPLING TO runOne's `finally { rollback }` IS STILL A SENTENCE, NOT A CONTROL. sessionDriver now RETURNS rollback's outcome instead of discarding it, which makes the coupling observable; nothing enforces it. Remove that `finally` and every case after the first refusal fails at assume-identity with 25P02 -- loudly, which is the right direction, but by accident rather than by design.",
-    "WRITING SQL TO psql's STDIN STILL RESTS ON ANOTHER PROGRAM'S LEXER. Safety depends on psql not seeing a meta-command inside a quoted literal. Measured true; pinned by no test here, because no test in this repository can pin psql's lexer. What the tests now pin is the escaping on our side -- which is the half that was actually broken, and was broken for `$10` and for any value carrying a later placeholder.",
-    "FOUR OF THIRTY-FIVE CONTROL ENTRIES WERE RUN. The other thirty-one are asserted only by CI.",
-    "NOTHING HERE IS EVIDENCE ABOUT SUPABASE. Plain PostgreSQL 17.11 plus the shim, whose own header says it is not the platform. RFC-2026-022 §7.3 (a)-(d) remain open by their own terms.",
-    "THE FIRST VERSION PASSED CI AND A SELF-REVIEW. It was green, it had four live measurements behind it, and it was wrong in the worst available way. That is the strongest argument in this handoff for the independent roles RFC-2026-002 requires, and it is an argument against trusting this handoff too.",
-    "THIS HANDOFF OMITTED ITSELF FROM files_modified AND CI CAUGHT IT WHILE THE AUTHOR'S OWN RUN DID NOT. The reason is an ordering mistake rather than a subtle rule: npm run check was run BEFORE the last two commits, so the range it compared the declaration against was not the range the branch ends on. A handoff that changes must declare itself, and once declared it stays declared however many times it is touched again -- which is why the fix is stable and the process error is the part worth recording."
+    "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT, and the answer is three words mapped onto lettered options. The evidence file reproduces the letters so the mapping is checkable rather than merely plausible.",
+    "THIS DISPOSITION WILL BE CITED BY A BATCH THAT DOES NOT EXIST YET. If batch 080 is written with a different column shape, the disposition may not cover what it is cited for and nothing will notice.",
+    "THE PACKAGE NOW CARRIES THREE DISPOSITION RECORDS AND ONE AUTHOR HANDOFF THAT HAS BEEN REWRITTEN FOUR TIMES. A reader looking for what this package DID has to read the git history, not this file, because the author handoff always describes only the increment on the branch it is on.",
+    "THIS BRANCH WAS CUT FROM 2e18f75 AND REBASED ONTO 57a1bfa WHEN PR #107 MERGED WHILE IT WAS BEING WRITTEN. For a moment its handoff cited a base the branch was not on, and the file-list guard caught it by reporting another package's files inside this range. That is the fifth time in this session's work that a moving base falsified a declaration, and the fourth caught by a guard rather than by the author."
   ],
   "open_risks_or_blockers": [
-    "THIS BRANCH'S HISTORY CONTAINS A COMMIT THAT SHIPPED A FALSE-PASS PATH. It is repaired in a later commit on the same branch rather than rebased away, so a reviewer can read what was wrong and what the repair actually changed. A squash merge would erase that; whether it should is the Integration Owner's call.",
-    "`make db-reset-test` DROPS THE app AND private SCHEMAS BUT NOT THE ROLES, and 001_service_roles.sql creates them unconditionally, so a second make db-migrate-clean on one cluster fails at 001 with `role \"app_worker\" already exists (42710)`. CI never sees it because every job gets a fresh container; anyone running the live targets twice locally does. Found while reproducing CI locally and NOT fixed here -- it is a change to a declared command's semantics and belongs to whoever owns §12.5's reset contract.",
-    "THE 42.4-MINUTE CI STEP IS NOT PROVEN FIXED BY THIS INCREMENT. Local is 40x; the CI figure is CI's to produce, and the negative control runs the suite 35 times rather than once, so the saving should compound -- but that sentence is a prediction and this handoff does not record predictions as results."
+    "app.generation_runs REMAINS UNASSIGNED IN §6's REGISTRY. This disposition permits a reference and assigns nobody to build the table; batch 060's blocker stands, owed to A0.",
+    "THE REFERENCE IS UNENFORCED UNTIL A COMMAND FUNCTION EXISTS, which RFC-2026-021 §10 records does not.",
+    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment or any earlier one."
   ],
-  "rollback_or_forward_fix": "ROLLBACK: revert this commit. main() returns to bufferedDriver, which is untouched and still tested, so the suite goes back to 1,797 psql invocations and 38.6s with no other behavioural change. Nothing in the database, the migrations or the policies is involved either way.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this branch's commits. The two added files go, the manifest's branch and the pinned row return to the previous increment's, and batch 080 must escalate the question before writing either column.",
   "recommended_next_work_packages": [
-    "Have CI produce the number: the negative control at full width on the session driver. If the per-control cost falls the way the local reading suggests, the 42.4-minute step is the thing that changes, and that is the whole reason this increment exists.",
-    "The reset-test role gap in open_risks_or_blockers, with §12.5's owner.",
-    "Whether the fixture loads and authz proofs -- the 28 remaining invocations -- should share the session. They are one statement each, so the saving is small and the blast radius is the fixture path; measured before assumed."
+    "Batch 080, which may now be written. The evidence file records three further facts its author would otherwise rediscover: content has no §8 `S` cell, content_targets.social_account_id is batch 081's, and content_items.status carries the half-implemented shape already dispositioned for research.",
+    "An owner for app.generation_runs in §6's registry, which needs A0 and probably an RFC.",
+    "The four independent role runs, on this and every other open increment in this package."
   ],
   "reviewer_instructions": [
-    "Re-run the negative control yourself on at least one table and check the suite goes RED. That is the assertion this increment stands on; the speed is secondary.",
-    "Read openSession's marker handling against RESULT_BOUNDARY's in the same file. The session uses a per-statement counter rather than a fixed marker and still COUNTS occurrences -- check the claim that a stream read stopping at its first match is a boundary data can move earlier.",
-    "Check the stderr merge is done in the SHELL (`sh -c ... 2>&1`) and not by Node reading two pipes. Two pipes are unordered and that is the defect that would misattribute a refusal.",
-    "Check that ON_ERROR_STOP=0 is paired with runOne's `finally { rollback }` and decide whether a sentence is enough of a guard for that coupling. This handoff says it is not obviously enough.",
-    "The four executed properties are in evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md with the exact statements. Re-run them rather than reading them."
+    "Read the disposition evidence file first; this handoff is a pointer to it.",
+    "Verify the unassigned claim yourself: grep db/foundation/migrations/ for `generation_run` and check §6's registry for a row naming it.",
+    "Check the two amendments are the only ones and that each is forced rather than convenient.",
+    "Neither this file nor the disposition beside it is one of the four role signatures."
   ],
   "superseded_by": null
 }

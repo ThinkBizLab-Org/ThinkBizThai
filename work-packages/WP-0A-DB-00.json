@@ -109,9 +109,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "test-kits/branch-identity.test.mjs"
+        "test-kits/branch-identity.test.mjs",
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT RECORDS A PRODUCT OWNER DISPOSITION AND CHANGES NO CODE. It adds one evidence file and one handoff, both under paths this package owns, and amends exactly one file it does not: test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it. That is the whole of the amendment."
+      "rationale": "THIS INCREMENT RECORDS A PRODUCT OWNER DISPOSITION AND CHANGES NO CODE. It adds one evidence file and one handoff, both under paths this package owns, and amends exactly two it does not, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it. test-kits/integrity-manifest.json then follows, because branch-identity.test.mjs is digested and the coverage-floor guard exits 87 on a digest that no longer matches its file -- any package editing a protected file must regenerate it or the build stops."
     }
   },
   "inputs": {
