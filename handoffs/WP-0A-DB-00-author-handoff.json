@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "c4577dd559b9949cd258a0be9fd8e540f9d5da79",
-  "head_revision_or_patch_checksum": "6383486d7b5871bb13614ec40aa129e381bcdfb6",
+  "base_revision": "94bdd8f412493870d3b6da304af1f9df151c7f1a",
+  "head_revision_or_patch_checksum": "efea926b3f3f151422c8488b8adf550530a1cd0a",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-session-driver-probes-2026-09-09.md"
