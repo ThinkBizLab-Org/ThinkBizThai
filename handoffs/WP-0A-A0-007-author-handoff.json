@@ -4,11 +4,14 @@
   "work_package_id": "WP-0A-A0-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1b07bf2b3d4bac92d106c76223f48b01870424d7",
-  "head_revision_or_patch_checksum": "1b07bf2b3d4bac92d106c76223f48b01870424d7",
+  "base_revision": "57a1bfa444bf7954e275f53cdf06be5c7386cf95",
+  "head_revision_or_patch_checksum": "f3e0bce2bbab44881c602f42446d12fd10d85576",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [],
+  "files_modified": [
+    "handoffs/WP-0A-A0-007-author-handoff.json",
+    "work-packages/WP-0A-A0-007.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DATA-DEC-03",
@@ -18,70 +21,71 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending. A decision record in Proposed state is reversible, synthetic-only work and binds nothing.",
-    "The data package's rule governs: an open decision does not authorise an agent to choose it. Both decisions are therefore PROPOSED, not taken."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It removes one spent blocker from this package's own list and corrects the false tail of another. Same defect class as commit 9aee8bb, which repaired six sentences that were true when written and false by the next merge.",
+    "SPENT, THEREFORE REMOVED: the blocker saying RFC-2026-016 was Proposed and that batch 000 must not be written against the authenticated-only policy shape. That record was disposed on 2026-09-05 and its §2 was amended on 2026-09-08 on RFC-2026-022; read those status lines for their wording rather than this file. Batch 000 is on main as db/foundation/migrations/000_foundation.sql, so the restriction has not merely lapsed -- the work it forbade has shipped.",
+    "CORRECTED: the G0 blocker. The restriction still stands and the clause justifying it -- \"a Proposed decision record is reversible, synthetic-only work\" -- stopped being true when the record was disposed. Dropping the blocker would remove a live restriction on the strength of a clause merely worded for a status the record no longer has, so the tail is corrected instead.",
+    "A SECOND STALE BLOCKER WAS MISSED ON THE FIRST PASS AND AN INDEPENDENT CHECK FOUND IT. \"The service path is undecided\", unqualified, was left untouched as still-true. It is not: RFC-2026-017 decided the identity on 2026-09-05 and RFC-2026-019 decided the components on 2026-09-06. What RFC-2026-019 §4/3 leaves open is app_worker's CONNECTION METHOD, in its own words \"not decided here, and saying so is the decision\", until a background worker exists -- and RFC-2026-022 §5/8 supplies the measurement that makes it bite. The blocker is narrowed to that. Its tail, that no document may state forced RLS constrains the service path, is unchanged and still true. This is the same staleness the increment corrected two blockers away, missed in the one place it was least expected.",
+    "THREE BLOCKERS ARE UNCHANGED BECAUSE THEY ARE STILL TRUE, and two of them are worth a reader's attention: the service path is still undecided, which RFC-2026-022 §5/8 measures rather than asserts -- the only member of app_worker is postgres, which bypasses row level security -- and the analysis this package rests on was spawned from the same session that wrote it, which no_self_approval does not accept.",
+    "amends_without_owning IS EMPTIED. It carried two paths from this package's earlier increment and this branch touches neither; verify-branch-scope refuses a declaration explaining nothing the branch changed. Both are named in the manifest's new rationale.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress, for the same reason its sibling increment gives -- an Author may move work only as far as in_review, and moving it would be a claim about completeness rather than the correction of a false sentence."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "Every corrected sentence was checked against the artifact it describes",
+      "result": "met",
+      "evidence": "RFC-2026-016's status line carries a disposition dated 2026-09-05 and an amendment dated 2026-09-08. db/foundation/migrations/000_foundation.sql is on main. RFC-2026-022 §5/8 carries the app_worker measurement. evidence/g0-tracker-th.md still reads Specification Baseline Complete / External Verification Pending."
     },
     {
-      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "A blocker is removed only when spent",
+      "result": "met",
+      "evidence": "One of five removed. One corrected in its tail. Three left untouched because each is still true as written."
     },
     {
-      "criterion": "No contract status changes anywhere in the repository.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "No decision, code, migration, contract or status changes",
+      "result": "met",
+      "evidence": "Two files, both owned by this package: its own manifest and this handoff."
     },
     {
-      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "CTR-NTF-001 is not assessed.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "A blocker left untouched as still-true is actually still true, checked clause by clause",
+      "result": "met",
+      "evidence": "'The service path is undecided' was falsified by RFC-2026-017's and RFC-2026-019's status lines and is now narrowed to app_worker's connection method per RFC-2026-019 §4/3, with RFC-2026-022 §5/8's measurement. The remaining three untouched blockers were each re-read against their artifact."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-007",
+      "exit_code": 0,
+      "result": "both changed paths are owned by this package and no amendment is declared"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "security_privacy_cost_impact": "None. No code, schema, grant, policy, role or contract is touched.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "The A1 security analysis behind sections 4 and 5 was spawned from this A0 session. It began from empty context and read the sources itself, but a run created by the author is not independent in the sense independence.no_self_approval intends, and it does not satisfy prefer_cross_vendor_review. Recorded as A0-solicited analysis, not as an independent A1 review.",
-    "DATA-DEC-03 is NOT closed. The service path is undecided and on Supabase the service-role key bypasses RLS, so claiming the control would record one that does not exist.",
-    "The two verification queries A1 recommends were not run: no database is provisioned and this host has no psql, pg_ctl or docker. The platform role attributes are therefore taken from documentation, not from the instance."
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English; the rule that would catch this class ties a blocker naming a decision record to that record's status and is not written here.",
+    "THE §2 AMENDMENT BLOCKER IS KEPT VERBATIM AND IS THE ONE MOST LIKELY TO GO STALE NEXT. It describes the shape of a record -- the original text kept below the amendment rather than replaced -- and that shape holds only while nobody tidies the file.",
+    "THE FIRST PASS OF THIS INCREMENT CHECKED WHICH BLOCKERS TO REMOVE AND NOT WHICH TO NARROW. Two were corrected and three were declared still-true; one of those three was stale in exactly the way the other two were. An audit that asks 'is this spent' and not 'is every clause of this still true' finds fewer defects than it appears to.",
+    "REBASED TWICE, ONTO ff12b8b AND THEN 2e18f75, AS PRs #104, #105 AND #106 MERGED. This package's blockers cite RFC section numbers rather than counts or line numbers, which is the only reason a moving base did not falsify any of them again."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-016 is Proposed. Batch 000 must not be written against the authenticated-only policy shape until it is disposed."
+    "Four blockers remain OPEN and are listed in the manifest. This increment closes none of them."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-016 is a Proposed decision record and binds nothing until disposed; no schema, migration, policy, contract, persisted data, provider state or credential is touched, and no database exists yet for it to affect.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to five blockers, one of which forbids work that is already on main, and to two amendment paths this branch does not touch.",
   "recommended_next_work_packages": [
-    "Product Owner disposition of RFC-2026-016.",
-    "A decision on the service path, due before G1.",
-    "DB-00 dispatch, which RFC-2026-015 already unblocked."
+    "WP-0A-A0-008: blocker 0 is spent (RFC-2026-017 disposed 2026-09-05; 001_service_roles.sql creates the roles on main). Blockers 1 and 2 need rewriting rather than removing -- \"No tenant table exists\" is false against 45 tables and 554 isolation cases, 116 of them service cases -- and blocker 3 carries the same G0 tail corrected here.",
+    "WP-0A-A0-009: blockers 0, 1 and 2 are spent; blocker 4 needs rewriting because the three lint rules it says are unwritten exist at scripts/db/run.mjs:307, :632 and :1003.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
   ],
   "reviewer_instructions": [
-    "Check the contradiction claim directly against the data package: the TO authenticated rule and the service-only matrix rows.",
-    "Check that the RFC nowhere claims forced RLS constrains the service path.",
-    "Check the provenance section states the A1 run was spawned from the author session."
+    "Check the removal first: read RFC-2026-016's status line, confirm it records a disposition and an amendment, then confirm 000_foundation.sql is on main.",
+    "Re-read the three blockers this increment leaves untouched, clause by clause rather than as wholes. One of them was left untouched on the first pass and was stale.",
+    "Check that the three untouched blockers really are still true. The service-path one is the load bearing claim and RFC-2026-022 §5/8 is where to check it.",
+    "Confirm nothing outside this package's two owned files changed."
   ],
   "superseded_by": null
 }

@@ -99,11 +99,8 @@
       "migrations/**"
     ],
     "amends_without_owning": {
-      "paths": [
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json"
-      ],
-      "rationale": "RFC-2026-016 is this package's own file. The branch-to-package mapping is pinned whole in a test, so declaring this branch moves one row there; the integrity manifest records the digest of the decision record this branch edits."
+      "paths": [],
+      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE. It corrects two sentences in this package's own open_blockers and removes one that is spent, touching only the manifest and the handoff this package owns. The list is emptied rather than left carrying the earlier increment's paths (test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json), because verify-branch-scope reads the declaration in both directions and a path declared here that this branch does not touch is a standing permission over another package's file granted for work that never happened. Those paths remain in git history and in that increment's diff."
     }
   },
   "inputs": {
@@ -152,10 +149,9 @@
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. One Proposed decision record; no schema, migration, contract, persisted data, provider state or credential touched.",
   "open_blockers": [
     "§2 WAS AMENDED BY THE PRODUCT OWNER ON 2026-09-08, on RFC-2026-022, and the original text is KEPT below the amendment rather than replaced. The reason it was wrong is the finding: measured twice, the role a service policy names can set the workspace GUC that policy reads, and has_parameter_privilege answers false, so the catalog cannot be asked who may. A record that deletes its wrong answer keeps the right one and loses why it is right.",
-    "RFC-2026-016 is Proposed. Until disposed, batch 000 must not be written against the authenticated-only policy shape.",
-    "The service path is undecided. On Supabase the service-role key bypasses RLS, so DATA-DEC-03 cannot close as scoped and no document may state that forced RLS constrains the service path.",
+    "WHAT IS UNDECIDED ABOUT THE SERVICE PATH IS NARROWER THAN THIS BLOCKER USED TO SAY. It read \"The service path is undecided\", unqualified, which stopped being true across two dispositions: RFC-2026-017 decided the IDENTITY on 2026-09-05 (app_worker, app_command, app_maintenance, none holding BYPASSRLS), and RFC-2026-019 decided the COMPONENTS on 2026-09-06 -- authenticator holds membership in none of them, the request path runs as `authenticated`, and work beyond a user's own policies goes through a SECURITY DEFINER function owned by app_command. What RFC-2026-019 §4/3 leaves open, in its own words, is app_worker's CONNECTION METHOD -- \"not decided here, and saying so is the decision\" -- until a background worker exists. RFC-2026-022 §5/8 adds the measurement that makes it bite: the only member of app_worker is postgres, which bypasses row level security. THE TAIL OF THIS BLOCKER IS UNCHANGED AND STILL TRUE: no document may state that forced RLS constrains the service path, because on this platform the service-role key bypasses it.",
     "The A1 analysis was spawned from the A0 session and does not satisfy no_self_approval or prefer_cross_vendor_review. Recorded as A0-solicited analysis.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a Proposed decision record is reversible, synthetic-only work."
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a decision record is reversible, synthetic-only work whether it is Proposed or disposed. The tail of this sentence used to read \"a Proposed decision record is reversible, synthetic-only work\", and the 2026-09-05 disposition made that clause false while leaving the restriction it justifies true, so the clause is corrected rather than the blocker dropped."
   ],
   "review_and_test_gates": [
     "author_complete",
