@@ -592,4 +592,71 @@ jobs:
           control app.billing_webhook_receipts '[a-z0-9-]*billing-webhook-receipt' 131
           control app.billing_invoices         '[a-z0-9-]*billing-invoice'         131
           control app.billing_payments         '[a-z0-9-]*billing-payment'         131
+          #
+          # THE FIVE RESEARCH TABLES, AND THE ONE OF THEM WHOSE ENTRY RESTS ON A DIFFERENT KIND OF
+          # CASE FROM THE OTHER FOUR. Batch 070 is the first family in this step to carry BOTH shapes
+          # at once — four tables a client may read and one no client role holds anything on — and
+          # what each entry rests on is stated below rather than counted, because the number of
+          # entries in this step is a property of the merged tree and no batch can check one.
+          #
+          # app.research_runs, app.research_sources, app.research_evidence and
+          # app.research_suggestions carry §8.2's "Knowledge/Research SELECT | Y | Y | Y | Y | Y", so
+          # disabling row level security on any of them dissolves boundaries a CLIENT can see, and
+          # each entry bites through several kinds of case at once rather than through one pair:
+          #
+          #   * THE TENANT BOUNDARY. `owner-a-cannot-see-the-research-run-of-tenant-b` and its three
+          #     siblings on the source, the evidence and the suggestion return tenant B's rows.
+          #   * THE MEMBER-SCOPE NARROWING, which is where these entries say something the entries
+          #     above cannot. `editor-a-cannot-see-the-research-run-outside-their-narrowing` is
+          #     refused by a RESTRICTIVE policy AFTER the caller has passed the permissive one, and
+          #     `pinned-editor-a-cannot-see-the-research-source-of-a-sibling-target-run` is refused by
+          #     that narrowing resolved THROUGH THE PARENT — a source carries no page column of its
+          #     own, so its policy asks whether its run is reachable. Dropping the child's exists()
+          #     while keeping everything else leaves that one case failing and the rest green.
+          #   * THE ROLE PREDICATE ON TWO WRITE PATHS. `approver-a-cannot-cancel-a-research-run`,
+          #     `viewer-a-cannot-cancel-a-research-run`, `approver-a-cannot-save-a-research-suggestion`
+          #     and `viewer-a-cannot-save-a-research-suggestion` are `no-effect` cases whose failure
+          #     with row level security off is a WITNESS reading a changed value rather than an absent
+          #     refusal: `authenticated` holds the column-scoped UPDATE, so the write lands and the
+          #     workspace's owner reads `cancelled` or `saved` back.
+          #   * THE SUSPENDED MEMBER AND THE SERVICE. `suspended-a-sees-zero-*` and
+          #     `service-sees-zero-*` return rows, and `service-cannot-start-a-research-run`,
+          #     `-cite-a-research-source`, `-record-a-research-evidence-row` and
+          #     `-propose-a-research-suggestion` succeed where they must be refused — app_worker holds
+          #     the INSERT §8.2's `S` gives it and NO POLICY, and RFC-2026-022's decision is approved
+          #     and NOT IN EFFECT.
+          #
+          # The several `denied` cases beside those whose layer is `grant` — every forged-actor case,
+          # every immutability case, every client INSERT — pass unchanged with row level security off
+          # and are NOT part of any of these bases.
+          control app.research_runs           '[a-z0-9-]*research-run'        070
+          control app.research_sources        '[a-z0-9-]*research-source'     070
+          #
+          # app.research_snapshots IS THE ONE WITH NO CLIENT READ AT ALL, and its entry rests on
+          # EXACTLY TWO CASES — which is said here rather than left to be counted, because an entry
+          # resting on two is one deletion away from resting on one and batch 030 established that
+          # the count belongs beside the entry. §9.1 classes a research snapshot COPYRIGHT-3 with the
+          # client projection "approved excerpt only", nothing in this repository defines an approval,
+          # and §9.2 forbids a full research snapshot in a client surface at all — so batch 070 grants
+          # no client role anything on it and every client case against it is a PRIVILEGE-layer
+          # refusal that disabling row level security does not restore.
+          #
+          # What makes the entry bite is the pair of grants that does exist: app_worker holds a
+          # column-scoped SELECT and INSERT with no policy, so with RLS off
+          # `service-sees-zero-research-snapshots` returns the fixture capture AND
+          # `service-cannot-capture-a-research-snapshot` succeeds where it must be refused.
+          # tests/db/identity/identity-isolation.test.mjs pins both by id, by outcome kind and by
+          # layer, which is the refusal of that deletion.
+          #
+          # THE THREE OTHER SERVICE CASES ON THIS TABLE ARE NOT IN THE BASIS AND THAT IS THE POINT OF
+          # THEM. `service-cannot-extend-the-retention-of-a-research-snapshot`,
+          # `-rewrite-the-digest-` and `-delete-` are `deniedBy: 'grant'`: `retention_until` and
+          # `content_hash` are outside every UPDATE grant to every role and no role holds DELETE, so
+          # they pass unchanged with row level security off. That is what they are for — DATA-DEC-07
+          # is an OPEN decision (research snapshot retention, 30 days max default, owner
+          # Research+Legal) and a retention limit a granted path could push forward would not be one,
+          # so the control that keeps it is the absence of the privilege rather than a policy.
+          control app.research_snapshots      '[a-z0-9-]*research-snapshot'   070
+          control app.research_evidence       '[a-z0-9-]*research-evidence'   070
+          control app.research_suggestions    '[a-z0-9-]*research-suggestion' 070
           echo "negative control: every family above failed the suite, as each must."

@@ -32,7 +32,12 @@ import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCas
 // because §3.1 puts secret references there and the previous pattern matched `app.` alone. The
 // widening is exercised HERE rather than only where the migration is read: a lint rule nobody
 // probes is a rule whose inertness is a hope.
-import { schemaLint } from '../../../scripts/db/run.mjs';
+// `tablesCreatedByMigrations` is imported rather than re-derived, which is §6.3 of
+// evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md as a rule: seven hand-built copies of
+// "the tables the migrations create" existed at one point, six failed loudly at a rebase reporting
+// that tables which plainly exist do not, and the seventh sat inside a `doesNotMatch` where it
+// composed a pattern nothing can match and passed by asking about a table that has never existed.
+import { schemaLint, tablesCreatedByMigrations } from '../../../scripts/db/run.mjs';
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -8047,5 +8052,653 @@ test('batch 132 writes no ordinal claim about the schema it is describing', asyn
       `${where} contains "${hit?.[0]}". An ordinal is a claim about the WHOLE schema and a batch cannot `
       + 'check one: seven such sentences went false in a single merge round and one of them was pinned by '
       + 'an assert.match, so the test kept the false sentence alive. Say what this batch does; do not rank it.');
+  }
+});
+
+
+// =============================================================================================
+// Batch 070 — research, and the class §9.1 gives a client projection nothing can produce.
+// =============================================================================================
+//
+// The rules below are shaped by four facts about this batch, and each one decides which kind of
+// assertion is available:
+//
+//   * IT IS THE FAMILY WITH TWO SENSITIVITY CLASSES. §5 gives research.core
+//     "CONTENT-2/COPYRIGHT-3", and the split is not decorative: four tables carry §8.2's
+//     "Knowledge/Research SELECT | Y | Y | Y | Y | Y" and one carries §9.1's "approved excerpt only"
+//     instead. So four of these tables have client policies to assert about and the fifth has none
+//     at all, and the rules say which is which rather than averaging them.
+//   * THE COPYRIGHT-3 CONTROL IS AN ABSENCE, and an absence cannot be asserted by reading the text
+//     that would have contained it. So the column rules read the CREATE TABLE BODIES and the
+//     migration's own apply-time allowlist, which is 060's mechanism for a plaintext credential and
+//     131's for a payment instrument.
+//   * DATA-DEC-07 IS OPEN AND ITS ABSENCE IS THE THING TO CHECK. A number nobody approved is caught
+//     by rules that refuse a default, refuse an interval in a constraint, and refuse an UPDATE
+//     privilege on the column that carries the limit — three negatives, because a negative is the
+//     strongest thing a lint can hold.
+//   * §5 NAMES ONE OF FIVE OBJECTS IMMUTABLE AND LEAVES FOUR DECISIONS. Each disposition is asserted
+//     separately and in the form it actually takes, because "mixed" applied uniformly would be wrong
+//     three times.
+const RESEARCH_MIGRATION = 'db/foundation/migrations/070_research.sql';
+const RESEARCH_FIXTURE = 'tests/db/identity/fixtures/070-research-fixture.sql';
+const research = await readFile(RESEARCH_MIGRATION, 'utf8');
+const researchCode = research.replace(/--[^\n]*/g, '');
+const RESEARCH_RUNS = 'research_runs';
+const RESEARCH_SOURCES = 'research_sources';
+const RESEARCH_SNAPSHOTS = 'research_snapshots';
+const RESEARCH_EVIDENCE = 'research_evidence';
+const RESEARCH_SUGGESTIONS = 'research_suggestions';
+const RESEARCH_TABLES = [RESEARCH_RUNS, RESEARCH_SOURCES, RESEARCH_SNAPSHOTS, RESEARCH_EVIDENCE,
+  RESEARCH_SUGGESTIONS];
+// The four §8.2's SELECT row reaches. app.research_snapshots is excluded by §9.1, which is the
+// narrower and more specific statement — 060's rule when §5's classes did not cover its own tables.
+const RESEARCH_CLIENT_READABLE = [RESEARCH_RUNS, RESEARCH_SOURCES, RESEARCH_EVIDENCE,
+  RESEARCH_SUGGESTIONS];
+// The three children whose narrowing resolves through a parent rather than asking about their own
+// columns. The run is not here: it carries both scope columns and asks the two questions itself.
+const RESEARCH_CHILDREN = [RESEARCH_SOURCES, RESEARCH_EVIDENCE, RESEARCH_SUGGESTIONS];
+const RESEARCH_WRITERS = ['owner', 'admin', 'editor'];
+const researchTableBodies = [...researchCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const researchBodyOf = (table) => researchTableBodies.find((b) => b.includes(`app.${table} (`));
+
+test('every batch 070 table carries RLS, FORCE, a primary key and an owner comment', async () => {
+  assert.equal(researchTableBodies.length, RESEARCH_TABLES.length,
+    '§5 names five objects — runs/sources/snapshots/evidence/suggestions — and batch 070 creates one table '
+    + 'per name. The snapshot is the one neither §6\'s registry nor §4\'s ERD names, and 070_research.sql '
+    + 'argues it from §9.1 (its own sensitivity class), §10 (its own retention class and a final behavior '
+    + 'about two rows with different fates) and §15 (DATA-DEC-07, which is about it by name).');
+  for (const table of RESEARCH_TABLES) {
+    assert.match(researchCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(researchCode, new RegExp(`alter table app\\.${table} enable row level security`));
+    assert.match(researchCode, new RegExp(`alter table app\\.${table} force row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. On app.research_snapshots, which carries no policy, FORCE is the whole '
+      + 'control.');
+    assert.match(researchCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(researchCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,600}?primary key`));
+  }
+  // The set the migrations create, from the one function that computes it. §6.3 of
+  // evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md: seven hand-built copies of this set
+  // existed, six failed loudly at a rebase and the seventh passed by asking about a table that has
+  // never existed.
+  const created = await tablesCreatedByMigrations();
+  for (const table of RESEARCH_TABLES) {
+    assert.ok(created.has(`app.${table}`), `app.${table} must be a table the migrations create`);
+  }
+});
+
+test('the research scope is two columns on the run and deliberately one on each of its children', () => {
+  const run = researchBodyOf(RESEARCH_RUNS);
+  assert.match(run, /business_profile_id\s+uuid\s+not null/,
+    '§4 invariant 3 names Research beside Knowledge: "ทุก row มี Business scope; Page scope เป็น nullable '
+    + 'override ที่ต้องอยู่ Business เดียวกัน"');
+  assert.match(run, /page_context_profile_id\s+uuid,/,
+    'the Page is the NULLABLE override and never a substitute for the Business scope');
+  assert.match(run, /foreign key \(workspace_id, business_profile_id, page_context_profile_id\)\s*\n\s*references app\.page_context_profiles \(workspace_id, business_profile_id, id\)/,
+    'the override key names the Business too, so a Page from another Business fails at the database (§4 '
+    + 'invariant 10). MATCH SIMPLE — the default — skips it when the Page is null, which is what makes a '
+    + 'business-level run legal; MATCH FULL would refuse every one of them.');
+  assert.match(run, /constraint research_runs_scope_key unique \(workspace_id, business_profile_id, id\)/,
+    'the target of every child\'s composite foreign key');
+  for (const table of RESEARCH_CHILDREN.concat(RESEARCH_SNAPSHOTS)) {
+    const body = researchBodyOf(table);
+    assert.match(body, /workspace_id\s+uuid\s+not null/);
+    assert.match(body, /business_profile_id\s+uuid\s+not null/);
+    assert.doesNotMatch(body, /page_context_profile_id/,
+      `app.${table} carries a page column. A nullable copy of its parent's page could not be held equal to `
+      + "it by any foreign key this schema can write — MATCH SIMPLE skips a null — so a child could claim "
+      + 'to be business-level while its run is page-restricted, and the narrowing would ask '
+      + 'admits_business of the child where it asks admits_page of the run. That is history readable to a '
+      + 'member the current row is hidden from (040\'s argument about a version\'s page, four times over).');
+    assert.match(body, new RegExp(`foreign key \\(workspace_id, business_profile_id, research_\\w+_id\\)`),
+      `app.${table}: the whole scope path into its parent, so an unrelated Workspace/Business/parent triple `
+      + 'fails with 23503 for every caller including one a policy would have admitted');
+  }
+});
+
+test('a research snapshot holds a locator and a digest, and an allowlist keeps captured material out', () => {
+  const body = researchBodyOf(RESEARCH_SNAPSHOTS);
+  assert.match(body, /object_ref\s+text,/,
+    '§10\'s final behavior for RESEARCH-SNAPSHOT is "purge OBJECT + LOCATOR; preserve permitted '
+    + 'hash/citation metadata", so the locator is NULLABLE: a purged capture is a row that no longer says '
+    + 'where the bytes were. A NOT NULL here would make §10\'s own instruction impossible to carry out '
+    + 'without deleting the row, and the row is what "preserve" is about.');
+  assert.match(body, /content_hash\s+bytea\s+not null/,
+    '§10 says to PRESERVE the hash and §9.3 gives a content hash the job of integrity and dedup. It is what '
+    + 'app.research_evidence names a capture by.');
+  assert.match(body, /check \(octet_length\(content_hash\) >= 32\)/,
+    "a FLOOR, which is 010's treatment of token_hash and 131's of a provider digest: sha256 is 32 bytes, a "
+    + 'stronger digest is longer, and a floor stops a short string being stored in a column the schema calls '
+    + 'a digest');
+  assert.match(body, /constraint research_snapshots_purged_row_names_no_object\s*\n\s*check \(purged_at is null or object_ref is null\)/,
+    '§10\'s final behavior as a constraint: a row that says it was purged while still naming an object is a '
+    + 'row whose two halves disagree about whether the captured bytes exist');
+  assert.match(body, /constraint research_snapshots_one_per_capture unique \(workspace_id, research_source_id, content_hash\)/,
+    'this key is what makes app.research_evidence.snapshot_content_hash a REFERENCE rather than a hint: '
+    + 'evidence carries the source id and the digest, and this constraint is what makes that pair name at '
+    + 'most one row. It is also why a snapshot needs no fixture symbol.');
+  // THE ALLOWLIST, and it is asserted against the MIGRATION'S OWN apply-time query rather than only
+  // against the column list — a rule that read the CREATE TABLE alone would be satisfied by a later
+  // batch's `alter table ... add column`.
+  assert.match(researchCode,
+    /a\.attname::text <> all \(snapshot_columns\)/,
+    'the permitted column set is asserted at apply time against the live catalog — 060\'s mechanism, written '
+    + 'as an ALLOWLIST because "a denylist of column names somebody thought of is defeated by the one they '
+    + 'did not"');
+  assert.match(researchCode, /carries column\(s\) a COPYRIGHT-3 row may not hold/,
+    'and the failure names what the rule is about');
+  assert.match(research, /CAPTURED CONTENT: no body, no text, no excerpt/,
+    'the table comment ships into the catalog, where the next author reads it, and says what the table is '
+    + 'for rather than leaving the absence to be inferred');
+});
+
+test('no batch 070 table carries an excerpt by another name, and the migration refuses one on every apply', () => {
+  // §9.1's class is "research snapshot/EXCERPT". The snapshot's allowlist protects one table; an
+  // excerpt would most plausibly arrive on the EVIDENCE row, which is the one that cites a passage,
+  // so the rule reads every table body in the batch.
+  const FORBIDDEN = ['excerpt', 'quote', 'quoted_text', 'snippet', 'passage', 'body', 'body_text',
+    'content', 'content_text', 'raw', 'raw_html', 'html', 'markdown', 'full_text', 'page_text',
+    'snapshot_body'];
+  for (const table of RESEARCH_TABLES) {
+    const body = researchBodyOf(table);
+    for (const name of FORBIDDEN) {
+      assert.doesNotMatch(body, new RegExp(`\\b${name}\\b`, 'i'),
+        `app.${table} declares a column named for ${name}. §9.2's absolute prohibitions end with "full `
+        + 'research snapshot ที่ client ไม่มีสิทธิ์ทำซ้ำ" and name `fixture` among the surfaces it may not '
+        + 'reach; §9.1 licenses an APPROVED excerpt only, and nothing in this repository defines what '
+        + 'approves one, who may, or how long it may be. An unbounded `excerpt text` is a snapshot column '
+        + 'wearing a shorter name and a bounded one fixes the number the approval decision owns. If this is '
+        + 'the batch that brings that decision, it edits this rule in a diff a reviewer reads.');
+    }
+  }
+  assert.match(researchCode, /a batch 070 table carries captured or quoted source text/,
+    'the refusal is a check that runs on every apply and not a comment, so a later batch adding the column '
+    + 'fails the migration rather than the code review');
+  // And the CITATION is stored, which is the other half of the same decision: §11.1 exports
+  // "Research citation/evidence metadata และ permitted excerpts", and a citation without the thing
+  // cited is not one.
+  const source = researchBodyOf(RESEARCH_SOURCES);
+  assert.match(source, /source_uri\s+text\s+not null/);
+  assert.match(source, /source_uri ~ '\^https:\/\//,
+    'the scheme is an ALLOWLIST of one. This is the one column in the batch a worker DEREFERENCES, and '
+    + "CTR-JOB-001's x-reference-rule records that an earlier deny-list form of a reference field accepted "
+    + 'HTTPS://…, //host/x, file:///etc/passwd, javascript: and ../../../etc/passwd under independent '
+    + 'security review.');
+  assert.match(source, /constraint research_sources_uri_no_traversal check \(position\('\.\.' in source_uri\) = 0\)/,
+    'traversal is refused by its own constraint rather than by a cleverer pattern, because this is the half '
+    + 'a reviewer most needs to be able to check by eye');
+});
+
+test('DATA-DEC-07 stays open: no default, no interval, and no granted path that can extend a limit', async () => {
+  const body = researchBodyOf(RESEARCH_SNAPSHOTS);
+  assert.match(body, /retention_until\s+timestamptz\s+not null,/,
+    'NOT NULL, so a capture cannot be stored without stating the instant beyond which it may not be '
+    + 'retained. §10: "30 วัน default หรือสั้นกว่าตาม source policy".');
+  assert.doesNotMatch(body, /retention_until[^,]*default/i,
+    'and NO DEFAULT. DATA-DEC-07 ("Research snapshot retention, 30 วัน max default, owner Research+Legal, '
+    + 'ก่อน real research source") is an OPEN decision and §15 says an open decision is not an agent\'s to '
+    + 'choose. A default would make every row silently assert the same thirty days, which is the decision '
+    + 'arriving as a column — the refusal 010 made for DATA-DEC-04, 130 for BILL-DEC-012 and 061 for a '
+    + "reservation's expiry.");
+  // The whole migration, not only the column: an interval anywhere in it — in a default, in a CHECK,
+  // in an index predicate — is the same ratification by another route. THE LOAD-BEARING PROPERTY IS
+  // THAT NO DURATION APPEARS AT ALL, which is stated because the set this asserts over is empty
+  // today and an empty set makes every rule look correct (§6.4).
+  for (const [form, pattern] of [
+    ['an interval literal', /\binterval\s*'/i],
+    ['a cast to interval', /::\s*interval\b/i],
+    ['a computed default', /\bdefault\s+[^,\n]*\bnow\(\)\s*\+/i],
+  ]) {
+    assert.doesNotMatch(researchCode, pattern,
+      `batch 070 writes ${form}. THE LOAD-BEARING PROPERTY IS THAT NO DURATION APPEARS IN THIS MIGRATION AT `
+      + 'ALL, not merely that retention_until has no default: DATA-DEC-07 fixes a MAXIMUM and §10 says the '
+      + 'real value is per-source and SHORTER, so any number encoded here would be wrong in the unsafe '
+      + 'direction on every row a stricter source policy covers. Three forms are refused because one would '
+      + 'be satisfied by the other two. It reads the code with comments stripped; the header discusses '
+      + 'thirty days at length and that is prose, which is where an open decision belongs.');
+  }
+  assert.match(researchCode, /a batch 070 constraint encodes a retention interval/,
+    'and the same negative is asserted at apply time against pg_get_constraintdef, so a later batch cannot '
+    + 'add one without failing the migration');
+  assert.match(researchCode, /is not the column DATA-DEC-07 leaves open/,
+    'and the absent default is read from pg_attribute.atthasdef, which is the only place the difference '
+    + 'between "every writer states a limit" and "every row inherits thirty days" is recorded');
+  // THE THIRD NEGATIVE, and the one that makes the other two worth having: a limit that can be
+  // pushed forward is not a limit.
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const role of [...CLIENT_ROLES, ...SERVICE_ROLES, 'app_authz']) {
+      assert.doesNotMatch(sql,
+        new RegExp(`grant\\s+update\\s*\\([^)]*\\bretention_until\\b[^)]*\\)\\s*on\\s+app\\.${RESEARCH_SNAPSHOTS}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+        `${name} grants ${role} UPDATE on app.${RESEARCH_SNAPSHOTS}.retention_until. DATA-DEC-07 is open, so `
+        + 'the schema cannot say how long a capture may be kept — but it CAN say that whatever a writer '
+        + 'stated once stands, and that is what makes leaving the decision open safe rather than merely '
+        + 'honest. If this is the batch that closes DATA-DEC-07, it names the decision and moves '
+        + '`service-cannot-extend-the-retention-of-a-research-snapshot` to whatever layer now refuses it.');
+    }
+  }
+  assert.match(researchCode, /a column of a research snapshot other than the purge''s own is updatable/,
+    'and the per-column sweep at apply time asks the same question of the LIVE ACL, which catches a grant a '
+    + 'later batch makes that this file could not have named');
+  // The pair that makes a breach detectable rather than preventable — 061's computed_through, one
+  // family over.
+  assert.match(body, /purged_at\s+timestamptz,/,
+    '"this repository is holding captured material past its own stated limit" is `purged_at is null and '
+    + 'retention_until < now()`. Without the column an overdue capture and a purged one are the same row, '
+    + 'which is the unfalsifiable shape 061 removed with a watermark.');
+  assert.match(researchCode, /create index if not exists research_snapshots_unpurged_retention_idx[\s\S]{0,120}where purged_at is null/,
+    'and the sweep batch 160 will run has its index already, which is 010\'s treatment of expires_at and '
+    + "050's of consumed_at: the column before the job that reads it");
+});
+
+test('the five research objects get three dispositions, each asserted as absent grants AND absent policies', async () => {
+  const migrations = await allMigrations();
+  // 1 and 2. IMMUTABLE (evidence, the one §5 names) and APPEND-ONLY (the citation, batch 070's own
+  // reading). Both are "no UPDATE and no DELETE for any role", so both are checked the same way and
+  // the difference between them is recorded in the migration's prose rather than in the ACL.
+  for (const table of [RESEARCH_EVIDENCE, RESEARCH_SOURCES]) {
+    assert.doesNotMatch(researchBodyOf(table), /updated_at/,
+      `app.${table} declares updated_at. An immutable or append-only row has no update to stamp (020's `
+      + 'words, kept by 030, 040, 050, 061, 130 and 131).');
+    assert.doesNotMatch(researchCode, new RegExp(`create trigger set_updated_at before update on app\\.${table}`),
+      `and therefore app.${table} carries no trigger`);
+    for (const [name, sql] of migrations) {
+      for (const role of [...CLIENT_ROLES, ...SERVICE_ROLES, 'app_authz']) {
+        for (const verb of ['update', 'delete']) {
+          assert.doesNotMatch(sql,
+            new RegExp(`grant\\s[^;]*\\b${verb}\\b[^;]*\\bon\\s+app\\.${table}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+            `${name} grants ${role} ${verb.toUpperCase()} on app.${table}. `
+            + "§5's mutability column names evidence immutable in terms; app.research_sources is "
+            + "APPEND-ONLY on batch 070's own reading, because §10 preserves \"permitted hash/citation "
+            + 'metadata" after the captured object is purged and a citation editable once its snapshot is '
+            + 'gone is a claim about a document nobody can check. If a later batch legitimately needs the '
+            + 'verb, name the decision that authorises the writer and move the cases that assert the '
+            + 'refusal.');
+        }
+      }
+    }
+  }
+  assert.match(researchCode, /has_any_column_privilege\(r\.rolname, c\.oid, 'UPDATE'\)/,
+    'the grant half is asked with has_any_column_privilege, so a COLUMN-SCOPED grant is caught as well as a '
+    + 'table-wide one — the measured trap that a full set of column grants leaves has_table_privilege false '
+    + '— and against the LIVE ACL, because a grant made by a later batch would not appear in this file');
+  assert.match(researchCode, /and pol\.polcmd in \('w', 'd'\)/,
+    'and the policy half is asked of pg_policy: a policy with no grant is inert, and a grant with no policy '
+    + 'is refused by RLS instead of by privilege, which is a weaker refusal than immutability asks for');
+  assert.doesNotMatch(researchCode, /create (or replace )?function private\.refuse_mutation/,
+    'and NO TRIGGER. 140 used one and had a reason no table here has: an audit log\'s adversary can OWN the '
+    + "table, because the operator being audited runs the migration. A research row's adversary reaches it "
+    + 'through a granted role, and the control that refuses that person is the absence of the verb (131\'s '
+    + 'reading, kept).');
+  // 3. MUTABLE IN EXACTLY TWO COLUMNS — 050's outbox shape on the capture.
+  assert.match(researchCode, new RegExp(`grant update \\(object_ref, purged_at, updated_at\\) on app\\.${RESEARCH_SNAPSHOTS} to app_worker;`),
+    '§10 requires the row to lose its locator and to record that it did, and nothing else about a capture '
+    + 'moves');
+  // 4 and 5. MUTABLE, with the client verbs §8.2 names and no others.
+  for (const table of [RESEARCH_RUNS, RESEARCH_SUGGESTIONS, RESEARCH_SNAPSHOTS]) {
+    assert.match(researchCode, new RegExp(`create trigger set_updated_at before update on app\\.${table}`),
+      `app.${table} is mutable, so §3.2 requires updated_at and batch 000 supplied the trigger`);
+    assert.match(researchBodyOf(table), /updated_at\s+timestamptz not null default now\(\)/);
+  }
+  assert.match(researchCode, /grant update \(cancel_requested_at, updated_by\) on app\.research_runs to authenticated;/,
+    "§8.2's \"Start/CANCEL Research\" is a client verb on an existing row; the START is the row's own INSERT, "
+    + 'which the next line of the matrix marks N for every client role');
+  assert.match(researchCode, /grant update \(saved_at, dismissed_at, used_at, updated_by\) on app\.research_suggestions to authenticated;/,
+    "§8.2's \"Suggestion save/dismiss/use\", one column per verb, with `title` absent because rewriting what "
+    + 'a run proposed is none of the three');
+});
+
+test('the §8.2 research cells are implemented as written, and the COPYRIGHT-3 table is excluded from the first', async () => {
+  for (const table of RESEARCH_CLIENT_READABLE) {
+    assert.match(researchCode,
+      new RegExp(`create policy ${table}_select_active_member on app\\.${table}\\s*\\n\\s*for select to authenticated\\s*\\n\\s*using \\(app\\.is_active_member\\(workspace_id\\)\\)`),
+      `§8.2's "Knowledge/Research SELECT" is Y for all five built-in roles, so app.${table}'s predicate tests `
+      + 'ACTIVE MEMBERSHIP and not role');
+    assert.match(researchCode, new RegExp(`grant select \\([^)]*\\)\\s*\\n?\\s*on app\\.${table} to authenticated;`),
+      `and the grant that makes it reachable is COLUMN-SCOPED, so a column drift is loud in the shape batch `
+      + '010 writes');
+  }
+  // THE EXCLUSION, and it is the whole COPYRIGHT-3 decision as the privilege system holds it.
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const role of CLIENT_ROLES) {
+      assert.doesNotMatch(sql,
+        new RegExp(`grant\\s[^;]*\\bon\\s+app\\.${RESEARCH_SNAPSHOTS}\\b[^;]*\\bto\\s[^;]*\\b${role}\\b`, 'i'),
+        `${name} grants ${role} a privilege on app.${RESEARCH_SNAPSHOTS}. §9.1 classes a research snapshot `
+        + 'COPYRIGHT-3 with the client projection "approved excerpt only"; nothing in this repository defines '
+        + 'what approves an excerpt, and §9.2 forbids a full research snapshot in a client surface at all. '
+        + '§8.2\'s SELECT row would have admitted this table and §9.1 is the narrower statement, which is '
+        + '060\'s rule for exactly this collision. The batch that lands an approval decision edits this rule.');
+    }
+  }
+  assert.match(researchCode, /a client role holds a privilege on the COPYRIGHT-3 snapshot table/,
+    'and the same negative is asserted at apply time for `authenticated` as well as `anon` — unlike every '
+    + 'earlier batch, which asserts only the anonymous one — because §9.2\'s prohibition is about a CLIENT '
+    + 'SURFACE rather than about anonymity, and RFC-2026-021 §7/4 decides only the second');
+  // The two write cells, with their role lists and §8.5's user-action rule.
+  for (const table of [RESEARCH_RUNS, RESEARCH_SUGGESTIONS]) {
+    const policy = researchCode.match(new RegExp(`create policy ${table}_update_writer[\\s\\S]*?;\\n`))[0];
+    for (const [half, predicate] of halvesOf(policy)) {
+      assert.match(predicate, new RegExp(`app\\.workspace_member_role\\(workspace_id\\) in \\('${RESEARCH_WRITERS.join("', '")}'\\)`),
+        `${table} ${half}: §8.2 marks owner, admin AND editor Y on both client write cells. §8.5 requires an `
+        + 'UPDATE policy to carry both halves — without the second, a row admitted by the first could be '
+        + 'updated out of the scope that admitted it — and they are two catalog columns, so they are asserted '
+        + 'separately.');
+      assert.doesNotMatch(predicate, /'approver'|'viewer'/,
+        `${table} ${half}: §8.2 marks the approver P and the viewer N. RFC-2026-020 §8 makes it an approved `
+        + 'decision that P cannot be implemented until somebody defines the capability set, and naming the '
+        + 'approver here would delete the distinction between Y and P.');
+    }
+    assert.match(policy, /with check \(\s*\n\s*updated_by = \(select auth\.uid\(\)\)/,
+      `${table}: §8.5's "user action ตรวจ created_by = (select auth.uid())" arriving on an UPDATE, which is `
+      + 'where this family can carry it — §8.2 gives clients no INSERT anywhere, so §8.6 case 8 is asserted '
+      + 'here or nowhere');
+  }
+  // The cells that are NOT implemented, each refused for a stated reason rather than omitted.
+  assert.doesNotMatch(researchCode, /grant insert[^;]*to authenticated/,
+    'NO client INSERT anywhere in the batch. §8.2 marks "Research run/source/evidence INSERT" N in all five '
+    + 'client columns, and §8 has no cell at all for creating a snapshot or a suggestion — where a document '
+    + 'is silent the cell is denied (030\'s reading, kept by 050, 060, 061, 110 and 131).');
+  assert.match(research, /THE SECOND ROW IS IMPLEMENTED IN HALF/,
+    "and the half of §8.2's \"Start/cancel Research\" that is missing is named in the file rather than left "
+    + 'as an absence: the START is the row\'s own INSERT and is owed to a command surface RFC-2026-021 §10 '
+    + 'records does not exist');
+});
+
+test('the research narrowings are RESTRICTIVE, and each child resolves through its parent on both halves', () => {
+  const restrictive = [...researchCode.matchAll(/create policy (\w+) on app\.(research_\w+)\s*\n\s*as restrictive([\s\S]*?);\n/g)];
+  assert.equal(restrictive.length, 4,
+    'one per table a client may read. Permissive policies OR together and cannot subtract, so a scope rule '
+    + 'written as a permissive policy would WIDEN each table instead of narrowing it. '
+    + 'app.research_snapshots has none because it has no policy at all — §9.1 classes it COPYRIGHT-3 and no '
+    + 'client role is granted anything on it, so there is nothing for a narrowing to narrow.');
+  assert.deepEqual(restrictive.map((m) => m[2]).sort(), [...RESEARCH_CLIENT_READABLE].sort());
+  for (const [body, name] of restrictive.map((m) => [m[0], m[1]])) {
+    assert.match(body, /for\s+all\s+to\s+authenticated/i,
+      `${name}: FOR ALL, so the scope rule has ONE home per table and a permissive policy added by a later `
+      + 'batch is ANDed with it automatically instead of being another place to forget it');
+  }
+  // THE RUN ASKS BOTH QUESTIONS, on both halves. 040's probe, on the one table in this batch that
+  // carries both scope columns.
+  const runNarrowing = restrictive.find((m) => m[2] === RESEARCH_RUNS)[0];
+  for (const [half, predicate] of halvesOf(runNarrowing)) {
+    assert.match(predicate, /case when page_context_profile_id is null/,
+      `${half}: the narrowing decides PER ROW which question to ask`);
+    assert.match(predicate, /app\.member_scope_admits_business\(workspace_id, business_profile_id\)/,
+      `${half}: the business-level branch`);
+    assert.match(predicate, /app\.member_scope_admits_page\(workspace_id, business_profile_id, page_context_profile_id\)/,
+      `${half}: and the page-level one. Dropping it would admit every member scoped to a SIBLING Page under `
+      + 'the same Business, and dropping it from ONE of USING and WITH CHECK hides that on the half a test is '
+      + 'not looking at — which is the reversal 040 shipped twice before its own rule was split in two.');
+    assert.doesNotMatch(predicate, /member_scope_covers_/,
+      `${half}: \`admits\`, never \`covers\`. Every client cell batch 070 implements is a Y, and \`covers\` `
+      + 'would deny every member holding no scope row.');
+  }
+  // AND EACH CHILD RESOLVES THROUGH ITS PARENT, which is the claim this batch owes most.
+  for (const table of RESEARCH_CHILDREN) {
+    const parent = table === RESEARCH_EVIDENCE ? RESEARCH_SOURCES : RESEARCH_RUNS;
+    const narrowing = restrictive.find((m) => m[2] === table)[0];
+    for (const [half, predicate] of halvesOf(narrowing)) {
+      assert.match(predicate, new RegExp(`exists \\(\\s*\\n\\s*select 1 from app\\.${parent}\\b`),
+        `${table} ${half}: its reach IS its parent's reach, asserted rather than copied. The subquery runs as `
+        + "the CALLER, so the parent's own policy set applies to it and the direction is fail-closed: any "
+        + 'narrowing added to the parent later makes this refuse more, never less.');
+      assert.doesNotMatch(predicate, /member_scope_admits_/,
+        `${table} ${half}: it must NOT ask the scope question about its own columns. A child carries no page `
+        + 'column, so asking admits_business over its own scope pair would admit every member scoped to a '
+        + "sibling Page under the same Business while the parent run is hidden from them — the exact leak "
+        + '`pinned-editor-a-cannot-see-the-research-source-of-a-sibling-target-run` exists to catch.');
+    }
+  }
+  assert.match(researchCode, /batch 070 wrote % restrictive policies and it creates four tables to narrow/,
+    'and the count is re-asserted at apply time, because polpermissive is the one catalog column that tells a '
+    + 'narrowing from a widening');
+  assert.match(researchCode, /the research run narrowing does not ask both the Business and the Page question/,
+    'and both branches are asserted against the DEPARSED expression, on both halves, because the count alone '
+    + 'would be satisfied by a narrowing that asked only the Business question');
+});
+
+test('no batch 070 policy names a membership table, and every one is written TO authenticated', () => {
+  const policies = [...researchCode.matchAll(/create policy (\w+) on app\.(research_\w+)([\s\S]*?);\n/g)];
+  assert.equal(policies.length, 10,
+    'FOUR SELECT policies (§8.2\'s "Knowledge/Research SELECT", Y for all five roles), TWO UPDATE policies '
+    + '(§8.2\'s "Start/CANCEL Research" and "Suggestion save/dismiss/use") and FOUR restrictive narrowings, '
+    + 'one per table a client may read. app.research_snapshots contributes none of the ten: §9.1 classes it '
+    + 'COPYRIGHT-3 with a client projection nothing in this repository can produce, and §8.2\'s `S` names the '
+    + 'run, the source and the evidence and stops — so it has neither a client cell nor a service cell.');
+  for (const [body, name] of policies.map((m) => [m[0], m[1]])) {
+    assert.match(body, /\bto\s+authenticated\b/i, `${name}: §8.5 writes tenant policies TO authenticated`);
+    assert.doesNotMatch(body, /app\.workspace_members\b|app\.workspace_member_scopes\b/,
+      `${name}: RFC-2026-020 §5/5. A policy that scanned app.workspace_members would evaluate that scan AS `
+      + "THE CALLER, so another module's whole policy set would expand inside this table's evaluation and the "
+      + 'width of research visibility would stop being a property of this file.');
+  }
+  assert.doesNotMatch(researchCode, new RegExp(`create policy \\w+ on app\\.${RESEARCH_SNAPSHOTS}\\b`),
+    'app.research_snapshots carries NO policy. THE LOAD-BEARING PROPERTY IS THAT IT CARRIES NONE OF ANY '
+    + 'KIND, not that it carries no SERVICE policy: §9.1 gives it a client projection nothing can produce '
+    + 'and §8.2\'s `S` names the run, the source and the evidence and stops, so there is neither a client '
+    + 'cell nor a service cell to implement. A policy appearing here without the approval decision or an §8 '
+    + 'row that would justify it fails this rule.');
+});
+
+test('the §8.2 research S cell is classified as data and no service policy is written', async () => {
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP_FILE, 'utf8'));
+  const mine = (map.cells ?? []).filter((c) => c.batch === '070_research.sql');
+  assert.deepEqual(mine.map((c) => c.table).sort(), [RESEARCH_EVIDENCE, RESEARCH_RUNS, RESEARCH_SOURCES],
+    'THREE entries and not five. §8.2\'s "Research run/source/evidence INSERT | N N N N N | S" names exactly '
+    + 'those three, and §8 has no row anywhere for inserting a snapshot or a suggestion — so there is no cell '
+    + 'to classify for either, and inventing a `cell` value would be a claim about the access matrix made in '
+    + 'a lint file (061\'s sentence, unchanged).');
+  for (const cell of mine) {
+    assert.equal(cell.operation, 'insert', `${cell.table}: §8.2's S is on the INSERT alone`);
+    assert.equal(cell.shape, 'carried',
+      `${cell.table}: RFC-2026-022 §3's own table does NOT classify §8.2's research row — it names 050, 051, `
+      + '061, 110, 120, 131 and the asset purge — so batch 070 applied §3\'s operational test rather than '
+      + 'citing a verdict, and all three statements CARRY their workspace: a run\'s is what the requester '
+      + 'asked about, and a source\'s and an evidence row\'s are copied from a run the worker already holds '
+      + 'and held to it by a composite foreign key.');
+    assert.match(cell.why, /RFC-2026-022 §3/, 'the reason cites the test it applies rather than asserting a verdict');
+  }
+  // The map is checked against the set the migrations create, by the function that computes it.
+  const created = await tablesCreatedByMigrations();
+  for (const cell of mine) {
+    assert.ok(created.has(`app.${cell.table}`), `${cell.table} must be a table a migration creates`);
+  }
+  const migrations = await allMigrations();
+  for (const [name, sql] of migrations) {
+    for (const table of RESEARCH_TABLES) {
+      assert.doesNotMatch(sql, new RegExp(`create policy \\w+ on app\\.${table}[\\s\\S]{0,400}?to\\s+app_worker\\b`, 'i'),
+        `${name} writes a service policy on app.${table}. RFC-2026-022 is approved and NOT IN EFFECT: §5/8 `
+        + 'records that the only member of app_worker is postgres, which bypasses RLS, so a policy TO that '
+        + 'role is unreachable except from an identity for which it is moot. A batch classifies its cells in '
+        + 'the map and stops there.');
+    }
+  }
+  // §5/4, and it is asserted over the RAW file rather than the stripped code, because a first probe
+  // on batch 131 added the expression as a COMMENT and the stripped-code rule did not notice.
+  assert.equal((research.match(/current_setting/g) ?? []).length, 1,
+    'the confinement expression appears in this migration EXACTLY ONCE, in the paragraph that DERIVES the '
+    + "classification by adding it to the batch's own statements. A second occurrence is either a policy this "
+    + 'batch may not write or a second sentence about a control it does not have.');
+  assert.match(research, /AND THE CONFINEMENT TERM IS NOT A TENANT BOUNDARY/,
+    'and the one occurrence carries §5/4 beside it: the role the policy names can set the setting the policy '
+    + 'reads, and has_parameter_privilege cannot even be asked who may — so the term is containment against '
+    + "defects in the service's own code and never tenant isolation of the service path");
+  for (const c of cases.filter((k) => /research-(run|source|snapshot|evidence|suggestion)/.test(k.id))) {
+    assert.doesNotMatch(String(c.why), /workspace GUC|current_setting/,
+      `${c.id}: RFC-2026-022 §5/4 forbids any test citing the confinement setting as tenant isolation of the `
+      + 'service path, and a case that mentions it at all is one a later reader will cite that way');
+  }
+});
+
+test('batch 070 adds to the merged batches and rewrites none of them', () => {
+  assert.equal([...researchCode.matchAll(/\balter table app\.(?!research_)/g)].length, 0,
+    'migration invariant 1 forbids rewriting a merged migration. Every `alter table` here names a table this '
+    + 'file created.');
+  for (const verb of ['drop table', 'drop column', 'drop constraint', 'drop function', 'drop index']) {
+    assert.doesNotMatch(researchCode, new RegExp(verb, 'i'), `batch 070 issues no ${verb}`);
+  }
+  const dropped = [...researchCode.matchAll(/drop policy if exists (\w+) on app\.(\w+)/g)];
+  const written = new Set([...researchCode.matchAll(/create policy (\w+) on app\.(\w+)/g)].map((m) => `${m[1]}|${m[2]}`));
+  for (const [, policy, table] of dropped) {
+    assert.ok(written.has(`${policy}|${table}`),
+      `batch 070 drops ${policy} on app.${table} and does not create it, so it would remove a policy another `
+      + 'batch owns');
+  }
+  assert.equal(dropped.length, written.size,
+    'every drop is paired with the create beside it — the `drop policy if exists` form makes the file '
+    + 're-runnable and is only safe while each one names a policy this file writes');
+  assert.doesNotMatch(researchCode, /pg_authid/,
+    "pg_authid is readable only by a superuser and `postgres` is not one on the target platform (020's "
+    + 'measured reason). Every role sweep in this file reads pg_roles.');
+  assert.doesNotMatch(researchCode, /(public|extensions)\.gen_random_uuid|pgcrypto/,
+    'gen_random_uuid() unqualified, as batch 000 established');
+  assert.doesNotMatch(researchCode, /create\s+view/i,
+    'no view, so RFC-2026-021\'s client read allowlist stays empty. §4\'s C1 — "a named caller exists, and it '
+    + 'is a client" — fails here: there is no src/, and the consumers any document names for research output '
+    + 'are batch 080\'s content pipeline and a UI that does not exist.');
+});
+
+test('the batch 070 fixture writes only catalog identities and carries no captured material', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(RESEARCH_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['research_run_a1', 'research_run_a1_page', 'research_run_a1_sibling_page',
+    'research_run_a2', 'research_run_b1', 'research_source_a1', 'research_source_a1_sibling_page',
+    'research_source_b1', 'research_evidence_a1', 'research_evidence_b1', 'research_suggestion_a1',
+    'research_suggestion_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // §9.2 NAMES `fixture` IN ITS OWN LIST OF SURFACES, which is why this rule exists at all.
+  assert.match(fixture, /sha256\(convert_to\('fixture research capture a1', 'utf8'\)\)/,
+    'the captures are addressed by a digest of a SYNTHETIC string this repository owns, composed the same way '
+    + 'in the fixture and in the cases — so the fixture demonstrates that the hash IS an address, which is '
+    + 'the whole reason §10 says to preserve it');
+  assert.doesNotMatch(fixture, /\bhttps?:\/\/(?!example\.com\b)[a-z0-9.-]+/i,
+    'every URI in this fixture is under example.com, which RFC 2606 reserves for exactly this. §9.2 lists '
+    + '`fixture` among the surfaces a full research snapshot may not reach, and a real publisher\'s URL in a '
+    + 'test is the first step of a worker fetching it — which is also why source_uri\'s scheme is an '
+    + 'allowlist of one in the migration.');
+  // THE PURGED ROW, which is what makes purged_at and the constraint beside it legible as data.
+  assert.match(fixture, /timestamptz '2026-09-08 10:00:00\+00'\)/,
+    'the B-side capture is PURGED — object_ref null, purged_at stamped — so §10\'s "purge object + locator; '
+    + 'preserve permitted hash/citation metadata" exists as a row rather than only as a sentence, and '
+    + 'research_snapshots_purged_row_names_no_object is a constraint some row satisfies in the interesting '
+    + 'direction');
+  assert.doesNotMatch(fixture, /\bnow\(\)/,
+    'every timestamp is FIXED. It matters twice over here: retention_until > captured_at is a constraint, and '
+    + 'retention_until < now() is the query batch 160 will ask.');
+  assert.doesNotMatch(fixture, /'2026-10-01|interval/i,
+    'and NO capture is retained for thirty days. DATA-DEC-07 is open and §10 says "30 วัน default หรือ'
+    + 'สั้นกว่าตาม source policy", so a fixture carrying exactly the default would read as the decision '
+    + 'having been chosen. Both rows are retained for seven days, which is a number no document states.');
+});
+
+test('the tables batch 070 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  for (const table of RESEARCH_TABLES) {
+    const entry = entries.find((e) => e.table === `app.${table}`);
+    assert.ok(entry, `app.${table} has no entry in the per-family negative control. A control that grows `
+      + 'stale as the suite grows is worse than none, because it reports a coverage it does not have.');
+    assert.equal(entry.batch, '070');
+    const matching = cases.filter((c) => new RegExp(`^${entry.pattern}`).test(c.id));
+    assert.ok(matching.length > 0, `no case id matches ${entry.pattern}, so that entry rests on nothing`);
+    // The entry bites only through cases row level security actually decides. A `deniedBy: 'grant'`
+    // case passes unchanged with RLS off and is not part of any basis.
+    const basis = matching.filter((c) => c.expect === 'no-rows'
+      || (c.expect === 'denied' && c.deniedBy === 'policy')
+      || c.expect === 'no-effect');
+    assert.ok(basis.length >= 2,
+      `app.${table}'s control entry rests on ${basis.length} case(s) that disabling row level security would `
+      + 'change. Batch 030 established that the count belongs beside the entry, because an entry resting on '
+      + 'one case is one deletion away from resting on none.');
+  }
+  // THE TWO CASES app.research_snapshots RESTS ON, PINNED BY ID, BY OUTCOME AND BY LAYER. Its basis
+  // is the smallest in this batch — no client role holds anything on it — so this is the pin that
+  // refuses the deletion.
+  const seesZero = cases.find((c) => c.id === 'service-sees-zero-research-snapshots');
+  assert.equal(seesZero.expect, 'no-rows',
+    'the FILTERED read. app_worker holds a column-scoped SELECT and no policy, so with row level security off '
+    + 'this returns the fixture capture.');
+  const cannotCapture = cases.find((c) => c.id === 'service-cannot-capture-a-research-snapshot');
+  assert.equal(cannotCapture.expect, 'denied');
+  assert.equal(cannotCapture.deniedBy, 'policy',
+    'the RAISING half. app_worker holds the INSERT — a capture has to be written by something — and the empty '
+    + 'policy set is what refuses the row, so with row level security off the write lands.');
+  // And the three that are deliberately NOT in that basis, because their control is a privilege.
+  for (const idName of ['service-cannot-extend-the-retention-of-a-research-snapshot',
+    'service-cannot-rewrite-the-digest-of-a-research-snapshot',
+    'service-cannot-delete-a-research-snapshot']) {
+    assert.equal(cases.find((c) => c.id === idName).deniedBy, 'grant',
+      `${idName} must be a GRANT-layer refusal. retention_until and content_hash are outside every UPDATE `
+      + 'grant to every role and no role holds DELETE, so these three pass unchanged with row level security '
+      + 'off — which is the point of them: DATA-DEC-07 is open, and a retention limit a granted path could '
+      + 'push forward would not be one.');
+  }
+});
+
+test('no batch 070 case id can satisfy another control entry, and none enlarges the known overlap', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: new RegExp(`^${m[2]}`) }));
+  const mine = entries.filter((e) => e.table.startsWith('app.research_'));
+  const others = entries.filter((e) => !e.table.startsWith('app.research_'));
+  const myCases = cases.filter((c) => mine.some((e) => e.pattern.test(c.id)));
+  assert.ok(myCases.length > 0, 'there are batch 070 cases to check, or this rule asks nothing');
+  for (const c of myCases) {
+    for (const other of others) {
+      assert.ok(!other.pattern.test(c.id),
+        `${c.id} matches the entry for ${other.table} as well as its own. `
+        + 'The 2026-09-07 integration measured sixteen such pairs on the shared base and recorded that two '
+        + 'batches enlarged it to eighteen by naming cases "...-of-workspace-a/-b". Batch 070 names none of '
+        + 'its cases with `workspace`, `business`, `page` or `scope` for exactly that reason, and a control '
+        + "satisfied by a failure it did not cause is the thing the step's own comment says must not happen.");
+    }
+  }
+  // And the five patterns are pairwise disjoint among themselves, measured over the whole merged
+  // case set rather than argued.
+  for (const a of mine) {
+    for (const b of mine) {
+      if (a.table === b.table) continue;
+      const both = cases.filter((c) => a.pattern.test(c.id) && b.pattern.test(c.id));
+      assert.deepEqual(both.map((c) => c.id), [],
+        `${a.table} and ${b.table} share case id(s), so a regression in one would satisfy the other's entry`);
+    }
+  }
+});
+
+test('the coverage map records what a COPYRIGHT-3 table cannot carry and what the four beside it do', () => {
+  for (const key of [1, 2, 4, 5, 6, 7, 8]) {
+    assert.match(SMOKE_COVERAGE[key].note, /BATCH 070/,
+      `§12.6/${key}: batch 070 touches five tables and the map has to say what each assertion gained or did `
+      + 'not. A row that moves must move for a case, and a row that does not must say why.');
+  }
+  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+    'batch 070 moves NOTHING here and a reader will expect it to. §12.6/3 names CONTENT and KNOWLEDGE; '
+    + 'research is neither — §5 gives it its own module row and §8.2 its own operations — and reading '
+    + '"Knowledge/Research SELECT" as licence to count a research refusal against a sentence that says '
+    + '"knowledge" is the analogue rule this map has refused five times. Content is still batch 080\'s.');
+  assert.match(SMOKE_COVERAGE[3].note, /BATCH 070 MOVES NOTHING HERE EITHER/,
+    'and the map says so rather than leaving the absence to be noticed');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'the positive half of §12.6/8 is still unassertable, and batch 070 names what it is waiting for: not a '
+    + 'shape — RFC-2026-022 settled that — but a service identity, because the only member of app_worker is '
+    + 'postgres, which bypasses row level security.');
+  assert.match(SMOKE_COVERAGE[1].note, /app\.research_snapshots gets NONE of it/,
+    'the three-case shape is carried on four tables and NOT on the fifth, and the map says which — a claim '
+    + 'that averaged the five would report a boundary the COPYRIGHT-3 table does not have');
+  for (const key of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) {
+    assert.match(String(AUTHORIZATION_CASE_COVERAGE[key]), /BATCH 070/,
+      `§8.6 case ${key}: every case in that list has a disposition for this family, including the ones batch `
+      + '070 cannot carry — case 8\'s scope half is refused by an absent grant rather than by a policy, and '
+      + 'case 10 is unpaid in both halves.');
   }
 });

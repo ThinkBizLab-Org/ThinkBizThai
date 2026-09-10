@@ -56,6 +56,30 @@
       "shape": "discovered",
       "why": "RFC-2026-022 §3's operational test, applied to the statement rather than to the table. The statement a billing webhook processor issues is `select … where processed_at is null and dead_lettered_at is null and next_attempt_at <= now() order by received_at for update skip locked` — the next receipt nobody has resolved. Add the confinement term `and correlation_workspace_id = (select nullif(current_setting('app.workspace_id', true), '')::uuid)` and the work CHANGES: \"the next unprocessed receipt\" becomes \"the next unprocessed receipt of a tenant I already knew\". On this table it is worse than on a queue, because the column the term reads is NULL on exactly the rows the processor exists to resolve — §8.3 of the Stripe billing contract initialises `correlation_workspace_id` to null in its own minimum field list, since a provider event arrives outside any session and the workspace is what reading it resolves. So the workspace is the statement's OUTPUT, the cell is DISCOVERED, and per RFC-2026-022 §5/5 app_worker holds grants and NO POLICY on this table permanently rather than pending. Batch 131 writes no service policy: the decision is NOT IN EFFECT (§5/8 — measured 2026-09-08, the only member of app_worker is postgres, which bypasses RLS), and the broker §5/6 names has no identity to grant EXECUTE to. The confinement term is containment against defects in the service's own code and never tenant isolation of the service path (§5/4); no case, comment or assertion in batch 131 cites it as the latter.",
       "batch": "131_billing_projection.sql"
+    },
+    {
+      "cell": "§8.2 Research run/source/evidence INSERT | N | N | N | N | N | S — the run",
+      "table": "research_runs",
+      "operation": "insert",
+      "shape": "carried",
+      "why": "RFC-2026-022 §3's operational test applied to the statement, and applied rather than looked up: §3's own table classifies cells for 050, 051, 061, 110, 120, 131 and the asset purge and does not name §8.2's research row at all, so batch 070 derives the shape instead of citing a verdict. The statement a research worker issues is `insert into app.research_runs (workspace_id, business_profile_id, page_context_profile_id, brief, created_by) values (...)`. Add `and workspace_id = (select nullif(current_setting('app.workspace_id', true), '')::uuid)` to its WITH CHECK and it writes the same row: the workspace is what the REQUESTER asked about, resolved by the server before the work was enqueued -- CTR-TEN-001's trust boundary is \"Server-resolved only after membership and Workspace→Business→Page relation validation; client-supplied context is untrusted input\" -- and it sits in the statement's own VALUES list beside a business_profile_id that must agree with it through a composite foreign key into app.business_profiles. Nothing here discovers a workspace by reading, which is the half of §3's test that would make it DISCOVERED. Contrast batch 050's claim on app.jobs: `for update skip locked` over the next due row has no workspace term to add without changing what the work IS. NO POLICY IS WRITTEN: the decision is approved and NOT IN EFFECT (§5/8 and the `_not_in_effect` note above), so this row classifies the cell and authorises nothing. The confinement term is containment against defects in the service's own code and never tenant isolation of the service path (§5/4); no comment, case or assertion in batch 070 cites it as the latter.",
+      "batch": "070_research.sql"
+    },
+    {
+      "cell": "§8.2 Research run/source/evidence INSERT | N | N | N | N | N | S — the source",
+      "table": "research_sources",
+      "operation": "insert",
+      "shape": "carried",
+      "why": "The same cell one level down, classified separately because RFC-2026-022 §7.2 keys the register on (cell, STATEMENT) and never on the table alone, and derived by applying RFC-2026-022 §3's operational test rather than by citing a verdict -- §3's own table does not name §8.2's research row. The statement is `insert into app.research_sources (workspace_id, business_profile_id, research_run_id, source_uri) values (...)` -- \"record that run R cited this URL\". R was resolved when the work was claimed, and the source's workspace_id and business_profile_id are copied from R and held to it by a composite foreign key into app.research_runs (workspace_id, business_profile_id, id), so the workspace is something the row says twice before any policy reads it. Adding the confinement term to the WITH CHECK changes nothing about which row it writes. CARRIED.",
+      "batch": "070_research.sql"
+    },
+    {
+      "cell": "§8.2 Research run/source/evidence INSERT | N | N | N | N | N | S — the evidence",
+      "table": "research_evidence",
+      "operation": "insert",
+      "shape": "carried",
+      "why": "The third statement §8.2's `S` names, against a source the same worker has just written, and classified by applying RFC-2026-022 §3's operational test rather than by citing a verdict -- §3's own table names 050, 051, 061, 110, 120, 131 and the asset purge and does not name §8.2's research row at all. Its workspace_id and business_profile_id are copied from that source and held to it by a composite foreign key, so the confinement term is redundant rather than restrictive and the cell is CARRIED. THE MAP CARRIES THREE ENTRIES FOR THIS BATCH AND NOT FIVE: §8.2's `S` names the run, the source and the evidence and stops, and §8 has no row anywhere for inserting a research SNAPSHOT or a research SUGGESTION -- a run proposes a suggestion (§4's ERD) and a snapshot is COPYRIGHT-3 material §9.1 gives no service cell for. Where a document is silent the cell is denied, and inventing a `cell` value for either would be a claim about the access matrix made in a lint file (061's sentence, unchanged). Neither table carries a policy, and app_worker holds grants and none, so both refusals stay attributable to row level security.",
+      "batch": "070_research.sql"
     }
   ]
 }

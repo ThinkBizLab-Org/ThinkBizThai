@@ -275,10 +275,16 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // reads like a missing batch rather than like a misplaced one. Batches 061, 110 and 131 are being
 // written in parallel and two of them sort into the middle as well, so this is the ordinary case
 // from here on rather than a peculiarity of 051.
+// Batch 070 joins for the structural reason nine of the others share, and its position is the point
+// worth naming: it sorts between 061 and 110, so it is INSERTED and not appended. A resolver who
+// appends it produces an unsorted declaration, and pendingDeclarationLint refuses that with a
+// message about a TAIL — which reads like a missing batch rather than like a misplaced one. 051
+// recorded the same thing about its own position between 050 and 060; from 110 onwards this is the
+// ordinary case rather than a peculiarity.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '110_meta_connector.sql', '130_billing.sql',
+  '061_metering.sql', '070_research.sql', '110_meta_connector.sql', '130_billing.sql',
   '131_billing_projection.sql', '132_entitlement_resolution.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
@@ -623,6 +629,48 @@ const ADDED_SYMBOLS = [
   // more when the rows differ in the column an owner would most want to read.
   'billing_invoice_a',
   'billing_invoice_b',
+  // Batch 070 adds TWELVE symbols for FIVE tables, and the asymmetry is this list's own rule rather
+  // than a budget: a symbol exists where a row has NO natural key, and four of research.core's five
+  // tables have none that any document fixes. 070 refuses to invent one for each — nothing in §4,
+  // §5 or §8 says a run cites a URL once or that a source supports one piece of evidence — so a
+  // source, an evidence item and a suggestion are addressed by an id or by nothing. A SNAPSHOT is
+  // the exception and gets none: (workspace_id, research_source_id, content_hash) is unique in
+  // 070_research.sql, because that triple is what app.research_evidence has to name single-valued
+  // after §10's purge removes the locator, so a case addresses a capture by its digest exactly as
+  // batch 010's cases address an invitation by its token hash.
+  //
+  // FIVE RUNS, because the run is the one table in this batch that carries §4 invariant 3's TWO-
+  // COLUMN scope and its restrictive narrowing therefore has two branches and four outcomes to
+  // exercise: a business-level row inside the scope, a page-level row inside it, a page-level row
+  // under a SIBLING page of the same Business (§8.6 case 4, which no identity §12.6 names can carry
+  // — 021 added user_page_editor_a and page_a1_sibling for exactly this), a row under a Business
+  // outside the member's scope (§8.6 case 3), and a row across the tenant boundary (§8.6 case 5).
+  // Batch 040 met the same shape one family over and needed five knowledge items for it.
+  'research_run_a1',
+  'research_run_a1_page',
+  'research_run_a1_sibling_page',
+  'research_run_a2',
+  'research_run_b1',
+  // TWO A-SIDE SOURCES, and the second is not a duplicate. A source carries no page column of its
+  // own — a nullable copy of its run's page could not be held equal to it under MATCH SIMPLE — so
+  // batch 070's whole child design is that a child's reach IS its parent's reach, resolved by a
+  // restrictive policy through app.research_runs. Asserted only against a BUSINESS-level parent,
+  // that claim would still hold if somebody replaced the exists() with
+  // member_scope_admits_business, which is the substitution the design exists to refuse.
+  // research_source_a1_sibling_page is the row that makes the page half of it falsifiable.
+  'research_source_a1',
+  'research_source_a1_sibling_page',
+  'research_source_b1',
+  // One evidence item and one suggestion per side. Both sides are loaded because no client role
+  // holds any privilege on app.research_snapshots at all, so this batch's substitute for a
+  // cross-tenant claim on that table is 030's and 140's — both owners refused identically — and
+  // that substitute is about two real rows or it is about nothing. The two pairs also differ in the
+  // column an owner would most want to read: the A-side evidence names a capture by digest and the
+  // B-side names none, and the A-side suggestion is untouched while the B-side is dismissed.
+  'research_evidence_a1',
+  'research_evidence_b1',
+  'research_suggestion_a1',
+  'research_suggestion_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

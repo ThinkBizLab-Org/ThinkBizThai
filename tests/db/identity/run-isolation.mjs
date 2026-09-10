@@ -95,6 +95,14 @@ export const FIXTURE_SQL_FILES = [
   // and 140 needs nothing from either billing fixture, so the batch order and the load order agree
   // about everything that matters.
   'tests/db/identity/fixtures/131-billing-projection-fixture.sql',
+  // Batch 070's POSITION IS A DEPENDENCY three times over, which is more than any entry above can
+  // say. Its five runs name business_a1, business_a2 and business_b1 by §3.3's composite scope key
+  // and page_a1 by the three-column one, so it cannot precede 020's; one of them names
+  // page_a1_sibling, which 021's fixture writes, so it cannot precede that one either. It is
+  // APPENDED rather than slotted after 061, because the list is an ORDER and appending is the change
+  // that cannot reorder anything else (130's sentence, kept by 061, 110 and 131) — and because
+  // nothing after 021 in this list writes a row batch 070 reads.
+  'tests/db/identity/fixtures/070-research-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
@@ -319,7 +327,12 @@ async function runOne(testCase, driver) {
       }
       return { ...base, ok: true };
     } finally {
-      // Always. Two cases are permitted writes and both must vanish.
+      // Always, and the reason is stated without counting the cases it is about. This used to read
+      // "Two cases are permitted writes and both must vanish", which was true when it was written
+      // and false from batch 021 onward — the same defect as the batch list above and as four other
+      // counts this repository has recorded going stale in prose. EVERY case rolls back, including
+      // the ones whose whole assertion is that the write SUCCEEDED: a positive that survived would
+      // change what the negative beside it is about on the next run.
       await driver.rollback();
     }
   } catch (error) {

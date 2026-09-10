@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "work_package_id": "WP-0A-DB-00",
+  "agent_run_id": "/claude",
+  "final_status": "in_progress",
+  "base_revision": "8a28c8b454f634a727e92a77e8280f6e57161f58",
+  "head_revision_or_patch_checksum": "f8a240df28dc50ce985a1a863686cc01b65924ad",
+  "task_ids": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/product-owner-disposition-batch-070.md",
+    "handoffs/WP-0A-DB-00-product-owner-disposition-handoff.json"
+  ],
+  "files_modified": [],
+  "files_deleted": [],
+  "decisions_consumed": [],
+  "contracts_consumed": [],
+  "contracts_produced_or_changed": [],
+  "assumptions": [
+    "THIS IS A TRANSCRIPTION, NOT AN ASSESSMENT. The Product Owner answered three questions in the project conversation and this increment writes the answers into the repository beside the batch they are about. The agent run recording it holds no authority over the content: it did not decide any of the three, and the evidence file says where the statement came from.",
+    "THE THREE QUESTIONS ARE RESTATED IN FULL IN THE EVIDENCE FILE, in the form they were put, because a recorded answer to a paraphrase settles nothing. The answer as given is nine words and it is quoted verbatim rather than expanded; the table beside it maps each word to the question it answers, and a reader who disagrees with the mapping can see both.",
+    "IT FILLS NO ROLE FIELD, AND THE EARLIER READING OF THAT FIELD WAS WRONG. role_assignments.product_reviewer_agent_run_id is not the Product Owner's slot: the one package carrying a value has `/root/a5_loom`, an independent Product/UX AGENT RUN. evidence/g0-tracker-th.md describes that field's emptiness in a sentence that reads as though the Owner fills it, and that sentence is what the mistake came from. Nothing in this increment writes to role_assignments.",
+    "THE HANDOFF AT THIS REVISION CARRIES A LIMITATION THAT IS NO LONGER TRUE, and the evidence file corrects it in place rather than leaving it to a later increment: it records that the isolation cases have never met a database, which was true when written and stopped being true on 2026-09-09. The corrected reading is in the evidence file with the two precisions that make it transferable -- the 554-case pass was measured through the driver THIS branch ships, and the negative control was not."
+  ],
+  "acceptance_results": [
+    {
+      "criterion": "The disposition is recorded against the questions actually asked",
+      "result": "met",
+      "evidence": "All three questions are reproduced in full in evidence/WP-0A-DB-00/product-owner-disposition-batch-070.md, with the source clause for each (§8.2's two consecutive matrix rows, RFC-2026-021 §10, §6's registry and §4's ERD against §5's inventory)."
+    },
+    {
+      "criterion": "The statement is quoted rather than summarised",
+      "result": "met",
+      "evidence": "Nine words, verbatim, in the owner's own language, with a mapping table beside it."
+    },
+    {
+      "criterion": "What the disposition does NOT settle is written down, not left to inference",
+      "result": "met",
+      "evidence": "Five items listed as still owed (the START path, used_at's binding beyond G0, DATA-DEC-07, COPYRIGHT-3, the S cell) and an Explicit limits section modelled on evidence/WP-0A-A0-001/product-owner-baseline-approval.md."
+    },
+    {
+      "criterion": "No role assignment, status, decision record, migration or contract changes",
+      "result": "met",
+      "evidence": "Two files added, both under paths this package owns. Nothing modified."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm run check",
+      "exit_code": 0,
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    }
+  ],
+  "security_privacy_cost_impact": "None to the code. The privacy-relevant point is what the disposition does NOT do: deciding that app.research_snapshots should exist is not deciding that it may hold an excerpt. The table holds a locator and a digest, nothing in this repository defines what approves an excerpt, and the apply-time column allowlist is unchanged.",
+  "migration_and_data_impact": "None. No migration is added or altered.",
+  "compatibility_impact": "None.",
+  "known_limitations": [
+    "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT. Nothing in the repository can prove the quoted statement was made; the evidence file names its origin and that is the whole of the control. The precedent artifact for the Sprint 0A baseline has the same property and states it the same way.",
+    "THE MAPPING FROM NINE WORDS TO THREE QUESTIONS IS AN INTERPRETATION. \"ข้อ 1 รับได้\" is read as accepting question 1 as put. The questions are numbered in the evidence file exactly as they were numbered when asked, which is what makes the mapping checkable rather than merely plausible.",
+    "ONE OF THE FIVE UNSETTLED ITEMS WILL EXPIRE QUIETLY. `used_at` is accepted AT G0, and nothing carries that qualifier into batch 080, which is the batch that creates a content idea from a suggestion and therefore the batch where an unbound stamp starts making a claim about an act."
+  ],
+  "open_risks_or_blockers": [
+    "PR #104 IS NOT AUTHORISED TO MERGE BY THIS. Four role signatures are still absent: Reviewer /claude/c0_contract_reviewer, Tester /claude/q0_sentinel, Security /claude/a1_bastion and Integration Owner /claude/r0_steward. RFC-2026-002 requires all of them on the head commit alongside a green CI run.",
+    "THIS COMMIT CHANGES THE HEAD, SO THE GREEN CI RUN ON 8a28c8b NO LONGER COVERS IT. RFC-2026-002 asks for CI green on the HEAD commit, so CI must run again on this branch before a merge. That is a consequence of recording the disposition on the branch it is about rather than beside it, which is the right home for it.",
+    "role_assignments.product_reviewer_agent_run_id REMAINS NULL, here and in 17 other manifests. It wants an independent Product/UX agent run and this increment does not supply one."
+  ],
+  "rollback_or_forward_fix": "ROLLBACK: delete the two added files. Nothing depends on them and no field, status or decision changes either way. The three questions return to being open readings in the batch's own blockers.",
+  "recommended_next_work_packages": [
+    "The four independent role runs on PR #104. The reviewer_instructions in this package's author handoff are the script; the disposition recorded here answers three of the questions a reviewer would otherwise have to escalate.",
+    "An independent Product/UX agent run for role_assignments.product_reviewer_agent_run_id, which is empty in 18 of 19 manifests and is the field most often mistaken for the Owner's own slot.",
+    "The command function the START path waits on, and the batch that writes it. Accepted-as-a-gap is not the same as assigned."
+  ],
+  "reviewer_instructions": [
+    "Read the three questions in the evidence file before the answer, and check each against the clause it cites -- §8.2's two consecutive rows, RFC-2026-021 §10, and §6/§4 against §5.",
+    "Check the mapping from the quoted statement to the three dispositions. It is an interpretation of nine words and it is the one thing here a reader could reasonably read differently.",
+    "Check the Explicit limits section against evidence/WP-0A-A0-001/product-owner-baseline-approval.md. The precedent's limits are the model and anything narrower here is a defect.",
+    "Do not treat this file as one of the four role signatures. It is none of them and says so twice."
+  ]
+}
