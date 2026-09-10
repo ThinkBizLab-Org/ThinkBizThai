@@ -4,19 +4,13 @@
   "work_package_id": "WP-0A-A0-008",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "8df25e82a417598b736279d17db454c713df19ae",
-  "head_revision_or_patch_checksum": "e95957c97798254b205d9eef45fc52a832bfffd1",
+  "base_revision": "5abee8bf4cf06512bf478cdcb6422ed30ee7882d",
+  "head_revision_or_patch_checksum": "c1f2647463c4d47b03108945b62f2a21d76ecd4d",
   "task_ids": [],
-  "files_added": [
-    "architecture/decisions/RFC-2026-017-service-path-identity.md",
+  "files_added": [],
+  "files_modified": [
     "handoffs/WP-0A-A0-008-author-handoff.json",
     "work-packages/WP-0A-A0-008.json"
-  ],
-  "files_modified": [
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs"
   ],
   "files_deleted": [],
   "decisions_consumed": [
@@ -25,71 +19,76 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "RFC-2026-016 is Approved and left the service path open, explicitly forbidding any document from claiming forced RLS constrains it until answered.",
-    "A decision record in Proposed state creates no role and applies no migration."
+    "THIS INCREMENT CHANGES NO DECISION AND NO CODE. It removes one spent blocker and rewrites two whose stated reason went false. It is the same defect class as commit 9aee8bb -- sentences true when written and false afterwards -- applied to a manifest.",
+    "AN EARLIER VERSION OF THIS INCREMENT WAS WRONG THREE WAYS AND AN INDEPENDENT CHECK FOUND IT. It asserted 45 tables, 554 isolation cases and 116 service case ids. Those are the counts on agent/claude/WP-0A-DB-00-quadratic-strip, which carries the unmerged 070_research.sql; at f3d3102, which is what this branch declares as its base, they are 40, 481 and 100. It also quoted batch 070's header as present tree state when 070 is not on main. Measuring a claim about one tree against another is precisely the defect this increment exists to repair, and it was committed here before it was caught.",
+    "THE THIRD ERROR WAS WORSE THAN A COUNT. The earlier text read \"a refusal observed today attributes to the absent grant rather than to a policy\". That is FALSE and the repository asserts the opposite: identity-isolation.test.mjs carries a test named \"the service denial is attributable to row level security and not to a forgotten grant\", and grants to app_worker exist in 010_identity.sql, 020_business.sql and 060_ai_gateway.sql precisely so the denial is attributable to a policy. Measured directly: set_config('role','app_worker',true) switches current_role, and app_worker's rolbypassrls is false.",
+    "SO THE CONCLUSION ITSELF WAS TOO STRONG, NOT ONLY THE REASON. What RFC-2026-017 §7 asks for -- a service identity denied with an ERROR rather than an empty result -- exists at f3d3102 and runs: 58 blocks declare they cover §7 and 26 of them expect a denial. The blocker is still LEFT OPEN, because closing it would be this package judging its own §7 condition met; what is now recorded is the evidence and the question, for an independent reviewer to close or refuse.",
+    "amends_without_owning IS EMPTIED AND `recorded_on` IS REMOVED WITH IT. verify-branch-scope exits 74 on a declared pattern matching nothing in the diff -- replayed against this branch, the previous manifest's four paths are all dead. `recorded_on` named work-packages/WP-0A-A0-002.json as the register holding the amendment record; that register's ownership.amended_by has never carried an entry for this package, so the reference was dangling before this branch and is meaningless once `paths` is empty.",
+    "STATUS IS DELIBERATELY NOT MOVED: this package stays in_progress. An Author may move work only as far as in_review, and moving it would be a claim about completeness rather than the correction of false sentences."
   ],
   "acceptance_results": [
     {
-      "criterion": "Every required_before_freeze item is assessed against the shipped schema and fixture list, not against a fixture count.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "Every count is measured against the revision this branch declares as its base",
+      "result": "met",
+      "evidence": "At 5abee8b, origin/main after PRs #104 through #108 merged: 45 create-table statements for app./private.; 65 blocks declaring covers RFC-2026-017§7, 28 expecting denied; 116 case ids beginning `service`; 554 cases from make db-rls-smoke. Unchanged across bases ff12b8b, 2e18f75 and 5abee8b, VERIFIED each time with git diff over migrations, isolation-cases.mjs and run.mjs rather than assumed. Earlier versions carried 45/554/116 measured on an unmerged branch while declaring f3d3102, then 40/481/100 correct for f3d3102 and stale the moment #104 merged."
     },
     {
-      "criterion": "The assessment states plainly that it establishes PRESENCE of an artifact and not that the artifact satisfies the intent behind the phrase, with the specific items where that gap is widest named.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "No sentence asserts the opposite of what the repository asserts",
+      "result": "met",
+      "evidence": "The clause claiming a service refusal attributes to an absent grant is removed. identity-isolation.test.mjs's test 'the service denial is attributable to row level security and not to a forgotten grant' and the app_worker grants in 010/020/060 say otherwise, and set_config('role','app_worker',true) was measured to switch current_role onto a role with rolbypassrls false."
     },
     {
-      "criterion": "No contract status changes anywhere in the repository.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "A conclusion is not preserved past its evidence merely because it is cautious",
+      "result": "met",
+      "evidence": "The §7 blocker no longer claims the assertion is missing. It records that the assertion exists and runs, and states that closing §7 is an independent reviewer's judgement rather than this package's."
     },
     {
-      "criterion": "Contracts with a co-owner are routed to that co-owner rather than proposed for promotion by A0 alone.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "CTR-NTF-001 is not assessed.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
-    },
-    {
-      "criterion": "npm run check stays green with no test skipped.",
-      "result": "pass",
-      "evidence": "evidence/WP-0A-CON-008/author-self-check.md"
+      "criterion": "No decision, code, migration, contract or status changes",
+      "result": "met",
+      "evidence": "Two files, both owned by this package: its own manifest and this handoff."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md, which is machine-written and compared byte-for-byte against a live run",
-      "toolchain": "node v24.20.0 / npm 11.19.0"
+      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-008",
+      "exit_code": 0,
+      "result": "both changed paths are owned by this package and no amendment is declared"
+    },
+    {
+      "command": "psql: begin; select set_config('role','app_worker',true); select current_role, rolbypassrls",
+      "exit_code": 0,
+      "result": "current_role becomes app_worker and rolbypassrls is false — the measurement behind removing the absent-grant clause"
     }
   ],
-  "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
-  "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Pending re-derivation from the committed range; see the following commit.",
+  "security_privacy_cost_impact": "None to the code. The privacy-relevant point is what the manifest now SAYS: it no longer implies that no tenant table exists, which a reader could take as meaning there is nothing yet to isolate. There are 45 tables and the isolation of the service path is still unproven, and those two facts are now in the same sentence.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "Tenant isolation is NOT proven by this package. No tenant table exists, so no cross-tenant assertion has ever run.",
-    "The data package smoke set would not detect a regression in this decision: assertions 1 to 7 run as client roles, which FORCE never affected, and assertion 8 asserts only that the server helper succeeds -- indistinguishable from succeeding via BYPASSRLS.",
-    "The roles this RFC names do not exist. Creating them is a migration and belongs to the batch A0 owns, not to a decision record."
+    "NOTHING PREVENTS THE NEXT STALE SENTENCE. A blocker list is prose and no lint reads English. The rule that would catch this class ties a blocker naming a decision record to that record's status, and it is not written here.",
+    "THE REWRITTEN BLOCKERS STILL CITE COUNTS, AND A COUNT IN PROSE IS WHAT WENT WRONG HERE ONCE ALREADY. They now name the revision the counts were taken at (f3d3102), which is the difference between a fact and a claim -- but nothing checks that the revision named is the revision the reader is looking at.",
+    "WHETHER §7 IS DISCHARGED IS LEFT UNANSWERED ON PURPOSE, and that leaves a blocker open that may not deserve to be. The alternative was for this package to close its own condition, which is the shape no_self_approval exists to refuse.",
+    "THIS PACKAGE'S COUNTS HAVE BEEN WRONG TWICE AND RE-MEASURED FOUR TIMES, across bases f3d3102, ff12b8b and 2e18f75. The last two re-measurements found no change, and that was CHECKED with git diff over migrations, isolation-cases.mjs and run.mjs rather than inferred from the diff being small. A count in prose is only true against a named revision; a rebase renames the revision; and nothing in this repository notices when it does."
   ],
   "open_risks_or_blockers": [
-    "RFC-2026-017 is Proposed. No role is created and no policy written until it is disposed, and A1 must countersign the topology because DATA-DEC-03 is owned A0+A1."
+    "Three blockers remain OPEN and are listed in the manifest. This increment closes none of them.",
+    "THE §7 QUESTION NEEDS AN INDEPENDENT READER. The assertion RFC-2026-017 §7 names exists and runs at f3d3102; whether 26 denial cases over 40 tables discharge it is a judgement this package must not make about itself."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-017 is a Proposed decision record: no role created, no policy written, no migration applied, and nothing on the provisioned instance touched.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The manifest returns to four blockers, one forbidding work that is on main and two giving reasons that stopped being true, and to four amendment paths this branch does not touch.",
   "recommended_next_work_packages": [
-    "Product Owner disposition of RFC-2026-017.",
-    "A1 countersignature on the role topology.",
-    "An A0-owned migration creating app_worker, app_command and app_maintenance.",
-    "Batch 010 by A1 Identity, writing tables and their policies together."
+    "An independent reading of whether RFC-2026-017 §7 is discharged. The evidence is in this package's first blocker; the judgement is not this package's.",
+    "The RFC that creates a worker identity that is not postgres. Until it exists, nothing outside a test helper can be app_worker and RFC-2026-019 §4/3's connection method stays undecided.",
+    "A rule tying a blocker that names a decision record to that record's status, if one can be written without reading prose."
   ],
   "reviewer_instructions": [
-    "Re-run the two role queries against the instance and confirm the table in section 2.",
-    "Confirm the RFC nowhere claims tenant isolation is proven.",
-    "Confirm section 7 names the missing negative assertion rather than implying the smoke set covers it."
+    "Re-measure the three counts at f3d3102 yourself rather than reading them. An earlier version of this increment carried counts from an unmerged branch, and that is the failure this file is correcting.",
+    "Check that no sentence claims a service refusal attributes to a missing grant. The repository asserts the opposite in a test named for it.",
+    "Decide the §7 question or refuse it explicitly. It is left open on purpose and it is the one thing here that needs someone other than this package.",
+    "Confirm nothing outside this package's two owned files changed."
   ],
   "superseded_by": null
 }

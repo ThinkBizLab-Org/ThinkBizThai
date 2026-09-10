@@ -98,16 +98,8 @@
       "migrations/**"
     ],
     "amends_without_owning": {
-      "paths": [
-        "scripts/verify-test-coverage-floor.mjs",
-        "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/repository-json.test.mjs"
-      ],
-      "rationale": "The four registries that must move when a branch or a decision record is added, and which exist so that adding one is a deliberate act in a diff. RFC-2026-017 joins the protected-file list and the pinned decision-record set, and is digested; this branch joins the branch-to-package mapping. No floor is lowered and no existing row is changed.",
-      "recorded_on": [
-        "work-packages/WP-0A-A0-002.json"
-      ]
+      "paths": [],
+      "rationale": "THIS INCREMENT AMENDS NOTHING OUTSIDE THIS PACKAGE. It corrects three sentences in this package's own open_blockers and removes one that is spent, touching only the manifest and the handoff this package owns. `paths` is emptied rather than left carrying the earlier increment's four (evidence/VERIFICATION.md, scripts/test-suite-contract.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json), because verify-branch-scope reads the declaration in both directions and exits 74 on a declared pattern matching nothing in the diff. `recorded_on` is removed with them: it named work-packages/WP-0A-A0-002.json as the register where the amendment was recorded, that register's `ownership.amended_by` has never held an entry for this package, and with `paths` empty there is no amendment for it to point at. Those four paths remain in git history."
     }
   },
   "inputs": {
@@ -154,10 +146,9 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. RFC-2026-017 is a Proposed decision record: no role is created, no policy written, no migration applied, and nothing on the provisioned instance is touched by it.",
   "open_blockers": [
-    "RFC-2026-017 is Proposed. No role is created and no policy is written until it is disposed.",
-    "Tenant isolation is NOT proven. No tenant table exists, so DB00-A03 and the smoke assertions have never run, and the data package's own smoke set would not detect a regression in this decision: every assertion runs as a client role and one asserts only that the server helper succeeds.",
-    "The negative assertion that WOULD detect it -- the service identity denied an operation the matrix marks N for service, with an error rather than an empty result -- does not exist and is owed by whoever writes the first tenant table.",
-    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a Proposed decision record is reversible, synthetic-only work."
+    "WHAT RFC-2026-017 §7 ASKS FOR NOW EXISTS AND RUNS, AND WHETHER THAT DISCHARGES §7 IS NOT THIS PACKAGE'S TO DECIDE. §7 asks for \"the service identity attempting an operation the matrix marks `N` for service and being denied with an ERROR, not an empty result\", and says it \"does not exist yet\". Measured at 5abee8b, which is this branch's base after PRs #104 through #108 merged: 65 case blocks in tests/db/identity/isolation-cases.mjs declare `covers: ['RFC-2026-017§7']` and 28 of them declare `expect: 'denied'`; tests/db/identity/identity-isolation.test.mjs carries a test named \"the service denial is attributable to row level security and not to a forgotten grant\"; and private.as_service() in db/foundation/test-helpers/auth-context.sql reaches app_worker through `set_config('role','app_worker',true)`, which was measured to switch current_role and to land on a role whose rolbypassrls is false. So the assertion exists, runs, and runs as a role that does not bypass. THIS BLOCKER IS LEFT OPEN DELIBERATELY: closing it would be this package judging its own §7 condition met, and an independent reviewer should decide whether 28 denial cases over 45 tables are what §7 meant.",
+    "WHAT IS GENUINELY UNPROVEN IS THE PRODUCTION SERVICE PATH, NOT THE POLICY LAYER. The tests above become app_worker from a superuser connection, which works because postgres may SET ROLE to anything. RFC-2026-022 §5/8 measures that the only MEMBER of app_worker is postgres, and RFC-2026-019 §4/3 leaves app_worker's connection method undecided until a background worker exists. So nothing outside a test helper can be app_worker today, and that is the gap -- owed to the RFC that creates a worker rather than to whoever writes the first tenant table, which is what this blocker used to say.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; a decision record is reversible, synthetic-only work whether it is Proposed or disposed. The tail of this sentence used to read \"a Proposed decision record is reversible, synthetic-only work\", and the 2026-09-05 disposition made that clause false while leaving the restriction it justifies true."
   ],
   "review_and_test_gates": [
     "author_complete",
