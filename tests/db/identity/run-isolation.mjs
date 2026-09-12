@@ -103,6 +103,16 @@ export const FIXTURE_SQL_FILES = [
   // that cannot reorder anything else (130's sentence, kept by 061, 110 and 131) — and because
   // nothing after 021 in this list writes a row batch 070 reads.
   'tests/db/identity/fixtures/070-research-fixture.sql',
+  // Batch 080's POSITION IS A DEPENDENCY four times over, which is one more than any entry above
+  // can say. Its five items name business_a1, business_a2 and business_b1 by §3.3's composite scope
+  // key and page_a1 by the three-column one, so it cannot precede 020's; two of them name
+  // page_a1_sibling, which 021's fixture writes; and its two ideas cite research_suggestion_a1 and
+  // research_suggestion_b1 over content_ideas_research_suggestion_fk, which 070's fixture writes --
+  // the first time an entry in this list depends on a row another BATCH's fixture loads rather than
+  // on one of 020's or 021's. It is APPENDED rather than slotted, for the reason 130 gave and 061,
+  // 110, 131 and 070 kept: the list is an ORDER, and appending is the change that cannot reorder
+  // anything else.
+  'tests/db/identity/fixtures/080-content-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard

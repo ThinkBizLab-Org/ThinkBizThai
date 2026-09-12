@@ -22,70 +22,100 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT RECORDS A PRODUCT OWNER DISPOSITION AND CHANGES NO CODE. Its substance is in evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md and in the disposition handoff beside it; this file exists because the protocol asks the package's author handoff to describe the branch, and the previous one described the session-driver increment that is now on main.",
-    "THE QUESTION WAS WHETHER BATCH 080 MAY REFERENCE A TABLE NOBODY OWNS. §4.6 gives it two `generation_run_id` columns; `app.generation_runs` exists nowhere and is assigned to no batch in §6's 000-180 registry. Verified at 2e18f75: no migration mentions `generation_run` at all. Batch 060 records the gap in its own header and cites batch 021's refusal to reserve a table no registry row gives it.",
-    "IT WAS A SCOPE QUESTION AND THEREFORE NOT AN AGENT'S. Three options were put with their costs and the Owner named the first: keep both columns as references carrying no foreign key.",
-    "RECORDED AHEAD OF BATCH 080 FOR DURABILITY. The draft lived in a session-scoped scratch directory that may be cleaned, and a Product Owner decision must not exist only there."
+    "BATCH 080 LANDS THE `content.core` FAMILY: five tables, ten policies, and three of the five immutable in the strongest form this schema has. §6's registry gives the batch five words -- ideas/items/versions/variants/quality -- and §5's inventory names six objects; the sixth, content_targets, belongs to batch 081 by the same registry, and batch 021's rule (creating a table no registry row gives you is reserving somebody else's work) is followed rather than re-argued.",
+    "THE MIGRATION WAS ALREADY DRAFTED ON `main` AND WAS NOT FINISHED, WHICH IS WHY THIS INCREMENT IS LARGER THAN ITS SQL DIFF. The working tree carried 080_content.sql and a catalog-snapshot line and nothing else: no fixture, no isolation case, no static rule, no CI control entry, no evidence, and a failing test (`the digest gap between the tree and the instance is exactly what the snapshot declares`), because the snapshot declared 080 not-applied and NOT_ON_THE_INSTANCE did not. TWO CLAIMS IN THE DRAFTED HEADER WERE FALSE WHEN THIS INCREMENT PICKED IT UP -- \"the migration asserts the count\" and \"the second half asserted below\" -- and the file contained no apply-time assertion at all. Both are now true: the batch has a `do $$` block, and the variant key is declared NULLS NOT DISTINCT rather than described as though it were.",
+    "app_worker IS GRANTED NOTHING, WHICH IS THE ONE PLACE THIS BATCH DEPARTS FROM 070's SHAPE AND IS DECLARED RATHER THAN QUIET. Batch 070 grants its worker select/insert/update and lets row level security refuse it, which is batch 010's \"grants and no policy\". Content does not: §8.2 row 3 forbids updating a version at all, the act that CREATES one is a SECURITY DEFINER function owned by app_command (RFC-2026-017 §3), and granting app_worker a write would build a second path to the same act -- the shape RFC-2026-018 was superseded for proposing. The consequence is that every service case here is a PRIVILEGE refusal, none carries RFC-2026-017 §7, and none is part of the CI negative control's basis.",
+    "SMOKE_COVERAGE[3] MOVES FROM `knowledge-half` TO `true`, AND IT IS THE ONLY VALUE IN THAT MAP THAT HAS EVER MOVED. §12.6/3 is \"user_approver_a cannot edit content/knowledge\"; batch 040 paid knowledge and five batches in a row recorded that they were not content. This batch creates the two tables in the family a client may write and refuses the approver on both, with the READ beside them so the refusals are about the role rather than about visibility. Eight assertions in earlier batches pinned the old value and are rewritten in the same change, each saying what its own batch did and did not pay; none is deleted."
   ],
   "acceptance_results": [
     {
-      "criterion": "The disposition reaches the repository rather than a scratch directory",
+      "criterion": "Batch 080 creates the five tables §6's registry names, and no table it does not",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md, in the shape the two earlier dispositions in this directory use, with the question, the three lettered options, the answer verbatim, what it does not settle, and Explicit limits."
+      "evidence": "db/foundation/migrations/080_content.sql creates app.content_ideas, app.content_items, app.content_versions, app.content_variants and app.quality_reviews. `every batch 080 table carries RLS, FORCE, a primary key and an owner comment` asserts the set against tablesCreatedByMigrations() and asserts that app.content_targets and app.generation_runs are NOT created."
     },
     {
-      "criterion": "The unassigned-table claim is verified rather than repeated",
+      "criterion": "§8.2 row 3 is implemented as absent grants AND absent policies, asserted both ways",
       "result": "met",
-      "evidence": "At 2e18f75 no file under db/foundation/migrations/ mentions `generation_run`; batch 060's header states §6's registry gives no batch a generation-run table."
+      "evidence": "No INSERT/UPDATE/DELETE grant and no INSERT/UPDATE/DELETE policy exists on the three immutable tables; `the three immutable tables hold no write grant and no write policy, asserted both ways` holds the migration text, and the apply-time block holds the LIVE ACLs and the LIVE policy catalog. Nine isolation cases assert the refusal from the owner, which is what makes them about the operation rather than the caller."
     },
     {
-      "criterion": "Only the two files that must follow are amended outside this package",
+      "criterion": "The half-implemented `Y` cell is implemented in the half it has and named in the half it does not",
       "result": "met",
-      "evidence": "branch-identity.test.mjs because BRANCH_OWNERSHIP is deepEqual'd against each manifest's declared branch, and integrity-manifest.json because that file is digested and the coverage-floor guard exits 87 on a stale digest. Both declared with that reason."
+      "evidence": "`status`, `current_version_id` and `approval_state` are outside every UPDATE grant; `title`, `updated_at`, `updated_by` and `deleted_at` are in it. `owner-a-cannot-approve-a-content-item` is a grant-layer refusal and `editor-a-can-rename-the-content-item-of-a1` passes. The missing half is in open_blockers and cites the Product Owner's 2026-09-10 disposition of the same shape on batch 070 rather than re-asking it."
     },
     {
-      "criterion": "npm run check stays green with no test skipped and no floor lowered",
+      "criterion": "The member scope is falsifiable at every depth the family has",
       "result": "met",
-      "evidence": "see evidence/VERIFICATION.md; this increment adds no test and changes no count."
+      "evidence": "The item asks both questions; the version resolves through the item; the variant and the quality review resolve through the version and then the item. The fixture loads a version, a variant and a quality review under the SIBLING-PAGE item so the second link has a negative: `pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item` and its quality-review twin fail if that link is cut, and a reversal probe confirmed the first link's rule bites."
+    },
+    {
+      "criterion": "Every decision this batch could not make is recorded rather than made",
+      "result": "met",
+      "evidence": "Six new open_blockers: three unenumerated columns left without a CHECK, the `id`-only foreign key into app.research_suggestions, the three things the findings CHECK cannot hold, the absence of any writer for the three immutable tables, the half-implemented `Y` cell, and app.generation_runs still assigned to nobody."
+    },
+    {
+      "criterion": "The batch is falsifiable, and the probe round says where it is not",
+      "result": "partially met",
+      "evidence": "evidence/WP-0A-DB-00/a3-batch-080-probes-2026-09-12.md: seventeen reversal probes, fifteen noticed on the first run and two not -- an inline foreign key on generation_run_id that the rule's regex could not see, and an apply-time assertion narrowed to one of its three tables. Both rules were changed. `partially met` rather than `met` because NO isolation case in this batch has met a database: this host has no Postgres, so all eighteen are static declarations until CI runs `make db-rls-smoke`."
     }
   ],
   "tests": [
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md"
+      "result": "see evidence/VERIFICATION.md; 232 tests in tests/db/identity/identity-isolation.test.mjs, up from 218"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
+      "command": "node --test tests/db/identity/identity-isolation.test.mjs",
       "exit_code": 0,
-      "result": "all 5 changed path(s) are declared, and every amendment explains one"
+      "result": "232 pass, 0 fail"
+    },
+    {
+      "command": "node --test test-kits/db/foundation-contract.test.mjs",
+      "exit_code": 0,
+      "result": "56 pass, 0 fail"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "floors raised to 232 declared tests and 1686 assertions; no floor lowered"
+    },
+    {
+      "command": "reversal probes (a throwaway script in a scratch directory, not a repository command)",
+      "exit_code": 0,
+      "result": "seventeen probes, fifteen noticed on the first run; the two misses and the rule each one changed are recorded in evidence/WP-0A-DB-00/a3-batch-080-probes-2026-09-12.md. The script is deliberately not committed: it edits tracked files in place, and a tool that does that living in the repository is a footgun with a README."
     }
   ],
-  "security_privacy_cost_impact": "None to the code. Option ka means a generation_run_id may name a run that never existed, because neither a foreign key nor a command function constrains it -- a provenance weakness rather than a tenant-isolation one.",
-  "migration_and_data_impact": "None. No migration is added or altered.",
-  "compatibility_impact": "None.",
+  "security_privacy_cost_impact": "SYNTHETIC ONLY, and the fixture carries no captured material: every string is this repository's own, every id is uuid5 of its symbol, and the two Thai messages are invented for the fixture. THREE THINGS ARE WORTH NAMING AS SECURITY CONSEQUENCES RATHER THAN LEFT IN THE BLOCKERS. (1) app.content_ideas references app.research_suggestions on `id` alone, so a caller holding another tenant's suggestion id could write a dangling cross-tenant CITATION -- reading the suggestion is still refused by row level security, so this is a provenance weakness and not a disclosure. (2) generation_run_id may name a run that never existed, which the Product Owner's disposition records as the cost of option ก. (3) The quality-review findings CHECK accepts a whitespace-only message_th, so a rule set could record a finding a person cannot read. No secret, credential, token or customer content is stored, logged, fixtured or handed off.",
+  "migration_and_data_impact": "One new migration, db/foundation/migrations/080_content.sql, NOT applied to any database: no instance holds it, and db/foundation/lint/catalog-snapshot.json declares it not-applied with the reason (its tables reference app.business_profiles and app.page_context_profiles over composite keys batch 020 creates, its policies call four helpers 011 and 021 create, and app.content_ideas references app.research_suggestions from 070). It sorts between 070 and 110 and is INSERTED into the middle of the declaration rather than appended, because pendingDeclarationLint requires a TAIL. No existing migration is altered.",
+  "compatibility_impact": "None to anything that runs. The one change visible to another package is SMOKE_COVERAGE[3] moving to `true`, which eight assertions in earlier batches pinned and which are updated in the same change.",
   "known_limitations": [
-    "A TRANSCRIPTION IS ONLY AS GOOD AS THE READER'S TRUST IN IT, and the answer is three words mapped onto lettered options. The evidence file reproduces the letters so the mapping is checkable rather than merely plausible.",
-    "THIS DISPOSITION WILL BE CITED BY A BATCH THAT DOES NOT EXIST YET. If batch 080 is written with a different column shape, the disposition may not cover what it is cited for and nothing will notice.",
-    "THE PACKAGE NOW CARRIES THREE DISPOSITION RECORDS AND ONE AUTHOR HANDOFF THAT HAS BEEN REWRITTEN FOUR TIMES. A reader looking for what this package DID has to read the git history, not this file, because the author handoff always describes only the increment on the branch it is on.",
-    "THIS BRANCH WAS REBASED THREE TIMES WHILE IT WAS BEING WRITTEN, as PRs #107 through #110 merged under it. Once its handoff cited a base the branch was not on, and the file-list guard caught it by reporting another package's files inside this range. Across today's work a moving base falsified a declaration six times and a guard caught five of them before the author did."
+    "NOT ONE ISOLATION CASE HAS MET A DATABASE. This host has no psql, pg_ctl or docker and RFC-2026-001 forbids adding a dependency, so the eighteen cases this batch adds are declarations that the static suite checks for shape, layer and pairing. Whether the policies BEHAVE as their text reads is CI's to say, through `make db-rls-smoke` against the postgres:17 service container. Until that run, tenant isolation for content.core is UNPROVEN.",
+    "THE SQL HAS NOT BEEN PARSED BY POSTGRES. `unique nulls not distinct`, the jsonpath CHECK on findings, and the whole apply-time `do $$` block are syntactically unverified on this machine; the first CI run is the first parse.",
+    "AN APPLY-TIME ASSERTION CAN BE GUTTED WITHOUT THE STATIC SUITE NOTICING, which a probe demonstrated and a count now partly covers. A rule that reads the SHAPE of a plpgsql block cannot read its meaning, and CI applying the migration proves only that the block does not RAISE -- which a block that checks nothing also does not. Review twelve's finding, one level further in.",
+    "THE WITH CHECK HALVES OF THE THREE CHILD NARROWINGS ARE INERT TODAY. They bound writes, and no role may write those tables; they are written for the day a grant appears, and nothing in this suite exercises them.",
+    "THE THREE UNENUMERATED COLUMNS ARE FREE TEXT. `content_ideas.status`, `content_items.approval_state` and `content_variants.variant_type` accept any string, including one that contradicts a vocabulary a later batch chooses. A later CHECK on an IMMUTABLE table is a forward migration with a data question attached, which is why the columns exist now and their vocabularies do not."
   ],
   "open_risks_or_blockers": [
-    "app.generation_runs REMAINS UNASSIGNED IN §6's REGISTRY. This disposition permits a reference and assigns nobody to build the table; batch 060's blocker stands, owed to A0.",
-    "THE REFERENCE IS UNENFORCED UNTIL A COMMAND FUNCTION EXISTS, which RFC-2026-021 §10 records does not.",
-    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment or any earlier one."
+    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment as on every increment in its history. Reviewer /claude/c0_contract_reviewer, Tester /claude/q0_sentinel, Security /claude/a1_bastion and Integration Owner /claude/r0_steward evidence is absent. This handoff is the AUTHOR's and is none of those four signatures.",
+    "THE THREE IMMUTABLE TABLES HAVE NO WRITER AND CANNOT GET ONE HERE. §8.2 row 3 is `N` for every role including the service; the writer is a SECURITY DEFINER command function owned by app_command, and RFC-2026-021 §10 records that none exists. Until it does, nothing in this repository can record a content version, a variant or a quality verdict.",
+    "app.generation_runs REMAINS UNASSIGNED IN §6's REGISTRY, and this batch now holds two columns that reference it with nothing enforcing them.",
+    "app.research_suggestions EXPOSES NO COMPOSITE SCOPE KEY, so the idea's citation is enforced on `id` alone. The fix is a unique constraint owed to batch 070's owner, and the forward migration that tightens the key is owed to A3 Content after it lands.",
+    "THREE COLUMNS §4.6 NAMES CARRY NO VOCABULARY, and `content_items.approval_state` is the one a reader is most likely to fill in from §4.7's approval_requests.status -- a different column on a table batch 090 owns."
   ],
-  "rollback_or_forward_fix": "ROLLBACK: revert this branch's commits. The two added files go, the manifest's branch and the pinned row return to the previous increment's, and batch 080 must escalate the question before writing either column.",
+  "rollback_or_forward_fix": "ROLLBACK: revert this commit through a reviewed revert PR. The migration has never been applied to any database, so there is no deployed schema to roll back; the fixture, the cases and the rules go with it, the catalog-snapshot declaration returns to a tail ending at 070, and SMOKE_COVERAGE[3] returns to `knowledge-half` along with the eight assertions that pin it. FORWARD FIX is the route for anything found after a merge: migration invariant 1 forbids rewriting an integrated migration, and every control this batch adds is a column list, a policy predicate or an absent grant that a later batch can tighten -- except on the three immutable tables, where a column added later is the thing this batch says is worse than a column with no CHECK.",
   "recommended_next_work_packages": [
-    "Batch 080, which may now be written. The evidence file records three further facts its author would otherwise rediscover: content has no §8 `S` cell, content_targets.social_account_id is batch 081's, and content_items.status carries the half-implemented shape already dispositioned for research.",
-    "An owner for app.generation_runs in §6's registry, which needs A0 and probably an RFC.",
-    "The four independent role runs, on this and every other open increment in this package."
+    "Batch 081 (content_targets), which §6's registry assigns to A3 Content and which this batch deliberately did not create. It inherits the deferred Social FK and will meet the same generation-run gap.",
+    "The unique constraint on app.research_suggestions that would let app.content_ideas reference it over the scope path -- batch 070's owner's to make, and small.",
+    "An owner for app.generation_runs in §6's registry, which needs A0 and probably an RFC. Two batches now carry columns that reference it.",
+    "The independent role runs, on this and on every other open increment in this package."
   ],
   "reviewer_instructions": [
-    "Read the disposition evidence file first; this handoff is a pointer to it.",
-    "Verify the unassigned claim yourself: grep db/foundation/migrations/ for `generation_run` and check §6's registry for a row naming it.",
-    "Check the two amendments are the only ones and that each is forced rather than convenient.",
-    "Neither this file nor the disposition beside it is one of the four role signatures."
+    "START WITH THE TWO FALSE CLAIMS THIS INCREMENT INHERITED. The drafted header said the migration asserts the variant count and asserts immutability 'below', and it asserted nothing: `git show` the first commit of this branch and check that the apply-time block and the NULLS NOT DISTINCT declaration are what made those sentences true, rather than the sentences having been softened.",
+    "READ THE PROBE EVIDENCE BEFORE THE RULES IT DESCRIBES. Two probes were not noticed; both changed a rule. The second one (an apply-time assertion narrowed to one of its three tables) is covered by a COUNT, which is weaker than the defect deserves and is labelled as such.",
+    "PRESS ON app_worker HOLDING NOTHING. It is this batch's one departure from 070's shape, it is argued from RFC-2026-017 §3 and RFC-2026-018's supersession, and if it is wrong the consequence is that the service cases here assert something weaker than they appear to.",
+    "CHECK THE COVERAGE FLIP AGAINST ITS OWN CASES. SMOKE_COVERAGE[3] moves to `true` on three refusals and one read; if the read (`approver-a-sees-the-content-item-of-a1`) does not do what its `why` says, the flip is a claim about visibility rather than about a role.",
+    "NOTHING HERE IS A TEST RESULT ABOUT A DATABASE. Every isolation case is static until CI runs it."
   ],
   "superseded_by": null
 }

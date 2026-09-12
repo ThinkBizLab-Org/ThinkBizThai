@@ -522,9 +522,13 @@ test('the coverage claim names what is NOT covered, with the batch that owes it'
   // point: §12.6/3 names content AND knowledge, 040 creates the knowledge tables and asserts the
   // approver against them, and 080 still owes content. A batch that had flipped it to `true` would
   // have passed the citation check below on the knowledge cases alone.
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
-    'batch 040 creates one of the two families §12.6/3 names and asserts the approver against it, so '
-    + 'the row is no longer `false` — and content is batch 080, so it is not `true` either');
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'batch 040 creates one of the two families §12.6/3 names and asserts the approver against it, '
+    + 'which is what moved this row off `false`. It read `knowledge-half` from that day until batch '
+    + '080 created app.content_items and app.content_ideas and refused the approver on both; the '
+    + 'value is `true` because the CONTENT half arrived, and nothing about batch 040\'s half '
+    + 'changed. A batch that had flipped it early would have passed the citation check below on the '
+    + 'knowledge cases alone, which is why the check is still here.');
   assert.equal(SMOKE_COVERAGE[7].covered, true,
     'batch 020 creates the business and page columns assertion 7 needs, so the "partial" batch 010 '
     + 'recorded is now paid: a forged workspace_id, a forged created_by, a forged business id, and a '
@@ -1664,10 +1668,11 @@ test('the coverage map records what batch 030 could carry and what a global row 
   // rather than quietly becoming false. Batch 030's own claim is unaltered — its industry
   // assignment is still an ANALOGUE and still uncounted — but the ROW moved, because 040 creates
   // one of the two families §12.6/3 names.
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
     'an approver refused an INDUSTRY ASSIGNMENT is a third in-scope ANALOGUE and is still not the '
-    + 'content and knowledge tables §12.6/3 names. Batch 040 created the knowledge half of them; '
-    + 'content is batch 080, so the row is a labelled partial rather than `true`.');
+    + 'content and knowledge tables §12.6/3 names — which is the claim this assertion has always '
+    + 'made and still makes. The row is `true` because batch 040 paid knowledge and batch 080 paid '
+    + 'content, and for no reason this batch supplied: the analogue stays uncounted.');
   assert.match(SMOKE_COVERAGE[3].note, /analogue/i,
     'and the note still says the three analogues are analogues rather than counting them: 040 pays '
     + 'none of them, and a note that dropped the word would be reporting evidence about the '
@@ -2272,10 +2277,11 @@ test('the tables batch 040 adds have their own entries in the CI negative contro
 
 // What batch 040 claims about its own coverage, and — more usefully — what it says it did not pay.
 test('the coverage map pays the knowledge half of §12.6/3 and names the batch that owes the rest', () => {
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
-    'app.knowledge_items is one of the two families §12.6/3 names, so the row is no longer false; content is '
-    + 'batch 080, so it is not true');
-  assert.match(SMOKE_COVERAGE[3].note, /080/, 'and the note names the batch that owes the other half');
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'app.knowledge_items is one of the two families §12.6/3 names, which is what this batch paid. The '
+    + 'row reached `true` when batch 080 paid the other one; batch 040\'s half is unchanged and is '
+    + 'still the half these cases are about.');
+  assert.match(SMOKE_COVERAGE[3].note, /080/, 'and the note names the batch that paid the other half');
   assert.match(SMOKE_COVERAGE[3].note, /analogue/i,
     'the three in-scope analogues stay labelled as analogues. Batch 040 pays none of them: they are evidence '
     + 'about the workspace, the page context and the industry assignment.');
@@ -2710,16 +2716,25 @@ test('batch 041 owes no CI negative-control entry, and says at the entries what 
 
 test('the coverage map records that batch 041 moves no row and says what it extended instead', () => {
   // A batch that created no table cannot pay a §12.6 assertion, and claiming otherwise would be the
-  // "analogue" error batches 020, 021 and 030 each refused. The row a reader might expect to move is
-  // 3, which is `knowledge-half` because content is batch 080.
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
-    'batch 041 creates no content table, so §12.6/3 stays exactly where batch 040 left it');
+  // "analogue" error batches 020, 021 and 030 each refused. The row a reader might expect to move
+  // is 3, and it did move — on batch 080, which created the content tables §12.6/3 names. This
+  // test is batch 041's and says what 041 did, which is nothing to either row.
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'batch 041 creates no content table, so it moved §12.6/3 not at all. The row is `true` because '
+    + 'batch 080 created the content half five batches later — which is a fact about 080 and not '
+    + 'about this one, and the note says so in the paragraph that names each batch that did nothing '
+    + 'here.');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'batch 041 grants the service EXECUTE on a predicate that reads no relation, which is more '
     + 'NEGATIVE evidence and not a positive: asserting the positive half would still require '
     + 'inventing the `P` §8.2 leaves undefined');
-  const partials = Object.values(SMOKE_COVERAGE).filter((v) => v.covered !== true).length;
-  assert.equal(partials, 2, 'the two labelled partials are still exactly the two batch 040 left');
+  const partials = Object.entries(SMOKE_COVERAGE).filter(([, v]) => v.covered !== true).map(([k]) => k);
+  assert.deepEqual(partials, ['8'],
+    'ONE labelled partial remains, and the count moved DOWN rather than up, which is the direction '
+    + 'that needs saying. Batch 040 left two — §12.6/3 at `knowledge-half` and §12.6/8 at '
+    + '`negative-half` — and batch 080 paid the first by creating the content tables that sentence '
+    + 'names. §12.6/8 is the one nothing can pay yet: it needs an identity that can BE app_worker, '
+    + 'which RFC-2026-022 §5/8 gives to the RFC that creates the worker.');
   const extended = Object.values(SMOKE_COVERAGE).filter((v) => /041/.test(v.note));
   assert.equal(extended.length, 5,
     'batch 041 extends five §12.6 notes — the tenant boundary, member scope, the suspended member, '
@@ -4412,7 +4427,10 @@ test('the coverage map records what batch 130 could carry and what a workspace r
   assert.match(SMOKE_COVERAGE[3].note, /BATCH 130 ADDS A FOURTH ANALOGUE AND IT IS NOT COUNTED EITHER/,
     'an approver refused a billing READ is not an approver refused a knowledge EDIT, and the row stays '
     + 'knowledge-half');
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half', 'batch 130 moves nothing here');
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'batch 130 moves nothing here — its approver case is a refused READ and §12.6/3 is about '
+    + 'EDITING. The row is `true` because batch 080 paid the content half; 130\'s analogue is still '
+    + 'recorded and still uncounted.');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'batch 130 gives the service a SELECT grant and no policy on four more tables, which is more NEGATIVE '
     + 'evidence — and it is the first batch where the service holds no write verb at all, so its write '
@@ -4976,9 +4994,10 @@ test('the coverage map records what a table nobody can read can and cannot carry
     + "stopped being carried on this batch's tables or the note was rewritten by somebody who did not know "
     + 'it was load-bearing.');
   // NOTHING MOVES, and the two rows a reader might expect to are the point.
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
     'batch 140 pays no part of §12.6/3. An approver refused an AUDIT read is a fourth in-scope analogue and '
-    + 'is still not the content and knowledge tables that sentence names; content is batch 080.');
+    + 'is still not the content and knowledge tables that sentence names — the row reached `true` when '
+    + 'batch 080 created those tables and refused the approver on them.');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'and §12.6/8 stays a labelled partial. What CHANGED is what it is waiting for: the positive half is no '
     + 'longer unassertable because the matrix grants the service nothing — §8.4 marks the audit INSERT `S` '
@@ -7618,9 +7637,10 @@ test('the coverage map records what batch 131 pays and what it leaves owed, with
     'batch 131 extends five §12.6 notes and moves no row. If a note stopped naming it, either the assertion '
     + "stopped being carried on this batch's tables or the note was rewritten by somebody who did not know it "
     + 'was load-bearing.');
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
     'batch 131 pays no part of §12.6/3. An approver refused a PAYMENT read is another in-scope analogue and is '
-    + 'still not the content and knowledge tables that sentence names; content is batch 080.');
+    + 'still not the content and knowledge tables that sentence names — the row reached `true` on batch 080, '
+    + 'which created them.');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
     'and §12.6/8 stays a labelled partial. What CHANGED is that one of the things it waits on now has an answer '
     + "and the answer is a refusal: RFC-2026-022 §5/5 gives this batch's `S` cell no policy PERMANENTLY, so that "
@@ -8681,11 +8701,13 @@ test('the coverage map records what a COPYRIGHT-3 table cannot carry and what th
       `§12.6/${key}: batch 070 touches five tables and the map has to say what each assertion gained or did `
       + 'not. A row that moves must move for a case, and a row that does not must say why.');
   }
-  assert.equal(SMOKE_COVERAGE[3].covered, 'knowledge-half',
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
     'batch 070 moves NOTHING here and a reader will expect it to. §12.6/3 names CONTENT and KNOWLEDGE; '
     + 'research is neither — §5 gives it its own module row and §8.2 its own operations — and reading '
     + '"Knowledge/Research SELECT" as licence to count a research refusal against a sentence that says '
-    + '"knowledge" is the analogue rule this map has refused five times. Content is still batch 080\'s.');
+    + '"knowledge" is the analogue rule this map has refused five times. The row is `true` because the '
+    + 'NEXT batch, 080, created the content tables and refused the approver on them — which is exactly '
+    + 'the move this assertion has always said research could not make.');
   assert.match(SMOKE_COVERAGE[3].note, /BATCH 070 MOVES NOTHING HERE EITHER/,
     'and the map says so rather than leaving the absence to be noticed');
   assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
@@ -8701,4 +8723,432 @@ test('the coverage map records what a COPYRIGHT-3 table cannot carry and what th
       + '070 cannot carry — case 8\'s scope half is refused by an absent grant rather than by a policy, and '
       + 'case 10 is unpaid in both halves.');
   }
+});
+
+
+// =============================================================================================
+// Batch 080 — content, and the one row in §8 that is `N` for the service too.
+// =============================================================================================
+//
+// The rules below are shaped by four facts about this batch, and each one decides which kind of
+// assertion is available:
+//
+//   * §8.2 GIVES CONTENT THREE ROWS AND THE THIRD IS `N` IN EVERY COLUMN. "Approved/published
+//     version UPDATE/DELETE | N | N | N | N | N | N" — including Service, which no other row in §8
+//     is. A cell no identity may perform is implemented as an ABSENCE of grants and an ABSENCE of
+//     policies, and an absence cannot be asserted by reading the text that would have contained it.
+//     So these rules read the grant statements and the migration's own apply-time block, which
+//     checks the live ACLs.
+//   * ONE `Y` CELL IS HALF IMPLEMENTED AND THE HALF IS NAMED. §8.2 row 2 marks "Content
+//     create/edit/version" `Y` for owner, admin and editor; §4.6 says "state change ผ่าน domain
+//     command; ห้าม client update status อิสระ". Both hold, and the schema separates them by
+//     leaving `status` out of the UPDATE grant. The rule below asserts the column list rather than
+//     the sentence.
+//   * §4.6 ENUMERATES SIX VOCABULARIES AND LEAVES THREE COLUMNS EMPTY. The six get CHECKs; the
+//     three do not, because a CHECK invented here would be this batch choosing a vocabulary for
+//     Product. The rule asserts BOTH halves, because "no CHECK" quietly becoming "some CHECK" is
+//     how a product decision gets made in a migration.
+//   * THE FAMILY IS THREE LEVELS DEEP. The item carries §4 invariant 3's two-column scope, the
+//     version resolves through the item, and the variant and the review resolve through the
+//     version. A chain asserted at one level would pass while the second link leaked, so the
+//     narrowing rules check each predicate for the parent it must name.
+const CONTENT_MIGRATION = 'db/foundation/migrations/080_content.sql';
+const CONTENT_FIXTURE = 'tests/db/identity/fixtures/080-content-fixture.sql';
+const content = await readFile(CONTENT_MIGRATION, 'utf8');
+const contentCode = content.replace(/--[^\n]*/g, '');
+const CONTENT_IDEAS = 'content_ideas';
+const CONTENT_ITEMS = 'content_items';
+const CONTENT_VERSIONS = 'content_versions';
+const CONTENT_VARIANTS = 'content_variants';
+const QUALITY_REVIEWS = 'quality_reviews';
+const CONTENT_TABLES = [CONTENT_IDEAS, CONTENT_ITEMS, CONTENT_VERSIONS, CONTENT_VARIANTS,
+  QUALITY_REVIEWS];
+// §8.2 row 3's three. Each is immutable in the strongest sense this schema has: no role holds
+// INSERT, UPDATE or DELETE, and no policy exists for any of the three verbs.
+const CONTENT_IMMUTABLE = [CONTENT_VERSIONS, CONTENT_VARIANTS, QUALITY_REVIEWS];
+// The two that carry §4 invariant 3's two-column scope and therefore ask the two questions
+// themselves. The three above resolve through a parent instead.
+const CONTENT_SCOPED = [CONTENT_IDEAS, CONTENT_ITEMS];
+const CONTENT_WRITERS = ['owner', 'admin', 'editor'];
+const contentTableBodies = [...contentCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const contentBodyOf = (table) => contentTableBodies.find((b) => b.includes(`app.${table} (`));
+const contentGrantsFor = (table, verb) => [...contentCode.matchAll(
+  new RegExp(`grant ${verb} \\(([^)]*)\\)\\s*\\n?\\s*on app\\.${table} to (\\w+)`, 'g'))]
+  .map((m) => ({ columns: m[1].split(',').map((c) => c.trim()), grantee: m[2] }));
+
+test('every batch 080 table carries RLS, FORCE, a primary key and an owner comment', async () => {
+  assert.equal(contentTableBodies.length, CONTENT_TABLES.length,
+    "§6's registry gives this batch five words — ideas/items/versions/variants/quality — and §5's inventory "
+    + 'names six objects. The sixth, content_targets, belongs to batch 081 by the same registry, and batch '
+    + '021 established that creating a table no registry row gives you is reserving somebody else\'s work.');
+  for (const table of CONTENT_TABLES) {
+    assert.match(contentCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(contentCode, new RegExp(`alter table app\\.${table}\\s+enable row level security`));
+    assert.match(contentCode, new RegExp(`alter table app\\.${table}\\s+force  row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. Without FORCE the table owner — the role migrations run as — is exempt from '
+      + 'every policy here.');
+    assert.match(contentCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(contentCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,400}?primary key`));
+  }
+  const created = await tablesCreatedByMigrations();
+  for (const table of CONTENT_TABLES) {
+    assert.ok(created.has(`app.${table}`), `app.${table} must be a table the migrations create`);
+  }
+  assert.ok(!created.has('app.content_targets'),
+    "content_targets is batch 081's by §6's registry, and 080 says so in its own header rather than leaving "
+    + 'a reader to wonder whether it was forgotten');
+  assert.ok(!created.has('app.generation_runs'),
+    'app.generation_runs is assigned to NO batch in §6\'s 000-180 registry. 060 refused to create it, and '
+    + '080 refuses for the same reason while carrying two columns that reference it — which is the '
+    + 'disposition of 2026-09-10 and not a decision this batch made.');
+});
+
+test('the content scope is two columns on the parents and resolved through a parent on each child', () => {
+  for (const table of CONTENT_SCOPED) {
+    const body = contentBodyOf(table);
+    assert.match(body, /business_profile_id\s+uuid\s+not null/,
+      '§4 invariant 3: "ทุก row มี Business scope; Page scope เป็น nullable override ที่ต้องอยู่ Business '
+      + 'เดียวกัน"');
+    assert.match(body, /page_context_profile_id\s+uuid,/,
+      `app.${table}: the Page scope is a NULLABLE override, not a second mandatory column`);
+    assert.match(body, new RegExp(`foreign key \\(workspace_id, business_profile_id, page_context_profile_id\\)`),
+      `app.${table}: the Page override is held to the SAME Business by a composite key, which is the second `
+      + 'half of invariant 3 and the half a nullable column cannot state on its own');
+  }
+  for (const table of CONTENT_IMMUTABLE) {
+    const body = contentBodyOf(table);
+    assert.doesNotMatch(body, /page_context_profile_id/,
+      `app.${table} must NOT copy its parent's page scope. A nullable copy could not be held equal to the `
+      + "parent's by any foreign key — MATCH SIMPLE skips a null — and an unenforceable copy of the column a "
+      + 'narrowing turns on is worse than no copy (070\'s finding, inherited here).');
+  }
+  // The chain, as foreign keys: version → item, variant → version, review → version. Each is over
+  // the whole scope path, which is what makes a child's Workspace and Business the ones its parent
+  // actually has (§4 invariant 10).
+  assert.match(contentBodyOf(CONTENT_VERSIONS),
+    /foreign key \(workspace_id, business_profile_id, content_item_id\)\s*\n?\s*references app\.content_items/);
+  assert.match(contentBodyOf(CONTENT_VARIANTS),
+    /foreign key \(workspace_id, business_profile_id, content_version_id\)\s*\n?\s*references app\.content_versions/);
+  assert.match(contentBodyOf(QUALITY_REVIEWS),
+    /foreign key \(workspace_id, business_profile_id, content_version_id\)\s*\n?\s*references app\.content_versions/);
+});
+
+test('the three immutable tables hold no write grant and no write policy, asserted both ways', () => {
+  for (const table of CONTENT_IMMUTABLE) {
+    for (const verb of ['insert', 'update']) {
+      assert.equal(contentGrantsFor(table, verb).length, 0,
+        `app.${table}: §8.2 row 3 is N for owner, admin, editor, approver, viewer AND service, which no other `
+        + `row in §8 is. A ${verb} grant here would be this batch deciding the row has an exception.`);
+    }
+    assert.doesNotMatch(contentCode, new RegExp(`grant delete[^;]*on app\\.${table}`),
+      `app.${table}: no role holds DELETE, and §8.5 has no broad user delete anywhere in this family`);
+    assert.doesNotMatch(contentCode,
+      new RegExp(`create policy \\w+ on app\\.${table}\\s+for (insert|update|delete)`),
+      `app.${table}: no write policy either. A policy with no grant is inert and a grant with no policy is `
+      + 'refused by row level security rather than by privilege — a weaker refusal than immutability asks '
+      + 'for — so both halves are asserted, here and against the live catalog in the migration itself.');
+    assert.equal(contentGrantsFor(table, 'select').length, 1,
+      `app.${table}: exactly one SELECT grant, to authenticated. §8.2 row 1 is Y for all five client roles`);
+  }
+  // AND THE SAME CLAIM AS THE MIGRATION MAKES IT AT APPLY TIME, against the live ACLs rather than
+  // against this file's own text. A grant made by a LATER batch would not appear here at all.
+  assert.match(contentCode, /has_any_column_privilege\(r\.rolname, c\.oid, 'INSERT'\)/);
+  assert.match(contentCode, /pol\.polcmd in \('a', 'w', 'd'\)/,
+    "the policy half of the same assertion: `a` is INSERT, `w` UPDATE, `d` DELETE, and `*` — the restrictive "
+    + 'FOR ALL narrowing — is deliberately not in that list');
+  assert.match(contentCode, /immutable_tables constant text\[\] :=/);
+  // AND THE TWO QUERIES ARE OVER THAT LIST RATHER THAN OVER A NARROWER ONE. A reversal probe
+  // replaced `any (immutable_tables)` with `any (array['content_variants'])` — an apply-time
+  // assertion that still runs, still passes, and now checks a third of what it says it checks —
+  // and NOTHING NOTICED, because every marker this rule looks for was still present. The count is
+  // the cheapest thing that notices; what it cannot do is read the block. See the known limitation
+  // in evidence/WP-0A-DB-00/a3-batch-080-probes-2026-09-12.md: a digest pins bytes and a marker
+  // pins shape, and neither pins behaviour.
+  assert.equal((contentCode.match(/any \(immutable_tables\)/g) ?? []).length, 2,
+    'the grant assertion and the policy assertion both run over the three tables §8.2 row 3 names, not over '
+    + 'a subset of them');
+});
+
+test('a client renames a draft and cannot approve one, which is the half of a Y cell this batch implements', () => {
+  const itemUpdate = contentGrantsFor(CONTENT_ITEMS, 'update');
+  assert.equal(itemUpdate.length, 1);
+  assert.deepEqual(itemUpdate[0].columns, ['title', 'updated_at', 'updated_by', 'deleted_at'],
+    '§8.2 row 2 marks "Content create/edit/version" Y for owner, admin and editor, and §4.6 says "state '
+    + 'change ผ่าน domain command; ห้าม client update status อิสระ". The two are about different acts, and '
+    + 'the column list is where this schema separates them: a title is content, a status is a state.');
+  for (const column of ['status', 'current_version_id', 'approval_state']) {
+    assert.ok(!itemUpdate[0].columns.includes(column),
+      `${column} must be outside every client UPDATE grant. The refusal is a missing PRIVILEGE rather than a `
+      + 'policy predicate, because a grant never made has to be written to be undone while a policy can be '
+      + 'widened by an edit.');
+  }
+  // The soft delete is IN the list, which is what makes the DELETE refusal a statement about the verb.
+  assert.ok(itemUpdate[0].columns.includes('deleted_at'),
+    '§8.5 asks for a soft delete through a typed lifecycle field where a delete is wanted at all');
+  const ideaUpdate = contentGrantsFor(CONTENT_IDEAS, 'update');
+  assert.deepEqual(ideaUpdate[0].columns, ['goal', 'topic', 'brief', 'status', 'updated_at', 'updated_by'],
+    'an idea IS freely rewritable by a client: §4.6 gives it no command and enumerates no vocabulary for its '
+    + 'own status, so the column is in the grant here and out of it on the item — the difference is the '
+    + 'document, not a preference');
+  assert.ok(!ideaUpdate[0].columns.includes('client_request_id'),
+    'the idempotency key §4.6 asks for is outside the UPDATE grant: a key a client can rewrite after the '
+    + 'fact identifies nothing, and the retry it exists to make safe would create a second idea');
+  // And the two cases that assert the same thing against a database.
+  assert.equal(cases.find((c) => c.id === 'owner-a-cannot-approve-a-content-item').deniedBy, 'grant');
+  assert.equal(cases.find((c) => c.id === 'editor-a-can-rename-the-content-item-of-a1').expect, 'rows');
+});
+
+test('§4.6 enumerates six vocabularies and this batch encodes six, inventing none', () => {
+  const enumerated = {
+    content_type: ['post', 'carousel', 'reel'],
+    status: ['draft', 'in_review', 'approved', 'scheduled', 'publishing', 'published', 'archived'],
+    source: ['generated', 'manual', 'revision'],
+    platform: ['facebook', 'instagram'],
+    reviewer_type: ['ai', 'human', 'system'],
+  };
+  for (const [column, values] of Object.entries(enumerated)) {
+    for (const value of values) {
+      assert.ok(contentCode.includes(`'${value}'`),
+        `§4.6 enumerates ${value} for ${column} and the migration must carry it as a CHECK value`);
+    }
+  }
+  assert.match(contentCode, /constraint quality_reviews_status_known\s*\n?\s*check \(status in \('pass', 'warn', 'block', 'error'\)\)/);
+  // THE THREE §4.6 NAMES AND DOES NOT ENUMERATE. This half matters more than the half above: a
+  // CHECK invented here would be this batch choosing a vocabulary for Product, which is the
+  // ownership irregularity WP-0A-CON-006 records as High against CTR-NTF-001.
+  for (const [table, column] of [[CONTENT_IDEAS, 'status'], [CONTENT_ITEMS, 'approval_state'],
+    [CONTENT_VARIANTS, 'variant_type']]) {
+    const body = contentBodyOf(table);
+    assert.doesNotMatch(body, new RegExp(`check \\(${column} in \\(`),
+      `app.${table}.${column} must carry NO CHECK. §4.6 names the column and enumerates nothing for it, and `
+      + 'a vocabulary written here would be a product decision made in a migration. The gap is in the work '
+      + "package's open blockers instead.");
+    assert.match(body, new RegExp(`\\b${column}\\s+text`),
+      `app.${table}.${column} must still EXIST: §4.6 names it, and adding a column to an immutable table `
+      + 'later is worse than a column with no CHECK');
+  }
+});
+
+test('the variant logical key treats a null variant_type as part of the key, and says so twice', () => {
+  assert.match(contentBodyOf(CONTENT_VARIANTS),
+    /constraint content_variants_logical_key\s*\n?\s*unique nulls not distinct/,
+    '§4.6 asks for a "unique logical variant key ต่อ content version/platform" and variant_type is nullable. '
+    + 'Under the Postgres DEFAULT — NULLS DISTINCT — two untyped variants of one version on one platform are '
+    + 'both accepted, so the rule would hold for nobody exactly where it matters most.');
+  assert.match(contentCode, /ix\.indnullsnotdistinct/,
+    'and the migration asserts the flag from pg_index at apply time, because the two spellings differ by '
+    + 'three words and produce tables that behave differently');
+});
+
+test('the content narrowings are RESTRICTIVE, and each child resolves through its parent on both halves', () => {
+  const narrowings = [...contentCode.matchAll(
+    /create policy (\w+_scope_narrowing) on app\.(\w+)\s*\n\s*as restrictive\s*\n\s*for all to authenticated\s*\n\s*using \(([\s\S]*?)\n  \)\s*\n  with check \(([\s\S]*?)\n  \);/g)];
+  assert.equal(narrowings.length, CONTENT_TABLES.length,
+    'one narrowing per table, each RESTRICTIVE and each carrying BOTH halves. A permissive policy with the '
+    + 'same name and the same predicate would WIDEN the table instead of narrowing it, and §12.6/2 would '
+    + 'silently stop being implemented here.');
+  for (const [, , table, usingHalf, checkHalf] of narrowings) {
+    for (const half of [usingHalf, checkHalf]) {
+      if (CONTENT_SCOPED.includes(table)) {
+        assert.match(half, /member_scope_admits_business/, `${table}: the Business branch`);
+        assert.match(half, /member_scope_admits_page/,
+          `${table}: the Page branch. 040's probe found that a reversal gutting ONE half goes unnoticed by a `
+          + 'test that looks at the other — a narrowing whose USING lost this branch filters nothing on read '
+          + 'for a page-scoped member while still refusing their writes: the leak without the symptom.');
+      } else if (table === CONTENT_VERSIONS) {
+        assert.match(half, /app\.content_items i/,
+          'a version carries no page column, so its reach is its ITEM\'s reach');
+      } else {
+        assert.match(half, /app\.content_versions v/,
+          `${table}: the first link of the two-level chain`);
+        assert.match(half, /join app\.content_items i/,
+          `${table}: AND THE SECOND. A narrowing that resolved through the version and then asked the `
+          + "Business question about the version's own columns would pass every positive in this suite and "
+          + 'leak a page-restricted item to a member scoped to a sibling Page.');
+      }
+    }
+  }
+  // The two cases that fail when the second link is cut, pinned by id: the fixture loads a variant
+  // and a review under the sibling-page item precisely so these can exist.
+  for (const caseId of ['pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item',
+    'pinned-editor-a-cannot-see-the-quality-review-of-a-sibling-target-item']) {
+    assert.equal(cases.find((c) => c.id === caseId).expect, 'no-rows', `${caseId} must be a filtered read`);
+  }
+});
+
+test('every batch 080 policy is written TO authenticated, and app_worker holds nothing at all', () => {
+  const policies = [...contentCode.matchAll(/create policy (\w+) on app\.(\w+)([\s\S]*?)(?=\ncreate |\ndo \$\$)/g)];
+  assert.ok(policies.length >= 10, 'the batch writes ten policies: five permissive and five restrictive');
+  for (const [, name, table, bodyText] of policies) {
+    assert.match(bodyText, /to authenticated\b/, `${name} on app.${table} must be written TO authenticated`);
+    assert.doesNotMatch(bodyText, /to (anon|app_worker|app_command|app_maintenance|app_authz)\b/,
+      `${name}: RFC-2026-022 §3 carries a service policy for a cell §8 marks S, and content has none — its `
+      + 'Service column is P, and a P with no capability defined is not an S.');
+  }
+  assert.doesNotMatch(contentCode, /to app_worker\b/,
+    'AND NO GRANT EITHER, WHICH IS THIS BATCH\'S ONE DEPARTURE FROM 070\'s SHAPE. Batch 070 grants its '
+    + 'worker select, insert and update and lets row level security refuse it. The writer content needs is '
+    + 'not a worker with privileges: §8.2 row 3 forbids updating a version at all, and the act that CREATES '
+    + 'one is a SECURITY DEFINER function owned by app_command, exempt by ownership rather than by grant '
+    + '(RFC-2026-017 §3). Granting app_worker a write here would be a second path to the same act.');
+  assert.doesNotMatch(contentCode, /to anon\b/, 'RFC-2026-021 §7/4 grants anon nothing anywhere');
+  // And the consequence, stated in the cases rather than left implicit: every service case in this
+  // batch is a GRANT-layer refusal, which is a different claim from batch 070's RLS-decided ones.
+  const serviceCases = cases.filter((c) => c.id.startsWith('service-') && /content|quality-review/.test(c.id));
+  assert.ok(serviceCases.length >= 5, 'one service case per table at least');
+  for (const testCase of serviceCases) {
+    assert.equal(testCase.deniedBy, 'grant',
+      `${testCase.id}: with no grant there is nothing for row level security to refuse, so RFC-2026-017 §7 — `
+      + 'which asks for a refusal BY row level security — is deliberately not among this case\'s covers');
+    assert.ok(!(testCase.covers ?? []).includes('RFC-2026-017§7'));
+  }
+});
+
+test('batch 080 classifies no S cell, and the service-policy map stays silent about content', async () => {
+  const map = JSON.parse(await readFile('db/foundation/lint/service-policy-map.json', 'utf8'));
+  const entries = map.entries ?? map.cells ?? [];
+  for (const entry of Object.values(entries)) {
+    const text = JSON.stringify(entry);
+    for (const table of CONTENT_TABLES) {
+      assert.ok(!text.includes(table),
+        `the map names app.${table}. §8.2 gives content no S cell — the Service column is P on rows 1 and 2 `
+        + 'and N on row 3 — so an entry here would be a claim about the access matrix made in a lint file. '
+        + 'Batch 132 reached the same conclusion for a different reason and declined the policy batch 130 '
+        + 'expected of it.');
+    }
+  }
+});
+
+test('the generation-run columns carry no foreign key, and the disposition they rest on is on disk', async () => {
+  for (const table of [CONTENT_VERSIONS, QUALITY_REVIEWS]) {
+    const body = contentBodyOf(table);
+    assert.match(body, /generation_run_id\s+uuid/, `app.${table} carries the column §4.6 names`);
+    // BOTH SPELLINGS. The first version of this rule read `generation_run_id) references`, which
+    // catches a table CONSTRAINT and not an inline column reference — and a reversal probe that
+    // wrote `generation_run_id uuid references app.content_items (id)` went UNNOTICED. One probe in
+    // fourteen, recorded in evidence/WP-0A-DB-00/a3-batch-080-probes-2026-09-12.md, and the rule is
+    // what changed rather than the probe.
+    assert.doesNotMatch(body, /generation_run_id[^,()]*references/i,
+      `app.${table}: an INLINE reference on the column. There is no table to reference: app.generation_runs `
+      + "exists nowhere and §6's registry assigns it to nobody.");
+    assert.doesNotMatch(body, /foreign key \([^)]*generation_run_id[^)]*\)\s*\n?\s*references/i,
+      `app.${table}: a composite foreign key naming the column. Same reason, other spelling.`);
+  }
+  const disposition = await readFile('evidence/WP-0A-DB-00/product-owner-disposition-generation-run.md', 'utf8');
+  assert.match(disposition, /generation_run/,
+    'the column is a reference with no enforcement, and the only thing that makes that a DECISION rather '
+    + 'than an oversight is the Product Owner disposition of 2026-09-10 — so this test fails if that file '
+    + 'goes away');
+  assert.match(contentCode, /disposed the question/i,
+    'and the migration cites it where a reader meets the column, rather than leaving them to search');
+});
+
+test('the batch 080 fixture writes only catalog identities and pins the rows its cases need', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(CONTENT_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['content_item_a1', 'content_item_a1_page', 'content_item_a1_sibling_page',
+    'content_item_a2', 'content_item_b1', 'content_version_a1', 'content_version_a1_sibling_page',
+    'content_version_b1', 'quality_review_a1', 'quality_review_a1_sibling_page', 'quality_review_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  assert.doesNotMatch(fixture, /generation_run_id/,
+    'EVERY generation_run_id IS ABSENT, and the absence is the disposition rather than an oversight: a uuid '
+    + 'here would be a constant no catalog fixes, naming a run that never existed — which is exactly the '
+    + 'provenance weakness the disposition of 2026-09-10 records as the cost of option ก.');
+  assert.match(fixture, /update app\.content_items\n\s+set current_version_id/,
+    'the insert order 080_content.sql describes — item with a null pointer, then version, then the update — '
+    + 'is DEMONSTRATED here. The apparent cycle is resolved by order rather than by a deferrable constraint, '
+    + 'and this schema has no deferrable constraint for it to lean on.');
+  assert.match(fixture, /message_th/,
+    '§4.6 requires a finding to carry a stable rule code and a user-facing Thai message, so the fixture '
+    + 'loads reviews whose findings satisfy quality_reviews_findings_carry_code_and_message in the '
+    + 'interesting direction rather than leaving the constraint unexercised');
+});
+
+test('the tables batch 080 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  for (const table of CONTENT_TABLES) {
+    const entry = entries.find((e) => e.table === `app.${table}`);
+    assert.ok(entry, `app.${table} has no entry in the per-family negative control. A control that grows `
+      + 'stale as the suite grows is worse than none, because it reports a coverage it does not have.');
+    assert.equal(entry.batch, '080');
+    const matching = cases.filter((c) => new RegExp(`^${entry.pattern}`).test(c.id));
+    assert.ok(matching.length > 0, `no case id matches ${entry.pattern}, so that entry rests on nothing`);
+    // The entry bites only through cases row level security actually decides. A `deniedBy: 'grant'`
+    // case passes unchanged with RLS off and is not part of any basis — which is most of this
+    // batch's write cases, and the reason each family needs its READ negatives counted here.
+    const basis = matching.filter((c) => c.expect === 'no-rows'
+      || (c.expect === 'denied' && c.deniedBy === 'policy')
+      || c.expect === 'no-effect');
+    assert.ok(basis.length >= 2,
+      `app.${table}'s control entry rests on ${basis.length} case(s) that disabling row level security would `
+      + 'change. Batch 030 established that the count belongs beside the entry, because an entry resting on '
+      + 'one case is one deletion away from resting on none.');
+  }
+});
+
+test('no batch 080 case id can satisfy another batch\'s control entry', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ours = new Set(entries.filter((e) => e.batch === '080').map((e) => e.table));
+  const contentCases = cases.filter((c) => /content-(idea|item|version|variant)|quality-review/.test(c.id));
+  assert.ok(contentCases.length >= 70, 'the batch must actually add cases for this rule to be about anything');
+  for (const testCase of contentCases) {
+    const claimed = entries.filter((e) => new RegExp(`^${e.pattern}`).test(testCase.id));
+    for (const entry of claimed) {
+      assert.ok(ours.has(entry.table),
+        `${testCase.id} matches ${entry.pattern}, which belongs to ${entry.table} in batch ${entry.batch}. A `
+        + "case satisfying another family's control entry lets that entry pass on a failure it did not "
+        + 'cause — the overlap batch 130 measured and this rule keeps from growing.');
+    }
+  }
+  // `content-item` and `content-idea` are distinct prefixes and `content-version` cannot match a
+  // variant case: the four patterns are checked against each other here rather than by eye.
+  const patterns = entries.filter((e) => e.batch === '080').map((e) => e.pattern);
+  assert.equal(new Set(patterns).size, patterns.length, 'two entries sharing a pattern is one entry');
+});
+
+test('the coverage map records what batch 080 pays, including the one row it flips', () => {
+  // THE FLIP. §12.6/3 — "user_approver_a cannot edit content/knowledge" — has read `knowledge-half`
+  // since batch 040, and five batches in a row recorded that they were not content and did not move
+  // it. Batch 080 creates the two tables a client may write in that family and refuses the approver
+  // on both, which is the other half of the sentence and nothing more than it.
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'the row moves to `true` on this batch. It is the only value in this map that has ever moved, and the '
+    + 'eight assertions in earlier batches that pinned it at `knowledge-half` are updated in the same '
+    + 'change — a flip that left them behind would be a value and its guards disagreeing.');
+  assert.match(SMOKE_COVERAGE[3].note, /BATCH 080 PAYS THE CONTENT HALF/,
+    'and the note says what paid it rather than only showing a changed value');
+  assert.match(SMOKE_COVERAGE[3].note, /analogue/i,
+    'the six in-scope analogues stay labelled as analogues. Flipping this row is the rule being SATISFIED '
+    + 'by the two tables the sentence names, not the rule being relaxed.');
+  // The three cases the flip rests on, pinned by id and by outcome so that deleting one fails here
+  // rather than quietly making the row a claim about nothing.
+  const approver = ['approver-a-cannot-create-a-content-item', 'approver-a-cannot-rename-a-content-item',
+    'approver-a-cannot-retopic-a-content-idea'].map((name) => cases.find((c) => c.id === name));
+  for (const testCase of approver) assert.ok(testCase, 'a case §12.6/3 rests on is missing');
+  assert.ok(cases.find((c) => c.id === 'approver-a-sees-the-content-item-of-a1'),
+    'AND THE READ BESIDE THEM, which is what makes the three about the ROLE: the approver holds a business '
+    + 'scope that admits the row, so the narrowing subtracts nothing and only the role test is left. '
+    + 'Without this case the three refusals are equally consistent with an approver who cannot see the '
+    + 'table at all.');
+  // §12.6/8 is NOT paid by this batch and the reason is sharper here than anywhere else.
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'batch 080 grants app_worker NOTHING, so it cannot even carry the RLS-decided negative batch 070 '
+    + 'carries: with no grant there is nothing for row level security to refuse. Its service cases are '
+    + 'privilege refusals, which is a stronger claim about a different thing.');
+  assert.match(AUTHORIZATION_CASE_COVERAGE[9], /BATCH 080 ADDS THREE MORE IMMUTABLE TABLES/,
+    '§8.6/9 is where this batch\'s largest contribution goes: three tables no identity in this repository '
+    + 'may write, which is §8.2 row 3 and not a choice this batch made');
 });
