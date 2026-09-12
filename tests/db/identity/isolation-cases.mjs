@@ -340,7 +340,15 @@ export const SMOKE_COVERAGE = {
                            + 'substitute and says "no client reads this table" rather than "the boundary '
                            + 'holds". The two captures behind that refusal are different rows and not copies: '
                            + 'A\'s is live and B\'s has been PURGED, which is §10\'s "purge object + locator; '
-                           + 'preserve permitted hash/citation metadata" as data.' },
+                           + 'preserve permitted hash/citation metadata" as data.'
+           + '\n\n'
+           + 'BATCH 080 ADDS FIVE TABLES WITH ALL THREE CASES EACH — A reads its own, A cannot read '
+           + 'B\'s while holding B\'s exact id, and B CAN. On app.content_ideas the id is a PAIR, '
+           + '(workspace_id, client_request_id), because §4.6 makes the request key unique per '
+           + 'workspace and a row addressed by its natural key is addressed as exactly as one '
+           + 'addressed by a uuid. What is behind this boundary is the product itself: an idea is '
+           + 'what a business intends to publish, a version is what it wrote, a variant is the text '
+           + 'queued for a platform, and a quality review is the verdict reached on it.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -429,9 +437,23 @@ export const SMOKE_COVERAGE = {
                            + '`pinned-editor-a-cannot-see-the-research-source-of-a-sibling-target-run` is the '
                            + 'case that proves the resolution rather than a copy of the predicate — it is the '
                            + 'only case that fails if the child\'s exists() is replaced by '
-                           + 'member_scope_admits_business over the child\'s own columns.' },
-  3: { covered: 'knowledge-half',
-       note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF NAMES BATCH 080. §12.6/3 is '
+                           + 'member_scope_admits_business over the child\'s own columns.'
+           + '\n\n'
+           + 'BATCH 080 ASKS THE SAME QUESTION ONE LEVEL DEEPER THAN 070 COULD. The item carries both '
+           + 'scope columns and asks the two questions itself; a version resolves through the item; '
+           + 'and a VARIANT and a QUALITY REVIEW resolve through the version and then through the '
+           + 'item — two links, where every family before this one had at most one. '
+           + '`pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item` and its '
+           + 'quality-review twin are the only cases in this suite that fail if the second link is '
+           + 'replaced by member_scope_admits_business over the version\'s own columns, which is '
+           + 'why the fixture loads a variant and a review under the sibling-page item at all.' },
+  // FLIPPED BY BATCH 080, and it is the only value in this map that has ever moved. It read
+  // `knowledge-half` from batch 040 until the tables the other half of §12.6/3 names existed; five
+  // batches recorded in turn that they were not content and did not move it. The paragraphs they
+  // wrote are kept rather than collapsed into the new value, because what this row says about the
+  // analogue rule — six refusals weighed and none counted — is the reason the flip means anything.
+  3: { covered: true,
+       note: 'THE KNOWLEDGE HALF IS PAID BY BATCH 040 AND THE CONTENT HALF BY BATCH 080. §12.6/3 is '
            + '"user_approver_a cannot edit content/knowledge", and 040 creates app.knowledge_items and '
            + 'app.knowledge_item_versions — one of the two families that sentence names. §8.2 marks the '
            + 'approver `N` on "Knowledge current INSERT/UPDATE/archive" and `Y` on the SELECT beside it, '
@@ -445,10 +467,11 @@ export const SMOKE_COVERAGE = {
            + 'than about visibility: user_approver_a holds a `business` member scope on business_a1, so '
            + 'the restrictive narrowing ADMITS every row they are refused, and they read it one case '
            + 'earlier.\n\n'
-           + 'WHAT IS STILL OWED, AND BY WHOM: content. app.content_items and its versions are batch '
-           + '080\'s and no case here touches them, so this row is `knowledge-half` and not `true`. '
-           + 'Flipping it would report half a sentence as a whole one, which is the thing the analogue '
-           + 'rule below exists to refuse.\n\n'
+           + 'WHAT WAS OWED, AND BY WHOM: content. Until batch 080 existed, app.content_items and '
+           + 'its versions were a batch nobody had written and no case here touched them, so this '
+           + 'row read `knowledge-half` and not `true`: flipping it then would have reported half a '
+           + 'sentence as a whole one, which is the thing the analogue rule below exists to refuse. '
+           + 'The batch-080 paragraph at the end of this note is what pays it.\n\n'
            + 'THE THREE IN-SCOPE ANALOGUES REMAIN ANALOGUES AND REMAIN UNCOUNTED — an approver cannot '
            + 'update the workspace (010), cannot update a page context (020), and cannot re-pin the '
            + 'industry assignment of the very Business their member scope names (030). Batch 040 pays '
@@ -481,7 +504,22 @@ export const SMOKE_COVERAGE = {
            + 'about the approver is that they cannot SAVE a research suggestion — §8.2 marks them `P` on '
            + '"Suggestion save/dismiss/use" while the other three are `Y` — and that is counted under '
            + '§8.6/2 where it belongs. Content is still batch 080\'s and this row still reads '
-           + '`knowledge-half`.' },
+           + '`knowledge-half`.'
+           + '\n\n'
+           + 'BATCH 080 PAYS THE CONTENT HALF AND THIS ROW IS NOW `true`. §12.6/3 is "user_approver_a '
+           + 'cannot edit content/knowledge"; 040 paid knowledge and this batch pays content. '
+           + 'app.content_items and app.content_ideas are the two tables in the family a client may '
+           + 'write at all, and the approver is refused on both: they cannot create a content item, '
+           + 'cannot rename one, and cannot re-topic an idea. THE ROLE IS THE ONLY THING REFUSING, '
+           + 'which is what makes these cases about this sentence rather than about visibility: '
+           + 'user_approver_a holds a business scope on business_a1, the restrictive narrowing '
+           + 'admits every row they are refused, and `approver-a-sees-the-content-item-of-a1` is '
+           + 'the case that says so. The three immutable tables carry no approver case and should '
+           + 'not: their writes are refused for the owner and the service too, which says nothing '
+           + 'about an approver and is counted under §8.6/9.\n\n'
+           + 'THE SIX ANALOGUES RECORDED ABOVE STAY ANALOGUES AND STAY UNCOUNTED. Flipping this row '
+           + 'is not a relaxation of that rule — it is the rule being satisfied by the two tables '
+           + 'the sentence actually names.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -559,7 +597,15 @@ export const SMOKE_COVERAGE = {
                            + 'out of reach, which is what separated 061\'s and 131\'s cases from this row. '
                            + 'Each is paired with a witness read as the workspace owner, because a filtered '
                            + 'UPDATE raises nothing and an empty result is also what an update returns when '
-                           + 'the row is simply absent.' },
+                           + 'the row is simply absent.'
+           + '\n\n'
+           + 'ON BATCH 080 IT IS INSERT AND UPDATE ON THE TWO CLIENT-WRITABLE TABLES AND NOTHING ON '
+           + 'THE OTHER THREE, and the absence is §8.2 row 3 rather than a thin suite: a viewer '
+           + 'refused a write to app.content_versions would be refused for want of a grant nobody '
+           + 'holds, which says nothing about a viewer. The four cases that do carry it are '
+           + '`viewer-a-cannot-create-a-content-item`, `-capture-a-content-idea` (both RAISE, '
+           + 'because an INSERT policy has no row to filter) and `viewer-a-cannot-rename-a-content-'
+           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -652,7 +698,12 @@ export const SMOKE_COVERAGE = {
                            + 'the same row — which is the pairing that makes a suspension case a suspension '
                            + 'case. On app.research_snapshots they are refused at the GRANT layer, '
                            + 'identically to the active owner, so `suspended-a-cannot-read-a-research-'
-                           + 'snapshot` says "no client reads this table" and is recorded as saying less.' },
+                           + 'snapshot` says "no client reads this table" and is recorded as saying less.'
+           + '\n\n'
+           + 'BATCH 080 ADDS FOUR SUSPENDED READS, one per table a case addresses by a constant, and '
+           + 'each is paired with an active member of the same workspace reading the same row. '
+           + 'app.is_active_member is where §7 lives for all five policies here, and none of the '
+           + 'predicates carries a `status` term of its own.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -756,7 +807,12 @@ export const SMOKE_COVERAGE = {
                            + '`anonymous-cannot-read-a-research-snapshot` is the anonymous case against the '
                            + 'most restricted material this schema holds, and it is refused where every '
                            + 'other one is: at name resolution, on the SCHEMA, because anon holds no USAGE '
-                           + 'on app.' },
+                           + 'on app.'
+           + '\n\n'
+           + 'BATCH 080 ADDS FOUR MORE ANONYMOUS CASES AND EVERY ONE IS REFUSED IN THE SAME PLACE, on '
+           + 'the SCHEMA. There is no table in this family whose refusal is argued from a '
+           + 'sensitivity class instead, which is the one way 070\'s set differed from every set '
+           + 'before it.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -868,7 +924,13 @@ export const SMOKE_COVERAGE = {
                            + '`owner-a-cannot-forge-the-actor-on-a-research-run-cancel` and '
                            + '`owner-a-cannot-forge-the-actor-on-a-research-suggestion-save` set updated_by '
                            + 'to another member of the SAME workspace, so the USING half admits the row and '
-                           + 'the WITH CHECK half is what refuses it.' },
+                           + 'the WITH CHECK half is what refuses it.'
+           + '\n\n'
+           + 'BATCH 080 CARRIES THE FORGERY AT INSERT TIME AS WELL AS AT UPDATE TIME, which no batch '
+           + 'since 030 has been able to do: §8.2 row 2 gives content a client INSERT, so '
+           + '`owner-a-cannot-forge-the-actor-on-a-content-item` is the passing create above with '
+           + '`created_by` changed to another member of the same workspace — one argument, one '
+           + 'refusal, attributable to `created_by = (select auth.uid())`.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -1099,7 +1161,20 @@ export const SMOKE_COVERAGE = {
                            + '`service-cannot-*` INSERT cases are the policy-layer denials that flip when '
                            + 'it exists; the snapshot and the suggestion have NO cell in that map at all, '
                            + 'because §8 has no row for either and inventing one would be a claim about the '
-                           + 'access matrix made in a lint file.' },
+                           + 'access matrix made in a lint file.'
+           + '\n\n'
+           + 'BATCH 080 MAKES A DIFFERENT AND STRONGER CLAIM HERE, AND IT IS NOT AN IMPROVEMENT — IT '
+           + 'IS A DIFFERENT SHAPE. Every batch above grants app_worker something and lets row '
+           + 'level security refuse it, which is what makes a `service-sees-zero-*` case evidence '
+           + 'about a POLICY. Batch 080 grants app_worker nothing on any of its five tables: the '
+           + 'writer content needs is a SECURITY DEFINER function owned by app_command '
+           + '(RFC-2026-017 §3), and a worker with grants would be a second path to the same act. '
+           + 'So every service case in this batch is a PRIVILEGE refusal, none of them carries '
+           + 'RFC-2026-017 §7 — which asks for a refusal BY row level security — and none of them '
+           + 'is part of the CI negative control\'s basis, because a grant-layer refusal passes '
+           + 'unchanged with row level security off. The positive half stays unpayable for the '
+           + 'reason it has been since batch 010, and one further: there is no identity that could '
+           + 'be the service here even if one could BE app_worker.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1213,7 +1288,18 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'editor inside their own Business, which is what makes every refusal beside them a statement '
    + 'about the caller rather than about the table. The fifth table has no passing case of any kind, '
    + 'and that is §9.1 rather than a gap: app.research_snapshots is COPYRIGHT-3 and no client role '
-   + 'is granted anything on it.',
+   + 'is granted anything on it.'
+   + '\n\n'
+   + 'BATCH 080 ADDS FOUR PASSING CLIENT CASES ACROSS TWO OF ITS FIVE TABLES, AND THE THREE '
+   + 'TABLES WITH NONE ARE THE POINT OF THE BATCH. The owner creates a content item and captures '
+   + 'a content idea, the editor renames the item and re-topics the idea — §8.2 row 2\'s "Content '
+   + 'create/edit/version" for three of its five `Y` roles. app.content_versions, '
+   + 'app.content_variants and app.quality_reviews have NO passing case of any kind, and that is '
+   + '§8.2 row 3 rather than a gap: the row is `N` for every role including the service, so there '
+   + 'is no allowed caller for a positive to be about. The owner\'s SOFT DELETE is counted here '
+   + 'too, because §8.5 names it as the verb a client holds where a delete is wanted at all — and '
+   + 'it is what makes the DELETE refusal beside it a statement about the verb rather than about '
+   + 'the caller.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -1289,7 +1375,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'no document defines the capability set, so `P` cannot be implemented and refusing is the only '
    + 'honest state. All four are `no-effect` with a witness, because a filtered UPDATE raises '
    + 'nothing. AND ON app.research_snapshots THE EDITOR IS REFUSED A READ THE OWNER IS ALSO REFUSED, '
-   + 'so that case says nothing about role and is labelled §9.1 rather than counted here.',
+   + 'so that case says nothing about role and is labelled §9.1 rather than counted here.'
+   + '\n\n'
+   + 'ON BATCH 080 IT IS THE VIEWER AND THE APPROVER, ON BOTH CLIENT-WRITABLE TABLES, AND THE '
+   + 'APPROVER IS THE SHARPER OF THE TWO: §8.2 marks them `Y` on "Content SELECT" and `N` on '
+   + '"Content create/edit/version", and user_approver_a holds a business scope that ADMITS every '
+   + 'row they are refused. Four cases — rename and re-topic for each of the two roles — are '
+   + '`no-effect` with a witness, because a filtered UPDATE raises nothing; the two INSERT '
+   + 'refusals RAISE, because a WITH CHECK has no row to filter. The three immutable tables carry '
+   + 'no case here at all: their writes are refused for the owner too, which says nothing about a '
+   + 'role and is counted under key 9.',
   3: 'COVERED BY BATCH 021. business_a1 and business_a2 are both in workspace A, and '
    + '`workspace_member_scopes` now carries the row that narrows a member to one of them. '
    + 'user_editor_a holds a `business` scope on business_a1 and is refused business_a2, page_a2 and '
@@ -1335,7 +1430,16 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'restrictive one is the only shape that can subtract. The positives beside them '
    + '(`editor-a-sees-the-research-run-inside-their-narrowing`, and user_owner_a reading BOTH runs '
    + 'while holding no scope row) are what stop the pair being satisfied by a narrowing that denied '
-   + 'the editor everything.',
+   + 'the editor everything.'
+   + '\n\n'
+   + 'BATCH 080 REPEATS THE PAIR ON app.content_items AND THEN ASKS IT ONE TABLE DOWN. '
+   + '`editor-a-cannot-see-the-content-item-outside-their-narrowing` is the read half and '
+   + '`editor-a-cannot-rename-the-content-item-outside-their-narrowing` the write half — the '
+   + 'second is not implied by the first, because a caller refused a write it could still read '
+   + 'would have been refused by the role predicate instead. '
+   + '`editor-a-cannot-see-the-content-version-outside-their-narrowing` is the step further: a '
+   + 'version carries no scope question of its own and resolves through its item, so that case '
+   + 'fails if the resolution is replaced by a predicate over the version\'s own columns.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -1396,7 +1500,17 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'Page at all: a source carries no page_context_profile_id, because a nullable copy of its run\'s '
    + 'could not be held equal to it under MATCH SIMPLE, so its restrictive policy resolves through '
    + 'the run and this case is what proves the resolution rather than a copied predicate. '
-   + '`pinned-editor-a-sees-the-research-source-of-the-unpinned-run` is its control.',
+   + '`pinned-editor-a-sees-the-research-source-of-the-unpinned-run` is its control.'
+   + '\n\n'
+   + 'BATCH 080 CARRIES THE CASE AT THREE DEPTHS, WHICH IS ONE MORE THAN ANY BATCH BEFORE IT. '
+   + 'The item asks the Page question itself; the version resolves through the item; and the '
+   + 'variant and the quality review resolve through the version and then through the item. '
+   + '`pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item` and its '
+   + 'quality-review twin are the cases that fail if the SECOND link is cut — a narrowing that '
+   + 'resolved through the version and then asked the Business question about the version\'s own '
+   + 'columns passes every other case in this family and leaks a page-restricted item\'s '
+   + 'publishable text. The fixture loads a variant and a review under the sibling-page item for '
+   + 'no other purpose.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1458,7 +1572,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'run as B\'s own owner, because no A-side identity can see the row it has to prove unchanged). '
    + 'On app.research_snapshots there is no boundary claim to make: both owners are refused '
    + 'identically at the privilege layer, and on a database whose policies had all been deleted those '
-   + 'two cases would pass unchanged.',
+   + 'two cases would pass unchanged.'
+   + '\n\n'
+   + 'ON BATCH 080 IT IS FIVE TABLES WITH THREE CASES EACH, and the content behind this '
+   + 'boundary is the product: §9.1 classes content CONTENT-2, and a cross-tenant read here is a '
+   + 'competitor reading a campaign before it runs, the verdict a quality gate reached on it, or '
+   + 'the exact text queued for a platform. The write half is asserted twice — a rename of tenant '
+   + 'B\'s item and a re-topic of tenant B\'s idea, each with a witness that runs as B\'s owner '
+   + 'because no A-side identity can see the row it has to prove unchanged.',
   6: 'covered — user_suspended_a, both halves, on all four batches\' tables. Batch 021 gives this '
    + 'identity a scope row ON PURPOSE so that `suspended-a-sees-zero-scope-rows` is about a policy '
    + 'rather than about a table with no row for them, and batch 030 re-asks it of the industry '
@@ -1501,7 +1622,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'is FILTERED to zero rows by app.is_active_member while an ACTIVE viewer of the same workspace '
    + 'reads the same row — the pairing that makes a suspension case about suspension. On '
    + 'app.research_snapshots the refusal is at the grant layer and holds for the active owner too, so '
-   + 'it is recorded as saying less.',
+   + 'it is recorded as saying less.'
+   + '\n\n'
+   + 'BATCH 080 ADDS THE SAME HALVES ON ITS FIVE TABLES, AND ON THREE OF THEM THE PAIRING IS '
+   + 'WITH AN ACTIVE OWNER RATHER THAN AN ACTIVE VIEWER, because the immutable tables offer no '
+   + 'write for a viewer to be refused. `suspended-a-sees-zero-content-items`, '
+   + '`-content-ideas`, `-content-versions` and `-quality-reviews` are filtered reads against '
+   + 'rows an active member of the same workspace reads one case earlier.',
   7: 'covered — anonymous, refused at the privilege layer because anon holds no grant at all. On '
    + 'batch 030 that case is doing more than bookkeeping: the industry catalog is PUBLIC-0 and is '
    + 'the one family somebody might reasonably propose exposing anonymously, so the refusal is '
@@ -1547,7 +1674,13 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'COPYRIGHT-3 material — the class §9.2 forbids leaving the system at all, in a list that names '
    + '`client`, `API`, `event`, `job`, `log` and `fixture` — so `anonymous-cannot-read-a-research-'
    + 'snapshot` is refused at name resolution rather than by a policy, which is the furthest layer '
-   + 'out this schema has.',
+   + 'out this schema has.'
+   + '\n\n'
+   + 'BATCH 080 ADDS FOUR ANONYMOUS CASES AND EVERY ONE IS REFUSED ON THE SCHEMA, which is the '
+   + 'ordinary shape rather than 070\'s: there is no COPYRIGHT-3 table here whose refusal would '
+   + 'have to be argued from §9.2. `anon` holds no USAGE on app, so name resolution stops before '
+   + 'a content table is reached, and the cases declare the SCHEMA so they notice the day that '
+   + 'changes.',
   8: 'covered — a forged created_by on the invitation insert (010), on the business insert (020) '
    + 'and on the industry assignment insert (030), all of which raise. On 030 the same statement '
    + "succeeds with the caller's own subject two cases earlier, so the case is about the forged "
@@ -1621,7 +1754,14 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '`owner-a-cannot-forge-the-actor-on-a-research-run-cancel` and its suggestion twin set that '
    + 'column to ANOTHER MEMBER OF THE SAME WORKSPACE — so the USING half admits the row, the WITH '
    + 'CHECK half refuses it, and the refusal is attributable to the second clause rather than to the '
-   + 'first.',
+   + 'first.'
+   + '\n\n'
+   + 'BATCH 080 CARRIES THE CASE AT INSERT TIME, WHICH 070 COULD NOT. 070 had no client INSERT '
+   + 'anywhere in its family and had to assert the forgery on an UPDATE; §8.2 row 2 gives content '
+   + 'a client INSERT, so `owner-a-cannot-forge-the-actor-on-a-content-item` is the PASSING case '
+   + 'above with one argument changed — `created_by` set to another member of the same workspace '
+   + '— and the refusal is attributable to `created_by = (select auth.uid())` and to nothing '
+   + 'else. The UPDATE half is asserted too, on the idea.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1792,7 +1932,21 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'the second because DATA-DEC-07 is OPEN and a retention window a granted path could push forward '
    + 'would not be one. The half a case cannot carry is the same one 131 named: a filtered UPDATE by '
    + 'the one role holding the grant needs a witness read, and no identity in this schema can see a '
-   + 'research snapshot. It is asserted per column at apply time instead.',
+   + 'research snapshot. It is asserted per column at apply time instead.'
+   + '\n\n'
+   + 'BATCH 080 ADDS THREE MORE IMMUTABLE TABLES AND THE STRONGEST FORM OF THIS KEY IN THE '
+   + 'SCHEMA SO FAR, and the reason is the matrix rather than this batch\'s taste: §8.2\'s '
+   + '"Approved/published version UPDATE/DELETE" is `N` for owner, admin, editor, approver, '
+   + 'viewer AND service, which no other row in §8 is. app.content_versions, '
+   + 'app.content_variants and app.quality_reviews therefore carry NO insert, update or delete '
+   + 'grant to any role and NO policy for any of those verbs — nine cases, every one a '
+   + 'privilege-layer refusal held by the OWNER, which is what makes them about the operation '
+   + 'rather than about the caller. The migration asserts the same thing against the live '
+   + 'catalog both ways, as absent ACLs and as an absent policy set, because a policy with no '
+   + 'grant is inert and a grant with no policy is a weaker refusal than immutability asks for. '
+   + 'What no case can carry here is the positive: nothing in this repository may write a '
+   + 'content version at all until a SECURITY DEFINER command function exists, and RFC-2026-021 '
+   + '§10 records that none does.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -1968,7 +2122,20 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'defects in the service\'s own code and NEVER tenant isolation of the service path — no note, '
    + 'comment, case or test in batch 070 says otherwise, the migration names the expression exactly '
    + 'once and in the paragraph that derives the classification, and identity-isolation.test.mjs '
-   + 'asserts both.',
+   + 'asserts both.'
+   + '\n\n'
+   + 'BATCH 080 IS THE FIRST BATCH FOR WHICH THIS KEY IS NOT ABOUT A COMMAND FUNCTION THAT '
+   + 'MIGHT LATER EXIST, and the difference is worth stating because the sentence above would '
+   + 'otherwise read as covering it. Content HAS no `S` cell: §8.2 marks the service `P` on rows '
+   + '1 and 2 and `N` on row 3, and a `P` with no capability defined is not an `S`, so '
+   + 'db/foundation/lint/service-policy-map.json gets no entry from this batch and no service '
+   + 'policy is written. What batch 080 does that no earlier batch did is grant app_worker '
+   + 'NOTHING AT ALL — not even the SELECT that makes an RLS-decided service case possible — '
+   + 'because the writer this family needs is a SECURITY DEFINER function owned by app_command '
+   + '(RFC-2026-017 §3) and a worker with grants would be a second path to the same act. Every '
+   + '`service-cannot-*` case in this batch is therefore a PRIVILEGE refusal, which is stronger '
+   + 'and is a different claim: none of them carries RFC-2026-017 §7, because §7 asks for a '
+   + 'refusal BY row level security and there is no grant here for row level security to refuse.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -10852,6 +11019,893 @@ export function buildCases(id) {
          + 'table in db/foundation/lint/service-policy-map.json: inventing a `cell` value for a row '
          + '§8 does not have would be a claim about the access matrix made in a lint file.',
     },
+
+    // -- BATCH 080 — content: the idea, the item, the version, the variant, the review. --------
+    //
+    // Five tables and three shapes of case, because §8.2 gives this family three rows and the third
+    // is the hardest cell in the matrix.
+    //
+    //   * ALL FIVE TABLES carry §8.2's "Content SELECT | Y | Y | Y | Y | Y", so every negative below
+    //     has a POSITIVE beside it and the boundary is a client-visible one — which is what lets
+    //     this batch assert §8.6 cases 1 through 5 as READS rather than as privilege refusals.
+    //   * THE TWO MUTABLE TABLES carry §8.2 row 2 — "Content create/edit/version | Y | Y | Y | N |
+    //     N" — as an INSERT and a column-scoped UPDATE, asserted from five identities. The cell is
+    //     HALF implemented and the half is named: a client renames a draft and cannot approve one,
+    //     because `status` is outside the UPDATE grant and moving it is a domain command's act.
+    //   * THE THREE IMMUTABLE TABLES carry row 3 — `N` for every role INCLUDING the service, which
+    //     no other row in §8 is — as absent grants and absent policies. Every write case against
+    //     them is therefore a GRANT-layer refusal, and the three read cases are RLS-decided.
+    //
+    // THE SERVICE CASES HERE MAKE A DIFFERENT CLAIM FROM EVERY BATCH BEFORE 130's, AND THE
+    // DIFFERENCE IS THE POINT. Batch 070 grants app_worker select, insert and update and lets row
+    // level security refuse it, so its `service-sees-zero-*` cases are RLS-decided. Batch 080 grants
+    // app_worker NOTHING: the writer this family needs is a SECURITY DEFINER command function owned
+    // by app_command (RFC-2026-017 §3), not a worker with privileges, and granting one here would
+    // build a second path to the same act. So every service case below is refused by the PRIVILEGE
+    // system — stronger, and a different claim, and labelled as one rather than filed under
+    // RFC-2026-017 §7, which asks for a refusal BY row level security and therefore needs a grant
+    // for row level security to refuse.
+    {
+      id: 'owner-a-sees-the-content-item-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against. §8.2 marks "Content SELECT" `Y` '
+         + 'for all five built-in roles, so the policy tests active membership and not role, and '
+         + 'user_owner_a holds no member scope row at all — 021 reads §7 as "a scope narrows, it '
+         + 'does not grant", so the restrictive narrowing subtracts nothing here.',
+    },
+    {
+      id: 'viewer-a-sees-the-content-item-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: viewerA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'The `Y` at the far end of §8.2\'s SELECT row. A viewer reads content and cannot touch '
+         + 'it, and both halves are asserted: this case and viewer-a-cannot-rename-a-content-item.',
+    },
+    {
+      id: 'approver-a-sees-the-content-item-of-a1',
+      covers: ['§8.2', '§12.6/3'],
+      as: approverA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'THE HALF §12.6/3 NEEDS AND THE REFUSALS CANNOT SUPPLY. "user_approver_a cannot edit '
+         + 'content/knowledge" is a claim about the ROLE, and it only says that if the approver can '
+         + 'SEE the row they are refused: user_approver_a holds a business scope on business_a1, so '
+         + 'the restrictive narrowing admits this row and the three refusals below are the role '
+         + 'test and nothing else. Batch 040 paid the knowledge half of that sentence the same way.',
+    },
+    {
+      id: 'editor-a-sees-the-content-item-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and this item is under it, so '
+         + 'app.member_scope_admits_business is true. Without this positive the case below would be '
+         + 'satisfied by a narrowing that denied the editor everything.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-content-item-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on this family: same Workspace, a Business the member scope does not cover. '
+         + 'The permissive policy admits it — the editor is an active member — and the RESTRICTIVE '
+         + 'narrowing subtracts it, which is the only shape that can subtract at all.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-unpinned-content-item-of-a1',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'A consequence of 021\'s definition, consumed rather than re-decided: '
+         + 'member_scope_covers_business counts a `page` scope row on its parent Business. So a '
+         + 'page-scoped editor reaches business-level content, which reaches every Page beneath it. '
+         + '040 and 070 met the same consequence; if it is wrong it is wrong in 021.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-content-item-pinned-to-their-own-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1_page')],
+      expect: 'rows',
+      why: 'The `else` branch of the item\'s narrowing — app.member_scope_admits_page — reached by '
+         + 'the one identity in this suite whose scope is a single Page. A branch no row exercises '
+         + 'is a branch that could be inverted without any case failing.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-content-item-pinned-to-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1_sibling_page')],
+      expect: 'no-rows',
+      why: '§8.6 case 4, which no identity §12.6 names can carry: the editor and the approver are '
+         + 'both scoped at BUSINESS level and §7 gives a business scope every Page beneath it. This '
+         + 'refusal is by PAGE inside a Business the caller is otherwise admitted to — the case '
+         + 'above proves the caller is admitted — which is what distinguishes it from case 3.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-content-item-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_b1')],
+      expect: 'no-rows',
+      why: 'The attack is run while HOLDING tenant B\'s exact item id, which is the whole of '
+         + '§12.6\'s control: proving A cannot reach B by guessing is worthless. What is behind '
+         + 'this boundary is CONTENT-2 — the text a business is about to publish — so a leak here '
+         + 'is a competitor reading a campaign before it runs.',
+    },
+    {
+      id: 'owner-b-sees-the-content-item-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_b1')],
+      expect: 'rows',
+      why: 'THE THIRD CASE, and without it the negative above is satisfied by a fixture that never '
+         + 'loaded the row. Batch 020 established that a cross-tenant claim is three cases and not '
+         + 'two; this is the far side of the boundary reading what the near side cannot.',
+    },
+    {
+      id: 'suspended-a-sees-zero-content-items',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access. app.is_active_member is where that lives for this '
+         + 'table, and the predicate has no `status` term of its own.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-content-item',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA rather than the table: `anon` holds no USAGE on app, so name '
+         + 'resolution stops before a table is reached. RFC-2026-021 §7/4 makes that an approved '
+         + 'decision, and declaring the schema is what makes this case notice the day it changes.',
+    },
+    {
+      id: 'service-cannot-read-a-content-item',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      sql: CONTENT_ITEM_BY_ID,
+      params: [id('content_item_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'NOT labelled RFC-2026-017 §7, and the reason is 130\'s: §7 asks for the service to be '
+         + 'denied BY row level security with an error, which needs a GRANT for row level security '
+         + 'to then refuse. Batch 080 grants app_worker nothing on any of its five tables, so this '
+         + 'refusal is the privilege system. §8.2 marks the service `P` on content, no document '
+         + 'defines that capability, and a `P` with no capability defined is not an `S` — so there '
+         + 'is no service policy here and no entry in the service-policy map.',
+    },
+    {
+      id: 'owner-a-can-create-a-content-item',
+      covers: ['§8.2', '§8.6/1'],
+      as: ownerA,
+      ...contentCreateItem(A, BUSINESS_A1, '__SELF__'),
+      expect: 'rows',
+      why: 'The half of §8.2 row 2 a client actually holds. Creating an item is a client act — the '
+         + 'INSERT grant names the columns and the policy names the three roles — and it is the '
+         + 'only INSERT this batch gives any client on any of its five tables.',
+    },
+    {
+      id: 'viewer-a-cannot-create-a-content-item',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentCreateItem(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: '§8.2 row 2 is `N` for the viewer. The viewer can READ this table — the case above says '
+         + 'so — and the grant is held by `authenticated` as a role rather than by a person, so the '
+         + 'refusal is the policy\'s role test and not a missing privilege.',
+    },
+    {
+      id: 'approver-a-cannot-create-a-content-item',
+      covers: ['§8.6/2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...contentCreateItem(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: '§8.2 row 2 marks the approver `N` where row 1 marks them `Y`: an approver decides about '
+         + 'content rather than writing it. This is one of the two cells in this family that is `N` '
+         + 'for a role §8 otherwise grants, and the other is the viewer\'s.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-content-item',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentCreateItem(A, BUSINESS_A1, id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: '§8.6 case 8 at INSERT time, which this batch can carry where 070 could not: 070 had no '
+         + 'client INSERT anywhere in its family and had to assert the forgery on an UPDATE. The '
+         + 'statement is the passing case above with ONE ARGUMENT CHANGED, so the refusal is '
+         + 'attributable to `created_by = (select auth.uid())` and to nothing else.',
+    },
+    {
+      id: 'owner-a-cannot-create-a-content-item-in-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      ...contentCreateItem(B, BUSINESS_B1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'The cross-tenant WRITE, holding tenant B\'s exact workspace and Business ids so the '
+         + 'composite foreign key is satisfied and the refusal can only be the policy. '
+         + 'app.workspace_member_role answers null for a workspace the caller is not a member of, '
+         + 'and null is in none of the three roles.',
+    },
+    {
+      id: 'editor-a-can-rename-the-content-item-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: editorA,
+      ...contentRenameItem(id('content_item_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The EDIT half of §8.2 row 2, and the case that makes every refusal below a statement '
+         + 'about what was attempted rather than about the table being closed. A title is content; '
+         + 'the editor is one of the row\'s three `Y` roles.',
+    },
+    {
+      id: 'approver-a-cannot-rename-a-content-item',
+      covers: ['§8.6/2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...contentRenameItem(id('content_item_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentItemStillTitled(ownerA, id('content_item_a1'), 'fixture content item a1 business'),
+      why: 'The approver reads this row and cannot edit it. The outcome is `no-effect` rather than '
+         + '`denied` because the USING half of an UPDATE policy FILTERS: a row the policy does not '
+         + 'admit is not a row the statement refuses, it is a row the statement never sees.',
+    },
+    {
+      id: 'viewer-a-cannot-rename-a-content-item',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentRenameItem(id('content_item_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentItemStillTitled(ownerA, id('content_item_a1'), 'fixture content item a1 business'),
+      why: '§8.2 marks the viewer `N` on row 2 and `Y` on row 1, so this is the operation being '
+         + 'refused rather than the table.',
+    },
+    {
+      id: 'editor-a-cannot-rename-the-content-item-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...contentRenameItem(id('content_item_a2'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentItemStillTitled(ownerA, id('content_item_a2'), 'fixture content item a2 business'),
+      why: 'The WRITE half of §8.6 case 3. The editor holds the role the policy names and is '
+         + 'refused by the member scope instead, which is what a restrictive narrowing is for — and '
+         + 'the witness is the unscoped owner, because the editor cannot read the row it is about.',
+    },
+    {
+      id: 'owner-a-cannot-rename-the-content-item-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...contentRenameItem(id('content_item_b1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentItemStillTitled(ownerB, id('content_item_b1'), 'fixture content item b1 business'),
+      why: 'The cross-tenant write on an EXISTING row, holding B\'s exact id. The witness runs as '
+         + 'B\'s owner because no A-side identity can see the row at all, which is the same shape '
+         + '020 established for a workspace name.',
+    },
+    {
+      id: 'owner-a-cannot-approve-a-content-item',
+      covers: ['§8.2', '§4/6'],
+      as: ownerA,
+      ...contentApproveItem(id('content_item_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'THE CASE THIS BATCH IS MOST LIKELY TO BE READ WRONG WITHOUT. §8.2 marks "Content '
+         + 'create/edit/version" `Y` for the owner, so a reader expects the owner to be able to '
+         + 'move a draft to approved; §4.6 says "state change ผ่าน domain command; ห้าม client '
+         + 'update status อิสระ". Both are true and they are about different acts. The refusal is a '
+         + 'column missing from the UPDATE grant rather than a policy predicate — an absent '
+         + 'privilege has to be WRITTEN to be undone — and the `Y` cell is therefore half '
+         + 'implemented, with the missing half owed to a command function that does not exist '
+         + '(RFC-2026-021 §10).',
+    },
+    {
+      id: 'owner-a-cannot-pin-the-current-version-of-a-content-item',
+      covers: ['§8.2', '§4/6'],
+      as: ownerA,
+      ...contentPinCurrentVersion(id('content_item_a1'), id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'Which version is CURRENT is the act of publishing one, not a field a client edits, so '
+         + '`current_version_id` is outside the UPDATE grant beside `status`. The argument is the '
+         + 'version the fixture already pinned, so the refusal cannot be the foreign key.',
+    },
+    {
+      id: 'owner-a-can-soft-delete-a-content-item',
+      covers: ['§8.5', '§8.2'],
+      as: ownerA,
+      ...contentSoftDeleteItem(id('content_item_a1'), '__SELF__'),
+      expect: 'rows',
+      why: '§8.5 asks for a soft delete through a typed lifecycle field where a delete is wanted at '
+         + 'all, and `deleted_at` is in the client UPDATE grant for exactly that. This positive is '
+         + 'what makes the DELETE refusal below a statement about the VERB rather than about the '
+         + 'caller — without it, both cases would be consistent with an item nobody may remove.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-content-item',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...contentDeleteItem(id('content_item_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: '§8.5 has no broad user delete. Hard removal in this family is batch 160\'s retention '
+         + 'sweep through app_maintenance, which this batch grants nothing, and the soft delete '
+         + 'above is the verb a client holds.',
+    },
+    {
+      id: 'service-cannot-create-a-content-item',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      ...contentCreateItem(A, BUSINESS_A1, id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'The service holds no INSERT here, so this is the privilege system and not a policy. '
+         + '`created_by` names an EXISTING user rather than `__SELF__`, because as_service sets a '
+         + 'claim set with no subject and the substitution would inline the text `undefined` — the '
+         + 'build error batch 040 introduced after CI found it.',
+    },
+
+    {
+      id: 'owner-a-sees-the-content-idea-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_IDEA_BY_REQUEST,
+      params: [A, CONTENT_IDEA_A],
+      expect: 'rows',
+      why: 'The positive the idea negatives are measured against, and the row is addressed by the '
+         + 'IDEMPOTENCY KEY §4.6 asks for rather than by a symbol — (workspace_id, '
+         + 'client_request_id) is unique where the key is not null, which is what makes a retried '
+         + 'create fail to produce a second idea.',
+    },
+    {
+      id: 'editor-a-can-retopic-the-content-idea-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: editorA,
+      ...contentRetopicIdea(A, CONTENT_IDEA_A, '__SELF__'),
+      expect: 'rows',
+      why: 'An idea is the one table in this family a client may freely rewrite: §4.6 enumerates no '
+         + 'vocabulary for its `status`, gives it no command, and the UPDATE grant names goal, '
+         + 'topic, brief and status. The fixture topic differs from the one written here, so the '
+         + 'write changes something — a case that set what was already there would pass against a '
+         + 'database where the write did nothing.',
+    },
+    {
+      id: 'approver-a-cannot-retopic-a-content-idea',
+      covers: ['§8.6/2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...contentRetopicIdea(A, CONTENT_IDEA_A, '__SELF__'),
+      expect: 'no-effect',
+      witness: contentIdeaStillOnTopic(ownerA, A, CONTENT_IDEA_A, 'fixture content topic a1'),
+      why: '§8.2 row 2 is `N` for the approver on this table as on the item.',
+    },
+    {
+      id: 'viewer-a-cannot-retopic-a-content-idea',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentRetopicIdea(A, CONTENT_IDEA_A, '__SELF__'),
+      expect: 'no-effect',
+      witness: contentIdeaStillOnTopic(ownerA, A, CONTENT_IDEA_A, 'fixture content topic a1'),
+      why: '§8.2 row 2 is `N` for the viewer, who reads the same row in the SELECT positive.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-content-idea-update',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentRetopicIdea(A, CONTENT_IDEA_A, id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_ideas' },
+      why: '§8.6 case 8 on the UPDATE path. The USING half admits the row and the WITH CHECK half '
+         + 'refuses the forged `updated_by`, which is why the outcome is a RAISED refusal rather '
+         + 'than a filtered one — the distinction the two approver cases above and this one turn '
+         + 'on.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-the-idempotency-key-of-a-content-idea',
+      covers: ['§8.5', '§4/6'],
+      as: ownerA,
+      ...contentRewriteIdeaKey(A, CONTENT_IDEA_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_ideas' },
+      why: '§4.6 asks for "unique idempotency ต่อ workspace". A key the client can rewrite after '
+         + 'the fact identifies nothing: the retry that the key exists to make safe would create a '
+         + 'second idea. The column is outside the UPDATE grant, so the refusal is the privilege '
+         + 'system.',
+    },
+    {
+      id: 'owner-a-can-capture-a-content-idea',
+      covers: ['§8.2', '§8.6/1'],
+      as: ownerA,
+      ...contentCaptureIdea(A, BUSINESS_A1, '__SELF__'),
+      expect: 'rows',
+      why: 'The second and last client INSERT this batch grants. It passes no client_request_id, '
+         + 'which the partial index permits — the idempotency key is optional and its absence is '
+         + 'not a collision, which is why it is a partial unique INDEX and not a constraint.',
+    },
+    {
+      id: 'viewer-a-cannot-capture-a-content-idea',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentCaptureIdea(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_ideas' },
+      why: 'The viewer holds the grant as `authenticated` and is refused by the policy\'s role '
+         + 'test, exactly as on the item.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-content-idea-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_IDEA_BY_REQUEST,
+      params: [B, CONTENT_IDEA_B],
+      expect: 'no-rows',
+      why: 'The cross-tenant read, holding tenant B\'s workspace id AND the exact request key its '
+         + 'idea was created under. An idea names what a business intends to publish before it has '
+         + 'published anything, which is the earliest point at which this boundary can leak a plan.',
+    },
+    {
+      id: 'owner-b-sees-the-content-idea-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: CONTENT_IDEA_BY_REQUEST,
+      params: [B, CONTENT_IDEA_B],
+      expect: 'rows',
+      why: 'The third case, so the negative above is a refusal against something rather than '
+         + 'against nothing.',
+    },
+    {
+      id: 'owner-a-cannot-retopic-the-content-idea-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...contentRetopicIdea(B, CONTENT_IDEA_B, '__SELF__'),
+      expect: 'no-effect',
+      witness: contentIdeaStillOnTopic(ownerB, B, CONTENT_IDEA_B, 'fixture content topic b1'),
+      why: 'The cross-tenant WRITE half, which the read half above does not imply: a caller refused '
+         + 'a write it could still read would be refused by a role predicate rather than by the '
+         + 'tenant boundary.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-content-idea',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...contentDeleteIdea(A, CONTENT_IDEA_A),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_ideas' },
+      why: '§8.5 has no broad user delete, and an idea carries no lifecycle column for a soft one '
+         + 'either — §4.6 names `status` and enumerates nothing, so this batch will not invent '
+         + '"discarded". The gap is in the work package\'s open blockers rather than filled here.',
+    },
+    {
+      id: 'suspended-a-sees-zero-content-ideas',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: CONTENT_IDEA_BY_REQUEST,
+      params: [A, CONTENT_IDEA_A],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-content-idea',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: CONTENT_IDEA_BY_REQUEST,
+      params: [A, CONTENT_IDEA_A],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema.',
+    },
+    {
+      id: 'service-cannot-capture-a-content-idea',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      ...contentCaptureIdea(A, BUSINESS_A1, id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_ideas' },
+      why: 'The service holds no INSERT on this table either. An idea produced by a research run is '
+         + 'the obvious future service write, and it is not built here: it would need the command '
+         + 'surface RFC-2026-021 §10 records does not exist.',
+    },
+
+    {
+      id: 'owner-a-sees-the-content-version-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_VERSION_BY_ID,
+      params: [id('content_version_a1')],
+      expect: 'rows',
+      why: 'The positive the immutability cases are measured against: the owner READS this row and '
+         + 'cannot change a byte of it, and both halves have to be asserted or "immutable" is '
+         + 'indistinguishable from "unreachable".',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-content-version-of-their-own-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_VERSION_OF_ITEM,
+      params: [id('content_item_a1_page')],
+      expect: 'rows',
+      why: 'The POSITIVE half of the child narrowing. A version carries no page column, so its '
+         + 'reach is its item\'s reach, resolved through app.content_items — and this case says the '
+         + 'resolution admits what the item admits.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-content-version-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_VERSION_OF_ITEM,
+      params: [id('content_item_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'THE CASE THE CHILD NARROWING EXISTS FOR. user_page_editor_a is admitted to business_a1 '
+         + 'and must still be refused the history of an item pinned to a sibling Page. Asserted '
+         + 'only against a business-level parent, the design would still hold if somebody replaced '
+         + 'the exists() with member_scope_admits_business on the version\'s own columns — the '
+         + 'substitution this case refuses.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-content-version-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: CONTENT_VERSION_OF_ITEM,
+      params: [id('content_item_a2')],
+      expect: 'no-rows',
+      why: 'The BUSINESS half of the same resolution, and it is not implied by the page half: a '
+         + 'narrowing that resolved through the item for one branch and not the other would pass '
+         + 'the case above and leak here.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-content-version-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_VERSION_BY_ID,
+      params: [id('content_version_b1')],
+      expect: 'no-rows',
+      why: 'A version row holds what an item USED to say, so a boundary that held on the current '
+         + 'item and not on its history would leak the same content one table over — batch 040\'s '
+         + 'sentence about a knowledge version, on a family where the text is the product.',
+    },
+    {
+      id: 'owner-b-sees-the-content-version-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: CONTENT_VERSION_BY_ID,
+      params: [id('content_version_b1')],
+      expect: 'rows',
+      why: 'The third case on the version table.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-content-version',
+      covers: ['§8.2', '§8.5'],
+      as: ownerA,
+      ...contentWriteVersion(A, BUSINESS_A1, id('content_item_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_versions' },
+      why: 'A version is created by the act that GENERATES it, not by a client typing one. §8.2 row '
+         + '2 gives the client "create/edit/version" and this batch reads the third word as the '
+         + 'command\'s act rather than the client\'s: the same shape 070 gave app.research_evidence. '
+         + 'No INSERT grant and no INSERT policy, so this is the privilege layer.',
+    },
+    {
+      id: 'owner-a-cannot-amend-a-content-version',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...contentAmendVersion(id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_versions' },
+      why: '§8.2 row 3: "Approved/published version UPDATE/DELETE" is `N` in every column of the '
+         + 'matrix including Service. Rewriting a version would rewrite what was approved, after it '
+         + 'was approved.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-content-version',
+      covers: ['§8.2', '§8.5'],
+      as: ownerA,
+      ...contentDeleteVersion(id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_versions' },
+      why: 'The DELETE half of row 3. Deleting a version is the same act as rewriting it with '
+         + 'nothing, and the refusal is an absent grant rather than a policy for the reason this '
+         + 'whole batch gives: a grant never made has to be written to be undone.',
+    },
+    {
+      id: 'suspended-a-sees-zero-content-versions',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: CONTENT_VERSION_BY_ID,
+      params: [id('content_version_a1')],
+      expect: 'no-rows',
+      why: '§7 on an immutable table: the SELECT policy is the only policy it has, and it tests '
+         + 'active membership.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-content-version',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: CONTENT_VERSION_BY_ID,
+      params: [id('content_version_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema.',
+    },
+    {
+      id: 'service-cannot-write-a-content-version',
+      covers: ['§12.6/8-negative', '§8.2/version-service-N'],
+      as: service,
+      ...contentWriteVersion(A, BUSINESS_A1, id('content_item_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_versions' },
+      why: 'THE CASE THAT SAYS WHAT §8.2 ROW 3 MEANS. The row is `N` for the SERVICE as well, which '
+         + 'no other row in §8 is, so there is no identity in this repository — client, worker or '
+         + 'otherwise — that may write a content version through a granted path. What will write '
+         + 'one is a SECURITY DEFINER function owned by app_command, exempt by ownership rather '
+         + 'than by privilege, and it does not exist.',
+    },
+
+    {
+      id: 'owner-a-sees-the-content-variant-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_a1'), 'facebook'],
+      expect: 'rows',
+      why: 'The positive, and the row is addressed by (content_version_id, platform) — §4.6\'s '
+         + '"unique logical variant key" — rather than by a symbol.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-content-variant-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_b1'), 'facebook'],
+      expect: 'no-rows',
+      why: 'A variant is the text that actually goes to a platform, so this is the last table in '
+         + 'the chain where a cross-tenant read would leak a publishable post rather than a draft '
+         + 'of one. The query holds B\'s exact version id and the platform its fixture row carries.',
+    },
+    {
+      id: 'owner-b-sees-the-content-variant-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_b1'), 'facebook'],
+      expect: 'rows',
+      why: 'The third case on the variant table.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-content-variant-of-the-unpinned-item',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_a1'), 'facebook'],
+      expect: 'rows',
+      why: 'The POSITIVE half of the two-level chain — variant through version through item — for a '
+         + 'page-scoped member reading content that is pinned to no Page. Without it the negative '
+         + 'below is satisfied by a narrowing that refused this member everything. The id says '
+         + '"unpinned" rather than "business-level" because `[a-z0-9-]*business` is batch 020\'s '
+         + 'control pattern, and a case that satisfied another family\'s entry would let that '
+         + 'entry pass on a failure it did not cause — 070 took the same care with the word `page`.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_a1_sibling_page'), 'facebook'],
+      expect: 'no-rows',
+      why: 'THE SECOND LINK OF THE CHAIN, and the case that fails if somebody cuts it. A variant '
+         + 'resolves through its version and the version through its ITEM, which is where the page '
+         + 'lives; a narrowing that resolved the first link and then asked the Business question '
+         + 'about the version\'s own columns would pass every other variant case in this suite and '
+         + 'leak a page-restricted item\'s variants to a member scoped to a sibling Page.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-content-variant',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...contentWriteVariant(A, BUSINESS_A1, id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_variants' },
+      why: 'Row 3 again, one table over. The platform is `instagram` where the fixture row is '
+         + '`facebook`, so a refusal cannot be content_variants_logical_key standing in for the '
+         + 'missing privilege — and the insert LANDS when the negative control disables row level '
+         + 'security.',
+    },
+    {
+      id: 'owner-a-cannot-amend-a-content-variant',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...contentAmendVariant(id('content_version_a1'), 'facebook'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_variants' },
+      why: 'The variant is what a platform actually receives; an editable one makes the approved '
+         + 'version and the published text two different things.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-content-variant',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...contentDeleteVariant(id('content_version_a1'), 'facebook'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_variants' },
+      why: 'No role holds DELETE on any of this batch\'s five tables, which the migration asserts '
+         + 'against the live catalog as well.',
+    },
+    {
+      id: 'service-cannot-write-a-content-variant',
+      covers: ['§12.6/8-negative', '§8.2/version-service-N'],
+      as: service,
+      ...contentWriteVariant(A, BUSINESS_A1, id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_variants' },
+      why: 'The service half of row 3 on the variant table.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-content-variant',
+      covers: ['§12.6/6', '§8.6/7'],
+      as: anonymous,
+      sql: CONTENT_VARIANT_BY_VERSION,
+      params: [id('content_version_a1'), 'facebook'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the schema.',
+    },
+
+    {
+      id: 'owner-a-sees-the-quality-review-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_a1')],
+      expect: 'rows',
+      why: 'The positive. A review carries §4.6\'s findings — a stable rule code and a Thai message '
+         + 'each — and the client may read them, which is what makes the quality gate legible to '
+         + 'the person whose content was blocked.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-quality-review-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_b1')],
+      expect: 'no-rows',
+      why: 'Holding B\'s exact review id. A review names what was WRONG with another tenant\'s '
+         + 'content, which is a second kind of disclosure on top of the content itself.',
+    },
+    {
+      id: 'owner-b-sees-the-quality-review-of-their-own-tenant',
+      covers: ['§12.6/1', '§8.6/1'],
+      as: ownerB,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_b1')],
+      expect: 'rows',
+      why: 'The third case on the review table. The two sides are loaded in different states, so a '
+         + 'read that returned the wrong tenant\'s row would be visible as a different status '
+         + 'rather than as an identical copy.',
+    },
+    {
+      id: 'owner-a-cannot-write-a-quality-review',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...contentWriteQualityReview(A, BUSINESS_A1, id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quality_reviews' },
+      why: 'A client that could write its own quality review could pass its own content. The '
+         + 'findings payload is well formed, so the refusal cannot be '
+         + 'quality_reviews_findings_carry_code_and_message standing in for the missing grant.',
+    },
+    {
+      id: 'owner-a-cannot-amend-a-quality-review',
+      covers: ['§8.2'],
+      as: ownerA,
+      ...contentAmendQualityReview(id('quality_review_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quality_reviews' },
+      why: 'The statement moves `warn` to `pass`, which is the exact act an editable review table '
+         + 'would permit: the gate is a record of what a rule set decided, not a field the reviewed '
+         + 'party edits.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-quality-review',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...contentDeleteQualityReview(id('quality_review_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quality_reviews' },
+      why: 'Deleting the review is the other way to pass the gate.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-quality-review-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'The same second link on the other two-level table, and it is not implied by the variant '
+         + 'case: the two narrowings are separate policies with separate predicates, and the one '
+         + 'this batch is most likely to get wrong is the one written last.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-quality-review-of-the-unpinned-item',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_a1')],
+      expect: 'rows',
+      why: 'The positive that makes the refusal above about the PAGE rather than about the table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-quality-reviews',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: QUALITY_REVIEW_BY_ID,
+      params: [id('quality_review_a1')],
+      expect: 'no-rows',
+      why: '§12.6/5 on the last of this batch\'s five tables.',
+    },
+    {
+      id: 'service-cannot-write-a-quality-review',
+      covers: ['§12.6/8-negative', '§8.2/version-service-N'],
+      as: service,
+      ...contentWriteQualityReview(A, BUSINESS_A1, id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'quality_reviews' },
+      why: 'AND THIS IS THE ONE THAT COSTS SOMETHING. A quality review is produced by a rule set '
+         + 'run, which is a job; §8.2 row 3 refuses the service anyway, so the producer of this row '
+         + 'has to be the command function that does not exist rather than a worker with an INSERT. '
+         + 'Until it exists, nothing in this repository can record a quality verdict at all, and '
+         + 'that is stated here rather than left to be discovered by whoever builds the gate.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -11302,4 +12356,214 @@ export function researchDeleteSuggestion(suggestionId) {
     sql: 'delete from app.research_suggestions where id = $1::uuid returning id',
     params: [suggestionId],
   };
+}
+
+// -- BATCH 080 — content: the idea, the item, the version, the variant, the review. -----------
+//
+// THE IDEA IS ADDRESSED BY THE REQUEST THAT CREATED IT, not by a symbol. §4.6 asks for "unique
+// idempotency ต่อ workspace" and 080_content.sql makes that a partial unique index, so
+// (workspace_id, client_request_id) names exactly one row — batch 050's job addressing, one family
+// over. A VARIANT is addressed by (content_version_id, platform) for the same reason, and a VERSION
+// by (content_item_id, version_no) except for the two the catalog names, which carry a symbol
+// because the variant and the review are addressed THROUGH a version id and a join to find it would
+// put two tables' policies behind one result.
+export const CONTENT_ITEM_BY_ID = 'select id from app.content_items where id = $1';
+export const CONTENT_VERSION_BY_ID = 'select id from app.content_versions where id = $1';
+export const QUALITY_REVIEW_BY_ID = 'select id from app.quality_reviews where id = $1';
+export const CONTENT_IDEA_A = 'fixture content idea a1';
+export const CONTENT_IDEA_B = 'fixture content idea b1';
+export const CONTENT_IDEA_BY_REQUEST =
+  'select id from app.content_ideas where workspace_id = $1::uuid and client_request_id = $2';
+export const CONTENT_VERSION_OF_ITEM =
+  'select id from app.content_versions where content_item_id = $1::uuid and version_no = 1';
+export const CONTENT_VARIANT_BY_VERSION =
+  'select id from app.content_variants where content_version_id = $1::uuid and platform = $2';
+
+// The witnesses. Each reads a value that is NOT NULL in the fixture, so the comparison says what it
+// looks like it says: §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md records that
+// the driver reads psql's CSV, CSV has no NULL, and a witness comparing against `null` holds against
+// every correct database. `title` and `topic` are text columns the fixture loads with a known value.
+export function contentItemStillTitled(as, itemId, title) {
+  return { as, sql: 'select title from app.content_items where id = $1', params: [itemId], column: 'title', equals: title };
+}
+
+export function contentIdeaStillOnTopic(as, workspace, request, topic) {
+  return {
+    as,
+    sql: 'select topic from app.content_ideas where workspace_id = $1::uuid and client_request_id = $2',
+    params: [workspace, request],
+    column: 'topic',
+    equals: topic,
+  };
+}
+
+// §8.2's "Content create/edit/version", as the columns the client UPDATE grant actually names. The
+// actor is a parameter rather than `(select auth.uid())` so the forged-actor case is visibly the
+// same statement with one argument changed — which is what §8.6 case 8 has to be for its refusal to
+// be attributable to the WITH CHECK half rather than to the USING half.
+export function contentRenameItem(itemId, actor) {
+  return {
+    sql: "update app.content_items set title = 'renamed content item', updated_by = $2::uuid "
+       + 'where id = $1::uuid returning id',
+    params: [itemId, actor],
+  };
+}
+
+// THE OTHER HALF OF THE SAME `Y` CELL, AND THE ONE THE CLIENT DOES NOT HOLD. §4.6: "state change
+// ผ่าน domain command; ห้าม client update status อิสระ". `status` is outside every UPDATE grant, so
+// this is refused by the privilege system and not by a policy predicate — which is the distinction
+// the case's `deniedBy` declares.
+export function contentApproveItem(itemId) {
+  return {
+    sql: "update app.content_items set status = 'approved' where id = $1::uuid returning id",
+    params: [itemId],
+  };
+}
+
+// Which version is CURRENT is the act of publishing one, so the column is outside the UPDATE grant
+// beside `status` rather than for a reason of its own.
+export function contentPinCurrentVersion(itemId, versionId) {
+  return {
+    sql: 'update app.content_items set current_version_id = $2::uuid where id = $1::uuid returning id',
+    params: [itemId, versionId],
+  };
+}
+
+// §8.5's soft delete: "ใช้ soft delete ผ่าน typed lifecycle field". `deleted_at` IS in the client
+// UPDATE grant, and this is the positive that makes the DELETE refusal below a statement about the
+// verb rather than about the row.
+export function contentSoftDeleteItem(itemId, actor) {
+  return {
+    sql: 'update app.content_items set deleted_at = now(), updated_by = $2::uuid '
+       + 'where id = $1::uuid returning id',
+    params: [itemId, actor],
+  };
+}
+
+// No `id` is passed: the column defaults to gen_random_uuid(), the row is rolled back with its
+// transaction, and no case has a reason to hold the id of a row it is creating. The Business is a
+// live one under the Workspace, so when the CI negative control disables row level security the
+// insert LANDS rather than failing on a foreign key — a case that could not succeed proves nothing
+// about the policy that refuses it.
+export function contentCreateItem(workspace, business, createdBy) {
+  return {
+    sql: 'insert into app.content_items (workspace_id, business_profile_id, title, content_type, '
+       + "created_by, updated_by) values ($1::uuid, $2::uuid, 'attempted content item', 'post', "
+       + '$3::uuid, $3::uuid) returning id',
+    params: [workspace, business, createdBy],
+  };
+}
+
+export function contentDeleteItem(itemId) {
+  return { sql: 'delete from app.content_items where id = $1::uuid returning id', params: [itemId] };
+}
+
+export function contentCaptureIdea(workspace, business, createdBy) {
+  return {
+    sql: 'insert into app.content_ideas (workspace_id, business_profile_id, goal, topic, '
+       + "created_by, updated_by) values ($1::uuid, $2::uuid, 'attempted content goal', "
+       + "'attempted content topic', $3::uuid, $3::uuid) returning id",
+    params: [workspace, business, createdBy],
+  };
+}
+
+export function contentRetopicIdea(workspace, request, actor) {
+  return {
+    sql: "update app.content_ideas set topic = 'rewritten content topic', updated_by = $3::uuid "
+       + 'where workspace_id = $1::uuid and client_request_id = $2 returning id',
+    params: [workspace, request, actor],
+  };
+}
+
+// The idempotency key §4.6 asks for, which is outside the UPDATE grant: a key a client can rewrite
+// after the fact identifies nothing, and a retried create would produce a second idea.
+export function contentRewriteIdeaKey(workspace, request) {
+  return {
+    sql: "update app.content_ideas set client_request_id = 'rewritten idea key' "
+       + 'where workspace_id = $1::uuid and client_request_id = $2 returning id',
+    params: [workspace, request],
+  };
+}
+
+export function contentDeleteIdea(workspace, request) {
+  return {
+    sql: 'delete from app.content_ideas where workspace_id = $1::uuid and client_request_id = $2 returning id',
+    params: [workspace, request],
+  };
+}
+
+// version_no 2, because version 1 of every fixture item exists and a refusal that was
+// content_versions_item_version_key rather than the missing privilege would be a constraint standing
+// in for a control. `source` is `manual`, which content_versions_revision_has_parent permits without
+// a parent. So the insert LANDS when the negative control disables row level security.
+export function contentWriteVersion(workspace, business, itemId) {
+  return {
+    sql: 'insert into app.content_versions (workspace_id, business_profile_id, content_item_id, '
+       + "version_no, body, source) values ($1::uuid, $2::uuid, $3::uuid, 2, "
+       + "'attempted content body', 'manual') returning id",
+    params: [workspace, business, itemId],
+  };
+}
+
+export function contentAmendVersion(versionId) {
+  return {
+    sql: "update app.content_versions set body = 'rewritten content body' where id = $1::uuid returning id",
+    params: [versionId],
+  };
+}
+
+export function contentDeleteVersion(versionId) {
+  return { sql: 'delete from app.content_versions where id = $1::uuid returning id', params: [versionId] };
+}
+
+// `instagram`, because the fixture's variant of this version is `facebook` and an untyped second
+// variant on the same platform would be refused by content_variants_logical_key — which is the
+// constraint the migration asserts is NULLS NOT DISTINCT, and a case refused by it would be
+// asserting that assertion instead of the missing privilege.
+export function contentWriteVariant(workspace, business, versionId) {
+  return {
+    sql: 'insert into app.content_variants (workspace_id, business_profile_id, content_version_id, '
+       + "platform, body) values ($1::uuid, $2::uuid, $3::uuid, 'instagram', "
+       + "'attempted variant body') returning id",
+    params: [workspace, business, versionId],
+  };
+}
+
+export function contentAmendVariant(versionId, platform) {
+  return {
+    sql: "update app.content_variants set body = 'rewritten variant body' "
+       + 'where content_version_id = $1::uuid and platform = $2 returning id',
+    params: [versionId, platform],
+  };
+}
+
+export function contentDeleteVariant(versionId, platform) {
+  return {
+    sql: 'delete from app.content_variants where content_version_id = $1::uuid and platform = $2 returning id',
+    params: [versionId, platform],
+  };
+}
+
+// One finding carrying the two fields §4.6 requires, so a refusal cannot be
+// quality_reviews_findings_carry_code_and_message standing in for a missing grant.
+export function contentWriteQualityReview(workspace, business, versionId) {
+  return {
+    sql: 'insert into app.quality_reviews (workspace_id, business_profile_id, content_version_id, '
+       + "rule_set_version, status, findings, reviewer_type) values ($1::uuid, $2::uuid, $3::uuid, "
+       + "'fixture-rule-set-v1', 'pass', "
+       + '\'[{"rule_code": "ATTEMPTED-001", "message_th": "ข้อความที่พยายามเขียน"}]\'::jsonb, '
+       + "'ai') returning id",
+    params: [workspace, business, versionId],
+  };
+}
+
+export function contentAmendQualityReview(reviewId) {
+  return {
+    sql: "update app.quality_reviews set status = 'pass' where id = $1::uuid returning id",
+    params: [reviewId],
+  };
+}
+
+export function contentDeleteQualityReview(reviewId) {
+  return { sql: 'delete from app.quality_reviews where id = $1::uuid returning id', params: [reviewId] };
 }

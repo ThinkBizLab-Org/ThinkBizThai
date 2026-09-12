@@ -281,11 +281,22 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // message about a TAIL — which reads like a missing batch rather than like a misplaced one. 051
 // recorded the same thing about its own position between 050 and 060; from 110 onwards this is the
 // ordinary case rather than a peculiarity.
+// Batch 080 joins for the structural reason most of the list shares, and it is worth naming which
+// dependency does the work, because 080 has more of them than any batch before it. Its five tables
+// reference app.business_profiles and app.page_context_profiles over the composite scope keys batch
+// 020 creates; its policies call app.is_active_member, app.workspace_member_role,
+// app.member_scope_admits_business and app.member_scope_admits_page, which 011 and 021 create; and
+// app.content_ideas references app.research_suggestions, which 070 creates and which is itself on
+// this list. So the migration could not apply to this instance even if somebody wanted it to. It
+// sorts between 070 and 110, so it is INSERTED into the middle of this array rather than appended —
+// the trap 051 recorded and 070 recorded after it, because appending produces a declaration that is
+// not a TAIL and pendingDeclarationLint refuses that with a message about divergence.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '110_meta_connector.sql', '130_billing.sql',
-  '131_billing_projection.sql', '132_entitlement_resolution.sql', '140_audit.sql'];
+  '061_metering.sql', '070_research.sql', '080_content.sql', '110_meta_connector.sql',
+  '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
+  '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -671,6 +682,42 @@ const ADDED_SYMBOLS = [
   'research_evidence_b1',
   'research_suggestion_a1',
   'research_suggestion_b1',
+  // Batch 080. FIVE CONTENT ITEMS FOR THE SAME REASON 070 NEEDED FIVE RUNS AND 040 NEEDED FIVE
+  // KNOWLEDGE ITEMS: the item is the table in this family that carries §4 invariant 3's two-column
+  // scope, so its narrowing has two branches and four outcomes to exercise — a business-level row
+  // inside the member's scope, a page-level row inside it, a page-level row under a SIBLING page of
+  // the same Business (§8.6 case 4), a row under a Business outside the scope (case 3), and a row
+  // across the tenant boundary (case 5).
+  'content_item_a1',
+  'content_item_a1_page',
+  'content_item_a1_sibling_page',
+  'content_item_a2',
+  'content_item_b1',
+  // TWO VERSIONS, AND THEY ARE THE FIRST SYMBOLS IN THIS LIST ADDED FOR A ROW THAT HAS A NATURAL
+  // KEY. (content_item_id, version_no) is unique, so a version can be addressed the way batch 020's
+  // version rows are and four of the fixture's five are. These two are named because the VARIANT
+  // and the QUALITY REVIEW are addressed through a version id: a case that resolved that id with a
+  // join on app.content_versions would put two tables' policies behind one result, and a refusal it
+  // observed could not be attributed to the table the case is named for.
+  'content_version_a1',
+  'content_version_b1',
+  // A THIRD VERSION SYMBOL, for the row under the sibling Page, and it buys the only thing the two
+  // above cannot: a NEGATIVE for the two-level chain. A variant and a quality review resolve their
+  // reach through a version and then through that version's item, and a chain asserted only in the
+  // positive direction would still hold if somebody cut the second link. This is the row that makes
+  // cutting it fail.
+  'content_version_a1_sibling_page',
+  // One quality review per side, for the reason batch 040's knowledge item needed a symbol: a review
+  // has no natural key at all. Nothing says a version is reviewed once — a rule set may be re-run —
+  // and inventing a uniqueness so a case could address one without a constant would be writing a
+  // product decision into a constraint. The two sides are loaded in DIFFERENT states, `warn` and
+  // `block`, so a cross-tenant read that returned the wrong tenant's row would be visible as a
+  // different status rather than as an identical copy.
+  'quality_review_a1',
+  'quality_review_b1',
+  // And the review under the sibling-page version, for the reason its version needed a symbol: the
+  // negative half of the chain on the one table in this family that is two levels from the page.
+  'quality_review_a1_sibling_page',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

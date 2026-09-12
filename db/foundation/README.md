@@ -126,6 +126,18 @@ string — which is a demonstration that the hash IS an address, and that is the
 to preserve it. The string is this repository's own: §9.2 names `fixture` among the surfaces a full
 research snapshot may not reach.
 
+Batch `080` added symbols for rows in **three of its five tables**, and three of those symbols are
+the first in this catalog added for a row that ALREADY HAS a natural key — which is worth the paragraph,
+because the rule has run the other way since `020`. A content item and a quality review have no
+natural key any document fixes, so each is addressed by an id fixed here. An **idea** is addressed by
+`(workspace_id, client_request_id)`, which §4.6 makes unique per workspace; a **variant** by
+`(content_version_id, platform)`; and a **version** by `(content_item_id, version_no)` — all natural
+keys, all spelled out of ids this catalog already fixes. Three versions carry a symbol
+anyway, and not in order to address themselves: a variant and a quality review are addressed THROUGH
+a version id, and a case that resolved that id by joining `app.content_versions` would put two
+tables' policies behind one result and could not attribute the refusal it observed to the table the
+case is named for. The symbol is the cheaper of the two costs.
+
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding
 B's exact id is the control that matters.

@@ -659,4 +659,35 @@ jobs:
           control app.research_snapshots      '[a-z0-9-]*research-snapshot'   070
           control app.research_evidence       '[a-z0-9-]*research-evidence'   070
           control app.research_suggestions    '[a-z0-9-]*research-suggestion' 070
+          #
+          # BATCH 080's FIVE TABLES, AND WHAT EACH ENTRY ACTUALLY RESTS ON. §8.2 marks "Content
+          # SELECT" `Y` for all five client roles, so every one of these families has client READS
+          # for row level security to decide -- which is what an entry here needs, and what most of
+          # this batch's write cases cannot supply: three of the five tables are immutable as an
+          # ABSENCE OF GRANTS, so their write cases are privilege refusals that pass unchanged with
+          # row level security off.
+          #
+          #   * THE TENANT BOUNDARY, on all five. `owner-a-cannot-see-the-content-item-of-tenant-b`
+          #     and its four siblings hold tenant B's exact id and return nothing; the matching
+          #     `owner-b-sees-...` cases prove the rows are there to be seen.
+          #   * THE MEMBER SCOPE, resolved through a parent on three of them.
+          #     `pinned-editor-a-cannot-see-the-content-version-of-a-sibling-target-item` and the
+          #     variant and quality-review cases beside it are the ones that fail if the chain --
+          #     variant through version through item, where the page lives -- is cut at its second
+          #     link.
+          #   * THE ROLE PREDICATE on the two client write paths.
+          #     `approver-a-cannot-rename-a-content-item`, `viewer-a-cannot-rename-a-content-item`
+          #     and the two idea cases beside them are `no-effect` cases whose failure with row
+          #     level security off is the write LANDING, which their witnesses detect.
+          #
+          # NOT the `service-cannot-*` cases, on any of these five. Batch 080 grants app_worker
+          # nothing at all -- the writer content needs is a SECURITY DEFINER function owned by
+          # app_command, not a worker with privileges -- so those refusals are the privilege system
+          # and are unmoved by this control. Batch 070's service cases ARE part of its basis for the
+          # opposite reason: it grants its worker the verbs and lets row level security refuse them.
+          control app.content_ideas           '[a-z0-9-]*content-idea'        080
+          control app.content_items           '[a-z0-9-]*content-item'        080
+          control app.content_versions        '[a-z0-9-]*content-version'     080
+          control app.content_variants        '[a-z0-9-]*content-variant'     080
+          control app.quality_reviews         '[a-z0-9-]*quality-review'      080
           echo "negative control: every family above failed the suite, as each must."
