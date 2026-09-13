@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "c5eb1b998b14b6b9474ea8fb5044e09cceaf3aa1",
-  "head_revision_or_patch_checksum": "8d5471893d5a3d0900d3d7f6ffa904b90c93a4c8",
+  "head_revision_or_patch_checksum": "b206690e551056ce8624d088fc937a12071b4ad6",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/081_content_targets.sql",
@@ -17,6 +17,8 @@
     "db/foundation/README.md",
     "db/foundation/lint/catalog-snapshot.json",
     "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
