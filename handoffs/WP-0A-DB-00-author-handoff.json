@@ -82,8 +82,8 @@
     },
     {
       "criterion": "The SQL has met a PostgreSQL",
-      "result": "NOT met locally, and this row says so rather than being omitted",
-      "evidence": "This machine has no PostgreSQL client. None of the thirty-six cases has met a database and the apply-time do-block has never executed. CI is the first PostgreSQL this SQL meets; the run and its per-job conclusions are recorded in section 4 of the probe evidence by a follow-up commit that cites the run id."
+      "result": "met, in CI and not locally",
+      "evidence": "This machine has no PostgreSQL client, so nothing about a database was measured here. CI run 34752666478 (head 7a1fa05) applied the migration -- `applied 081_content_targets.sql`, `db-migrate-clean: ok in 1238ms`, which IS the apply-time do-block executing without raising -- and ran the cases: `db-rls-smoke: 665 isolation case(s) passed`. Section 4 of evidence/WP-0A-DB-00/a3-batch-081-probes-2026-09-13.md records it in full."
     }
   ],
   "tests": [
@@ -118,21 +118,26 @@
       "result": "clean: exit 0 — tests 600, pass 600, fail 0, skipped 0, todo 0"
     },
     {
-      "command": "npm run check:scope",
+      "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "see the run recorded beside this handoff's commit"
+      "result": "WP-0A-DB-00: all 17 changed path(s) are declared, and every amendment explains one. `npm run check:scope` takes no default arguments -- it prints its usage and exits 0 -- so the script with its two arguments is recorded here as the command actually run, rather than a bare name whose exit code says nothing."
     },
     {
       "command": "thirty-one reversal probes (applied, suites run, reverted)",
       "exit_code": 0,
       "result": "30 noticed, 1 missed and then noticed after the rule it defeated was rewritten — evidence/WP-0A-DB-00/a3-batch-081-probes-2026-09-13.md"
+    },
+    {
+      "command": "GitHub Actions run 34752666478 (Bootstrap validation, head 7a1fa05, PR #117)",
+      "exit_code": 0,
+      "result": "job `bootstrap` conclusion success in 3m4s; run conclusion success. `applied 081_content_targets.sql` and `db-migrate-clean: ok in 1238ms` -- the migration met PostgreSQL 17 and its apply-time do-block executed without raising, which is the half of this batch no static rule can reach. `db-rls-smoke: 665 isolation case(s) passed` (629 before). `app.content_targets (081): 14 case(s) noticed` -- the new negative-control entry bites, and the twenty entries above it report their counts unchanged."
     }
   ],
   "security_privacy_cost_impact": "SYNTHETIC FIXTURES ONLY; no secret, credential, token, customer content or PII appears anywhere in this increment. The three destination uuids are uuid5 of their own symbol and name no row in this repository at all. THE SECURITY-RELEVANT FACTS A REVIEWER SHOULD WEIGH, stated rather than buried: (1) `social_account_id` carries no foreign key, so a caller holding another tenant's social account id can write it into its own target and nothing refuses it -- row level security cannot help because the column is resolved against nothing. This is the deferral §6 requires, not a defect introduced here, and it is an open blocker owed to A0 Integration. (2) The pin is held to the tenant and the Business and NOT to the target's own content item, so a target may pin a variant of a different item in the same Business: a wrong post rather than a leak. (3) The narrowing resolves through app.content_items, so a defect in that resolution leaks a page-restricted item's destinations to every active member of the workspace -- the reason both catalog halves and both branches are asserted twice, statically and at apply time. No cost impact: no provider, no job, no external call.",
   "migration_and_data_impact": "ONE MIGRATION ADDED: db/foundation/migrations/081_content_targets.sql. It creates app.content_targets, one partial unique index and two ordinary indexes, enables and forces row level security, writes three permissive policies and one restrictive narrowing, and ends in an apply-time do-block that raises rather than warns. NO EXISTING MIGRATION IS ALTERED (§6 invariant 1). It is DECLARED NOT APPLIED to the provisioned instance in both db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE, inserted between 080 and 110 so the declaration stays a TAIL. No data is written anywhere but the test fixture, which loads six rows and is idempotent. THE ONE FORWARD DEPENDENCY WORTH FLAGGING TO AN INTEGRATOR: when batch 111 adds the social foreign key, tests/db/identity/fixtures/081-content-targets-fixture.sql STOPS LOADING until the three destination symbols are repointed at social accounts that exist. That failure is intended and is stated in the fixture header, in the fixture catalog and in an open blocker.",
   "compatibility_impact": "None to anything that exists. app.content_targets is new and nothing reads it yet. Two consumers are coming and both are named: batch 091's content_schedules reaches a target over content_targets_scope_key, which is written here rather than left to 091 because adding a unique constraint to a live table is a lock somebody has to schedule around; batch 111 adds the social foreign key and owes the fixture repointing above.",
   "known_limitations": [
-    "NONE OF THIS HAS MET A DATABASE. There is no PostgreSQL client on this machine, so the thirty-six isolation cases have never run, the apply-time do-block has never executed, and every probe in the evidence tests a STATIC rule over text. CI is the first PostgreSQL this SQL meets.",
+    "THE APPLY-TIME BLOCK AND THE THIRTY-SIX CASES HAVE NOW MET A DATABASE, BUT NOT ON THIS MACHINE. There is no PostgreSQL client here, so every local measurement in this handoff is about static rules over text, and all thirty-one reversal probes tested rules rather than policies. CI run 34752666478 applied the migration and ran the cases (665 passed); that run, and nothing measured locally, is the evidence that the policies, the grants, the partial unique index and the apply-time assertions behave as described.",
     "THE `status` COLUMN IS FREE TEXT AND THREE OF §4.6's RULES DEPEND ON IT. The uniqueness rule is written over `deleted_at` instead and is stricter than stated; the 'pin before approve/schedule' condition cannot be written at all; and a client may write any string. All three are open blockers owed to Product.",
     "THE §8 ROW THIS BATCH APPLIES IS ITS OWN READING. If §8.3's 'Schedule/unschedule' governs a target rather than §8.2's content rows, an editor holds nothing here and `editor-a-can-aim-a-content-target-inside-their-narrowing` is the case that has to change.",
     "NOTHING CAN RE-PIN, RE-AIM OR RE-HOME A TARGET. The three columns are outside every UPDATE grant and no command function exists anywhere in this repository (RFC-2026-021 §10), so a mistake in any of them can only be corrected by retiring the row and creating another.",
