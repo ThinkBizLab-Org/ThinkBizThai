@@ -4,16 +4,26 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "49830ad2ae04a80f481e110a6ccae5c9cf766e8f",
-  "head_revision_or_patch_checksum": "d6e08c78ebe607712b335f1c8b36f513cd24cc8c",
+  "base_revision": "c5eb1b998b14b6b9474ea8fb5044e09cceaf3aa1",
+  "head_revision_or_patch_checksum": "8d5471893d5a3d0900d3d7f6ffa904b90c93a4c8",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md"
+    "db/foundation/migrations/081_content_targets.sql",
+    "evidence/WP-0A-DB-00/a3-batch-081-probes-2026-09-13.md",
+    "tests/db/identity/fixtures/081-content-targets-fixture.sql"
   ],
   "files_modified": [
-    "OVERNIGHT-SUMMARY.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
+    ".github/workflows/ci.yml",
+    "db/foundation/README.md",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -21,67 +31,132 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS IS A STATE RECORD, NOT A CHANGE. The Product Owner ended the session with 'ตัด session เท่านี้ พร้อม update doc', and this increment writes down where the repository stands so the next session does not have to rediscover it. No migration, test, fixture, lint file or workflow changes.",
-    "IT IS RECORDED AS A REPOSITORY FILE RATHER THAN AS CHAT, because CONTRIBUTING_AGENTS.md says chat and vendor memory never change repository source of truth, and because OVERNIGHT-SUMMARY.md -- the existing 'read this first' -- describes a state that ended at PR #13 and would mislead whoever opens the repository next.",
-    "THE SIX-AGENT FAN-OUT IS RECORDED AS LAUNCHED AND CUT WITH NOTHING WRITTEN. Measured at the cut: every one of the six worktrees had 0 uncommitted paths and 0 commits ahead of 49830ad. The plan -- which batches, why those, and why integration must be sequential -- is written into the record so it can be relaunched rather than re-derived.",
-    "HOW PR #112 WAS MERGED IS WRITTEN PLAINLY: CI green and Author evidence, the four independent signatures RFC-2026-002 names absent, the Product Owner directing the merge with that stated. No disposition file was written for it; the record says so and leaves whether one is owed to the next session."
+    "THIS INCREMENT IS BATCH 081, `app.content_targets`, THE TABLE §4.6 NAMES LAST IN content.core AND BATCH 080 DELIBERATELY DID NOT CREATE. One table, one fixture, thirty-six isolation cases, fourteen static rules, one CI control entry. §6's registry gives batch 081 'target placeholder contract' and the workstream registry spells the same row 'deferred Social FK prepared'.",
+    "THE SOCIAL FOREIGN KEY IS WITHHELD RATHER THAN IMPOSSIBLE, AND THAT IS THE ASSUMPTION A REVIEWER SHOULD PRESS FIRST. app.social_accounts EXISTS on disk in 110_meta_connector.sql, so `content_targets.social_account_id` could have carried a key today. §6's registry gives 'business-channel/social FK' to batch 111 (A0 Integration, depending on 110, 020 and 081), and batch 021 established that performing a deliverable no registry row gives you is reserving somebody else's work. The absence is asserted at APPLY TIME against pg_constraint -- contype 'f', attname 'social_account_id', any position of conkey -- so writing the key here fails the migration.",
+    "WHICH ROW OF §8 GOVERNS A TARGET IS A READING AND NOT A CITATION. §4.6 places content_targets in content.core, so §8.2's content rows are applied and an editor is `Y`; §8.3's 'Schedule/unschedule' would make an editor `P`, and a `P` with no capability defined is not implementable, so under that reading an editor would hold nothing. The ground for the reading is §4.7's own inventory: content_schedules is a SEPARATE table carrying content_target_id and belongs to batch 091. It is an open blocker and the case that would have to change is named in it.",
+    "§4.6's 'unique active target' IS IMPLEMENTED OVER `deleted_at` AND IS STRICTER THAN THE RULE AS STATED. Which status values are ACTIVE is a vocabulary §4.6 does not supply, so the partial unique index turns on the lifecycle column §8.5 requires instead. A cancelled-but-not-retired target still occupies its slot. The direction was chosen: a duplicate live target for one item and one destination is the shape of a double post, and CONTRIBUTING_AGENTS makes publishing idempotency non-negotiable. It is an open blocker owed to Product.",
+    "NO VOCABULARY, NO RETENTION PERIOD AND NO `P` CAPABILITY IS INVENTED ANYWHERE IN THIS INCREMENT. `status` carries a SHAPE constraint (a whitespace-only status is refused) and no CHECK on its values; a static rule asserts that no value from any neighbouring vocabulary -- §4.7's five approval states in particular -- appears anywhere in the migration. No number from §10 appears; `created_at` and an indexed `deleted_at` are what a batch 160 sweep would read.",
+    "app_worker IS GRANTED NOTHING, WHICH IS BATCH 080's DEPARTURE FROM 070's SHAPE KEPT RATHER THAN RE-DECIDED. Content has no `S` cell anywhere in §8, the writer this family needs is a SECURITY DEFINER function owned by app_command (RFC-2026-017 §3), and a worker with grants would be the second path RFC-2026-018 was superseded for proposing. So db/foundation/lint/service-policy-map.json gets no entry, every service case is a PRIVILEGE refusal, none carries RFC-2026-017 §7, and none is in the CI negative control's basis.",
+    "THE AUTHOR RUN IS `/claude/a3_content` AND THIS FILE CARRIES `/claude/a0_atlas`, WHICH IS THE RUN THE MANIFEST NAMES AS AUTHOR. The distinction is recorded rather than smoothed: a subagent wrote the batch under the Author role, and this handoff is that role's, not a fifth signature."
   ],
   "acceptance_results": [
     {
-      "criterion": "The state of main is recorded with every number traceable to a command or a CI run",
+      "criterion": "§6's registry row for batch 081 is implemented and nothing else is",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md §1: merge commit, verify line, isolation count, test count, migration list, manifest status and blocker count, each with its source."
+      "evidence": "db/foundation/migrations/081_content_targets.sql creates exactly one table, asserted statically ('batch 081 creates exactly one table and it is the one §6 gives it', deepEqual on the create-table list) and probed (a second table in the file is noticed)."
     },
     {
-      "criterion": "The fan-out is recorded so it can be relaunched, and its cut is measured rather than asserted",
+      "criterion": "The Social FK is deferred, said in the migration header and in the manifest, and the social side is not invented",
       "result": "met",
-      "evidence": "§3 of the record: six run ids, tasks, intended branches, the dependency reasoning for choosing 081/090/100, the sequential-integration constraint, and the measurement (0 uncommitted paths, 0 commits in every worktree)."
+      "evidence": "Header section 'THE SOCIAL FOREIGN KEY IS DEFERRED. BATCH 111 FINALISES IT.'; open blocker naming A0 Integration; apply-time assertion against pg_constraint; static rules refusing both an inline and a table-level key; probes 2, 3, 18 and 18b. No account kind, channel vocabulary, binding table or view appears anywhere in the increment."
     },
     {
-      "criterion": "OVERNIGHT-SUMMARY.md stops misleading without losing what it explains",
+      "criterion": "Grants and policies are asserted BOTH WAYS against the live catalog at apply time, as 080 does",
       "result": "met",
-      "evidence": "A notice is prepended naming the new record and the current numbers; the body is untouched, for the reason the amends_without_owning rationale gives."
+      "evidence": "081_content_targets.sql's do-block: the fixed columns are unwritable per column against the ACL AND the four client-writable columns are asserted PRESENT; no DELETE grant AND no DELETE policy; app_worker, anon and app_authz hold nothing; exactly three permissive read/insert/update policies; exactly one restrictive narrowing, both catalog halves inspected."
     },
     {
-      "criterion": "Nothing outside this package's own files changes except the three that must follow",
+      "criterion": "Case ids contain no other family's CI control-pattern word",
       "result": "met",
-      "evidence": "OVERNIGHT-SUMMARY.md (the notice), test-kits/branch-identity.test.mjs (the single-slot repoint, two places) and test-kits/integrity-manifest.json (regenerated), each declared with its reason in the manifest."
+      "evidence": "Asserted in both directions in 'no batch 081 case id can satisfy another batch's control entry': no 081 id matches any existing entry, and no existing id matches `content-target`. Probe 20 changed the pattern to `target` and failed five other families' control tests."
+    },
+    {
+      "criterion": "NOT_ON_THE_INSTANCE and the snapshot declaration stay a TAIL inserted in sort order",
+      "result": "met",
+      "evidence": "081_content_targets.sql is INSERTED between 080_content.sql and 110_meta_connector.sql in both db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE, each with its reason written beside it. Probe 24 removed it and was noticed by the snapshot contract test."
+    },
+    {
+      "criterion": "At least twelve reversal probes, with noticed and missed tallied honestly",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/a3-batch-081-probes-2026-09-13.md: THIRTY-ONE probes, THIRTY noticed on first run, ONE missed. The missed one is section 3 in full, with the rule it defeated quoted, the replacement quoted, and the further probe the replacement then caught."
+    },
+    {
+      "criterion": "No vocabulary, retention period or `P` capability is invented; decisions that are a person's are recorded as blockers",
+      "result": "met",
+      "evidence": "Seven new open_blockers, one line each, each naming an owner: Product (the status vocabulary; the stricter uniqueness rule; the unenforceable pin condition), A3 Content (the pin not held to its own item), A0 Integration (the deferred social reference), the §8 matrix owner and A5 (the row this batch read rather than cited), DATA-DEC-03 and the command surface (the three columns nothing can change)."
+    },
+    {
+      "criterion": "The local suite is clean and every count moves with its floor",
+      "result": "met",
+      "evidence": "`npm run verify` -> `clean: exit 0 — tests 586, pass 586` on the base and `clean: exit 0 — tests 600, pass 600, fail 0, skipped 0, todo 0` on 081. Isolation cases 629 -> 665; static isolation suite 232 -> 246 tests and 1686 -> 1767 assertions, both floors raised, neither lowered."
+    },
+    {
+      "criterion": "The SQL has met a PostgreSQL",
+      "result": "NOT met locally, and this row says so rather than being omitted",
+      "evidence": "This machine has no PostgreSQL client. None of the thirty-six cases has met a database and the apply-time do-block has never executed. CI is the first PostgreSQL this SQL meets; the run and its per-job conclusions are recorded in section 4 of the probe evidence by a follow-up commit that cites the run id."
     }
   ],
   "tests": [
     {
-      "command": "npm run check",
+      "command": "npm run verify",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+      "result": "clean: exit 0 — tests 586, pass 586, fail 0, skipped 0, todo 0  (on the base c5eb1b9, before any change)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
+      "command": "LC_ALL=C TZ=UTC node --test tests/db/identity/identity-isolation.test.mjs",
       "exit_code": 0,
-      "result": "every changed path is declared, and every amendment explains one"
+      "result": "tests 246, pass 246, fail 0 (232 before this increment)"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "silent on success; the declared-test floor moved 232 -> 246, the assertion floor 1686 -> 1767 and the name digest with them"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 85 digest(s)"
+    },
+    {
+      "command": "npm run record:verification",
+      "exit_code": 0,
+      "result": "recorded 600 passing, 0 skipped, 0 todo"
+    },
+    {
+      "command": "npm run verify",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 600, pass 600, fail 0, skipped 0, todo 0"
+    },
+    {
+      "command": "npm run check:scope",
+      "exit_code": 0,
+      "result": "see the run recorded beside this handoff's commit"
+    },
+    {
+      "command": "thirty-one reversal probes (applied, suites run, reverted)",
+      "exit_code": 0,
+      "result": "30 noticed, 1 missed and then noticed after the rule it defeated was rewritten — evidence/WP-0A-DB-00/a3-batch-081-probes-2026-09-13.md"
     }
   ],
-  "security_privacy_cost_impact": "None. A documentation increment; no secret, credential, customer content or PII appears in the record. The record names one security question it did not settle -- whether 080's sentence that a SECURITY DEFINER function owned by app_command is 'exempt by ownership' holds under FORCE ROW LEVEL SECURITY -- and hands it to the Security review that was launched and cut.",
-  "migration_and_data_impact": "None. No migration is added or altered.",
-  "compatibility_impact": "None.",
+  "security_privacy_cost_impact": "SYNTHETIC FIXTURES ONLY; no secret, credential, token, customer content or PII appears anywhere in this increment. The three destination uuids are uuid5 of their own symbol and name no row in this repository at all. THE SECURITY-RELEVANT FACTS A REVIEWER SHOULD WEIGH, stated rather than buried: (1) `social_account_id` carries no foreign key, so a caller holding another tenant's social account id can write it into its own target and nothing refuses it -- row level security cannot help because the column is resolved against nothing. This is the deferral §6 requires, not a defect introduced here, and it is an open blocker owed to A0 Integration. (2) The pin is held to the tenant and the Business and NOT to the target's own content item, so a target may pin a variant of a different item in the same Business: a wrong post rather than a leak. (3) The narrowing resolves through app.content_items, so a defect in that resolution leaks a page-restricted item's destinations to every active member of the workspace -- the reason both catalog halves and both branches are asserted twice, statically and at apply time. No cost impact: no provider, no job, no external call.",
+  "migration_and_data_impact": "ONE MIGRATION ADDED: db/foundation/migrations/081_content_targets.sql. It creates app.content_targets, one partial unique index and two ordinary indexes, enables and forces row level security, writes three permissive policies and one restrictive narrowing, and ends in an apply-time do-block that raises rather than warns. NO EXISTING MIGRATION IS ALTERED (§6 invariant 1). It is DECLARED NOT APPLIED to the provisioned instance in both db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE, inserted between 080 and 110 so the declaration stays a TAIL. No data is written anywhere but the test fixture, which loads six rows and is idempotent. THE ONE FORWARD DEPENDENCY WORTH FLAGGING TO AN INTEGRATOR: when batch 111 adds the social foreign key, tests/db/identity/fixtures/081-content-targets-fixture.sql STOPS LOADING until the three destination symbols are repointed at social accounts that exist. That failure is intended and is stated in the fixture header, in the fixture catalog and in an open blocker.",
+  "compatibility_impact": "None to anything that exists. app.content_targets is new and nothing reads it yet. Two consumers are coming and both are named: batch 091's content_schedules reaches a target over content_targets_scope_key, which is written here rather than left to 091 because adding a unique constraint to a live table is a lock somebody has to schedule around; batch 111 adds the social foreign key and owes the fixture repointing above.",
   "known_limitations": [
-    "A STATE RECORD IS ONLY AS GOOD AS THE DAY IT WAS WRITTEN. Every number in it was true at 49830ad on 2026-09-13 and nothing updates it; the next increment that changes a count should say so beside the count rather than edit this file.",
-    "THE FAN-OUT PLAN IS THE AUTHOR'S PLAN. The choice of 081/090/100 as the parallel frontier and the three role runs is reasoned from §6's dependency column and RFC-2026-002's list, and a reader who disagrees has the reasoning to disagree with; nothing in the repository enforces it."
+    "NONE OF THIS HAS MET A DATABASE. There is no PostgreSQL client on this machine, so the thirty-six isolation cases have never run, the apply-time do-block has never executed, and every probe in the evidence tests a STATIC rule over text. CI is the first PostgreSQL this SQL meets.",
+    "THE `status` COLUMN IS FREE TEXT AND THREE OF §4.6's RULES DEPEND ON IT. The uniqueness rule is written over `deleted_at` instead and is stricter than stated; the 'pin before approve/schedule' condition cannot be written at all; and a client may write any string. All three are open blockers owed to Product.",
+    "THE §8 ROW THIS BATCH APPLIES IS ITS OWN READING. If §8.3's 'Schedule/unschedule' governs a target rather than §8.2's content rows, an editor holds nothing here and `editor-a-can-aim-a-content-target-inside-their-narrowing` is the case that has to change.",
+    "NOTHING CAN RE-PIN, RE-AIM OR RE-HOME A TARGET. The three columns are outside every UPDATE grant and no command function exists anywhere in this repository (RFC-2026-021 §10), so a mistake in any of them can only be corrected by retiring the row and creating another.",
+    "THE STRICTER UNIQUENESS RULE IS A DERIVATION THIS BATCH MADE FOR ITSELF, which is the shape batch 070 recorded when it derived an RFC-2026-022 §3 classification the RFC's own table did not carry. It should be countersigned rather than inherited."
   ],
   "open_risks_or_blockers": [
-    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment as on every increment in its history, and batch 080 was merged into main in that state at the Product Owner's direction. The three role runs that would have begun closing the gap were launched and cut before writing anything.",
-    "OVERNIGHT-SUMMARY.md IS NOW TWO DOCUMENTS IN ONE FILE -- a notice about the present and a body about the past -- and stays that way until its owner (WP-0A-CON-006) decides whether to retire it."
+    "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment as on every increment in its history. This file is the AUTHOR's and is none of the four signatures RFC-2026-002 names. Batch 080's Reviewer, Tester and Security runs were launched and cut before writing anything, and that gap is unchanged by batch 081 -- which now sits on top of 080 and inherits every unreviewed decision in it.",
+    "SEVEN NEW OPEN BLOCKERS, listed in full in work-packages/WP-0A-DB-00.json (130 -> 137). In one line each: the absent `status` vocabulary; the stricter uniqueness rule derived in its place; the unenforceable 'pin before approve/schedule' condition; the pin not held to its own content item; the deferred social reference and the fixture repointing batch 111 owes; the §8 row this batch read rather than cited; and the three fixed columns nothing in this repository can change.",
+    "THREE SIBLING BATCHES (090, 100 and this one) TOUCH THE SAME SEVEN SHARED FILES and the single-slot `ownership.branch`. Integration is sequential and is the Integration Owner's act: merge one, rebase the next, repoint the branch slot and its pinned row, and regenerate test-kits/integrity-manifest.json and evidence/VERIFICATION.md rather than hand-merging either."
   ],
-  "rollback_or_forward_fix": "ROLLBACK: revert this commit. The record and the notice go, the manifest's branch and the pinned row return to the previous increment's, and the state it describes is unchanged because it changed nothing.",
+  "rollback_or_forward_fix": "ROLLBACK: revert the commits on agent/claude/WP-0A-DB-00-batch-081. Nothing depends on app.content_targets yet and the migration is declared not applied to any instance, so the revert is complete -- but it must restore ONE assertion it would otherwise leave lying: tests/db/identity/identity-isolation.test.mjs asserts both that batch 080's own file does not create content_targets and that the migrations DO create it, and the second half is written so that reverting 081 fails there rather than leaving §6's registry row implemented by nobody. FORWARD FIX: §6 invariant 1 -- a merged migration is never rewritten. Everything in the open blockers is a forward migration: a CHECK once the status vocabulary exists, a partial index over the active values to replace the deleted_at rule, the composite key on app.content_variants that would hold the pin to its item, and batch 111's social FK.",
   "recommended_next_work_packages": [
-    "Relaunch the six runs §3 of the record names -- 081, 090 and 100 in parallel; Reviewer, Tester and Security on batch 080 -- with the checklist in the record, and integrate sequentially.",
-    "Decide whether a product-owner-disposition file is owed for merging #112 without the four independent signatures, and write it if so.",
-    "Retire or rewrite OVERNIGHT-SUMMARY.md under WP-0A-CON-006."
+    "INDEPENDENT REVIEWER, TESTER AND SECURITY on batch 080 AND on this one. Neither has any independent signature and 081 is built on 080's decisions. The Tester should hand-simulate all thirty-six cases; the Reviewer should press hardest on the §8-row reading and on the stricter uniqueness rule, which are the two places this batch decided something for itself.",
+    "Batch 111 (A0 Integration): the social foreign key, plus the fixture repointing this increment owes it and warns it about in three places.",
+    "Product: the `content_targets.status` vocabulary, which unblocks §4.6's uniqueness rule as stated and the 'pin before approve/schedule' condition in one decision.",
+    "Batches 090 and 100 are the other two leaves of the same fan-out and are independent of this one except through the shared files."
   ],
   "reviewer_instructions": [
-    "Check every number in §1 of the record against its stated source: `npm run verify` on 49830ad, the CI log for run 34678716740, `ls db/foundation/migrations`, and the manifest.",
-    "Check the fan-out measurement: the six worktrees under .claude/worktrees/agent-* should each show `git status --short` empty and `git rev-list --count 49830ad..HEAD` = 0, if they still exist.",
-    "Confirm the OVERNIGHT-SUMMARY.md body is byte-identical to its previous version below the notice: `git diff HEAD~1 -- OVERNIGHT-SUMMARY.md` should be additions only.",
-    "This file is none of the four role signatures and says so."
+    "START WITH THE DEFERRAL, because it is the batch. Confirm that app.social_accounts exists in 110_meta_connector.sql, that §6 gives the social FK to batch 111, and that 081 writes no key of any spelling -- then read the apply-time assertion and satisfy yourself it asks about the COLUMN in ANY position of the key rather than about a constraint name. The static rule that guards it was defeated by a probe and rewritten; section 3 of the probe evidence is the account.",
+    "PRESS THE §8-ROW READING. §4.6 puts content_targets in content.core and §8.3 has a 'Schedule/unschedule' row where an editor is `P`. If you think §8.3 governs, say so: the consequence is that an editor holds nothing on this table and one named case has to change.",
+    "PRESS THE UNIQUENESS SUBSTITUTION. §4.6 says 'unique ACTIVE target' and this batch wrote 'unique among rows whose deleted_at is null'. Decide whether the stricter direction was the right one to choose in the absence of a vocabulary, and whether it should have been left unwritten instead.",
+    "CHECK THAT NOTHING WAS INVENTED: no status vocabulary, no retention number, no `P` capability, no service policy, no social-side object. `grep -n \"'pending'\\|'active'\\|'scheduled'\" db/foundation/migrations/081_content_targets.sql` should find nothing.",
+    "RE-RUN THE PROBES rather than trusting the table: the evidence names each mutation precisely enough to reapply. A probe you cannot reproduce is a claim, not a measurement.",
+    "THIS FILE IS THE AUTHOR'S AND IS NONE OF THE FOUR SIGNATURES. The Author may not review, test-verify or integrate this work, and nothing here represents the package as ready, verified or done."
   ],
   "superseded_by": null
 }
