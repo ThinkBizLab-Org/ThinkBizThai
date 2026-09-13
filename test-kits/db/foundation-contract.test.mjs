@@ -291,12 +291,24 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // sorts between 070 and 110, so it is INSERTED into the middle of this array rather than appended —
 // the trap 051 recorded and 070 recorded after it, because appending produces a declaration that is
 // not a TAIL and pendingDeclarationLint refuses that with a message about divergence.
+// Batch 081 joins for the structural reason most of this list shares, and its own peculiarity is
+// the reason it is spelled out rather than counted. Structurally it is the easiest case on the
+// list: every foreign key it writes reaches a table batch 080 creates — app.content_items and
+// app.content_variants — and 080 is itself declared here, so 081 could not apply to this instance
+// under any reading. THE PECULIARITY IS THAT ITS LARGEST ACT IS AN ABSENCE. 081 is §6's "target
+// placeholder contract" and the thing that makes it that is a foreign key it does NOT write, the
+// social FK the registry gives to batch 111; a reader could take a batch whose headline is a
+// withheld constraint to be small enough to leave off a declaration. It is declared all the same,
+// for batch 132's reason: this list names which migration FILES an instance has run, not how much
+// each one does, and an instance that had run 081 would have executed an apply-time block asserting
+// that the social key is absent. It sorts between 080 and 110, so it is INSERTED rather than
+// appended — the trap 051 recorded and 070 and 080 recorded after it.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '080_content.sql', '110_meta_connector.sql',
-  '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
-  '140_audit.sql'];
+  '061_metering.sql', '070_research.sql', '080_content.sql', '081_content_targets.sql',
+  '110_meta_connector.sql', '130_billing.sql', '131_billing_projection.sql',
+  '132_entitlement_resolution.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -718,6 +730,26 @@ const ADDED_SYMBOLS = [
   // And the review under the sibling-page version, for the reason its version needed a symbol: the
   // negative half of the chain on the one table in this family that is two levels from the page.
   'quality_review_a1_sibling_page',
+  // Batch 081. NO SYMBOL FOR A TARGET ROW AND THREE FOR A COLUMN OF ONE, which is the first time
+  // this list has done that and is the reason it is three lines of comment rather than three names.
+  //
+  // A CONTENT TARGET HAS A NATURAL KEY: 081_content_targets.sql makes (content_item_id,
+  // social_account_id) unique among rows whose deleted_at is null, which is §4.6's "unique active
+  // target", so every case addresses one out of ids already fixed here — batch 020's rule for a
+  // version row, applied in turn by 021, 030, 051, 070 and 080.
+  //
+  // THE DESTINATIONS ARE THE OPPOSITE CASE AND THE OPPOSITE CASE IS THE POINT OF THIS BATCH.
+  // `social_account_id` carries no foreign key — §6's registry gives that key to batch 111 — and
+  // app.social_accounts fixes no id of its own, so the value is a bare uuid resolved against
+  // nothing, reachable through no other table's natural key, and shared between a fixture and a
+  // case. That is exactly the constant this catalog exists to fix. Fixing it is also what keeps the
+  // gap VISIBLE: three ids that name no row are the first thing a reader meets. Batch 111 must
+  // repoint all three at social accounts that exist, and the fixture will refuse to load until it
+  // does — which is the intended failure, because a fixture that kept loading through the addition
+  // of a foreign key is one whose rows never depended on it.
+  'content_target_destination_a1',
+  'content_target_destination_a2',
+  'content_target_destination_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

@@ -113,6 +113,25 @@ export const FIXTURE_SQL_FILES = [
   // 110, 131 and 070 kept: the list is an ORDER, and appending is the change that cannot reorder
   // anything else.
   'tests/db/identity/fixtures/080-content-fixture.sql',
+  // Batch 081's POSITION IS A HARDER DEPENDENCY THAN ANY ENTRY ABOVE, and it is the first in this
+  // list that is hard in BOTH directions. Every one of its six targets names a content item by
+  // §3.3's composite scope key and two of them pin a variant resolved out of app.content_variants
+  // by (content_version_id, platform), so it cannot precede 080's fixture at all -- not merely as
+  // an ordering preference but as a foreign key that would fail to resolve. AND THE SECOND
+  // DIRECTION IS NEW: it must not precede 080's fixture even in the part that looks independent,
+  // because the two pins are SUBSELECTS, and a subselect that finds nothing writes NULL rather than
+  // raising -- so a reordering would produce a fixture that loaded green and silently unpinned,
+  // which is why the file re-reads both pins before it commits. It is APPENDED, for the reason 130
+  // gave and 061, 110, 131, 070 and 080 kept: the list is an ORDER, and appending is the change
+  // that cannot reorder anything else. Nothing this entry writes is read by anything above it.
+  //
+  // WHAT IT DOES NOT DEPEND ON, said because a reader will look for it: 110's fixture. The three
+  // destinations these targets name are uuids fixed in the catalog and resolved against NOTHING --
+  // app.content_targets.social_account_id carries no foreign key, by §6's registry, which gives
+  // that key to batch 111. The day 111 adds it, this entry acquires a dependency on 110's fixture
+  // and must move above it; until then it has none, and the absence is the deferral rather than an
+  // oversight.
+  'tests/db/identity/fixtures/081-content-targets-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
