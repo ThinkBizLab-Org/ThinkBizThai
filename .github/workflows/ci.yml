@@ -690,4 +690,39 @@ jobs:
           control app.content_versions        '[a-z0-9-]*content-version'     080
           control app.content_variants        '[a-z0-9-]*content-variant'     080
           control app.quality_reviews         '[a-z0-9-]*quality-review'      080
+          #
+          # BATCH 081's ONE TABLE. §8.2 marks "Content SELECT" `Y` for all five client roles, so
+          # app.content_targets has client READS for row level security to decide -- which is what
+          # an entry here needs, and what a good half of this batch's write cases cannot supply.
+          #
+          # WHAT THE ENTRY RESTS ON:
+          #
+          #   * THE TENANT BOUNDARY. `owner-a-cannot-see-the-content-target-of-tenant-b` holds BOTH
+          #     of tenant B's ids -- the item and the destination -- and returns nothing;
+          #     `owner-b-sees-the-content-target-of-their-own-tenant` proves the row is there.
+          #   * THE MEMBER SCOPE, RESOLVED THROUGH THE PARENT, which is where this entry says
+          #     something the five entries above do not say about a table of their own.
+          #     `pinned-editor-a-cannot-see-the-content-target-of-a-sibling-target-item` is refused
+          #     by a RESTRICTIVE narrowing that has to reach app.content_items to find the Page at
+          #     all. Cutting that exists() leaves exactly that case failing and the rest green.
+          #   * THE ROLE PREDICATE ON BOTH WRITE PATHS. `viewer-a-cannot-aim-a-content-target` and
+          #     `approver-a-cannot-aim-a-content-target` are policy-layer INSERT refusals;
+          #     `approver-a-cannot-restate-a-content-target` and
+          #     `viewer-a-cannot-restate-a-content-target` are `no-effect` cases whose failure with
+          #     row level security off is the write LANDING, which their witnesses detect by reading
+          #     `updated_by` back.
+          #
+          # NOT the `service-cannot-*` cases, and not the three `denied` cases whose layer is
+          # `grant` -- the repin, the redirect, the rehome, the delete. Batch 081 grants app_worker
+          # nothing at all, for batch 080's reason, and the fixed columns are absent from the UPDATE
+          # grant, so all of those pass unchanged with row level security off. NOT the three
+          # `rejected` cases either: 23505, 23514 and 23503 are a unique index, a CHECK and a
+          # foreign key, none of which this control touches.
+          #
+          # The pattern does not overlap with any entry above and no entry above can match a case id
+          # here: `content-target` is not a substring of `content-item`, `content-idea`,
+          # `content-version`, `content-variant` or `quality-review`, and no case id in this batch
+          # contains `business`, `page`, `scope`, `social-account`, `research-` or any other
+          # family's control word. The static suite asserts that pairwise rather than by inspection.
+          control app.content_targets         '[a-z0-9-]*content-target'      081
           echo "negative control: every family above failed the suite, as each must."

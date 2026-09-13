@@ -11906,6 +11906,524 @@ export function buildCases(id) {
          + 'Until it exists, nothing in this repository can record a quality verdict at all, and '
          + 'that is stated here rather than left to be discovered by whoever builds the gate.',
     },
+
+    // -- BATCH 081 — the content target: a destination, a pin, and one reference nothing enforces.
+    //
+    // ONE TABLE, and three kinds of claim, because §4.6 asks three different things of a target.
+    //
+    //   * ITS REACH IS ITS PARENT'S REACH. A target carries no page column — it hangs off
+    //     app.content_items, where §4 invariant 3's nullable override lives — so every scope case
+    //     below is refused, or admitted, by a RESTRICTIVE narrowing resolved through that table.
+    //     The sibling-target-item pair is the one that fails if somebody resolves the parent and
+    //     then asks the Business question about it, which is the substitution the design exists to
+    //     refuse and which every other case here would survive.
+    //   * ITS IDENTITY, ITS DESTINATION AND ITS PIN ARE FIXED AT INSERT. §4.6: "target pin
+    //     immutable version ก่อน approve/schedule", and §8.5 forbids moving a row across tenant or
+    //     scope with an update. Those refusals are GRANT-layer — columns absent from the UPDATE
+    //     grant — so they pass unchanged when the CI negative control disables row level security
+    //     and are deliberately not part of that control's basis.
+    //   * §4.6's "unique active target" AND the pin's scope path are CONSTRAINTS, and the three
+    //     `rejected` cases below demand their own SQLSTATEs. A case that accepted 42501 there would
+    //     pass on a database whose index or foreign key had been dropped and whose policy happened
+    //     to refuse the caller — which is the whole reason batch 020 added the kind.
+    //
+    // WHAT NO CASE HERE ASSERTS, SAID SO THAT ITS ABSENCE IS NOT READ AS COVERAGE. Nothing checks
+    // that `social_account_id` names a row that exists or a row belonging to this tenant, because
+    // NOTHING IN THE DATABASE DOES: §6's registry gives the social foreign key to batch 111 and
+    // this batch is the placeholder that withholds it. The three destinations are catalog symbols
+    // that resolve to no row at all, which is the fixture refusing to make the gap look closed.
+    //
+    // THE SERVICE CASES ARE PRIVILEGE REFUSALS, as batch 080's are and for the same reason: content
+    // has no `S` cell anywhere in §8, app_worker is granted nothing here, and a refusal by absent
+    // privilege is a different — stronger — claim from the one RFC-2026-017 §7 asks for, which
+    // needs a grant for row level security to then refuse.
+    {
+      id: 'owner-a-sees-the-content-target-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against. §8.2 marks "Content SELECT" `Y` '
+         + 'for all five built-in roles, so the policy tests active membership and not role, and '
+         + 'user_owner_a holds no member scope row at all — 021 reads §7 as "a scope narrows, it '
+         + 'does not grant", so the restrictive narrowing subtracts nothing here.',
+    },
+    {
+      id: 'viewer-a-sees-the-content-target-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: viewerA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'The `Y` at the far end of §8.2\'s SELECT row. A viewer sees where a piece of content is '
+         + 'destined and may not change it, and both halves are asserted: this case and '
+         + 'viewer-a-cannot-restate-a-content-target.',
+    },
+    {
+      id: 'approver-a-sees-the-content-target-of-a1',
+      covers: ['§8.2', '§12.6/3'],
+      as: approverA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'THE HALF §12.6/3 NEEDS AND THE REFUSALS CANNOT SUPPLY. "user_approver_a cannot edit '
+         + 'content/knowledge" is a claim about the ROLE, and it only says that if the approver can '
+         + 'SEE the row they are refused: user_approver_a holds a scope on business_a1, so the '
+         + 'narrowing admits this row and the refusals below are the role test and nothing else. '
+         + 'An approver reading the destinations is also what §4.7 asks for — "ผู้อนุมัติเห็นชัดว่า'
+         + 'จะโพสต์ที่ใดบ้าง" — so this is a `Y` the product needs rather than an incidental one.',
+    },
+    {
+      id: 'editor-a-sees-the-content-target-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and this target\'s ITEM is under '
+         + 'it, so the narrowing resolves through app.content_items and admits the row. Without '
+         + 'this positive the case below would be satisfied by a narrowing that denied the editor '
+         + 'everything.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-content-target-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a2'), id('content_target_destination_a1')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on this table: same Workspace, an item under a Business the member scope '
+         + 'does not cover. The permissive policy admits it — the editor is an active member — and '
+         + 'the RESTRICTIVE narrowing subtracts it, which is the only shape that can subtract.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-content-target-of-their-own-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1_page'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'The POSITIVE half of §8.6 case 4. user_page_editor_a is scoped to exactly one Page and '
+         + 'this target\'s item is pinned to that Page, so the `else` branch of the parent\'s '
+         + 'narrowing admits it. The refusal below is only a claim about the Page once this passes.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-content-target-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§12.6/2'],
+      as: pageEditorA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1_sibling_page'), id('content_target_destination_a1')],
+      expect: 'no-rows',
+      why: 'THE CASE THIS TABLE WOULD BE WORTHLESS WITHOUT. The member is admitted to business_a1 '
+         + 'and must still be refused the destinations of an item pinned to a SIBLING Page. A '
+         + 'narrowing that resolved through app.content_items and then asked '
+         + 'member_scope_admits_business about it would pass every other case in this group and '
+         + 'leak this one — the exact substitution 081_content_targets.sql also refuses at apply '
+         + 'time, so the defect fails twice rather than only here.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-content-target-of-the-unpinned-item',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'rows',
+      why: 'A consequence of 021\'s definition, consumed rather than re-decided: '
+         + 'member_scope_covers_business counts a `page` scope row on its parent Business, so a '
+         + 'Page-scoped editor reaches business-level content. 040, 070 and 080 met the same '
+         + 'consequence; if it is wrong it is wrong in 021.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-content-target-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_b1'), id('content_target_destination_b1')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read, holding BOTH of B\'s exact ids — the item and the destination — '
+         + 'which is what makes the refusal a property of the policy rather than of a guess.',
+    },
+    {
+      id: 'owner-b-sees-the-content-target-of-their-own-tenant',
+      covers: ['§8.6/5'],
+      as: ownerB,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_b1'), id('content_target_destination_b1')],
+      expect: 'rows',
+      why: 'The row IS there. Without this the case above is equally consistent with a fixture that '
+         + 'never loaded it, which is the failure 020 established this pairing to refuse.',
+    },
+    {
+      id: 'suspended-a-sees-zero-content-targets',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'no-rows',
+      why: '§8.6 case 6: a suspended member is refused IMMEDIATELY rather than at the next token '
+         + 'refresh. app.is_active_member reads the membership state, so the permissive policy '
+         + 'stops admitting the row the moment the row in app.workspace_members says suspended.',
+    },
+    {
+      id: 'anonymous-cannot-read-a-content-target',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA rather than the table: `anon` holds no USAGE on app, so name '
+         + 'resolution stops before a table is reached. RFC-2026-021 §7/4 makes that an approved '
+         + 'decision, and declaring the schema is what makes this case notice the day it changes.',
+    },
+    {
+      id: 'service-cannot-read-a-content-target',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      sql: CONTENT_TARGET_BY_DESTINATION,
+      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'NOT labelled RFC-2026-017 §7, for batch 080\'s reason kept: §7 asks for the service to '
+         + 'be denied BY row level security with an error, which needs a GRANT for row level '
+         + 'security to then refuse. Batch 081 grants app_worker nothing, so this is the privilege '
+         + 'system. §8.2 marks the service `P` on content, no document defines that capability, and '
+         + 'a `P` with no capability defined is not an `S` — so there is no service policy here and '
+         + 'no entry in db/foundation/lint/service-policy-map.json.',
+    },
+    {
+      id: 'owner-a-can-aim-a-content-target',
+      covers: ['§8.2', '§8.6/1'],
+      as: ownerA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'rows',
+      why: 'The CREATE half of §8.2 row 2, and the case that makes every refusal below a statement '
+         + 'about what was attempted rather than about the table being closed. The pair (item, '
+         + 'destination) is one no fixture row holds, so the insert LANDS when the negative control '
+         + 'disables row level security instead of failing on the uniqueness rule.',
+    },
+    {
+      id: 'editor-a-can-aim-a-content-target-inside-their-narrowing',
+      covers: ['§8.2', '§12.6/2'],
+      as: editorA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'rows',
+      why: 'The third `Y` on §8.2 row 2, from the identity whose scope actually narrows. It is the '
+         + 'positive that makes editor-a-cannot-aim-a-content-target-outside-their-narrowing a '
+         + 'claim about WHICH rows rather than about the editor holding no write at all — and it is '
+         + 'the case this batch\'s reading of §8 turns on: under §8.3\'s "Schedule/unschedule" row '
+         + 'an editor would be `P` and would hold nothing, so if that reading is the right one this '
+         + 'case is the one that has to change.',
+    },
+    {
+      id: 'viewer-a-cannot-aim-a-content-target',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: '§8.2 marks the viewer `N` on row 2 and `Y` on row 1, so this is the OPERATION being '
+         + 'refused rather than the table. An INSERT is refused rather than filtered, because a '
+         + 'WITH CHECK clause rejects the new row with 42501 — the one half of §8.6\'s negatives '
+         + 'where a refusal is actually available.',
+    },
+    {
+      id: 'approver-a-cannot-aim-a-content-target',
+      covers: ['§12.6/3', '§8.6/2'],
+      as: approverA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'The approver reads every destination and creates none. §12.6/3 is a claim about the '
+         + 'ROLE and this is one of the two acts it names on this table, with the read above as the '
+         + 'half that makes it about the role rather than about visibility.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-content-target',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: '§8.6 case 8 and §8.5\'s "user action ตรวจ created_by = (select auth.uid())". This is '
+         + 'owner-a-can-aim-a-content-target with ONE argument changed — the actor — so the refusal '
+         + 'is attributable to the forged column and not to the owner being unable to write here.',
+    },
+    {
+      id: 'owner-a-cannot-aim-a-content-target-in-tenant-b',
+      covers: ['§8.6/5', '§12.6/7'],
+      as: ownerA,
+      ...contentTargetAim('__B__', BUSINESS_B1, id('content_item_b1'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s business and B\'s item. Every id '
+         + 'in the statement is real and the row is internally consistent, so the composite foreign '
+         + 'keys would ACCEPT it — which is what makes the refusal attributable to '
+         + 'app.workspace_member_role returning nothing for a non-member.',
+    },
+    {
+      id: 'editor-a-cannot-aim-a-content-target-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...contentTargetAim('__A__', BUSINESS_A2, id('content_item_a2'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'The WRITE half of §8.6 case 3, and the case that needs the narrowing\'s WITH CHECK half '
+         + 'rather than its USING half. The editor holds the role the permissive policy names and '
+         + 'is refused by the RESTRICTIVE narrowing bounding the new row — which is the half 040\'s '
+         + 'probe found a suite can lose without noticing.',
+    },
+    {
+      id: 'service-cannot-aim-a-content-target',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'The service holds no INSERT here, so this is the privilege system and not a policy. '
+         + '`created_by` names an EXISTING user rather than `__SELF__`, because as_service sets a '
+         + 'claim set with no subject and the substitution would inline the text `undefined` — the '
+         + 'build error batch 040 introduced after CI found it.',
+    },
+    {
+      id: 'owner-a-cannot-aim-a-second-live-content-target-at-one-destination',
+      covers: ['§4/6', '§8.6/9'],
+      as: ownerA,
+      ...contentTargetAimAgain('__A__', BUSINESS_A1, id('content_item_a1'),
+        id('content_target_destination_a1'), '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23505',
+      why: '§4.6: "unique active target ต่อ content item/social account". EVERY POLICY ADMITS THIS '
+         + 'ROW — the workspace is the caller\'s own, the caller is its owner, created_by is the '
+         + 'caller and the item is inside every scope — so the only thing that can stop it is '
+         + 'content_targets_active_destination, and the case demands the index\'s own SQLSTATE. '
+         + 'THE RULE IS WRITTEN OVER `deleted_at is null` RATHER THAN OVER `status`, because which '
+         + 'status values are ACTIVE is a vocabulary nobody has decided; that is STRICTER than §4.6 '
+         + 'states the rule and the direction is recorded in the work package\'s open blockers. '
+         + 'This case is what fails if the index loses its `unique`, loses its predicate, or is '
+         + 'keyed on the item alone — and a duplicate live target for one item and one destination '
+         + 'is the shape of a double post.',
+    },
+    {
+      id: 'owner-a-cannot-aim-a-content-target-with-a-blank-status',
+      covers: ['§4/6'],
+      as: ownerA,
+      ...contentTargetAimWithBlankStatus('__A__', BUSINESS_A1, id('content_item_a1_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23514',
+      why: 'content_targets_status_not_blank, in the interesting direction. §4.6 names `status` and '
+         + 'enumerates NO vocabulary, so the column carries no CHECK on its VALUES — writing one '
+         + 'would be this batch choosing a vocabulary for Product, which is the ownership '
+         + 'irregularity WP-0A-CON-006 records as High. What it does carry is a SHAPE constraint: a '
+         + 'whitespace-only status is not a status. The case demands 23514 rather than 42501 so it '
+         + 'cannot be satisfied by a policy refusing the caller on a database whose CHECK was '
+         + 'dropped, and it is the only case that would notice `status` quietly becoming an '
+         + 'enumerated column.',
+    },
+    {
+      id: 'owner-a-cannot-pin-the-content-target-of-a2-to-the-variant-of-a1',
+      covers: ['§4/10', '§3.3/composite-fk'],
+      as: ownerA,
+      ...contentTargetAimPinnedAcross('__A__', BUSINESS_A2, id('content_item_a2'),
+        id('content_target_destination_a2'), id('content_version_a1'), '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23503',
+      why: '§4 invariant 10: an unrelated Workspace/Business/row triple must fail AT THE DATABASE, '
+         + 'even for an actor with rights over the entities separately. The target is created under '
+         + 'business_a2 and the pin resolves to a variant under business_a1 — user_owner_a can read '
+         + 'both, holds no member scope row, and every policy admits the row — so the only thing '
+         + 'that can refuse it is content_targets_variant_scope_fk over (workspace_id, '
+         + 'business_profile_id, content_variant_id). IT IS ALSO THE BOUNDARY OF WHAT THAT KEY CAN '
+         + 'SAY: the pin is held to the tenant and the Business and NOT to this target\'s own '
+         + 'content item, because app.content_variants carries no item column to key against. That '
+         + 'gap is in the work package\'s open blockers, owed to A3 Content as a forward migration, '
+         + 'and no case here pretends to cover it.',
+    },
+    {
+      id: 'editor-a-can-restate-the-content-target-of-a1',
+      covers: ['§8.2', '§8.6/1'],
+      as: editorA,
+      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The EDIT half of §8.2 row 2 on the one column a client may move. The value written is '
+         + 'self-describing rather than plausible: `status` has no vocabulary, and a case writing '
+         + '`active` or `scheduled` would be proposing one from the test suite.',
+    },
+    {
+      id: 'approver-a-cannot-restate-a-content-target',
+      covers: ['§8.6/2', '§12.6/3'],
+      as: approverA,
+      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentTargetStillStampedBy(ownerA, id('content_item_a1'),
+        id('content_target_destination_a1'), id('user_owner_a')),
+      why: 'The approver reads this row and cannot edit it. `no-effect` rather than `denied` '
+         + 'because the USING half of an UPDATE policy FILTERS: a row the policy does not admit is '
+         + 'not a row the statement refuses, it is a row the statement never sees. The witness '
+         + 'reads `updated_by`, which a landed write would have replaced with the approver\'s.',
+    },
+    {
+      id: 'viewer-a-cannot-restate-a-content-target',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentTargetStillStampedBy(ownerA, id('content_item_a1'),
+        id('content_target_destination_a1'), id('user_owner_a')),
+      why: '§8.2 marks the viewer `N` on row 2 and `Y` on row 1, so this is the operation being '
+         + 'refused rather than the table — asserted beside viewer-a-sees-the-content-target-of-a1.',
+    },
+    {
+      id: 'editor-a-cannot-restate-the-content-target-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      ...contentTargetRestate(id('content_item_a2'), id('content_target_destination_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentTargetStillStampedBy(ownerA, id('content_item_a2'),
+        id('content_target_destination_a1'), id('user_owner_a')),
+      why: 'The WRITE half of §8.6 case 3. The editor holds the role the policy names and is '
+         + 'refused by the member scope instead, which is what a restrictive narrowing is for — and '
+         + 'the witness is the unscoped owner, because the editor cannot read the row it is about.',
+    },
+    {
+      id: 'owner-a-cannot-restate-the-content-target-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...contentTargetRestate(id('content_item_b1'), id('content_target_destination_b1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: contentTargetStillStampedBy(ownerB, id('content_item_b1'),
+        id('content_target_destination_b1'), id('user_owner_b')),
+      why: 'The cross-tenant write on an EXISTING row, holding both of B\'s ids. The witness runs '
+         + 'as B\'s owner because no A-side identity can see the row at all, which is the shape 020 '
+         + 'established for a workspace name and every family has kept.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-content-target-update',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'),
+        id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: '§8.5: an UPDATE policy has a USING and a WITH CHECK, and this is refused by the second. '
+         + 'The row is one the owner may edit — editor-a-can-restate-the-content-target-of-a1 is '
+         + 'the same statement landing — so the refusal is attributable to `updated_by` naming '
+         + 'somebody else, which is the difference between a policy that trusts the claim and one '
+         + 'that checks it.',
+    },
+    {
+      id: 'owner-a-cannot-repin-a-content-target',
+      covers: ['§4/6', '§8.2'],
+      as: ownerA,
+      ...contentTargetRepin(id('content_item_a1'), id('content_target_destination_a1'),
+        id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'THE CASE THIS BATCH IS MOST LIKELY TO BE READ WRONG WITHOUT. §4.6: "target pin '
+         + 'immutable version ก่อน approve/schedule". A pin the pinner can move afterwards is not a '
+         + 'pin, so `content_variant_id` is in the INSERT grant and OUTSIDE the UPDATE grant, and '
+         + 'the refusal is an absent privilege rather than a policy predicate — an absent privilege '
+         + 'has to be WRITTEN to be undone. The argument resolves to the variant the fixture '
+         + 'ALREADY pinned here, so the refusal cannot be the foreign key. THE COST IS STATED '
+         + 'RATHER THAN DISCOVERED: no command function exists anywhere in this repository '
+         + '(RFC-2026-021 §10), so nothing can re-pin a target at all, and that is in the open '
+         + 'blockers.',
+    },
+    {
+      id: 'owner-a-cannot-redirect-a-content-target',
+      covers: ['§8.5', '§4/6'],
+      as: ownerA,
+      ...contentTargetRedirect(id('content_item_a1'), id('content_target_destination_a1'),
+        id('content_target_destination_b1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'Re-aiming a target at another destination is CREATING a different target, so '
+         + '`social_account_id` is outside the UPDATE grant beside the pin. THIS IS ALSO THE ONLY '
+         + 'THING IN THIS SUITE THAT CONSTRAINS THE DESTINATION AT ALL, and it constrains WHEN it '
+         + 'may be written rather than WHAT may be written: the column carries no foreign key — §6 '
+         + 'gives that to batch 111 — so the value used here, another tenant\'s destination, would '
+         + 'be accepted by every constraint on the table if the grant existed. That is the deferral '
+         + 'and it is in the open blockers, owed to A0 Integration.',
+    },
+    {
+      id: 'owner-a-cannot-rehome-a-content-target',
+      covers: ['§8.5', '§12.6/7'],
+      as: ownerA,
+      ...contentTargetRehome(id('content_item_a1'), id('content_target_destination_a1'),
+        id('content_item_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: '§8.5: "ห้ามย้าย row ข้าม tenant/scope ด้วย update". `content_item_id` is the column '
+         + 'that would do it, because the item is where the Page override lives — moving this '
+         + 'target onto the sibling-Page item would move the row into a scope the caller is '
+         + 'admitted to and the row was not, WITHOUT changing any column a policy reads. The '
+         + 'refusal is the missing privilege, which is why the case names a target item the owner '
+         + 'can see: a refusal by the narrowing would prove the policy and not the grant.',
+    },
+    {
+      id: 'owner-a-can-retire-a-content-target',
+      covers: ['§8.5', '§8.2'],
+      as: ownerA,
+      ...contentTargetRetire(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      expect: 'rows',
+      why: '§8.5 asks for a soft delete through a typed lifecycle field where a delete is wanted at '
+         + 'all, and `deleted_at` is in the client UPDATE grant for exactly that. It is also the '
+         + 'column §4.6\'s uniqueness rule is written over, so this statement is what FREES a '
+         + 'destination — which makes it the positive the 23505 case above is measured against and '
+         + 'the reason the index is partial rather than whole.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-content-target',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...contentTargetDelete(id('content_item_a1'), id('content_target_destination_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: '§8.5 has no broad user delete. Hard removal in this family is batch 160\'s retention '
+         + 'sweep through app_maintenance, which this batch grants nothing, and the soft delete '
+         + 'above is the verb a client holds. Without that positive beside it, both cases would be '
+         + 'consistent with a target nobody may remove by any means.',
+    },
+    {
+      id: 'service-cannot-restate-a-content-target',
+      covers: ['§12.6/8-negative', '§8.2/content-service-P'],
+      as: service,
+      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'),
+        id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'AND THIS IS THE ONE THAT COSTS SOMETHING. Resolving a channel group into targets and '
+         + 'moving their state as a post goes out is work a job does; batch 081 grants app_worker '
+         + 'nothing, for batch 080\'s reason — the writer content needs is a SECURITY DEFINER '
+         + 'function owned by app_command (RFC-2026-017 §3), and a worker with grants would be the '
+         + 'second path RFC-2026-018 was superseded for proposing. Until that function exists, '
+         + 'nothing in this repository can move a target\'s state except a client, one row at a '
+         + 'time, and that is stated here rather than left for whoever builds the publisher.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -12566,4 +13084,179 @@ export function contentAmendQualityReview(reviewId) {
 
 export function contentDeleteQualityReview(reviewId) {
   return { sql: 'delete from app.quality_reviews where id = $1::uuid returning id', params: [reviewId] };
+}
+
+
+// -- BATCH 081 — the content target: a destination, a pin, and one reference nothing enforces. ---
+//
+// Module-level constants declared AFTER buildCases, for the merge reason batch 061 recorded and
+// every batch since has kept: three other batches are appending to this file at the same time, and
+// the only resolution that cannot silently lose another batch's work is "main's version plus this
+// branch's own section, contiguous and last".
+//
+// A TARGET IS ADDRESSED BY (content_item_id, social_account_id), which is the natural key
+// 081_content_targets.sql makes unique among rows whose `deleted_at` is null — §4.6's "unique
+// active target ต่อ content item/social account". No symbol is added for a target row; three ARE
+// added for the DESTINATIONS, because `social_account_id` is resolved against nothing at all
+// (batch 111 owns the foreign key) and a uuid no table can be joined to is exactly the constant the
+// fixture catalog exists to fix.
+export const CONTENT_TARGET_BY_DESTINATION =
+  'select id from app.content_targets where content_item_id = $1::uuid and social_account_id = $2::uuid';
+
+// THE WITNESS READS `updated_by` AND NOT `status`, and the reason is this batch's central refusal.
+// §4.6 names `status` and enumerates NO vocabulary for it, so the migration writes no CHECK and the
+// fixture writes NULL — a value in either place would be this batch choosing a vocabulary for
+// Product. §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md records that the driver
+// reads psql's CSV, that CSV has no NULL, and that a witness comparing against `null` holds against
+// every correct database. `updated_by` is the column the fixture fills with a known uuid and the
+// one a landed write would have replaced with the attacker's, so it carries the same claim without
+// inventing a word.
+export function contentTargetStillStampedBy(as, itemId, destinationId, actor) {
+  return {
+    as,
+    sql: 'select updated_by from app.content_targets '
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid',
+    params: [itemId, destinationId],
+    column: 'updated_by',
+    equals: actor,
+  };
+}
+
+// §8.2 row 2's edit half, as the columns the client UPDATE grant actually names. The string is
+// self-describing rather than plausible: `status` has no vocabulary, so a value like `active` or
+// `scheduled` written here would be read as the product's within one batch of somebody needing one,
+// which is the thing the migration and the fixture both refuse to do. The actor is a parameter
+// rather than `(select auth.uid())` so the forged-actor case is visibly the same statement with one
+// argument changed.
+export function contentTargetRestate(itemId, destinationId, actor) {
+  return {
+    sql: "update app.content_targets set status = 'attempted target status', updated_by = $3::uuid "
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId, actor],
+  };
+}
+
+// No `id` is passed: the column defaults to gen_random_uuid(), the row is rolled back with its
+// transaction, and no case has a reason to hold the id of a row it is creating. The item and the
+// destination are a pair no fixture row holds, so a refusal cannot be
+// content_targets_active_destination standing in for a policy — and so the insert LANDS when the CI
+// negative control disables row level security. A case that could not succeed proves nothing about
+// the policy that refuses it.
+export function contentTargetAim(workspace, business, itemId, destinationId, createdBy) {
+  return {
+    sql: 'insert into app.content_targets (workspace_id, business_profile_id, content_item_id, '
+       + 'social_account_id, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $5::uuid) returning id',
+    params: [workspace, business, itemId, destinationId, createdBy],
+  };
+}
+
+// §4.6's "unique active target ต่อ content item/social account", attacked in the one direction that
+// says something. This row names the SAME item and the SAME destination as a live fixture row and is
+// refused by content_targets_active_destination with 23505 — a CONSTRAINT, after every policy has
+// admitted the row, which is what makes the case about the uniqueness rule rather than about the
+// caller. It is the only assertion in this suite that notices the index losing its `unique`, losing
+// its predicate, or being keyed on the item alone.
+export function contentTargetAimAgain(workspace, business, itemId, destinationId, createdBy) {
+  return {
+    sql: 'insert into app.content_targets (workspace_id, business_profile_id, content_item_id, '
+       + 'social_account_id, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $5::uuid) returning id',
+    params: [workspace, business, itemId, destinationId, createdBy],
+  };
+}
+
+// content_targets_status_not_blank, in the interesting direction. A blank status is not a status,
+// and the constraint says nothing about WHICH values are legal — which is the line between a shape
+// constraint and the vocabulary §4.6 does not supply. 23514 is a CHECK violation; a case that
+// accepted 42501 here would pass on a database whose constraint had been dropped and whose policy
+// happened to refuse the caller.
+export function contentTargetAimWithBlankStatus(workspace, business, itemId, destinationId, createdBy) {
+  return {
+    sql: 'insert into app.content_targets (workspace_id, business_profile_id, content_item_id, '
+       + 'social_account_id, status, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, '   ', $5::uuid, $5::uuid) returning id",
+    params: [workspace, business, itemId, destinationId, createdBy],
+  };
+}
+
+// THE PIN, HELD TO ITS SCOPE PATH. The target is created under business_a2 and the pin is resolved
+// out of a version under business_a1, so content_targets_variant_scope_fk — (workspace_id,
+// business_profile_id, content_variant_id) against app.content_variants' scope key — finds no
+// parent and answers 23503 after every policy has admitted the row.
+//
+// THE PIN IS A SUBSELECT AND THE FAILURE MODE OF THAT IS SAFE, which is why it is allowed here and
+// warned against in the fixture catalog's note on addressing a row through a join. A variant has no
+// symbol; it is addressed by (content_version_id, platform), which is 080's own natural key. If the
+// subselect matched nothing it would write NULL, MATCH SIMPLE would skip the key entirely, and the
+// insert would SUCCEED — which this case reports as "the database accepted the row" rather than as
+// a silent pass. user_owner_a can read the variant it resolves: the owner holds no member scope row
+// at all, so the narrowing on app.content_variants subtracts nothing.
+export function contentTargetAimPinnedAcross(workspace, business, itemId, destinationId, versionId, createdBy) {
+  return {
+    sql: 'insert into app.content_targets (workspace_id, business_profile_id, content_item_id, '
+       + 'social_account_id, content_variant_id, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, '
+       + '(select v.id from app.content_variants v '
+       + "  where v.content_version_id = $5::uuid and v.platform = 'facebook'), "
+       + '$6::uuid, $6::uuid) returning id',
+    params: [workspace, business, itemId, destinationId, versionId, createdBy],
+  };
+}
+
+// §4.6: "target pin immutable version ก่อน approve/schedule". A pin the pinner can move afterwards
+// is not a pin, so `content_variant_id` is in the INSERT grant and outside the UPDATE grant, and
+// this is refused by the privilege system rather than by a policy predicate. The argument resolves
+// to the variant the fixture ALREADY pinned to this target, so the refusal cannot be the foreign
+// key and cannot be a value the row would have rejected anyway.
+export function contentTargetRepin(itemId, destinationId, versionId) {
+  return {
+    sql: 'update app.content_targets set content_variant_id = '
+       + '(select v.id from app.content_variants v '
+       + "  where v.content_version_id = $3::uuid and v.platform = 'facebook') "
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId, versionId],
+  };
+}
+
+// Re-aiming a target at another destination is CREATING a different target, so `social_account_id`
+// is outside the UPDATE grant beside the pin. The new destination is one the fixture already uses
+// on another row, so the refusal cannot be a constraint on the value.
+export function contentTargetRedirect(itemId, destinationId, newDestinationId) {
+  return {
+    sql: 'update app.content_targets set social_account_id = $3::uuid '
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId, newDestinationId],
+  };
+}
+
+// §8.5: a row may not be moved across tenant or scope by an update. `content_item_id` is the column
+// that would do it — an item carries the Page override the narrowing turns on — so it is outside
+// the UPDATE grant and the refusal is an absent privilege rather than a policy clause.
+export function contentTargetRehome(itemId, destinationId, newItemId) {
+  return {
+    sql: 'update app.content_targets set content_item_id = $3::uuid '
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId, newItemId],
+  };
+}
+
+// §8.5's soft delete through a typed lifecycle field. `deleted_at` IS in the client UPDATE grant,
+// and this positive is what makes the DELETE refusal beside it a statement about the VERB rather
+// than about the row. It is also what frees the slot in content_targets_active_destination, which
+// is the whole reason §4.6's uniqueness rule is written over this column.
+export function contentTargetRetire(itemId, destinationId, actor) {
+  return {
+    sql: 'update app.content_targets set deleted_at = now(), updated_by = $3::uuid '
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId, actor],
+  };
+}
+
+export function contentTargetDelete(itemId, destinationId) {
+  return {
+    sql: 'delete from app.content_targets '
+       + 'where content_item_id = $1::uuid and social_account_id = $2::uuid returning id',
+    params: [itemId, destinationId],
+  };
 }
