@@ -690,4 +690,43 @@ jobs:
           control app.content_versions        '[a-z0-9-]*content-version'     080
           control app.content_variants        '[a-z0-9-]*content-variant'     080
           control app.quality_reviews         '[a-z0-9-]*quality-review'      080
+          #
+          # BATCH 100's FOUR TABLES, AND THE FIRST ENTRY IN THIS LIST WHOSE BASIS INCLUDES A SERVICE
+          # CASE THAT IS A WRITE. §8.2 marks "Asset SELECT/use" `Y` for all five client roles, so
+          # every one of these families has client READS for row level security to decide -- which
+          # is what an entry here needs, and which batch 080 could not supply on three of its five.
+          #
+          #   * THE TENANT BOUNDARY, on all four. `owner-a-cannot-see-the-library-asset-of-tenant-b`
+          #     and its three siblings hold tenant B's exact id and return nothing; the matching
+          #     `owner-b-sees-...` cases prove the rows are there to be seen. On app.asset_versions
+          #     there is a fifth, `owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b`,
+          #     which asks the same boundary of the one column §9.1 makes the input to a signed URL.
+          #   * THE MEMBER NARROWING, resolved through a parent on three of them.
+          #     `pinned-editor-a-cannot-see-the-asset-version-of-a-sibling-target` and the rights and
+          #     link cases beside it are the ones that fail if a child's `exists()` is replaced by a
+          #     business-level predicate -- the substitution a page-level fixture row exists to
+          #     catch.
+          #   * THE ROLE PREDICATE on the two client write paths.
+          #     `approver-a-cannot-rename-a-library-asset`, `viewer-a-cannot-rename-a-library-asset`,
+          #     `editor-a-cannot-allow-paid-ads-on-an-asset-rights` and
+          #     `approver-a-cannot-allow-paid-ads-on-an-asset-rights` are `no-effect` cases whose
+          #     failure with row level security off is the write LANDING, which their witnesses
+          #     detect. The editor pair is the sharpest: §8.2 marks the editor `Y` for upload and `N`
+          #     for rights two rows apart, and what lands is a licence claim.
+          #   * AND ON app.asset_versions, THE SERVICE PURGE. `service-cannot-redact-an-asset-version`
+          #     is `no-effect` rather than `denied`, because app_worker holds the four columns §10's
+          #     purge moves and NO POLICY (RFC-2026-022 is approved and NOT IN EFFECT), so the
+          #     refusal is row level security and disabling it makes the redaction land. Batch 070's
+          #     service cases are in its basis for the same reason; batch 080's are not, because 080
+          #     grants app_worker nothing at all.
+          #
+          # NOT the `service-cannot-rewrite-the-digest-*`, `service-cannot-record-an-asset-rights` or
+          # `service-cannot-trash-a-library-asset` cases: each is a refusal of a COLUMN app_worker
+          # does not hold, and a privilege-layer refusal passes unchanged with row level security
+          # off. The two kinds sitting side by side on one table is deliberate and is what proves the
+          # column allowlist is a list rather than a sentence.
+          control app.assets                  '[a-z0-9-]*library-asset'    100
+          control app.asset_versions          '[a-z0-9-]*asset-version'    100
+          control app.asset_rights            '[a-z0-9-]*asset-rights'     100
+          control app.content_asset_links     '[a-z0-9-]*asset-link'       100
           echo "negative control: every family above failed the suite, as each must."

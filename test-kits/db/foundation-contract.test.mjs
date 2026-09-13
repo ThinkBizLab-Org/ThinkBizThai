@@ -291,12 +291,23 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // sorts between 070 and 110, so it is INSERTED into the middle of this array rather than appended —
 // the trap 051 recorded and 070 recorded after it, because appending produces a declaration that is
 // not a TAIL and pendingDeclarationLint refuses that with a message about divergence.
+// Batch 100 joins for the structural reason most of the list shares and for one no earlier entry
+// has had. Its four tables reference app.business_profiles and app.page_context_profiles over the
+// composite scope keys batch 020 creates; its policies call app.is_active_member,
+// app.workspace_member_role, app.member_scope_admits_business and app.member_scope_admits_page,
+// which 011 and 021 create; and app.content_asset_links references app.content_versions over a
+// composite scope key batch 080 creates — so it depends on a batch that is ITSELF on this list,
+// which 080 was the first to do and 100 now does one link further along the chain. It sorts between
+// 080 and 110, so it is INSERTED into the middle of this array rather than appended — the trap 051
+// recorded, 070 recorded after it and 080 recorded after that, because appending produces a
+// declaration that is not a TAIL and pendingDeclarationLint refuses that with a message about
+// divergence.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '080_content.sql', '110_meta_connector.sql',
-  '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
-  '140_audit.sql'];
+  '061_metering.sql', '070_research.sql', '080_content.sql', '100_asset.sql',
+  '110_meta_connector.sql', '130_billing.sql', '131_billing_projection.sql',
+  '132_entitlement_resolution.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -718,6 +729,39 @@ const ADDED_SYMBOLS = [
   // And the review under the sibling-page version, for the reason its version needed a symbol: the
   // negative half of the chain on the one table in this family that is two levels from the page.
   'quality_review_a1_sibling_page',
+  // Batch 100. FIVE ASSETS FOR THE REASON 080 NEEDED FIVE ITEMS, 070 FIVE RUNS AND 040 FIVE
+  // KNOWLEDGE ITEMS: the asset is the table in this family that carries §4 invariant 3's two-column
+  // scope, so its narrowing has two branches and four outcomes to exercise — a business-level row
+  // inside the member's narrowing, a page-level row inside it, a page-level row under a SIBLING page
+  // of the same Business (§8.6 case 4), a row under a Business outside the narrowing (case 3), and a
+  // row across the tenant boundary (case 5). An asset has no natural key any document fixes, so each
+  // is named here.
+  'asset_a1',
+  'asset_a1_page',
+  'asset_a1_sibling_page',
+  'asset_a2',
+  'asset_b1',
+  // FOUR VERSIONS, EACH A ROW THAT ALREADY HAS A NATURAL KEY, and they carry symbols for batch 080's
+  // reason rather than a new one: a CONTENT ASSET LINK is addressed through an asset_version_id, and
+  // a case that resolved that id by joining app.asset_versions would put two tables' policies behind
+  // one result. The sibling-page one buys the NEGATIVE half of the child narrowing, exactly as
+  // content_version_a1_sibling_page does one family over. The A2 one buys something no earlier symbol
+  // has: it is the PURGED row — object_key null, purged_at stamped, status `purged` — so
+  // asset_versions_purged_row_names_no_object and asset_versions_purged_status_agrees are satisfied
+  // in the interesting direction by a row rather than only in the vacuous one.
+  'asset_version_a1',
+  'asset_version_a1_sibling_page',
+  'asset_version_a2',
+  'asset_version_b1',
+  // THREE RIGHTS RECORDS, and none has a natural key: §2.2's ERD draws ASSETS ||--o{ ASSET_RIGHTS, so
+  // a Business may hold several rights over one asset, and inventing a uniqueness so a case could
+  // address one without a constant would be writing a product decision into a constraint (040's
+  // argument about a knowledge item). The B-side record is the only row in the catalog that carries a
+  // licence proof, which is what makes §9.1's "proof by permission" refusal a withheld COLUMN rather
+  // than an empty one.
+  'asset_rights_a1',
+  'asset_rights_a1_sibling_page',
+  'asset_rights_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

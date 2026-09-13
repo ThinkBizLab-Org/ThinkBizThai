@@ -138,6 +138,21 @@ a version id, and a case that resolved that id by joining `app.content_versions`
 tables' policies behind one result and could not attribute the refusal it observed to the table the
 case is named for. The symbol is the cheaper of the two costs.
 
+Batch `100` added symbols for rows in **three of its four tables** and none for the fourth, and the
+one it refused is the clearest case this catalog has. A **content asset link** is addressed by
+§4.7's own logical key — `(content_version_id, content_variant_id, role, sort_order)` — which
+`100_asset.sql` declares `unique nulls not distinct`, so a link with no variant is single-valued
+under `(content version, role, sort_order)`. That the address works is itself evidence for the
+declaration: under Postgres's default the same link could be loaded twice and the fixture's
+`on conflict` would silently stop protecting anything. An **asset** and a **rights record** have no
+natural key any document fixes — §2.2's ERD draws `ASSETS ||--o{ ASSET_RIGHTS`, so a Business may
+hold several rights over one asset — and inventing a uniqueness so a case could address one without
+a constant would be writing a product decision into a constraint. Four **versions** carry a symbol
+despite having one, for batch `080`'s reason one family over: a link is addressed THROUGH an
+`asset_version_id`. One of the four buys something no earlier symbol has — it is the **purged** row,
+whose locator is gone and whose digest remains, so the two constraints that describe §10's redaction
+are satisfied in the interesting direction by a row rather than only in the vacuous one.
+
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding
 B's exact id is the control that matters.
