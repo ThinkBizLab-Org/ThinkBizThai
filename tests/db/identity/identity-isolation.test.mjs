@@ -9323,6 +9323,22 @@ test('the content asset link is append-only, as an absent grant and an absent po
   }
   assert.match(assetCode, /an immutable or append-only batch 100 table carries an UPDATE or DELETE policy/,
     'and the apply-time block asserts the same thing against pg_policy, on both this table and the version');
+  // §4.7's uniqueness rule, AND THE THREE WORDS THAT MAKE IT TRUE OF THE COMMON CASE. Postgres
+  // defaults to NULLS DISTINCT, under which two links with no content_variant_id do not collide —
+  // so "one cover at position 1 per version" would hold for nobody, which is every link that is not
+  // variant-specific. Batch 080 met this exact defect in CI on content_variants_logical_key.
+  //
+  // ASSERTED HERE AS WELL AS AT APPLY TIME, and the duplication is the point: a reversal probe that
+  // deleted the two words from the constraint was NOT noticed by this suite until this line existed,
+  // because the apply-time assertion reads pg_index and CI is the first PostgreSQL this SQL meets.
+  assert.match(assetBodyOf(CONTENT_ASSET_LINKS),
+    /constraint content_asset_links_logical_key\s+unique nulls not distinct/,
+    'content_asset_links_logical_key must be declared NULLS NOT DISTINCT. The two spellings differ by three '
+    + 'words and produce tables that behave differently, and the difference is invisible in every other '
+    + 'artefact.');
+  assert.match(assetCode, /content_asset_links_logical_key does not treat nulls as equal/,
+    'and the apply-time block reads indnullsnotdistinct from pg_index, because a constraint whose TEXT is '
+    + 'right and whose INDEX is wrong is the failure this pair exists to make impossible');
   assert.match(assetCode, /a content asset link can be updated/,
     'and against the live ACL, so a grant a LATER batch makes fails the migration');
   // NO DELETE ANYWHERE, which is also the last defence the prefix rule has inside the database.
@@ -9745,8 +9761,19 @@ test('no batch 100 case id can satisfy another batch\'s control entry', async ()
   }
   const patterns = entries.filter((e) => e.batch === '100').map((e) => e.pattern);
   assert.equal(new Set(patterns).size, patterns.length, 'two entries sharing a pattern is one entry');
-  // And the reverse: no id in this batch may contain another family's control word.
-  for (const testCase of assetCases) {
+  // AND THE REVERSE, OVER A WIDER SET THAN THIS BATCH'S OWN PATTERNS. A reversal probe renamed
+  // `owner-a-sees-the-asset-version-of-a1` to `owner-a-sees-the-content-version-asset-of-a1` and
+  // this rule did not notice, because the rename moved the case OUT of the filter the rule used to
+  // select its subject — and batch 080's mirror rule passed it too, since the renamed id matches
+  // app.content_versions' pattern and that table IS batch 080's. A filter that a defect can leave
+  // is not a filter. So the sweep runs over every case id in the suite that mentions an asset at
+  // all, and the count of ids this batch's four patterns claim is PINNED, so a rename that escapes
+  // both fails on the number.
+  assert.equal(assetCases.length, 76,
+    'batch 100 contributes exactly 76 case ids across its four patterns — 24 on app.assets, 18 on '
+    + 'app.asset_versions, 20 on app.asset_rights and 14 on app.content_asset_links. A case renamed out of '
+    + 'its own family changes this number, which is the only thing a rename cannot hide from.');
+  for (const testCase of cases.filter((c) => c.id.includes('asset'))) {
     for (const word of ['workspace', 'business', 'page', 'scope', 'research-', 'content-idea',
       'content-item', 'content-version', 'content-variant', 'quality-review', 'knowledge-']) {
       assert.ok(!testCase.id.includes(word),

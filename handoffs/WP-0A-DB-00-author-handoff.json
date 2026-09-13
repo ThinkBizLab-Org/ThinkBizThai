@@ -4,16 +4,26 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "49830ad2ae04a80f481e110a6ccae5c9cf766e8f",
-  "head_revision_or_patch_checksum": "d6e08c78ebe607712b335f1c8b36f513cd24cc8c",
+  "base_revision": "c5eb1b998b14b6b9474ea8fb5044e09cceaf3aa1",
+  "head_revision_or_patch_checksum": "4c63d7f7911913ef2490f5fbbfbde73b07cd635a",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md"
+    "db/foundation/migrations/100_asset.sql",
+    "tests/db/identity/fixtures/100-asset-fixture.sql"
   ],
   "files_modified": [
-    "OVERNIGHT-SUMMARY.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
+    ".github/workflows/ci.yml",
+    "db/foundation/README.md",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/service-policy-map.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],

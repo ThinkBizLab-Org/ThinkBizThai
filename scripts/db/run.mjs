@@ -696,6 +696,9 @@ export async function tablesCreatedByMigrations(files) {
 
 const SHAPES = ['carried', 'discovered'];
 const CELL_OPERATIONS = ['select', 'insert', 'update', 'delete'];
+// The CLOSED set of fields a classification row may carry, which is exactly what the file's own
+// `_shape` declares. See the correction beside the check that reads it.
+const CELL_FIELDS = ['cell', 'table', 'operation', 'shape', 'why', 'batch'];
 
 export function servicePolicyMapLint(map, tablesInMigrations) {
   const problems = [];
@@ -729,6 +732,24 @@ export function servicePolicyMapLint(map, tablesInMigrations) {
     const qualified = c?.table && (c.table.includes('.') ? c.table : `app.${c.table}`);
     if (qualified && tablesInMigrations && !tablesInMigrations.has(qualified)) {
       problems.push(`${where}: ${qualified} is created by no migration — a classification of a cell on a table that does not exist is a claim about nothing`);
+    }
+    // A4 ASSET CORRECTION, batch 100, found by a reversal probe. The rule required six fields and
+    // said nothing about a SEVENTH. Adding `"role": "app_worker"` to a classification row passed
+    // every check here and every test in the isolation suite — and that field is not decoration:
+    // RFC-2026-022 §7.2's own proposed shape carries `role` and `broker_owner` and gives them
+    // meaning ("`role: null` is only valid with a `broker_owner`, so a DISCOVERED row cannot quietly
+    // acquire a service policy"), while THIS file's `_shape` declares neither. So a row could grow a
+    // field that READS as an authorisation, in the one file §7.1/6 makes the answer to "which shape
+    // does this cell take", and nothing would object.
+    //
+    // The narrowing is a closed set rather than an interpretation of the extra field: `_shape` is
+    // the declaration, and a key outside it is a claim this file's own documentation does not
+    // define. If a later batch needs `role` or `broker_owner` — which §7.2 expects once a broker
+    // exists — it adds them to `_shape` in a diff a reviewer reads, which is the whole point.
+    for (const field of Object.keys(c ?? {})) {
+      if (!CELL_FIELDS.includes(field)) {
+        problems.push(`${where}: \`${field}\` is not a field this register declares. db/foundation/lint/service-policy-map.json's own \`_shape\` names ${CELL_FIELDS.join(', ')} and nothing else; RFC-2026-022 §7.2 sketches \`role\` and \`broker_owner\` besides, and a row that acquires either without \`_shape\` acquiring it first would read as an authorisation the register is not entitled to record`);
+      }
     }
     const key = `${qualified}.${c?.operation}`;
     if (c?.table && c?.operation) {

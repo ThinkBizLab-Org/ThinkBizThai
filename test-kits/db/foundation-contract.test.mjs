@@ -1502,6 +1502,21 @@ test('the service-policy map is refused when an entry is incomplete, unknown-sha
       `an entry missing ${field} is not a weaker classification, it is one nobody can review`);
   }
 
+  // A SEVENTH FIELD IS A CLAIM THE REGISTER DOES NOT DECLARE, and this check exists because a batch
+  // 100 reversal probe added one and NOTHING NOTICED. `role` and `broker_owner` are not decoration:
+  // RFC-2026-022 §7.2's own proposed shape carries both and gives them meaning -- "`role: null` is
+  // only valid with a `broker_owner`, so a DISCOVERED row cannot quietly acquire a service policy" --
+  // while this repository's `_shape` declares neither. A row that grew one would read as an
+  // authorisation in the one file §7.1/6 makes the answer to "which shape does this cell take".
+  // Closed set, so a later batch that needs them adds them to `_shape` in a diff a reviewer reads.
+  for (const field of ['role', 'broker_owner', 'rfc', 'approved']) {
+    assert.ok(servicePolicyMapLint({ cells: [{ ...good, [field]: 'anything' }] }, tables)
+      .some((p) => p.includes(`\`${field}\` is not a field this register declares`)),
+    `an undeclared \`${field}\` on a classification row must be refused rather than ignored`);
+  }
+  assert.deepEqual(servicePolicyMapLint({ cells: [good] }, tables), [],
+    'and the six declared fields alone still pass, so the closed set did not turn the rule off');
+
   // A classification of a cell on a table no migration creates is a claim about nothing.
   assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'not_a_table' }] }, tables)
     .some((p) => /app\.not_a_table is created by no migration/.test(p)),
