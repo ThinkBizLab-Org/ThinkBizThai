@@ -78,7 +78,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 15,
   'test-kits/db/foundation-contract.test.mjs': 56,
   'test-kits/db/rls-assertions.test.mjs': 20,
-  'tests/db/identity/identity-isolation.test.mjs': 248,
+  'tests/db/identity/identity-isolation.test.mjs': 249,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -162,7 +162,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/foundation-contract.test.mjs': 'c4fca73207db1e70',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': '1561777ff1125835',
+  'tests/db/identity/identity-isolation.test.mjs': '47e5d44980e27143',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

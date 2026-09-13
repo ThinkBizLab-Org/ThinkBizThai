@@ -9374,6 +9374,45 @@ test('two UPDATE policies split §8.3\'s two write rows, and each WITH CHECK car
     + '`P` on "Suggestion save/dismiss/use" on the same ground.');
 });
 
+// ADDED AFTER TWO REVERSAL PROBES WENT UNNOTICED, and the gap they found is one gap rather than
+// two. The rules above read the RESTRICTIVE narrowings and the two UPDATE policies closely and
+// read the PERMISSIVE SELECT and INSERT policies not at all, so `using (app.is_active_member(...))`
+// could become `using (true)` on app.approval_events — a cross-tenant read of the decision trail —
+// and `created_by = (select auth.uid())` could vanish from the policy INSERT, and the whole static
+// suite stayed green for both. The live isolation cases DO catch both, which is why this is a hole
+// in the static half rather than in the batch: `owner-a-cannot-see-the-approval-event-of-tenant-b`
+// and `owner-a-cannot-forge-the-actor-on-an-approval-policy` are the cases that fail. But those
+// cases need a database and this machine has none, so until CI runs they are an intention and this
+// rule is the only thing that holds either claim on the author's own machine. Recorded in
+// evidence/WP-0A-DB-00/a5-batch-090-probes-2026-09-13.md as probes 18 and 19, both MISSED.
+test('every batch 090 permissive policy carries the member test its own cell needs', () => {
+  const permissive = approvalPolicyBlocks.filter((p) => !/as restrictive/.test(p.body));
+  assert.equal(permissive.length, 8,
+    'three SELECT policies (one per table), two on app.approval_policies for §8.3 row 1 (insert, update), '
+    + "and three on app.approval_requests: §8.3 row 2's insert, row 2's cancel and row 3's decide. EIGHT. "
+    + 'The count is what makes the loop below a statement about ALL of them rather than about whichever '
+    + 'ones the regex happened to find — and it is written from the policies rather than from memory, '
+    + 'because the first version of this line said seven and this assertion is what caught it.');
+  for (const policy of permissive.filter((p) => /for select/.test(p.body))) {
+    assert.match(policy.body, /using \(app\.is_active_member\(workspace_id\)\)/,
+      `${policy.name} must test active membership in its USING half. §7: "Member status ที่ให้ access ได้มี`
+      + 'เพียง `active` เท่านั้น". A predicate widened to `true` here leaves the RESTRICTIVE narrowing as the '
+      + 'only filter, and the narrowing answers TRUE for a caller who holds no member scope row at all — '
+      + "021 reads §7 as \"a scope narrows, it does not grant\" — so on app.approval_events that is every "
+      + "workspace's decision trail readable by any authenticated caller. This is the exact reversal probe "
+      + '18 applied, which the static suite did not notice before this rule existed.');
+  }
+  for (const policy of permissive.filter((p) => /for insert/.test(p.body))) {
+    assert.match(policy.body, /created_by = \(select auth\.uid\(\)\)/,
+      `${policy.name} must hold created_by equal to the caller. §8.5: "INSERT: WITH CHECK scope ทั้งหมด; `
+      + 'user action ตรวจ `created_by = (select auth.uid())`". Without it a caller writes a row attributed '
+      + 'to somebody else — and on app.approval_policies the forged column is the record of WHO decided '
+      + 'the approval gate should be this shape. Probe 19.');
+    assert.match(policy.body, /workspace_member_role\(workspace_id\) in \(/,
+      `${policy.name} must test the role §8.3 names for its own row`);
+  }
+});
+
 test('no batch 090 policy admits a write of the one status value nothing may produce', () => {
   for (const policy of approvalPolicyBlocks.filter((p) => p.table === APPROVAL_REQUESTS)) {
     const halves = policy.body.split('with check');
