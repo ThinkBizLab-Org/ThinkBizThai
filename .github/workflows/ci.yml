@@ -690,4 +690,41 @@ jobs:
           control app.content_versions        '[a-z0-9-]*content-version'     080
           control app.content_variants        '[a-z0-9-]*content-variant'     080
           control app.quality_reviews         '[a-z0-9-]*quality-review'      080
+          #
+          # BATCH 090's THREE TABLES, AND WHAT EACH ENTRY ACTUALLY RESTS ON. §8.3 gives approval NO
+          # SELECT ROW AT ALL, so unlike every family above, these client reads rest on a reading
+          # rather than on a matrix cell -- the approver's `Y` on the decide row, §5's CONTENT-2
+          # beside AUTH-3, and §8.4's "approval trail". The reads exist, which is what an entry here
+          # needs; the entry does not make the reading right, and the work package's open blockers
+          # record that it is a reading.
+          #
+          #   * THE TENANT BOUNDARY, on all three. `owner-a-cannot-see-the-approval-policy-of-
+          #     tenant-b` and its two siblings hold tenant B's exact address -- for the event, down
+          #     to the idempotency key §4.7 makes unique -- and return nothing; the matching
+          #     `owner-b-sees-...` cases prove the rows are there to be seen.
+          #   * THE MEMBER SCOPE, resolved through a parent on two of them.
+          #     `pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item` is the one
+          #     that fails if the chain -- event through request through content item, where the
+          #     page lives -- is cut at its SECOND link, and its positive twin
+          #     `pinned-editor-a-sees-the-approval-event-of-a-reachable-item` is the same caller
+          #     admitted two links down.
+          #   * THE ROLE PREDICATE on the write paths. `editor-a-cannot-toggle-an-approval-policy`,
+          #     `approver-a-cannot-toggle-an-approval-policy` and `viewer-a-cannot-cancel-an-
+          #     approval-request` are `no-effect` cases whose failure with row level security off is
+          #     the write LANDING, which their witnesses detect.
+          #   * AND THE TWO CROSSED CASES, which are this batch's own shape and are `denied` rather
+          #     than `no-effect`: `editor-a-cannot-decide-an-approval-request` and
+          #     `approver-a-cannot-cancel-an-approval-request`. With row level security off both
+          #     WITH CHECK halves stop applying and the write lands, so they are part of this basis
+          #     -- the only cases in the suite that rest on a WITH CHECK half of one policy while
+          #     the USING half of ANOTHER admits the row.
+          #
+          # NOT the `service-cannot-*` cases, on any of these three, and NOT the privilege refusals:
+          # batch 090 grants app_worker nothing at all, and `status`, `version`, `minimum_approvers`
+          # and `content_version_id` are refused by a missing column grant. Those pass unchanged
+          # with row level security off. Batch 070's service cases ARE part of its basis for the
+          # opposite reason: it grants its worker the verbs and lets row level security refuse them.
+          control app.approval_policies       '[a-z0-9-]*approval-policy'     090
+          control app.approval_requests       '[a-z0-9-]*approval-request'    090
+          control app.approval_events         '[a-z0-9-]*approval-event'      090
           echo "negative control: every family above failed the suite, as each must."

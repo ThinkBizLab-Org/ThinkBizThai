@@ -4,16 +4,29 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "49830ad2ae04a80f481e110a6ccae5c9cf766e8f",
-  "head_revision_or_patch_checksum": "d6e08c78ebe607712b335f1c8b36f513cd24cc8c",
+  "base_revision": "c5eb1b998b14b6b9474ea8fb5044e09cceaf3aa1",
+  "head_revision_or_patch_checksum": "9275c83b6436fb0e37d70f11b94d4bb91ba9b297",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md"
+    "db/foundation/migrations/090_approval.sql",
+    "evidence/WP-0A-DB-00/a5-batch-090-probes-2026-09-13.md",
+    "tests/db/identity/fixtures/090-approval-fixture.sql"
   ],
   "files_modified": [
-    "OVERNIGHT-SUMMARY.md",
+    ".github/workflows/ci.yml",
+    "db/foundation/README.md",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/service-policy-map.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -21,10 +34,14 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS IS A STATE RECORD, NOT A CHANGE. The Product Owner ended the session with 'ตัด session เท่านี้ พร้อม update doc', and this increment writes down where the repository stands so the next session does not have to rediscover it. No migration, test, fixture, lint file or workflow changes.",
-    "IT IS RECORDED AS A REPOSITORY FILE RATHER THAN AS CHAT, because CONTRIBUTING_AGENTS.md says chat and vendor memory never change repository source of truth, and because OVERNIGHT-SUMMARY.md -- the existing 'read this first' -- describes a state that ended at PR #13 and would mislead whoever opens the repository next.",
-    "THE SIX-AGENT FAN-OUT IS RECORDED AS LAUNCHED AND CUT WITH NOTHING WRITTEN. Measured at the cut: every one of the six worktrees had 0 uncommitted paths and 0 commits ahead of 49830ad. The plan -- which batches, why those, and why integration must be sequential -- is written into the record so it can be relaunched rather than re-derived.",
-    "HOW PR #112 WAS MERGED IS WRITTEN PLAINLY: CI green and Author evidence, the four independent signatures RFC-2026-002 names absent, the Product Owner directing the merge with that stated. No disposition file was written for it; the record says so and leaves whether one is owed to the next session."
+    "§6's REGISTRY GIVES BATCH 090 THREE WORDS -- \"policy/request/event\" -- AND §5's INVENTORY GIVES `approval.core` THE SAME THREE OBJECTS. §4.7 of docs/plans/core-database-and-rls-workstream-th.md heads its first bullet \"approval_policies / approval_policy_steps\" and names a FOURTH table that no registry row in §6's 000-180 range gives to anybody and that §5 does not list. This batch creates THREE and records the fourth as a blocker rather than a deferral, on the rule batch 021 established and 060 and 080 applied: creating a table no registry row gives you is reserving somebody else's work. The difference from 080's refusal is stated rather than copied -- content_targets went to a NAMED later batch (081) and approval_policy_steps goes nowhere, because 091 is calendar/schedule.",
+    "§4.7 AND §5 DISAGREE ABOUT THE POLICY'S SCOPE AND §2 DECIDES IT, NOT THIS BATCH. §4.7: \"Policy อยู่ Workspace หรือ Business scope\" (nullable business). §5: Scope \"business/page\" (mandatory business, nullable page override). §2 of the sprint-0a document ranks itself above core-database-and-rls-workstream-th.md, which it lists as item 5, \"workstream เดิม\". So §5 wins, `business_profile_id` is NOT NULL, and A WORKSPACE-WIDE APPROVAL POLICY IS NOW INEXPRESSIBLE. Both sentences are quoted in the open blocker so the owner can overrule it with a forward migration rather than an edit here.",
+    "§4.7 IS STILL THE SOURCE WHERE THE WINNING DOCUMENT IS SILENT. §2's rule is about CONFLICT. The sprint-0a document supplies no approval status vocabulary, no \"minimum approvers\" field and no idempotency rule, so §4.7 is the only source for those and they are taken from it -- which is exactly how batch 080 took §4.6's six vocabularies from the same workstream file.",
+    "§4.7's FIVE STATUS VALUES ARE A QUOTATION AND NOT A DECISION. \"status(pending|approved|changes_requested|cancelled|expired)\" -- five, given -- so the CHECK carries five and a static rule asserts the set equals the document's. No sixth value is invented and no fifth is dropped.",
+    "`approval_events.action` GETS NO CHECK. §4.7 names it and enumerates nothing; §8.3's \"Approve/reject/request changes\" is a matrix row about who may act, not an alphabet of strings. A CHECK derived from a matrix row would be this batch choosing the event vocabulary for Product.",
+    "§8.3's TWO `P` CELLS ON THE DECIDE ROW ARE REFUSED RATHER THAN IMPLEMENTED. Admin and editor are `P` -- \"ผ่านตาม policy/explicit capability\" -- and no capability is defined anywhere in this repository. `approval_policies.required_role` is created with §7's five role values and is read by NO policy predicate, because nothing states what reading it would mean. Batch 070 refused the approver's `P` on \"Suggestion save/dismiss/use\" on the same ground.",
+    "§8.3 HAS NO SELECT ROW FOR THIS FAMILY AND THE CLIENT READ IS THEREFORE A READING. It rests on three sentences rather than one cell: §8.3's own decide row is `Y` for the approver and an approver who cannot read a request cannot approve one; §5 classes the family CONTENT-2/AUTH-3 and §9.1 gives CONTENT-2 the projection \"through RLS\"; and §8.4's tenant audit row spells the approver's cell \"approval trail\" in words where every other cell in §8 is a letter. AUTH-3's own projection is \"minimum role projection\" and this batch implements none, because that object is a security_invoker view with a registry row and RFC-2026-021 §8.1's read-allowlist.json does not exist. Recorded as a reading in the migration header, the CI comment, the coverage note and the blockers.",
+    "app_worker IS GRANTED NOTHING ON ALL THREE TABLES, which is batch 080's shape rather than batch 070's, and this batch has a second reason for it: §8.3 marks the Service column `P` on three rows and `N` on the fourth, so there is no `S` cell anywhere in this family for a worker grant to anticipate. Consequence: every service case is a PRIVILEGE refusal, none carries RFC-2026-017 §7, none is in the CI negative control's basis, and db/foundation/lint/service-policy-map.json gets no entry -- with a prose note saying so, which is the convention batches 110 and 132 established."
   ],
   "acceptance_results": [
     {
@@ -50,22 +67,53 @@
   ],
   "tests": [
     {
-      "command": "npm run check",
+      "command": "npm run verify",
       "exit_code": 0,
-      "result": "see evidence/VERIFICATION.md; this increment adds no test and changes no count"
+      "result": "clean: exit 0 -- tests 603, pass 603, fail 0, skipped 0, todo 0 (586 -> 603; the batch adds 17 static tests)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-DB-00",
+      "command": "npm run check",
       "exit_code": 0,
-      "result": "every changed path is declared, and every amendment explains one"
+      "result": "toolchain, secret scan, protocol validators and the bootstrap suite; tests 603, pass 603, fail 0"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs c5eb1b9 WP-0A-DB-00",
+      "exit_code": 0,
+      "result": "all 17 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 85 digest(s)"
+    },
+    {
+      "command": "npm run record:verification",
+      "exit_code": 0,
+      "result": "recorded 603 passing, 0 skipped, 0 todo"
+    },
+    {
+      "command": "npm run test:bootstrap (19 times, once per reversal probe)",
+      "exit_code": 1,
+      "result": "SEVENTEEN of nineteen reversals were noticed on the first run and TWO WERE NOT; the two and the rule that now catches them are in evidence/WP-0A-DB-00/a5-batch-090-probes-2026-09-13.md"
+    },
+    {
+      "command": "CI: Bootstrap validation, run 34754270555 (head 496f43a)",
+      "exit_code": 0,
+      "result": "success. applied 090_approval.sql; db-migrate-clean ok in 1196ms (the apply-time do $$ block executed and raised nothing); db-rls-smoke: 712 isolation case(s) passed; negative control noticed 14 / 17 / 3 cases on approval_policies / approval_requests / approval_events."
     }
   ],
   "security_privacy_cost_impact": "None. A documentation increment; no secret, credential, customer content or PII appears in the record. The record names one security question it did not settle -- whether 080's sentence that a SECURITY DEFINER function owned by app_command is 'exempt by ownership' holds under FORCE ROW LEVEL SECURITY -- and hands it to the Security review that was launched and cut.",
-  "migration_and_data_impact": "None. No migration is added or altered.",
+  "migration_and_data_impact": "Adds db/foundation/migrations/090_approval.sql, creating app.approval_policies, app.approval_requests and app.approval_events in schema app. It is DECLARED NOT APPLIED to the instance the committed catalog snapshot describes (db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE, both inserted in sort order between 080 and 110 so the declaration stays a TAIL). No existing migration is altered; migration invariant 1 is not touched. No data is migrated: the three tables are new and empty. The fixture (tests/db/identity/fixtures/090-approval-fixture.sql) is synthetic, loads only ids derived from db/foundation/seeds/fixture-catalog.json, and carries no real customer data and no secret -- `approval_events.comment` is NULL on every row, which is deliberate under §9.2's list of surfaces.",
   "compatibility_impact": "None.",
   "known_limitations": [
-    "A STATE RECORD IS ONLY AS GOOD AS THE DAY IT WAS WRITTEN. Every number in it was true at 49830ad on 2026-09-13 and nothing updates it; the next increment that changes a count should say so beside the count rather than edit this file.",
-    "THE FAN-OUT PLAN IS THE AUTHOR'S PLAN. The choice of 081/090/100 as the parallel frontier and the three role runs is reasoned from §6's dependency column and RFC-2026-002's list, and a reader who disagrees has the reasoning to disagree with; nothing in the repository enforces it."
+    "NOTHING IN THIS REPOSITORY CAN WRITE AN APPROVAL EVENT, AND THAT IS WORSE THAN BATCH 080's EQUIVALENT RATHER THAN THE SAME. §8.3 row 4 is `N` for every role including the service, implemented as absent grants and absent policies; INSERT is absent too, on a reading rather than a quotation, because a decision trail a client can author proves nothing about the decision and the writer §8.3 points to is a SECURITY DEFINER command function owned by app_command that does not exist (RFC-2026-017 §3; RFC-2026-021 §10). A client CAN raise, cancel and decide a request through the policies this batch writes. So a decision can be taken and not recorded, and §4 invariant 8's immutable approval history stays empty while it happens.",
+    "`expired` IS IN THE VOCABULARY AND IS WRITTEN BY NOBODY. §8.3 has no row that produces it, the Service column on the three write rows is `P` with no capability, and no document states how long a request stays open. The migration FAILS AT APPLY TIME if any policy's WITH CHECK half mentions the value. A request that should expire cannot.",
+    "NOTHING KEEPS `approval_requests.status` IN STEP WITH `content_items.approval_state`. Batch 080 created that column with no CHECK and said the vocabulary belonged to a table batch 090 owns; this batch owns it now and writes no relationship between them. A request reading `approved` beside an item whose approval_state says otherwise is a disagreement no query can detect as wrong.",
+    "BATCH 160 HAS NO PATH TO §10's APPROVAL-HISTORY ANONYMISATION. app.approval_events carries `actor` and `comment` -- the two columns an anonymiser would rewrite -- and no UPDATE or DELETE grant to any role including app_maintenance, because §8.3 row 4 is `N` in every column. Recorded by the batch that caused it rather than left for 160 to discover after the migration merged.",
+    "TWO REVERSALS WENT UNNOTICED BEFORE A RULE WAS ADDED. Widening the trail's SELECT policy to `using (true)` and removing the forgery guard from the policy INSERT both left the whole suite green, because no static rule read the PERMISSIVE policies' predicates. One rule now covers all eight; both probes were re-applied and both now fail on it. The live cases would have caught both, which is not a defence -- they need a database.",
+    "CORRECTED AFTER CI RUN 34754270555 (head 496f43a, success). Two limitations stood here and are now FALSE, so they are replaced rather than left: they said the apply-time block was unexercised and the 83 new isolation cases unrun. BOTH ARE MEASURED. `applied 090_approval.sql` and `db-migrate-clean: ok in 1196ms` -- the whole `do $$` block executed against PostgreSQL 17 and raised nothing, so the both-ways append-only assertion, the policy column allowlist, the `expired` assertion against pg_policy.polwithcheck and the foreign-key degree from pg_constraint.conkey all held against a live catalog. `db-rls-smoke: 712 isolation case(s) passed` -- all 83 new cases ran and passed, INCLUDING the two crossed cases whose `denied`-rather-than-`no-effect` declaration was this batch's most likely error; the reasoning about how PostgreSQL combines permissive policies held. The three new negative-control entries bit: 14, 17 and 3 cases noticed, the three on the trail being its reads alone, exactly as the ci.yml comment said in advance.",
+    "WHAT CI's GREEN DOES NOT RETIRE, AND IT IS THE LARGER HALF OF THE `do $$` BLOCK. The block ran and raised nothing, which proves its queries execute -- and an assertion that never fires is indistinguishable from one whose predicate can never be true. The nineteen probes defeated STATIC rules; none defeated an apply-time one, because that needs a mutated migration pushed to CI. The `expired` assertion and the conkey degree check are the two most worth defeating, since both are shapes no earlier batch wrote. Owed to the independent Tester.",
+    "WHETHER THE READ SURFACE IS THE RIGHT WIDTH IS NOT A QUESTION ANY TEST ANSWERS. §8.3 has no SELECT row for this family, and a viewer reads the decision trail including `approval_events.comment`. CI proves the boundary holds BETWEEN tenants; it says nothing about whether the boundary is in the right place INSIDE one."
   ],
   "open_risks_or_blockers": [
     "NO INDEPENDENT ROLE HAS SIGNED ANYTHING ON THIS PACKAGE, on this increment as on every increment in its history, and batch 080 was merged into main in that state at the Product Owner's direction. The three role runs that would have begun closing the gap were launched and cut before writing anything.",
@@ -73,15 +121,19 @@
   ],
   "rollback_or_forward_fix": "ROLLBACK: revert this commit. The record and the notice go, the manifest's branch and the pinned row return to the previous increment's, and the state it describes is unchanged because it changed nothing.",
   "recommended_next_work_packages": [
-    "Relaunch the six runs §3 of the record names -- 081, 090 and 100 in parallel; Reviewer, Tester and Security on batch 080 -- with the checklist in the record, and integrate sequentially.",
-    "Decide whether a product-owner-disposition file is owed for merging #112 without the four independent signatures, and write it if so.",
-    "Retire or rewrite OVERNIGHT-SUMMARY.md under WP-0A-CON-006."
+    "Independent Reviewer, independent Tester and Security/Privacy on batch 090 -- and on batch 080, where all three are still absent. The Author supplies none of them.",
+    "Batch 091 (calendar/schedule) is unblocked by this batch and is the natural next leaf; batches 081 and 100 remain independent of it.",
+    "A0: an owner for app.approval_policy_steps, or an amendment to §4.7 removing it. app.approval_events.step is an ordinal with no referent until one exists, and the table is append-only.",
+    "A3 Content + A5 Workflow jointly: whether content_items.approval_state should exist at all now that a request table does, before batch 091 pins a schedule to either column.",
+    "Product: the `expired` window and who writes it; the capability behind §8.3's two `P` cells on the decide row."
   ],
   "reviewer_instructions": [
-    "Check every number in §1 of the record against its stated source: `npm run verify` on 49830ad, the CI log for run 34678716740, `ls db/foundation/migrations`, and the manifest.",
-    "Check the fan-out measurement: the six worktrees under .claude/worktrees/agent-* should each show `git status --short` empty and `git rev-list --count 49830ad..HEAD` = 0, if they still exist.",
-    "Confirm the OVERNIGHT-SUMMARY.md body is byte-identical to its previous version below the notice: `git diff HEAD~1 -- OVERNIGHT-SUMMARY.md` should be additions only.",
-    "This file is none of the four role signatures and says so."
+    "Read db/foundation/migrations/090_approval.sql header first. It states every decision this batch made and every one it refused, with the document sentence each rests on.",
+    "CHECK THE SCOPE CONFLICT YOURSELF. §4.7 says \"Policy อยู่ Workspace หรือ Business scope\" and §5 says \"business/page\"; the batch follows §5 on §2's precedence rule. If you read §2 differently, the fix is a forward migration -- migration invariant 1 forbids rewriting this file once merged -- so this is the right moment to disagree.",
+    "CHECK THE `denied`-vs-`no-effect` REASONING ON THE TWO CROSSED CASES. It is the batch's sharpest claim and it is unexecuted: permissive UPDATE policies OR their USING halves and OR their WITH CHECK halves, so an editor writing `approved` should reach both WITH CHECK halves and error rather than be filtered. If that is wrong, the two cases are wrong and so is every sentence about them.",
+    "CHECK WHETHER THE CLIENT READ SURFACE IS DEFENSIBLE. §8.3 has no SELECT row for approval. The batch grants a viewer the decision trail including `approval_events.comment`, which is free text one person typed about another's work under an AUTH-3 family. The reasoning is in the migration header; a reader who thinks it is too wide should say so against the blocker that records it.",
+    "The probe record (evidence/WP-0A-DB-00/a5-batch-090-probes-2026-09-13.md) names two reversals the suite did not notice and the rule added for them. Probes 18 and 19 are the ones to re-run.",
+    "THIS FILE IS THE AUTHOR HANDOFF AND IS NONE OF THE FOUR ROLE SIGNATURES. It approves nothing and represents nothing as ready, verified or done."
   ],
   "superseded_by": null
 }

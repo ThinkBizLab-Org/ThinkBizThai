@@ -113,6 +113,18 @@ export const FIXTURE_SQL_FILES = [
   // 110, 131 and 070 kept: the list is an ORDER, and appending is the change that cannot reorder
   // anything else.
   'tests/db/identity/fixtures/080-content-fixture.sql',
+  // Batch 090's POSITION IS A DEPENDENCY ON THE ENTRY DIRECTLY ABOVE IT, which no entry in this
+  // list has been before. 070's fixture was the first to depend on another batch's rows and 080's
+  // was the first to name them; this one pins CONTENT VERSIONS -- every request carries a
+  // content_version_id under approval_requests_pinned_version_fk, a FOUR-column key that resolves
+  // through the item as well as the tenant -- so 080's fixture is not merely earlier in this list,
+  // it is the file that writes the rows this one cannot exist without. Two of the six requests
+  // resolve their version by (content_item_id, version_no) rather than by a symbol, which is the
+  // same 080 rows addressed by the natural key instead of by a constant.
+  //
+  // It is APPENDED rather than slotted, for the reason 130 gave and 061, 110, 131, 070 and 080
+  // kept: the list is an ORDER, and appending is the change that cannot reorder anything else.
+  'tests/db/identity/fixtures/090-approval-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard
