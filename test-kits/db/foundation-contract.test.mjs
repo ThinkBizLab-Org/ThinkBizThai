@@ -1929,3 +1929,77 @@ test('an empty result is empty and a header alone is not a row', async () => {
   assert.deepEqual(parseSessionOutcome(session(['name,n', 'x,2'], 'false 00000'), MARKERS).rows,
     [{ name: 'x', n: '2' }], 'rows are keyed by column name, which is the shape the cases read');
 });
+
+// A MIGRATION THIS REPOSITORY CANNOT APPLY IS NOT A MIGRATION, AND UNTIL BATCH 100 NOTHING SAID HOW
+// BIG ONE MAY BE.
+//
+// scripts/db/psql-driver.mjs `invoke` passes the SQL to psql as `--command`, which makes a whole
+// migration ONE ARGV ENTRY. Linux caps a single argument at MAX_ARG_STRLEN = 32 * PAGE_SIZE =
+// 131,072 bytes, and the failure is not a SQL error: `execFile` rejects before psql starts, with
+// `spawn E2BIG` and no SQLSTATE, so `db-migrate-clean` prints `<file>: spawn E2BIG (no code)` and a
+// reader learns nothing about which statement was wrong -- because none of them was.
+//
+// IT WAS MEASURED, NOT INFERRED. Batch 100's first version was 145,686 bytes and CI run 34753787430
+// failed exactly that way, after applying every batch before it. 070_research.sql is 130,853 bytes:
+// IT CLEARED THE CEILING BY 219 BYTES, and nobody knew the ceiling was there.
+//
+// TWO BOUNDS, BECAUSE ONE CANNOT BE BOTH TRUE AND USEFUL HERE.
+//
+//   * THE HARD CEILING applies to every migration without exception. Below it a file can be applied;
+//     at or above it the file cannot be applied at all, on any machine with this page size.
+//   * THE BUDGET is lower, and the margin is the point rather than caution: the driver wraps a
+//     migration in `begin;`/`commit;` before it becomes the argument, a page size is a property of
+//     the machine rather than of this repository, and a batch that lands at 130,900 bytes is one
+//     edit away from a failure whose message names no statement.
+//
+// 070_research.sql IS OVER THE BUDGET AND CANNOT BE BROUGHT UNDER IT. Migration invariant 1 forbids
+// rewriting a merged migration -- "Merge แล้วห้ามแก้ migration ย้อนหลัง; ใช้ forward-fix" -- so it is
+// GRANDFATHERED BY NAME rather than excused by a looser rule, and the exception is held to two
+// assertions of its own: it must still be under the hard ceiling, and it must actually be over the
+// budget. The second is what stops the list being used to excuse a file that never needed it.
+//
+// THE RIGHT FIX IS IN THE DRIVER -- pass the script on stdin instead of as `--command` -- and it
+// belongs to A0, who owns scripts/db/run.mjs and the driver beside it. It is an open blocker on
+// WP-0A-DB-00. This rule is what makes the limit visible until then, and it fails LOUDLY where
+// E2BIG fails blankly.
+const MAX_ARG_STRLEN = 131072;
+const MIGRATION_BYTE_BUDGET = 120000;
+const OVER_BUDGET_BEFORE_THE_RULE_EXISTED = new Set(['070_research.sql']);
+
+test('no migration is larger than the driver can hand psql in one argument', async () => {
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  assert.ok(names.length > 0, 'there must be migrations for this rule to be about anything');
+  const sizes = new Map();
+  for (const name of names) {
+    const bytes = Buffer.byteLength(await readFile(`${dir}/${name}`, 'utf8'), 'utf8');
+    sizes.set(name, bytes);
+    // THE HARD CEILING, with no exception for anybody. A file at or above it cannot be applied.
+    assert.ok(bytes < MAX_ARG_STRLEN,
+      `${name} is ${bytes} bytes and MAX_ARG_STRLEN is ${MAX_ARG_STRLEN}. scripts/db/psql-driver.mjs `
+      + 'passes a migration as a single `--command` argument, so this file cannot be applied at all: '
+      + '`make db-migrate-clean` fails with `spawn E2BIG (no code)` before psql starts, naming no '
+      + 'statement because none of them is wrong.');
+    if (OVER_BUDGET_BEFORE_THE_RULE_EXISTED.has(name)) continue;
+    assert.ok(bytes <= MIGRATION_BYTE_BUDGET,
+      `${name} is ${bytes} bytes, over this repository's declared budget of ${MIGRATION_BYTE_BUDGET}. `
+      + `The hard ceiling is ${MAX_ARG_STRLEN} and the margin is deliberate: the driver wraps the file `
+      + 'in `begin;`/`commit;` before it becomes the argument, and a page size is a property of the '
+      + 'machine rather than of this repository. Shorten the prose, or fix the driver to pass the '
+      + 'script on stdin -- which is the open blocker this rule stands in for.');
+  }
+  // THE GRANDFATHER LIST IS HELD TO ITS OWN TWO ASSERTIONS, so it cannot grow into a way around the
+  // budget. A merged migration is unfixable by invariant 1; a file that is not over the budget has
+  // no business being excused, and a file that is not there at all is a stale entry.
+  for (const name of OVER_BUDGET_BEFORE_THE_RULE_EXISTED) {
+    const bytes = sizes.get(name);
+    assert.ok(bytes !== undefined, `${name} is grandfathered here and does not exist`);
+    assert.ok(bytes < MAX_ARG_STRLEN,
+      `${name} is grandfathered past the BUDGET and is still held to the CEILING, which it is now over `
+      + `at ${bytes} bytes. Invariant 1 forbids rewriting it, so this is a forward fix in the driver `
+      + 'and nothing else.');
+    assert.ok(bytes > MIGRATION_BYTE_BUDGET,
+      `${name} is listed as over the budget and is ${bytes} bytes, which is not over it. An exception `
+      + 'for a file that does not need one is how a list like this stops meaning anything: remove it.');
+  }
+});
