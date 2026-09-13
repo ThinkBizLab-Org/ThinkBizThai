@@ -291,12 +291,23 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // sorts between 070 and 110, so it is INSERTED into the middle of this array rather than appended —
 // the trap 051 recorded and 070 recorded after it, because appending produces a declaration that is
 // not a TAIL and pendingDeclarationLint refuses that with a message about divergence.
+// Batch 100 joins for the structural reason most of the list shares and for one no earlier entry
+// has had. Its four tables reference app.business_profiles and app.page_context_profiles over the
+// composite scope keys batch 020 creates; its policies call app.is_active_member,
+// app.workspace_member_role, app.member_scope_admits_business and app.member_scope_admits_page,
+// which 011 and 021 create; and app.content_asset_links references app.content_versions over a
+// composite scope key batch 080 creates — so it depends on a batch that is ITSELF on this list,
+// which 080 was the first to do and 100 now does one link further along the chain. It sorts between
+// 080 and 110, so it is INSERTED into the middle of this array rather than appended — the trap 051
+// recorded, 070 recorded after it and 080 recorded after that, because appending produces a
+// declaration that is not a TAIL and pendingDeclarationLint refuses that with a message about
+// divergence.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '080_content.sql', '110_meta_connector.sql',
-  '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
-  '140_audit.sql'];
+  '061_metering.sql', '070_research.sql', '080_content.sql', '100_asset.sql',
+  '110_meta_connector.sql', '130_billing.sql', '131_billing_projection.sql',
+  '132_entitlement_resolution.sql', '140_audit.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -718,6 +729,39 @@ const ADDED_SYMBOLS = [
   // And the review under the sibling-page version, for the reason its version needed a symbol: the
   // negative half of the chain on the one table in this family that is two levels from the page.
   'quality_review_a1_sibling_page',
+  // Batch 100. FIVE ASSETS FOR THE REASON 080 NEEDED FIVE ITEMS, 070 FIVE RUNS AND 040 FIVE
+  // KNOWLEDGE ITEMS: the asset is the table in this family that carries §4 invariant 3's two-column
+  // scope, so its narrowing has two branches and four outcomes to exercise — a business-level row
+  // inside the member's narrowing, a page-level row inside it, a page-level row under a SIBLING page
+  // of the same Business (§8.6 case 4), a row under a Business outside the narrowing (case 3), and a
+  // row across the tenant boundary (case 5). An asset has no natural key any document fixes, so each
+  // is named here.
+  'asset_a1',
+  'asset_a1_page',
+  'asset_a1_sibling_page',
+  'asset_a2',
+  'asset_b1',
+  // FOUR VERSIONS, EACH A ROW THAT ALREADY HAS A NATURAL KEY, and they carry symbols for batch 080's
+  // reason rather than a new one: a CONTENT ASSET LINK is addressed through an asset_version_id, and
+  // a case that resolved that id by joining app.asset_versions would put two tables' policies behind
+  // one result. The sibling-page one buys the NEGATIVE half of the child narrowing, exactly as
+  // content_version_a1_sibling_page does one family over. The A2 one buys something no earlier symbol
+  // has: it is the PURGED row — object_key null, purged_at stamped, status `purged` — so
+  // asset_versions_purged_row_names_no_object and asset_versions_purged_status_agrees are satisfied
+  // in the interesting direction by a row rather than only in the vacuous one.
+  'asset_version_a1',
+  'asset_version_a1_sibling_page',
+  'asset_version_a2',
+  'asset_version_b1',
+  // THREE RIGHTS RECORDS, and none has a natural key: §2.2's ERD draws ASSETS ||--o{ ASSET_RIGHTS, so
+  // a Business may hold several rights over one asset, and inventing a uniqueness so a case could
+  // address one without a constant would be writing a product decision into a constraint (040's
+  // argument about a knowledge item). The B-side record is the only row in the catalog that carries a
+  // licence proof, which is what makes §9.1's "proof by permission" refusal a withheld COLUMN rather
+  // than an empty one.
+  'asset_rights_a1',
+  'asset_rights_a1_sibling_page',
+  'asset_rights_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -1458,6 +1502,21 @@ test('the service-policy map is refused when an entry is incomplete, unknown-sha
       `an entry missing ${field} is not a weaker classification, it is one nobody can review`);
   }
 
+  // A SEVENTH FIELD IS A CLAIM THE REGISTER DOES NOT DECLARE, and this check exists because a batch
+  // 100 reversal probe added one and NOTHING NOTICED. `role` and `broker_owner` are not decoration:
+  // RFC-2026-022 §7.2's own proposed shape carries both and gives them meaning -- "`role: null` is
+  // only valid with a `broker_owner`, so a DISCOVERED row cannot quietly acquire a service policy" --
+  // while this repository's `_shape` declares neither. A row that grew one would read as an
+  // authorisation in the one file §7.1/6 makes the answer to "which shape does this cell take".
+  // Closed set, so a later batch that needs them adds them to `_shape` in a diff a reviewer reads.
+  for (const field of ['role', 'broker_owner', 'rfc', 'approved']) {
+    assert.ok(servicePolicyMapLint({ cells: [{ ...good, [field]: 'anything' }] }, tables)
+      .some((p) => p.includes(`\`${field}\` is not a field this register declares`)),
+    `an undeclared \`${field}\` on a classification row must be refused rather than ignored`);
+  }
+  assert.deepEqual(servicePolicyMapLint({ cells: [good] }, tables), [],
+    'and the six declared fields alone still pass, so the closed set did not turn the rule off');
+
   // A classification of a cell on a table no migration creates is a claim about nothing.
   assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'not_a_table' }] }, tables)
     .some((p) => /app\.not_a_table is created by no migration/.test(p)),
@@ -1869,4 +1928,78 @@ test('an empty result is empty and a header alone is not a row', async () => {
     'no output at all is zero rows');
   assert.deepEqual(parseSessionOutcome(session(['name,n', 'x,2'], 'false 00000'), MARKERS).rows,
     [{ name: 'x', n: '2' }], 'rows are keyed by column name, which is the shape the cases read');
+});
+
+// A MIGRATION THIS REPOSITORY CANNOT APPLY IS NOT A MIGRATION, AND UNTIL BATCH 100 NOTHING SAID HOW
+// BIG ONE MAY BE.
+//
+// scripts/db/psql-driver.mjs `invoke` passes the SQL to psql as `--command`, which makes a whole
+// migration ONE ARGV ENTRY. Linux caps a single argument at MAX_ARG_STRLEN = 32 * PAGE_SIZE =
+// 131,072 bytes, and the failure is not a SQL error: `execFile` rejects before psql starts, with
+// `spawn E2BIG` and no SQLSTATE, so `db-migrate-clean` prints `<file>: spawn E2BIG (no code)` and a
+// reader learns nothing about which statement was wrong -- because none of them was.
+//
+// IT WAS MEASURED, NOT INFERRED. Batch 100's first version was 145,686 bytes and CI run 34753787430
+// failed exactly that way, after applying every batch before it. 070_research.sql is 130,853 bytes:
+// IT CLEARED THE CEILING BY 219 BYTES, and nobody knew the ceiling was there.
+//
+// TWO BOUNDS, BECAUSE ONE CANNOT BE BOTH TRUE AND USEFUL HERE.
+//
+//   * THE HARD CEILING applies to every migration without exception. Below it a file can be applied;
+//     at or above it the file cannot be applied at all, on any machine with this page size.
+//   * THE BUDGET is lower, and the margin is the point rather than caution: the driver wraps a
+//     migration in `begin;`/`commit;` before it becomes the argument, a page size is a property of
+//     the machine rather than of this repository, and a batch that lands at 130,900 bytes is one
+//     edit away from a failure whose message names no statement.
+//
+// 070_research.sql IS OVER THE BUDGET AND CANNOT BE BROUGHT UNDER IT. Migration invariant 1 forbids
+// rewriting a merged migration -- "Merge แล้วห้ามแก้ migration ย้อนหลัง; ใช้ forward-fix" -- so it is
+// GRANDFATHERED BY NAME rather than excused by a looser rule, and the exception is held to two
+// assertions of its own: it must still be under the hard ceiling, and it must actually be over the
+// budget. The second is what stops the list being used to excuse a file that never needed it.
+//
+// THE RIGHT FIX IS IN THE DRIVER -- pass the script on stdin instead of as `--command` -- and it
+// belongs to A0, who owns scripts/db/run.mjs and the driver beside it. It is an open blocker on
+// WP-0A-DB-00. This rule is what makes the limit visible until then, and it fails LOUDLY where
+// E2BIG fails blankly.
+const MAX_ARG_STRLEN = 131072;
+const MIGRATION_BYTE_BUDGET = 120000;
+const OVER_BUDGET_BEFORE_THE_RULE_EXISTED = new Set(['070_research.sql']);
+
+test('no migration is larger than the driver can hand psql in one argument', async () => {
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  assert.ok(names.length > 0, 'there must be migrations for this rule to be about anything');
+  const sizes = new Map();
+  for (const name of names) {
+    const bytes = Buffer.byteLength(await readFile(`${dir}/${name}`, 'utf8'), 'utf8');
+    sizes.set(name, bytes);
+    // THE HARD CEILING, with no exception for anybody. A file at or above it cannot be applied.
+    assert.ok(bytes < MAX_ARG_STRLEN,
+      `${name} is ${bytes} bytes and MAX_ARG_STRLEN is ${MAX_ARG_STRLEN}. scripts/db/psql-driver.mjs `
+      + 'passes a migration as a single `--command` argument, so this file cannot be applied at all: '
+      + '`make db-migrate-clean` fails with `spawn E2BIG (no code)` before psql starts, naming no '
+      + 'statement because none of them is wrong.');
+    if (OVER_BUDGET_BEFORE_THE_RULE_EXISTED.has(name)) continue;
+    assert.ok(bytes <= MIGRATION_BYTE_BUDGET,
+      `${name} is ${bytes} bytes, over this repository's declared budget of ${MIGRATION_BYTE_BUDGET}. `
+      + `The hard ceiling is ${MAX_ARG_STRLEN} and the margin is deliberate: the driver wraps the file `
+      + 'in `begin;`/`commit;` before it becomes the argument, and a page size is a property of the '
+      + 'machine rather than of this repository. Shorten the prose, or fix the driver to pass the '
+      + 'script on stdin -- which is the open blocker this rule stands in for.');
+  }
+  // THE GRANDFATHER LIST IS HELD TO ITS OWN TWO ASSERTIONS, so it cannot grow into a way around the
+  // budget. A merged migration is unfixable by invariant 1; a file that is not over the budget has
+  // no business being excused, and a file that is not there at all is a stale entry.
+  for (const name of OVER_BUDGET_BEFORE_THE_RULE_EXISTED) {
+    const bytes = sizes.get(name);
+    assert.ok(bytes !== undefined, `${name} is grandfathered here and does not exist`);
+    assert.ok(bytes < MAX_ARG_STRLEN,
+      `${name} is grandfathered past the BUDGET and is still held to the CEILING, which it is now over `
+      + `at ${bytes} bytes. Invariant 1 forbids rewriting it, so this is a forward fix in the driver `
+      + 'and nothing else.');
+    assert.ok(bytes > MIGRATION_BYTE_BUDGET,
+      `${name} is listed as over the budget and is ${bytes} bytes, which is not over it. An exception `
+      + 'for a file that does not need one is how a list like this stops meaning anything: remove it.');
+  }
 });

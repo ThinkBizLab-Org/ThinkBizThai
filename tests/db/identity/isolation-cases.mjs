@@ -348,7 +348,9 @@ export const SMOKE_COVERAGE = {
            + 'workspace and a row addressed by its natural key is addressed as exactly as one '
            + 'addressed by a uuid. What is behind this boundary is the product itself: an idea is '
            + 'what a business intends to publish, a version is what it wrote, a variant is the text '
-           + 'queued for a platform, and a quality review is the verdict reached on it.' },
+           + 'queued for a platform, and a quality review is the verdict reached on it.'
+           + '\n\n'
+           + 'BATCH 100 ADDS FOUR TABLES AND ASKS THE BOUNDARY ONCE MORE ON THE ONE COLUMN THAT IS NOT A ROW. Every asset family carries the pair — `owner-a-sees-the-library-asset-of-a1` beside `owner-a-cannot-see-the-library-asset-of-tenant-b`, and the same on the version, the rights record and the link — with tenant B\'s real ids in hand. What is new is `owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b`: §9.1 gives MEDIA-2 the client projection "authorized signed URL only" and §6.3 makes the object key an INPUT to a signed-URL request, so a boundary that held on the row and leaked the key would have leaked the thing the row exists to protect. No earlier batch has had a column whose disclosure is the disclosure.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -519,7 +521,9 @@ export const SMOKE_COVERAGE = {
            + 'about an approver and is counted under §8.6/9.\n\n'
            + 'THE SIX ANALOGUES RECORDED ABOVE STAY ANALOGUES AND STAY UNCOUNTED. Flipping this row '
            + 'is not a relaxation of that rule — it is the rule being satisfied by the two tables '
-           + 'the sentence actually names.' },
+           + 'the sentence actually names.'
+           + '\n\n'
+           + 'BATCH 100 MOVES THIS ROW NOWHERE AND ADDS TWO MORE IN-SCOPE ANALOGUES, labelled as such. §12.6/3 names content and knowledge, both of which are paid; `approver-a-cannot-upload-a-library-asset` and `approver-a-cannot-allow-paid-ads-on-an-asset-rights` are refusals of the same ROLE on a third family, and the analogue rule that kept 020, 021 and 030 from counting theirs applies unchanged here. The second is worth naming anyway, because §8.2 marks the approver `P` for "Asset rights/share" rather than `N` — so it is a refused CAPABILITY and not a refused role, and RFC-2026-020 §8 is why.' },
   4: { covered: true, note: 'the VIEWER refused every write each table actually offers a client. On batch '
                            + '010 and on business_profiles and page_context_profiles that is insert, update '
                            + 'and delete. On the two version tables it is INSERT AND NOTHING ELSE, because '
@@ -605,7 +609,9 @@ export const SMOKE_COVERAGE = {
            + 'holds, which says nothing about a viewer. The four cases that do carry it are '
            + '`viewer-a-cannot-create-a-content-item`, `-capture-a-content-idea` (both RAISE, '
            + 'because an INSERT policy has no row to filter) and `viewer-a-cannot-rename-a-content-'
-           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).' },
+           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).'
+           + '\n\n'
+           + 'ON BATCH 100 IT IS INSERT AND UPDATE ON THE TWO CLIENT-WRITABLE TABLES AND AN INSERT REFUSAL ON A THIRD. `viewer-a-cannot-upload-a-library-asset` and `viewer-a-cannot-record-an-asset-rights` RAISE, because an INSERT policy has no row to filter; `viewer-a-cannot-rename-a-library-asset` is `no-effect` with a witness. `viewer-a-cannot-attach-an-asset-link` is a GRANT-layer refusal and is labelled one: no client role holds INSERT on app.content_asset_links, so it says nothing about a viewer in particular — and it is recorded here rather than counted, because §8.2 marks "Asset SELECT/use" `Y` for the viewer and that is precisely the reading this batch refused.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -703,7 +709,9 @@ export const SMOKE_COVERAGE = {
            + 'BATCH 080 ADDS FOUR SUSPENDED READS, one per table a case addresses by a constant, and '
            + 'each is paired with an active member of the same workspace reading the same row. '
            + 'app.is_active_member is where §7 lives for all five policies here, and none of the '
-           + 'predicates carries a `status` term of its own.' },
+           + 'predicates carries a `status` term of its own.'
+           + '\n\n'
+           + 'BATCH 100 ASKS IT ON ALL FOUR ASSET TABLES, and on three of them the refusal has to resolve through a parent: a version, a rights record and a link carry no page column, so `suspended-a-sees-zero-asset-versions` and its two siblings fail if the child narrowing is cut as surely as if app.is_active_member stopped answering.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -812,7 +820,9 @@ export const SMOKE_COVERAGE = {
            + 'BATCH 080 ADDS FOUR MORE ANONYMOUS CASES AND EVERY ONE IS REFUSED IN THE SAME PLACE, on '
            + 'the SCHEMA. There is no table in this family whose refusal is argued from a '
            + 'sensitivity class instead, which is the one way 070\'s set differed from every set '
-           + 'before it.' },
+           + 'before it.'
+           + '\n\n'
+           + 'BATCH 100 ADDS FOUR, all declaring `deniedOn with kind schema and name app` — including on the MEDIA-2 and RIGHTS-3 tables, which are the two families in this batch §9.1 restricts hardest and therefore the two where an accidental `anon` grant would cost most.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -1174,7 +1184,9 @@ export const SMOKE_COVERAGE = {
            + 'is part of the CI negative control\'s basis, because a grant-layer refusal passes '
            + 'unchanged with row level security off. The positive half stays unpayable for the '
            + 'reason it has been since batch 010, and one further: there is no identity that could '
-           + 'be the service here even if one could BE app_worker.' },
+           + 'be the service here even if one could BE app_worker.'
+           + '\n\n'
+           + 'BATCH 100 IS THE FIRST BATCH WHOSE SERVICE CASES COME OUT TWO DIFFERENT WAYS, AND THE DIFFERENCE IS THE POINT. §8.2 marks "Asset hard purge" `S`, and RFC-2026-022 §3\'s own table classifies that cell BOTH — CARRIED when a workspace closure drives it, DISCOVERED when a retention sweep does. NEITHER IS WRITTEN AS A POLICY: the decision is NOT IN EFFECT (§5/8, and M9 measures that the only member of app_worker is postgres, which bypasses RLS), so the classification is recorded as DATA in db/foundation/lint/service-policy-map.json and app_worker keeps grants and no policy. The consequence in this suite is a PAIR that batch 080 could not produce: `service-cannot-redact-an-asset-version` is `no-effect` with a witness, because app_worker holds the four columns the purge moves and row level security filters the row — so it IS in the CI negative control\'s basis and DOES flip when RLS is off — while `service-cannot-rewrite-the-digest-of-an-asset-version` is a GRANT refusal on the same table and the same identity, because sha256 is outside the four. The two outcomes differing is what proves the column allowlist is real. The POSITIVE half stays unpayable for the reason it has been since batch 010 and for RFC-2026-022 §5/8\'s: there is no identity that could be the service. NOTHING HERE IS CITED AS TENANT ISOLATION OF THE SERVICE PATH — RFC-2026-022 §5/4 forbids it, and no case in this batch names the confinement term at all.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1439,7 +1451,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'would have been refused by the role predicate instead. '
    + '`editor-a-cannot-see-the-content-version-outside-their-narrowing` is the step further: a '
    + 'version carries no scope question of its own and resolves through its item, so that case '
-   + 'fails if the resolution is replaced by a predicate over the version\'s own columns.',
+   + 'fails if the resolution is replaced by a predicate over the version\'s own columns.'
+           + '\n\n'
+           + 'BATCH 100 REPEATS THE PAIR ON app.assets AND THEN ASKS IT THREE TABLES SIDEWAYS. `editor-a-cannot-see-the-library-asset-outside-their-narrowing` is the direct form; the version, rights and link cases reach the same refusal through a parent, which is the shape a child with no scope columns of its own can carry.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -1510,7 +1524,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'resolved through the version and then asked the Business question about the version\'s own '
    + 'columns passes every other case in this family and leaks a page-restricted item\'s '
    + 'publishable text. The fixture loads a variant and a review under the sibling-page item for '
-   + 'no other purpose.',
+   + 'no other purpose.'
+           + '\n\n'
+           + 'BATCH 100 ASKS IT FOUR TIMES AND CAN ONLY SEPARATE THE TWO PARENTS OF A LINK IN ONE DIRECTION, which is recorded rather than glossed. `pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target` and the version and rights cases beside it are clean single-parent refusals. The link case is not: both of its parents are restricted to the same sibling target, so either half of the ANDed narrowing would refuse it, and no fixture row can separate them while §4.7\'s "same Business" rule forbids a link whose asset and whose content version are in different narrowings. What makes the AND itself falsifiable is the apply-time assertion that both parent names appear in BOTH halves of the policy, and that is stated as the substitute it is.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1761,7 +1777,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'a client INSERT, so `owner-a-cannot-forge-the-actor-on-a-content-item` is the PASSING case '
    + 'above with one argument changed — `created_by` set to another member of the same workspace '
    + '— and the refusal is attributable to `created_by = (select auth.uid())` and to nothing '
-   + 'else. The UPDATE half is asserted too, on the idea.',
+   + 'else. The UPDATE half is asserted too, on the idea.'
+           + '\n\n'
+           + 'BATCH 100 CARRIES IT ON THREE STATEMENTS AND ON THE ONE TABLE WHERE IT IS A LEGAL CLAIM. `owner-a-cannot-forge-the-actor-on-a-library-asset-upload`, `-rename` and `-on-an-asset-rights` are each the passing write above with `created_by` or `updated_by` changed to another member of the same workspace. The third is the one worth reading: §6.2 of the asset design requires "Audit ทุกครั้ง" on a rights change, this schema cannot supply an audit record, and `created_by` is therefore the only record of who asserted a licence — which is worth nothing if it is forgeable.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -1946,7 +1964,9 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'grant is inert and a grant with no policy is a weaker refusal than immutability asks for. '
    + 'What no case can carry here is the positive: nothing in this repository may write a '
    + 'content version at all until a SECURITY DEFINER command function exists, and RFC-2026-021 '
-   + '§10 records that none does.',
+   + '§10 records that none does.'
+           + '\n\n'
+           + 'BATCH 100 ADDS AN IMMUTABLE TABLE AND AN APPEND-ONLY ONE, AND THE IMMUTABLE ONE IS IMMUTABLE IN ALL BUT FOUR COLUMNS. app.asset_versions is held to that by an apply-time per-column assertion against the live ACL rather than by the absence of a verb, so the cases come in three kinds: a client refused the write (`owner-a-cannot-write-an-asset-version`, `-redact-`, `-rewrite-the-digest-of-`, `-mark-...-ready`, `-delete-`), the service refused a column it does not hold (`service-cannot-rewrite-the-digest-of-an-asset-version`), and the service FILTERED on a column it does (`service-cannot-redact-an-asset-version`). app.content_asset_links is append-only on batch 100\'s own reading of §4.7\'s "การแก้ link หลังอนุมัติต้อง invalidate Approval" — a sentence that conditions mutation on a mechanism batch 090 has not written — and `owner-a-cannot-reorder-an-asset-link` and `-delete-an-asset-link` are where a reviewer would refuse that reading.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -11906,6 +11926,942 @@ export function buildCases(id) {
          + 'Until it exists, nothing in this repository can record a quality verdict at all, and '
          + 'that is stated here rather than left to be discovered by whoever builds the gate.',
     },
+    // -- BATCH 100 — asset: the logical item, the object, the rights, the pin. ----------------
+    //
+    // Four tables and four shapes of case, because §8.2 gives this family four rows and no two of
+    // them are refused by the same layer.
+    //
+    //   * ALL FOUR TABLES carry §8.2's "Asset SELECT/use | Y | Y | Y | Y | Y", so every negative
+    //     below has a POSITIVE beside it and the boundary is a client-visible one. That is what
+    //     puts every one of these families in the CI negative control's basis, which batch 080
+    //     could not manage for three of its five.
+    //   * THE `S` CELL IS THE HARD PURGE AND IT IS A `no-effect` CASE, not a `denied` one.
+    //     `app_worker` holds `update (status, object_key, purged_at, updated_at)` on
+    //     app.asset_versions and NO POLICY, so the redaction is filtered by the USING half and
+    //     reports zero rows rather than raising — which is why it needs a witness, and why
+    //     disabling row level security makes it LAND. A case that demanded 42501 here would pass
+    //     against a database where the grant had simply been forgotten.
+    //   * §9.1's RIGHTS-3 PROJECTION IS A COLUMN AND NOT A ROW, so it is asserted as a PAIR: the
+    //     rights row is visible to an active member and `proof_url` is refused at the grant layer
+    //     to the same identity in the same breath. Neither half means anything alone.
+    //   * THE EDITOR IS `N` FOR RIGHTS AND `Y` FOR UPLOAD, two rows apart in one matrix, and that
+    //     difference is the single most likely thing in this batch to be got wrong by copying a
+    //     policy from its neighbour. It has three cases of its own.
+
+    // --- app.assets -----------------------------------------------------------------------------
+    {
+      id: 'owner-a-sees-the-library-asset-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1')],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against. §8.2 marks "Asset SELECT/use" '
+         + '`Y` for all five built-in roles, so the read predicate tests ACTIVE MEMBERSHIP and not '
+         + 'role, and a suite whose asset cases were all refusals could not tell that from a table '
+         + 'nobody may read at all.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-library-asset-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_b1')],
+      expect: 'no-rows',
+      why: '§8.6 case 5 on the aggregate of this family, holding tenant B\'s EXACT id. Proving A '
+         + 'cannot reach B by guessing is worthless; proving it while holding the real id is the '
+         + 'control.',
+    },
+    {
+      id: 'owner-b-sees-the-library-asset-of-b1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerB,
+      sql: ASSET_BY_ID,
+      params: [id('asset_b1')],
+      expect: 'rows',
+      why: 'The row the case above is refused is a row that exists. Without this, that refusal is '
+         + 'satisfied by an empty table.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-library-asset-outside-their-narrowing',
+      covers: ['§8.6/3', '§7'],
+      as: editorA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3: the same tenant, a target the member\'s narrowing does not admit. '
+         + 'user_editor_a is narrowed to business_a1 and asset_a2 hangs off business_a2.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1_sibling_page')],
+      expect: 'no-rows',
+      why: '§8.6 case 4, which is the half asset_a2 cannot show: user_page_editor_a IS admitted to '
+         + 'business_a1, so a refusal here can only have come from the `else` branch of the '
+         + 'narrowing — the one that asks the Page question on a row whose override is set.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-library-asset-of-their-own-target',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1_page')],
+      expect: 'rows',
+      why: 'The positive that makes the refusal above about the narrowing rather than about the '
+         + 'identity.',
+    },
+    {
+      id: 'suspended-a-sees-zero-library-assets',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access. app.is_active_member returns false for a suspended '
+         + 'member, and the row every other A-side identity reads becomes invisible.',
+    },
+    {
+      id: 'anonymous-sees-zero-library-assets',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused at NAME RESOLUTION on the schema, not on the table: `anon` holds no USAGE on '
+         + 'app and PUBLIC holds none either, so the statement never reaches a policy. '
+         + 'RFC-2026-021 §7/4 decided that as a negative, and declaring the schema here is what '
+         + 'makes this case notice the day it is reversed.',
+    },
+    {
+      id: 'service-sees-zero-library-assets',
+      covers: ['§12.6/8-negative', 'RFC-2026-022§5/8'],
+      as: service,
+      sql: ASSET_BY_ID,
+      params: [id('asset_a1')],
+      expect: 'no-rows',
+      why: '`app_worker` holds a column-scoped SELECT and NO POLICY, which is batch 010\'s shape '
+         + 'and the reason this case says anything: without the grant the refusal would be 42501 '
+         + 'either way and would prove only that somebody forgot a GRANT. With it, an empty read '
+         + 'can only have come from row level security — and a service role that had quietly '
+         + 'acquired BYPASSRLS would SUCCEED here.',
+    },
+    {
+      id: 'editor-a-uploads-a-library-asset',
+      covers: ['§8.2', '§8.5'],
+      as: editorA,
+      ...assetUpload(A, BUSINESS_A1, '__SELF__'),
+      expect: 'rows',
+      why: '§8.2 row 2 — "Asset upload/edit/archive" — is `Y` for owner, admin AND EDITOR. The '
+         + 'editor is a `Y` here and was a `P` in §8.1, which is 040\'s distinction: a `Y` cell is '
+         + 'NARROWED by a member narrowing where one exists and a `P` cell requires an explicit '
+         + 'one. This is the positive that makes the three refusals below about role.',
+    },
+    {
+      id: 'approver-a-cannot-upload-a-library-asset',
+      covers: ['§8.2', '§12.6/3'],
+      as: approverA,
+      ...assetUpload(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.2 row 2 is `N` for the approver, who reads the same table in the SELECT positive — '
+         + 'so this refusal is the ROLE and not the grant, and `deniedBy: policy` is what says so.',
+    },
+    {
+      id: 'viewer-a-cannot-upload-a-library-asset',
+      covers: ['§8.2', '§12.6/4'],
+      as: viewerA,
+      ...assetUpload(A, BUSINESS_A1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.2 row 2 is `N` for the viewer. The viewer reads this table, so the refusal is about '
+         + 'the verb rather than about the table.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-library-asset-upload',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...assetUpload(A, BUSINESS_A1, id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.6 case 8 and §8.5\'s "user action ตรวจ created_by = (select auth.uid())". The row is '
+         + 'legal in every other respect and the caller is a role the policy admits; the only '
+         + 'thing wrong with it is whose name is on it.',
+    },
+    {
+      id: 'owner-a-cannot-upload-a-library-asset-into-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...assetUpload(B, BUSINESS_B1, '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: 'The cross-tenant write, holding tenant B\'s real Workspace and Business. The WITH CHECK '
+         + 'half of the role policy refuses it because app.workspace_member_role returns nothing '
+         + 'for a workspace the caller is not a member of.',
+    },
+    {
+      id: 'editor-a-renames-a-library-asset',
+      covers: ['§8.2'],
+      as: editorA,
+      ...assetRename(id('asset_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The EDIT half of §8.2 row 2, and the positive the two `no-effect` cases below are '
+         + 'measured against: a write that cannot succeed for anybody proves nothing about the '
+         + 'policy that refuses it for somebody.',
+    },
+    {
+      id: 'approver-a-cannot-rename-a-library-asset',
+      covers: ['§8.2', '§12.6/3'],
+      as: approverA,
+      ...assetRename(id('asset_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: assetStillTitled(ownerA, id('asset_a1'), 'fixture asset a1 business'),
+      why: 'An UPDATE the USING half does not admit matches nothing and RAISES NOTHING, so the '
+         + 'claim needs the witness: the row is still there and still carries its original title. '
+         + 'With row level security off this write LANDS and the witness fails, which is what puts '
+         + 'this case in the negative control\'s basis.',
+    },
+    {
+      id: 'viewer-a-cannot-rename-a-library-asset',
+      covers: ['§8.2', '§12.6/4'],
+      as: viewerA,
+      ...assetRename(id('asset_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: assetStillTitled(ownerA, id('asset_a1'), 'fixture asset a1 business'),
+      why: '§12.6/4 on this family: the viewer reads the row in the SELECT positive and cannot '
+         + 'change it.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-a-library-asset-rename',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...assetRename(id('asset_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.6 case 8 on the UPDATE path. The USING half admits the row and the WITH CHECK half '
+         + 'refuses the forged `updated_by`, which is why this one RAISES where the two above do '
+         + 'not — the two halves are two predicates and this case is the only thing that proves '
+         + 'the second exists.',
+    },
+    {
+      id: 'editor-a-trashes-a-library-asset',
+      covers: ['§8.2', '§11.5'],
+      as: editorA,
+      ...assetTrash(id('asset_a1_page'), '__SELF__'),
+      expect: 'rows',
+      why: 'The ARCHIVE half of §8.2 row 2, which §11.5 defines as "User delete = move to Trash". '
+         + 'It runs against asset_a1_page rather than asset_a1 so that it does not disturb the row '
+         + 'the rename cases above use as their witness subject.',
+    },
+    {
+      id: 'owner-a-cannot-extend-the-trash-window-of-a-library-asset',
+      covers: ['§10', '§8.5'],
+      as: ownerA,
+      ...assetExtendTrashWindow(id('asset_a2')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: 'A retention window a client can push forward is not a window. `purge_after` is outside '
+         + 'the client UPDATE grant, so this is a COLUMN-level privilege refusal on a row the '
+         + 'caller may otherwise update — which is the distinction 060 was corrected on, and it is '
+         + 'why `deniedBy` is `grant` and not `policy`.',
+    },
+    {
+      id: 'owner-a-cannot-repoint-a-library-asset-at-another-revision',
+      covers: ['§4/1', '§8.5'],
+      as: ownerA,
+      ...assetRepointCurrentVersion(id('asset_a1'), id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: 'Which revision is CURRENT is the act of publishing one, not a field a client edits '
+         + '(080\'s sentence about a content item). The statement names a legal target — the '
+         + 'asset\'s own live revision — so the refusal cannot be the scope-path foreign key '
+         + 'standing in for the missing grant.',
+    },
+    {
+      id: 'owner-a-cannot-relocate-a-library-asset',
+      covers: ['§8.5', '§4/10'],
+      as: ownerA,
+      ...assetRelocate(id('asset_a1'), BUSINESS_A2),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.5: "ห้ามย้าย row ข้าม tenant/scope ด้วย update". The target is a real Business in '
+         + 'the caller\'s own Workspace, so every foreign key would be satisfied and the only '
+         + 'thing refusing this is that the column is outside every UPDATE grant.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-library-asset',
+      covers: ['§8.5', '§11.5'],
+      as: ownerA,
+      ...assetDelete(id('asset_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: '§8.5 has no broad user delete and §11.5 makes a user delete a move to Trash. No role '
+         + 'holds DELETE on any table this batch creates, which is also the last defence the purge '
+         + 'rule has inside the database: nothing a granted path can issue removes a row at all.',
+    },
+    {
+      id: 'service-cannot-trash-a-library-asset',
+      covers: ['§8.2', 'RFC-2026-022§5/8'],
+      as: service,
+      ...assetTrash(id('asset_a1'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'assets' },
+      why: 'A service that could stamp `deleted_at` could trash a tenant\'s whole library. '
+         + '`deleted_at` is a person\'s verb in §8.2 and is outside app_worker\'s column-scoped '
+         + 'UPDATE, so this is the privilege system and not row level security — which is the '
+         + 'contrast the purge case on app.asset_versions rests on.',
+    },
+
+    // --- app.asset_versions ---------------------------------------------------------------------
+    {
+      id: 'owner-a-sees-the-asset-version-of-a1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'rows',
+      why: 'The positive for the immutable half of this family. §5 makes a version immutable and '
+         + '§8.2 still marks "Asset SELECT/use" `Y` for every role, so the row is READABLE and '
+         + 'unwritable — two different claims, and this is the one that keeps the other honest.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-asset-version-of-tenant-b',
+      covers: ['§8.6/5', '§9.1'],
+      as: ownerA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_b1')],
+      expect: 'no-rows',
+      why: '§8.6 case 5 one table down, resolved through the asset rather than through a page '
+         + 'column the row does not carry.',
+    },
+    {
+      id: 'owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b',
+      covers: ['§9.1', '§6/3'],
+      as: ownerA,
+      sql: ASSET_VERSION_OBJECT_KEY_BY_ID,
+      params: [id('asset_version_b1')],
+      expect: 'no-rows',
+      why: 'The same boundary asked of the one column that matters most. §9.1 gives MEDIA-2 the '
+         + 'client projection "authorized signed URL only" and §6.3 makes the object key an input '
+         + 'to a signed-URL request — so a tenant boundary that held on the row and leaked the key '
+         + 'would have leaked the thing the row exists to protect.',
+    },
+    {
+      id: 'owner-b-sees-the-asset-version-of-b1',
+      covers: ['§8.2', '§12.6/1'],
+      as: ownerB,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_b1')],
+      expect: 'rows',
+      why: 'The row the two cases above are refused is a row that exists.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-asset-version-outside-their-narrowing',
+      covers: ['§8.6/3', '§7'],
+      as: editorA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on the child, and it is the PURGED version — so the refusal covers a row '
+         + 'that no longer names an object, which is the state §11.5 calls a redacted status. A '
+         + 'purged row is still a tenant row and is still behind the boundary.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-asset-version-of-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'THE CASE THE CHILD NARROWING EXISTS FOR. A version carries no page column, so its '
+         + 'reach is its asset\'s reach — and asserted only against a business-level parent that '
+         + 'claim would still hold if somebody replaced the exists() with '
+         + 'member_scope_admits_business. This is the row that fails when they do.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-asset-version-of-their-own-narrowing',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'rows',
+      why: 'The positive that makes the refusal above about the parent\'s narrowing rather than '
+         + 'about the table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-asset-versions',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access, asked of the child as well as of the parent.',
+    },
+    {
+      id: 'anonymous-sees-zero-asset-versions',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, for the reason every anonymous case in this suite declares.',
+    },
+    {
+      id: 'service-sees-zero-asset-versions',
+      covers: ['§12.6/8-negative', 'RFC-2026-022§5/8'],
+      as: service,
+      sql: ASSET_VERSION_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'no-rows',
+      why: 'Grants and no policy on the one table §8.2\'s `S` cell is about. This is the read half '
+         + 'of the refusal the purge case below asserts on the write half.',
+    },
+    {
+      id: 'owner-a-cannot-write-an-asset-version',
+      covers: ['§5', '§8.2'],
+      as: ownerA,
+      ...assetWriteVersion(A, BUSINESS_A1, id('asset_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: '§5\'s mutability column says "versions IMMUTABLE", and an immutable row\'s creation is '
+         + 'not a client act: §8.2\'s write rows are about the ASSET. The row is well formed — the '
+         + 'digest is a real sha-256, the key is exact, the parent is live — so no constraint can '
+         + 'stand in for the missing grant. THIS IS ALSO THE GAP: an upload creates an asset AND '
+         + 'its first version, nothing in this repository can write the second, and that is an '
+         + 'open blocker rather than a property of the schema.',
+    },
+    {
+      id: 'owner-a-cannot-redact-an-asset-version',
+      covers: ['§8.2/hard-purge', '§10'],
+      as: ownerA,
+      ...assetRedactVersion(id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: '§8.2\'s "Asset hard purge" is `N` for every client role including the owner. The '
+         + 'statement is the purge\'s own — redact the locator, stamp `purged_at`, move `status` — '
+         + 'and it is refused at the privilege layer because no client holds any of those three '
+         + 'columns.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-the-digest-of-an-asset-version',
+      covers: ['§9.3', '§5'],
+      as: ownerA,
+      ...assetRewriteVersionDigest(id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: '§9.3 gives the checksum the job of "integrity/dedup". A digest a granted path can '
+         + 'rewrite is not a digest, and the substitution this statement performs — a new hash over '
+         + 'a different object, on a row that still names the old one — is exactly what a '
+         + 'reconciliation exists to catch.',
+    },
+    {
+      id: 'owner-a-cannot-mark-an-asset-version-ready',
+      covers: ['§7/1', '§4/5'],
+      as: ownerA,
+      ...assetMarkVersionReady(id('asset_version_a2')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: '§4 invariant 5 lets content pin only a `ready` version, and §7.1 of the asset design '
+         + 'makes readiness what a processor OBSERVES rather than what an editor declares. The '
+         + 'target is the purged row, so a client that held this column could resurrect a redacted '
+         + 'object into the pinnable state.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-asset-version',
+      covers: ['§8.5', '§10'],
+      as: ownerA,
+      ...assetDeleteVersion(id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: 'Deleting the row is the other way to lose the digest. §10 purges an OBJECT and keeps '
+         + 'the redacted row; no role holds DELETE anywhere in this batch.',
+    },
+    {
+      id: 'service-cannot-rewrite-the-digest-of-an-asset-version',
+      covers: ['§9.3', 'RFC-2026-022§5/8'],
+      as: service,
+      ...assetRewriteVersionDigest(id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: 'AND THIS IS THE CASE THAT SAYS THE ALLOWLIST IS A LIST. app_worker holds UPDATE on '
+         + 'exactly four columns of this table and `sha256` is not one of them, so the refusal here '
+         + 'is a COLUMN and not the table — the same identity is filtered by row level security on '
+         + 'the next case and refused by privilege on this one, and the two outcomes differing is '
+         + 'what proves the column list is real.',
+    },
+    {
+      id: 'service-cannot-redact-an-asset-version',
+      covers: ['§8.2/hard-purge', '§12.6/8-negative', 'RFC-2026-022§5/8'],
+      as: service,
+      ...assetRedactVersion(id('asset_version_a1')),
+      expect: 'no-effect',
+      witness: assetVersionStillReady(ownerA, id('asset_version_a1')),
+      why: 'THE `S` CELL, AS THE INSTANCE ACTUALLY ANSWERS IT. §8.2 marks "Asset hard purge" `S`, '
+         + 'and RFC-2026-022 §3 classifies that cell BOTH — CARRIED when a workspace closure drives '
+         + 'it, DISCOVERED when a retention sweep does. NEITHER SHAPE IS WRITTEN AS A POLICY, '
+         + 'because the decision is NOT IN EFFECT: §5/8 and M9 measure that the only member of '
+         + 'app_worker is postgres, which bypasses row level security, so a policy TO app_worker '
+         + 'would admit nobody. So app_worker holds the four columns the purge moves and no policy, '
+         + 'the USING half filters the row, the statement matches nothing and RAISES NOTHING — '
+         + 'which is why this is `no-effect` and needs the witness. A case demanding 42501 here '
+         + 'would pass against a database where the grant had simply been forgotten. NOTHING HERE '
+         + 'IS A CLAIM ABOUT TENANT ISOLATION OF THE SERVICE PATH: RFC-2026-022 §5/4 forbids any '
+         + 'test citing the confinement term as one, and this case cites no term at all.',
+    },
+    {
+      id: 'service-cannot-delete-an-asset-version',
+      covers: ['§8.5', '§9.3-purge-manifest'],
+      as: service,
+      ...assetDeleteVersion(id('asset_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: 'AND THIS IS THE ONE THAT COSTS SOMETHING. §9.3 of the object storage lifecycle contract '
+         + 'requires production deletion to work from "รายการ exact keys จาก approved snapshot", '
+         + 'and CONTRIBUTING_AGENTS.md says the same: an approved immutable manifest of exact '
+         + 'object keys, never a recursive prefix delete. This schema can supply the exact keys — '
+         + 'one row names one object and a stored key may not be a folder or a wildcard — and it '
+         + 'CANNOT supply the approved snapshot, because no table in §6\'s registry owns one. The '
+         + 'refusal here bounds a bad purge to a redaction; it does not bound which rows are '
+         + 'redacted, and that is an open blocker rather than something this case closes.',
+    },
+
+    // --- app.asset_rights -----------------------------------------------------------------------
+    {
+      id: 'owner-a-sees-the-asset-rights-of-a1',
+      covers: ['§8.2', '§9.1'],
+      as: ownerA,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1')],
+      expect: 'rows',
+      why: 'The first half of the RIGHTS-3 pair: §9.1 projects "status/expiry" to the client, so an '
+         + 'active member reads the row.',
+    },
+    {
+      id: 'owner-b-cannot-read-the-licence-proof-on-the-asset-rights-of-b1',
+      covers: ['§9.1', 'RFC-2026-020§8'],
+      as: ownerB,
+      sql: ASSET_RIGHTS_PROOF_BY_ID,
+      params: [id('asset_rights_b1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: 'THE SECOND HALF, AND IT IS ASKED OF THE OWNER OF THE ROW rather than of a stranger, '
+         + 'which is what makes it about the COLUMN. §9.1 gives RIGHTS-3 the client projection '
+         + '"status/expiry, PROOF BY PERMISSION", and nothing in this repository defines that '
+         + 'permission — the same refusal the approver\'s `P` gets (RFC-2026-020 §8), arriving as a '
+         + 'column missing from a grant rather than as a role missing from a policy. '
+         + 'asset_rights_b1 really does hold a proof, so this is a withheld column and not an empty '
+         + 'one.',
+    },
+    {
+      id: 'owner-b-sees-the-asset-rights-of-b1',
+      covers: ['§8.2', '§9.1'],
+      as: ownerB,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_b1')],
+      expect: 'rows',
+      why: 'The row whose proof the case above is refused is a row the same identity may otherwise '
+         + 'read in full. Without this pair, a withheld column and a hidden row are the same '
+         + 'observation.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-asset-rights-of-tenant-b',
+      covers: ['§8.6/5', '§9.1'],
+      as: ownerA,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_b1')],
+      expect: 'no-rows',
+      why: '§8.6 case 5 on the RIGHTS-3 table, holding tenant B\'s exact id.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-asset-rights-of-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'The second child narrowing, and it is not implied by the version case: the two are '
+         + 'separate policies with separate predicates, and the one this batch is most likely to '
+         + 'get wrong is the one written after the first was seen to work.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-asset-rights-of-their-own-narrowing',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1')],
+      expect: 'rows',
+      why: 'The positive that makes the refusal above about the parent rather than about the table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-asset-rights',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access, on the family §9.1 restricts hardest.',
+    },
+    {
+      id: 'anonymous-sees-zero-asset-rights',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, for the reason every anonymous case in this suite declares.',
+    },
+    {
+      id: 'service-sees-zero-asset-rights',
+      covers: ['§12.6/8-negative'],
+      as: service,
+      sql: ASSET_RIGHTS_BY_ID,
+      params: [id('asset_rights_a1')],
+      expect: 'no-rows',
+      why: 'Grants and no policy. app_worker holds SELECT here and NOTHING ELSE — §8 has no `S` '
+         + 'cell anywhere for a rights row, and where a document is silent the cell is denied. '
+         + 'The consequence is stated rather than absorbed: §5.1 of the asset design names an index '
+         + 'for a "Rights expiry notification" sweep and that sweep has no writer.',
+    },
+    {
+      id: 'owner-a-records-an-asset-rights',
+      covers: ['§8.2', '§8.5'],
+      as: ownerA,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), '__SELF__'),
+      expect: 'rows',
+      why: '§8.2\'s "Asset rights/share | Y | Y | N | P | N | P" read as naming an OPERATION rather '
+         + 'than an SQL verb — the same way "Asset upload" names a creation without saying INSERT. '
+         + 'Batch 100 states that reading so a reviewer can refuse it: under the narrower one this '
+         + 'table would be unwritable by anything, and §4 invariant 5 makes valid rights a '
+         + 'precondition of using any media at all.',
+    },
+    {
+      id: 'editor-a-cannot-record-an-asset-rights',
+      covers: ['§8.2', '§7'],
+      as: editorA,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: 'THE ONE PLACE IN THIS FAMILY A ROLE LIST DIFFERS FROM ITS NEIGHBOUR\'S. §8.2 marks the '
+         + 'editor `Y` for "Asset upload/edit/archive" and `N` for "Asset rights/share", two rows '
+         + 'apart in one matrix — and the same identity really does upload an asset eleven cases '
+         + 'above. A policy copied from its neighbour passes that case and fails this one, which is '
+         + 'exactly what this case is for.',
+    },
+    {
+      id: 'approver-a-cannot-record-an-asset-rights',
+      covers: ['§8.2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: 'The approver\'s cell here is `P`, not `Y`, and `P` is REFUSED: RFC-2026-020 §8 records '
+         + 'as approved that no document defines the capability set and §15 forbids an agent '
+         + 'choosing one. Writing the approver into the role list would delete the distinction '
+         + 'between `Y` and `P`, and this case is what notices the day somebody does.',
+    },
+    {
+      id: 'viewer-a-cannot-record-an-asset-rights',
+      covers: ['§8.2', '§12.6/4'],
+      as: viewerA,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: '§8.2 marks the viewer `N`, and the viewer reads this table in the SELECT positives.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-an-asset-rights',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: '§8.6 case 8 on the one INSERT in this batch whose subject is a legal claim about '
+         + 'somebody else\'s property. §6.2 of the asset design requires "Audit ทุกครั้ง" on a '
+         + 'rights change and this schema cannot supply one — which makes `created_by` the only '
+         + 'record of who made the claim, and a forgeable one worth nothing.',
+    },
+    {
+      id: 'owner-a-allows-paid-ads-on-an-asset-rights',
+      covers: ['§8.2', '§4/5'],
+      as: ownerA,
+      ...assetAllowPaidAds(id('asset_rights_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The positive the two `no-effect` cases below are measured against, on the column §4.5 '
+         + 'defaults false "เมื่อไม่ทราบ" — an unknown right is not a granted right, so flipping it '
+         + 'is a decision and the identity that may is worth a case.',
+    },
+    {
+      id: 'editor-a-cannot-allow-paid-ads-on-an-asset-rights',
+      covers: ['§8.2', '§7'],
+      as: editorA,
+      ...assetAllowPaidAds(id('asset_rights_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: assetRightsStillRefusePaidAds(ownerA, id('asset_rights_a1')),
+      why: 'The editor\'s `N` again, on the UPDATE path this time, where the refusal is a FILTER '
+         + 'rather than a raise — so it needs the witness. This is the case that would land if the '
+         + 'rights policy were copied from the asset policy, and the thing that lands is a licence '
+         + 'claim: the editor would have put a tenant\'s media into paid advertising the rights '
+         + 'holder may not have agreed to.',
+    },
+    {
+      id: 'approver-a-cannot-allow-paid-ads-on-an-asset-rights',
+      covers: ['§8.2', 'RFC-2026-020§8'],
+      as: approverA,
+      ...assetAllowPaidAds(id('asset_rights_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: assetRightsStillRefusePaidAds(ownerA, id('asset_rights_a1')),
+      why: 'The `P` refused on the UPDATE path. §6.2 of the asset design says "Approver เมื่อ policy '
+         + 'อนุญาต" and there is no policy language in this repository to say it in.',
+    },
+    {
+      id: 'owner-a-cannot-relocate-an-asset-rights',
+      covers: ['§8.5', '§4/10'],
+      as: ownerA,
+      ...assetRelocateRights(id('asset_rights_a1'), id('asset_a1_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: '§8.5 forbids moving a row across scope with an update. The target is a real asset in '
+         + 'the caller\'s own Business, so the composite foreign key would be satisfied and the '
+         + 'only thing refusing this is that `asset_id` is outside every UPDATE grant. A rights '
+         + 'record that could be moved between assets is a licence transferred by an UPDATE.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-asset-rights',
+      covers: ['§8.5', '§10'],
+      as: ownerA,
+      ...assetDeleteRights(id('asset_rights_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: 'Deleting the record is the other way to remove a restriction. §10 gives RIGHTS-PROOF a '
+         + 'retention of its own — "อายุ Asset use + 2 ปี default" — which a delete would defeat, '
+         + 'and the number itself is unapproved and is not encoded anywhere in this batch.',
+    },
+    {
+      id: 'service-cannot-record-an-asset-rights',
+      covers: ['§12.6/8-negative', '§8'],
+      as: service,
+      ...assetRecordRights(A, BUSINESS_A1, id('asset_a1'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: '§8 has no `S` cell anywhere for a rights row, so app_worker holds SELECT and nothing '
+         + 'else and the refusal is the privilege system rather than row level security. That is '
+         + 'the deliberate contrast with the redaction case on app.asset_versions, where the same '
+         + 'identity holds the verb and is filtered.',
+    },
+
+    // --- app.content_asset_links ------------------------------------------------------------------
+    {
+      id: 'owner-a-sees-the-asset-link-of-a1',
+      covers: ['§4/5', '§8.2'],
+      as: ownerA,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1')],
+      expect: 'rows',
+      why: 'The positive, and it is also this suite\'s evidence that §4.7\'s logical key ADDRESSES '
+         + 'a link: the statement names no variant and expects exactly one row, which is only true '
+         + 'because content_asset_links_logical_key is declared NULLS NOT DISTINCT. Under '
+         + 'Postgres\'s default the fixture could have loaded the same link twice.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-asset-link-of-tenant-b',
+      covers: ['§8.6/5', '§4/7'],
+      as: ownerA,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_b1')],
+      expect: 'no-rows',
+      why: '§8.6 case 5 on the row with TWO parents, holding tenant B\'s real content version id. '
+         + 'The narrowing ANDs both parents, so either one refusing is enough — and both do, which '
+         + 'is what a tenant boundary should look like from a row that straddles two families.',
+    },
+    {
+      id: 'owner-b-sees-the-asset-link-of-b1',
+      covers: ['§4/5', '§8.2'],
+      as: ownerB,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_b1')],
+      expect: 'rows',
+      why: 'The row the case above is refused is a row that exists.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-asset-link-of-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'THE TWO-PARENT NARROWING, IN THE DIRECTION THAT DISTINGUISHES IT. Both of this link\'s '
+         + 'parents are restricted to the sibling target, so either half of the AND would refuse '
+         + 'it — which is the honest statement of what this case proves and what it does not. What '
+         + 'makes the AND itself falsifiable is the apply-time assertion that both parent names '
+         + 'appear in both halves of the policy; a case cannot separate them while no fixture row '
+         + 'has one reachable parent and one unreachable one, and building one would mean a link '
+         + 'whose asset and whose content version are in different narrowings — which §4.7\'s "same '
+         + 'Business" forbids until a sharing path exists. Recorded as a known limit of this suite '
+         + 'rather than claimed as coverage it does not have.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-asset-link-of-their-own-narrowing',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1')],
+      expect: 'rows',
+      why: 'The positive that makes the refusal above about the parents rather than about the '
+         + 'table.',
+    },
+    {
+      id: 'suspended-a-sees-zero-asset-links',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1')],
+      expect: 'no-rows',
+      why: '§7: only `active` grants access, on the last of this batch\'s four tables.',
+    },
+    {
+      id: 'anonymous-sees-zero-asset-links',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7/4'],
+      as: anonymous,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, for the reason every anonymous case in this suite declares.',
+    },
+    {
+      id: 'service-sees-zero-asset-links',
+      covers: ['§12.6/8-negative'],
+      as: service,
+      sql: ASSET_LINK_BY_LOGICAL_KEY,
+      params: [id('content_version_a1')],
+      expect: 'no-rows',
+      why: 'Grants and no policy, on the table §4.7 gives the service a sentence about — "service '
+         + 'ต้องสร้าง business-safe link/clone ตาม policy". app_worker holds select and insert here '
+         + 'and row level security refuses both, which is the state that sentence describes and '
+         + 'nothing implements.',
+    },
+    {
+      id: 'owner-a-cannot-attach-an-asset-link',
+      covers: ['§8.2', '§4/7'],
+      as: ownerA,
+      ...assetAttachLink(A, BUSINESS_A1, id('content_version_a1'), id('asset_a1'),
+        id('asset_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'A link is part of what a content version SAYS, and batch 080 gives app.content_versions '
+         + 'no INSERT grant to any role at all — so a link a client could insert would attach media '
+         + 'to a version nobody can create. The row is well formed and its sort_order avoids the '
+         + 'fixture\'s own link, so the logical key cannot stand in for the missing grant.',
+    },
+    {
+      id: 'editor-a-cannot-attach-an-asset-link',
+      covers: ['§8.2', '§6/2'],
+      as: editorA,
+      ...assetAttachLink(A, BUSINESS_A1, id('content_version_a1'), id('asset_a1'),
+        id('asset_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'The identity §6.2 of the asset design DOES name for "Attach to Content" — '
+         + 'Owner/Admin/Editor — and it is still refused, which is this batch stating plainly that '
+         + 'the attach path is unimplemented rather than restricted. §6.2 adds two conditions this '
+         + 'schema cannot express at all ("version `ready` และ rights valid"), and both are open '
+         + 'blockers.',
+    },
+    {
+      id: 'viewer-a-cannot-attach-an-asset-link',
+      covers: ['§8.2', '§12.6/4'],
+      as: viewerA,
+      ...assetAttachLink(A, BUSINESS_A1, id('content_version_a1'), id('asset_a1'),
+        id('asset_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'AND THIS IS THE CASE THAT RECORDS A READING OF §8.2. "Asset SELECT/use" is `Y` for the '
+         + 'VIEWER, and reading its `use` half as a client INSERT here would give a viewer a write '
+         + 'on content — which "Content create/edit/version" two rows above marks `N` for the '
+         + 'approver and the viewer alike. Two readings of one matrix conflict and the narrower one '
+         + 'holds (060\'s rule). If a reviewer ranks it the other way, this is the case that has to '
+         + 'change and it is meant to be found.',
+    },
+    {
+      id: 'owner-a-cannot-reorder-an-asset-link',
+      covers: ['§4/7', '§8.2'],
+      as: ownerA,
+      ...assetReorderLink(id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'APPEND-ONLY, on batch 100\'s reading of §4.7\'s rule "การแก้ link หลังอนุมัติต้อง '
+         + 'invalidate Approval": that sentence conditions mutation on a mechanism batch 090 has '
+         + 'not written, and §8.2\'s "Approved/published version UPDATE/DELETE" is `N` for every '
+         + 'role including the service. Reordering a carousel after approval changes what was '
+         + 'approved, with nothing to notice. The reading is refusable and this case is where a '
+         + 'reviewer would refuse it.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-asset-link',
+      covers: ['§8.5', '§11.5'],
+      as: ownerA,
+      ...assetDeleteLink(id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'Deleting the link is the other way to change what was approved — and §11.5 uses the '
+         + 'link from the other side, to "block hard purge if referenced", so a client that could '
+         + 'delete one could make a still-used asset purgeable.',
+    },
+    {
+      id: 'service-cannot-attach-an-asset-link',
+      covers: ['§12.6/8-negative', '§4/7'],
+      as: service,
+      ...assetAttachLink(A, BUSINESS_A1, id('content_version_a1'), id('asset_a1'),
+        id('asset_version_a1'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_asset_links' },
+      why: 'AND THIS ONE IS `deniedBy: policy` WHERE THE THREE CLIENT CASES ABOVE ARE `grant`, '
+         + 'which is the whole point of declaring the layer. app_worker holds the INSERT grant '
+         + '§4.7\'s "service ต้องสร้าง business-safe link/clone" describes, so the statement '
+         + 'reaches row level security — and there is no policy for it to satisfy, so the WITH '
+         + 'CHECK refuses the new row. The four cases together say: no client may attach, the '
+         + 'service may not either, and the two refusals come from different layers.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -12567,3 +13523,300 @@ export function contentAmendQualityReview(reviewId) {
 export function contentDeleteQualityReview(reviewId) {
   return { sql: 'delete from app.quality_reviews where id = $1::uuid returning id', params: [reviewId] };
 }
+
+// -- BATCH 100 — asset: the logical item, the object, the rights, the pin. ---------------------
+//
+// THE LINKS ARE ADDRESSED BY §4.7's OWN LOGICAL KEY, not by a symbol. `content_asset_links_logical_key`
+// is unique over (workspace_id, business_profile_id, content_version_id, content_variant_id, role,
+// sort_order) and is declared NULLS NOT DISTINCT, so a link with no variant is single-valued under
+// (content version, role, sort_order) — which under Postgres's default it would not be. Every case
+// below that reaches a link reaches it that way, which makes the addressing itself evidence for the
+// declaration: if the key were NULLS DISTINCT these statements could return more than one row.
+//
+// They are module-level constants declared AFTER buildCases rather than locals declared inside it,
+// and the reason is a merge rule rather than a style: other batches are appending to this file at
+// the same time, and the only resolution that cannot silently lose another batch's work is "main's
+// version plus this branch's own section, contiguous and last". A `const` here is in scope inside
+// buildCases at CALL time — the module has finished evaluating by then — so the whole of batch 100's
+// contribution to this file is two appended blocks and no edit anywhere else in it.
+export const ASSET_BY_ID =
+  'select id from app.assets where id = $1::uuid';
+
+export const ASSET_TITLE_BY_ID =
+  'select title from app.assets where id = $1::uuid';
+
+export const ASSET_VERSION_BY_ID =
+  'select id from app.asset_versions where id = $1::uuid';
+
+// The locator, read on its own. A member who can see the row can see where the object is, which is
+// §9.1's "authorized signed URL only" read from the database side: the key is not the URL and
+// holding it is not access, but it is the input to a signed-URL request, so the tenant boundary has
+// to hold on it exactly as it holds on the row.
+export const ASSET_VERSION_OBJECT_KEY_BY_ID =
+  'select object_key from app.asset_versions where id = $1::uuid';
+
+export const ASSET_RIGHTS_BY_ID =
+  'select id from app.asset_rights where id = $1::uuid';
+
+// §9.1's RIGHTS-3 client projection is "status/expiry, PROOF BY PERMISSION", and this statement is
+// how that half is asserted rather than described: `proof_url` is outside the `authenticated` SELECT
+// grant, so this is a COLUMN-level privilege refusal on a row the same identity may otherwise read
+// in full. The pair of cases — the row is visible, the proof is not — is what distinguishes a
+// withheld column from a hidden row.
+export const ASSET_RIGHTS_PROOF_BY_ID =
+  'select proof_url from app.asset_rights where id = $1::uuid';
+
+// `::text`, AND CI IS WHAT TAUGHT THIS FILE THE CAST. The psql driver returns every value as CSV
+// TEXT and run-isolation.mjs compares a witness with `!==`, so a boolean column read raw comes back
+// as the string "f" and `equals: false` can never match it: run 34754581209 failed both of this
+// batch's paid-ads cases with `paid_ads_allowed is "f" and should still be false` — the POLICY had
+// stopped the write and the WITNESS was comparing a string to a boolean. Casting here rather than
+// spelling the expectation `'f'` is deliberate: `'false'` is legible, and it does not depend on how
+// psql happens to render a boolean in CSV.
+export const ASSET_RIGHTS_PAID_ADS_BY_ID =
+  'select paid_ads_allowed::text as paid_ads_allowed from app.asset_rights where id = $1::uuid';
+
+// §4.7's logical key, spelled out. `content_variant_id is null` rather than `= $2` because a null is
+// never equal to anything — and the constraint that makes this address single-valued is exactly the
+// one that treats that null as part of the key.
+export const ASSET_LINK_BY_LOGICAL_KEY =
+  'select id from app.content_asset_links where content_version_id = $1::uuid'
+  + " and content_variant_id is null and role = 'cover' and sort_order = 0";
+
+// -- Batch 100 builders. -----------------------------------------------------------------------
+//
+// No builder passes an `id`: the column defaults to gen_random_uuid(), the row is rolled back with
+// its transaction, and no case has a reason to hold the id of a row it is creating. The rows these
+// cases READ are a different matter and are addressed by their catalog id or by §4.7's logical key.
+//
+// Every insert names a LIVE parent under the Workspace, so when the CI negative control disables row
+// level security the write LANDS rather than failing on a foreign key — a case that could not
+// succeed proves nothing about the policy that refuses it.
+
+// §8.2's "Asset UPLOAD/edit/archive". The one client INSERT this batch grants.
+export function assetUpload(workspace, business, createdBy) {
+  return {
+    sql: 'insert into app.assets (workspace_id, business_profile_id, kind, title, source, '
+       + "created_by, updated_by) values ($1::uuid, $2::uuid, 'image', 'attempted asset title', "
+       + "'upload', $3::uuid, $3::uuid) returning id",
+    params: [workspace, business, createdBy],
+  };
+}
+
+// §8.2's "Asset upload/EDIT/archive". `title` is the whole of what the edit verb reaches.
+export function assetRename(assetId, updatedBy) {
+  return {
+    sql: "update app.assets set title = 'renamed asset title', updated_by = $2::uuid "
+       + 'where id = $1::uuid returning id',
+    params: [assetId, updatedBy],
+  };
+}
+
+// §8.2's "Asset upload/edit/ARCHIVE", which §11.5 defines as "User delete = move to Trash".
+export function assetTrash(assetId, updatedBy) {
+  return {
+    sql: 'update app.assets set deleted_at = now(), updated_by = $2::uuid '
+       + 'where id = $1::uuid and deleted_at is null returning id',
+    params: [assetId, updatedBy],
+  };
+}
+
+// The statement §10's unapproved Trash window would be defeated by. It is refused at the GRANT
+// layer, per column, and that is the point: a policy could be widened by an edit, and a column
+// nobody was granted has to be granted before it can be written.
+export function assetExtendTrashWindow(assetId) {
+  return {
+    sql: "update app.assets set purge_after = now() + interval '3650 days' "
+       + 'where id = $1::uuid returning id',
+    params: [assetId],
+  };
+}
+
+// §4.1: "ชี้ version ที่หน้า Asset detail แสดง" — which version is current is the act of publishing
+// one, not a field a client edits (080's sentence about a content item).
+export function assetRepointCurrentVersion(assetId, versionId) {
+  return {
+    sql: 'update app.assets set current_version_id = $2::uuid where id = $1::uuid returning id',
+    params: [assetId, versionId],
+  };
+}
+
+// §8.5: "ห้ามย้าย row ข้าม tenant/scope ด้วย update", as a statement rather than as a sentence.
+export function assetRelocate(assetId, business) {
+  return {
+    sql: 'update app.assets set business_profile_id = $2::uuid where id = $1::uuid returning id',
+    params: [assetId, business],
+  };
+}
+
+export function assetDelete(assetId) {
+  return { sql: 'delete from app.assets where id = $1::uuid returning id', params: [assetId] };
+}
+
+// An asset version, written directly. §5 makes the version immutable and §8.2's write rows are about
+// the ASSET, so no client role holds this and the refusal is a grant. The digest is well formed, so
+// asset_versions_sha256_is_a_digest cannot stand in for the missing privilege.
+export function assetWriteVersion(workspace, business, assetId, createdBy) {
+  return {
+    sql: 'insert into app.asset_versions (workspace_id, business_profile_id, asset_id, version_no, '
+       + 'purpose, storage_provider, bucket, object_key, detected_mime, byte_size, sha256, status, '
+       + "created_by) values ($1::uuid, $2::uuid, $3::uuid, 99, 'original', 'supabase', "
+       + "'thinkbizthai-fixture-private-media', 'v1/attempted/object.jpg', 'image/jpeg', 1, "
+       + "sha256(convert_to('attempted asset object', 'utf8')), 'ready', $4::uuid) returning id",
+    params: [workspace, business, assetId, createdBy],
+  };
+}
+
+// THE `S` CELL'S OWN STATEMENT, in its workspace-closure (CARRIED) shape: redact the locator and
+// stamp the purge. §9.3/11 of the object storage lifecycle contract makes the hard purge exactly
+// this — "อัปเดต `deleted_at/purged_at` แบบ idempotent" — rather than the removal of a row.
+//
+// IT ADDRESSES ONE ROW BY ITS EXACT ID AND NEVER A PREFIX. A statement of the form
+// `where object_key like $1 || '%'` is what CONTRIBUTING_AGENTS.md forbids and what §9.3 calls a
+// กฎบังคับ, and it is deliberately not written even as a case: a case that issued one would be the
+// first prefix purge in this repository, and it would be in a test file.
+export function assetRedactVersion(versionId) {
+  return {
+    sql: "update app.asset_versions set object_key = null, purged_at = now(), status = 'purged' "
+       + 'where id = $1::uuid and purged_at is null returning id',
+    params: [versionId],
+  };
+}
+
+// A digest a granted path can rewrite is not a digest (§15 of the object storage lifecycle contract
+// compares a provider's answer against it).
+export function assetRewriteVersionDigest(versionId) {
+  return {
+    sql: "update app.asset_versions set sha256 = sha256(convert_to('substituted object', 'utf8')) "
+       + 'where id = $1::uuid returning id',
+    params: [versionId],
+  };
+}
+
+// §7.1 assigns media readiness to this column, and §4 invariant 5 makes `ready` the state content may
+// pin. A client that could set it could pin media nothing verified.
+export function assetMarkVersionReady(versionId) {
+  return {
+    sql: "update app.asset_versions set status = 'ready' where id = $1::uuid returning id",
+    params: [versionId],
+  };
+}
+
+export function assetDeleteVersion(versionId) {
+  return {
+    sql: 'delete from app.asset_versions where id = $1::uuid returning id',
+    params: [versionId],
+  };
+}
+
+// §8.2's "Asset RIGHTS/share", as an INSERT. Batch 100 reads that row as naming an operation rather
+// than an SQL verb, so owner and admin hold it and the EDITOR DOES NOT — which is the one place in
+// this family a role list differs from its neighbour's.
+export function assetRecordRights(workspace, business, assetId, createdBy) {
+  return {
+    sql: 'insert into app.asset_rights (workspace_id, business_profile_id, asset_id, rights_type, '
+       + "rights_status, created_by, updated_by) values ($1::uuid, $2::uuid, $3::uuid, 'owned', "
+       + "'valid', $4::uuid, $4::uuid) returning id",
+    params: [workspace, business, assetId, createdBy],
+  };
+}
+
+// The sharpest write in this batch. Paid advertising is the use a licence most often excludes, and
+// §4.5 defaults the column false "เมื่อไม่ทราบ" — so the identity that may flip it is a decision and
+// not a convenience.
+export function assetAllowPaidAds(rightsId, updatedBy) {
+  return {
+    sql: 'update app.asset_rights set paid_ads_allowed = true, updated_by = $2::uuid '
+       + 'where id = $1::uuid returning id',
+    params: [rightsId, updatedBy],
+  };
+}
+
+export function assetRelocateRights(rightsId, assetId) {
+  return {
+    sql: 'update app.asset_rights set asset_id = $2::uuid where id = $1::uuid returning id',
+    params: [rightsId, assetId],
+  };
+}
+
+export function assetDeleteRights(rightsId) {
+  return {
+    sql: 'delete from app.asset_rights where id = $1::uuid returning id',
+    params: [rightsId],
+  };
+}
+
+// §8.2's "Asset SELECT/USE" half, which no client role holds — reading it as a client INSERT would
+// give a VIEWER a write on content, and "Content create/edit/version" two rows above is `N` for the
+// approver and the viewer. `sort_order` is 7 rather than 0 so the statement cannot collide with the
+// fixture's own link and be refused by the logical key instead of by the privilege system.
+export function assetAttachLink(workspace, business, contentVersionId, assetId, versionId, createdBy) {
+  return {
+    sql: 'insert into app.content_asset_links (workspace_id, business_profile_id, '
+       + 'content_version_id, asset_id, asset_version_id, role, sort_order, created_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'cover', 7, $6::uuid) "
+       + 'returning id',
+    params: [workspace, business, contentVersionId, assetId, versionId, createdBy],
+  };
+}
+
+export function assetReorderLink(contentVersionId) {
+  return {
+    sql: 'update app.content_asset_links set sort_order = 9 where content_version_id = $1::uuid '
+       + "and content_variant_id is null and role = 'cover' returning id",
+    params: [contentVersionId],
+  };
+}
+
+export function assetDeleteLink(contentVersionId) {
+  return {
+    sql: 'delete from app.content_asset_links where content_version_id = $1::uuid '
+       + "and content_variant_id is null and role = 'cover' returning id",
+    params: [contentVersionId],
+  };
+}
+
+// -- Batch 100 witnesses. ---------------------------------------------------------------------
+//
+// A `no-effect` case is only as strong as its witness: the empty result says the statement matched
+// nothing, and the witness says the row is still there holding its original value. With row level
+// security off the write lands and the witness fails, which is what puts these cases in the CI
+// negative control's basis.
+export function assetStillTitled(as, assetId, title) {
+  return { as, sql: ASSET_TITLE_BY_ID, params: [assetId], column: 'title', equals: title };
+}
+
+// The purge's witness asserts `status` rather than `object_key`, and the reason is that the two move
+// together by constraint: asset_versions_purged_status_agrees makes `status = 'purged'` true exactly
+// when `purged_at` is stamped, and asset_versions_purged_row_names_no_object makes a purged row name
+// no object. So a redaction that landed is visible in this one short column, and the witness does
+// not have to carry a 200-character object key that would then have to be kept in step with the
+// fixture by hand.
+export function assetVersionStillReady(as, versionId) {
+  return {
+    as,
+    sql: 'select status from app.asset_versions where id = $1::uuid',
+    params: [versionId],
+    column: 'status',
+    equals: 'ready',
+  };
+}
+
+export function assetRightsStillRefusePaidAds(as, rightsId) {
+  return {
+    as,
+    sql: ASSET_RIGHTS_PAID_ADS_BY_ID,
+    params: [rightsId],
+    column: 'paid_ads_allowed',
+    // A STRING, because the driver compares strings. See the cast on the statement above.
+    equals: 'false',
+  };
+}
+
+// THERE IS NO LINK WITNESS, and the absence is deliberate rather than an omission. An earlier draft
+// carried one whose `equals` was the NUMBER 0 — which the driver could never have matched, for the
+// reason the paid-ads cast above records — and no case used it, because every write case on
+// app.content_asset_links is a `denied` at the GRANT layer and a `denied` case needs no witness. An
+// unused builder carrying a latent type error is what the next batch copies, so it is removed; the
+// day a link becomes updatable (batch 090's approval, see the migration header), the batch that
+// grants the UPDATE writes the witness it actually needs.

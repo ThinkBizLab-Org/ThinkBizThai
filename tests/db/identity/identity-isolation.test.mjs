@@ -9152,3 +9152,743 @@ test('the coverage map records what batch 080 pays, including the one row it fli
     '§8.6/9 is where this batch\'s largest contribution goes: three tables no identity in this repository '
     + 'may write, which is §8.2 row 3 and not a choice this batch made');
 });
+
+
+// =============================================================================================
+// Batch 100 — asset, and the one §8 cell RFC-2026-022 classifies BOTH ways.
+// =============================================================================================
+//
+// The rules below are shaped by five facts about this batch, and each one decides which kind of
+// assertion is available:
+//
+//   * §5 SETTLES TWO OF FOUR MUTABILITIES AND IS SILENT ABOUT TWO. "logical mutable; versions
+//     immutable" names app.assets and app.asset_versions. app.asset_rights is decided by §8.2's
+//     "Asset rights/share | Y | Y | N | P | N | P" and app.content_asset_links by batch 100's own
+//     READING of §4.7's "การแก้ link หลังอนุมัติต้อง invalidate Approval" — a reading a reviewer may
+//     refuse, so the rules below assert what was written rather than that it was right.
+//   * IMMUTABLE HERE MEANS "ALL BUT FOUR COLUMNS". §7.1 of the asset design assigns media readiness
+//     to asset_versions.status by name and §10 purges the locator, so `status`, `object_key`,
+//     `purged_at` and `updated_at` move and nothing else does. A rule that asserted "no UPDATE
+//     grant" would be false; one that asserted "some UPDATE grant" would be vacuous. The rule
+//     asserts the COLUMN LIST, in the grant text and in the apply-time block that checks the live
+//     ACL.
+//   * §9.1 GIVES TWO OF THE FOUR TABLES A CLASS WITH A PROJECTION. MEDIA-2 is "private bucket;
+//     short signed access" — which is why the version table carries a column ALLOWLIST — and
+//     RIGHTS-3 is "status/expiry, PROOF BY PERMISSION", which is implemented as a column list in a
+//     grant. Both are absences, and an absence cannot be asserted by reading the text that would
+//     have contained it, so both rules read the grant statements and the apply-time block.
+//   * THE `S` CELL IS CLASSIFIED AND NOT ENFORCED. RFC-2026-022 §3's table names "Asset hard purge"
+//     for batches 100 and 160 and calls it BOTH; the decision is NOT IN EFFECT, so batch 100 writes
+//     two rows in db/foundation/lint/service-policy-map.json and no policy. The rule asserts both
+//     halves — the rows are there, and no policy on any of the four tables names a service role.
+//   * CONTRIBUTING_AGENTS.md's PREFIX RULE IS A SCHEMA PROPERTY HERE. "Production object deletion
+//     uses an approved immutable manifest of exact object keys; never recursively delete a
+//     user-supplied prefix." A migration cannot constrain a WHERE clause, so what it can do is
+//     refuse a stored key that IS a prefix and refuse a column that WOULD BE one — and the rules
+//     below hold both, because a batch that quietly dropped either would leave the sentence in the
+//     header true of nothing.
+const ASSET_MIGRATION = 'db/foundation/migrations/100_asset.sql';
+const ASSET_FIXTURE = 'tests/db/identity/fixtures/100-asset-fixture.sql';
+const SERVICE_POLICY_MAP = 'db/foundation/lint/service-policy-map.json';
+const asset = await readFile(ASSET_MIGRATION, 'utf8');
+const assetCode = asset.replace(/--[^\n]*/g, '');
+const ASSETS = 'assets';
+const ASSET_VERSIONS = 'asset_versions';
+const ASSET_RIGHTS = 'asset_rights';
+const CONTENT_ASSET_LINKS = 'content_asset_links';
+const ASSET_TABLES = [ASSETS, ASSET_VERSIONS, ASSET_RIGHTS, CONTENT_ASSET_LINKS];
+// The three that carry no page column and therefore resolve their reach through a parent. The link
+// is in this list AND has a second parent, which is why it gets its own branch below.
+const ASSET_CHILDREN = [ASSET_VERSIONS, ASSET_RIGHTS, CONTENT_ASSET_LINKS];
+// The four columns an otherwise immutable version may move. Written here as well as in the
+// migration deliberately: the migration asserts it against the live ACL and this asserts it against
+// the grant TEXT, and a batch that widened one without the other would fail here.
+const VERSION_MUTABLE = ['status', 'object_key', 'purged_at', 'updated_at'];
+// §9.1's RIGHTS-3 projection is "status/expiry, proof by permission". These four are the proof and
+// the parties, and none may be in a client grant.
+const RIGHTS_WITHHELD = ['owner_name', 'proof_asset_id', 'proof_url', 'note'];
+const assetTableBodies = [...assetCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const assetBodyOf = (table) => assetTableBodies.find((b) => b.includes(`app.${table} (`));
+const assetGrantsFor = (table, verb) => [...assetCode.matchAll(
+  new RegExp(`grant ${verb} \\(([^)]*)\\)\\s*\\n?\\s*on app\\.${table} to (\\w+)`, 'g'))]
+  .map((m) => ({ columns: m[1].split(/[,\s]+/).filter(Boolean), grantee: m[2] }));
+// The policy STATEMENTS only. Two rules below ask what a PREDICATE may name, and the apply-time
+// block's `using hint` strings mention app.workspace_members by name — so a rule that searched the
+// whole file would be satisfied or defeated by a hint rather than by a policy.
+const assetPolicies = [...assetCode.matchAll(/create policy (\w+)\s+on app\.(\w+)([\s\S]*?);\n/g)]
+  .map((m) => ({ name: m[1], table: m[2], body: m[3] }));
+
+test('every batch 100 table carries RLS, FORCE, a primary key and an owner comment', async () => {
+  assert.equal(assetTableBodies.length, ASSET_TABLES.length,
+    "§5's inventory gives asset.core six names — assets/versions/rights/links/backup/usage — and this batch "
+    + 'creates four. `backup` and `usage` are refused in the migration header with a reason each and are in the '
+    + "work package's open blockers; the asset design's other seven tables are refused because §5's inventory "
+    + "does not name them and §2's conflict order puts §5 above a plan document. A fifth table appearing here "
+    + 'without a registry row is batch 021\'s finding: reserving somebody else\'s work.');
+  for (const table of ASSET_TABLES) {
+    assert.match(assetCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(assetCode, new RegExp(`alter table app\\.${table}\\s+enable row level security`));
+    assert.match(assetCode, new RegExp(`alter table app\\.${table}\\s+force row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. Without FORCE the table owner — the role migrations run as — is exempt from '
+      + 'every policy here, and the CI negative control has nothing to switch off.');
+    assert.match(assetCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(assetCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,600}?primary key`));
+  }
+  const created = await tablesCreatedByMigrations();
+  for (const table of ASSET_TABLES) {
+    assert.ok(created.has(`app.${table}`), `app.${table} must be a table the migrations create`);
+  }
+});
+
+test('the asset scope is two columns on the parent and resolved through the parent on each child', () => {
+  const parent = assetBodyOf(ASSETS);
+  assert.match(parent, /workspace_id\s+uuid\s+not null/,
+    '§3.3 and §4 invariant 3 — which names Asset in the same sentence as Knowledge, Research and Content');
+  assert.match(parent, /business_profile_id\s+uuid\s+not null/, '§4 invariant 3: every asset row has a Business scope');
+  assert.match(parent, /page_context_profile_id\s+uuid,/,
+    'the Page is a NULLABLE override and never a substitute for the Business (§4 invariant 3, second half)');
+  assert.match(parent, /assets_page_scope_fk[\s\S]*?references app\.page_context_profiles \(workspace_id, business_profile_id, id\)/,
+    'the override carries the whole scope path, so a Page from another Business fails at the database '
+    + '(§4 invariant 10). MATCH SIMPLE skips it when the Page is null, which is what makes a business-level '
+    + 'asset legal.');
+  for (const table of ASSET_CHILDREN) {
+    const body = assetBodyOf(table);
+    assert.match(body, /workspace_id\s+uuid\s+not null/, `app.${table} carries the tenant scope`);
+    assert.match(body, /business_profile_id\s+uuid\s+not null/, `app.${table} carries the Business scope`);
+    assert.doesNotMatch(body, /page_context_profile_id/,
+      `app.${table} must carry NO page column. A nullable copy of the asset's page could not be held equal `
+      + 'to it by any foreign key — a composite key over a path including a nullable column is MATCH SIMPLE '
+      + 'and is SKIPPED when that column is null, so the child could claim to be business-level while its '
+      + 'asset is page-restricted. That is media reachable to a member the asset itself is hidden from.');
+  }
+  assert.match(assetBodyOf(ASSET_VERSIONS), /asset_versions_asset_scope_fk[\s\S]*?references app\.assets \(workspace_id, business_profile_id, id\)/);
+  assert.match(assetBodyOf(ASSET_RIGHTS), /asset_rights_asset_scope_fk[\s\S]*?references app\.assets \(workspace_id, business_profile_id, id\)/);
+  assert.match(assetBodyOf(CONTENT_ASSET_LINKS), /content_asset_links_asset_version_scope_fk[\s\S]*?references app\.asset_versions \(workspace_id, business_profile_id, asset_id, id\)/,
+    "§4.7's rule \"version ต้องอยู่ใต้ Asset ที่ระบุ\" as a constraint rather than as a sentence: the scope path "
+    + 'carries the asset, which is what makes the rule checkable at the database.');
+});
+
+test('the asset version is immutable in all but four columns, in the grant text and against the catalog', () => {
+  const updates = assetGrantsFor(ASSET_VERSIONS, 'update');
+  assert.equal(updates.length, 1,
+    "§5's mutability column says \"versions IMMUTABLE\" and §4.2 says \"ห้าม UPDATE object location/content "
+    + 'หลัง ready; การแก้ไขสร้าง row ใหม่". Exactly one UPDATE grant exists and it is the service\'s.');
+  assert.equal(updates[0].grantee, 'app_worker',
+    'no client role may update a version: §8.2\'s write rows are about the ASSET');
+  assert.deepEqual([...updates[0].columns].sort(), [...VERSION_MUTABLE].sort(),
+    'the four that move are §7.1\'s media-readiness column, §10\'s two purge columns and §3.2\'s stamp. '
+    + 'sha256 and byte_size are deliberately NOT among them: they are what a reconciliation compares a '
+    + "provider's answer against, and a digest a granted path can rewrite is not a digest.");
+  assert.equal(assetGrantsFor(ASSET_VERSIONS, 'insert').length, 1,
+    'one INSERT grant, to the service. An immutable row\'s creation is not a client act.');
+  assert.equal(assetGrantsFor(ASSET_VERSIONS, 'insert')[0].grantee, 'app_worker');
+  // And the same claim as the apply-time block holds it, against the live ACL rather than against
+  // the text above — because a grant made by a LATER batch would not appear in this file at all.
+  assert.match(assetCode, /version_mutable constant text\[\] :=[\s\S]{0,200}?'status', 'object_key', 'purged_at', 'updated_at'/,
+    'the migration asserts the same list at apply time, per column, against every role');
+  assert.match(assetCode, /a column of an asset version other than the four that move is updatable/);
+  // The MEDIA-2 allowlist, which is the other half: the four that move are bounded, and so is the
+  // set of columns that may exist at all.
+  assert.match(assetCode, /version_columns constant text\[\] :=/,
+    '§9.1 puts MEDIA-2 in a private bucket reached by a short signed URL, so the bytes are not in this '
+    + 'schema. The control is an ALLOWLIST and not a denylist, because a denylist of column names somebody '
+    + 'thought of is defeated by the one they did not (060\'s mechanism, 070\'s reuse).');
+  assert.match(assetCode, /carries column\(s\) a MEDIA-2 row may not hold/);
+  for (const forbidden of ['bytes', 'blob', 'thumbnail_data', 'base64']) {
+    assert.match(assetCode, new RegExp(`'${forbidden}'`),
+      `the second sweep names ${forbidden} across all four tables, because the allowlist protects one`);
+  }
+});
+
+test('the content asset link is append-only, as an absent grant and an absent policy', () => {
+  assert.equal(assetGrantsFor(CONTENT_ASSET_LINKS, 'update').length, 0,
+    'APPEND-ONLY on batch 100\'s reading of §4.7\'s "การแก้ link หลังอนุมัติต้อง invalidate Approval": the '
+    + 'sentence conditions mutation on a mechanism batch 090 has not written, and §8.2\'s "Approved/published '
+    + 'version UPDATE/DELETE" is N for every role including the service. The reading is refusable and this '
+    + 'is the line a reviewer would change.');
+  assert.doesNotMatch(assetCode, /grant delete[\s\S]{0,80}on app\.content_asset_links/);
+  assert.doesNotMatch(assetBodyOf(CONTENT_ASSET_LINKS), /updated_at/,
+    'an append-only row has no update to stamp (020\'s words, kept by every batch since)');
+  assert.doesNotMatch(assetCode, /create trigger set_updated_at before update on app\.content_asset_links/);
+  const linkPolicies = assetPolicies.filter((p) => p.table === CONTENT_ASSET_LINKS);
+  assert.equal(linkPolicies.length, 2,
+    'a SELECT policy and the restrictive narrowing, and nothing else. Either half of immutability alone can '
+    + 'be satisfied while the other is wrong: a policy with no grant is inert, and a grant with no policy is '
+    + 'refused by row level security, which is a weaker refusal than append-only asks for.');
+  for (const policy of linkPolicies) {
+    assert.doesNotMatch(policy.body, /for (update|delete)/,
+      `${policy.name} must not be an UPDATE or DELETE policy`);
+  }
+  assert.match(assetCode, /an immutable or append-only batch 100 table carries an UPDATE or DELETE policy/,
+    'and the apply-time block asserts the same thing against pg_policy, on both this table and the version');
+  // §4.7's uniqueness rule, AND THE THREE WORDS THAT MAKE IT TRUE OF THE COMMON CASE. Postgres
+  // defaults to NULLS DISTINCT, under which two links with no content_variant_id do not collide —
+  // so "one cover at position 1 per version" would hold for nobody, which is every link that is not
+  // variant-specific. Batch 080 met this exact defect in CI on content_variants_logical_key.
+  //
+  // ASSERTED HERE AS WELL AS AT APPLY TIME, and the duplication is the point: a reversal probe that
+  // deleted the two words from the constraint was NOT noticed by this suite until this line existed,
+  // because the apply-time assertion reads pg_index and CI is the first PostgreSQL this SQL meets.
+  assert.match(assetBodyOf(CONTENT_ASSET_LINKS),
+    /constraint content_asset_links_logical_key\s+unique nulls not distinct/,
+    'content_asset_links_logical_key must be declared NULLS NOT DISTINCT. The two spellings differ by three '
+    + 'words and produce tables that behave differently, and the difference is invisible in every other '
+    + 'artefact.');
+  assert.match(assetCode, /content_asset_links_logical_key does not treat nulls as equal/,
+    'and the apply-time block reads indnullsnotdistinct from pg_index, because a constraint whose TEXT is '
+    + 'right and whose INDEX is wrong is the failure this pair exists to make impossible');
+  assert.match(assetCode, /a content asset link can be updated/,
+    'and against the live ACL, so a grant a LATER batch makes fails the migration');
+  // NO DELETE ANYWHERE, which is also the last defence the prefix rule has inside the database.
+  assert.doesNotMatch(assetCode, /grant delete/,
+    '§8.5 has no broad user delete, §11.5 makes a user delete a move to Trash, and §8.2\'s hard purge is an '
+    + 'UPDATE of purged_at rather than the removal of a row (§9.3/11 of the object storage lifecycle '
+    + 'contract). With no DELETE anywhere, nothing a granted path can issue removes a row at all.');
+  assert.match(assetCode, /an asset row can be deleted through a granted path/);
+});
+
+test('the object key names one exact object, and no column in batch 100 is a prefix', () => {
+  const body = assetBodyOf(ASSET_VERSIONS);
+  assert.match(body, /constraint asset_versions_object_key_names_one_object check \(/,
+    'CONTRIBUTING_AGENTS.md: "Production object deletion uses an approved immutable manifest of exact object '
+    + 'keys; never recursively delete a user-supplied prefix." This constraint is where that sentence lives '
+    + 'as DATA — a schema cannot constrain a WHERE clause, and this is what it can do instead.');
+  for (const [fragment, why] of [
+    ["position('%' in object_key) = 0", 'a stored key that is a LIKE pattern turns a manifest entry into a prefix purge'],
+    ["position('*' in object_key) = 0", '§4.2 of the object storage lifecycle contract forbids a wildcard in a key'],
+    ["position('..' in object_key) = 0", 'and forbids `../` traversal by name'],
+    ["right(object_key, 1) <> '/'", 'THE HALF THAT MATTERS MOST: a key ending in `/` IS a folder, and "delete '
+      + 'everything under this key" is exactly the recursive prefix delete the rule forbids — arriving as data '
+      + 'rather than as a statement, which is how it would reach a manifest nobody reads'],
+  ]) {
+    assert.ok(body.includes(fragment), `${fragment} is missing from the object-key constraint. ${why}`);
+  }
+  assert.match(assetCode, /asset_versions_object_key_names_one_object'/,
+    'and the apply-time block asserts the constraint EXISTS, so removing it fails the migration rather than '
+    + 'the code review. A negative is the strongest thing a lint can hold (RFC-2026-019 §5); this is its '
+    + 'positive twin.');
+  assert.match(assetCode, /a batch 100 column expresses an object-key PREFIX/,
+    'and a second assertion sweeps all four tables for a column that WOULD BE a prefix — `prefix`, '
+    + '`key_prefix`, `glob`, `pattern`, `wildcard`. A denylist is the weaker instrument, which is why the '
+    + 'version table also carries the full allowlist; this sweep exists for the other three, which do not.');
+  for (const table of ASSET_TABLES) {
+    assert.doesNotMatch(assetBodyOf(table), /prefix|wildcard|glob/,
+      `app.${table} must hold no column that is a prefix or a pattern. One row names one object.`);
+  }
+  // AND THE GAP, asserted as a gap rather than left to a reader. §9.3 requires an APPROVED IMMUTABLE
+  // SNAPSHOT of exact keys before any production deletion and no table in §6's registry owns one;
+  // the migration header says so and this is what keeps the sentence in it.
+  assert.match(asset, /THE APPROVED IMMUTABLE MANIFEST HAS NO HOME IN THIS REPOSITORY/,
+    'the header must keep naming the half this schema cannot supply. Parts 1-3 of that section bound what a '
+    + 'stored key may be; they do not bound which rows a purge statement addresses, and a reader who takes '
+    + 'them for the manifest has taken them for more than they are.');
+});
+
+test('batch 100 encodes only vocabularies its documents enumerate, and no retention number at all', () => {
+  // §4.1, §4.2, §4.5 and §4.7 of the asset design enumerate these; §4 invariant 5 — the canonical
+  // document — names `ready` in terms.
+  for (const [table, constraintName, values] of [
+    [ASSETS, 'assets_kind_known', ['image', 'video']],
+    [ASSETS, 'assets_source_known', ['upload', 'ai_generated', 'imported', 'copied']],
+    [ASSET_VERSIONS, 'asset_versions_purpose_known', ['original', 'edited', 'crop', 'preview', 'poster', 'platform_ready']],
+    [ASSET_VERSIONS, 'asset_versions_storage_provider_known', ['supabase', 'r2']],
+    [ASSET_VERSIONS, 'asset_versions_status_known', ['pending_upload', 'verifying', 'processing', 'ready', 'rejected', 'failed', 'purged']],
+    [ASSET_RIGHTS, 'asset_rights_type_known', ['owned', 'licensed', 'consent', 'unknown']],
+    [ASSET_RIGHTS, 'asset_rights_status_known', ['valid', 'expiring', 'expired', 'blocked']],
+    [CONTENT_ASSET_LINKS, 'content_asset_links_role_known', ['cover', 'feed', 'story', 'reel', 'carousel_item', 'thumbnail']],
+  ]) {
+    const body = assetBodyOf(table);
+    assert.ok(body.includes(`constraint ${constraintName}`), `${constraintName} is missing`);
+    for (const value of values) {
+      assert.ok(body.includes(`'${value}'`), `${constraintName} must enumerate '${value}', which its document does`);
+    }
+  }
+  // AND NO COLUMN CARRIES A VOCABULARY NO DOCUMENT ENUMERATES. video_codec and audio_codec are
+  // named by §4.2 and are ABSENT, because no document lists a codec name and a text column with no
+  // CHECK is precisely the defect batch 080's own open blocker 1 records against three of its
+  // columns. technical_metadata is absent because §5's dictionary template forbids a column called
+  // metadata without a JSON Schema version, a maximum size, a prohibited-field list and an owner.
+  const bodies = assetTableBodies.join('\n');
+  for (const absent of ['video_codec', 'audio_codec', 'technical_metadata', 'search_text']) {
+    assert.doesNotMatch(bodies, new RegExp(`\\b${absent}\\b`),
+      `${absent} must be absent from every table body, and the migration header says which document `
+      + 'refuses it. The header still NAMES each one, which is the point: a refusal nobody can read is '
+      + 'indistinguishable from an omission.');
+  }
+  // §10's four numbers for this family — ASSET-ORIGINAL's thirty days, ASSET-DERIVATIVE's
+  // "immediately", RIGHTS-PROOF's two years and UPLOAD-TEMP's twenty-four hours — are engineering
+  // defaults §10's own header makes conditional on Product/Security/Legal approval before Paid Beta.
+  // None is approved and none is encoded.
+  assert.doesNotMatch(bodies, /interval/i,
+    'no CHECK, default or expression on any table in this batch may name an interval. §15: an open '
+    + "decision is not an agent's to choose, and §10's header makes every number in that table unapproved. "
+    + 'The apply-time block asserts the same negative against pg_get_constraintdef, which is the only '
+    + 'reason the word appears in this file at all.');
+  assert.doesNotMatch(assetBodyOf(ASSETS), /purge_after[^,]*default/,
+    'purge_after is NULLABLE with NO DEFAULT: a default would make every trashed asset silently assert the '
+    + 'same thirty days, which is the decision arriving as a column (070\'s treatment of DATA-DEC-07).');
+  assert.match(assetCode, /a batch 100 constraint encodes a retention interval/,
+    'and the apply-time block asserts the same negative against pg_get_constraintdef');
+  assert.match(assetCode, /a batch 100 retention column carries a default/,
+    'and against atthasdef, which is the only place the difference between "every writer states a limit" '
+    + 'and "every row inherits thirty days" is recorded');
+  // DATA-DEC-07 is RESEARCH SNAPSHOT retention and belongs to batch 070. No table here references a
+  // research row, so this batch neither reads that decision nor closes it.
+  assert.doesNotMatch(bodies, /research/i,
+    'batch 100 creates no column and no foreign key into research.core, so DATA-DEC-07 is untouched by it. '
+    + "The four retention classes this batch DOES inherit are \u00a710's ASSET-ORIGINAL, ASSET-DERIVATIVE, "
+    + 'RIGHTS-PROOF and UPLOAD-TEMP, and none of their numbers is approved or encoded.');
+});
+
+test('the asset narrowings are RESTRICTIVE, and the link resolves through BOTH parents on both halves', () => {
+  const restrictive = assetPolicies.filter((p) => /as restrictive/.test(p.body));
+  assert.equal(restrictive.length, ASSET_TABLES.length,
+    'one per table. `polpermissive` is the one catalog column that tells a narrowing from a widening: a '
+    + 'permissive policy with the same name and the same predicate would WIDEN each table instead of '
+    + 'narrowing it. A child with no narrowing is a table where every active member reaches every row their '
+    + "membership admits, which would leave a page-restricted asset's versions readable to a member the "
+    + 'asset itself is hidden from.');
+  const halvesOf = (body) => {
+    const using = body.slice(body.indexOf('using ('), body.indexOf('with check ('));
+    const check = body.slice(body.indexOf('with check ('));
+    return [using, check];
+  };
+  for (const policy of restrictive) {
+    const [using, check] = halvesOf(policy.body);
+    assert.ok(using.length > 0 && check.length > 0,
+      `${policy.name} must carry BOTH halves. polqual and polwithcheck are two catalog columns, and a `
+      + 'reversal that gutted one while leaving the other intact went UNNOTICED by the first version of '
+      + "040's apply-time block: a narrowing whose USING lost a branch filters nothing on read while still "
+      + 'refusing writes — the leak, without the symptom.');
+    for (const half of [using, check]) {
+      if (policy.table === ASSETS) {
+        assert.match(half, /member_scope_admits_business/,
+          `${policy.name}: §4 invariant 3 makes the Page a nullable override on a row that always carries a `
+          + 'Business, so the narrowing decides PER ROW which question to ask');
+        assert.match(half, /member_scope_admits_page/,
+          `${policy.name}: dropping the Page branch admits every member scoped to a sibling Page`);
+        assert.doesNotMatch(half, /member_scope_covers_/,
+          'every client cell this batch implements is a `Y`, and §8\'s legend reads `Y` as "ผ่านเมื่อ active '
+          + '+ capability + scope ตรง" — narrowed by a scope where one exists. `covers` is the `P` form and '
+          + 'requires an EXPLICIT scope, which would deny an unscoped member a cell the matrix grants them.');
+      } else if (policy.table === CONTENT_ASSET_LINKS) {
+        assert.match(half, /app\.assets/,
+          `${policy.name}: §4's ERD gives this row an edge to an ASSET_VERSION`);
+        assert.match(half, /app\.content_versions/,
+          `${policy.name}: and an edge to a CONTENT_VERSION. Its reach must be the INTERSECTION of its two `
+          + "parents' reaches — naming only the asset lets a member who can see the media see a link into "
+          + 'content they cannot, and naming only the content version does the reverse. THIS ASSERTION IS '
+          + 'WHAT MAKES THE AND FALSIFIABLE: no fixture row can separate the two parents while §4.7\'s "same '
+          + 'Business" rule forbids a link whose asset and whose content version are in different narrowings.');
+      } else {
+        assert.match(half, /app\.assets/,
+          `${policy.name}: a version and a rights record carry no page column, so each one's reach is its `
+          + "asset's reach — asserted rather than copied, because a nullable copy of the asset's page could "
+          + 'not be held equal to it by any foreign key (MATCH SIMPLE skips a null).');
+      }
+    }
+  }
+  assert.match(assetCode, /batch 100 wrote % restrictive policies and it creates four tables to narrow/);
+  assert.match(assetCode, /the content asset link narrowing does not resolve through BOTH parents/,
+    'and the apply-time block asks the same question of pg_get_expr on both halves, against the live catalog');
+});
+
+test('every batch 100 policy is TO authenticated, and app_worker holds grants and no policy', () => {
+  assert.equal(assetPolicies.length, 12,
+    'four SELECT policies, two INSERT, two UPDATE and four restrictive narrowings. The count is asserted '
+    + 'here rather than at apply time, because §8.2\'s approver `P` is refused on a reading RFC-2026-020 §8 '
+    + 'could close and 021\'s scar is that an applied migration\'s self-assertion cannot be amended.');
+  for (const policy of assetPolicies) {
+    assert.match(policy.body, /to authenticated/,
+      `${policy.name} must name authenticated. §8.5: "Policy ระบุ TO authenticated; anonymous ไม่มี tenant `
+      + 'policy", and RFC-2026-022 is NOT IN EFFECT so no policy here may name a service role.');
+    for (const role of ['app_worker', 'app_command', 'app_maintenance', 'app_authz', 'anon']) {
+      assert.doesNotMatch(policy.body, new RegExp(`to [\\w, ]*${role}`),
+        `${policy.name} must not name ${role}`);
+    }
+  }
+  // app_worker HOLDS GRANTS on all four, which is what makes a service refusal attributable to row
+  // level security rather than to a forgotten GRANT (010's construction, kept by every batch since).
+  for (const table of ASSET_TABLES) {
+    const selects = assetGrantsFor(table, 'select');
+    assert.ok(selects.some((g) => g.grantee === 'app_worker'),
+      `app_worker must hold a column-scoped SELECT on app.${table}. Without the grant a service refusal is `
+      + '42501 either way and proves only that somebody forgot a GRANT; with it, an empty read can only have '
+      + 'come from row level security — and a service role that had quietly acquired BYPASSRLS would SUCCEED '
+      + 'where the suite demands a refusal.');
+  }
+  // AND NOTHING AT ALL TO THE OTHER THREE SERVICE ROLES. There is no command surface for asset.core
+  // (RFC-2026-021 §10) and the retention sweep is batch 160's.
+  for (const role of ['app_command', 'app_maintenance', 'app_authz']) {
+    assert.doesNotMatch(assetCode, new RegExp(`on app\\.\\w+ to ${role}`),
+      `${role} is granted nothing by this batch`);
+  }
+  assert.doesNotMatch(assetCode, /to anon\b/, 'RFC-2026-021 §7/4 grants anon nothing anywhere our migrations reach');
+  assert.match(assetCode, /anon holds a privilege on app/,
+    'and the apply-time block asserts the negative against the live catalog');
+});
+
+test('batch 100 classifies the hard-purge cell in BOTH shapes and writes no service policy', async () => {
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+  const mine = map.cells.filter((c) => c.batch === '100_asset.sql');
+  assert.equal(mine.length, 2,
+    'RFC-2026-022 §3\'s own table names "Asset hard purge" for batches 100 and 160 and calls it BOTH — '
+    + 'CARRIED when §11.4\'s workspace closure drives it, DISCOVERED when a retention sweep does — and §7.2 '
+    + 'keys this register on (cell, STATEMENT) and never on the table alone. Two rows for one cell is the '
+    + 'shape §3 describes, not a duplicate.');
+  assert.deepEqual(mine.map((c) => c.shape).sort(), ['carried', 'discovered'],
+    'one of each, because the class attaches to the statement');
+  for (const cell of mine) {
+    assert.match(cell.cell, /Asset hard purge/, 'both rows quote §8.2\'s row');
+    assert.equal(cell.operation, 'update',
+      '§9.3/11 of the object storage lifecycle contract makes the purge "อัปเดต deleted_at/purged_at แบบ '
+      + 'idempotent" and §11.5 confirms it from the support side ("visible to support as redacted status"), '
+      + 'so the row survives as a redaction. NO ROLE HOLDS DELETE anywhere in this batch, which is why '
+      + 'neither statement is a `delete`.');
+    assert.match(cell.why, /NOT IN EFFECT|not in effect/,
+      'each row must say why no policy accompanies it');
+  }
+  assert.ok(mine.some((c) => c.table === 'asset_versions' && c.shape === 'carried'));
+  assert.ok(mine.some((c) => c.table === 'assets' && c.shape === 'discovered'));
+  // THE OTHER TWO TABLES GET NO ROW, and the absence is a decision. §8 has no cell anywhere for
+  // creating a version, a rights record or a link, and inventing a `cell` value would be a claim
+  // about the access matrix made in a lint file (061's sentence, kept by 070 and 080).
+  for (const table of [ASSET_RIGHTS, CONTENT_ASSET_LINKS]) {
+    assert.ok(!mine.some((c) => c.table === table),
+      `app.${table} has no §8 cell and therefore no row here`);
+  }
+  // AND THE NEGATIVE THE CLASSIFICATION RESTS ON: no policy in this batch names a service role, so
+  // the register authorises nothing and every service refusal is still row level security.
+  for (const policy of assetPolicies) {
+    assert.doesNotMatch(policy.body, /app_worker/,
+      `${policy.name}: RFC-2026-022 is NOT IN EFFECT, so no policy here may name a service role`);
+  }
+  assert.ok(!assetPolicies.some((p) => /app_worker/.test(p.body)),
+    'RFC-2026-022\'s Status line: NOT IN EFFECT until §7 holds — the only member of app_worker is postgres, '
+    + 'which bypasses RLS, so a policy TO app_worker written today would admit nobody while making '
+    + 'service-sees-zero-* pass for a reason that has nothing to do with the policy.');
+  // The confinement term appears in the migration exactly ONCE, in the header paragraph that
+  // classifies the cell, and RFC-2026-022 §5/4 forbids any artefact describing it as a boundary.
+  assert.equal((asset.match(/current_setting\('app\.workspace_id'/g) || []).length, 1,
+    'the confinement expression has exactly one home in this file. A second spelling of the same idea is '
+    + 'the failure M4 describes.');
+  assert.equal((assetCode.match(/current_setting/g) || []).length, 0,
+    'and that home is a COMMENT, not a predicate: nothing in this batch evaluates the term, because the '
+    + 'decision that would introduce it is not in effect.');
+  assert.match(asset, /THE CONFINEMENT TERM IS NOT A TENANT BOUNDARY/,
+    'RFC-2026-022 §5/4 forbids any document, test or assertion citing the term as tenant isolation of the '
+    + 'service path -- the role the policy names can set the setting the policy reads, measured twice, and '
+    + 'has_parameter_privilege cannot even be asked who may. The migration says so in terms, and this '
+    + 'assertion is what keeps the sentence there when the paragraph around it is rewritten.');
+});
+
+test('the RIGHTS-3 projection is a column list, and the proof is outside every client grant', () => {
+  const clientSelect = assetGrantsFor(ASSET_RIGHTS, 'select').find((g) => g.grantee === 'authenticated');
+  assert.ok(clientSelect, '§8.2 marks "Asset SELECT/use" `Y` for every role, so the row is readable');
+  for (const column of RIGHTS_WITHHELD) {
+    assert.ok(!clientSelect.columns.includes(column),
+      `${column} must be outside the client SELECT grant. §9.1 gives RIGHTS-3 the client projection `
+      + '"status/expiry, PROOF BY PERMISSION", and nothing in this repository defines that permission — the '
+      + 'same refusal the approver\'s `P` gets (RFC-2026-020 §8), arriving as a column missing from a grant '
+      + 'rather than as a role missing from a policy.');
+  }
+  for (const column of ['rights_status', 'starts_at', 'expires_at']) {
+    assert.ok(clientSelect.columns.includes(column),
+      `${column} IS granted: it is the half of the projection §9.1 does license, and a grant that withheld `
+      + 'it too would be this batch refusing a cell the class allows');
+  }
+  const workerSelect = assetGrantsFor(ASSET_RIGHTS, 'select').find((g) => g.grantee === 'app_worker');
+  assert.ok(workerSelect.columns.includes('proof_url'),
+    'the service reads the proof, which is what makes the client refusal about the PROJECTION rather than '
+    + 'about the column being unreadable by anybody');
+  // §8 has no `S` cell for a rights row, so the service holds SELECT and nothing else — and the
+  // consequence is a sweep with no writer, which the migration names rather than absorbs.
+  assert.equal(assetGrantsFor(ASSET_RIGHTS, 'insert').filter((g) => g.grantee === 'app_worker').length, 0);
+  assert.equal(assetGrantsFor(ASSET_RIGHTS, 'update').filter((g) => g.grantee === 'app_worker').length, 0,
+    '§5.1 of the asset design names an index for a "Rights expiry notification" sweep and §8 gives the '
+    + 'service no cell to write one. Where a document is silent the cell is denied; the gap is an open '
+    + 'blocker rather than a grant invented to close it.');
+});
+
+test('the editor is Y for upload and N for rights, and the two policy sets say so separately', () => {
+  const assetWriters = assetPolicies.filter((p) => p.table === ASSETS && /for (insert|update)/.test(p.body));
+  const rightsWriters = assetPolicies.filter((p) => p.table === ASSET_RIGHTS && /for (insert|update)/.test(p.body));
+  assert.equal(assetWriters.length, 2, '§8.2 row 2 gives the asset an INSERT and an UPDATE policy');
+  assert.equal(rightsWriters.length, 2, '§8.2 row 3 gives the rights record the same two');
+  for (const policy of assetWriters) {
+    assert.match(policy.body, /in \('owner', 'admin', 'editor'\)/,
+      `${policy.name}: §8.2's "Asset upload/edit/archive | Y | Y | Y | N | N | P" names three roles`);
+  }
+  for (const policy of rightsWriters) {
+    assert.match(policy.body, /in \('owner', 'admin'\)/,
+      `${policy.name}: §8.2's "Asset rights/share | Y | Y | N | P | N | P" names TWO. THE EDITOR IS N HERE `
+      + 'AND Y TWO ROWS ABOVE, which is the one place in this family a role list differs from its '
+      + "neighbour's — and therefore the one place a policy must not be copied from the policy beside it.");
+    assert.doesNotMatch(policy.body, /'editor'/,
+      `${policy.name} must not name the editor`);
+    assert.doesNotMatch(policy.body, /'approver'/,
+      `${policy.name} must not name the approver: §8.2 marks that cell P rather than Y, and RFC-2026-020 §8 `
+      + 'records as approved that no document defines the capability set. Writing the approver into the '
+      + 'role list would delete the distinction between the two.');
+  }
+  // §8.5's user-action rule, on every client write policy in the batch.
+  for (const policy of [...assetWriters, ...rightsWriters]) {
+    assert.match(policy.body, /(created_by|updated_by) = \(select auth\.uid\(\)\)/,
+      `${policy.name}: §8.5 requires "user action ตรวจ created_by = (select auth.uid())", and §8.6 case 8 is `
+      + 'asserted on it');
+  }
+  // And no client write reaches the version or the link at all.
+  for (const table of [ASSET_VERSIONS, CONTENT_ASSET_LINKS]) {
+    for (const verb of ['insert', 'update']) {
+      assert.equal(assetGrantsFor(table, verb).filter((g) => g.grantee === 'authenticated').length, 0,
+        `no client role may ${verb} app.${table}`);
+    }
+  }
+});
+
+test('no batch 100 policy predicate names the membership tables, and the helpers answer about the caller', () => {
+  for (const policy of assetPolicies) {
+    for (const table of ['workspace_members', 'workspace_member_scopes']) {
+      assert.doesNotMatch(policy.body, new RegExp(table),
+        `${policy.name} must not name app.${table}. A policy that scanned it would evaluate that scan AS THE `
+        + "CALLER, so another module's whole policy set would expand inside this table's evaluation (020's "
+        + 'reason, RFC-2026-020 §5/5). Membership goes through batch 011\'s helpers and scope through 021\'s, '
+        + 'and both answer about the CALLER only — so a policy that calls one is asking "may I", never "who '
+        + 'else is here".');
+    }
+  }
+  for (const table of ASSET_TABLES) {
+    const selects = assetPolicies.filter((p) => p.table === table && /for select/.test(p.body));
+    assert.equal(selects.length, 1, `app.${table} has exactly one SELECT policy`);
+    assert.match(selects[0].body, /app\.is_active_member\(workspace_id\)/,
+      `§8.2's "Asset SELECT/use" is \`Y\` for every built-in role, so the read predicate on app.${table} tests `
+      + 'ACTIVE MEMBERSHIP and not role. app.workspace_member_role returns a role only for an active '
+      + "membership, which is where §7's \"only status active grants access\" lives for these tables.");
+  }
+});
+
+test('the batch 100 fixture writes only catalog identities and pins the rows its cases need', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(ASSET_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant — including inside an object key, where the whole '
+      + 'point of §4.1\'s canonical shape is that every segment is an id somebody can resolve.');
+  }
+  for (const symbol of ['asset_a1', 'asset_a1_page', 'asset_a1_sibling_page', 'asset_a2', 'asset_b1',
+    'asset_version_a1', 'asset_version_a1_sibling_page', 'asset_version_a2', 'asset_version_b1',
+    'asset_rights_a1', 'asset_rights_a1_sibling_page', 'asset_rights_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // NO MEDIA, ANYWHERE. §9.1 puts MEDIA-2 in a private bucket and §9.2 names `fixture` in its own
+  // list of surfaces a prohibited thing may not reach. The digests are over synthetic strings.
+  assert.doesNotMatch(fixture, /base64|decode\(|bytea '/i,
+    'a fixture is where a prohibition is most often broken for convenience');
+  assert.match(fixture, /sha256\(convert_to\(/,
+    "the digests are composed from strings this repository owns, exactly as batch 010's cases compose an "
+    + "invitation token. sha256() from pg_catalog rather than pgcrypto's digest(), for batch 010's measured "
+    + 'reason: public.digest does not exist on the provisioned instance.');
+  // No stored key may be a prefix, which is the constraint demonstrated by data rather than asserted.
+  for (const key of [...fixture.matchAll(/'(v1\/[^']*)'/g)].map((m) => m[1])) {
+    assert.ok(!key.endsWith('/') && !key.includes('..') && !key.includes('%') && !key.includes('*'),
+      `${key} would be a prefix or a pattern. §4.2 of the object storage lifecycle contract forbids a `
+      + 'wildcard or a traversal in a key, and a trailing slash is a folder.');
+  }
+  // The statement that shows the apparent cycle is not one — 080's fixture does the same for a
+  // content item, and a batch that inlined the pointer into the insert would need a deferral this
+  // repository has nowhere.
+  assert.match(fixture, /update app\.assets[\s\S]{0,400}?set current_version_id/,
+    'app.asset_versions references app.assets, so assets_current_version_scope_fk looks circular; the column '
+    + 'is nullable, so the order is asset (null), then version, then this update. No deferral is needed and '
+    + 'this batch introduces none.');
+});
+
+test('the tables batch 100 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  for (const table of ASSET_TABLES) {
+    const entry = entries.find((e) => e.table === `app.${table}`);
+    assert.ok(entry, `app.${table} has no entry in the per-family negative control. A control that grows `
+      + 'stale as the suite grows is worse than none, because it reports a coverage it does not have.');
+    assert.equal(entry.batch, '100');
+    const matching = cases.filter((c) => new RegExp(`^${entry.pattern}`).test(c.id));
+    assert.ok(matching.length > 0, `no case id matches ${entry.pattern}, so that entry rests on nothing`);
+    const basis = matching.filter((c) => c.expect === 'no-rows'
+      || (c.expect === 'denied' && c.deniedBy === 'policy')
+      || c.expect === 'no-effect');
+    assert.ok(basis.length >= 2,
+      `app.${table}'s control entry rests on ${basis.length} case(s) that disabling row level security would `
+      + 'change, and it needs at least two. A grant-layer refusal passes unchanged with RLS off, so a family '
+      + 'whose cases are all privilege refusals has an entry that reports a coverage it does not have — which '
+      + 'is what batch 080 recorded about three of its five tables.');
+  }
+  // AND THE ONE THAT IS NEW: the service purge is in the basis, which batch 080 could not manage.
+  const purge = cases.find((c) => c.id === 'service-cannot-redact-an-asset-version');
+  assert.ok(purge, 'the `S` cell\'s own case must exist');
+  assert.equal(purge.expect, 'no-effect',
+    'app_worker holds the four columns §10\'s purge moves and NO POLICY, so the refusal is row level security '
+    + 'filtering the row rather than the privilege system raising — which is why this is `no-effect` with a '
+    + 'witness and why it FLIPS when the control disables RLS. A case demanding 42501 here would pass against '
+    + 'a database where the grant had simply been forgotten.');
+  assert.ok(purge.witness, 'and a `no-effect` case is only as strong as its witness');
+  const digest = cases.find((c) => c.id === 'service-cannot-rewrite-the-digest-of-an-asset-version');
+  assert.equal(digest.deniedBy, 'grant',
+    'the same identity, the same table, a different column and a different LAYER. The two outcomes differing '
+    + 'is what proves the four-column allowlist is a list rather than a sentence.');
+});
+
+test('no batch 100 case id can satisfy another batch\'s control entry', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ours = new Set(entries.filter((e) => e.batch === '100').map((e) => e.table));
+  const assetCases = cases.filter((c) => /library-asset|asset-version|asset-rights|asset-link/.test(c.id));
+  assert.ok(assetCases.length >= 70, 'the batch must actually add cases for this rule to be about anything');
+  for (const testCase of assetCases) {
+    const claimed = entries.filter((e) => new RegExp(`^${e.pattern}`).test(testCase.id));
+    for (const entry of claimed) {
+      assert.ok(ours.has(entry.table),
+        `${testCase.id} matches ${entry.pattern}, which belongs to ${entry.table} in batch ${entry.batch}. A `
+        + "case id that satisfies another family's control entry makes that entry pass on a failure it did "
+        + 'not cause. This is why the asset parent is `library-asset` and not `asset`: the shorter word would '
+        + 'have been matched by every version, rights and link id in this batch.');
+    }
+  }
+  const patterns = entries.filter((e) => e.batch === '100').map((e) => e.pattern);
+  assert.equal(new Set(patterns).size, patterns.length, 'two entries sharing a pattern is one entry');
+  // AND THE REVERSE, OVER A WIDER SET THAN THIS BATCH'S OWN PATTERNS. A reversal probe renamed
+  // `owner-a-sees-the-asset-version-of-a1` to `owner-a-sees-the-content-version-asset-of-a1` and
+  // this rule did not notice, because the rename moved the case OUT of the filter the rule used to
+  // select its subject — and batch 080's mirror rule passed it too, since the renamed id matches
+  // app.content_versions' pattern and that table IS batch 080's. A filter that a defect can leave
+  // is not a filter. So the sweep runs over every case id in the suite that mentions an asset at
+  // all, and the count of ids this batch's four patterns claim is PINNED, so a rename that escapes
+  // both fails on the number.
+  assert.equal(assetCases.length, 76,
+    'batch 100 contributes exactly 76 case ids across its four patterns — 24 on app.assets, 18 on '
+    + 'app.asset_versions, 20 on app.asset_rights and 14 on app.content_asset_links. A case renamed out of '
+    + 'its own family changes this number, which is the only thing a rename cannot hide from.');
+  for (const testCase of cases.filter((c) => c.id.includes('asset'))) {
+    for (const word of ['workspace', 'business', 'page', 'scope', 'research-', 'content-idea',
+      'content-item', 'content-version', 'content-variant', 'quality-review', 'knowledge-']) {
+      assert.ok(!testCase.id.includes(word),
+        `${testCase.id} contains "${word}", which is another family's control-pattern word. Cross-tenant `
+        + 'cases in this batch say `of-tenant-b` and page-level ones say `sibling-target`, for exactly this '
+        + 'reason.');
+    }
+  }
+});
+
+test('the coverage map records what batch 100 pays, and the two rows it does not move', () => {
+  for (const key of [1, 3, 4, 5, 6, 8]) {
+    assert.match(SMOKE_COVERAGE[key].note, /BATCH 100/,
+      `§12.6/${key} must record what this batch adds to it. A batch that changed no note would be claiming `
+      + 'its cases pay nothing.');
+  }
+  // BATCH 100 MOVES NO `covered` VALUE, and the two a reader might expect to move are named.
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    '§12.6/3 names content and knowledge and both are paid; this batch adds two in-scope ANALOGUES on a third '
+    + 'family and the analogue rule that kept 020, 021 and 030 from counting theirs applies unchanged');
+  assert.match(SMOKE_COVERAGE[3].note, /analogue/i, 'and they stay labelled as analogues');
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'THE ROW THIS BATCH COMES CLOSEST TO MOVING AND DOES NOT. Batch 100 carries an RLS-decided service '
+    + 'NEGATIVE that batch 080 could not — app_worker holds the purge\'s four columns and no policy — but the '
+    + 'POSITIVE half still needs an identity that could BE app_worker, and RFC-2026-022 §5/8 and M9 measure '
+    + 'that the only member is postgres, which bypasses RLS. Half a claim reported as a whole one is what '
+    + 'this map exists to prevent.');
+  assert.match(SMOKE_COVERAGE[8].note, /BATCH 100 IS THE FIRST BATCH WHOSE SERVICE CASES COME OUT TWO DIFFERENT WAYS/);
+  for (const key of [3, 4, 8, 9]) {
+    assert.match(AUTHORIZATION_CASE_COVERAGE[key], /BATCH 100/,
+      `§8.6 case ${key} must record this batch's contribution`);
+  }
+  assert.match(AUTHORIZATION_CASE_COVERAGE[4], /can only separate the two parents of a link in one direction/i,
+    'AND THE LIMIT IS RECORDED AS A LIMIT. The link case cannot distinguish which of its two parents refused '
+    + 'it, because both are restricted to the same sibling target and §4.7\'s "same Business" rule forbids '
+    + 'building a row where only one is. The apply-time assertion on both halves of the policy is the '
+    + 'substitute, and it is named as one rather than counted as coverage this suite does not have.');
+  // The cases the flipped-nothing claim rests on, pinned by id so deleting one fails here.
+  for (const name of ['approver-a-cannot-upload-a-library-asset',
+    'approver-a-cannot-allow-paid-ads-on-an-asset-rights', 'editor-a-cannot-allow-paid-ads-on-an-asset-rights',
+    'owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b',
+    'owner-b-cannot-read-the-licence-proof-on-the-asset-rights-of-b1']) {
+    assert.ok(cases.find((c) => c.id === name), `a case this batch's coverage note rests on is missing: ${name}`);
+  }
+});
+
+// A WITNESS COMPARES STRINGS, BECAUSE THE DRIVER RETURNS CSV TEXT — AND UNTIL CI RAN, NOTHING IN
+// THIS SUITE SAID SO.
+//
+// run-isolation.mjs reads a witness with `const actual = seen.rows[0][witness.column]` and asserts
+// `actual !== witness.equals` — a STRICT comparison against a value the psql driver produced by
+// parsing `--csv` output, which is always a string. So a witness whose `equals` is a boolean or a
+// number CANNOT MATCH ANY VALUE THE DATABASE COULD RETURN, in either direction: it is not a weak
+// assertion, it is an unsatisfiable one, and the case fails whether or not the write was stopped.
+//
+// MEASURED, NOT INFERRED. CI run 34754581209 failed exactly two of 705 cases --
+// `editor-a-cannot-allow-paid-ads-on-an-asset-rights` and its approver twin -- with
+// `paid_ads_allowed is "f" and should still be false`. `"f"` is PostgreSQL's CSV rendering of FALSE,
+// which is the value the fixture loads: THE POLICY HAD STOPPED THE WRITE, and the witness was
+// comparing the string "f" to the boolean false. Both halves of that run are worth keeping in mind
+// -- the first half of the assertion (the statement affected no row) PASSED, which is why the
+// failure text says so, and the second half could never have passed.
+//
+// WHY NO PROBE CAUGHT IT, stated because the probe tally would otherwise read as broader than it is:
+// all 24 reversal probes mutate SOURCE and are judged by the STATIC suite, and a witness type error
+// is invisible to every static rule this batch wrote and to every static rule that existed before
+// it. The probes test the rules; this defect lived in the gap between the rules and the database,
+// which is the gap `make db-rls-smoke` exists to cover and which no probe on this machine can reach.
+// This rule is the static half catching up.
+//
+// It is written over EVERY case in the suite rather than over batch 100's, because the trap belongs
+// to the harness rather than to a family: 46 of the 48 witnesses that existed before this run were
+// already strings, and the two that were not were the two that failed.
+test('every witness compares a string, because the driver returns CSV text and the runner uses !==', () => {
+  const witnessed = cases.filter((c) => c.witness);
+  assert.ok(witnessed.length > 0, 'there must be no-effect cases for this rule to be about anything');
+  for (const testCase of witnessed) {
+    const { witness } = testCase;
+    assert.equal(typeof witness.equals, 'string',
+      `${testCase.id}: witness.equals is ${JSON.stringify(witness.equals)}, a `
+      + `${typeof witness.equals}. run-isolation.mjs compares it with !== against a value the psql `
+      + 'driver parsed out of CSV, which is always a string — so this expectation cannot match any '
+      + 'value the database could return, and the case fails whether or not the write was stopped. '
+      + 'Cast in the statement (`select flag::text as flag`) and expect the text, which is what CI '
+      + 'run 34754581209 taught this suite.');
+    // AND THE SAME DEFECT WEARING THE OTHER FACE, which a probe found after the rule above was
+    // written: `equals: 'false'` with NO CAST is as unsatisfiable as `equals: false`, because a raw
+    // boolean column renders as `t`/`f` in CSV and never as `true`/`false`. A static rule cannot
+    // know a column's SQL type without a database — but it CAN see that an expectation spelled
+    // `true` or `false` is about a boolean, and demand the cast that makes it readable.
+    if (witness.equals === 'true' || witness.equals === 'false') {
+      assert.match(witness.sql, /::text\b/,
+        `${testCase.id}: witness.equals is ${JSON.stringify(witness.equals)}, which is a boolean `
+        + 'expectation — but a raw boolean column comes back from the CSV driver as "t" or "f", so '
+        + 'this can never match. Cast it in the statement (`select flag::text as flag`). Spelling '
+        + 'the expectation "t"/"f" instead would match, and is refused here because it reads as a '
+        + "typo rather than as a value and depends on how psql renders a boolean.");
+    }
+    assert.equal(typeof witness.column, 'string', `${testCase.id}: a witness names one column`);
+    assert.ok(witness.sql.includes(witness.column),
+      `${testCase.id}: the witness statement must select ${witness.column}, or the runner reads `
+      + 'undefined and the comparison fails for a reason that has nothing to do with the write');
+    assert.ok(witness.as, `${testCase.id}: a witness runs as an identity that CAN see the target row`);
+  }
+  // AND THE OTHER HALF OF THE SAME RULE: a `no-effect` case is only as strong as its witness, so
+  // every one of them must have one, and nothing else may.
+  for (const testCase of cases) {
+    if (testCase.expect === 'no-effect') {
+      assert.ok(testCase.witness,
+        `${testCase.id}: a no-effect case without a witness asserts only that a statement returned `
+        + 'nothing, which is also what an update returns when the row is absent');
+    } else {
+      assert.ok(!testCase.witness,
+        `${testCase.id}: only a no-effect case carries a witness; on any other outcome it is a `
+        + 'second assertion nobody reads');
+    }
+  }
+});
