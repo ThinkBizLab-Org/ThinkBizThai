@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "c5eb1b998b14b6b9474ea8fb5044e09cceaf3aa1",
-  "head_revision_or_patch_checksum": "4c17ffaa4c1fe879873dfcd67d4bda3fa7ed746b",
+  "head_revision_or_patch_checksum": "45c548e0628e2225a7f7a43259041c253cde65cd",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/100_asset.sql",
@@ -86,17 +86,17 @@
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 602, pass 602, fail 0, skipped 0, todo 0 (586 -> 602; the 16 added are this batch's static rules)"
+      "result": "clean: exit 0 — tests 603, pass 603, fail 0, skipped 0, todo 0 (586 -> 603)"
     },
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "toolchain, secret scan, protocol validators and the full suite; 602 tests, 0 failures"
+      "result": "toolchain, secret scan, protocol validators and the full suite; 603 tests, 0 failures"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs c5eb1b9 WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 15 changed path(s) are declared, and every amendment explains one"
+      "result": "all 19 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node --test tests/db/identity/identity-isolation.test.mjs",
@@ -106,7 +106,7 @@
     {
       "command": "node --test test-kits/db/foundation-contract.test.mjs",
       "exit_code": 0,
-      "result": "56 tests, 56 pass; the service-policy-map lint now refuses an undeclared field, in both directions"
+      "result": "57 tests, 57 pass (56 -> 57)"
     },
     {
       "command": "npm run regenerate:manifest",
@@ -116,21 +116,32 @@
     {
       "command": "npm run record:verification",
       "exit_code": 0,
-      "result": "recorded 602 passing, 0 skipped, 0 todo"
+      "result": "recorded 603 passing, 0 skipped, 0 todo"
+    },
+    {
+      "command": "CI run 34753623653 (head fc8a58f)",
+      "exit_code": 1,
+      "result": "FAILURE at `Verify branch scope` — evidence/VERIFICATION.md changed and undeclared. `Database foundation` and the negative control both SKIPPED, so nothing rested on a database reading. Declared in amends_without_owning at 4c17ffa."
+    },
+    {
+      "command": "CI run 34753787430 (head 03a53c4)",
+      "exit_code": 1,
+      "result": "FAILURE at `Database foundation` with `100_asset.sql: spawn E2BIG (no code)`, after applying every batch through 080_content.sql. NOT A SQL DEFECT and no statement was reached: scripts/db/psql-driver.mjs passes a migration as a single `--command` argv entry and Linux caps one argument at MAX_ARG_STRLEN = 131,072 bytes. The file was 145,686 bytes and is now 117,661. `db-rls-smoke` and the negative control were SKIPPED on this run too."
     }
   ],
   "security_privacy_cost_impact": "THREE SURFACES, AND THE THIRD IS NOT CLOSED. (1) MEDIA-2: §9.1 puts the object in a private bucket reached by a short signed URL, so the database holds a locator and a digest and an apply-time column ALLOWLIST makes a bytes column fail the migration rather than the code review; the fixture carries no media, no base64 and no real bucket name, and its digests are over synthetic strings. (2) RIGHTS-3: §9.1 projects \"status/expiry, proof by permission\" to the client and this schema implements that as a COLUMN LIST -- owner_name, proof_asset_id, proof_url and note are outside the `authenticated` SELECT grant, because nothing in this repository defines that permission. (3) THE PURGE PATH IS NOT SAFE YET AND THIS INCREMENT SAYS SO: CONTRIBUTING_AGENTS.md and §9.3 of the object storage lifecycle contract both require production object deletion to work from an approved immutable manifest of exact object keys, this schema supplies the exact keys and no table in §6's registry owns the snapshot or records the approval, and nothing here refuses a worker that composes `where object_key like $1 || '%'`. Open blocker 2, addressed to A4, A1 Security, DATA-DEC-03's RFC and batch 160. No secret, credential, customer content or PII appears in any file this increment adds. Cost impact: none -- no cost column and no usage table is created, deliberately (§5 gives both to metering.core).",
   "migration_and_data_impact": "ADDITIVE, AND NOT APPLIED ANYWHERE. One new migration, db/foundation/migrations/100_asset.sql, creating four tables in `app` with their constraints, indexes, triggers, RLS, grants and twelve policies. It rewrites no merged migration. It is declared NOT APPLIED to the provisioned instance in both places that must agree -- db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE in test-kits/db/foundation-contract.test.mjs -- INSERTED between 080 and 110 rather than appended, so the declaration stays a contiguous TAIL and pendingDeclarationLint does not report divergence. It cannot apply there in any case: its foreign keys reach composite scope keys batch 020 creates, its policies call helpers 011 and 021 create, and app.content_asset_links references app.content_versions from batch 080, which is itself on that list. NO DATA MIGRATION AND NO BACKFILL: every table is new and empty. The only writer that exists anywhere is the test fixture, which loads administratively as the table owner; nothing in the running system can create an asset version at all (open blocker 4).",
-  "compatibility_impact": "One shared rule widened, strictly narrowing: servicePolicyMapLint in scripts/db/run.mjs now holds a classification row to the closed set of fields the register's own `_shape` declares. Every existing row -- 051's two, 061's, 070's three, 110's and 131's -- passes it unchanged and was re-run. It is recorded here because three batches are being written in parallel against that lint: a sibling that adds `role` or `broker_owner` to a row must add the field to `_shape` in the same change. Nothing else in this increment changes an existing interface.",
+  "compatibility_impact": "TWO SHARED RULES TOUCHED, both strictly narrowing, and a reviewer should weigh both because three batches are in flight against the same files. (1) servicePolicyMapLint in scripts/db/run.mjs now holds a classification row to the closed set of fields the register's own `_shape` declares; every existing row — 051's two, 061's, 070's three, 110's and 131's — passes unchanged and was re-run. A sibling adding `role` or `broker_owner` to a row must add the field to `_shape` in the same change. (2) test-kits/db/foundation-contract.test.mjs gains a migration size bound; 070_research.sql is grandfathered by name because migration invariant 1 forbids rewriting it, and any sibling whose migration exceeds 120,000 bytes will fail this rule rather than CI's `spawn E2BIG`. Nothing else in this increment changes an existing interface.",
   "known_limitations": [
-    "NOTHING IN THIS REPOSITORY CAN WRITE AN app.asset_versions ROW OR SET app.assets.current_version_id. §5 makes the version immutable so its creation is not a client act; app_worker holds the INSERT grant and no policy and row level security refuses it; current_version_id is outside every INSERT and every UPDATE grant and is therefore permanently NULL. §8.2's 'Asset upload' `Y` is implemented in half. Both halves wait on a command function RFC-2026-021 §10 records does not exist. Open blocker 4.",
+    "NO ISOLATION CASE AND NO APPLY-TIME ASSERTION IN THIS BATCH HAS MET A DATABASE. Both CI runs so far failed before `db-rls-smoke` — the first at branch scope, the second at `spawn E2BIG` — and the per-family negative control is recorded `skipped` on both. The figure 705 is what `buildCases` returns, not a pass count, and the whole `do $$` block in 100_asset.sql is unexercised.",
+    "NOTHING IN THIS REPOSITORY CAN WRITE AN app.asset_versions ROW OR SET app.assets.current_version_id. §5 makes the version immutable so its creation is not a client act; app_worker holds the INSERT grant and no policy and row level security refuses it; current_version_id is outside every INSERT and every UPDATE grant and is therefore permanently NULL. §8.2's 'Asset upload' `Y` is implemented in half, and both halves wait on a command function RFC-2026-021 §10 records does not exist. Open blocker 4.",
     "§4 INVARIANT 5's TWO CONDITIONS ON A PIN ARE NOT ENFORCED. A content asset link pins an asset_version_id and cannot check that the version is `ready` or that rights are valid: a CHECK cannot read another table and a policy could only through the coupling batch 020 rejects. Open blocker 5.",
-    "THE LINK'S TWO-PARENT NARROWING CANNOT BE SEPARATED BY A CASE. Both parents of the sibling-target link are restricted together, because §4.7's 'same Business' rule forbids a fixture row whose asset and whose content version are in different narrowings. The apply-time assertion that both parent names appear in both halves of the policy is the substitute, and it is recorded as one in AUTHORIZATION_CASE_COVERAGE[4] rather than counted as coverage the suite does not have.",
-    "NO PROBE AND NO CASE HAS MET A DATABASE ON THIS BRANCH. This machine has no PostgreSQL client. The apply-time block, the 76 isolation cases and the four CI negative-control entries are unexercised locally.",
+    "THE LINK'S TWO-PARENT NARROWING CANNOT BE SEPARATED BY A CASE. Both parents of the sibling-target link are restricted together, because §4.7's 'same Business' rule forbids a fixture row whose asset and whose content version are in different narrowings. The apply-time assertion that both parent names appear in both halves is the substitute, recorded as one in AUTHORIZATION_CASE_COVERAGE[4] rather than counted as coverage the suite does not have.",
+    "100_asset.sql WAS COMPRESSED TO FIT A LIMIT NOBODY HAD WRITTEN DOWN, and a reader should know the prose is shorter than 070's and 080's for that reason rather than by choice. No constraint, grant, policy, index, trigger or assertion was removed — the structural counts are unchanged — but the header's last three sections, the 18 apply-time hints and the 21 comment statements are terser than they were. Open blocker 12 carries the driver fix that would remove the constraint.",
     "THE CLIENT GRANTS THIS BATCH ADDS JOIN THE LIST RFC-2026-021 §8.5 EXPECTS TO BE CLOSED, which still does not exist. Every grant here is column-scoped and bounded by app.is_active_member(workspace_id), which is the reason every batch since 030 has given, and the list is a debt rather than a contradiction."
   ],
   "open_risks_or_blockers": [
-    "ELEVEN new open blockers are recorded in work-packages/WP-0A-DB-00.json (130 -> 141). In order of what they cost: (2) the approved immutable manifest of exact object keys that §9.3 and CONTRIBUTING_AGENTS.md require before any production object deletion has no table and no owner; (4) nothing can write an asset version or set current_version_id; (3) app.content_variants has no composite unique over (workspace_id, business_profile_id, content_version_id, id), so a link's variant reference is held to the tenant and not to the content version -- owed to batch 080's owner; (5) neither condition on §4 invariant 5's pin is enforceable; (9) the sharing path is unimplemented and unowned, and honouring it would widen a member's reach past their member scope; (1) §5 names `backup` and `usage` and no batch owns either; (6) pg_trgm is not in the approved extension set so §5.1's Thai-search index cannot exist; (7) §5.1's rights-expiry sweep has an index and no writer; (8) §6.2's 'Audit ทุกครั้ง' on a rights change is not implemented; (10) an uploaded filename is stored access-restricted and not encrypted; (11) no codec vocabulary exists, so two columns §4.2 names are absent.",
+    "TWELVE new open blockers are recorded in work-packages/WP-0A-DB-00.json (130 -> 142). In order of what they cost: (2) the approved immutable manifest of exact object keys that §9.3 and CONTRIBUTING_AGENTS.md require before any production object deletion has no table and no owner; (4) nothing can write an asset version or set current_version_id; (3) app.content_variants has no composite unique over (workspace_id, business_profile_id, content_version_id, id), so a link's variant reference is held to the tenant and not to the content version -- owed to batch 080's owner; (5) neither condition on §4 invariant 5's pin is enforceable; (9) the sharing path is unimplemented and unowned, and honouring it would widen a member's reach past their member scope; (1) §5 names `backup` and `usage` and no batch owns either; (6) pg_trgm is not in the approved extension set so §5.1's Thai-search index cannot exist; (7) §5.1's rights-expiry sweep has an index and no writer; (8) §6.2's 'Audit ทุกครั้ง' on a rights change is not implemented; (10) an uploaded filename is stored access-restricted and not encrypted; (11) no codec vocabulary exists, so two columns §4.2 names are absent. (12) EVERY MIGRATION IS CAPPED AT ~128 KiB BY THE DRIVER AND THE CAP WAS UNDOCUMENTED: scripts/db/psql-driver.mjs passes a migration to psql as a single `--command` argv entry, Linux caps one argument at MAX_ARG_STRLEN = 131,072 bytes, and the failure is `spawn E2BIG` before psql starts — no SQLSTATE, no statement named. Measured by CI run 34753787430. 070_research.sql cleared the ceiling by 219 bytes. The driver fix (stdin rather than an argument) is A0's; a rule in test-kits/db/foundation-contract.test.mjs stands in for it until then.",
     "SEPARATION OF DUTIES IS NOT SATISFIED AND THIS INCREMENT DOES NOT SATISFY IT. RFC-2026-002 requires linked Author, independent Reviewer, independent Tester, Security/Privacy and Integration Owner evidence before a merge into main. Only the Author's is present, as on every increment in this package's history. The PR is a Draft and must not be merged on this evidence.",
     "THE BRANCH SLOT IS CONTENDED. ownership.branch is a single value and batches 081 and 090 are being authored in parallel against the same shared files (isolation-cases.mjs, identity-isolation.test.mjs, catalog-snapshot.json, fixture-catalog.json, ci.yml, test-suite-contract.mjs, the manifest). The conflict is expected; integration is sequential and belongs to the Integration Owner, not to any author."
   ],
