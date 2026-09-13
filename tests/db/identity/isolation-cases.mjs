@@ -348,7 +348,17 @@ export const SMOKE_COVERAGE = {
            + 'workspace and a row addressed by its natural key is addressed as exactly as one '
            + 'addressed by a uuid. What is behind this boundary is the product itself: an idea is '
            + 'what a business intends to publish, a version is what it wrote, a variant is the text '
-           + 'queued for a platform, and a quality review is the verdict reached on it.' },
+           + 'queued for a platform, and a quality review is the verdict reached on it.'
+           + '\n\n'
+           + 'BATCH 090 ADDS THREE TABLES WITH ALL THREE CASES EACH, and on two of them the id a '
+           + 'case holds is not a uuid. An approval POLICY is held by (workspace_id, '
+           + 'business_profile_id, policy_key, version), which is §5\'s "policy versioned" as a '
+           + 'constraint; an approval EVENT is held by (approval_request_id, action, '
+           + 'idempotency_key), which is §4.7\'s "unique idempotency key ต่อ action" used as an '
+           + 'address. That matters here rather than only in the catalog: the strongest form this '
+           + 'row takes is tenant A holding EVERY part of tenant B\'s address and still reading '
+           + 'nothing, and on the trail that now includes the key whose whole purpose is to be '
+           + 'unique. What is behind this boundary is who approved what, when, and why.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -446,7 +456,20 @@ export const SMOKE_COVERAGE = {
            + '`pinned-editor-a-cannot-see-the-content-variant-of-a-sibling-target-item` and its '
            + 'quality-review twin are the only cases in this suite that fail if the second link is '
            + 'replaced by member_scope_admits_business over the version\'s own columns, which is '
-           + 'why the fixture loads a variant and a review under the sibling-page item at all.' },
+           + 'why the fixture loads a variant and a review under the sibling-page item at all.'
+           + '\n\n'
+           + 'BATCH 090 ASKS IT AT THE SAME DEPTH AND FROM A DIFFERENT DIRECTION. The POLICY '
+           + 'carries both scope columns and asks the two questions itself. The REQUEST carries no '
+           + 'page column AT ALL — a nullable copy of the item\'s page could not be held equal to '
+           + 'it under MATCH SIMPLE — so it resolves through app.content_items, and the EVENT '
+           + 'resolves through the request and then through that item: two links, like 080\'s '
+           + 'variant, but with the first link landing in ANOTHER BATCH\'S TABLE. '
+           + '`pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item` is the only '
+           + 'case in this batch that fails if the second link is replaced by '
+           + 'member_scope_admits_business over the request\'s own columns, and '
+           + '`pinned-editor-a-sees-the-approval-event-of-a-reachable-item` is the same caller '
+           + 'admitted two links down, which is what stops the refusal being read as a caller who '
+           + 'reaches nothing.' },
   // FLIPPED BY BATCH 080, and it is the only value in this map that has ever moved. It read
   // `knowledge-half` from batch 040 until the tables the other half of §12.6/3 names existed; five
   // batches recorded in turn that they were not content and did not move it. The paragraphs they
@@ -605,7 +628,22 @@ export const SMOKE_COVERAGE = {
            + 'holds, which says nothing about a viewer. The four cases that do carry it are '
            + '`viewer-a-cannot-create-a-content-item`, `-capture-a-content-idea` (both RAISE, '
            + 'because an INSERT policy has no row to filter) and `viewer-a-cannot-rename-a-content-'
-           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).' },
+           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).'
+           + '\n\n'
+           + 'ON BATCH 090 IT IS EVERY WRITE ALL THREE TABLES OFFER A CLIENT. '
+           + '`viewer-a-cannot-write-an-approval-policy` and `-raise-an-approval-request` RAISE, '
+           + 'because an INSERT policy has no row to filter; '
+           + '`viewer-a-cannot-toggle-an-approval-policy`, `-cancel-an-approval-request` and '
+           + '`-decide-an-approval-request` are `no-effect` with witnesses. The trail offers a '
+           + 'client NO write at all, so it carries no viewer case and should not: a viewer refused '
+           + 'an INSERT into app.approval_events is refused for want of a grant nobody holds, which '
+           + 'says nothing about a viewer and is counted under §8.6/9.\n\n'
+           + 'THE VIEWER\'S CANCEL IS ALSO THE CONTROL FOR THIS BATCH\'S SHARPEST PAIR. '
+           + '`approver-a-cannot-cancel-an-approval-request` is `denied` where the viewer\'s is '
+           + '`no-effect`, and the difference is that the approver holds the OTHER of §8.3\'s two '
+           + 'write rows: their USING half admits the row, so the statement reaches the WITH CHECK '
+           + 'halves and errors, while the viewer holds neither row and is filtered before any '
+           + 'WITH CHECK is evaluated.' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -703,7 +741,15 @@ export const SMOKE_COVERAGE = {
            + 'BATCH 080 ADDS FOUR SUSPENDED READS, one per table a case addresses by a constant, and '
            + 'each is paired with an active member of the same workspace reading the same row. '
            + 'app.is_active_member is where §7 lives for all five policies here, and none of the '
-           + 'predicates carries a `status` term of its own.' },
+           + 'predicates carries a `status` term of its own.'
+           + '\n\n'
+           + 'BATCH 090 ADDS THREE SUSPENDED READS, one per table, each paired with an active '
+           + 'member of the same workspace reading the same row — and one suspended WRITE, '
+           + '`suspended-a-cannot-toggle-an-approval-policy`, with a witness, because a read case '
+           + 'alone cannot tell a suspended member from a member the narrowing subtracts. '
+           + 'app.is_active_member is where §7 lives for all three SELECT policies here and '
+           + 'app.workspace_member_role for the four write paths, and none of the predicates '
+           + 'carries a `status` term of its own.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -812,7 +858,13 @@ export const SMOKE_COVERAGE = {
            + 'BATCH 080 ADDS FOUR MORE ANONYMOUS CASES AND EVERY ONE IS REFUSED IN THE SAME PLACE, on '
            + 'the SCHEMA. There is no table in this family whose refusal is argued from a '
            + 'sensitivity class instead, which is the one way 070\'s set differed from every set '
-           + 'before it.' },
+           + 'before it.'
+           + '\n\n'
+           + 'BATCH 090 ADDS THREE MORE AND EVERY ONE IS REFUSED IN THE SAME PLACE, on the SCHEMA. '
+           + 'That is worth a sentence rather than none, because app.approval_events holds the '
+           + 'material an unauthenticated reader would most want and the refusal has nothing to do '
+           + 'with what it holds: `anon` has no USAGE on app, so name resolution stops before a '
+           + 'sensitivity class is ever consulted.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -930,7 +982,21 @@ export const SMOKE_COVERAGE = {
            + 'since 030 has been able to do: §8.2 row 2 gives content a client INSERT, so '
            + '`owner-a-cannot-forge-the-actor-on-a-content-item` is the passing create above with '
            + '`created_by` changed to another member of the same workspace — one argument, one '
-           + 'refusal, attributable to `created_by = (select auth.uid())`.' },
+           + 'refusal, attributable to `created_by = (select auth.uid())`.'
+           + '\n\n'
+           + 'BATCH 090 CARRIES IT ON BOTH OF ITS CLIENT-WRITABLE TABLES, and on one of them the '
+           + 'forged column is the answer to a question an auditor asks. '
+           + '`owner-a-cannot-forge-the-actor-on-an-approval-policy` is the passing create with '
+           + '`created_by` changed to another member of the SAME workspace: a forged author on an '
+           + 'approval POLICY is the record of who decided the gate should be this shape. '
+           + '`owner-a-cannot-forge-the-actor-on-an-approval-request` is its twin, and the builder '
+           + 'sets `requested_by` from the same argument, so it forges the column §4.7 names by '
+           + 'that word as well as the one §8.5 does.\n\n'
+           + 'THE DECISION HALF IS HELD BY A DIFFERENT MECHANISM AND IT IS WORTH NAMING: '
+           + '`decided_by` is held equal to auth.uid() by the decide policy\'s WITH CHECK half, '
+           + 'and approval_requests_decision_has_a_decider makes the column mandatory on exactly '
+           + 'the two status values that §8.3 row produces — so a decision cannot be recorded '
+           + 'without naming a decider and cannot name one who is not the caller.' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -1174,7 +1240,21 @@ export const SMOKE_COVERAGE = {
            + 'is part of the CI negative control\'s basis, because a grant-layer refusal passes '
            + 'unchanged with row level security off. The positive half stays unpayable for the '
            + 'reason it has been since batch 010, and one further: there is no identity that could '
-           + 'be the service here even if one could BE app_worker.' },
+           + 'be the service here even if one could BE app_worker.'
+           + '\n\n'
+           + 'BATCH 090 MAKES BATCH 080\'S CLAIM AND HAS A SECOND REASON FOR IT. app_worker is '
+           + 'granted nothing on any of the three tables, so every service case here is a PRIVILEGE '
+           + 'refusal, none carries RFC-2026-017 §7, and none is in the CI negative control\'s '
+           + 'basis. 080 argued that from the command boundary alone; this batch has that argument '
+           + 'AND a matrix one: §8.3 marks the Service column `P` on three rows and `N` on the '
+           + 'fourth, so there is no `S` cell anywhere in this family for a worker grant to '
+           + 'anticipate, and db/foundation/lint/service-policy-map.json gets no entry from it.\n\n'
+           + 'AND ONE SERVICE REFUSAL HERE IS A COST RATHER THAN A CONTROL. '
+           + '`service-cannot-write-an-approval-event` refuses the natural producer of an approval '
+           + 'event — a timed auto-approval, a policy evaluation — so nothing in this repository '
+           + 'records a decision at all. §8.3 row 4 is `N` for the service too, so THAT half is the '
+           + 'matrix being implemented rather than a gap; the gap is that the writer it points to '
+           + 'does not exist, and it is in the open blockers.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1946,7 +2026,26 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'grant is inert and a grant with no policy is a weaker refusal than immutability asks for. '
    + 'What no case can carry here is the positive: nothing in this repository may write a '
    + 'content version at all until a SECURITY DEFINER command function exists, and RFC-2026-021 '
-   + '§10 records that none does.',
+   + '§10 records that none does.\n\n'
+   + 'BATCH 090 ADDS THE SECOND ROW IN §8 OF THAT SHAPE, AND IT IS THE FIRST ONE OUTSIDE §8.2. '
+   + '"Approval event UPDATE/DELETE" is `N` for owner, admin, editor, approver, viewer AND '
+   + 'service. app.approval_events therefore carries no insert, update or delete grant to any '
+   + 'role and no policy for any of those verbs, asserted both ways against the live catalog, '
+   + 'and seven cases hold it — three from the WORKSPACE OWNER, one each from the approver and '
+   + 'the editor, and three from the service. WHAT IS DIFFERENT FROM 080 IS WHAT THE EMPTY '
+   + 'TABLE COSTS. A content version that cannot be written is a product that cannot generate; '
+   + 'an approval event that cannot be written is §4 invariant 8\'s immutable decision trail '
+   + 'holding nothing, so the integrity this row protects is the integrity of an empty record. '
+   + 'The requests beside it CAN be decided, which means a decision can be taken and not '
+   + 'recorded. That is in the work package\'s open blockers and is the one thing about this '
+   + 'batch a reader should not be allowed to take for a control.\n\n'
+   + 'THE POLICY AND THE REQUEST ARE NOT IMMUTABLE AND ARE COUNTED ELSEWHERE, except for one '
+   + 'half of each that belongs here: `owner-a-cannot-raise-the-quorum-of-an-approval-policy` '
+   + 'and `owner-a-cannot-renumber-an-approval-policy` are §4.7\'s "published policy version '
+   + 'immutable" as a column allowlist, and `owner-a-cannot-repin-an-approval-request` is §4 '
+   + 'invariant 6\'s "Version ใหม่ไม่ inherit approval" as a missing column grant. All three are '
+   + 'privilege refusals held by the owner, which is the same evidence shape as the seven above '
+   + 'applied to a column rather than to a table.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -11906,6 +12005,1057 @@ export function buildCases(id) {
          + 'Until it exists, nothing in this repository can record a quality verdict at all, and '
          + 'that is stated here rather than left to be discovered by whoever builds the gate.',
     },
+
+    // -- BATCH 090 — approval: the policy, the request and the trail. -------------------------
+    //
+    // Three tables and three shapes of case, because §8.3 gives this family four rows and they do
+    // not fall one per table.
+    //
+    //   * §8.3 HAS NO SELECT ROW FOR APPROVAL AT ALL. Every read case below rests on the three
+    //     sentences 090_approval.sql's header names — the approver's `Y` on the decide row, §5's
+    //     CONTENT-2 beside AUTH-3, and §8.4's "approval trail" — rather than on a matrix cell.
+    //     That is weaker than every other family's read basis in this suite and is recorded as
+    //     weaker here rather than in a commit message nobody re-reads.
+    //   * THE POLICY carries §8.3 row 1 — manage is `Y` for owner and admin and `N` for the other
+    //     three — as an INSERT and a ONE-COLUMN UPDATE. §4.7's "published policy version immutable"
+    //     is the columns that grant does NOT name, so the quorum and the version number are
+    //     privilege refusals and the toggle is a policy refusal, from the same caller.
+    //   * THE REQUEST carries §8.3 rows 2 and 3, which are DIFFERENT ROWS WITH DIFFERENT ROLE CELLS
+    //     over the SAME granted column. The cases that matter most in this batch are the crossed
+    //     ones: an editor writing `approved` and an approver writing `cancelled`. Both are
+    //     `denied` rather than `no-effect`, and the reason is worth stating because it is the whole
+    //     design: the OTHER policy's USING half admits the row, so the statement is not filtered —
+    //     it reaches the WITH CHECK halves, both of which refuse it, and the error is 42501.
+    //   * THE TRAIL carries row 4 — `N` for every role INCLUDING the service, which only §8.2 row 3
+    //     is besides it — as absent grants and absent policies. Every write case against it is a
+    //     GRANT-layer refusal AND IS RUN FROM THE WORKSPACE OWNER, which is what makes it about the
+    //     operation rather than about the caller.
+    //
+    // THE SERVICE CASES MAKE BATCH 080's CLAIM AND NOT BATCH 070's. app_worker is granted nothing on
+    // any of these three tables: §8.3 marks the Service column `P` on three rows and `N` on the
+    // fourth, so there is no `S` cell for a worker grant to anticipate, and the writer this family
+    // needs is a SECURITY DEFINER command function owned by app_command (RFC-2026-017 §3). So every
+    // service case below is refused by the PRIVILEGE system — a different claim, not a stronger
+    // version of the same one — and none is filed under RFC-2026-017 §7, which asks for a refusal BY
+    // row level security and therefore needs a grant for row level security to refuse.
+    {
+      id: 'owner-a-sees-the-approval-policy-of-a1',
+      covers: ['§8.3', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against, and the one whose basis is '
+         + 'thinnest in this batch: §8.3 has NO SELECT row for approval policy, request or event. '
+         + 'The policy tests active membership and not role, and user_owner_a holds no member scope '
+         + 'row at all — 021 reads §7 as "a scope narrows, it does not grant", so the restrictive '
+         + 'narrowing subtracts nothing here.',
+    },
+    {
+      id: 'owner-a-sees-both-versions-of-the-approval-policy-key',
+      covers: ['§8.3', '§5/versioned'],
+      as: ownerA,
+      sql: APPROVAL_POLICY_VERSIONS_OF_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS],
+      expect: 'rows',
+      why: 'THE CASE THAT MAKES "VERSIONED" MEAN SOMETHING. §5 says "policy versioned" and 090 '
+         + 'implements it as (workspace_id, business_profile_id, policy_key, version) rather than '
+         + 'as a separate version table, so two rows of one key coexisting IS the mechanism. The '
+         + 'fixture loads version 1 disabled with a quorum of 1 and version 2 enabled with a quorum '
+         + 'of 2, so the pair disagrees in a column a client may move and in one no client may.',
+    },
+    {
+      id: 'viewer-a-sees-the-approval-policy-of-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: viewerA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'rows',
+      why: 'The viewer reads the gate and cannot touch it, and both halves are asserted: this case '
+         + 'and viewer-a-cannot-toggle-an-approval-policy. The READ here is the widest claim this '
+         + 'batch makes on a row §8.3 does not have — §9.1 gives AUTH-3 "minimum role projection" '
+         + 'and a projection is a view with an allowlist entry, which RFC-2026-021 §8.1\'s file '
+         + 'does not exist to hold.',
+    },
+    {
+      id: 'approver-a-sees-the-approval-policy-of-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: approverA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'rows',
+      why: 'The approver reads the policy they decide under and cannot manage it: §8.3 row 1 is `N` '
+         + 'for the approver and row 3 is `Y`. The pair is the clearest reading of §7\'s "approver: '
+         + 'อ่านงานใน scope, approve/reject/request changes ตาม policy" this schema can express.',
+    },
+    {
+      id: 'editor-a-sees-the-approval-policy-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and this policy is under it, so '
+         + 'app.member_scope_admits_business is true. Without this positive the case below would be '
+         + 'satisfied by a narrowing that denied the editor everything.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-approval-policy-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A2, APPROVAL_POLICY_A2_BUSINESS, '1'],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on this family: same Workspace, a Business the member scope does not cover. '
+         + 'The permissive policy admits it — the editor is an active member — and the RESTRICTIVE '
+         + 'narrowing subtracts it, which is the only shape that can subtract at all.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-approval-policy-of-their-own-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_PINNED, '1'],
+      expect: 'rows',
+      why: 'The `else` branch of the policy\'s own narrowing — app.member_scope_admits_page — '
+         + 'reached by the one identity in this suite whose scope is a single Page. This is the '
+         + 'only table in batch 090 that asks the Page question about its OWN columns; the request '
+         + 'and the event resolve it through app.content_items instead.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-approval-policy-of-a-sibling-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_SIBLING, '1'],
+      expect: 'no-rows',
+      why: '§8.6 case 4, which no identity §12.6 names can carry: the editor and the approver are '
+         + 'both scoped at BUSINESS level and §7 gives a business scope every Page beneath it. This '
+         + 'refusal is by PAGE inside a Business the caller is otherwise admitted to — the case '
+         + 'above proves the caller is admitted — which is what distinguishes it from case 3.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-approval-policy-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [B, BUSINESS_B1, APPROVAL_POLICY_B1_BUSINESS, '1'],
+      expect: 'no-rows',
+      why: 'The tenant boundary, held by tenant B\'s exact workspace id, Business id and policy key. '
+         + 'Proving A cannot reach B by guessing is worthless; this holds every part of the address.',
+    },
+    {
+      id: 'owner-b-sees-the-approval-policy-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerB,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [B, BUSINESS_B1, APPROVAL_POLICY_B1_BUSINESS, '1'],
+      expect: 'rows',
+      why: 'The control for the case above. Without it, an empty table on the B side would satisfy '
+         + 'the refusal just as well as a working boundary does.',
+    },
+    {
+      id: 'suspended-a-cannot-see-the-approval-policy-of-a1',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'no-rows',
+      why: '§7: "Member status ที่ให้ access ได้มีเพียง `active`". app.is_active_member is where that '
+         + 'lives for all three policies in this batch, and none of the predicates carries a '
+         + '`status` term of its own. Paired with owner-a-sees-the-approval-policy-of-a1, which is '
+         + 'the same row read by an active member of the same workspace.',
+    },
+    {
+      id: 'anonymous-cannot-read-an-approval-policy',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA rather than the table: `anon` holds no USAGE on app, so name '
+         + 'resolution stops before a table is reached. RFC-2026-021 §7/4 makes that an approved '
+         + 'decision, and declaring the schema is what makes this case notice the day it changes.',
+    },
+    {
+      id: 'service-cannot-read-an-approval-policy',
+      covers: ['§12.6/8-negative', '§8.3/service-P'],
+      as: service,
+      sql: APPROVAL_POLICY_BY_KEY,
+      params: [A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'NOT labelled RFC-2026-017 §7, for 130\'s reason and 080\'s: §7 asks for the service to '
+         + 'be denied BY row level security with an error, which needs a GRANT for row level '
+         + 'security to then refuse. Batch 090 grants app_worker nothing on any of its three '
+         + 'tables, so this refusal is the privilege system. §8.3 marks the service `P` on three '
+         + 'rows and `N` on the fourth, no document defines that capability, and a `P` with no '
+         + 'capability defined is not an `S` — so there is no service policy here and no entry in '
+         + 'the service-policy map.',
+    },
+    {
+      id: 'owner-a-can-toggle-an-approval-policy',
+      covers: ['§8.3', '§8.6/1'],
+      as: ownerA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'rows',
+      why: 'The whole of what §8.3 row 1 lets a client change on an existing policy. `enabled` is '
+         + 'the one column in the UPDATE grant, and this case is what makes every refusal below a '
+         + 'statement about what was attempted rather than about the table being closed.',
+    },
+    {
+      id: 'admin-a-can-toggle-an-approval-policy',
+      covers: ['§8.3', '§8.6/1'],
+      as: { helper: 'as_user', subject: id('user_admin_a') },
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'rows',
+      why: 'The second `Y` in §8.3 row 1, and the identity is spelled inline here because '
+         + 'buildCases names no admin constant — batch 061 met the same gap and resolved it the '
+         + 'same way. Row 1 is the only row in §8.3 whose owner and admin cells are both `Y` while '
+         + 'the editor\'s is `N`, so an admin case is the only way to tell it from row 2.',
+    },
+    {
+      id: 'editor-a-cannot-toggle-an-approval-policy',
+      covers: ['§8.6/2', '§8.3'],
+      as: editorA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalPolicyStillEnabled(ownerA, A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', 'true'),
+      why: 'THE CELL THAT SEPARATES THIS FAMILY FROM CONTENT. §8.2 row 2 gives the editor content; '
+         + '§8.3 row 1 marks them `N` on the gate. Writing the rule is not the same act as writing '
+         + 'the thing the rule is for. The outcome is `no-effect` rather than `denied` because the '
+         + 'USING half of an UPDATE policy FILTERS: a row the policy does not admit is not a row '
+         + 'the statement refuses, it is a row the statement never sees.',
+    },
+    {
+      id: 'approver-a-cannot-toggle-an-approval-policy',
+      covers: ['§8.6/2', '§8.3'],
+      as: approverA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalPolicyStillEnabled(ownerA, A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', 'true'),
+      why: 'The approver decides UNDER a policy and cannot change the policy they decide under, '
+         + 'which is the one property of §8.3 that would make an approval gate meaningless if it '
+         + 'failed. They read the row — the case above says so — so this is the role being refused '
+         + 'and not the row being hidden.',
+    },
+    {
+      id: 'viewer-a-cannot-toggle-an-approval-policy',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalPolicyStillEnabled(ownerA, A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', 'true'),
+      why: '§8.3 row 1 is `N` for the viewer where the read above is permitted, so this is the '
+         + 'operation being refused rather than the table.',
+    },
+    {
+      id: 'owner-a-cannot-raise-the-quorum-of-an-approval-policy',
+      covers: ['§8.3', '§4/7-immutable'],
+      as: ownerA,
+      ...approvalRaiseQuorum(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'THE CASE THIS BATCH IS MOST LIKELY TO BE READ WRONG WITHOUT, and it is the twin of '
+         + '080\'s owner-a-cannot-approve-a-content-item. §8.3 marks "Approval policy manage" `Y` '
+         + 'for the owner, so a reader expects the owner to be able to edit a policy; §4.7 says '
+         + '"published policy version immutable". Both are true and they are about different acts: '
+         + 'the owner toggles `enabled` and writes a NEW VERSION, and cannot rewrite the decision '
+         + 'an existing version encodes. The refusal is a column missing from the UPDATE grant '
+         + 'rather than a policy predicate — an absent privilege has to be WRITTEN to be undone.',
+    },
+    {
+      id: 'owner-a-cannot-renumber-an-approval-policy',
+      covers: ['§8.3', '§4/7-immutable'],
+      as: ownerA,
+      ...approvalRenumberPolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'THE OTHER WAY TO REWRITE A PUBLISHED DECISION, and the one a case list that only '
+         + 'guarded the value columns would miss: leave every decision column alone and move the '
+         + 'row to a different ordinal, so that a request pinned to version 2 now resolves to a '
+         + 'policy nobody approved as version 2. `version` is outside the UPDATE grant beside the '
+         + 'quorum for exactly this reason.',
+    },
+    {
+      id: 'owner-a-can-write-a-second-approval-policy-version',
+      covers: ['§8.3', '§5/versioned'],
+      as: ownerA,
+      ...approvalWritePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '3', '__SELF__'),
+      expect: 'rows',
+      why: 'THE HALF THE TWO REFUSALS ABOVE LEAVE, AND THE REASON THEY COST NOTHING. A new decision '
+         + 'is a new row: the same policy key at a new ordinal. Without this case the pair above '
+         + 'would read as a table nobody can maintain, which is the opposite of what §5\'s '
+         + '"policy versioned" asks for.',
+    },
+    {
+      id: 'editor-a-cannot-write-an-approval-policy',
+      covers: ['§8.6/2', '§8.3'],
+      as: editorA,
+      ...approvalWritePolicy(A, BUSINESS_A1, 'attempted-editor-policy', '1', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: '§8.3 row 1 is `N` for the editor. The editor can READ this table and the grant is held '
+         + 'by `authenticated` as a role rather than by a person, so the refusal is the policy\'s '
+         + 'role test and not a missing privilege.',
+    },
+    {
+      id: 'approver-a-cannot-write-an-approval-policy',
+      covers: ['§8.6/2', '§8.3'],
+      as: approverA,
+      ...approvalWritePolicy(A, BUSINESS_A1, 'attempted-approver-policy', '1', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'An approver who could write the policy could write themselves a quorum of one. §8.3 '
+         + 'row 1 is `N` for them and this is the INSERT half of that cell.',
+    },
+    {
+      id: 'viewer-a-cannot-write-an-approval-policy',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...approvalWritePolicy(A, BUSINESS_A1, 'attempted-viewer-policy', '1', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: '§12.6/4 on the first of this batch\'s tables: the viewer refused every write the table '
+         + 'actually offers a client, which here is an INSERT and a one-column UPDATE.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-an-approval-policy',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...approvalWritePolicy(A, BUSINESS_A1, 'attempted-forged-policy', '1', id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: '§8.6 case 8 at INSERT time. The statement is the passing create above with ONE ARGUMENT '
+         + 'CHANGED — `created_by` set to another member of the SAME workspace — so the refusal is '
+         + 'attributable to `created_by = (select auth.uid())` and to nothing else. A forged author '
+         + 'on an approval policy is worse than on a content row: it is the audit answer to "who '
+         + 'decided this gate should be this shape".',
+    },
+    {
+      id: 'owner-a-cannot-write-an-approval-policy-in-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      ...approvalWritePolicy(B, BUSINESS_B1, 'attempted-cross-tenant-policy', '1', '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'The cross-tenant WRITE, holding tenant B\'s exact workspace and Business ids so the '
+         + 'composite foreign key is satisfied and the refusal can only be the policy. '
+         + 'app.workspace_member_role answers null for a workspace the caller is not a member of, '
+         + 'and null is in neither of the two roles.',
+    },
+    {
+      id: 'owner-a-cannot-toggle-the-approval-policy-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...approvalTogglePolicy(B, BUSINESS_B1, APPROVAL_POLICY_B1_BUSINESS, '1', '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalPolicyStillEnabled(ownerB, B, BUSINESS_B1, APPROVAL_POLICY_B1_BUSINESS, '1', 'true'),
+      why: 'The cross-tenant write on an EXISTING row, holding B\'s exact address. The witness runs '
+         + 'as B\'s owner because no A-side identity can see the row at all, which is the shape 020 '
+         + 'established for a workspace name.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-approval-policy',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      ...approvalDeletePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: '§8.5: "ไม่มี broad user delete". A deleted policy version is a request pinned to nothing '
+         + '— app.approval_requests.policy_version_id references this row — and the refusal is a '
+         + 'DELETE grant no role holds rather than a foreign key, so it holds for a version no '
+         + 'request has pinned as well as for one that has.',
+    },
+    {
+      id: 'suspended-a-cannot-toggle-an-approval-policy',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalPolicyStillEnabled(ownerA, A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', 'true'),
+      why: 'The write half of §8.6 case 6, paired with the read half above. A suspended owner is '
+         + 'refused by app.workspace_member_role answering null for a member whose status is not '
+         + '`active`, which is the same helper the read case turns on.',
+    },
+
+    // -- The request: §8.3's two write rows over one granted column. --------------------------
+    {
+      id: 'owner-a-sees-the-approval-request-of-a1',
+      covers: ['§8.3', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'rows',
+      why: 'The positive the request negatives are measured against. Its reach is resolved through '
+         + 'app.content_items — this table carries no page column — so even this case is evidence '
+         + 'about a chain rather than about a predicate on the row.',
+    },
+    {
+      id: 'viewer-a-sees-the-approval-request-of-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: viewerA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'rows',
+      why: 'The viewer reads the request and can move none of its states, and both halves are '
+         + 'asserted: this case and viewer-a-cannot-decide-an-approval-request.',
+    },
+    {
+      id: 'approver-a-sees-the-approval-request-of-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: approverA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'rows',
+      why: 'THE READ §8.3 ROW 3 PRESUPPOSES AND DOES NOT STATE. An approver who cannot see a '
+         + 'request cannot approve one, which is the first of the three sentences the read surface '
+         + 'in this batch rests on. It also makes the refusals below about the ROLE rather than '
+         + 'about visibility.',
+    },
+    {
+      id: 'editor-a-sees-the-approval-request-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and the request\'s ITEM is under '
+         + 'it. Without this positive the case below would be satisfied by a narrowing that denied '
+         + 'the editor everything.',
+    },
+    {
+      id: 'editor-a-cannot-see-the-approval-request-outside-their-narrowing',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3, resolved one table away: the narrowing reads the request\'s content item '
+         + 'and asks the Business question about the ITEM\'s columns.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-approval-request-of-their-own-target',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1_page')],
+      expect: 'rows',
+      why: 'The `else` branch of app.content_items\' narrowing, reached from a table that has no '
+         + 'page column of its own. A branch no row exercises is a branch that could be inverted '
+         + 'without any case failing.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-approval-request-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'THE CASE THAT PROVES THE RESOLUTION RATHER THAN A COPY OF THE PREDICATE. It is the only '
+         + 'request case that fails if the narrowing\'s exists() is replaced by '
+         + 'member_scope_admits_business over the request\'s own columns — which would pass every '
+         + 'other case here while leaking the approval trail of a page-restricted item to a member '
+         + 'scoped to a sibling target.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-approval-request-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_b1')],
+      expect: 'no-rows',
+      why: 'The tenant boundary on the table that holds the decision, with B\'s exact id in hand. '
+         + 'The B-side row is loaded `changes_requested` where the A side\'s is `pending`, so a '
+         + 'read that returned the wrong tenant\'s row would be a different value and not a copy.',
+    },
+    {
+      id: 'owner-b-sees-the-approval-request-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerB,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_b1')],
+      expect: 'rows',
+      why: 'The control for the case above: the row is there to be seen.',
+    },
+    {
+      id: 'suspended-a-cannot-see-the-approval-request-of-a1',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'no-rows',
+      why: '§8.6 case 6 on the second of this batch\'s three tables, paired with the active read of '
+         + 'the same row above.',
+    },
+    {
+      id: 'anonymous-cannot-read-an-approval-request',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused where every anonymous case in this suite is refused: at name resolution, on the '
+         + 'SCHEMA, because anon holds no USAGE on app.',
+    },
+    {
+      id: 'service-cannot-read-an-approval-request',
+      covers: ['§12.6/8-negative', '§8.3/service-P'],
+      as: service,
+      sql: APPROVAL_REQUEST_BY_ID,
+      params: [id('approval_request_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'app_worker holds nothing on this table, so the refusal is the privilege system rather '
+         + 'than a policy. See service-cannot-read-an-approval-policy for why that is a different '
+         + 'claim from batch 070\'s and not a stronger version of it.',
+    },
+    {
+      id: 'editor-a-can-raise-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: editorA,
+      ...approvalRaiseRequest(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The CREATE half of §8.3 row 2, and the case that makes every refusal below a statement '
+         + 'about what was attempted. The editor is one of that row\'s three `Y` roles — the same '
+         + 'three §8.2 row 2 gives content, which is the reading that makes "the person who wrote '
+         + 'it asks for it to be approved" expressible.',
+    },
+    {
+      id: 'owner-a-can-raise-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: ownerA,
+      ...approvalRaiseRequest(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The first `Y` of §8.3 row 2. It also demonstrates that a SECOND request on a version '
+         + 'that already has one is legal, which is why the catalog gives a request a symbol '
+         + 'instead of a natural key.',
+    },
+    {
+      id: 'approver-a-cannot-raise-an-approval-request',
+      covers: ['§8.6/2', '§8.3'],
+      as: approverA,
+      ...approvalRaiseRequest(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'THE SEPARATION §8.3 SPENDS TWO ROWS ON. Row 2 is `N` for the approver and row 3 is `Y`: '
+         + 'the person who asks for approval is not the person who grants it. An approver who could '
+         + 'raise a request could raise one and approve it in the same session.',
+    },
+    {
+      id: 'viewer-a-cannot-raise-an-approval-request',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...approvalRaiseRequest(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: '§8.3 row 2 is `N` for the viewer, where row 1\'s read is permitted — the operation '
+         + 'being refused rather than the table.',
+    },
+    {
+      id: 'owner-a-cannot-forge-the-actor-on-an-approval-request',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...approvalRaiseRequest(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: '§8.6 case 8 at INSERT time: the passing create above with ONE ARGUMENT CHANGED, so the '
+         + 'refusal is attributable to `created_by = (select auth.uid())`. The builder sets '
+         + '`requested_by` from the same argument, which is why this also forges the column §4.7 '
+         + 'names by that word.',
+    },
+    {
+      id: 'owner-a-cannot-raise-an-approval-request-in-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      ...approvalRaiseRequest(B, BUSINESS_B1, id('content_item_b1'), id('content_version_b1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'The cross-tenant INSERT holding every one of tenant B\'s ids — workspace, Business, '
+         + 'item and version — so all three foreign keys are satisfied and the refusal can only be '
+         + 'the policy.',
+    },
+    {
+      id: 'owner-a-cannot-raise-an-approval-request-already-decided',
+      covers: ['§8.3', '§4/7'],
+      as: ownerA,
+      ...approvalRaiseRequestAlreadyApproved(A, BUSINESS_A1, id('content_item_a1'),
+        id('content_version_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'THE FAILURE MODE THE TRANSITION POLICIES CANNOT CATCH, AND THE ONLY DEFENCE AGAINST IT '
+         + 'IS A MISSING PRIVILEGE. §8.3\'s two write rows are both about moving an EXISTING '
+         + 'request; no UPDATE policy can refuse a row that was never updated. So `status`, '
+         + '`decided_at` and `decided_by` are outside the INSERT grant, a request arrives `pending` '
+         + 'by the column default, and a caller who tries to open one already approved is stopped '
+         + 'by the privilege system. This is the same statement as the permitted create with three '
+         + 'columns added.',
+    },
+    {
+      id: 'editor-a-can-cancel-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: editorA,
+      ...approvalCancelRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The CANCEL half of §8.3 row 2, and the positive its crossed refusal below is measured '
+         + 'against. §4.7 gives the vocabulary the word `cancelled` and this is the only path that '
+         + 'writes it.',
+    },
+    {
+      id: 'owner-a-can-cancel-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: ownerA,
+      ...approvalCancelRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The owner is `Y` on BOTH of §8.3\'s write rows, which no other role is. This case and '
+         + 'owner-a-can-decide-an-approval-request are the pair that says so, and together they are '
+         + 'why the `expired` case below runs as the owner: the one identity that holds both paths '
+         + 'is still refused the value neither path admits.',
+    },
+    {
+      id: 'approver-a-cannot-cancel-an-approval-request',
+      covers: ['§8.3', '§8.6/2'],
+      as: approverA,
+      ...approvalCancelRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'ONE OF THE TWO CROSSED CASES THIS BATCH EXISTS FOR, AND THE OUTCOME IS `denied` RATHER '
+         + 'THAN `no-effect` FOR A REASON THAT IS THE WHOLE DESIGN. The approver is `N` on §8.3 row '
+         + '2 and `Y` on row 3, and both rows write the SAME granted column. The DECIDE policy\'s '
+         + 'USING half admits this row — the caller is an approver and the row is pending — so the '
+         + 'statement is not filtered: it reaches the WITH CHECK halves, where the cancel policy '
+         + 'refuses the ROLE and the decide policy refuses the VALUE. Permissive policies OR, both '
+         + 'halves are false, and the error is 42501.',
+    },
+    {
+      id: 'viewer-a-cannot-cancel-an-approval-request',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...approvalCancelRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerA, id('approval_request_a1'), 'pending'),
+      why: 'AND THE CONTRAST THAT MAKES THE CASE ABOVE READABLE. The viewer is `N` on BOTH write '
+         + 'rows, so NEITHER policy\'s USING half admits the row, the statement is filtered before '
+         + 'any WITH CHECK is evaluated, and the outcome is `no-effect` with a witness. The '
+         + 'approver gets an error and the viewer gets silence, and the difference is which row of '
+         + '§8.3 each one holds.',
+    },
+    {
+      id: 'approver-a-can-decide-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: approverA,
+      ...approvalDecideRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'THE `Y` §7 DESCRIBES IN WORDS — "approver: อ่านงานใน scope, approve/reject/request '
+         + 'changes ตาม policy" — as a statement that succeeds. It writes `decided_by` as itself, '
+         + 'which approval_requests_decision_has_a_decider requires of exactly these two status '
+         + 'values and which the policy\'s WITH CHECK half holds equal to auth.uid().',
+    },
+    {
+      id: 'owner-a-can-decide-an-approval-request',
+      covers: ['§8.3', '§8.6/1'],
+      as: ownerA,
+      ...approvalDecideRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The other `Y` on §8.3 row 3. §7 gives the owner "ทุก capability ใน Workspace", and this '
+         + 'is the one case in the batch where that is a permission rather than a constraint.',
+    },
+    {
+      id: 'editor-a-cannot-decide-an-approval-request',
+      covers: ['§8.3', '§8.6/2'],
+      as: editorA,
+      ...approvalDecideRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'THE OTHER CROSSED CASE, AND THE ONE THAT MATTERS MOST: THE PERSON WHO WROTE THE CONTENT '
+         + 'CANNOT APPROVE IT. §8.3 marks the editor `Y` on row 2 and `P` on row 3, and no '
+         + 'capability is defined anywhere in this repository, so `P` is refused. The CANCEL '
+         + 'policy\'s USING half admits the row — the caller is an editor and the row is pending — '
+         + 'so this reaches the WITH CHECK halves and is refused by both: the cancel policy on the '
+         + 'VALUE and the decide policy on the ROLE. If either WITH CHECK half lost its role test, '
+         + 'this case is the one that stops failing.',
+    },
+    {
+      id: 'admin-a-cannot-decide-an-approval-request',
+      covers: ['§8.3', '§8.6/2'],
+      as: { helper: 'as_user', subject: id('user_admin_a') },
+      ...approvalDecideRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'THE SECOND `P` CELL, REFUSED AND RECORDED AS REFUSED. §8.3 row 3 marks the admin `P` — '
+         + '"ผ่านตาม policy/explicit capability" — and app.approval_policies.required_role is the '
+         + 'nearest thing in the schema to that policy while no predicate reads it. Batch 070 '
+         + 'refused the approver\'s `P` on "Suggestion save/dismiss/use" on the same ground. Both '
+         + 'cells are in the work package\'s open blockers; implementing either would be this batch '
+         + 'deciding what "ตาม policy" means.',
+    },
+    {
+      id: 'viewer-a-cannot-decide-an-approval-request',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...approvalDecideRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerA, id('approval_request_a1'), 'pending'),
+      why: '§12.6/4 on the table that holds the decision. `no-effect` for the same reason the '
+         + 'viewer\'s cancel is: neither USING half admits a viewer, so nothing reaches a WITH '
+         + 'CHECK.',
+    },
+    {
+      id: 'owner-a-cannot-expire-an-approval-request',
+      covers: ['§4/7-vocabulary', '§8.3'],
+      as: ownerA,
+      ...approvalExpireRequest(id('approval_request_a1'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'THE ONE OF §4.7\'s FIVE STATUS VALUES NOBODY MAY WRITE, ASSERTED FROM THE IDENTITY THAT '
+         + 'HOLDS BOTH WRITE PATHS. §4.7 lists `expired`; §8.3 has no row that produces it; the '
+         + 'service column on the three rows it does have is `P` with no capability defined; and no '
+         + 'document in this repository says how long a request stays open. So the CHECK admits the '
+         + 'value because the document names it, and neither policy\'s WITH CHECK half does — the '
+         + 'migration asserts that at apply time and this asserts it at run time. Running it as the '
+         + 'workspace OWNER is what makes it about the VALUE: the two cases above prove the same '
+         + 'caller can cancel and can decide. THE GAP IS A BLOCKER, NOT A FEATURE: a request that '
+         + 'should expire cannot, and the number that would say when is Product\'s.',
+    },
+    {
+      id: 'approver-a-cannot-redecide-a-settled-approval-request',
+      covers: ['§8.3', '§4/8'],
+      as: approverA,
+      ...approvalDecideRequest(id('approval_request_a1_decided'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerA, id('approval_request_a1_decided'), 'approved'),
+      why: 'THE `status = \'pending\'` CLAUSE IN BOTH USING HALVES, AND THE ONLY CASE THAT CAN TEST '
+         + 'IT. A decision that could be retaken is not a decision; §4 invariant 8 makes approval '
+         + 'history immutable and this is the half of that sentence a mutable table can carry. The '
+         + 'outcome is `no-effect` because the USING half FILTERS — the row is not refused, it is '
+         + 'never seen — and the witness is what tells that apart from a write that landed and '
+         + 'changed nothing.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-a-settled-approval-request',
+      covers: ['§8.3', '§4/8'],
+      as: editorA,
+      ...approvalCancelRequest(id('approval_request_a1_decided'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerA, id('approval_request_a1_decided'), 'approved'),
+      why: 'The same clause from the other policy. An editor who could cancel an APPROVED request '
+         + 'could withdraw a decision they were never allowed to take, which is the crossed case '
+         + 'above reached by a different route.',
+    },
+    {
+      id: 'owner-a-cannot-repin-an-approval-request',
+      covers: ['§4/6', '§8.3'],
+      as: ownerA,
+      ...approvalRepinRequest(id('approval_request_a1'), id('content_version_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: '§4 invariant 6: "Approval Request pin Content Version; Version ใหม่ไม่ inherit approval '
+         + 'โดยอัตโนมัติ". A request that can be re-pointed INHERITS approval by an UPDATE, which is '
+         + 'the exact act that sentence forbids. `content_version_id` is outside the UPDATE grant, '
+         + 'so the refusal is the privilege system and holds for the owner. The version named here '
+         + 'is one from another ITEM, which the four-column foreign key would also refuse — the '
+         + 'privilege refusal arrives first and the case says which one it is asserting.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-approval-request',
+      covers: ['§8.5', '§8.6/9'],
+      as: ownerA,
+      ...approvalDeleteRequest(id('approval_request_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: '§8.5: "ไม่มี broad user delete; ใช้ soft-delete command ที่ update typed lifecycle '
+         + 'field". The typed lifecycle field here is `status` and the word for withdrawing a '
+         + 'request is `cancelled`, which §4.7 supplies — so a DELETE is not the soft path taking a '
+         + 'shortcut, it is the decision trail losing its subject.',
+    },
+    {
+      id: 'owner-a-cannot-decide-the-approval-request-of-tenant-b',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerA,
+      ...approvalDecideRequest(id('approval_request_b1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerB, id('approval_request_b1'), 'changes_requested'),
+      why: 'The cross-tenant DECISION, holding B\'s exact request id. '
+         + 'app.workspace_member_role answers null for a workspace the caller is not a member of, '
+         + 'so neither USING half admits the row and the outcome is `no-effect`. The witness runs '
+         + 'as B\'s owner because no A-side identity can read the row, and it reads '
+         + '`changes_requested` — the state the fixture loaded — so a write that landed would be '
+         + 'visible as `approved`.',
+    },
+    {
+      id: 'service-cannot-decide-an-approval-request',
+      covers: ['§12.6/8-negative', '§8.3/service-P'],
+      as: service,
+      ...approvalDecideRequest(id('approval_request_a1'), id('user_approver_a')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'The service holds no UPDATE here, so an automated approval is impossible — which is '
+         + 'either the control §8.3 intends or a gap somebody will meet when they build a timed '
+         + 'auto-approval. §8.3 marks the service `P` on this row and no capability is defined, so '
+         + 'this batch grants nothing and says so rather than choosing.',
+    },
+
+    // -- The trail: §8.3 row 4, `N` for every role including the service. ---------------------
+    {
+      id: 'owner-a-sees-the-approval-event-of-a1',
+      covers: ['§8.3', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'rows',
+      why: 'The positive the trail negatives are measured against, addressed by §4.7\'s own '
+         + '"unique idempotency key ต่อ action" rather than by a symbol — the key whose purpose is '
+         + 'to identify an action, used as the address of one.',
+    },
+    {
+      id: 'viewer-a-sees-the-approval-event-of-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: viewerA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'rows',
+      why: 'THE WIDEST READ IN THIS BATCH AND THE ONE WITH THE LEAST BEHIND IT. §8.3 has no SELECT '
+         + 'row; §8.4 spells the APPROVER\'s audit cell "approval trail" in words and marks the '
+         + 'viewer `N` on tenant audit. An approval event is not an audit log — different table, '
+         + 'different owner, different retention class — but a reader who thinks the viewer should '
+         + 'not see a decision trail has a case to make, and the blocker that says the read surface '
+         + 'is unspecified is where they should make it.',
+    },
+    {
+      id: 'approver-a-sees-the-approval-event-of-a1',
+      covers: ['§8.3', '§8.4'],
+      as: approverA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'rows',
+      why: 'The one cell in §8 that names this material in words: §8.4\'s tenant audit row gives the '
+         + 'approver "approval trail" where every other cell is a letter. It is the third of the '
+         + 'three sentences this batch\'s read surface rests on and the only one that is about the '
+         + 'trail specifically.',
+    },
+    {
+      id: 'editor-a-sees-the-approval-event-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'rows',
+      why: 'The positive for a chain TWO links long: the event resolves through its request and the '
+         + 'request through its content item, where the page lives. Without it the case below would '
+         + 'be satisfied by a narrowing that denied the editor everything.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-approval-event-of-a-reachable-item',
+      covers: ['§8.6/1', '§7'],
+      as: pageEditorA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'rows',
+      why: 'A consequence of 021\'s definition, consumed rather than re-decided: '
+         + 'member_scope_covers_business counts a `page` scope row on its parent Business, so a '
+         + 'page-scoped editor reaches business-level content and everything hanging off it. 040, '
+         + '070 and 080 met the same consequence; if it is wrong it is wrong in 021. This case is '
+         + 'also the control for the one below — the same caller, two links down, admitted here.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1_sibling_page'), 'fixture-action-a1-sibling',
+        'fixture-idempotency-a1-sibling'],
+      expect: 'no-rows',
+      why: 'THE CASE THE FIXTURE\'S SIBLING-TARGET ROWS EXIST FOR, AND THE ONLY ONE IN THIS BATCH '
+         + 'THAT FAILS IF THE SECOND LINK OF THE CHAIN IS CUT. An event resolves through its '
+         + 'request and then through that request\'s content item. A narrowing that resolved the '
+         + 'first link and then asked the Business question about the request\'s own columns would '
+         + 'pass every other case here — including the positive directly above — while leaking a '
+         + 'page-restricted item\'s decision trail to a member scoped to a sibling target.',
+    },
+    {
+      id: 'owner-a-cannot-see-the-approval-event-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_b1'), 'fixture-action-b1', 'fixture-idempotency-b1'],
+      expect: 'no-rows',
+      why: 'The tenant boundary on the trail, holding every part of B\'s address including the '
+         + 'idempotency key. §4.7 makes that key unique per workspace and action, so a case that '
+         + 'held it and still read nothing is the strongest form this boundary takes.',
+    },
+    {
+      id: 'owner-b-sees-the-approval-event-of-tenant-b',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerB,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_b1'), 'fixture-action-b1', 'fixture-idempotency-b1'],
+      expect: 'rows',
+      why: 'The control for the case above.',
+    },
+    {
+      id: 'suspended-a-cannot-see-the-approval-event-of-a1',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'no-rows',
+      why: '§8.6 case 6 on the third of this batch\'s tables, paired with the active read of the '
+         + 'same row above.',
+    },
+    {
+      id: 'anonymous-cannot-read-an-approval-event',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'On the SCHEMA, like every anonymous case in this suite. There is no table in this '
+         + 'family whose refusal is argued from a sensitivity class instead.',
+    },
+    {
+      id: 'service-cannot-read-an-approval-event',
+      covers: ['§12.6/8-negative', '§8.3/service-N'],
+      as: service,
+      sql: APPROVAL_EVENT_BY_KEY,
+      params: [id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The READ, refused for want of a grant. §8.3 row 4 is about UPDATE and DELETE and says '
+         + 'nothing about a service read, so this refusal is batch 090 granting app_worker nothing '
+         + 'at all rather than a cell being implemented.',
+    },
+    {
+      id: 'owner-a-cannot-write-an-approval-event',
+      covers: ['§8.6/9', '§8.3/event-N'],
+      as: ownerA,
+      ...approvalWriteEvent(A, BUSINESS_A1, id('approval_request_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'RUN FROM THE WORKSPACE OWNER, WHICH IS WHAT MAKES IT ABOUT THE OPERATION RATHER THAN '
+         + 'ABOUT THE CALLER. §8.3 row 4 is `N` for owner, admin, editor, approver, viewer AND '
+         + 'service — the same shape §8.2 row 3 has and the only other row in §8 like it. The '
+         + 'refusal is an absent GRANT rather than a policy that says no, because a grant has to be '
+         + 'written to be undone. AND IT COSTS SOMETHING, STATED HERE RATHER THAN DISCOVERED: '
+         + 'nothing in this repository can write an approval event, so the decision trail §4 '
+         + 'invariant 8 calls immutable is immutable and empty until a command function exists '
+         + '(RFC-2026-017 §3, RFC-2026-021 §10).',
+    },
+    {
+      id: 'owner-a-cannot-amend-an-approval-event',
+      covers: ['§8.6/9', '§8.3/event-N'],
+      as: ownerA,
+      ...approvalAmendEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The UPDATE §8.3 row 4 names, from the owner. The statement clears `comment` — the '
+         + 'column that says WHY a decision was taken — which is the edit a forger would actually '
+         + 'want and the one §4.7\'s "decision ห้าม update/delete" is about.',
+    },
+    {
+      id: 'owner-a-cannot-delete-an-approval-event',
+      covers: ['§8.6/9', '§8.3/event-N'],
+      as: ownerA,
+      ...approvalDeleteEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The DELETE §8.3 row 4 names, from the owner. A trail whose owner can remove a row is a '
+         + 'trail that records what its owner is willing to keep.',
+    },
+    {
+      id: 'approver-a-cannot-amend-an-approval-event',
+      covers: ['§8.6/9', '§8.3/event-N'],
+      as: approverA,
+      ...approvalAmendEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The role whose decisions this table records cannot edit the record of them. Refused at '
+         + 'the same layer as the owner, which is what a row that is `N` in every column means.',
+    },
+    {
+      id: 'editor-a-cannot-delete-an-approval-event',
+      covers: ['§8.6/9', '§8.3/event-N'],
+      as: editorA,
+      ...approvalDeleteEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The third of the five client roles on the same verb. All five are refused identically '
+         + 'and at the same layer, which is the observable difference between a row that is `N` '
+         + 'everywhere and a row that is `N` for some.',
+    },
+    {
+      id: 'service-cannot-write-an-approval-event',
+      covers: ['§12.6/8-negative', '§8.3/event-N'],
+      as: service,
+      ...approvalWriteEvent(A, BUSINESS_A1, id('approval_request_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'AND THIS IS THE ONE THAT COSTS MOST. An approval event is the natural output of a '
+         + 'worker — a timed auto-approval, a policy evaluation — and §8.3 row 4 refuses the '
+         + 'service anyway, so the producer has to be the command function that does not exist '
+         + 'rather than a worker with an INSERT. Until it does, nothing records a decision at all, '
+         + 'and that is stated here rather than left for whoever builds the gate to discover.',
+    },
+    {
+      id: 'service-cannot-amend-an-approval-event',
+      covers: ['§12.6/8-negative', '§8.3/event-N'],
+      as: service,
+      ...approvalAmendEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The service half of §8.3 row 4\'s UPDATE, which is the cell that makes this row unlike '
+         + 'every other `N` row in §8 except §8.2\'s third.',
+    },
+    {
+      id: 'service-cannot-delete-an-approval-event',
+      covers: ['§12.6/8-negative', '§8.3/event-N'],
+      as: service,
+      ...approvalDeleteEvent(id('approval_request_a1'), 'fixture-action-a1', 'fixture-idempotency-a1'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'approval_events' },
+      why: 'The last of the six identities on the last of the three verbs. §10 gives '
+         + 'APPROVAL-HISTORY a retention window and §11 a purge, and neither can run through this '
+         + 'table today: batch 160 will meet a table with no DELETE grant for app_maintenance '
+         + 'either, which is in the open blockers because discovering it in 160 would be '
+         + 'discovering it after the migration that caused it merged.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -12566,4 +13716,238 @@ export function contentAmendQualityReview(reviewId) {
 
 export function contentDeleteQualityReview(reviewId) {
   return { sql: 'delete from app.quality_reviews where id = $1::uuid returning id', params: [reviewId] };
+}
+
+
+// -- BATCH 090 — approval: the policy, the request and the trail. -----------------------------
+//
+// A POLICY IS ADDRESSED BY ITS OWN VERSION KEY, not by a symbol. §5 says "policy versioned" and
+// 090_approval.sql makes (workspace_id, business_profile_id, policy_key, version) unique, so the
+// four-part key names exactly one row — batch 020's version addressing, on a table whose rows ARE
+// versions. AN APPROVAL EVENT is addressed by (approval_request_id, action, idempotency_key), which
+// is §4.7's "unique idempotency key ต่อ action": the key whose entire purpose is to identify an
+// action is used here AS the address, which is the demonstration batch 070 made about a content
+// hash. A REQUEST has no natural key and carries a symbol; the catalog argues why.
+export const APPROVAL_POLICY_A1_BUSINESS = 'fixture-a1-business';
+export const APPROVAL_POLICY_A1_PINNED = 'fixture-a1-pinned';
+export const APPROVAL_POLICY_A1_SIBLING = 'fixture-a1-sibling';
+export const APPROVAL_POLICY_A2_BUSINESS = 'fixture-a2-business';
+export const APPROVAL_POLICY_B1_BUSINESS = 'fixture-b1-business';
+
+export const APPROVAL_POLICY_BY_KEY =
+  'select id from app.approval_policies where workspace_id = $1::uuid '
+  + 'and business_profile_id = $2::uuid and policy_key = $3 and version = $4::integer';
+export const APPROVAL_POLICY_VERSIONS_OF_KEY =
+  'select version from app.approval_policies where workspace_id = $1::uuid '
+  + 'and business_profile_id = $2::uuid and policy_key = $3 order by version';
+export const APPROVAL_REQUEST_BY_ID = 'select id from app.approval_requests where id = $1';
+export const APPROVAL_EVENT_BY_KEY =
+  'select id from app.approval_events where approval_request_id = $1::uuid '
+  + 'and action = $2 and idempotency_key = $3';
+
+// The witnesses. §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md records that the
+// driver reads psql's CSV and that CSV has no NULL, so a witness comparing against `null` holds
+// against every correct database. `status` is text and needs nothing.
+//
+// `enabled` IS CAST TO TEXT AND ALIASED BACK, which no witness before this one has had to do and is
+// worth a sentence rather than a shrug: psql renders a boolean as `t` or `f` in CSV, so a witness
+// written as `select enabled ... equals 'false'` would compare 'f' against 'false' and FAIL ON A
+// CORRECT DATABASE — and a witness written `equals 'f'` would be asserting psql's output format
+// rather than the row's value. The cast makes the comparison about the value.
+export function approvalPolicyStillEnabled(as, workspace, business, key, version, expected) {
+  return {
+    as,
+    sql: 'select enabled::text as enabled from app.approval_policies where workspace_id = $1::uuid '
+       + 'and business_profile_id = $2::uuid and policy_key = $3 and version = $4::integer',
+    params: [workspace, business, key, version],
+    column: 'enabled',
+    equals: expected,
+  };
+}
+
+export function approvalPolicyQuorumStill(as, workspace, business, key, version, expected) {
+  return {
+    as,
+    sql: 'select minimum_approvers::text as minimum_approvers from app.approval_policies '
+       + 'where workspace_id = $1::uuid and business_profile_id = $2::uuid '
+       + 'and policy_key = $3 and version = $4::integer',
+    params: [workspace, business, key, version],
+    column: 'minimum_approvers',
+    equals: expected,
+  };
+}
+
+export function approvalRequestStillInState(as, requestId, status) {
+  return {
+    as,
+    sql: 'select status from app.approval_requests where id = $1',
+    params: [requestId],
+    column: 'status',
+    equals: status,
+  };
+}
+
+// §8.3 row 1's manage verb, as the ONE column the UPDATE grant names. The actor is a parameter for
+// the reason every builder in this file takes one: the forged-actor case has to be visibly the same
+// statement with one argument changed.
+export function approvalTogglePolicy(workspace, business, key, version, actor) {
+  return {
+    sql: 'update app.approval_policies set enabled = not enabled, updated_by = $5::uuid '
+       + 'where workspace_id = $1::uuid and business_profile_id = $2::uuid '
+       + 'and policy_key = $3 and version = $4::integer returning id',
+    params: [workspace, business, key, version, actor],
+  };
+}
+
+// THE OTHER HALF OF §8.3 ROW 1, AND THE ONE NOBODY HOLDS. §4.7: "published policy version
+// immutable". `minimum_approvers` is the decision the version encodes and it is outside every
+// UPDATE grant, so this is refused by the privilege system and not by a policy predicate — which is
+// the distinction the case's `deniedBy` declares.
+export function approvalRaiseQuorum(workspace, business, key, version) {
+  return {
+    sql: 'update app.approval_policies set minimum_approvers = 9 '
+       + 'where workspace_id = $1::uuid and business_profile_id = $2::uuid '
+       + 'and policy_key = $3 and version = $4::integer returning id',
+    params: [workspace, business, key, version],
+  };
+}
+
+// Renumbering a version is the other way to rewrite a published decision: leave the columns alone
+// and move the row to a different ordinal. Outside the UPDATE grant beside the quorum rather than
+// for a reason of its own.
+export function approvalRenumberPolicy(workspace, business, key, version) {
+  return {
+    sql: 'update app.approval_policies set version = 99 '
+       + 'where workspace_id = $1::uuid and business_profile_id = $2::uuid '
+       + 'and policy_key = $3 and version = $4::integer returning id',
+    params: [workspace, business, key, version],
+  };
+}
+
+// No `id` is passed: the column defaults to gen_random_uuid(), the row is rolled back with its
+// transaction, and no case has a reason to hold the id of a row it is creating. The Business is a
+// live one under the Workspace, so when the CI negative control disables row level security the
+// insert LANDS rather than failing on a foreign key — a case that could not succeed proves nothing
+// about the policy that refuses it. The `policy_key` is a parameter so that the permitted case and
+// the second-version case do not collide with the fixture's rows on the version key.
+export function approvalWritePolicy(workspace, business, key, version, createdBy) {
+  return {
+    sql: 'insert into app.approval_policies (workspace_id, business_profile_id, policy_key, '
+       + 'version, enabled, minimum_approvers, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3, $4::integer, true, 1, $5::uuid, $5::uuid) returning id',
+    params: [workspace, business, key, version, createdBy],
+  };
+}
+
+export function approvalDeletePolicy(workspace, business, key, version) {
+  return {
+    sql: 'delete from app.approval_policies where workspace_id = $1::uuid '
+       + 'and business_profile_id = $2::uuid and policy_key = $3 and version = $4::integer '
+       + 'returning id',
+    params: [workspace, business, key, version],
+  };
+}
+
+// §8.3 row 2's create verb. `status` is NOT named, because it is not in the INSERT grant: a request
+// arrives `pending` by the column default. The case that names it is below and is refused by the
+// privilege system.
+export function approvalRaiseRequest(workspace, business, itemId, versionId, createdBy) {
+  return {
+    sql: 'insert into app.approval_requests (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $5::uuid, $5::uuid) returning id',
+    params: [workspace, business, itemId, versionId, createdBy],
+  };
+}
+
+// THE SAME STATEMENT WITH ONE COLUMN ADDED, which is the whole of the case it serves. A caller who
+// could name `status` on insert would open a request that is already approved, and neither UPDATE
+// policy would ever see it — the state machine bypassed in one statement, and the one failure mode
+// the transition policies cannot catch because no UPDATE policy can refuse a row that was never
+// updated.
+export function approvalRaiseRequestAlreadyApproved(workspace, business, itemId, versionId, createdBy) {
+  return {
+    sql: 'insert into app.approval_requests (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, status, decided_at, decided_by, requested_by, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'approved', now(), $5::uuid, $5::uuid, "
+       + '$5::uuid, $5::uuid) returning id',
+    params: [workspace, business, itemId, versionId, createdBy],
+  };
+}
+
+// §8.3 ROW 2's CANCEL AND §8.3 ROW 3's DECIDE, AND THEY ARE THE SAME COLUMN. The two statements
+// below differ only in the VALUE they write, which is exactly how the two policies tell the two
+// matrix rows apart — so a case pairing them is a case about the WITH CHECK halves and nothing else.
+export function approvalCancelRequest(requestId, actor) {
+  return {
+    sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid "
+       + 'where id = $1::uuid returning id',
+    params: [requestId, actor],
+  };
+}
+
+export function approvalDecideRequest(requestId, actor) {
+  return {
+    sql: "update app.approval_requests set status = 'approved', decided_at = now(), "
+       + 'decided_by = $2::uuid, updated_by = $2::uuid where id = $1::uuid returning id',
+    params: [requestId, actor],
+  };
+}
+
+// THE VALUE NOBODY MAY WRITE. §4.7 puts `expired` in the vocabulary, §8.3 gives no row that produces
+// it, and 090_approval.sql asserts at apply time that no policy's WITH CHECK half mentions it. This
+// is that assertion's runtime twin, run from the WORKSPACE OWNER — the identity that holds both
+// write paths — so the refusal is about the VALUE and not about the caller.
+export function approvalExpireRequest(requestId, actor) {
+  return {
+    sql: "update app.approval_requests set status = 'expired', updated_by = $2::uuid "
+       + 'where id = $1::uuid returning id',
+    params: [requestId, actor],
+  };
+}
+
+// §4 invariant 6: "Approval Request pin Content Version; Version ใหม่ไม่ inherit approval
+// โดยอัตโนมัติ". A request that could be re-pointed at a newer version would inherit approval by an
+// UPDATE, so the column is outside the UPDATE grant and this is a privilege refusal.
+export function approvalRepinRequest(requestId, versionId) {
+  return {
+    sql: 'update app.approval_requests set content_version_id = $2::uuid where id = $1::uuid returning id',
+    params: [requestId, versionId],
+  };
+}
+
+export function approvalDeleteRequest(requestId) {
+  return { sql: 'delete from app.approval_requests where id = $1::uuid returning id', params: [requestId] };
+}
+
+// §8.3 row 4 — `N` in every column including Service. The three statements below are the three verbs
+// that row names plus the INSERT 090 reads into it, and every case that runs them expects a GRANT
+// refusal: there is no policy for row level security to apply, because there is no grant for it to
+// apply to.
+export function approvalWriteEvent(workspace, business, requestId) {
+  return {
+    sql: 'insert into app.approval_events (workspace_id, business_profile_id, approval_request_id, '
+       + 'action, request_id, correlation_id, idempotency_key) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, 'attempted-action', 'attempted-request', "
+       + "'attempted-correlation', 'attempted-idempotency') returning id",
+    params: [workspace, business, requestId],
+  };
+}
+
+// It clears the COMMENT — the column that says why a decision was taken — which is the edit a
+// forger would actually want and the one §4.7's "decision ห้าม update/delete" is about.
+export function approvalAmendEvent(requestId, action, key) {
+  return {
+    sql: 'update app.approval_events set comment = null where approval_request_id = $1::uuid '
+       + 'and action = $2 and idempotency_key = $3 returning id',
+    params: [requestId, action, key],
+  };
+}
+
+export function approvalDeleteEvent(requestId, action, key) {
+  return {
+    sql: 'delete from app.approval_events where approval_request_id = $1::uuid '
+       + 'and action = $2 and idempotency_key = $3 returning id',
+    params: [requestId, action, key],
+  };
 }

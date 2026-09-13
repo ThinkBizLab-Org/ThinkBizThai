@@ -291,10 +291,23 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 // sorts between 070 and 110, so it is INSERTED into the middle of this array rather than appended —
 // the trap 051 recorded and 070 recorded after it, because appending produces a declaration that is
 // not a TAIL and pendingDeclarationLint refuses that with a message about divergence.
+// Batch 090 joins for the structural reason the list shares, and its dependency chain is one link
+// longer than 080's: its three tables reference app.business_profiles and app.page_context_profiles
+// over batch 020's composite scope keys, its policies call app.is_active_member,
+// app.workspace_member_role, app.member_scope_admits_business and app.member_scope_admits_page from
+// 011 and 021, and app.approval_requests references app.content_items AND app.content_versions —
+// the latter over the FOUR-column key (workspace_id, business_profile_id, content_item_id, id) that
+// batch 080 creates and that is itself on this list. So the migration could not apply to this
+// instance even if somebody wanted it to. It sorts between 080 and 110, so it is INSERTED into the
+// middle of this array rather than appended — the trap 051 recorded, 070 recorded after it and 080
+// recorded after that, because appending produces a declaration that is not a TAIL and
+// pendingDeclarationLint refuses that with a message about divergence rather than about a missing
+// batch.
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql',
   '030_industry.sql', '040_knowledge.sql', '041_knowledge_resolution.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '080_content.sql', '110_meta_connector.sql',
+  '061_metering.sql', '070_research.sql', '080_content.sql', '090_approval.sql',
+  '110_meta_connector.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -718,6 +731,32 @@ const ADDED_SYMBOLS = [
   // And the review under the sibling-page version, for the reason its version needed a symbol: the
   // negative half of the chain on the one table in this family that is two levels from the page.
   'quality_review_a1_sibling_page',
+  // Batch 090. SIX REQUESTS AND NOTHING ELSE, WHICH IS THE SMALLEST SYMBOL COUNT A THREE-TABLE
+  // BATCH HAS ADDED, and the reason is that two of its three tables have natural keys this catalog
+  // already fixes the parts of. A POLICY is (workspace_id, business_profile_id, policy_key,
+  // version) — §5's "policy versioned" as a constraint. An EVENT is (workspace_id,
+  // approval_request_id, action, idempotency_key) — §4.7's "unique idempotency key ต่อ action",
+  // which means a case addresses an event BY the key whose whole purpose is to identify an action.
+  // A REQUEST has no natural key: nothing says a content version is requested once, a rejected
+  // version is revised and re-requested, and inventing a uniqueness so a case could address one
+  // without a constant would be writing a product decision into a constraint.
+  //
+  // The first five are the four outcomes of the scope chain plus the tenant boundary, and they are
+  // one level further from the page than batch 080's items were: a request carries NO page column,
+  // so each of these exercises a branch of app.content_items' narrowing through the request's own
+  // restrictive policy rather than through a column of its own.
+  'approval_request_a1',
+  'approval_request_a1_page',
+  'approval_request_a1_sibling_page',
+  'approval_request_a2',
+  'approval_request_b1',
+  // And one row that is not about scope at all. Both UPDATE policies on app.approval_requests carry
+  // `status = 'pending'` in their USING half, which is how §8.3's two write rows are kept from
+  // acting on a request that has already been decided. That claim cannot be tested against a
+  // pending row, so the fixture loads a SECOND request on a version that already has one, already
+  // approved — which is also the demonstration that the table accumulates requests rather than
+  // replacing them, and therefore that it was right not to give it a natural key.
+  'approval_request_a1_decided',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

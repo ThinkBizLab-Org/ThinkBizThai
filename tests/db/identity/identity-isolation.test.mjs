@@ -9152,3 +9152,482 @@ test('the coverage map records what batch 080 pays, including the one row it fli
     '§8.6/9 is where this batch\'s largest contribution goes: three tables no identity in this repository '
     + 'may write, which is §8.2 row 3 and not a choice this batch made');
 });
+
+
+// =============================================================================================
+// BATCH 090 — approval: the policy, the request and the trail.
+// =============================================================================================
+//
+// The rules below read the MIGRATION TEXT. Everything they can only assert against a live catalog
+// is asserted by the `do $$` block at the end of 090_approval.sql instead, and the two are
+// deliberately not the same list: a rule that reads a file cannot see a grant a later batch makes,
+// and a rule that reads a catalog cannot run on this machine, which has no Postgres client.
+const APPROVAL_MIGRATION = 'db/foundation/migrations/090_approval.sql';
+const APPROVAL_FIXTURE = 'tests/db/identity/fixtures/090-approval-fixture.sql';
+const approval = await readFile(APPROVAL_MIGRATION, 'utf8');
+const approvalCode = approval.replace(/--[^\n]*/g, '');
+const APPROVAL_POLICIES = 'approval_policies';
+const APPROVAL_REQUESTS = 'approval_requests';
+const APPROVAL_EVENTS = 'approval_events';
+const APPROVAL_TABLES = [APPROVAL_POLICIES, APPROVAL_REQUESTS, APPROVAL_EVENTS];
+// §8.3 row 4's one table. Append-only in the strongest sense this schema has: no role holds INSERT,
+// UPDATE or DELETE, and no policy exists for any of the three verbs.
+const APPROVAL_APPEND_ONLY = [APPROVAL_EVENTS];
+// §4.7's five status values, in the order the document writes them. The ORDER is not asserted
+// anywhere — only the set is — but keeping it makes a diff against the document readable.
+const APPROVAL_STATUSES = ['pending', 'approved', 'changes_requested', 'cancelled', 'expired'];
+const approvalTableBodies = [...approvalCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+  .map((m) => m[0]);
+const approvalBodyOf = (table) => approvalTableBodies.find((b) => b.includes(`app.${table} (`));
+const approvalGrantsFor = (table, verb) => [...approvalCode.matchAll(
+  new RegExp(`grant ${verb} \\(([^)]*)\\)\\s*\\n?\\s*on app\\.${table} to (\\w+)`, 'g'))]
+  .map((m) => ({ columns: m[1].split(',').map((c) => c.trim()), grantee: m[2] }));
+const approvalPolicyBlocks = [...approvalCode.matchAll(
+  /create policy (\w+) on app\.(\w+)([\s\S]*?);\n/g)]
+  .map((m) => ({ name: m[1], table: m[2], body: m[3] }));
+
+test('every batch 090 table carries RLS, FORCE, a primary key and an owner comment', async () => {
+  assert.equal(approvalTableBodies.length, APPROVAL_TABLES.length,
+    "§6's registry gives this batch three words — policy/request/event — and §5's inventory gives "
+    + '`approval.core` the same three objects. §4.7 heads its first bullet "approval_policies / '
+    + 'approval_policy_steps" and names a FOURTH table, which no registry row in §6\'s 000..180 range '
+    + 'gives to anybody. Batch 021 established that creating a table no registry row gives you is '
+    + "reserving somebody else's work, and this batch refuses on that ground.");
+  for (const table of APPROVAL_TABLES) {
+    assert.match(approvalCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(approvalCode, new RegExp(`alter table app\\.${table}\\s+enable row level security`));
+    assert.match(approvalCode, new RegExp(`alter table app\\.${table}\\s+force  row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint rule `
+      + 'reads only the first. Without FORCE the table owner — the role migrations run as — is exempt from '
+      + 'every policy here.');
+    assert.match(approvalCode, new RegExp(`comment on table app\\.${table} is`));
+    assert.match(approvalCode, new RegExp(`create table if not exists app\\.${table}[\\s\\S]{0,400}?primary key`));
+  }
+  const created = await tablesCreatedByMigrations();
+  for (const table of APPROVAL_TABLES) {
+    assert.ok(created.has(`app.${table}`), `app.${table} must be a table the migrations create`);
+  }
+  assert.ok(!created.has('app.approval_policy_steps'),
+    'app.approval_policy_steps is named by §4.7 and assigned to NO batch in §6\'s 000..180 registry. This '
+    + 'is NOT the same refusal batch 080 made about content_targets: that table went to a named later '
+    + 'batch, 081, and this one goes nowhere — 091 is calendar/schedule. So the gap is a BLOCKER rather '
+    + 'than a deferral, and app.approval_events.step carries an ordinal with no referent because of it.');
+});
+
+test('the approval scope is two columns on the policy and resolved through a parent on the request and the event', () => {
+  const policy = approvalBodyOf(APPROVAL_POLICIES);
+  assert.match(policy, /workspace_id\s+uuid\s+not null/);
+  assert.match(policy, /business_profile_id\s+uuid\s+not null/,
+    '§4.7 says "Policy อยู่ Workspace หรือ Business scope", which would make this column NULLABLE. §5 of the '
+    + 'sprint-0a document gives approval.core the Scope "business/page", and §2 of that document ranks it '
+    + 'ABOVE core-database-and-rls-workstream-th.md, which it lists as item 5 — "workstream เดิม". So the '
+    + 'column is mandatory, a workspace-wide policy is inexpressible, and the cost is in the open blockers '
+    + 'with both sentences quoted rather than resolved in a migration.');
+  assert.match(policy, /page_context_profile_id\s+uuid,/,
+    '§4 invariant 3: the Page scope is a NULLABLE override on a row that always carries a Business scope');
+  for (const table of [APPROVAL_REQUESTS, APPROVAL_EVENTS]) {
+    assert.doesNotMatch(approvalBodyOf(table), /page_context_profile_id/,
+      `app.${table} must NOT copy the page column. A nullable copy of its parent's page could not be held `
+      + 'equal to it by any foreign key — MATCH SIMPLE skips a null — and batch 070 recorded that an '
+      + 'unenforceable copy of the column a narrowing turns on is worse than no copy. The reach resolves '
+      + 'through app.content_items instead, which is the shape batch 080 gave app.content_versions.');
+  }
+  assert.match(approvalBodyOf(APPROVAL_REQUESTS), /references app\.content_items \(workspace_id, business_profile_id, id\)/,
+    'a request reaches its content item over the composite scope key, so the item\'s Workspace and Business '
+    + 'are the ones the request actually has (§4 invariant 10)');
+  assert.match(approvalBodyOf(APPROVAL_EVENTS), /references app\.approval_requests \(workspace_id, business_profile_id, id\)/,
+    'an event reaches its request the same way, which is the first link of the two its narrowing claims');
+});
+
+test('the approval trail holds no write grant and no write policy, asserted both ways', () => {
+  for (const table of APPROVAL_APPEND_ONLY) {
+    for (const verb of ['insert', 'update']) {
+      assert.equal(approvalGrantsFor(table, verb).length, 0,
+        `app.${table} must hold no ${verb.toUpperCase()} grant. §8.3 row 4 is N for owner, admin, editor, `
+        + 'approver, viewer AND service, which only §8.2 row 3 is besides it.');
+    }
+    assert.doesNotMatch(approvalCode, new RegExp(`grant (insert|update|delete)[^;]*on app\\.${table}`),
+      `app.${table} must hold no write grant in any spelling, column-scoped or table-wide`);
+    for (const verb of ['insert', 'update', 'delete']) {
+      assert.doesNotMatch(approvalCode, new RegExp(`create policy \\w+ on app\\.${table}\\s+for ${verb}`),
+        `app.${table} must carry no ${verb.toUpperCase()} policy. Both halves are needed and neither is `
+        + 'redundant: a policy with no grant is inert, and a grant with no policy is refused by row level '
+        + 'security rather than by privilege — a weaker refusal than append-only asks for.');
+    }
+    assert.match(approvalCode, new RegExp(`grant select \\([^)]*\\)\\s*\\n?\\s*on app\\.${table} to authenticated`),
+      `app.${table} IS readable. Without the SELECT this rule would pass against a table nobody can reach `
+      + 'at all, which proves nothing about the write refusal.');
+  }
+  assert.doesNotMatch(approvalCode, /grant delete[^;]*on app\.approval_/,
+    '§8.5: "ไม่มี broad user delete". No role holds DELETE on any of the three; a withdrawn request becomes '
+    + '`cancelled`, which is the word §4.7 supplies for it.');
+});
+
+test('§4.7 supplies one status vocabulary and this batch encodes it exactly, inventing none', () => {
+  const body = approvalBodyOf(APPROVAL_REQUESTS);
+  const check = body.match(/constraint approval_requests_status_known\s+check \(status in \(([^)]*)\)\)/);
+  assert.ok(check, 'app.approval_requests.status must carry a named CHECK (§3.2)');
+  const encoded = check[1].split(',').map((v) => v.trim().replace(/'/g, ''));
+  assert.deepEqual(encoded.slice().sort(), APPROVAL_STATUSES.slice().sort(),
+    '§4.7 spells it "status(pending|approved|changes_requested|cancelled|expired)". FIVE VALUES, GIVEN — '
+    + 'so the CHECK is a quotation and not a decision. A sixth value would be this batch choosing a '
+    + 'vocabulary for Product, and a missing fifth would be it editing one.');
+  assert.doesNotMatch(approvalBodyOf(APPROVAL_EVENTS), /check \(action in \(/,
+    '§4.7 names `action` and enumerates NOTHING. §8.3\'s "Approve/reject/request changes" is a matrix row '
+    + 'about who may act, not an alphabet of strings a row may hold, and a CHECK derived from it would be '
+    + 'this batch writing the event vocabulary. The gap is in the open blockers.');
+  assert.match(approvalBodyOf(APPROVAL_POLICIES), /required_role in \('owner', 'admin', 'editor', 'approver', 'viewer'\)/,
+    "§7 of the WINNING document gives the five built-in roles, so this CHECK is a quotation too");
+  assert.match(approvalBodyOf(APPROVAL_POLICIES), /required_scope_type in \('all_businesses', 'business', 'page'\)/,
+    '§7 gives the three scope types, and batch 021 already carries the identical CHECK on '
+    + 'app.workspace_member_scopes.scope_type — so this is a shared vocabulary rather than a second one');
+  assert.doesNotMatch(approvalCode, /interval|days|months/i,
+    'NO RETENTION OR EXPIRY PERIOD APPEARS IN THIS FILE. §10 gives APPROVAL-HISTORY "อายุ Workspace + 1 ปี '
+    + 'default", §15 requires Product, Security and Legal approval before Paid Beta, and batch 160 owns the '
+    + 'sweep. An interval here would be this batch setting a product deadline, which is what batch 070 '
+    + 'refused to do for DATA-DEC-07.');
+});
+
+test('the decision a policy version encodes is outside every client UPDATE grant', () => {
+  const updates = approvalGrantsFor(APPROVAL_POLICIES, 'update');
+  assert.equal(updates.length, 1, 'one UPDATE grant on app.approval_policies, to authenticated');
+  assert.deepEqual(updates[0].columns, ['enabled', 'updated_at', 'updated_by'],
+    '§4.7: "published policy version immutable". A row IS a version — §4.7 gives the table a `version` '
+    + 'column and names no separate version table — so the decision it encodes may never be rewritten and a '
+    + 'new decision is a NEW ROW. `enabled` is the one thing a client may move, and the refusal for '
+    + 'everything else is a column missing from a grant rather than a policy predicate, because an absent '
+    + 'privilege has to be WRITTEN to be undone while a predicate can be widened by an edit.');
+  for (const column of ['policy_key', 'version', 'minimum_approvers', 'required_role', 'required_scope_type']) {
+    assert.ok(!updates[0].columns.includes(column),
+      `${column} carries the decision and must not be updatable`);
+  }
+  const requestUpdates = approvalGrantsFor(APPROVAL_REQUESTS, 'update');
+  assert.equal(requestUpdates.length, 1);
+  for (const column of ['content_item_id', 'content_version_id', 'requested_by']) {
+    assert.ok(!requestUpdates[0].columns.includes(column),
+      `${column} must be outside the UPDATE grant. §4 invariant 6: "Approval Request pin Content Version; `
+      + 'Version ใหม่ไม่ inherit approval โดยอัตโนมัติ" — a request that can be re-pointed at a newer version '
+      + 'INHERITS approval by an UPDATE, which is the exact act that sentence forbids.');
+  }
+  assert.match(approvalCode, /unique \(workspace_id, business_profile_id, policy_key, version\)/,
+    '"policy versioned" as a constraint: one row per scope, key and ordinal, which is also how a case '
+    + 'addresses a policy without a fixture symbol');
+});
+
+test('a batch 090 request arrives pending, because state is outside the INSERT grant', () => {
+  const inserts = approvalGrantsFor(APPROVAL_REQUESTS, 'insert');
+  assert.equal(inserts.length, 1);
+  for (const column of ['status', 'decided_at', 'decided_by']) {
+    assert.ok(!inserts[0].columns.includes(column),
+      `${column} must be outside the INSERT grant. §8.3's two write rows are both about moving an EXISTING `
+      + 'request, and NO UPDATE POLICY CAN REFUSE A ROW THAT WAS NEVER UPDATED — so a caller who could name '
+      + 'this column on insert would open a request already approved and bypass the whole state machine in '
+      + 'one statement. This is the only defence against that and it is a missing privilege.');
+  }
+  assert.match(approvalBodyOf(APPROVAL_REQUESTS), /status\s+text\s+not null default 'pending'/,
+    'the column default is what fills the gap the absent grant leaves');
+  assert.match(approvalBodyOf(APPROVAL_REQUESTS),
+    /approval_requests_decision_has_a_decider[\s\S]*?status in \('approved', 'changes_requested'\)[\s\S]*?decided_at is not null and decided_by is not null/,
+    '§8.3 splits this table into two rows and the CHECK is where that split becomes data: `cancelled` is '
+    + 'not a decision and neither is `expired`, so only the two values the third row produces carry a '
+    + 'decider. Written as an EQUIVALENCE so both errors are refused — a decision with no decider, and a '
+    + 'decider stamped on a cancellation.');
+});
+
+test('two UPDATE policies split §8.3\'s two write rows, and each WITH CHECK carries its own role test', () => {
+  const updates = approvalPolicyBlocks.filter((p) => p.table === APPROVAL_REQUESTS && /for update/.test(p.body));
+  assert.equal(updates.length, 2,
+    '§8.3 gives app.approval_requests TWO write rows with DIFFERENT role cells — "Approval request '
+    + 'create/cancel" is Y for owner/admin/editor and "Approve/reject/request changes" is Y for '
+    + 'owner/approver — over the SAME granted column. One policy cannot express both.');
+  const cancel = updates.find((p) => /cancel/.test(p.name));
+  const decide = updates.find((p) => /decide/.test(p.name));
+  assert.ok(cancel && decide, 'the two policies must be nameable for what they do');
+  for (const policy of updates) {
+    const halves = policy.body.split('with check');
+    assert.equal(halves.length, 2, `${policy.name} must have both a USING and a WITH CHECK half`);
+    const [using, withCheck] = halves;
+    assert.match(using, /status = 'pending'/,
+      `${policy.name}'s USING half must refuse a settled request. A decision that can be retaken is not a `
+      + 'decision, and §4 invariant 8 makes approval history immutable.');
+    assert.match(withCheck, /workspace_member_role/,
+      `${policy.name}'s WITH CHECK half must test the role ITSELF. Permissive UPDATE policies OR their `
+      + 'USING halves AND OR their WITH CHECK halves, so a half that trusts "the USING already checked it" '
+      + "lets the OTHER policy's USING half admit the row — an approver cancelling, or an editor approving. "
+      + 'That is the single most likely edit to this file and it is invisible to a rule that reads one '
+      + 'policy at a time.');
+    assert.match(withCheck, /updated_by = \(select auth\.uid\(\)\)/,
+      `§8.5: ${policy.name} checks the writer's claim about itself rather than trusting it`);
+  }
+  assert.match(cancel.body.split('with check')[1], /status = 'cancelled'/,
+    'the cancel path writes exactly one value, which is how it is told from the decide path');
+  assert.match(decide.body.split('with check')[1], /status in \('approved', 'changes_requested'\)/,
+    'and the decide path writes exactly the two §8.3 row 3 produces');
+  assert.match(decide.body.split('with check')[1], /decided_by = \(select auth\.uid\(\)\)/,
+    'the decider is held equal to the caller, which matters more here than updated_by does: '
+    + 'approval_requests_decision_has_a_decider makes the stamp MANDATORY on these two values, so the trail '
+    + 'cannot record a decision without naming a decider and cannot name one who is not the caller');
+  assert.match(decide.body, /in \('owner', 'approver'\)/,
+    "§8.3 row 3 is Y for owner and approver and `P` for admin and editor. No capability is defined anywhere "
+    + 'in this repository — app.approval_policies.required_role is the nearest thing and no predicate reads '
+    + 'it — so the two `P` cells are REFUSED and are in the open blockers. Batch 070 refused the approver\'s '
+    + '`P` on "Suggestion save/dismiss/use" on the same ground.');
+});
+
+test('no batch 090 policy admits a write of the one status value nothing may produce', () => {
+  for (const policy of approvalPolicyBlocks.filter((p) => p.table === APPROVAL_REQUESTS)) {
+    const halves = policy.body.split('with check');
+    if (halves.length < 2) continue;
+    assert.doesNotMatch(halves[1], /expired/,
+      `${policy.name} admits a write of \`expired\`. §4.7 lists it among five status values and §8.3 has NO `
+      + 'ROW that produces it: the service column on the three write rows is `P` with no capability defined, '
+      + 'and no document in this repository says how long an approval request stays open. The failure this '
+      + "catches is the plausible one — widening the cancel policy to `status in ('cancelled', 'expired')`, "
+      + "which hands every editor the power to expire somebody else's request while looking like a tidy-up. "
+      + 'The migration asserts the same thing against the live policy catalog at apply time.');
+  }
+  assert.match(approvalCode, /position\('expired' in pg_catalog\.pg_get_expr\(pol\.polwithcheck/,
+    'and the apply-time half exists, because this rule reads a FILE and cannot see a policy a later batch '
+    + 'writes against the same table');
+});
+
+test('the approval narrowings are RESTRICTIVE, and each child resolves through its parent on both halves', () => {
+  const narrowings = approvalPolicyBlocks.filter((p) => /as restrictive/.test(p.body));
+  assert.equal(narrowings.length, APPROVAL_TABLES.length,
+    'one narrowing per table. `polpermissive` is the one catalog column that tells a narrowing from a '
+    + 'widening: a PERMISSIVE policy with the same name and the same predicate would WIDEN each table.');
+  for (const narrowing of narrowings) {
+    const halves = narrowing.body.split('with check');
+    assert.equal(halves.length, 2,
+      `${narrowing.name} must carry BOTH halves. On app.approval_events the WITH CHECK half is inert today `
+      + '— there is no write grant for it to bound — and it is written anyway for the direction a mistake '
+      + "travels: if a later batch grants a write here, a narrowing with no WITH CHECK admits it for every "
+      + "active member of the workspace, including one the row's own content item is hidden from. 040's "
+      + 'probe is why this is stated rather than assumed.');
+    for (const half of halves) {
+      if (narrowing.table === APPROVAL_POLICIES) {
+        assert.match(half, /member_scope_admits_business/);
+        assert.match(half, /member_scope_admits_page/,
+          `${narrowing.name} must ask BOTH questions. §4 invariant 3 makes the Page scope a nullable `
+          + 'override, so the narrowing decides per row which to ask; dropping the Page branch admits every '
+          + 'member scoped to a sibling Page.');
+      } else if (narrowing.table === APPROVAL_REQUESTS) {
+        assert.match(half, /app\.content_items/,
+          `${narrowing.name} must resolve through its content item. A request carries no page column, so a `
+          + "narrowing over its own columns would ask the Business question about a page-restricted item's "
+          + 'approval trail.');
+      } else {
+        assert.match(half, /app\.approval_requests/,
+          `${narrowing.name} must resolve through its request, which is the first of the two links its own `
+          + 'comment claims');
+        assert.match(half, /app\.content_items/,
+          `${narrowing.name} must reach the content item as well. THIS IS THE SECOND LINK AND IT IS THE ONE `
+          + 'a reversal removes: an event resolved through its request and then asked the Business question '
+          + "about the request's own columns passes every case in this batch except "
+          + '`pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item`.');
+      }
+    }
+  }
+});
+
+test('every batch 090 policy is written TO authenticated, and app_worker holds nothing at all', () => {
+  for (const policy of approvalPolicyBlocks) {
+    assert.match(policy.body, /to authenticated/,
+      `${policy.name} must name authenticated and no other role. RFC-2026-016 §2 as amended on `
+      + 'RFC-2026-022 carries service policies only for cells the §8 matrix marks S, and approval has none.');
+    for (const role of ['app_worker', 'app_command', 'app_maintenance', 'app_authz', 'anon']) {
+      assert.doesNotMatch(policy.body, new RegExp(`to [\\w, ]*\\b${role}\\b`),
+        `${policy.name} names ${role}`);
+    }
+  }
+  for (const table of APPROVAL_TABLES) {
+    for (const role of ['app_worker', 'anon', 'app_command', 'app_maintenance', 'app_authz']) {
+      assert.doesNotMatch(approvalCode, new RegExp(`on app\\.${table} to ${role}`),
+        `batch 090 grants ${role} nothing on app.${table}. THIS IS BATCH 080'S SHAPE AND NOT BATCH 070'S, `
+        + 'and this batch has a second reason for it: 070 grants its worker the verbs and lets row level '
+        + 'security refuse them, which is what makes a `service-sees-zero-*` case evidence about a POLICY. '
+        + '§8.3 marks the Service column `P` on three rows and `N` on the fourth, so there is no `S` cell '
+        + 'anywhere in this family for a worker grant to anticipate — and the writer the trail needs is a '
+        + 'SECURITY DEFINER command function owned by app_command (RFC-2026-017 §3), not a worker with '
+        + 'privileges. The cost is that every service case here is a PRIVILEGE refusal and none is in the '
+        + "CI negative control's basis.");
+    }
+  }
+});
+
+test('batch 090 classifies no S cell, and the service-policy map stays silent about approval', async () => {
+  const map = JSON.parse(await readFile('db/foundation/lint/service-policy-map.json', 'utf8'));
+  const entries = map.cells ?? map.entries ?? [];
+  for (const entry of Object.values(entries)) {
+    const text = JSON.stringify(entry);
+    for (const table of APPROVAL_TABLES) {
+      assert.ok(!text.includes(table),
+        `the map names app.${table}. §8.3 gives approval no S cell — the Service column is P on rows 1, 2 `
+        + 'and 3 and N on row 4 — so an entry here would be a claim about the access matrix made in a lint '
+        + 'file. Batch 080 reached the same conclusion for content and batch 132 for a different reason.');
+    }
+  }
+  assert.ok(map._what_batch_090_classified,
+    'A BATCH THAT IS SILENT IN THIS FILE AND A BATCH THAT DECIDED TO BE SILENT ARE INDISTINGUISHABLE '
+    + 'WITHOUT A NOTE. Batches 110 and 132 established the convention and this batch follows it, because '
+    + 'RFC-2026-022 §7.1/6 makes this file "the answer to which shape does this cell take" and an absent '
+    + 'answer reads like an unasked question.');
+});
+
+test('the approval request pins its content version over the item scope path', () => {
+  assert.match(approvalBodyOf(APPROVAL_REQUESTS),
+    /foreign key \(workspace_id, business_profile_id, content_item_id, content_version_id\)\s*\n\s*references app\.content_versions/,
+    '§4 invariant 6: "Approval Request pin Content Version". A key naming only the workspace and the '
+    + 'version id would satisfy every reading of that sentence while letting a request pin a version of '
+    + 'ANOTHER ITEM in the same tenant — a content item approved by a decision taken about a different one. '
+    + 'app.content_versions exposes (workspace_id, business_profile_id, content_item_id, id) as a unique '
+    + 'key and this is the first reference in the schema to use it.');
+  assert.match(approvalBodyOf(APPROVAL_REQUESTS), /content_version_id\s+uuid\s+not null/,
+    'the pin is mandatory: §4 invariant 6 does not admit a request that pins nothing');
+  assert.match(approvalCode, /array_length\(con\.conkey, 1\) = 4/,
+    'and the DEGREE of that key is asserted against the live catalog at apply time, because a text rule '
+    + 'that matched the spelling would still pass if somebody kept the name and shortened the tuple');
+});
+
+test('the batch 090 fixture writes only catalog identities and pins the rows its cases need', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const fixture = (await readFile(APPROVAL_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A fixture id `
+      + 'nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['approval_request_a1', 'approval_request_a1_page',
+    'approval_request_a1_sibling_page', 'approval_request_a1_decided', 'approval_request_a2',
+    'approval_request_b1']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  assert.doesNotMatch(fixture, /'expired'/,
+    'NO FIXTURE ROW IS LOADED `expired`. That value is in §4.7\'s vocabulary, no row of §8.3 produces it, '
+    + 'and the migration spends an apply-time assertion proving no policy admits a write of it. A fixture '
+    + 'row in that state would be this file supplying administratively the one state the batch proves '
+    + 'nobody can reach.');
+  assert.match(fixture, /'fixture-a1-business', 2, true, 2/,
+    'TWO VERSIONS OF ONE POLICY KEY, and they must DISAGREE. Version 1 is loaded disabled with a quorum of '
+    + '1 and version 2 enabled with a quorum of 2, so "a new decision is a new row" is a pair a case can '
+    + 'read rather than a sentence in a header — and the disagreement spans a column a client may move and '
+    + 'one no client may.');
+  assert.match(fixture, /'approved', '5c460eb8-0710-557a-b423-f9b12c76834f',\s*\n\s*'2026-09-11/,
+    'THE SETTLED REQUEST, which is the only row that can test the `status = \'pending\'` clause both UPDATE '
+    + 'policies carry in their USING half. Without it a reversal deleting that clause leaves every case '
+    + 'passing.');
+  // The three event rows are `(… approval_request_id, step, action, actor, comment, …)`, so the
+  // value tuple reads `<request uuid>, null, '<action>'` and `<actor uuid>, null,`. Both nulls are
+  // asserted positionally rather than by a pattern over the whole file, because a `doesNotMatch`
+  // that cannot fail is the defect this suite has found in itself twice.
+  const eventRows = [...fixture.matchAll(/'([0-9a-f-]{36})', (null|\d+), ('fixture-action-[a-z0-9-]+')/g)];
+  assert.equal(eventRows.length, 3, 'the fixture must load exactly three approval events');
+  for (const row of eventRows) {
+    assert.equal(row[2], 'null',
+      'EVERY step IS NULL. §4.7 names a step and names app.approval_policy_steps as the table it belongs '
+      + 'to; §6 gives that table to no batch. An integer here would be an ordinal pointing at a step that '
+      + 'never existed, which is the weakness the open blocker records — and a fixture is the last place to '
+      + 'make a missing referent look like a working reference. Batch 080 said the same of '
+      + 'generation_run_id.');
+  }
+  const commentSlots = [...fixture.matchAll(/'fixture-action-[a-z0-9-]+',\s*\n?\s*'[0-9a-f-]{36}', (null|'[^']*')/g)];
+  assert.equal(commentSlots.length, 3, 'each event row must state its comment explicitly');
+  for (const slot of commentSlots) {
+    assert.equal(slot[1], 'null',
+      'THE comment COLUMN IS NULL ON EVERY ROW. It is the one column in this batch that would hold free '
+      + 'text a person typed about another person\'s work, under a family §5 classes AUTH-3, and §9.2 lists '
+      + '`fixture` among the surfaces its prohibitions cover. No case needs a value in it.');
+  }
+});
+
+test('the tables batch 090 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  for (const table of APPROVAL_TABLES) {
+    assert.match(workflow, new RegExp(`control app\\.${table}\\s+'[^']+'\\s+090`),
+      `app.${table} must have a negative-control entry of its own. An entry asserts that the family's cases `
+      + 'FAIL when row level security is disabled, which is the only evidence that a passing case is '
+      + 'evidence about a policy rather than about an empty table.');
+  }
+});
+
+test('no batch 090 case id can satisfy another batch\'s control entry', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control (\S+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ours = new Set(entries.filter((e) => e.batch === '090').map((e) => e.table));
+  const approvalCases = cases.filter((c) => /approval-(policy|request|event)/.test(c.id));
+  assert.ok(approvalCases.length >= 70, 'the batch must actually add cases for this rule to be about anything');
+  for (const testCase of approvalCases) {
+    const claimed = entries.filter((e) => new RegExp(`^${e.pattern}`).test(testCase.id));
+    for (const entry of claimed) {
+      assert.ok(ours.has(entry.table),
+        `${testCase.id} matches ${entry.pattern}, which belongs to ${entry.table} in batch ${entry.batch}. A `
+        + "case satisfying another family's control entry lets that entry pass on a failure it did not "
+        + 'cause — the overlap batch 130 measured and this rule keeps from growing. This batch is the one '
+        + 'most exposed to it: its rows hang off app.content_items, so the OBVIOUS name for half of these '
+        + "cases contains `content-item`, which is 080's pattern.");
+    }
+  }
+  // AND THE OTHER DIRECTION, which 080's version of this rule did not check: a pattern this batch
+  // adds must not sweep an EARLIER family's case ids either. `approval-event` contains no other
+  // family's word, but nothing in the shape of these patterns guarantees that and the check costs
+  // one loop.
+  const ourPatterns = entries.filter((e) => e.batch === '090');
+  for (const testCase of cases.filter((c) => !/approval-(policy|request|event)/.test(c.id))) {
+    for (const entry of ourPatterns) {
+      assert.ok(!new RegExp(`^${entry.pattern}`).test(testCase.id),
+        `${testCase.id} belongs to another family and matches ${entry.pattern}, which batch 090 claims`);
+    }
+  }
+  const patterns = ourPatterns.map((e) => e.pattern);
+  assert.equal(new Set(patterns).size, patterns.length, 'two entries sharing a pattern is one entry');
+});
+
+test('the coverage map records what batch 090 pays, and what it does not', () => {
+  for (const key of [1, 2, 4, 5, 6, 7]) {
+    assert.match(SMOKE_COVERAGE[key].note, /BATCH 090/,
+      `§12.6/${key} must say what batch 090 contributed to it. A row whose value is true and whose note `
+      + 'stops before the newest batch is a row nobody can audit.');
+  }
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half',
+    'BATCH 090 DOES NOT MOVE THIS ROW AND COULD NOT. §12.6/8 wants an authorized server command to succeed; '
+    + 'batch 090 grants app_worker nothing, so there is no identity here that could carry the positive — '
+    + 'and §8.3 marks the Service column P on three rows and N on the fourth, so there is no `S` cell to '
+    + 'implement even if there were. Flipping it would report an absence as a payment.');
+  assert.match(SMOKE_COVERAGE[8].note, /BATCH 090 MAKES BATCH 080'S CLAIM/,
+    'and the note says why this batch is the 080 shape rather than the 070 one');
+  assert.equal(SMOKE_COVERAGE[3].covered, true,
+    'batch 080 flipped §12.6/3 and batch 090 does not touch it: "user_approver_a cannot edit '
+    + 'content/knowledge" names two families and approval is neither. The approver cases in THIS batch are '
+    + 'about §8.3\'s own rows and are counted under §8.6/2.');
+  assert.doesNotMatch(SMOKE_COVERAGE[3].note, /BATCH 090/,
+    'and this batch must not append to a sentence it did not pay for');
+  // The cases the two crossed refusals rest on, pinned by id so that deleting one fails here rather
+  // than quietly making the coverage note a claim about nothing.
+  for (const name of ['editor-a-cannot-decide-an-approval-request',
+    'approver-a-cannot-cancel-an-approval-request', 'viewer-a-cannot-cancel-an-approval-request',
+    'owner-a-cannot-expire-an-approval-request',
+    'pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item',
+    'pinned-editor-a-sees-the-approval-event-of-a-reachable-item']) {
+    assert.ok(cases.find((c) => c.id === name), `a case batch 090's coverage notes rest on is missing: ${name}`);
+  }
+  const crossed = cases.filter((c) => ['editor-a-cannot-decide-an-approval-request',
+    'approver-a-cannot-cancel-an-approval-request'].includes(c.id));
+  for (const testCase of crossed) {
+    assert.equal(testCase.expect, 'denied',
+      `${testCase.id} must be \`denied\` and not \`no-effect\`, and the difference is the whole design: the `
+      + "OTHER policy's USING half admits the row, so the statement is not filtered — it reaches both WITH "
+      + 'CHECK halves and errors. A case recorded as `no-effect` here would be describing a table where '
+      + 'each role holds only one of §8.3\'s two write rows\' USING predicates, which is not this table.');
+    assert.equal(testCase.deniedBy, 'policy',
+      `${testCase.id} is refused by a predicate and not by a missing privilege: both roles hold the column`);
+  }
+  assert.equal(cases.find((c) => c.id === 'viewer-a-cannot-cancel-an-approval-request').expect, 'no-effect',
+    'and the viewer is the CONTRAST that makes the pair above readable: holding neither write row, they are '
+    + 'filtered before any WITH CHECK is evaluated. The approver gets an error and the viewer gets silence.');
+  assert.equal(cases.find((c) => c.id === 'owner-a-cannot-expire-an-approval-request').as.subject,
+    id('user_owner_a'),
+    'the `expired` case runs as the WORKSPACE OWNER, the one identity that holds BOTH write paths, which is '
+    + 'what makes the refusal about the VALUE rather than about the caller');
+});
