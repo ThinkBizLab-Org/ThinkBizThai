@@ -9819,3 +9819,76 @@ test('the coverage map records what batch 100 pays, and the two rows it does not
     assert.ok(cases.find((c) => c.id === name), `a case this batch's coverage note rests on is missing: ${name}`);
   }
 });
+
+// A WITNESS COMPARES STRINGS, BECAUSE THE DRIVER RETURNS CSV TEXT — AND UNTIL CI RAN, NOTHING IN
+// THIS SUITE SAID SO.
+//
+// run-isolation.mjs reads a witness with `const actual = seen.rows[0][witness.column]` and asserts
+// `actual !== witness.equals` — a STRICT comparison against a value the psql driver produced by
+// parsing `--csv` output, which is always a string. So a witness whose `equals` is a boolean or a
+// number CANNOT MATCH ANY VALUE THE DATABASE COULD RETURN, in either direction: it is not a weak
+// assertion, it is an unsatisfiable one, and the case fails whether or not the write was stopped.
+//
+// MEASURED, NOT INFERRED. CI run 34754581209 failed exactly two of 705 cases --
+// `editor-a-cannot-allow-paid-ads-on-an-asset-rights` and its approver twin -- with
+// `paid_ads_allowed is "f" and should still be false`. `"f"` is PostgreSQL's CSV rendering of FALSE,
+// which is the value the fixture loads: THE POLICY HAD STOPPED THE WRITE, and the witness was
+// comparing the string "f" to the boolean false. Both halves of that run are worth keeping in mind
+// -- the first half of the assertion (the statement affected no row) PASSED, which is why the
+// failure text says so, and the second half could never have passed.
+//
+// WHY NO PROBE CAUGHT IT, stated because the probe tally would otherwise read as broader than it is:
+// all 24 reversal probes mutate SOURCE and are judged by the STATIC suite, and a witness type error
+// is invisible to every static rule this batch wrote and to every static rule that existed before
+// it. The probes test the rules; this defect lived in the gap between the rules and the database,
+// which is the gap `make db-rls-smoke` exists to cover and which no probe on this machine can reach.
+// This rule is the static half catching up.
+//
+// It is written over EVERY case in the suite rather than over batch 100's, because the trap belongs
+// to the harness rather than to a family: 46 of the 48 witnesses that existed before this run were
+// already strings, and the two that were not were the two that failed.
+test('every witness compares a string, because the driver returns CSV text and the runner uses !==', () => {
+  const witnessed = cases.filter((c) => c.witness);
+  assert.ok(witnessed.length > 0, 'there must be no-effect cases for this rule to be about anything');
+  for (const testCase of witnessed) {
+    const { witness } = testCase;
+    assert.equal(typeof witness.equals, 'string',
+      `${testCase.id}: witness.equals is ${JSON.stringify(witness.equals)}, a `
+      + `${typeof witness.equals}. run-isolation.mjs compares it with !== against a value the psql `
+      + 'driver parsed out of CSV, which is always a string — so this expectation cannot match any '
+      + 'value the database could return, and the case fails whether or not the write was stopped. '
+      + 'Cast in the statement (`select flag::text as flag`) and expect the text, which is what CI '
+      + 'run 34754581209 taught this suite.');
+    // AND THE SAME DEFECT WEARING THE OTHER FACE, which a probe found after the rule above was
+    // written: `equals: 'false'` with NO CAST is as unsatisfiable as `equals: false`, because a raw
+    // boolean column renders as `t`/`f` in CSV and never as `true`/`false`. A static rule cannot
+    // know a column's SQL type without a database — but it CAN see that an expectation spelled
+    // `true` or `false` is about a boolean, and demand the cast that makes it readable.
+    if (witness.equals === 'true' || witness.equals === 'false') {
+      assert.match(witness.sql, /::text\b/,
+        `${testCase.id}: witness.equals is ${JSON.stringify(witness.equals)}, which is a boolean `
+        + 'expectation — but a raw boolean column comes back from the CSV driver as "t" or "f", so '
+        + 'this can never match. Cast it in the statement (`select flag::text as flag`). Spelling '
+        + 'the expectation "t"/"f" instead would match, and is refused here because it reads as a '
+        + "typo rather than as a value and depends on how psql renders a boolean.");
+    }
+    assert.equal(typeof witness.column, 'string', `${testCase.id}: a witness names one column`);
+    assert.ok(witness.sql.includes(witness.column),
+      `${testCase.id}: the witness statement must select ${witness.column}, or the runner reads `
+      + 'undefined and the comparison fails for a reason that has nothing to do with the write');
+    assert.ok(witness.as, `${testCase.id}: a witness runs as an identity that CAN see the target row`);
+  }
+  // AND THE OTHER HALF OF THE SAME RULE: a `no-effect` case is only as strong as its witness, so
+  // every one of them must have one, and nothing else may.
+  for (const testCase of cases) {
+    if (testCase.expect === 'no-effect') {
+      assert.ok(testCase.witness,
+        `${testCase.id}: a no-effect case without a witness asserts only that a statement returned `
+        + 'nothing, which is also what an update returns when the row is absent');
+    } else {
+      assert.ok(!testCase.witness,
+        `${testCase.id}: only a no-effect case carries a witness; on any other outcome it is a `
+        + 'second assertion nobody reads');
+    }
+  }
+});

@@ -69,7 +69,7 @@
     {
       "criterion": "≥12 reversal probes recorded with noticed/missed tallied honestly",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a4-batch-100-probes-2026-09-13.md -- 24 valid probes, 21 noticed on the first run, 3 not (P09, P15, P25), all three rules changed in the same branch, plus two probes discarded as testing nothing rather than counted as passes."
+      "evidence": "evidence/WP-0A-DB-00/a4-batch-100-probes-2026-09-13.md -- 29 valid probes, 24 noticed on the first run, 5 not (P09, P15, P25, P28, and the defect CI found), all five rules changed in the same branch, plus two probes discarded as testing nothing rather than counted as passes. §1 says plainly that the tally is not the headline: the first 24 all passed BEFORE CI executed a case, and CI then failed two of this batch's own cases on a defect no source-mutation probe could reach."
     },
     {
       "criterion": "The suite and the harness are wired the way §3 of the state record requires",
@@ -80,18 +80,28 @@
       "criterion": "The package is not represented as reviewed, tested or integrated",
       "result": "met",
       "evidence": "final_status is author_complete; the PR is a Draft; status stays in_progress. The Author has not approved, test-verified or integrated this work and cannot."
+    },
+    {
+      "criterion": "The SQL applies to PostgreSQL and the apply-time assertions execute",
+      "result": "met",
+      "evidence": "CI run 34754581209: `applied 100_asset.sql`, `db-migrate-clean: ok in 1386ms`, `db-schema-lint: ok in 54ms`. The whole do-block -- the MEDIA-2 column allowlist, the per-column ACL checks, the indnullsnotdistinct read, the restrictive-policy inspection through pg_get_expr, the ownership rules -- ran and raised nothing."
+    },
+    {
+      "criterion": "The isolation cases run against a database and pass",
+      "result": "not met on the evidence so far",
+      "evidence": "CI run 34754581209: 703 of 705 passed; the two failures were this batch's own witness type error, diagnosed in evidence §8 and fixed without weakening either case. THE RUN THAT PROVES THE FIX HAS NOT HAPPENED YET, and this criterion stays unmet until it does. The four CI negative-control entries have NEVER RUN -- the step is `skipped` on all three runs, because it follows db-rls-smoke."
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 603, pass 603, fail 0, skipped 0, todo 0 (586 -> 603)"
+      "result": "clean: exit 0 — tests 604, pass 604, fail 0, skipped 0, todo 0 (586 -> 604)"
     },
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "toolchain, secret scan, protocol validators and the full suite; 603 tests, 0 failures"
+      "result": "toolchain, secret scan, protocol validators and the full suite; 604 tests, 0 failures"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs c5eb1b9 WP-0A-DB-00",
@@ -101,7 +111,7 @@
     {
       "command": "node --test tests/db/identity/identity-isolation.test.mjs",
       "exit_code": 0,
-      "result": "248 tests, 248 pass (232 -> 248)"
+      "result": "249 tests, 249 pass (232 -> 249)"
     },
     {
       "command": "node --test test-kits/db/foundation-contract.test.mjs",
@@ -114,26 +124,28 @@
       "result": "rebuilt 85 digest(s)"
     },
     {
-      "command": "npm run record:verification",
-      "exit_code": 0,
-      "result": "recorded 603 passing, 0 skipped, 0 todo"
-    },
-    {
       "command": "CI run 34753623653 (head fc8a58f)",
       "exit_code": 1,
-      "result": "FAILURE at `Verify branch scope` — evidence/VERIFICATION.md changed and undeclared. `Database foundation` and the negative control both SKIPPED, so nothing rested on a database reading. Declared in amends_without_owning at 4c17ffa."
+      "result": "FAILURE at `Verify branch scope` — evidence/VERIFICATION.md changed and undeclared. `Database foundation` and the negative control SKIPPED. Fixed at 4c17ffa."
     },
     {
       "command": "CI run 34753787430 (head 03a53c4)",
       "exit_code": 1,
-      "result": "FAILURE at `Database foundation` with `100_asset.sql: spawn E2BIG (no code)`, after applying every batch through 080_content.sql. NOT A SQL DEFECT and no statement was reached: scripts/db/psql-driver.mjs passes a migration as a single `--command` argv entry and Linux caps one argument at MAX_ARG_STRLEN = 131,072 bytes. The file was 145,686 bytes and is now 117,661. `db-rls-smoke` and the negative control were SKIPPED on this run too."
+      "result": "FAILURE at `Database foundation` with `100_asset.sql: spawn E2BIG (no code)` after applying every batch through 080_content.sql. NOT A SQL DEFECT and no statement was reached: the driver passes a migration as one `--command` argv entry and Linux caps a single argument at 131,072 bytes. File 145,686 -> 117,661 bytes. db-rls-smoke SKIPPED."
+    },
+    {
+      "command": "CI run 34754581209 (head c48fa5f)",
+      "exit_code": 1,
+      "result": "THE SQL APPLIED. `applied 100_asset.sql`; `db-migrate-clean: ok in 1386ms`; `db-schema-lint: ok in 54ms`; the whole apply-time do-block executed and raised nothing. `db-rls-smoke: FAILED — 2 of 705 case(s)`: 703 passed and the two that failed are this batch's own paid-ads cases. DIAGNOSED AS A WITNESS TYPE ERROR, NOT A POLICY FAILURE — the failure text reads `paid_ads_allowed is \"f\"`, which is PostgreSQL's CSV rendering of FALSE and is the fixture's own value, so the policy stopped the write; the runner compares with !== against CSV TEXT and the witness expected the boolean false, which could not match in either direction. Fixed by casting `::text` and expecting 'false'; the cases' claims are unchanged. The negative-control step was SKIPPED on this run too."
     }
   ],
   "security_privacy_cost_impact": "THREE SURFACES, AND THE THIRD IS NOT CLOSED. (1) MEDIA-2: §9.1 puts the object in a private bucket reached by a short signed URL, so the database holds a locator and a digest and an apply-time column ALLOWLIST makes a bytes column fail the migration rather than the code review; the fixture carries no media, no base64 and no real bucket name, and its digests are over synthetic strings. (2) RIGHTS-3: §9.1 projects \"status/expiry, proof by permission\" to the client and this schema implements that as a COLUMN LIST -- owner_name, proof_asset_id, proof_url and note are outside the `authenticated` SELECT grant, because nothing in this repository defines that permission. (3) THE PURGE PATH IS NOT SAFE YET AND THIS INCREMENT SAYS SO: CONTRIBUTING_AGENTS.md and §9.3 of the object storage lifecycle contract both require production object deletion to work from an approved immutable manifest of exact object keys, this schema supplies the exact keys and no table in §6's registry owns the snapshot or records the approval, and nothing here refuses a worker that composes `where object_key like $1 || '%'`. Open blocker 2, addressed to A4, A1 Security, DATA-DEC-03's RFC and batch 160. No secret, credential, customer content or PII appears in any file this increment adds. Cost impact: none -- no cost column and no usage table is created, deliberately (§5 gives both to metering.core).",
   "migration_and_data_impact": "ADDITIVE, AND NOT APPLIED ANYWHERE. One new migration, db/foundation/migrations/100_asset.sql, creating four tables in `app` with their constraints, indexes, triggers, RLS, grants and twelve policies. It rewrites no merged migration. It is declared NOT APPLIED to the provisioned instance in both places that must agree -- db/foundation/lint/catalog-snapshot.json and NOT_ON_THE_INSTANCE in test-kits/db/foundation-contract.test.mjs -- INSERTED between 080 and 110 rather than appended, so the declaration stays a contiguous TAIL and pendingDeclarationLint does not report divergence. It cannot apply there in any case: its foreign keys reach composite scope keys batch 020 creates, its policies call helpers 011 and 021 create, and app.content_asset_links references app.content_versions from batch 080, which is itself on that list. NO DATA MIGRATION AND NO BACKFILL: every table is new and empty. The only writer that exists anywhere is the test fixture, which loads administratively as the table owner; nothing in the running system can create an asset version at all (open blocker 4).",
   "compatibility_impact": "TWO SHARED RULES TOUCHED, both strictly narrowing, and a reviewer should weigh both because three batches are in flight against the same files. (1) servicePolicyMapLint in scripts/db/run.mjs now holds a classification row to the closed set of fields the register's own `_shape` declares; every existing row — 051's two, 061's, 070's three, 110's and 131's — passes unchanged and was re-run. A sibling adding `role` or `broker_owner` to a row must add the field to `_shape` in the same change. (2) test-kits/db/foundation-contract.test.mjs gains a migration size bound; 070_research.sql is grandfathered by name because migration invariant 1 forbids rewriting it, and any sibling whose migration exceeds 120,000 bytes will fail this rule rather than CI's `spawn E2BIG`. Nothing else in this increment changes an existing interface.",
   "known_limitations": [
-    "NO ISOLATION CASE AND NO APPLY-TIME ASSERTION IN THIS BATCH HAS MET A DATABASE. Both CI runs so far failed before `db-rls-smoke` — the first at branch scope, the second at `spawn E2BIG` — and the per-family negative control is recorded `skipped` on both. The figure 705 is what `buildCases` returns, not a pass count, and the whole `do $$` block in 100_asset.sql is unexercised.",
+    "THE FOUR CI NEGATIVE-CONTROL ENTRIES HAVE NEVER RUN. The step is recorded `skipped` on all three CI runs so far, because it follows `db-rls-smoke`. So \"each of these four families is detectable on its own\" is asserted statically and has NOT been executed -- including the claim that the service purge case is in the control's basis, which rests on the static rule rather than on a control that bit.",
+    "THE TWO CASES CI FAILED HAVE NOT YET PASSED AGAINST A DATABASE. Run 34754581209 failed `editor-a-cannot-allow-paid-ads-on-an-asset-rights` and its approver twin on a witness type error -- the policy stopped the write and the assertion compared a CSV string to a JS boolean. The fix is argued in evidence §8 and neither case's claim changed; the run that proves it is the next one.",
+    "A REVERSAL-PROBE TALLY MEASURES THE RULES AND NOT THE ASSERTIONS. All 24 source-mutation probes are judged by the STATIC suite, and a witness type error only exists when a case executes -- so a 21-of-24 tally was fully consistent with a suite containing two assertions that could never pass. Four new rules close that specific hole over EVERY case in the suite; the method's blind spot is recorded rather than treated as cured.",
     "NOTHING IN THIS REPOSITORY CAN WRITE AN app.asset_versions ROW OR SET app.assets.current_version_id. §5 makes the version immutable so its creation is not a client act; app_worker holds the INSERT grant and no policy and row level security refuses it; current_version_id is outside every INSERT and every UPDATE grant and is therefore permanently NULL. §8.2's 'Asset upload' `Y` is implemented in half, and both halves wait on a command function RFC-2026-021 §10 records does not exist. Open blocker 4.",
     "§4 INVARIANT 5's TWO CONDITIONS ON A PIN ARE NOT ENFORCED. A content asset link pins an asset_version_id and cannot check that the version is `ready` or that rights are valid: a CHECK cannot read another table and a policy could only through the coupling batch 020 rejects. Open blocker 5.",
     "THE LINK'S TWO-PARENT NARROWING CANNOT BE SEPARATED BY A CASE. Both parents of the sibling-target link are restricted together, because §4.7's 'same Business' rule forbids a fixture row whose asset and whose content version are in different narrowings. The apply-time assertion that both parent names appear in both halves is the substitute, recorded as one in AUTHORIZATION_CASE_COVERAGE[4] rather than counted as coverage the suite does not have.",

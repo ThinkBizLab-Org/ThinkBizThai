@@ -13566,18 +13566,21 @@ export const ASSET_RIGHTS_BY_ID =
 export const ASSET_RIGHTS_PROOF_BY_ID =
   'select proof_url from app.asset_rights where id = $1::uuid';
 
+// `::text`, AND CI IS WHAT TAUGHT THIS FILE THE CAST. The psql driver returns every value as CSV
+// TEXT and run-isolation.mjs compares a witness with `!==`, so a boolean column read raw comes back
+// as the string "f" and `equals: false` can never match it: run 34754581209 failed both of this
+// batch's paid-ads cases with `paid_ads_allowed is "f" and should still be false` — the POLICY had
+// stopped the write and the WITNESS was comparing a string to a boolean. Casting here rather than
+// spelling the expectation `'f'` is deliberate: `'false'` is legible, and it does not depend on how
+// psql happens to render a boolean in CSV.
 export const ASSET_RIGHTS_PAID_ADS_BY_ID =
-  'select paid_ads_allowed from app.asset_rights where id = $1::uuid';
+  'select paid_ads_allowed::text as paid_ads_allowed from app.asset_rights where id = $1::uuid';
 
 // §4.7's logical key, spelled out. `content_variant_id is null` rather than `= $2` because a null is
 // never equal to anything — and the constraint that makes this address single-valued is exactly the
 // one that treats that null as part of the key.
 export const ASSET_LINK_BY_LOGICAL_KEY =
   'select id from app.content_asset_links where content_version_id = $1::uuid'
-  + " and content_variant_id is null and role = 'cover' and sort_order = 0";
-
-export const ASSET_LINK_SORT_ORDER_BY_LOGICAL_KEY =
-  'select sort_order from app.content_asset_links where content_version_id = $1::uuid'
   + " and content_variant_id is null and role = 'cover' and sort_order = 0";
 
 // -- Batch 100 builders. -----------------------------------------------------------------------
@@ -13805,16 +13808,15 @@ export function assetRightsStillRefusePaidAds(as, rightsId) {
     sql: ASSET_RIGHTS_PAID_ADS_BY_ID,
     params: [rightsId],
     column: 'paid_ads_allowed',
-    equals: false,
+    // A STRING, because the driver compares strings. See the cast on the statement above.
+    equals: 'false',
   };
 }
 
-export function assetLinkStillFirst(as, contentVersionId) {
-  return {
-    as,
-    sql: ASSET_LINK_SORT_ORDER_BY_LOGICAL_KEY,
-    params: [contentVersionId],
-    column: 'sort_order',
-    equals: 0,
-  };
-}
+// THERE IS NO LINK WITNESS, and the absence is deliberate rather than an omission. An earlier draft
+// carried one whose `equals` was the NUMBER 0 — which the driver could never have matched, for the
+// reason the paid-ads cast above records — and no case used it, because every write case on
+// app.content_asset_links is a `denied` at the GRANT layer and a `denied` case needs no witness. An
+// unused builder carrying a latent type error is what the next batch copies, so it is removed; the
+// day a link becomes updatable (batch 090's approval, see the migration header), the batch that
+// grants the UPDATE writes the witness it actually needs.
