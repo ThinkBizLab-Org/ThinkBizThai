@@ -1,3 +1,12 @@
+> **STALE AS OF 2026-09-13 — read `evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md` for the current state.**
+> This file describes the repository as it stood when thirteen Draft PRs (#1–#13) were open and
+> nothing had merged. Since then PRs through **#112** have merged, `main` is `49830ad`, the suite is
+> **586** tests and **629** isolation cases, and batch **080** is on `main`. The sentences below about
+> the twenty verification runs and the guards they defeated are still the best account of WHY the
+> guards look the way they do; every NUMBER and every "nothing merged" below is history, not state.
+> The notice is prepended rather than the file rewritten, because a "read this first" that is
+> silently edited is how a stale count gets trusted — this repository has recorded that four times.
+
 # Overnight run — read this first
 
 Working branch stack, all Draft PRs, **nothing merged**. `RFC-2026-002` reserves the

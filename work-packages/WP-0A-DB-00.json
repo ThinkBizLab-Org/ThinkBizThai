@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-080",
+    "branch": "agent/claude/WP-0A-DB-00-session-handoff-2026-09-13",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -109,13 +109,11 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".github/workflows/ci.yml",
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
+        "OVERNIGHT-SUMMARY.md",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "Batch 080 creates five tables, so it amends the FIVE registries a table-creating batch touches -- the same five batch 070 declared, for the same reasons, and one of them for a reason worth restating. `.github/workflows/ci.yml` gains one `control` line per new table: app.content_ideas, app.content_items, app.content_versions, app.content_variants and app.quality_reviews, each with a comment saying what the entry rests on -- and the comment says what it does NOT rest on, which is this batch's own departure: every `service-cannot-*` case here is a GRANT-layer refusal, because batch 080 grants app_worker nothing at all, and a grant-layer refusal passes unchanged when the control disables row level security. evidence/VERIFICATION.md is written by the verifier, never by hand, and moves whenever the count does; it is regenerated with `npm run record:verification` rather than edited. scripts/test-suite-contract.mjs carries the per-file floors and the test-name digests: this increment adds fourteen tests and about seventy-nine assertions to tests/db/identity/identity-isolation.test.mjs, so the declared-test floor moves 218 -> 232, the assertion floor 1607 -> 1686, and the name digest with them. NO FLOOR IS LOWERED, and every number is re-derived from the MERGED tree rather than from either side of a merge. test-kits/branch-identity.test.mjs holds the single-slot registry naming which branch owns this package, repointed in its two places (the ref list and the BRANCH_OWNERSHIP row); the field holds ONE value, so this is a replacement rather than an addition. test-kits/integrity-manifest.json is regenerated over the protected files this increment touches. WHAT THIS INCREMENT ALSO CHANGES AND DOES NOT NEED A DECLARATION FOR, because the paths are this package's own: eight assertions inside tests/db/identity/identity-isolation.test.mjs that pinned SMOKE_COVERAGE[3] at `knowledge-half`. That value moves to `true` here, because §12.6/3 names content and knowledge and this batch creates the content half; the eight assertions are earlier batches' guards on a value that has now legitimately moved, each is rewritten to say what its own batch did and did not pay, and none of them is deleted. A flip that left its guards behind would be a value and its guards disagreeing."
+      "rationale": "THIS INCREMENT RECORDS WHERE A SESSION ENDED AND CHANGES NO CODE. It adds one state-record document under evidence/WP-0A-DB-00/, a path this package owns -- NOT under docs/handoffs/db-00/, which writable_paths also lists but which scripts/validate-work-package-ownership.mjs refuses because read_only_paths' `docs/**` takes precedence (exit 69, measured on this increment), so that writable entry is dead and is recorded as such in the record -- and amends exactly three files it does not, each for one reason. OVERNIGHT-SUMMARY.md (owned by WP-0A-CON-006) is the repository's 'read this first' and describes a state that ended at PR #13 -- 'nothing merged', 249 tests -- while main is now at PR #112 with 586 tests; a notice is PREPENDED pointing at the new record and the body is left untouched, because a read-this-first that is silently edited is how a stale count gets trusted, and because the file's account of the twenty verification runs is still the best explanation of why the guards look the way they do. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it (two places: the ref list and the BRANCH_OWNERSHIP row; the field holds ONE value, so this is a replacement). test-kits/integrity-manifest.json then follows, because branch-identity.test.mjs is digested and the coverage-floor guard exits 86 on a digest that no longer matches its file."
     }
   },
   "inputs": {
@@ -145,6 +143,7 @@
       "db/foundation/migrations/140_audit.sql",
       "db/foundation/seeds/fixture-catalog.json",
       "db/foundation/test-helpers/rls-assertions.mjs",
+      "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md",
       "evidence/WP-0A-DB-00/a3-batch-080-probes-2026-09-12.md",
       "evidence/WP-0A-DB-00/a6-batch-132-measurements-2026-09-09.md",
       "scripts/db/authz-proofs.mjs",
