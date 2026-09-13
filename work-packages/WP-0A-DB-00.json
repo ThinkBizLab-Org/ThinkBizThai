@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-session-handoff-2026-09-13",
+    "branch": "agent/claude/WP-0A-DB-00-a1-security-080",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -109,11 +109,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "OVERNIGHT-SUMMARY.md",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT RECORDS WHERE A SESSION ENDED AND CHANGES NO CODE. It adds one state-record document under evidence/WP-0A-DB-00/, a path this package owns -- NOT under docs/handoffs/db-00/, which writable_paths also lists but which scripts/validate-work-package-ownership.mjs refuses because read_only_paths' `docs/**` takes precedence (exit 69, measured on this increment), so that writable entry is dead and is recorded as such in the record -- and amends exactly three files it does not, each for one reason. OVERNIGHT-SUMMARY.md (owned by WP-0A-CON-006) is the repository's 'read this first' and describes a state that ended at PR #13 -- 'nothing merged', 249 tests -- while main is now at PR #112 with 586 tests; a notice is PREPENDED pointing at the new record and the body is left untouched, because a read-this-first that is silently edited is how a stale count gets trusted, and because the file's account of the twenty verification runs is still the best explanation of why the guards look the way they do. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it (two places: the ref list and the BRANCH_OWNERSHIP row; the field holds ONE value, so this is a replacement). test-kits/integrity-manifest.json then follows, because branch-identity.test.mjs is digested and the coverage-floor guard exits 86 on a digest that no longer matches its file."
+      "rationale": "THIS INCREMENT IS A SECURITY REVIEW AND CHANGES NO CODE, NO POLICY, NO GRANT AND NO STATUS. It adds one document under evidence/WP-0A-DB-00/, a path this package owns, and amends exactly two files it does not, both for the same single reason: the branch this package declares has moved. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, and pins the same ref a second time in the resolver list, so a new branch cannot be declared without both pinned rows moving with it -- ownership.branch holds ONE value, so this is a replacement rather than an addition. test-kits/integrity-manifest.json then follows, because branch-identity.test.mjs is digested and the coverage-floor guard exits 86 on a digest that no longer matches its file. OVERNIGHT-SUMMARY.md was declared here by the previous increment, which prepended a staleness notice to it; THIS branch does not touch that file, and scripts/verify-branch-scope.mjs exits 74 on a declaration matching none of the diff -- a standing permission over another package's file, granted for work that never happened -- so the entry is removed rather than carried forward. Five sibling agent runs are repointing this same single slot in parallel; that conflict is expected, and integration is sequential and is the Integration Owner's act."
     }
   },
   "inputs": {
