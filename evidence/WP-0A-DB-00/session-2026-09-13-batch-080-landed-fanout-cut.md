@@ -1,6 +1,6 @@
 # Session handoff — 2026-09-12 → 13: batch 080 landed, a six-agent fan-out launched and cut
 
-Author run: `/claude` (Anthropic). Package: `WP-0A-DB-00`. Written at the Product Owner's
+Author run: `/claude/a0_atlas` (Anthropic), the run the manifest names as Author. Package: `WP-0A-DB-00`. Written at the Product Owner's
 instruction to end the session here and record where it ends. This file is a STATE RECORD and
 approves nothing; it is the "read this first" for whoever opens the repository next, because
 `OVERNIGHT-SUMMARY.md` describes a state that ended at PR #13 and a notice now points here.
