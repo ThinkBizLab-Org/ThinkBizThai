@@ -336,7 +336,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // about which FILES the instance has run, not which objects they make — and INSERTED between 081 and
   // 110 so the tail stays contiguous.
   '082_content_service_path_closed.sql', '083_content_targets_service_path_closed.sql',
-  '090_approval.sql', '092_approval_service_path_closed.sql', '100_asset.sql',
+  '090_approval.sql', '092_approval_service_path_closed.sql',
+  '093_updated_at_triggers.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
   '110_meta_connector.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
@@ -2049,4 +2050,48 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     assert.equal(meta, -1,
       `${name} line ${meta + 1} begins with a backslash. Under stdin psql executes that as a meta-command -- \\! runs a shell command -- where --command would have refused it as syntax. A migration is SQL and nothing else.`);
   }
+});
+
+// updated_at IS THE DATABASE'S TO WRITE, ON EVERY TABLE THAT HANDS THE COLUMN TO A CLIENT.
+//
+// Three reviews found the same shape in three batches (C0-080 M4, C0-081 M3, C0-090 M5): a table
+// with `updated_at … default now()`, the column inside the UPDATE grant to `authenticated`, and no
+// trigger -- so the column held whatever the last client wrote. Batch 093 attaches
+// private.set_updated_at to the five tables and asserts, against the live catalog, that no table in
+// `app` admits a non-owner UPDATE on updated_at without a BEFORE UPDATE trigger calling it. This is
+// the static twin: it reads every migration's text, pairs each `grant update (… updated_at …) on
+// app.<table> to <role>` with a `create trigger set_updated_at before update on app.<table>` somewhere
+// in the set, and fails on the pair that has no trigger -- before a database is involved, and by
+// name. The apply-time rule is the one that survives a later batch dropping the trigger; this one
+// is the one that fails on the author's machine.
+test('every table that grants updated_at to a role also has the database maintain it', async () => {
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  const texts = await Promise.all(names.map(async (n) => [n, (await readFile(`${dir}/${n}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+  const triggered = new Set();
+  for (const [, code] of texts) {
+    for (const m of code.matchAll(/create trigger set_updated_at before update on (app\.\w+)/g)) triggered.add(m[1]);
+  }
+  assert.ok(triggered.size >= 30, `${triggered.size} tables carry the trigger; the set is larger than that, so the parse missed it`);
+  const granted = [];
+  for (const [name, code] of texts) {
+    for (const m of code.matchAll(/grant update \(([^)]*)\)\s*\n?\s*on (app\.\w+) to (\w+)/g)) {
+      if (/\bupdated_at\b/.test(m[1])) granted.push({ name, table: m[2], role: m[3] });
+    }
+  }
+  assert.ok(granted.length >= 12, `${granted.length} grants name updated_at; there are more, so the parse missed some`);
+  const orphans = granted.filter((g) => !triggered.has(g.table)).map((g) => `${g.table} (${g.role}, ${g.name})`);
+  assert.deepEqual(orphans, [],
+    `updated_at is granted and no migration attaches private.set_updated_at:\n  ${orphans.join('\n  ')}\n`
+    + 'Attach the trigger in the batch that grants the column, as every batch since 010 does, or keep updated_at '
+    + 'out of the grant as 070 does for research_suggestions. Batch 093 closed the five that existed on 2026-09-15.');
+  // AND THE FIVE 093 CLOSED, PINNED, so that the rule above cannot be satisfied by a grant quietly
+  // losing the column instead of gaining the trigger.
+  for (const table of ['app.content_ideas', 'app.content_items', 'app.content_targets', 'app.approval_policies', 'app.approval_requests']) {
+    assert.ok(triggered.has(table), `${table}: the trigger batch 093 attached is gone`);
+  }
+  const closer = texts.find(([n]) => n === '093_updated_at_triggers.sql');
+  assert.ok(closer, 'batch 093 is in the migration set');
+  assert.match(closer[1], /updated_at is client-writable and no BEFORE UPDATE trigger maintains it/,
+    "and it asserts the general rule at apply time, against the live catalog, in the words a failure prints");
 });
