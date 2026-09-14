@@ -138,6 +138,20 @@ a version id, and a case that resolved that id by joining `app.content_versions`
 tables' policies behind one result and could not attribute the refusal it observed to the table the
 case is named for. The symbol is the cheaper of the two costs.
 
+Batch `081` added **no symbol for a row in its one table and three for a column of one**, which is
+the first inversion of that rule in this catalog and the reason it gets its own paragraph. A
+**content target** has a natural key — `(content_item_id, social_account_id)`, which
+`081_content_targets.sql` makes unique among rows whose `deleted_at` is null, §4.6's "unique active
+target" — so every case addresses one out of ids already fixed here. Its **destination** is the
+opposite case and the opposite case is the whole point of the batch: `social_account_id` carries no
+foreign key, because §6's registry gives "business-channel/social FK" to batch `111`, and
+`app.social_accounts` fixes no id of its own, so the value is a bare uuid resolved against nothing,
+reachable through no other table's natural key, and shared between a fixture and a case. That is
+exactly the constant this catalog exists to fix — and fixing it is also what keeps the gap visible,
+because three ids that name no row are the first thing a reader meets. **Batch `111` must repoint all
+three, and the fixture will refuse to load until it does.** That failure is intended: a fixture that
+kept loading through the addition of a foreign key is one whose rows never depended on it.
+
 Tests must read ids from here and never generate them. The cross-tenant assertion depends on it:
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding
 B's exact id is the control that matters.
