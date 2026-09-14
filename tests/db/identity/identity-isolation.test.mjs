@@ -10567,8 +10567,9 @@ test('the asset narrowings are RESTRICTIVE, and the link resolves through BOTH p
           `${policy.name}: and an edge to a CONTENT_VERSION. Its reach must be the INTERSECTION of its two `
           + "parents' reaches — naming only the asset lets a member who can see the media see a link into "
           + 'content they cannot, and naming only the content version does the reverse. THIS ASSERTION IS '
-          + 'WHAT MAKES THE AND FALSIFIABLE: no fixture row can separate the two parents while §4.7\'s "same '
-          + 'Business" rule forbids a link whose asset and whose content version are in different narrowings.');
+          + 'WHAT MAKES THE AND FALSIFIABLE: the two separation rows in the fixture (Q0-100 F1) -- a business-level '
+          + 'asset under a sibling-page version and the reverse -- each refused by exactly one half. (This message '
+          + 'read "no fixture row can separate the two parents"; §4.7\'s same-Business rule never forbade it.)');
       } else {
         assert.match(half, /app\.assets/,
           `${policy.name}: a version and a rights record carry no page column, so each one's reach is its `
@@ -10856,9 +10857,10 @@ test('no batch 100 case id can satisfy another batch\'s control entry', async ()
   // is not a filter. So the sweep runs over every case id in the suite that mentions an asset at
   // all, and the count of ids this batch's four patterns claim is PINNED, so a rename that escapes
   // both fails on the number.
-  assert.equal(assetCases.length, 76,
-    'batch 100 contributes exactly 76 case ids across its four patterns — 24 on app.assets, 18 on '
-    + 'app.asset_versions, 20 on app.asset_rights and 14 on app.content_asset_links. A case renamed out of '
+  assert.equal(assetCases.length, 80,
+    'batch 100 contributes exactly 80 case ids across its four patterns — 24 on app.assets, 18 on '
+    + 'app.asset_versions, 20 on app.asset_rights and 18 on app.content_asset_links (14, plus the four '
+    + 'separation cases Q0-100 F1 added on 2026-09-15). A case renamed out of '
     + 'its own family changes this number, which is the only thing a rename cannot hide from.');
   for (const testCase of cases.filter((c) => c.id.includes('asset'))) {
     for (const word of ['workspace', 'business', 'page', 'scope', 'research-', 'content-idea',
@@ -10893,11 +10895,8 @@ test('the coverage map records what batch 100 pays, and the two rows it does not
     assert.match(AUTHORIZATION_CASE_COVERAGE[key], /BATCH 100/,
       `§8.6 case ${key} must record this batch's contribution`);
   }
-  assert.match(AUTHORIZATION_CASE_COVERAGE[4], /can only separate the two parents of a link in one direction/i,
-    'AND THE LIMIT IS RECORDED AS A LIMIT. The link case cannot distinguish which of its two parents refused '
-    + 'it, because both are restricted to the same sibling target and §4.7\'s "same Business" rule forbids '
-    + 'building a row where only one is. The apply-time assertion on both halves of the policy is the '
-    + 'substitute, and it is named as one rather than counted as coverage this suite does not have.');
+  assert.match(AUTHORIZATION_CASE_COVERAGE[4], /separates the two parents of a link in both directions/i,
+    'AND THE FORMER LIMIT IS RECORDED AS LIFTED. Until 2026-09-15 this note said the link case could not distinguish which parent refused it because §4.7\'s "same Business" forbade a separating row; Q0-100 F1 showed same Business is not same narrowing, two fixture rows now separate the halves, and the note says so with the old sentence quoted beside it.');
   // The cases the flipped-nothing claim rests on, pinned by id so deleting one fails here.
   for (const name of ['approver-a-cannot-upload-a-library-asset',
     'approver-a-cannot-allow-paid-ads-on-an-asset-rights', 'editor-a-cannot-allow-paid-ads-on-an-asset-rights',

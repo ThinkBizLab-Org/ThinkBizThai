@@ -286,7 +286,24 @@ insert into app.content_asset_links
   ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765',
    '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3', '2478a854-613b-5250-b797-eb6d6b347aca', null,
    '10b4861c-ecac-5c71-90bb-315844298122', 'a23ae773-6056-5fc9-9ca2-e520526c7db0',
-   'cover', 0, null, '297ad853-58a6-5e83-87e1-f936f9c3ddff')
+   'cover', 0, null, '297ad853-58a6-5e83-87e1-f936f9c3ddff'),
+  -- THE TWO SEPARATION ROWS (Q0-100 F1, 2026-09-15). "Same Business" and "same narrowing" are not
+  -- the same condition: a link may join a business-level asset to a sibling-page version, or a
+  -- sibling-page asset to a business-level version, and §4.7 forbids neither -- both parents are
+  -- in business_a1. For user_page_editor_a exactly ONE half of the link narrowing refuses each row,
+  -- which is what makes the AND falsifiable: cut either half and one of the two cases goes green.
+  -- sort_order 1, because the logical key is (…, role, sort_order) and both versions already carry
+  -- a cover at 0.
+  -- content_version_a1_sibling_page (page-restricted) <- asset_a1 / asset_version_a1 (business-level)
+  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb',
+   'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a', '25501c36-a088-5897-9166-f2913f7c6649', null,
+   '61748f20-e42b-575e-a4a3-dcc3474200ef', '6bb3f989-3ba7-55d2-bd87-d0185b65bc88',
+   'cover', 1, null, '5c460eb8-0710-557a-b423-f9b12c76834f'),
+  -- content_version_a1 (business-level) <- asset_a1_sibling_page / its version (page-restricted)
+  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb',
+   'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a', '0516429c-c4af-5c3c-93fa-69844a240195', null,
+   'e57b1566-203f-5e5b-adc1-5b951f7b8c80', 'f46c51f4-d530-5a75-97c9-c4a98a9e7c73',
+   'cover', 1, null, '5c460eb8-0710-557a-b423-f9b12c76834f')
 on conflict on constraint content_asset_links_logical_key do nothing;
 
 commit;

@@ -1606,7 +1606,7 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'publishable text. The fixture loads a variant and a review under the sibling-page item for '
    + 'no other purpose.'
            + '\n\n'
-           + 'BATCH 100 ASKS IT FOUR TIMES AND CAN ONLY SEPARATE THE TWO PARENTS OF A LINK IN ONE DIRECTION, which is recorded rather than glossed. `pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target` and the version and rights cases beside it are clean single-parent refusals. The link case is not: both of its parents are restricted to the same sibling target, so either half of the ANDed narrowing would refuse it, and no fixture row can separate them while §4.7\'s "same Business" rule forbids a link whose asset and whose content version are in different narrowings. What makes the AND itself falsifiable is the apply-time assertion that both parent names appear in BOTH halves of the policy, and that is stated as the substitute it is.',
+           + 'BATCH 100 ASKS IT FOUR TIMES, AND SINCE 2026-09-15 SEPARATES THE TWO PARENTS OF A LINK IN BOTH DIRECTIONS (Q0-100 F1: two fixture rows, one half refusing each; this note read "can only separate … in one direction", which was false -- same Business is not same narrowing). `pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target` and the version and rights cases beside it are clean single-parent refusals. The sibling-target link case is not: both of its parents are restricted to the same sibling target, so either half of the ANDed narrowing would refuse it. What makes the AND falsifiable is the pair beside it -- `pinned-editor-a-cannot-see-the-asset-link-whose-content-half-is-restricted` and `…-whose-asset-half-is-restricted`, each refused by exactly one half, with an owner positive for each row. Replaying Q0\'s probe (the content half made an uncorrelated exists()) turns exactly the first of them red and nothing else.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -14534,12 +14534,56 @@ export function buildCases(id) {
       why: 'THE TWO-PARENT NARROWING, IN THE DIRECTION THAT DISTINGUISHES IT. Both of this link\'s '
          + 'parents are restricted to the sibling target, so either half of the AND would refuse '
          + 'it — which is the honest statement of what this case proves and what it does not. What '
-         + 'makes the AND itself falsifiable is the apply-time assertion that both parent names '
-         + 'appear in both halves of the policy; a case cannot separate them while no fixture row '
-         + 'has one reachable parent and one unreachable one, and building one would mean a link '
-         + 'whose asset and whose content version are in different narrowings — which §4.7\'s "same '
-         + 'Business" forbids until a sharing path exists. Recorded as a known limit of this suite '
-         + 'rather than claimed as coverage it does not have.',
+         + 'separates the two halves is the pair of cases below it (Q0-100 F1, 2026-09-15): this '
+         + 'case\'s why read "a case cannot separate them while no fixture row has one reachable '
+         + 'parent and one unreachable one, and building one would mean a link whose asset and whose '
+         + 'content version are in different narrowings — which §4.7\'s same Business forbids". That '
+         + 'was false: "same Business" and "same narrowing" are different conditions, and the '
+         + 'fixture\'s own rows license a business-level asset under a sibling-page version and the '
+         + 'reverse. Two such rows now exist and each is refused by exactly one half.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-asset-link-whose-content-half-is-restricted',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_SEPARATION_LINK_BY_VERSION,
+      params: [id('content_version_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'ONE HALF ONLY. The asset is asset_a1, business-level, which this identity reaches '
+         + '(pinned-editor-a-sees-the-library-asset-of-their-own-target); the content version is '
+         + 'restricted to the sibling Page, which it does not. Cut the content half of the link '
+         + 'narrowing and this case goes green while every other link case stays as it is.',
+    },
+    {
+      id: 'pinned-editor-a-cannot-see-the-asset-link-whose-asset-half-is-restricted',
+      covers: ['§8.6/4', '§4/3'],
+      as: pageEditorA,
+      sql: ASSET_SEPARATION_LINK_BY_VERSION,
+      params: [id('content_version_a1')],
+      expect: 'no-rows',
+      why: 'THE OTHER HALF ONLY. The content version is content_version_a1, business-level, which '
+         + 'this identity reaches (pinned-editor-a-sees-the-asset-link-of-their-own-narrowing); the '
+         + 'asset is asset_a1_sibling_page, which it does not. Cut the asset half and this one goes '
+         + 'green.',
+    },
+    {
+      id: 'owner-a-sees-the-separation-asset-link-under-the-restricted-version',
+      covers: ['§8.6/1', '§7'],
+      as: ownerA,
+      sql: ASSET_SEPARATION_LINK_BY_VERSION,
+      params: [id('content_version_a1_sibling_page')],
+      expect: 'rows',
+      why: 'The positive that makes the first refusal above about the narrowing rather than about a '
+         + 'row that does not exist.',
+    },
+    {
+      id: 'owner-a-sees-the-separation-asset-link-under-the-open-version',
+      covers: ['§8.6/1', '§7'],
+      as: ownerA,
+      sql: ASSET_SEPARATION_LINK_BY_VERSION,
+      params: [id('content_version_a1')],
+      expect: 'rows',
+      why: 'And for the second.',
     },
     {
       id: 'pinned-editor-a-sees-the-asset-link-of-their-own-narrowing',
@@ -15806,6 +15850,10 @@ export const ASSET_RIGHTS_PAID_ADS_BY_ID =
 export const ASSET_LINK_BY_LOGICAL_KEY =
   'select id from app.content_asset_links where content_version_id = $1::uuid'
   + " and content_variant_id is null and role = 'cover' and sort_order = 0";
+// The separation rows (Q0-100 F1) sit at sort_order 1 on the same two versions.
+export const ASSET_SEPARATION_LINK_BY_VERSION =
+  'select id from app.content_asset_links where content_version_id = $1::uuid'
+  + " and content_variant_id is null and role = 'cover' and sort_order = 1";
 
 // -- Batch 100 builders. -----------------------------------------------------------------------
 //
