@@ -35,77 +35,64 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "BATCH 111 IS THE SOCIAL FOREIGN KEY, AND §6's REGISTRY GIVES IT TO A0 BY NAME (\"111 | A0 Integration | 110,020,081 | business-channel/social FK | A0 only\"). It is the first batch in this package whose author is the package Author, which the three role runs on it were told and recorded.",
-    "THE KEY IS (workspace_id, social_account_id) -> app.social_accounts (workspace_id, id), composite over the workspace because a social account belongs to a Workspace and a target to a Business inside it. It delivers the social half of the registry row and DECLINES the business-channel half: §4 relation invariant 2 binds an account to one active Business at a time, the binding has no table (020, 110 and now 111 declined it), and a business-scoped key would encode it in a column pair that does not exist.",
-    "THE THREE DESTINATION SYMBOLS BATCH 081 FIXED ARE RETIRED for social_account_a1/a2/b1, fixed by the catalog recipe; 110's fixture fixes the ids it used to let default and loads a second workspace_a account so one item can hold two destinations. 081 said the fixture would refuse to load until 111 did this; the repoint is the fix rather than a red run.",
-    "A PostgreSQL 17.11 EXISTS ON THIS MACHINE and every claim below was measured on a scratch cluster of it before push: without 111 the database accepts the cross-tenant row (A1-081 S3 reproduced); with it, 845 cases, the one new case refused 23503. CI read the same numbers on the branch name.",
-    "THREE ROLE RUNS SIGNED THIS BATCH BEFORE MERGE (Owner's Q6), same-vendor under RFC-2026-024's proposal: A1 (3 LOW), C0 (3 MEDIUM, 5 LOW, 2 INFO), Q0. C0's M1, M2, M3, L3 and L4 and A1's F3 were acted on in the branch before merge: two header sentences corrected, eight stale sentences corrected, two blockers opened, one extended, this handoff rewritten."
+    "THIS INCREMENT IS THE SECOND HALF OF #131: the fixtures and the auth-context helper leave the --command argv path for stdin, as migrations did. It is loader plumbing in scripts/db/** and one contract-test rule; it adds no migration, grant, policy or case.",
+    "A FIXTURE IS ONE TRANSACTION BY ITS OWN TEXT and the helper install is a set of CREATE OR REPLACE statements, so the stdin path for them is feed() -- no begin/commit wrapping -- and not script(), which wraps. Reusing script() would nest a transaction inside one.",
+    "ON STDIN A LINE BEGINNING WITH A BACKSLASH IS A META-COMMAND PSQL EXECUTES (measured: `\\! echo PWNED` ran and returned rows). The static rule that held migrations to carrying none now holds every fixture and the helper. Cases keep --command and are not held to it.",
+    "THE OLD CEILING IS LINUX MAX_ARG_STRLEN (131,072), where CI runs; macOS has no per-argument cap and a 141,425-byte script passed through --command on this machine. The evidence records that and does not claim a local refusal."
   ],
   "acceptance_results": [
     {
-      "criterion": "The foreign key exists over exactly (workspace_id, social_account_id) -> social_accounts (workspace_id, id), validated, and is the only key on the column",
+      "criterion": "The helper and every fixture load through the stdin path and the full set still measures the same",
       "result": "met",
-      "evidence": "111_social_fk.sql apply-time block; migrate-clean applies it on the scratch cluster and in CI run 34900710795."
+      "evidence": "scratch 17.11: migrate-clean, schema-lint ok, rls-smoke 845 isolation case(s) passed -- the same 845 as CI run 34902972792 measured on --command; a0-fixture-loader-stdin-2026-09-15.md §2"
     },
     {
-      "criterion": "A cross-tenant destination is refused at the database",
+      "criterion": "A fixture larger than the old ceiling loads",
       "result": "met",
-      "evidence": "editor-a-cannot-aim-a-content-target-at-another-tenants-destination: 23503 with 111, \"the database accepted the row (1 returned)\" without it -- measured by A0, A1 (both directions) and C0."
+      "evidence": "a 141,425-byte fixture-shaped script through feed(): ok (§2); the 200,024-byte migrate-clean probe on the same path"
     },
     {
-      "criterion": "The fixtures load with real destinations and every case that named one still passes",
+      "criterion": "A loader that went back to --command, or a fixture that carried a meta-command, fails a static rule by name",
       "result": "met",
-      "evidence": "845 isolation cases (844 + 1); 42 case references repointed; the 110 fixture rule now pins three accounts with the a/b hash shared."
-    },
-    {
-      "criterion": "What the batch does not deliver is written down",
-      "result": "met",
-      "evidence": "The business-channel binding, the ON DELETE question, the missing FK-index lint and the registry ordering for 120 are in the evidence §4 and, where they are debts, in open_blockers."
+      "evidence": "test-kits/db/foundation-contract.test.mjs: \"no fixture or test helper carries a psql meta-command, because the loader feeds them on stdin\" -- pins feed() in the driver, both call sites, and the backslash rule over eleven fixtures and the helper; contract suite 59 -> 60"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 641, pass 641, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
+      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (642 -> 643: one contract test)"
     },
     {
-      "command": "DB_TEST_URL=<scratch> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
+      "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
       "exit_code": 0,
-      "result": "applied 111_social_fk.sql; lint ok; 845 isolation case(s) passed (844 + 1). Without 111: FAILED — 1 of 845, the database accepted the cross-tenant row."
+      "result": "applied 111_social_fk.sql; ceiling probe 200024 bytes through stdin; lint ok; 845 isolation case(s) passed with fixtures and helper on stdin"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "every changed path declared"
+      "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "Closes A1-081 S3: a content target can no longer name a social account of another Workspace -- the reference is refused at the database (23503) in both directions (A1-111 measured B->A as well). Adds no grant, no policy, no read surface; A1-111 F1 records the referential check as a one-bit own-tenant channel to social_accounts with values redacted, LOW. No cost today: content_targets is empty on every database the repository has when the key is validated.",
-  "migration_and_data_impact": "One unique key on app.social_accounts (workspace_id, id); one index and one composite foreign key on app.content_targets, added NOT VALID and validated in the same batch. Invariant 2 in shape; the column has held values since 081 and there is nothing to backfill. No ON DELETE action -- an open blocker. Fixture changes: 110 fixes three social-account ids and adds a row; 081 repoints three literals; the three destination catalog symbols are retired.",
-  "compatibility_impact": "Any writer that names a destination must name a social account of its own Workspace that exists. Nothing in the repository writes one except the fixtures and the cases, all repointed.",
+  "security_privacy_cost_impact": "No grant, policy, role or read surface changes. The one door stdin opens -- a backslash line psql executes as a shell command -- is closed by a static rule over every file the loader feeds, measured open (§2) before the rule was relied on. The fixtures are repository files read by a reviewer; the rule is defence against a fixture that arrives with one by mistake, not against an adversary who can already edit the repository.",
+  "migration_and_data_impact": "None. No migration; the loader feeds the same eleven fixtures and the same helper, as written, and the same 845 cases pass.",
+  "compatibility_impact": "scripts/db/psql-driver.mjs gains feed(); script() and query() are unchanged. Any caller that loaded a fixture through query() would still work under the old ceiling; the loader is the only caller and it moved.",
   "known_limitations": [
-    "THE BUSINESS-CHANNEL HALF OF §6 ROW 111 IS NOT DELIVERED; the binding has no table and this batch is not the one to create it.",
-    "content_targets_social_scope_fk has no ON DELETE action; what happens to a target whose account disappears is an open blocker.",
-    "No lint holds a foreign key to a supporting index; twenty-one keys lack one (C0-111 M1). This batch indexed its own.",
-    "§6 row 120 does not list 111 among its dependencies; the registry is read-only to this package."
+    "Cases still run under --command by design; a case over 131,072 bytes would meet the ceiling on Linux. None is within two orders of magnitude of it.",
+    "The static rule reads the first non-blank character of each line; a meta-command after a statement on the same line is not psql syntax and is not what the rule guards."
   ],
   "open_risks_or_blockers": [
-    "The business-channel half of §6 row 111 is not delivered; the binding table has no owner (blocker extended).",
-    "No ON DELETE action on the key (blocker opened).",
-    "No FK supporting-index lint; twenty-one keys lack an index (blocker opened).",
-    "§6 row 120 does not list 111; the registry is docs/** and read-only here."
+    "None opened. The second-pass record §5 item \"fixture loads still go through --command\" is paid by this increment."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the key, the unique key and the index go; the catalog and fixtures return to symbols that name no row, which is the state 081 left on purpose. No database this repository has holds a content target outside a fixture.",
+  "rollback_or_forward_fix": "Revert the merge commit: the loader returns to query() for fixtures and the helper, feed() goes, and the rule goes with it. Nothing in the database depends on which path loaded a fixture.",
   "recommended_next_work_packages": [
-    "The FK supporting-index rule, then the twenty-one indexes or reasoned exemptions (blocker).",
-    "The channel binding table (§4 invariant 2), which 020, 110 and 111 have each declined; needs an owner in §6.",
-    "Batch 120 (Publisher), whose registry row should list 111."
+    "Batch 102 (updated_by at INSERT is the caller, thirteen tables), prepared on its own branch and next in this queue.",
+    "The pre-080 families closures once the Owner picks a row of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md)."
   ],
   "reviewer_instructions": [
-    "Apply the set on a scratch PostgreSQL with and without 111_social_fk.sql and run rls-smoke: the one new case must fail without it with \"the database accepted the row (1 returned)\" and pass with it.",
-    "Recompute the three social-account uuids with the catalog recipe (uuid5 of thinkbizthai.fixture.<symbol>) and compare with 110's fixture.",
-    "Read §4 relation invariant 2 against the header's \"not business-scoped\" paragraph and the blocker on the channel binding: the batch delivers the social half and declines the binding, and says so.",
-    "The three role files on this batch are signatures under RFC-2026-024's proposal, by distinct same-vendor runs; each opens with the spawning disclosure."
+    "Read feed() beside script() in scripts/db/psql-driver.mjs and confirm the one difference is the wrapping, and why.",
+    "Put a line `\\! echo x` into any fixture and run the contract suite: the rule must name the file and line. Then run rls-smoke on a scratch database with the same line: psql executes it -- that is the door the rule closes.",
+    "Run rls-smoke on a scratch PostgreSQL: 845 cases, the same count as on --command."
   ],
   "superseded_by": null
 }
