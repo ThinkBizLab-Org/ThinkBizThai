@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-rfc-024",
+    "branch": "agent/claude/WP-0A-DB-00-q0-081-f3-write-half",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -110,12 +110,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "scripts/verify-test-coverage-floor.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json",
-        "test-kits/repository-json.test.mjs"
+        "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT PROPOSES RFC-2026-024-cross-vendor-condition-withdrawn AND CHANGES NO CODE, NO MIGRATION AND NO POLICY. The RFC file is added to writable_paths by name, the shape RFC-2026-021, -022 and -023 set. It amends four files it does not own, each for one reason, the same four those RFCs amended: test-kits/repository-json.test.mjs names the closed set of decision records; scripts/verify-test-coverage-floor.mjs digests every decision record; test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed; test-kits/integrity-manifest.json is regenerated because all of the above are digested, and the new record is added to it as a key first because the regenerator re-digests only the keys it already has."
+      "rationale": "THIS INCREMENT CLOSES Q0-081 F3 WITH ONE ISOLATION CASE under tests/db/identity/**, which this package owns, plus one evidence file. It amends exactly two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. Neither scripts/test-suite-contract.mjs nor evidence/VERIFICATION.md moved: no test was added (a case is not a test) and the module count stays 641."
     }
   },
   "inputs": {

@@ -12308,6 +12308,27 @@ export function buildCases(id) {
          + 'probe found a suite can lose without noticing.',
     },
     {
+      id: 'pinned-editor-a-cannot-aim-a-content-target-at-a-sibling-target-item',
+      covers: ['§8.6/4', '§12.6/2'],
+      as: pageEditorA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_sibling_page'),
+        id('content_target_destination_a2'), '__SELF__'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_targets' },
+      why: 'THE WRITE HALF OF §8.6 CASE 4, which batch 081 did not carry (Q0-081 F3, 2026-09-15). '
+         + 'The case above exercises the Business question only: user_editor_a holds a business scope, '
+         + 'and covers_page\'s business arm admits every Page under it. This identity holds a PAGE scope '
+         + 'on page_a1 and aims at the item pinned to page_a1_sibling -- same Business, wrong Page -- so '
+         + 'only the Page branch of the narrowing refuses it. MEASURED, AND NARROWER THAN Q0 SPELLED IT: '
+         + 'probe P10 cut the "i.id = content_targets.content_item_id" term from the WITH CHECK half only, '
+         + 'and this case stays refused under that mutation -- because the statement RETURNS the row and '
+         + 'PostgreSQL checks a returned row against the USING half, which still names the item. Cut the '
+         + 'term from BOTH halves and this case is the write-side one that goes green ("1 row(s) came '
+         + 'back"), beside the read case above it. The pair (content_item_a1_sibling_page, destination_a2) '
+         + 'is free of the logical key.',
+    },
+    {
       id: 'service-cannot-aim-a-content-target',
       covers: ['§12.6/8-negative', '§8.2/content-service-P'],
       as: service,
