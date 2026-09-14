@@ -5538,8 +5538,11 @@ test('the batch 110 fixture writes only catalog identities and loads both inbox 
   // THE SAME EXTERNAL ACCOUNT HASH ON BOTH SIDES, which is what makes the workspace-scoped natural
   // key legible: a key that had lost workspace_id would fail to LOAD rather than fail a case.
   const accountHashes = [...fixture.matchAll(/sha256\(convert_to\('(social_account_[a-z0-9_]+)'/g)].map((m) => m[1]);
-  assert.equal(accountHashes.length, 2, 'two discovered accounts, one per Workspace');
-  assert.equal(accountHashes[0], accountHashes[1],
+  // Three since batch 111: workspace_a's second account (a distinct hash, because it is a distinct
+  // account) so that one content item can hold two destinations. The a/b pair keeps the shared hash.
+  assert.equal(accountHashes.length, 3, 'three discovered accounts: two for workspace_a, one for workspace_b (batch 111)');
+  assert.notEqual(accountHashes[1], accountHashes[0], "workspace_a's second account is a different account, so a different hash");
+  assert.equal(accountHashes[0], accountHashes[2],
     'and they carry the SAME hash, on purpose: with two different hashes the workspace-scoped key '
     + 'and a global one would both accept both rows, and the fixture would prove nothing about which '
     + 'constraint the migration wrote');
@@ -9447,8 +9450,8 @@ test('the batch 081 fixture writes only catalog identities and states what each 
       + 'nobody can recompute is an unverifiable constant.');
   }
   for (const symbol of ['content_item_a1', 'content_item_a1_page', 'content_item_a1_sibling_page',
-    'content_item_a2', 'content_item_b1', 'content_target_destination_a1',
-    'content_target_destination_a2', 'content_target_destination_b1']) {
+    'content_item_a2', 'content_item_b1', 'social_account_a1',
+    'social_account_a2', 'social_account_b1']) {
     assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
   }
   assert.doesNotMatch(fixture, /from app\.social_accounts/,

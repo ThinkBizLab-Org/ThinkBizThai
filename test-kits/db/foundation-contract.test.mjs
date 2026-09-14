@@ -341,6 +341,7 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
   '110_meta_connector.sql',
+  '111_social_fk.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -781,9 +782,9 @@ const ADDED_SYMBOLS = [
   // repoint all three at social accounts that exist, and the fixture will refuse to load until it
   // does — which is the intended failure, because a fixture that kept loading through the addition
   // of a foreign key is one whose rows never depended on it.
-  'content_target_destination_a1',
-  'content_target_destination_a2',
-  'content_target_destination_b1',
+  'social_account_a1',
+  'social_account_a2',
+  'social_account_b1',
   // Batch 090. SIX REQUESTS AND NOTHING ELSE, WHICH IS THE SMALLEST SYMBOL COUNT A THREE-TABLE
   // BATCH HAS ADDED, and the reason is that two of its three tables have natural keys this catalog
   // already fixes the parts of. A POLICY is (workspace_id, business_profile_id, policy_key,

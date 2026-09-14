@@ -130,35 +130,35 @@ insert into app.content_targets
   -- content_item_a1, destination a1: business-level, PINNED to the facebook variant of
   -- content_version_a1.
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
-   '963952b8-b41d-58cd-b10f-ca3a3557fe65', '3e4c57c4-25c0-5d00-b57c-bc50841b9b33',
+   '963952b8-b41d-58cd-b10f-ca3a3557fe65', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    (select id from app.content_variants
      where content_version_id = '0516429c-c4af-5c3c-93fa-69844a240195' and platform = 'facebook'),
    null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a1, destination a2: the SECOND destination on the same item, UNPINNED.
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
-   '963952b8-b41d-58cd-b10f-ca3a3557fe65', '7d07fdd8-4acb-5aa9-a3f5-f7e10ab9c3bb',
+   '963952b8-b41d-58cd-b10f-ca3a3557fe65', 'f8d7b988-35f7-5dad-a2d9-516a445cf830',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a1_page, destination a1: page-level under page_a1, unpinned.
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
-   'ddefe11d-220d-5945-b6bf-af36693fc0a9', '3e4c57c4-25c0-5d00-b57c-bc50841b9b33',
+   'ddefe11d-220d-5945-b6bf-af36693fc0a9', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a1_sibling_page, destination a1: page-level under page_a1_sibling, PINNED to the
   -- facebook variant of its own version. The negative half of §8.6 case 4 on this table.
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
-   'f4d8fb50-98fb-5745-8c4f-fab6a0e8f910', '3e4c57c4-25c0-5d00-b57c-bc50841b9b33',
+   'f4d8fb50-98fb-5745-8c4f-fab6a0e8f910', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    (select id from app.content_variants
      where content_version_id = '25501c36-a088-5897-9166-f2913f7c6649' and platform = 'facebook'),
    null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a2, destination a1: under business_a2, outside user_editor_a's member scope.
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
-   '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '3e4c57c4-25c0-5d00-b57c-bc50841b9b33',
+   '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_b1, destination b1: workspace_b. A DISTINCT destination symbol rather than
   -- destination_a1, deliberately. Nothing in this schema would refuse two tenants targeting one
   -- social account -- the column is resolved against nothing at all -- and a fixture that showed
   -- that would be modelling the gap as though it were a design. The gap is in the open blockers.
   ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
-   '306426ca-a54a-5e3d-90ec-1feff18372ca', '5ef9c641-9d44-5362-826d-6430f480ec90',
+   '306426ca-a54a-5e3d-90ec-1feff18372ca', 'bf855f7a-bbae-595f-b095-85be153f1148',
    (select id from app.content_variants
      where content_version_id = '2478a854-613b-5250-b797-eb6d6b347aca' and platform = 'facebook'),
    null, '297ad853-58a6-5e83-87e1-f936f9c3ddff', '297ad853-58a6-5e83-87e1-f936f9c3ddff')
@@ -175,9 +175,9 @@ begin
     from app.content_targets t
    where t.content_variant_id is null
      and (t.content_item_id, t.social_account_id) in (
-           ('963952b8-b41d-58cd-b10f-ca3a3557fe65'::uuid, '3e4c57c4-25c0-5d00-b57c-bc50841b9b33'::uuid),
-           ('f4d8fb50-98fb-5745-8c4f-fab6a0e8f910'::uuid, '3e4c57c4-25c0-5d00-b57c-bc50841b9b33'::uuid),
-           ('306426ca-a54a-5e3d-90ec-1feff18372ca'::uuid, '5ef9c641-9d44-5362-826d-6430f480ec90'::uuid));
+           ('963952b8-b41d-58cd-b10f-ca3a3557fe65'::uuid, '71b10fff-e2b6-5f9a-b869-ba8f3854329c'::uuid),
+           ('f4d8fb50-98fb-5745-8c4f-fab6a0e8f910'::uuid, '71b10fff-e2b6-5f9a-b869-ba8f3854329c'::uuid),
+           ('306426ca-a54a-5e3d-90ec-1feff18372ca'::uuid, 'bf855f7a-bbae-595f-b095-85be153f1148'::uuid));
   if unpinned <> 0 then
     raise exception 'the batch 081 fixture loaded % target(s) whose pin resolved to nothing', unpinned
       using hint = 'The pins are subselects on (content_version_id, platform), the natural key batch '

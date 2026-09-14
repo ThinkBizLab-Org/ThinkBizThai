@@ -80,11 +80,21 @@ on conflict (id) do nothing;
 --
 -- No created_by/updated_by: §4's ERD verb is "discovers", which is the service's act rather than a
 -- member's, and §3.2 attaches the actor columns to a user mutation. The columns do not exist.
+-- THE IDS ARE FIXED SINCE BATCH 111, which references these rows from app.content_targets and
+-- needs a uuid a case can hold: uuid5 of the symbol, the catalog's recipe, as every fixed id here.
+-- A THIRD ROW, workspace_a's second account, so that one content item can hold two destinations
+-- (§4.6's pair). Its hash differs because it is a different account; the a/b pair keeps the shared
+-- hash for the reason above.
 insert into app.social_accounts
-  (workspace_id, meta_connection_id, account_kind, display_name, external_account_hash) values
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
+  (id, workspace_id, meta_connection_id, account_kind, display_name, external_account_hash) values
+  ('71b10fff-e2b6-5f9a-b869-ba8f3854329c',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
    'fb', 'fixture social account a', sha256(convert_to('social_account_a1', 'utf8'))),
-  ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'd83a993a-1cec-598f-9a8d-c1b2566c5bdb',
+  ('f8d7b988-35f7-5dad-a2d9-516a445cf830',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
+   'ig', 'fixture social account a2', sha256(convert_to('social_account_a2', 'utf8'))),
+  ('bf855f7a-bbae-595f-b095-85be153f1148',
+   '43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'd83a993a-1cec-598f-9a8d-c1b2566c5bdb',
    'fb', 'fixture social account b', sha256(convert_to('social_account_a1', 'utf8')))
 on conflict (workspace_id, external_account_hash) do nothing;
 
