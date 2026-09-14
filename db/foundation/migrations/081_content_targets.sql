@@ -538,8 +538,11 @@ begin
   end if;
 
   -- app_worker HOLDS NOTHING, which is batch 080's departure from 070's shape, kept here for the
-  -- same reason. The writer this family needs is a SECURITY DEFINER function owned by app_command,
-  -- exempt by OWNERSHIP rather than by privilege (RFC-2026-017 §3); granting a worker the verbs
+  -- same reason. The writer this family needs is a SECURITY DEFINER function owned by app_command --
+  -- which RFC-2026-017 §3 keeps OFF the owner seat precisely so that the policies here APPLY to it
+  -- (this comment read "exempt by OWNERSHIP rather than by privilege" until integration on
+  -- 2026-09-15; that was false, found so by C0 H2 and Q0 F4, and what it licensed is the S8 shape
+  -- batch 083 closes). Granting a worker the verbs
   -- would build the second path to the same act -- the shape RFC-2026-018 was superseded for
   -- proposing. The consequence, stated rather than discovered: every service case in the isolation
   -- suite for this table is a PRIVILEGE refusal, none of them carries RFC-2026-017 §7, and none is
@@ -697,8 +700,11 @@ begin
   -- RFC-2026-017 §3 and RFC-2026-020 §5/2, asked here for the reason every batch since 020 asks
   -- them: scripts/db/run.mjs holds every tenant table to the ownership rule against the COMMITTED
   -- SNAPSHOT, and this batch is deliberately not applied to the instance that snapshot describes.
-  -- If app_command owned the table, the command function this family is waiting for would be exempt
-  -- from the policies above BY OWNERSHIP and the narrowing would bound nothing it does.
+  -- app_command must not own the table: RFC-2026-017 §3 keeps it off the owner seat so that the
+  -- policies here are ones that can NAME it and so apply to it. (Until integration on 2026-09-15 this
+  -- read "would be exempt from the policies above BY OWNERSHIP"; FORCE makes an owner subject to its
+  -- own policies, so the sentence was false -- and the narrowing above binds nothing app_command does
+  -- for a different reason, its TO clause, which batch 083 closes.)
   select string_agg(format('%s owned by %s', c.relname, pg_catalog.pg_get_userbyid(c.relowner)), ', ')
     into offending
     from pg_catalog.pg_class c

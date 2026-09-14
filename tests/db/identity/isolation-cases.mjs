@@ -12491,6 +12491,17 @@ export function buildCases(id) {
       why: 'As for the version. Five cases rather than one joined query so that a closure dropped '
          + 'from ONE table names that table in the suite output.',
     },
+    {
+      id: 'batch-083-closes-the-service-path-on-content-targets',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_targets'],
+      expect: 'rows',
+      why: 'Batch 083, the sixth content table: A1 S1, C0 H1 and Q0 (all 2026-09-15) found 081\'s narrowing '
+         + 'is `to authenticated` like 080\'s five, and 082\'s closure names five tables. This case fails '
+         + 'against 081 alone and passes with 083, which is the proof README §"Forward fix" asks for.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 

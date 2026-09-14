@@ -9670,3 +9670,51 @@ test('the "exempt by ownership" sentence is corrected where it can be, and the r
   assert.match(runner, /subject to RLS and needs policies that name it/,
     'and states the true one, in RFC-2026-017 §3\'s own words');
 });
+
+
+// =================================================================================================
+// EVERY *_service_path_closed.sql IS HELD TO 082's SHAPE, BY ONE RULE. Batch 082 closed the five
+// content tables; the 2026-09-15 role runs found the same S8 shape in 081, 090 and 100, so each of
+// those batches integrates with a closure file of its own (083, 092, 101). A closure that drifted
+// from 082's shape -- a TO clause, a different predicate, a table missed -- would be a second S8 with
+// a name that says it is closed, so the shape is declared once here and every file is read against
+// it. Adding a family means adding a row; a file on disk with no row, or a row with no file, fails.
+const SERVICE_PATH_CLOSURES = {
+  '082_content_service_path_closed.sql': CONTENT_TABLES,
+  '083_content_targets_service_path_closed.sql': ['content_targets'],
+};
+
+test('every service-path closure on disk is declared, and every declared closure has 082\'s shape', async () => {
+  const onDisk = (await readdir(MIGRATIONS_DIR)).filter((n) => /^\d{3}_\w+_service_path_closed\.sql$/.test(n)).sort();
+  assert.deepEqual(onDisk, Object.keys(SERVICE_PATH_CLOSURES).sort(),
+    'a closure file with no declared table list, or a declared list with no file, is a closure nobody checks');
+  for (const [file, tables] of Object.entries(SERVICE_PATH_CLOSURES)) {
+    const raw = await readFile(`${MIGRATIONS_DIR}/${file}`, 'utf8');
+    const code = raw.replace(/--[^\n]*/g, '');
+    const closures = [...code.matchAll(
+      /create policy (\w+)_service_path_closed on app\.(\w+)\s*\n\s*as restrictive\s*\n\s*for all\s*\n\s*using \(([^)]*)\)\s*\n\s*with check \(([^)]*)\);/g)];
+    assert.deepEqual(closures.map((m) => m[2]).sort(), [...tables].sort(),
+      `${file}: one closure per declared table, RESTRICTIVE and FOR ALL`);
+    for (const [, prefix, table, usingHalf, checkHalf] of closures) {
+      assert.equal(prefix, table, `${file}: ${table}'s closure is named after its table`);
+      assert.equal(usingHalf.trim(), "current_user = 'authenticated'", `${file}: ${table} reads the role SET ROLE produced`);
+      assert.equal(checkHalf.trim(), usingHalf.trim(), `${file}: ${table} carries both halves, identical`);
+      const body = code.match(new RegExp(`create policy ${table}_service_path_closed[\\s\\S]*?;`))[0];
+      assert.doesNotMatch(body, /\bto\s+\w+/i, `${file}: ${table}'s closure names no role, so it binds every role`);
+    }
+    assert.doesNotMatch(code, /^\s*grant\b/mi, `${file} grants nothing`);
+    assert.doesNotMatch(code, /^\s*alter role\b/mi, `${file} changes no role attribute`);
+    assert.doesNotMatch(code, /^\s*(drop|alter) policy\b/mi, `${file} rewrites no earlier policy`);
+    assert.doesNotMatch(code, /member_scope_/, `${file} does not call the scope helpers, which answer about the CALLER`);
+    assert.match(raw, /a permissive policy admits a role no restrictive policy on the same table binds/,
+      `${file} asserts the general rule S8 violates at apply time`);
+    assert.match(raw, /polroles = '\{0\}'::oid\[\]/, `${file} recognises PUBLIC by its catalog spelling`);
+    for (const table of tables) {
+      const id = `batch-${file.slice(0, 3)}-closes-the-service-path-on-${table.replace(/_/g, '-')}`;
+      // 082 named its five cases by a short form (ideas, items, versions, variants, quality-reviews).
+      const short = `batch-082-closes-the-service-path-on-${table.replace(/^content_/, '').replace(/_/g, '-')}`;
+      assert.ok(cases.find((c) => c.id === id || (file.startsWith('082') && c.id === short)),
+        `${file}: app.${table} has a catalog case that fails against the batch it closes alone`);
+    }
+  }
+});
