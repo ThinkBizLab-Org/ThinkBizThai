@@ -2009,76 +2009,44 @@ test('an empty result is empty and a header alone is not a row', async () => {
     [{ name: 'x', n: '2' }], 'rows are keyed by column name, which is the shape the cases read');
 });
 
-// A MIGRATION THIS REPOSITORY CANNOT APPLY IS NOT A MIGRATION, AND UNTIL BATCH 100 NOTHING SAID HOW
-// BIG ONE MAY BE.
+// THE ~128 KiB CEILING ON A MIGRATION IS GONE, AND THIS RULE IS WHAT KEEPS IT GONE.
 //
-// scripts/db/psql-driver.mjs `invoke` passes the SQL to psql as `--command`, which makes a whole
-// migration ONE ARGV ENTRY. Linux caps a single argument at MAX_ARG_STRLEN = 32 * PAGE_SIZE =
-// 131,072 bytes, and the failure is not a SQL error: `execFile` rejects before psql starts, with
-// `spawn E2BIG` and no SQLSTATE, so `db-migrate-clean` prints `<file>: spawn E2BIG (no code)` and a
-// reader learns nothing about which statement was wrong -- because none of them was.
+// Batch 100 found that scripts/db/psql-driver.mjs handed a migration to psql as ONE argv string
+// (`--command`), which Linux caps at MAX_ARG_STRLEN = 131,072 bytes: batch 100's first version failed
+// with `spawn E2BIG` before psql started (CI run 34753787430) and 070_research.sql had cleared the
+// ceiling by 219 bytes. Batch 100 wrote a byte budget here to make the limit visible and left the
+// fix -- feed the script on stdin -- to A0 as an open blocker. This is that fix, and the budget
+// rule it replaces: the driver's `script()` now feeds psql on stdin, `db-migrate-clean` proves it on
+// every run by applying a 200,000-byte no-op script after the real set (run.mjs CEILING_PROBE_SQL),
+// and a migration may be as long as it needs to be.
 //
-// IT WAS MEASURED, NOT INFERRED. Batch 100's first version was 145,686 bytes and CI run 34753787430
-// failed exactly that way, after applying every batch before it. 070_research.sql is 130,853 bytes:
-// IT CLEARED THE CEILING BY 219 BYTES, and nobody knew the ceiling was there.
-//
-// TWO BOUNDS, BECAUSE ONE CANNOT BE BOTH TRUE AND USEFUL HERE.
-//
-//   * THE HARD CEILING applies to every migration without exception. Below it a file can be applied;
-//     at or above it the file cannot be applied at all, on any machine with this page size.
-//   * THE BUDGET is lower, and the margin is the point rather than caution: the driver wraps a
-//     migration in `begin;`/`commit;` before it becomes the argument, a page size is a property of
-//     the machine rather than of this repository, and a batch that lands at 130,900 bytes is one
-//     edit away from a failure whose message names no statement.
-//
-// 070_research.sql IS OVER THE BUDGET AND CANNOT BE BROUGHT UNDER IT. Migration invariant 1 forbids
-// rewriting a merged migration -- "Merge แล้วห้ามแก้ migration ย้อนหลัง; ใช้ forward-fix" -- so it is
-// GRANDFATHERED BY NAME rather than excused by a looser rule, and the exception is held to two
-// assertions of its own: it must still be under the hard ceiling, and it must actually be over the
-// budget. The second is what stops the list being used to excuse a file that never needed it.
-//
-// THE RIGHT FIX IS IN THE DRIVER -- pass the script on stdin instead of as `--command` -- and it
-// belongs to A0, who owns scripts/db/run.mjs and the driver beside it. It is an open blocker on
-// WP-0A-DB-00. This rule is what makes the limit visible until then, and it fails LOUDLY where
-// E2BIG fails blankly.
-const MAX_ARG_STRLEN = 131072;
-const MIGRATION_BYTE_BUDGET = 120000;
-const OVER_BUDGET_BEFORE_THE_RULE_EXISTED = new Set(['070_research.sql']);
+// WHAT STDIN CHANGES THAT `--command` DID NOT, and the one rule that follows from it: psql PARSES a
+// script it reads, so a line beginning with a backslash is a meta-command and is EXECUTED -- `\!`
+// runs a shell command. Under `--command` such a line was a syntax error. No migration carries one
+// and none may. Fixtures and cases keep the `--command` path (rls-smoke.mjs says why), so they are
+// not held to this.
+const CEILING_PROBE_MINIMUM = 131072;
 
-test('no migration is larger than the driver can hand psql in one argument', async () => {
+test('a migration may exceed the old argv ceiling, and none may carry a psql meta-command', async () => {
+  const driver = await readFile('scripts/db/psql-driver.mjs', 'utf8');
+  assert.match(driver, /export async function script\(sql, options = \{\}\) \{\n  return query\([^\n]*viaStdin: true/,
+    'the driver feeds a script on stdin; a script path that went back to --command would bring the 128 KiB ceiling back with it');
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.match(runner, /const probe = await script\(CEILING_PROBE_SQL\);/,
+    'db-migrate-clean applies the ceiling probe after the real set, so the claim is proven on every run rather than once');
+  const { CEILING_PROBE_SQL, CEILING_PROBE_BYTES } = await import('../../scripts/db/run.mjs');
+  assert.ok(Buffer.byteLength(CEILING_PROBE_SQL, 'utf8') > CEILING_PROBE_MINIMUM,
+    `the probe is ${Buffer.byteLength(CEILING_PROBE_SQL, 'utf8')} bytes and must exceed the old ceiling of ${CEILING_PROBE_MINIMUM}, or it proves nothing`);
+  assert.equal(CEILING_PROBE_BYTES, 200000, 'and its size is declared, so a shrink is a diff a reviewer reads');
+  assert.match(CEILING_PROBE_SQL, /^do \$\$ begin end \$\$;\n-- x+\n$/,
+    'the probe is one empty DO block and a comment: it must change nothing in the database it is applied to');
   const dir = 'db/foundation/migrations';
   const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
   assert.ok(names.length > 0, 'there must be migrations for this rule to be about anything');
-  const sizes = new Map();
-  for (const name of names) {
-    const bytes = Buffer.byteLength(await readFile(`${dir}/${name}`, 'utf8'), 'utf8');
-    sizes.set(name, bytes);
-    // THE HARD CEILING, with no exception for anybody. A file at or above it cannot be applied.
-    assert.ok(bytes < MAX_ARG_STRLEN,
-      `${name} is ${bytes} bytes and MAX_ARG_STRLEN is ${MAX_ARG_STRLEN}. scripts/db/psql-driver.mjs `
-      + 'passes a migration as a single `--command` argument, so this file cannot be applied at all: '
-      + '`make db-migrate-clean` fails with `spawn E2BIG (no code)` before psql starts, naming no '
-      + 'statement because none of them is wrong.');
-    if (OVER_BUDGET_BEFORE_THE_RULE_EXISTED.has(name)) continue;
-    assert.ok(bytes <= MIGRATION_BYTE_BUDGET,
-      `${name} is ${bytes} bytes, over this repository's declared budget of ${MIGRATION_BYTE_BUDGET}. `
-      + `The hard ceiling is ${MAX_ARG_STRLEN} and the margin is deliberate: the driver wraps the file `
-      + 'in `begin;`/`commit;` before it becomes the argument, and a page size is a property of the '
-      + 'machine rather than of this repository. Shorten the prose, or fix the driver to pass the '
-      + 'script on stdin -- which is the open blocker this rule stands in for.');
-  }
-  // THE GRANDFATHER LIST IS HELD TO ITS OWN TWO ASSERTIONS, so it cannot grow into a way around the
-  // budget. A merged migration is unfixable by invariant 1; a file that is not over the budget has
-  // no business being excused, and a file that is not there at all is a stale entry.
-  for (const name of OVER_BUDGET_BEFORE_THE_RULE_EXISTED) {
-    const bytes = sizes.get(name);
-    assert.ok(bytes !== undefined, `${name} is grandfathered here and does not exist`);
-    assert.ok(bytes < MAX_ARG_STRLEN,
-      `${name} is grandfathered past the BUDGET and is still held to the CEILING, which it is now over `
-      + `at ${bytes} bytes. Invariant 1 forbids rewriting it, so this is a forward fix in the driver `
-      + 'and nothing else.');
-    assert.ok(bytes > MIGRATION_BYTE_BUDGET,
-      `${name} is listed as over the budget and is ${bytes} bytes, which is not over it. An exception `
-      + 'for a file that does not need one is how a list like this stops meaning anything: remove it.');
+  for (const name of [...names, 'db/foundation/prerequisites.sql']) {
+    const text = await readFile(name.includes('/') ? name : `${dir}/${name}`, 'utf8');
+    const meta = text.split('\n').findIndex((line) => /^\s*\\/.test(line));
+    assert.equal(meta, -1,
+      `${name} line ${meta + 1} begins with a backslash. Under stdin psql executes that as a meta-command -- \\! runs a shell command -- where --command would have refused it as syntax. A migration is SQL and nothing else.`);
   }
 });
