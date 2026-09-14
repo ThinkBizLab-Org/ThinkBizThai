@@ -12648,6 +12648,42 @@ export function buildCases(id) {
       expect: 'rows',
       why: 'As for the policy, and this is the one table whose entire integrity claim rests on who may write it.',
     },
+    {
+      id: 'batch-101-closes-the-service-path-on-the-library-table',
+      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['assets'],
+      expect: 'rows',
+      why: 'Batch 101: A1 S1, C0 H1 and Q0 F3 (2026-09-15) found 100\'s four narrowings are `to authenticated` like ' + '080\'s, with app_worker already holding INSERT on three of the tables and UPDATE on two and no closure. ' + 'This case fails against 100 alone and passes with 101.',
+    },
+    {
+      id: 'batch-101-closes-the-service-path-on-the-version-table',
+      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['asset_versions'],
+      expect: 'rows',
+      why: 'As for the asset.',
+    },
+    {
+      id: 'batch-101-closes-the-service-path-on-the-rights-table',
+      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['asset_rights'],
+      expect: 'rows',
+      why: 'As for the asset.',
+    },
+    {
+      id: 'batch-101-closes-the-service-path-on-the-link-table',
+      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_asset_links'],
+      expect: 'rows',
+      why: 'As for the asset; the link is the one table in this family that reaches into content.',
+    },
 
     // -- BATCH 090 — approval: the policy, the request and the trail. -------------------------
     //

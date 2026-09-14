@@ -1765,6 +1765,6 @@ begin
      and pg_catalog.pg_get_userbyid(c.relowner) in ('app_command', 'app_authz');
   if offending is not null then
     raise exception 'a table batch 100 creates is owned by a role that must not own one: %', offending
-      using hint = 'RFC-2026-017 §3 keeps app_command off the owner seat because a SECURITY DEFINER function owned by the table owner is exempt from the policies on a forced table, and RFC-2026-020 §5/2 says app_authz owns no.';
+      using hint = 'RFC-2026-017 §3 keeps app_command off the owner seat so that the policies here can NAME it and apply to it -- a SECURITY DEFINER function runs as its owner, and §3 wants that owner bound by RLS, not exempt from it. (Until integration on 2026-09-15 this hint read "is exempt from the policies on a forced table"; FORCE makes an owner subject to its own policies, so that was false -- C0 H2, the sentence batch 082 exists to correct.) RFC-2026-020 §5/2 says app_authz owns no table.';
   end if;
 end $$;

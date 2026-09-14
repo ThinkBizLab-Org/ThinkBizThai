@@ -24,8 +24,8 @@ import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
-  AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SMOKE_COVERAGE, buildCases,
-  isMutation, resolvePlaceholders,
+  AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SERVICE_PATH_CLOSURE_ON, SMOKE_COVERAGE,
+  buildCases, isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 // Batch 060 widened `schemaLint` to hold a table in `private` to the same rules as one in `app`,
@@ -9683,6 +9683,7 @@ const SERVICE_PATH_CLOSURES = {
   '082_content_service_path_closed.sql': CONTENT_TABLES,
   '083_content_targets_service_path_closed.sql': ['content_targets'],
   '092_approval_service_path_closed.sql': ['approval_policies', 'approval_requests', 'approval_events'],
+  '101_asset_service_path_closed.sql': ['assets', 'asset_versions', 'asset_rights', 'content_asset_links'],
 };
 
 test('every service-path closure on disk is declared, and every declared closure has 082\'s shape', async () => {
@@ -9711,10 +9712,11 @@ test('every service-path closure on disk is declared, and every declared closure
       `${file} asserts the general rule S8 violates at apply time`);
     assert.match(raw, /polroles = '\{0\}'::oid\[\]/, `${file} recognises PUBLIC by its catalog spelling`);
     for (const table of tables) {
-      const id = `batch-${file.slice(0, 3)}-closes-the-service-path-on-${table.replace(/_/g, '-')}`;
-      // 082 named its five cases by a short form (ideas, items, versions, variants, quality-reviews).
-      const short = `batch-082-closes-the-service-path-on-${table.replace(/^content_/, '').replace(/_/g, '-')}`;
-      assert.ok(cases.find((c) => c.id === id || (file.startsWith('082') && c.id === short)),
+      // The case is found by what it ASKS -- its first parameter is the table -- rather than by a
+      // spelling of the table in its id: 082 named its cases by a short form, and batch 100's control
+      // rule pins the exact number of ids that mention an asset, so 101's ids may not say the word.
+      const prefix = `batch-${file.slice(0, 3)}-closes-the-service-path-`;
+      assert.ok(cases.find((c) => c.id.startsWith(prefix) && c.params?.[0] === table && c.sql === SERVICE_PATH_CLOSURE_ON),
         `${file}: app.${table} has a catalog case that fails against the batch it closes alone`);
     }
   }
