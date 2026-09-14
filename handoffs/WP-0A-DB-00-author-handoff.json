@@ -26,38 +26,38 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS THE SECOND HALF OF #131: the fixtures and the auth-context helper leave the --command argv path for stdin, as migrations did. It is loader plumbing in scripts/db/** and one contract-test rule; it adds no migration, grant, policy or case.",
-    "A FIXTURE IS ONE TRANSACTION BY ITS OWN TEXT and the helper install is a set of CREATE OR REPLACE statements, so the stdin path for them is feed() -- no begin/commit wrapping -- and not script(), which wraps. Reusing script() would nest a transaction inside one.",
-    "ON STDIN A LINE BEGINNING WITH A BACKSLASH IS A META-COMMAND PSQL EXECUTES (measured: `\\! echo PWNED` ran and returned rows). The static rule that held migrations to carrying none now holds every fixture and the helper. Cases keep --command and are not held to it.",
-    "THE OLD CEILING IS LINUX MAX_ARG_STRLEN (131,072), where CI runs; macOS has no per-argument cap and a 141,425-byte script passed through --command on this machine. The evidence records that and does not claim a local refusal."
+    "THIS INCREMENT IS BATCH 102, A FORWARD FIX IN 094's SHAPE: updated_by is in the INSERT grant to authenticated on thirteen client-writable tables and was checked on UPDATE everywhere and on INSERT nowhere, so a row's first updater could be anybody until its first real update -- the LOW siblings A1-090 S13 named beside requested_by.",
+    "ONE RESTRICTIVE INSERT POLICY PER TABLE, `updated_by is null or updated_by = (select auth.uid())`, ANDed with each table's permissive policy. NULL is admitted and stated as the one difference from 094: a row never updated has no updater, and the triggers 093 maintains write updated_at, not updated_by.",
+    "A SCHEMA-WIDE APPLY-TIME ASSERTION names any table that grants updated_by at INSERT without a restrictive INSERT policy binding it, so the next batch that repeats the shape fails at apply time by table name rather than by a reviewer noticing.",
+    "NUMBERED 102 BECAUSE IT NAMES app.assets: 095 failed to apply (the table did not exist yet); the file sorts after 101 and before 110, and the not-applied tail stays contiguous."
   ],
   "acceptance_results": [
     {
-      "criterion": "The helper and every fixture load through the stdin path and the full set still measures the same",
+      "criterion": "Without the file both forgeries land; with it both are refused and every existing positive INSERT still passes",
       "result": "met",
-      "evidence": "scratch 17.11: migrate-clean, schema-lint ok, rls-smoke 845 isolation case(s) passed -- the same 845 as CI run 34902972792 measured on --command; a0-fixture-loader-stdin-2026-09-15.md §2"
+      "evidence": "scratch 17.11 on the post-111 base: without 102 `FAILED -- 2 of 847` (owner-a-cannot-create-a-content-item-in-the-editors-name, owner-a-cannot-create-a-page-in-the-editors-name: \"1 row(s) came back\"); with it `applied 102_updated_by_is_caller.sql` and 847 isolation case(s) passed -- a0-batch-102-updated-by-2026-09-15.md §2"
     },
     {
-      "criterion": "A fixture larger than the old ceiling loads",
+      "criterion": "The rule is asserted schema-wide at apply time",
       "result": "met",
-      "evidence": "a 141,425-byte fixture-shaped script through feed(): ok (§2); the 200,024-byte migrate-clean probe on the same path"
+      "evidence": "102_updated_by_is_caller.sql apply-time block: every table granting updated_by to authenticated at INSERT carries a restrictive INSERT policy naming auth.uid(); migrate-clean runs it on every apply"
     },
     {
-      "criterion": "A loader that went back to --command, or a fixture that carried a meta-command, fails a static rule by name",
+      "criterion": "The declarations keep the not-applied tail contiguous",
       "result": "met",
-      "evidence": "test-kits/db/foundation-contract.test.mjs: \"no fixture or test helper carries a psql meta-command, because the loader feeds them on stdin\" -- pins feed() in the driver, both call sites, and the backslash rule over eleven fixtures and the helper; contract suite 59 -> 60"
+      "evidence": "catalog-snapshot.json and foundation-contract.test.mjs both list 102 between 101 and 110; contract suite 60/60"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (642 -> 643: one contract test)"
+      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
     },
     {
       "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
       "exit_code": 0,
-      "result": "applied 111_social_fk.sql; ceiling probe 200024 bytes through stdin; lint ok; 845 isolation case(s) passed with fixtures and helper on stdin"
+      "result": "applied 102_updated_by_is_caller.sql; lint ok; 847 isolation case(s) passed (845 + 2); the same run without the file: FAILED -- 2 of 847, exactly the two new cases"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -65,25 +65,25 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "No grant, policy, role or read surface changes. The one door stdin opens -- a backslash line psql executes as a shell command -- is closed by a static rule over every file the loader feeds, measured open (§2) before the rule was relied on. The fixtures are repository files read by a reviewer; the rule is defence against a fixture that arrives with one by mistake, not against an adversary who can already edit the repository.",
-  "migration_and_data_impact": "None. No migration; the loader feeds the same eleven fixtures and the same helper, as written, and the same 845 cases pass.",
-  "compatibility_impact": "scripts/db/psql-driver.mjs gains feed(); script() and query() are unchanged. Any caller that loaded a fixture through query() would still work under the old ceiling; the loader is the only caller and it moved.",
+  "security_privacy_cost_impact": "Closes the LOW half of A1-090 S13: a client can no longer write another member's id as a row's first updated_by on thirteen tables. Adds no grant and no read surface; thirteen RESTRICTIVE policies that only narrow. The audit value of updated_by -- who last touched a row -- was forgeable at INSERT and is not now.",
+  "migration_and_data_impact": "Thirteen RESTRICTIVE INSERT policies and one apply-time assertion; no table, column, grant or trigger. Existing rows are untouched (a policy binds writes, not history). No fixture writes updated_by at INSERT as somebody else; measured by the full set still loading.",
+  "compatibility_impact": "A client that inserts a row may leave updated_by NULL or set it to its own auth.uid(); any other value is refused 42501 as the permissive policy's row would have been. Nothing in the repository writes another value except the two new cases.",
   "known_limitations": [
-    "Cases still run under --command by design; a case over 131,072 bytes would meet the ceiling on Linux. None is within two orders of magnitude of it.",
-    "The static rule reads the first non-blank character of each line; a meta-command after a statement on the same line is not psql syntax and is not what the rule guards."
+    "NULL updated_by at INSERT is admitted, so \"who created this row\" is answered by created_by where a table has it and by nothing where it does not; this batch binds the column it was asked about and does not invent a creator column.",
+    "The apply-time assertion reads the policy text for auth.uid(); a restrictive policy that named the function inside a comment would pass it. The two cases are the control behind the text."
   ],
   "open_risks_or_blockers": [
-    "None opened. The second-pass record §5 item \"fixture loads still go through --command\" is paid by this increment."
+    "None opened. A1-090 S13 (the HIGH half, requested_by) was closed by 094; this batch closes the LOW siblings it named."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the loader returns to query() for fixtures and the helper, feed() goes, and the rule goes with it. Nothing in the database depends on which path loaded a fixture.",
+  "rollback_or_forward_fix": "Revert the merge commit: thirteen policies and the assertion go; updated_by at INSERT becomes forgeable again on thirteen tables, which is the state A1-090 S13 recorded.",
   "recommended_next_work_packages": [
-    "Batch 102 (updated_by at INSERT is the caller, thirteen tables), prepared on its own branch and next in this queue.",
-    "The pre-080 families closures once the Owner picks a row of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md)."
+    "The pre-080 families closures once the Owner picks a row of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md).",
+    "Batch 120 (Publisher), the next §6 row."
   ],
   "reviewer_instructions": [
-    "Read feed() beside script() in scripts/db/psql-driver.mjs and confirm the one difference is the wrapping, and why.",
-    "Put a line `\\! echo x` into any fixture and run the contract suite: the rule must name the file and line. Then run rls-smoke on a scratch database with the same line: psql executes it -- that is the door the rule closes.",
-    "Run rls-smoke on a scratch PostgreSQL: 845 cases, the same count as on --command."
+    "Apply the set on a scratch PostgreSQL with and without 102_updated_by_is_caller.sql and run rls-smoke: exactly the two new cases must fail without it with \"1 row(s) came back\" and pass with it.",
+    "Count the tables that grant updated_by to authenticated at INSERT (thirteen) against the thirteen policies; the apply-time block does the same count and names any table it misses.",
+    "Compare the predicate with 094's: the only difference is `updated_by is null or`, and the header says why."
   ],
   "superseded_by": null
 }
