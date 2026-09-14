@@ -4,15 +4,13 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "82d15521ecc0db5839d4fa44444b432804dd2c34",
-  "head_revision_or_patch_checksum": "24a5aed3c1f94b6f95af45fb80a3e03e47c5223e",
+  "base_revision": "6c3084903bb6e7fd32c7d975175394e22d8d27d5",
+  "head_revision_or_patch_checksum": "3794fd72cd1b11cf16cc56e7498825ab6c3614f2",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-ci-measures-on-the-branch-2026-09-15.md"
+    "evidence/WP-0A-DB-00/session-2026-09-13-14-fanout-relaunched-six-draft-prs.md"
   ],
-  "files_modified": [
-    ".github/workflows/ci.yml"
-  ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
