@@ -108,12 +108,11 @@
     ],
     "amends_without_owning": {
       "paths": [
-        "evidence/VERIFICATION.md",
         "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT FIXES THE DRIVER (scripts/db/**, owned) AND REPLACES ONE RULE IN test-kits/db/** (owned), AND AMENDS FOUR FILES IT DOES NOT OWN, each for one reason. scripts/test-suite-contract.mjs: the replaced rule changes test-kits/db/foundation-contract.test.mjs test-name digest and assertion count, which the contract declares. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, the whole branch-to-package map; two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the files above are digested."
+      "rationale": "THIS INCREMENT FIXES THE DRIVER (scripts/db/**, owned) AND REPLACES ONE RULE IN test-kits/db/** (owned), AND AMENDS THREE FILES IT DOES NOT OWN, each for one reason. scripts/test-suite-contract.mjs: the replaced rule changes test-kits/db/foundation-contract.test.mjs test-name digest and assertion count, which the contract declares. evidence/VERIFICATION.md is NOT amended: the test count did not move (640), so the recorder wrote the same bytes, and a declaration matching nothing in the diff fails verify-branch-scope at exit 74. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, the whole branch-to-package map; two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the files above are digested."
     }
   },
   "inputs": {
