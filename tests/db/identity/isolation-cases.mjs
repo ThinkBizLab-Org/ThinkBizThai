@@ -13296,6 +13296,21 @@ export function buildCases(id) {
          + 'names by that word.',
     },
     {
+      id: 'editor-a-cannot-raise-an-approval-request-in-the-owners-name',
+      covers: ['§8.6/8', '§4.7/requested_by'],
+      as: editorA,
+      ...approvalRaiseRequestFor(A, BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'A1-090 S13, closed by batch 094: created_by is the caller, so 090\'s INSERT policy admits '
+         + 'the row, and requested_by is the OWNER. Before 094 every policy admitted this statement and '
+         + 'the column could never be corrected; 094\'s restrictive INSERT policy refuses it. The case '
+         + 'above forges both columns from one argument and is refused by created_by; this one splits '
+         + 'them, so the refusal is attributable to requested_by alone.',
+    },
+    {
       id: 'owner-a-cannot-raise-an-approval-request-in-tenant-b',
       covers: ['§8.6/5', '§12.6/1'],
       as: ownerA,
@@ -15731,6 +15746,18 @@ export function approvalDeletePolicy(workspace, business, key, version) {
 // §8.3 row 2's create verb. `status` is NOT named, because it is not in the INSERT grant: a request
 // arrives `pending` by the column default. The case that names it is below and is refused by the
 // privilege system.
+// THE SAME STATEMENT WITH THE REQUESTER SPLIT FROM THE CREATOR, which is the statement A1-090 S13
+// found the suite never issued: created_by names the caller and requested_by names somebody else.
+// Batch 094 refuses it; before 094 every policy admitted it.
+export function approvalRaiseRequestFor(workspace, business, itemId, versionId, createdBy, requestedBy) {
+  return {
+    sql: 'insert into app.approval_requests (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, created_by, updated_by) '
+       + 'values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $6::uuid, $5::uuid, $5::uuid) returning id',
+    params: [workspace, business, itemId, versionId, createdBy, requestedBy],
+  };
+}
+
 export function approvalRaiseRequest(workspace, business, itemId, versionId, createdBy) {
   return {
     sql: 'insert into app.approval_requests (workspace_id, business_profile_id, content_item_id, '
