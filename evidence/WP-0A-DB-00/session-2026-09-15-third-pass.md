@@ -8,7 +8,7 @@ This file is a STATE RECORD and approves nothing. It supersedes
 
 ## 1. Where `main` is
 
-`main` = `__MAIN__` = merge of [PR #142](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/142).
+`main` = `ec5c0f4` = merge of [PR #142](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/142).
 No force-push, no direct push; every merge a merge commit of a Draft PR marked ready under the
 Owner's 2026-09-15 instruction, after a green required CI run on its head, measured on the branch name.
 
