@@ -12135,11 +12135,15 @@ export function buildCases(id) {
       params: [id('content_item_a1_sibling_page'), id('content_target_destination_a1')],
       expect: 'no-rows',
       why: 'THE CASE THIS TABLE WOULD BE WORTHLESS WITHOUT. The member is admitted to business_a1 '
-         + 'and must still be refused the destinations of an item pinned to a SIBLING Page. A '
-         + 'narrowing that resolved through app.content_items and then asked '
-         + 'member_scope_admits_business about it would pass every other case in this group and '
-         + 'leak this one — the exact substitution 081_content_targets.sql also refuses at apply '
-         + 'time, so the defect fails twice rather than only here.',
+         + 'and must still be refused the destinations of an item pinned to a SIBLING Page. WHAT '
+         + 'REFUSES IT, MEASURED (Q0-081 F2, replayed 2026-09-15): the narrowing\'s subquery runs as '
+         + 'this identity, and app.content_items\' own narrowing hides the sibling item from it, so '
+         + 'the exists() is false whatever question 081\'s own case-when asks -- with the Page question '
+         + 'deleted from both halves of 081\'s narrowing (probe P1) every case in the suite still '
+         + 'passed. This why used to say that substitution "would leak this one"; it would not. '
+         + '081\'s Page branch is observable by no case while the item\'s policy answers first; it is '
+         + 'held by the static rule and the apply-time text check, and that is stated as the limit '
+         + 'it is rather than as coverage.',
     },
     {
       id: 'pinned-editor-a-sees-the-content-target-of-the-unpinned-item',
@@ -12320,7 +12324,10 @@ export function buildCases(id) {
          + 'The case above exercises the Business question only: user_editor_a holds a business scope, '
          + 'and covers_page\'s business arm admits every Page under it. This identity holds a PAGE scope '
          + 'on page_a1 and aims at the item pinned to page_a1_sibling -- same Business, wrong Page -- so '
-         + 'only the Page branch of the narrowing refuses it. MEASURED, AND NARROWER THAN Q0 SPELLED IT: '
+         + 'the narrowing refuses it -- through app.content_items\' own policy in the subquery, which '
+         + 'hides the sibling item from this identity, not through 081\'s Page branch (Q0-081 F2: with '
+         + 'the Page question deleted from both halves, this case still passes). MEASURED, AND NARROWER '
+         + 'THAN Q0 SPELLED IT: '
          + 'probe P10 cut the "i.id = content_targets.content_item_id" term from the WITH CHECK half only, '
          + 'and this case stays refused under that mutation -- because the statement RETURNS the row and '
          + 'PostgreSQL checks a returned row against the USING half, which still names the item. Cut the '
