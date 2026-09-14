@@ -4,18 +4,14 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "bac8f8e90121716a08f1980dea0464ba432704f9",
-  "head_revision_or_patch_checksum": "d7b12a6a657c915897b3cdc030371d561d9b448c",
+  "base_revision": "20b146363aa8bf4644e4ea24402c34a795287d36",
+  "head_revision_or_patch_checksum": "054d15db561a18ce90597309def793a981ef333c",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md"
+    "evidence/WP-0A-DB-00/a0-q0-081-f3-write-half-2026-09-15.md"
   ],
   "files_modified": [
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-DB-00.json"
+    "tests/db/identity/isolation-cases.mjs"
   ],
   "files_deleted": [],
   "decisions_consumed": [],
