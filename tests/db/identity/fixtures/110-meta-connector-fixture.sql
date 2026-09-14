@@ -39,7 +39,9 @@
 --                            the same layer, with the same message, which is this batch's
 --                            substitute for a cross-tenant claim it cannot make — no client
 --                            identity may read the table at all.
---   two social accounts      one `fb` under each connection, sharing an external account hash.
+--   three social accounts    one `fb` under each connection sharing an external account hash, and
+--                            since batch 111 a second (`ig`) under workspace_a with its own, all
+--                            three with fixed ids.
 --   two credential refs      in `private`, one per connection, so the refusals on the SECRET-4
 --                            table are about a table with content.
 --   two inbox deliveries     one RESOLVED to workspace_a and one UNRESOLVED, and the pair is the
@@ -72,8 +74,9 @@ insert into app.meta_connections (id, workspace_id, display_name, created_by, up
    '297ad853-58a6-5e83-87e1-f936f9c3ddff', '297ad853-58a6-5e83-87e1-f936f9c3ddff')
 on conflict (id) do nothing;
 
--- One discovered account under each connection, both `fb`. No id is supplied and no symbol exists
--- for either: a social account is addressed by (workspace_id, external_account_hash), which
+-- One discovered account under each connection, both `fb`, plus workspace_a's second since batch
+-- 111. The ids are fixed and the symbols exist (social_account_a1/a2/b1) because content_targets now
+-- references these rows; a social account is ALSO addressed by (workspace_id, external_account_hash), which
 -- 110_meta_connector.sql makes unique and which is spelled out of ids this catalog already fixes
 -- plus text this file and the case file share — exactly as a version row, a member scope, an
 -- industry assignment and a billing subscription are addressed.

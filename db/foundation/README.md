@@ -157,7 +157,8 @@ Batch `111` did exactly that. The three destination symbols are retired; `social
 second `workspace_a` account, so one item can hold two destinations); `081`'s fixture and every case
 point at them; and `content_targets_social_scope_fk` is what makes a destination that does not
 exist, or belongs to another tenant, fail to load or to insert — `editor-a-cannot-aim-a-content-
-target-at-another-tenants-social-account` is the case, refused with 23503.
+target-at-another-tenants-destination` is the case, refused with 23503 (not `…-social-account`:
+that word is batch `110`'s control pattern, and a case id may not satisfy another family's entry).
 Batch `090` added symbols for rows in **one of its three tables**, which is the smallest share any
 multi-table batch has claimed, and the split falls exactly where this catalog's rule puts it. An
 **approval policy** is addressed by `(workspace_id, business_profile_id, policy_key, version)` —

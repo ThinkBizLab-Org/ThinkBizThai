@@ -9455,11 +9455,11 @@ test('the batch 081 fixture writes only catalog identities and states what each 
     assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
   }
   assert.doesNotMatch(fixture, /from app\.social_accounts/,
-    'THE DESTINATIONS RESOLVE TO NOTHING, ON PURPOSE. A subselect against app.social_accounts would make every '
-    + 'target here look correctly bound and would hide the one property this batch most needs a reader to see '
-    + '— that nothing checks a destination. Batch 080 met the same choice on generation_run_id and wrote NULL '
-    + 'rather than a plausible uuid; social_account_id is NOT NULL, so the equivalent is a symbol that names '
-    + 'no row. Batch 111 must repoint all three and the fixture will refuse to load until it does.');
+    'THE DESTINATIONS ARE FIXED IDS, NEVER SUBSELECTS. Until batch 111 they named no row on purpose, so that '
+    + 'nothing could make a target look correctly bound while nothing checked a destination; since 111 they are '
+    + 'social_account_a1/a2/b1, fixed by the catalog recipe, and content_targets_social_scope_fk is what checks '
+    + 'them. A subselect against app.social_accounts is still refused here: a destination is a constant a case '
+    + 'can hold, not a lookup that happens to find something.');
   assert.doesNotMatch(fixture, /\bstatus\b\s*=/,
     'and no row is loaded with a status. §4.6 enumerates no vocabulary for the column, and a fixture is the '
     + 'last place one should first appear — which is why the witnesses read `updated_by` instead.');

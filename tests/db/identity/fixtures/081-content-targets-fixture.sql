@@ -10,10 +10,11 @@
 -- uuid5(namespace, 'thinkbizthai.fixture.' || symbol). Nothing is invented.
 --
 --
--- THE THREE DESTINATION SYMBOLS NAME NO ROW IN THIS REPOSITORY, AND THAT IS THE POINT
---
--- `content_targets.social_account_id` carries NO FOREIGN KEY: §6's migration ownership registry
--- gives "business-channel/social FK" to batch 111 and 081 is the "target placeholder contract"
+-- THE THREE DESTINATION SYMBOLS NAMED NO ROW UNTIL BATCH 111, AND THAT WAS THE POINT. Since 111
+-- they are social_account_a1/a2/b1, rows 110's fixture loads with fixed ids, and
+-- `content_targets.social_account_id` carries content_targets_social_scope_fk. What follows is
+-- the history: §6's migration ownership registry gave "business-channel/social FK" to batch 111
+-- and 081 was the "target placeholder contract"
 -- that withholds it. app.social_accounts exists on disk in 110_meta_connector.sql and its rows fix
 -- no id -- 110's fixture addresses them by (workspace_id, external_account_hash) and lets `id`
 -- default -- so there is no social account uuid in this repository for these rows to point at.
@@ -27,10 +28,10 @@
 -- this repository makes the unenforced reference look like a working one". `social_account_id` is
 -- NOT NULL, so the equivalent move here is a symbol that resolves to nothing.
 --
--- WHAT THAT COSTS, SAID HERE AND IN THE OPEN BLOCKERS SO BATCH 111's AUTHOR MEETS IT TWICE: the day
--- batch 111 adds the foreign key, THIS FIXTURE STOPS LOADING until these three symbols are
--- repointed at social accounts that exist. That is the intended failure. A fixture that kept
--- loading through the addition of the key would be one whose rows never depended on it.
+-- WHAT THAT COST, SAID HERE AND IN THE OPEN BLOCKERS SO BATCH 111's AUTHOR MET IT TWICE: the day
+-- batch 111 added the foreign key, this fixture would have stopped loading until the three symbols
+-- were repointed at social accounts that exist. That day was 2026-09-15; the repoint is in this
+-- file, and the intended failure was met by the repoint rather than by a red run.
 --
 --
 -- WHAT THIS FIXTURE HAS TO CARRY
@@ -153,10 +154,10 @@ insert into app.content_targets
   ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
    '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
-  -- content_item_b1, destination b1: workspace_b. A DISTINCT destination symbol rather than
-  -- destination_a1, deliberately. Nothing in this schema would refuse two tenants targeting one
-  -- social account -- the column is resolved against nothing at all -- and a fixture that showed
-  -- that would be modelling the gap as though it were a design. The gap is in the open blockers.
+  -- content_item_b1, destination b1: workspace_b's own social account, resolved against
+  -- app.social_accounts (workspace_id, id) since batch 111. The database refuses a target naming
+  -- another Workspace's account (content_targets_social_scope_fk), so this row could not name
+  -- social_account_a1 even if it tried; the case that tries is 111's.
   ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
    '306426ca-a54a-5e3d-90ec-1feff18372ca', 'bf855f7a-bbae-595f-b095-85be153f1148',
    (select id from app.content_variants
