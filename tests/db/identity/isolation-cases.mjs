@@ -12288,14 +12288,17 @@ export function buildCases(id) {
       covers: ['§8.6/5', '§12.6/7'],
       as: ownerA,
       ...contentTargetAim('__B__', BUSINESS_B1, id('content_item_b1'),
-        id('social_account_a2'), '__SELF__'),
+        id('social_account_b1'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
-      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s business and B\'s item. Every id '
-         + 'in the statement is real and the row is internally consistent, so the composite foreign '
-         + 'keys would ACCEPT it — which is what makes the refusal attributable to '
-         + 'app.workspace_member_role returning nothing for a non-member.',
+      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s business, B\'s item and B\'s own '
+         + 'social account. Every id in the statement is real and the row is internally consistent, '
+         + 'so every composite foreign key -- content_targets_social_scope_fk since batch 111 included '
+         + '-- would ACCEPT it, which is what makes the refusal attributable to '
+         + 'app.workspace_member_role returning nothing for a non-member. (Q0-111 F2: after the '
+         + 'repoint this row briefly named A\'s account, and the key would have refused it too; a case '
+         + 'two constraints refuse proves neither.)',
     },
     {
       id: 'editor-a-cannot-aim-a-content-target-outside-their-narrowing',
