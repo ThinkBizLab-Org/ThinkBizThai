@@ -4,12 +4,17 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "076ce936b28c18dfe8325394c7c2aba1978ef37c",
-  "head_revision_or_patch_checksum": "5371f3d366c2d11e8174d4341472013b4415ee51",
+  "base_revision": "e4baf64d7388853a20a593dd56c0ebe9887c6a87",
+  "head_revision_or_patch_checksum": "96e65e14e967f145521f20e4cf42911ed63a8b23",
   "task_ids": [],
-  "files_added": [],
+  "files_added": [
+    "evidence/WP-0A-DB-00/a0-driver-stdin-2026-09-15.md"
+  ],
   "files_modified": [
-    "test-kits/branch-identity.test.mjs",
+    "scripts/db/psql-driver.mjs",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
