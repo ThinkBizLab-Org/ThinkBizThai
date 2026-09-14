@@ -35,6 +35,23 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          # THE BRANCH, NOT THE MERGE COMMIT. Without a ref, a pull request is checked out at the
+          # merge commit GitHub builds, as a DETACHED HEAD. test-kits/handoff-conformance.test.mjs asks
+          # git which branch it is on, reads HEAD, finds no package claiming it, and returns early --
+          # reported as a pass. Measured at ffd9cc3: run 34753189118 green on every step while
+          # `npm run verify` on the same commit read 584/586. A guard that is green in CI for the
+          # branch whose handoff does not describe it is not a guard.
+          #
+          # Naming the MERGE commit after the branch was measured and rejected (2026-09-15,
+          # evidence/WP-0A-DB-00/a0-ci-measures-on-the-branch-2026-09-15.md): the guard then
+          # compares the handoff against the branch tip instead of the tip's parent and goes red on
+          # every correctly built branch. So the branch itself is checked out -- actions/checkout
+          # runs `git checkout -B <ref> refs/remotes/origin/<ref>` for a branch ref, which is what
+          # makes `git rev-parse --abbrev-ref HEAD` read the name -- and CI measures exactly what
+          # `npm run verify` on the branch measures. Nothing is lost by not testing the merge
+          # result: branch protection is strict, so a head must already contain main to merge.
+          # On a push, head_ref is empty and the checkout falls back to the pushed ref.
+          ref: ${{ github.head_ref }}
           persist-credentials: false
           # The branch-scope guard diffs against the pull request's base, so the base commit
           # must be in the clone. A shallow checkout has only the head.
@@ -691,6 +708,76 @@ jobs:
           control app.content_variants        '[a-z0-9-]*content-variant'     080
           control app.quality_reviews         '[a-z0-9-]*quality-review'      080
           #
+          # BATCH 081's ONE TABLE. §8.2 marks "Content SELECT" `Y` for all five client roles, so
+          # app.content_targets has client READS for row level security to decide -- which is what
+          # an entry here needs, and what a good half of this batch's write cases cannot supply.
+          #
+          # WHAT THE ENTRY RESTS ON:
+          #
+          #   * THE TENANT BOUNDARY. `owner-a-cannot-see-the-content-target-of-tenant-b` holds BOTH
+          #     of tenant B's ids -- the item and the destination -- and returns nothing;
+          #     `owner-b-sees-the-content-target-of-their-own-tenant` proves the row is there.
+          #   * THE MEMBER SCOPE, RESOLVED THROUGH THE PARENT, which is where this entry says
+          #     something the five entries above do not say about a table of their own.
+          #     `pinned-editor-a-cannot-see-the-content-target-of-a-sibling-target-item` is refused
+          #     by a RESTRICTIVE narrowing that has to reach app.content_items to find the Page at
+          #     all. Cutting that exists() leaves exactly that case failing and the rest green.
+          #   * THE ROLE PREDICATE ON BOTH WRITE PATHS. `viewer-a-cannot-aim-a-content-target` and
+          #     `approver-a-cannot-aim-a-content-target` are policy-layer INSERT refusals;
+          #     `approver-a-cannot-restate-a-content-target` and
+          #     `viewer-a-cannot-restate-a-content-target` are `no-effect` cases whose failure with
+          #     row level security off is the write LANDING, which their witnesses detect by reading
+          #     `updated_by` back.
+          #
+          # NOT the `service-cannot-*` cases, and not the three `denied` cases whose layer is
+          # `grant` -- the repin, the redirect, the rehome, the delete. Batch 081 grants app_worker
+          # nothing at all, for batch 080's reason, and the fixed columns are absent from the UPDATE
+          # grant, so all of those pass unchanged with row level security off. NOT the three
+          # `rejected` cases either: 23505, 23514 and 23503 are a unique index, a CHECK and a
+          # foreign key, none of which this control touches.
+          #
+          # The pattern does not overlap with any entry above and no entry above can match a case id
+          # here: `content-target` is not a substring of `content-item`, `content-idea`,
+          # `content-version`, `content-variant` or `quality-review`, and no case id in this batch
+          # contains `business`, `page`, `scope`, `social-account`, `research-` or any other
+          # family's control word. The static suite asserts that pairwise rather than by inspection.
+          control app.content_targets         '[a-z0-9-]*content-target'      081
+          # BATCH 090's THREE TABLES, AND WHAT EACH ENTRY ACTUALLY RESTS ON. §8.3 gives approval NO
+          # SELECT ROW AT ALL, so unlike every family above, these client reads rest on a reading
+          # rather than on a matrix cell -- the approver's `Y` on the decide row, §5's CONTENT-2
+          # beside AUTH-3, and §8.4's "approval trail". The reads exist, which is what an entry here
+          # needs; the entry does not make the reading right, and the work package's open blockers
+          # record that it is a reading.
+          #
+          #   * THE TENANT BOUNDARY, on all three. `owner-a-cannot-see-the-approval-policy-of-
+          #     tenant-b` and its two siblings hold tenant B's exact address -- for the event, down
+          #     to the idempotency key §4.7 makes unique -- and return nothing; the matching
+          #     `owner-b-sees-...` cases prove the rows are there to be seen.
+          #   * THE MEMBER SCOPE, resolved through a parent on two of them.
+          #     `pinned-editor-a-cannot-see-the-approval-event-of-a-sibling-target-item` is the one
+          #     that fails if the chain -- event through request through content item, where the
+          #     page lives -- is cut at its SECOND link, and its positive twin
+          #     `pinned-editor-a-sees-the-approval-event-of-a-reachable-item` is the same caller
+          #     admitted two links down.
+          #   * THE ROLE PREDICATE on the write paths. `editor-a-cannot-toggle-an-approval-policy`,
+          #     `approver-a-cannot-toggle-an-approval-policy` and `viewer-a-cannot-cancel-an-
+          #     approval-request` are `no-effect` cases whose failure with row level security off is
+          #     the write LANDING, which their witnesses detect.
+          #   * AND THE TWO CROSSED CASES, which are this batch's own shape and are `denied` rather
+          #     than `no-effect`: `editor-a-cannot-decide-an-approval-request` and
+          #     `approver-a-cannot-cancel-an-approval-request`. With row level security off both
+          #     WITH CHECK halves stop applying and the write lands, so they are part of this basis
+          #     -- the only cases in the suite that rest on a WITH CHECK half of one policy while
+          #     the USING half of ANOTHER admits the row.
+          #
+          # NOT the `service-cannot-*` cases, on any of these three, and NOT the privilege refusals:
+          # batch 090 grants app_worker nothing at all, and `status`, `version`, `minimum_approvers`
+          # and `content_version_id` are refused by a missing column grant. Those pass unchanged
+          # with row level security off. Batch 070's service cases ARE part of its basis for the
+          # opposite reason: it grants its worker the verbs and lets row level security refuse them.
+          control app.approval_policies       '[a-z0-9-]*approval-policy'     090
+          control app.approval_requests       '[a-z0-9-]*approval-request'    090
+          control app.approval_events         '[a-z0-9-]*approval-event'      090
           # BATCH 100's FOUR TABLES, AND THE FIRST ENTRY IN THIS LIST WHOSE BASIS INCLUDES A SERVICE
           # CASE THAT IS A WRITE. §8.2 marks "Asset SELECT/use" `Y` for all five client roles, so
           # every one of these families has client READS for row level security to decide -- which

@@ -138,6 +138,37 @@ a version id, and a case that resolved that id by joining `app.content_versions`
 tables' policies behind one result and could not attribute the refusal it observed to the table the
 case is named for. The symbol is the cheaper of the two costs.
 
+Batch `081` added **no symbol for a row in its one table and three for a column of one**, which is
+the first inversion of that rule in this catalog and the reason it gets its own paragraph. A
+**content target** has a natural key — `(content_item_id, social_account_id)`, which
+`081_content_targets.sql` makes unique among rows whose `deleted_at` is null, §4.6's "unique active
+target" — so every case addresses one out of ids already fixed here. Its **destination** is the
+opposite case and the opposite case is the whole point of the batch: `social_account_id` carries no
+foreign key, because §6's registry gives "business-channel/social FK" to batch `111`, and
+`app.social_accounts` fixes no id of its own, so the value is a bare uuid resolved against nothing,
+reachable through no other table's natural key, and shared between a fixture and a case. That is
+exactly the constant this catalog exists to fix — and fixing it is also what keeps the gap visible,
+because three ids that name no row are the first thing a reader meets. **Batch `111` must repoint all
+three, and the fixture will refuse to load until it does.** That failure is intended: a fixture that
+kept loading through the addition of a foreign key is one whose rows never depended on it.
+Batch `090` added symbols for rows in **one of its three tables**, which is the smallest share any
+multi-table batch has claimed, and the split falls exactly where this catalog's rule puts it. An
+**approval policy** is addressed by `(workspace_id, business_profile_id, policy_key, version)` —
+§5's "policy versioned" as a constraint, on a table whose rows ARE versions. An **approval event**
+is addressed by `(approval_request_id, action, idempotency_key)`, and that one is worth more than a
+symbol rather than less: §4.7 asks for a "unique idempotency key ต่อ action", so using the key AS
+the address is a demonstration that the key identifies an action, which is the whole reason the
+document asks for one. It is the third shape of natural-key addressing in this suite, after `010`'s
+token digest and `070`'s content hash.
+
+An **approval request** gets a symbol because it has no natural key at all. Nothing in §4.7, §5 or
+§8.3 says a content version is requested once — a rejected version is revised and re-requested, and
+§4 invariant 6's "Version ใหม่ไม่ inherit approval โดยอัตโนมัติ" describes a table that ACCUMULATES
+requests rather than one that replaces them. Inventing a `unique (content_version_id)` so the
+fixture could address one without a constant would encode a product decision into a constraint,
+which is the rule this catalog has applied since `040`'s knowledge item. The fixture's
+`approval_request_a1_decided` is the demonstration: a second request on a version that already has
+one.
 Batch `100` added symbols for rows in **three of its four tables** and none for the fourth, and the
 one it refused is the clearest case this catalog has. A **content asset link** is addressed by
 §4.7's own logical key — `(content_version_id, content_variant_id, role, sort_order)` — which

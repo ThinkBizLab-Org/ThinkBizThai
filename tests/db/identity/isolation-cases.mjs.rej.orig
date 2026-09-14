@@ -1,0 +1,367 @@
+@@ -348,7 +348,9 @@
+            + 'workspace and a row addressed by its natural key is addressed as exactly as one '
+            + 'addressed by a uuid. What is behind this boundary is the product itself: an idea is '
+            + 'what a business intends to publish, a version is what it wrote, a variant is the text '
+-           + 'queued for a platform, and a quality review is the verdict reached on it.' },
++           + 'queued for a platform, and a quality review is the verdict reached on it.'
++           + '\n\n'
++           + 'BATCH 100 ADDS FOUR TABLES AND ASKS THE BOUNDARY ONCE MORE ON THE ONE COLUMN THAT IS NOT A ROW. Every asset family carries the pair — `owner-a-sees-the-library-asset-of-a1` beside `owner-a-cannot-see-the-library-asset-of-tenant-b`, and the same on the version, the rights record and the link — with tenant B\'s real ids in hand. What is new is `owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b`: §9.1 gives MEDIA-2 the client projection "authorized signed URL only" and §6.3 makes the object key an INPUT to a signed-URL request, so a boundary that held on the row and leaked the key would have leaked the thing the row exists to protect. No earlier batch has had a column whose disclosure is the disclosure.' },
+   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
+                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
+                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
+@@ -628,7 +632,9 @@
+            + 'holds, which says nothing about a viewer. The four cases that do carry it are '
+            + '`viewer-a-cannot-create-a-content-item`, `-capture-a-content-idea` (both RAISE, '
+            + 'because an INSERT policy has no row to filter) and `viewer-a-cannot-rename-a-content-'
+-           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).' },
++           + 'item`, `-retopic-a-content-idea` (both `no-effect` with a witness).'
++           + '\n\n'
++           + 'ON BATCH 100 IT IS INSERT AND UPDATE ON THE TWO CLIENT-WRITABLE TABLES AND AN INSERT REFUSAL ON A THIRD. `viewer-a-cannot-upload-a-library-asset` and `viewer-a-cannot-record-an-asset-rights` RAISE, because an INSERT policy has no row to filter; `viewer-a-cannot-rename-a-library-asset` is `no-effect` with a witness. `viewer-a-cannot-attach-an-asset-link` is a GRANT-layer refusal and is labelled one: no client role holds INSERT on app.content_asset_links, so it says nothing about a viewer in particular — and it is recorded here rather than counted, because §8.2 marks "Asset SELECT/use" `Y` for the viewer and that is precisely the reading this batch refused.' },
+   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
+                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
+                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
+@@ -726,7 +732,9 @@
+            + 'BATCH 080 ADDS FOUR SUSPENDED READS, one per table a case addresses by a constant, and '
+            + 'each is paired with an active member of the same workspace reading the same row. '
+            + 'app.is_active_member is where §7 lives for all five policies here, and none of the '
+-           + 'predicates carries a `status` term of its own.' },
++           + 'predicates carries a `status` term of its own.'
++           + '\n\n'
++           + 'BATCH 100 ASKS IT ON ALL FOUR ASSET TABLES, and on three of them the refusal has to resolve through a parent: a version, a rights record and a link carry no page column, so `suspended-a-sees-zero-asset-versions` and its two siblings fail if the child narrowing is cut as surely as if app.is_active_member stopped answering.' },
+   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
+                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
+                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
+@@ -835,7 +843,9 @@
+            + 'BATCH 080 ADDS FOUR MORE ANONYMOUS CASES AND EVERY ONE IS REFUSED IN THE SAME PLACE, on '
+            + 'the SCHEMA. There is no table in this family whose refusal is argued from a '
+            + 'sensitivity class instead, which is the one way 070\'s set differed from every set '
+-           + 'before it.' },
++           + 'before it.'
++           + '\n\n'
++           + 'BATCH 100 ADDS FOUR, all declaring `deniedOn with kind schema and name app` — including on the MEDIA-2 and RIGHTS-3 tables, which are the two families in this batch §9.1 restricts hardest and therefore the two where an accidental `anon` grant would cost most.' },
+   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
+                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
+                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
+@@ -1197,7 +1207,9 @@
+            + 'is part of the CI negative control\'s basis, because a grant-layer refusal passes '
+            + 'unchanged with row level security off. The positive half stays unpayable for the '
+            + 'reason it has been since batch 010, and one further: there is no identity that could '
+-           + 'be the service here even if one could BE app_worker.' },
++           + 'be the service here even if one could BE app_worker.'
++           + '\n\n'
++           + 'BATCH 100 IS THE FIRST BATCH WHOSE SERVICE CASES COME OUT TWO DIFFERENT WAYS, AND THE DIFFERENCE IS THE POINT. §8.2 marks "Asset hard purge" `S`, and RFC-2026-022 §3\'s own table classifies that cell BOTH — CARRIED when a workspace closure drives it, DISCOVERED when a retention sweep does. NEITHER IS WRITTEN AS A POLICY: the decision is NOT IN EFFECT (§5/8, and M9 measures that the only member of app_worker is postgres, which bypasses RLS), so the classification is recorded as DATA in db/foundation/lint/service-policy-map.json and app_worker keeps grants and no policy. The consequence in this suite is a PAIR that batch 080 could not produce: `service-cannot-redact-an-asset-version` is `no-effect` with a witness, because app_worker holds the four columns the purge moves and row level security filters the row — so it IS in the CI negative control\'s basis and DOES flip when RLS is off — while `service-cannot-rewrite-the-digest-of-an-asset-version` is a GRANT refusal on the same table and the same identity, because sha256 is outside the four. The two outcomes differing is what proves the column allowlist is real. The POSITIVE half stays unpayable for the reason it has been since batch 010 and for RFC-2026-022 §5/8\'s: there is no identity that could be the service. NOTHING HERE IS CITED AS TENANT ISOLATION OF THE SERVICE PATH — RFC-2026-022 §5/4 forbids it, and no case in this batch names the confinement term at all.' },
+ };
+ 
+ // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
+@@ -2003,7 +2021,9 @@
+    + 'grant is inert and a grant with no policy is a weaker refusal than immutability asks for. '
+    + 'What no case can carry here is the positive: nothing in this repository may write a '
+    + 'content version at all until a SECURITY DEFINER command function exists, and RFC-2026-021 '
+-   + '§10 records that none does.',
++   + '§10 records that none does.'
++           + '\n\n'
++           + 'BATCH 100 ADDS AN IMMUTABLE TABLE AND AN APPEND-ONLY ONE, AND THE IMMUTABLE ONE IS IMMUTABLE IN ALL BUT FOUR COLUMNS. app.asset_versions is held to that by an apply-time per-column assertion against the live ACL rather than by the absence of a verb, so the cases come in three kinds: a client refused the write (`owner-a-cannot-write-an-asset-version`, `-redact-`, `-rewrite-the-digest-of-`, `-mark-...-ready`, `-delete-`), the service refused a column it does not hold (`service-cannot-rewrite-the-digest-of-an-asset-version`), and the service FILTERED on a column it does (`service-cannot-redact-an-asset-version`). app.content_asset_links is append-only on batch 100\'s own reading of §4.7\'s "การแก้ link หลังอนุมัติต้อง invalidate Approval" — a sentence that conditions mutation on a mechanism batch 090 has not written — and `owner-a-cannot-reorder-an-asset-link` and `-delete-an-asset-link` are where a reviewer would refuse that reading.',
+   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
+   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
+   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
+@@ -14283,3 +15239,300 @@
+ export function contentDeleteQualityReview(reviewId) {
+   return { sql: 'delete from app.quality_reviews where id = $1::uuid returning id', params: [reviewId] };
+ }
++
++// -- BATCH 100 — asset: the logical item, the object, the rights, the pin. ---------------------
++//
++// THE LINKS ARE ADDRESSED BY §4.7's OWN LOGICAL KEY, not by a symbol. `content_asset_links_logical_key`
++// is unique over (workspace_id, business_profile_id, content_version_id, content_variant_id, role,
++// sort_order) and is declared NULLS NOT DISTINCT, so a link with no variant is single-valued under
++// (content version, role, sort_order) — which under Postgres's default it would not be. Every case
++// below that reaches a link reaches it that way, which makes the addressing itself evidence for the
++// declaration: if the key were NULLS DISTINCT these statements could return more than one row.
++//
++// They are module-level constants declared AFTER buildCases rather than locals declared inside it,
++// and the reason is a merge rule rather than a style: other batches are appending to this file at
++// the same time, and the only resolution that cannot silently lose another batch's work is "main's
++// version plus this branch's own section, contiguous and last". A `const` here is in scope inside
++// buildCases at CALL time — the module has finished evaluating by then — so the whole of batch 100's
++// contribution to this file is two appended blocks and no edit anywhere else in it.
++export const ASSET_BY_ID =
++  'select id from app.assets where id = $1::uuid';
++
++export const ASSET_TITLE_BY_ID =
++  'select title from app.assets where id = $1::uuid';
++
++export const ASSET_VERSION_BY_ID =
++  'select id from app.asset_versions where id = $1::uuid';
++
++// The locator, read on its own. A member who can see the row can see where the object is, which is
++// §9.1's "authorized signed URL only" read from the database side: the key is not the URL and
++// holding it is not access, but it is the input to a signed-URL request, so the tenant boundary has
++// to hold on it exactly as it holds on the row.
++export const ASSET_VERSION_OBJECT_KEY_BY_ID =
++  'select object_key from app.asset_versions where id = $1::uuid';
++
++export const ASSET_RIGHTS_BY_ID =
++  'select id from app.asset_rights where id = $1::uuid';
++
++// §9.1's RIGHTS-3 client projection is "status/expiry, PROOF BY PERMISSION", and this statement is
++// how that half is asserted rather than described: `proof_url` is outside the `authenticated` SELECT
++// grant, so this is a COLUMN-level privilege refusal on a row the same identity may otherwise read
++// in full. The pair of cases — the row is visible, the proof is not — is what distinguishes a
++// withheld column from a hidden row.
++export const ASSET_RIGHTS_PROOF_BY_ID =
++  'select proof_url from app.asset_rights where id = $1::uuid';
++
++// `::text`, AND CI IS WHAT TAUGHT THIS FILE THE CAST. The psql driver returns every value as CSV
++// TEXT and run-isolation.mjs compares a witness with `!==`, so a boolean column read raw comes back
++// as the string "f" and `equals: false` can never match it: run 34754581209 failed both of this
++// batch's paid-ads cases with `paid_ads_allowed is "f" and should still be false` — the POLICY had
++// stopped the write and the WITNESS was comparing a string to a boolean. Casting here rather than
++// spelling the expectation `'f'` is deliberate: `'false'` is legible, and it does not depend on how
++// psql happens to render a boolean in CSV.
++export const ASSET_RIGHTS_PAID_ADS_BY_ID =
++  'select paid_ads_allowed::text as paid_ads_allowed from app.asset_rights where id = $1::uuid';
++
++// §4.7's logical key, spelled out. `content_variant_id is null` rather than `= $2` because a null is
++// never equal to anything — and the constraint that makes this address single-valued is exactly the
++// one that treats that null as part of the key.
++export const ASSET_LINK_BY_LOGICAL_KEY =
++  'select id from app.content_asset_links where content_version_id = $1::uuid'
++  + " and content_variant_id is null and role = 'cover' and sort_order = 0";
++
++// -- Batch 100 builders. -----------------------------------------------------------------------
++//
++// No builder passes an `id`: the column defaults to gen_random_uuid(), the row is rolled back with
++// its transaction, and no case has a reason to hold the id of a row it is creating. The rows these
++// cases READ are a different matter and are addressed by their catalog id or by §4.7's logical key.
++//
++// Every insert names a LIVE parent under the Workspace, so when the CI negative control disables row
++// level security the write LANDS rather than failing on a foreign key — a case that could not
++// succeed proves nothing about the policy that refuses it.
++
++// §8.2's "Asset UPLOAD/edit/archive". The one client INSERT this batch grants.
++export function assetUpload(workspace, business, createdBy) {
++  return {
++    sql: 'insert into app.assets (workspace_id, business_profile_id, kind, title, source, '
++       + "created_by, updated_by) values ($1::uuid, $2::uuid, 'image', 'attempted asset title', "
++       + "'upload', $3::uuid, $3::uuid) returning id",
++    params: [workspace, business, createdBy],
++  };
++}
++
++// §8.2's "Asset upload/EDIT/archive". `title` is the whole of what the edit verb reaches.
++export function assetRename(assetId, updatedBy) {
++  return {
++    sql: "update app.assets set title = 'renamed asset title', updated_by = $2::uuid "
++       + 'where id = $1::uuid returning id',
++    params: [assetId, updatedBy],
++  };
++}
++
++// §8.2's "Asset upload/edit/ARCHIVE", which §11.5 defines as "User delete = move to Trash".
++export function assetTrash(assetId, updatedBy) {
++  return {
++    sql: 'update app.assets set deleted_at = now(), updated_by = $2::uuid '
++       + 'where id = $1::uuid and deleted_at is null returning id',
++    params: [assetId, updatedBy],
++  };
++}
++
++// The statement §10's unapproved Trash window would be defeated by. It is refused at the GRANT
++// layer, per column, and that is the point: a policy could be widened by an edit, and a column
++// nobody was granted has to be granted before it can be written.
++export function assetExtendTrashWindow(assetId) {
++  return {
++    sql: "update app.assets set purge_after = now() + interval '3650 days' "
++       + 'where id = $1::uuid returning id',
++    params: [assetId],
++  };
++}
++
++// §4.1: "ชี้ version ที่หน้า Asset detail แสดง" — which version is current is the act of publishing
++// one, not a field a client edits (080's sentence about a content item).
++export function assetRepointCurrentVersion(assetId, versionId) {
++  return {
++    sql: 'update app.assets set current_version_id = $2::uuid where id = $1::uuid returning id',
++    params: [assetId, versionId],
++  };
++}
++
++// §8.5: "ห้ามย้าย row ข้าม tenant/scope ด้วย update", as a statement rather than as a sentence.
++export function assetRelocate(assetId, business) {
++  return {
++    sql: 'update app.assets set business_profile_id = $2::uuid where id = $1::uuid returning id',
++    params: [assetId, business],
++  };
++}
++
++export function assetDelete(assetId) {
++  return { sql: 'delete from app.assets where id = $1::uuid returning id', params: [assetId] };
++}
++
++// An asset version, written directly. §5 makes the version immutable and §8.2's write rows are about
++// the ASSET, so no client role holds this and the refusal is a grant. The digest is well formed, so
++// asset_versions_sha256_is_a_digest cannot stand in for the missing privilege.
++export function assetWriteVersion(workspace, business, assetId, createdBy) {
++  return {
++    sql: 'insert into app.asset_versions (workspace_id, business_profile_id, asset_id, version_no, '
++       + 'purpose, storage_provider, bucket, object_key, detected_mime, byte_size, sha256, status, '
++       + "created_by) values ($1::uuid, $2::uuid, $3::uuid, 99, 'original', 'supabase', "
++       + "'thinkbizthai-fixture-private-media', 'v1/attempted/object.jpg', 'image/jpeg', 1, "
++       + "sha256(convert_to('attempted asset object', 'utf8')), 'ready', $4::uuid) returning id",
++    params: [workspace, business, assetId, createdBy],
++  };
++}
++
++// THE `S` CELL'S OWN STATEMENT, in its workspace-closure (CARRIED) shape: redact the locator and
++// stamp the purge. §9.3/11 of the object storage lifecycle contract makes the hard purge exactly
++// this — "อัปเดต `deleted_at/purged_at` แบบ idempotent" — rather than the removal of a row.
++//
++// IT ADDRESSES ONE ROW BY ITS EXACT ID AND NEVER A PREFIX. A statement of the form
++// `where object_key like $1 || '%'` is what CONTRIBUTING_AGENTS.md forbids and what §9.3 calls a
++// กฎบังคับ, and it is deliberately not written even as a case: a case that issued one would be the
++// first prefix purge in this repository, and it would be in a test file.
++export function assetRedactVersion(versionId) {
++  return {
++    sql: "update app.asset_versions set object_key = null, purged_at = now(), status = 'purged' "
++       + 'where id = $1::uuid and purged_at is null returning id',
++    params: [versionId],
++  };
++}
++
++// A digest a granted path can rewrite is not a digest (§15 of the object storage lifecycle contract
++// compares a provider's answer against it).
++export function assetRewriteVersionDigest(versionId) {
++  return {
++    sql: "update app.asset_versions set sha256 = sha256(convert_to('substituted object', 'utf8')) "
++       + 'where id = $1::uuid returning id',
++    params: [versionId],
++  };
++}
++
++// §7.1 assigns media readiness to this column, and §4 invariant 5 makes `ready` the state content may
++// pin. A client that could set it could pin media nothing verified.
++export function assetMarkVersionReady(versionId) {
++  return {
++    sql: "update app.asset_versions set status = 'ready' where id = $1::uuid returning id",
++    params: [versionId],
++  };
++}
++
++export function assetDeleteVersion(versionId) {
++  return {
++    sql: 'delete from app.asset_versions where id = $1::uuid returning id',
++    params: [versionId],
++  };
++}
++
++// §8.2's "Asset RIGHTS/share", as an INSERT. Batch 100 reads that row as naming an operation rather
++// than an SQL verb, so owner and admin hold it and the EDITOR DOES NOT — which is the one place in
++// this family a role list differs from its neighbour's.
++export function assetRecordRights(workspace, business, assetId, createdBy) {
++  return {
++    sql: 'insert into app.asset_rights (workspace_id, business_profile_id, asset_id, rights_type, '
++       + "rights_status, created_by, updated_by) values ($1::uuid, $2::uuid, $3::uuid, 'owned', "
++       + "'valid', $4::uuid, $4::uuid) returning id",
++    params: [workspace, business, assetId, createdBy],
++  };
++}
++
++// The sharpest write in this batch. Paid advertising is the use a licence most often excludes, and
++// §4.5 defaults the column false "เมื่อไม่ทราบ" — so the identity that may flip it is a decision and
++// not a convenience.
++export function assetAllowPaidAds(rightsId, updatedBy) {
++  return {
++    sql: 'update app.asset_rights set paid_ads_allowed = true, updated_by = $2::uuid '
++       + 'where id = $1::uuid returning id',
++    params: [rightsId, updatedBy],
++  };
++}
++
++export function assetRelocateRights(rightsId, assetId) {
++  return {
++    sql: 'update app.asset_rights set asset_id = $2::uuid where id = $1::uuid returning id',
++    params: [rightsId, assetId],
++  };
++}
++
++export function assetDeleteRights(rightsId) {
++  return {
++    sql: 'delete from app.asset_rights where id = $1::uuid returning id',
++    params: [rightsId],
++  };
++}
++
++// §8.2's "Asset SELECT/USE" half, which no client role holds — reading it as a client INSERT would
++// give a VIEWER a write on content, and "Content create/edit/version" two rows above is `N` for the
++// approver and the viewer. `sort_order` is 7 rather than 0 so the statement cannot collide with the
++// fixture's own link and be refused by the logical key instead of by the privilege system.
++export function assetAttachLink(workspace, business, contentVersionId, assetId, versionId, createdBy) {
++  return {
++    sql: 'insert into app.content_asset_links (workspace_id, business_profile_id, '
++       + 'content_version_id, asset_id, asset_version_id, role, sort_order, created_by) '
++       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'cover', 7, $6::uuid) "
++       + 'returning id',
++    params: [workspace, business, contentVersionId, assetId, versionId, createdBy],
++  };
++}
++
++export function assetReorderLink(contentVersionId) {
++  return {
++    sql: 'update app.content_asset_links set sort_order = 9 where content_version_id = $1::uuid '
++       + "and content_variant_id is null and role = 'cover' returning id",
++    params: [contentVersionId],
++  };
++}
++
++export function assetDeleteLink(contentVersionId) {
++  return {
++    sql: 'delete from app.content_asset_links where content_version_id = $1::uuid '
++       + "and content_variant_id is null and role = 'cover' returning id",
++    params: [contentVersionId],
++  };
++}
++
++// -- Batch 100 witnesses. ---------------------------------------------------------------------
++//
++// A `no-effect` case is only as strong as its witness: the empty result says the statement matched
++// nothing, and the witness says the row is still there holding its original value. With row level
++// security off the write lands and the witness fails, which is what puts these cases in the CI
++// negative control's basis.
++export function assetStillTitled(as, assetId, title) {
++  return { as, sql: ASSET_TITLE_BY_ID, params: [assetId], column: 'title', equals: title };
++}
++
++// The purge's witness asserts `status` rather than `object_key`, and the reason is that the two move
++// together by constraint: asset_versions_purged_status_agrees makes `status = 'purged'` true exactly
++// when `purged_at` is stamped, and asset_versions_purged_row_names_no_object makes a purged row name
++// no object. So a redaction that landed is visible in this one short column, and the witness does
++// not have to carry a 200-character object key that would then have to be kept in step with the
++// fixture by hand.
++export function assetVersionStillReady(as, versionId) {
++  return {
++    as,
++    sql: 'select status from app.asset_versions where id = $1::uuid',
++    params: [versionId],
++    column: 'status',
++    equals: 'ready',
++  };
++}
++
++export function assetRightsStillRefusePaidAds(as, rightsId) {
++  return {
++    as,
++    sql: ASSET_RIGHTS_PAID_ADS_BY_ID,
++    params: [rightsId],
++    column: 'paid_ads_allowed',
++    // A STRING, because the driver compares strings. See the cast on the statement above.
++    equals: 'false',
++  };
++}
++
++// THERE IS NO LINK WITNESS, and the absence is deliberate rather than an omission. An earlier draft
++// carried one whose `equals` was the NUMBER 0 — which the driver could never have matched, for the
++// reason the paid-ads cast above records — and no case used it, because every write case on
++// app.content_asset_links is a `denied` at the GRANT layer and a `denied` case needs no witness. An
++// unused builder carrying a latent type error is what the next batch copies, so it is removed; the
++// day a link becomes updatable (batch 090's approval, see the migration header), the batch that
++// grants the UPDATE writes the witness it actually needs.
