@@ -13,12 +13,20 @@ approves nothing; it is the "read this first" for whoever opens the repository n
 | Measure | Value | Where it comes from |
 |---|---|---|
 | `npm run verify` on `main` | **clean: exit 0 — tests 586, pass 586, fail 0** | run locally after the merge |
-| Isolation cases | **629** (550 → 629) | `db-rls-smoke: 629 isolation case(s) passed` in CI run 34678716740 |
+| Isolation cases | **629** (554 → 629; this row first read 550 → 629 — corrected 2026-09-15, see the note below the table) | `db-rls-smoke: 629 isolation case(s) passed` in CI run 34678716740 |
 | Static isolation suite | **232** tests (218 → 232) | `tests/db/identity/identity-isolation.test.mjs` |
 | Migrations on disk | 000–004, 010, 011, 020, 021, 030, 040, 041, 050, 051, 060, 061, 070, **080**, 110, 130, 131, 132, 140 | `db/foundation/migrations/` |
 | `WP-0A-DB-00.status` | `in_progress` | manifest |
 | `open_blockers` | **130** (124 + 6 from batch 080) | manifest |
 | Gate | G0 — Specification Baseline Complete / External Verification Pending | unchanged |
+
+**Correction, 2026-09-15 (A0, owed since the next session's record §3.5).** The base was **554**,
+not 550: CI run 34461135630 on `101438a` (2026-09-10, pre-080) reads
+`db-rls-smoke: 554 isolation case(s) passed.`, and 629 − 554 = **75**. `550 + 79 = 629` was a sum
+reconstructed from a remembered base. Two sentences in this file carried the wrong figures — the
+table row above and §2's case count — and both are corrected in place with the original reading
+kept beside the correction, because a record that silently changes its numbers is how a stale count
+gets trusted. Q0's hand-simulation of all 75 (PR #116, relanded) is what found it.
 
 **HOW PR #112 WAS MERGED, STATED PLAINLY.** RFC-2026-002 requires, before the Product Owner merges,
 a green required CI run **and** linked Author, independent Reviewer, independent Tester,
@@ -50,7 +58,7 @@ branch, three commits (`2cd1450`, `2941e28`, `3cd1617`):
   negative-control basis, and **nothing in this repository can write a content version, variant or
   quality review** until a command function exists.
 - **Fixture** (`080-content-fixture.sql`, 11 catalog symbols — three for rows that already have a
-  natural key, argued in the catalog and README), **79 isolation cases**, **14 static tests**, five
+  natural key, argued in the catalog and README), **75 isolation cases** (this sentence first read 79 — corrected 2026-09-15, see §1), **14 static tests**, five
   CI negative-control entries, floors raised (218→232 tests, 1607→1686 assertions), README, manifest
   (branch slot, `amends_without_owning`, 6 new blockers), handoff, evidence.
 - **`SMOKE_COVERAGE[3]` flipped `knowledge-half` → `true`** (§12.6/3: approver cannot edit
