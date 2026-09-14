@@ -4,13 +4,13 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "6c3d7d8e3f44c3bc68b02ee386ed6fa3b0270f51",
-  "head_revision_or_patch_checksum": "3bddc6baff4c697095c2f40e3c2561d6dc726a02",
+  "base_revision": "02913bafe7fa397bbf769037eab192e4e85e0ad7",
+  "head_revision_or_patch_checksum": "cb8304d88ae8628d89e3699fea0b984e88de19e9",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [
-    "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md"
+  "files_added": [
+    "evidence/WP-0A-DB-00/a1-security-batch-080-2026-09-13.md"
   ],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
