@@ -12061,7 +12061,7 @@ export function buildCases(id) {
       covers: ['§8.2', '§12.6/1'],
       as: ownerA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'rows',
       why: 'The positive every negative below is measured against. §8.2 marks "Content SELECT" `Y` '
          + 'for all five built-in roles, so the policy tests active membership and not role, and '
@@ -12073,7 +12073,7 @@ export function buildCases(id) {
       covers: ['§8.2', '§8.6/1'],
       as: viewerA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'rows',
       why: 'The `Y` at the far end of §8.2\'s SELECT row. A viewer sees where a piece of content is '
          + 'destined and may not change it, and both halves are asserted: this case and '
@@ -12084,7 +12084,7 @@ export function buildCases(id) {
       covers: ['§8.2', '§12.6/3'],
       as: approverA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'rows',
       why: 'THE HALF §12.6/3 NEEDS AND THE REFUSALS CANNOT SUPPLY. "user_approver_a cannot edit '
          + 'content/knowledge" is a claim about the ROLE, and it only says that if the approver can '
@@ -12098,7 +12098,7 @@ export function buildCases(id) {
       covers: ['§8.6/1', '§12.6/2'],
       as: editorA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'rows',
       why: 'user_editor_a holds a `business` scope on business_a1 and this target\'s ITEM is under '
          + 'it, so the narrowing resolves through app.content_items and admits the row. Without '
@@ -12110,7 +12110,7 @@ export function buildCases(id) {
       covers: ['§8.6/3', '§12.6/2'],
       as: editorA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a2'), id('content_target_destination_a1')],
+      params: [id('content_item_a2'), id('social_account_a1')],
       expect: 'no-rows',
       why: '§8.6 case 3 on this table: same Workspace, an item under a Business the member scope '
          + 'does not cover. The permissive policy admits it — the editor is an active member — and '
@@ -12121,7 +12121,7 @@ export function buildCases(id) {
       covers: ['§8.6/4', '§4/3'],
       as: pageEditorA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1_page'), id('content_target_destination_a1')],
+      params: [id('content_item_a1_page'), id('social_account_a1')],
       expect: 'rows',
       why: 'The POSITIVE half of §8.6 case 4. user_page_editor_a is scoped to exactly one Page and '
          + 'this target\'s item is pinned to that Page, so the `else` branch of the parent\'s '
@@ -12132,7 +12132,7 @@ export function buildCases(id) {
       covers: ['§8.6/4', '§12.6/2'],
       as: pageEditorA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1_sibling_page'), id('content_target_destination_a1')],
+      params: [id('content_item_a1_sibling_page'), id('social_account_a1')],
       expect: 'no-rows',
       why: 'THE CASE THIS TABLE WOULD BE WORTHLESS WITHOUT. The member is admitted to business_a1 '
          + 'and must still be refused the destinations of an item pinned to a SIBLING Page. WHAT '
@@ -12150,7 +12150,7 @@ export function buildCases(id) {
       covers: ['§8.6/1', '§7'],
       as: pageEditorA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'rows',
       why: 'A consequence of 021\'s definition, consumed rather than re-decided: '
          + 'member_scope_covers_business counts a `page` scope row on its parent Business, so a '
@@ -12162,7 +12162,7 @@ export function buildCases(id) {
       covers: ['§8.6/5', '§12.6/5'],
       as: ownerA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_b1'), id('content_target_destination_b1')],
+      params: [id('content_item_b1'), id('social_account_b1')],
       expect: 'no-rows',
       why: 'The cross-tenant read, holding BOTH of B\'s exact ids — the item and the destination — '
          + 'which is what makes the refusal a property of the policy rather than of a guess.',
@@ -12172,7 +12172,7 @@ export function buildCases(id) {
       covers: ['§8.6/5'],
       as: ownerB,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_b1'), id('content_target_destination_b1')],
+      params: [id('content_item_b1'), id('social_account_b1')],
       expect: 'rows',
       why: 'The row IS there. Without this the case above is equally consistent with a fixture that '
          + 'never loaded it, which is the failure 020 established this pairing to refuse.',
@@ -12182,7 +12182,7 @@ export function buildCases(id) {
       covers: ['§8.6/6', '§12.6/6'],
       as: suspendedA,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'no-rows',
       why: '§8.6 case 6: a suspended member is refused IMMEDIATELY rather than at the next token '
          + 'refresh. app.is_active_member reads the membership state, so the permissive policy '
@@ -12193,7 +12193,7 @@ export function buildCases(id) {
       covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
       as: anonymous,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'schema', name: 'app' },
@@ -12206,7 +12206,7 @@ export function buildCases(id) {
       covers: ['§12.6/8-negative', '§8.2/content-service-P'],
       as: service,
       sql: CONTENT_TARGET_BY_DESTINATION,
-      params: [id('content_item_a1'), id('content_target_destination_a1')],
+      params: [id('content_item_a1'), id('social_account_a1')],
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12222,7 +12222,7 @@ export function buildCases(id) {
       covers: ['§8.2', '§8.6/1'],
       as: ownerA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'rows',
       why: 'The CREATE half of §8.2 row 2, and the case that makes every refusal below a statement '
          + 'about what was attempted rather than about the table being closed. The pair (item, '
@@ -12234,7 +12234,7 @@ export function buildCases(id) {
       covers: ['§8.2', '§12.6/2'],
       as: editorA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'rows',
       why: 'The third `Y` on §8.2 row 2, from the identity whose scope actually narrows. It is the '
          + 'positive that makes editor-a-cannot-aim-a-content-target-outside-their-narrowing a '
@@ -12248,7 +12248,7 @@ export function buildCases(id) {
       covers: ['§12.6/4', '§8.6/2'],
       as: viewerA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12262,7 +12262,7 @@ export function buildCases(id) {
       covers: ['§12.6/3', '§8.6/2'],
       as: approverA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12275,7 +12275,7 @@ export function buildCases(id) {
       covers: ['§8.6/8', '§8.5'],
       as: ownerA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), id('user_editor_a')),
+        id('social_account_a2'), id('user_editor_a')),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12288,21 +12288,24 @@ export function buildCases(id) {
       covers: ['§8.6/5', '§12.6/7'],
       as: ownerA,
       ...contentTargetAim('__B__', BUSINESS_B1, id('content_item_b1'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_b1'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
-      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s business and B\'s item. Every id '
-         + 'in the statement is real and the row is internally consistent, so the composite foreign '
-         + 'keys would ACCEPT it — which is what makes the refusal attributable to '
-         + 'app.workspace_member_role returning nothing for a non-member.',
+      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s business, B\'s item and B\'s own '
+         + 'social account. Every id in the statement is real and the row is internally consistent, '
+         + 'so every composite foreign key -- content_targets_social_scope_fk since batch 111 included '
+         + '-- would ACCEPT it, which is what makes the refusal attributable to '
+         + 'app.workspace_member_role returning nothing for a non-member. (Q0-111 F2: after the '
+         + 'repoint this row briefly named A\'s account, and the key would have refused it too; a case '
+         + 'two constraints refuse proves neither.)',
     },
     {
       id: 'editor-a-cannot-aim-a-content-target-outside-their-narrowing',
       covers: ['§8.6/3', '§12.6/2'],
       as: editorA,
       ...contentTargetAim('__A__', BUSINESS_A2, id('content_item_a2'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12316,7 +12319,7 @@ export function buildCases(id) {
       covers: ['§8.6/4', '§12.6/2'],
       as: pageEditorA,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_sibling_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12336,11 +12339,26 @@ export function buildCases(id) {
          + 'is free of the logical key.',
     },
     {
+      id: 'editor-a-cannot-aim-a-content-target-at-another-tenants-destination',
+      covers: ['§4/10', '§3.3/composite-fk', '§12.6/7'],
+      as: editorA,
+      ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1'), id('social_account_b1'), '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23503',
+      why: 'BATCH 111, AND THE ROW BATCH 081 SAID NOTHING WOULD REFUSE. The editor holds the role, is '
+         + 'in the workspace, and the item is in their narrowing -- every policy admits this row -- and '
+         + 'the destination is workspace_b\'s social account, held by its exact id. Before 111 the column '
+         + 'was resolved against nothing and A1-081 S3 measured the database accepting exactly this; now '
+         + 'content_targets_social_scope_fk (workspace_id, social_account_id) -> social_accounts '
+         + '(workspace_id, id) refuses it at the database, one step after the policies, with 23503 '
+         + 'rather than 42501 so that a case cannot mistake the two.',
+    },
+    {
       id: 'service-cannot-aim-a-content-target',
       covers: ['§12.6/8-negative', '§8.2/content-service-P'],
       as: service,
       ...contentTargetAim('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), id('user_owner_a')),
+        id('social_account_a2'), id('user_owner_a')),
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12354,7 +12372,7 @@ export function buildCases(id) {
       covers: ['§4/6', '§8.6/9'],
       as: ownerA,
       ...contentTargetAimAgain('__A__', BUSINESS_A1, id('content_item_a1'),
-        id('content_target_destination_a1'), '__SELF__'),
+        id('social_account_a1'), '__SELF__'),
       expect: 'rejected',
       sqlstate: '23505',
       why: '§4.6: "unique active target ต่อ content item/social account". EVERY POLICY ADMITS THIS '
@@ -12373,7 +12391,7 @@ export function buildCases(id) {
       covers: ['§4/6'],
       as: ownerA,
       ...contentTargetAimWithBlankStatus('__A__', BUSINESS_A1, id('content_item_a1_page'),
-        id('content_target_destination_a2'), '__SELF__'),
+        id('social_account_a2'), '__SELF__'),
       expect: 'rejected',
       sqlstate: '23514',
       why: 'content_targets_status_not_blank, in the interesting direction. §4.6 names `status` and '
@@ -12390,7 +12408,7 @@ export function buildCases(id) {
       covers: ['§4/10', '§3.3/composite-fk'],
       as: ownerA,
       ...contentTargetAimPinnedAcross('__A__', BUSINESS_A2, id('content_item_a2'),
-        id('content_target_destination_a2'), id('content_version_a1'), '__SELF__'),
+        id('social_account_a2'), id('content_version_a1'), '__SELF__'),
       expect: 'rejected',
       sqlstate: '23503',
       why: '§4 invariant 10: an unrelated Workspace/Business/row triple must fail AT THE DATABASE, '
@@ -12408,7 +12426,7 @@ export function buildCases(id) {
       id: 'editor-a-can-restate-the-content-target-of-a1',
       covers: ['§8.2', '§8.6/1'],
       as: editorA,
-      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      ...contentTargetRestate(id('content_item_a1'), id('social_account_a1'), '__SELF__'),
       expect: 'rows',
       why: 'The EDIT half of §8.2 row 2 on the one column a client may move. The value written is '
          + 'self-describing rather than plausible: `status` has no vocabulary, and a case writing '
@@ -12418,10 +12436,10 @@ export function buildCases(id) {
       id: 'approver-a-cannot-restate-a-content-target',
       covers: ['§8.6/2', '§12.6/3'],
       as: approverA,
-      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      ...contentTargetRestate(id('content_item_a1'), id('social_account_a1'), '__SELF__'),
       expect: 'no-effect',
       witness: contentTargetStillStampedBy(ownerA, id('content_item_a1'),
-        id('content_target_destination_a1'), id('user_owner_a')),
+        id('social_account_a1'), id('user_owner_a')),
       why: 'The approver reads this row and cannot edit it. `no-effect` rather than `denied` '
          + 'because the USING half of an UPDATE policy FILTERS: a row the policy does not admit is '
          + 'not a row the statement refuses, it is a row the statement never sees. The witness '
@@ -12431,10 +12449,10 @@ export function buildCases(id) {
       id: 'viewer-a-cannot-restate-a-content-target',
       covers: ['§12.6/4', '§8.6/2'],
       as: viewerA,
-      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      ...contentTargetRestate(id('content_item_a1'), id('social_account_a1'), '__SELF__'),
       expect: 'no-effect',
       witness: contentTargetStillStampedBy(ownerA, id('content_item_a1'),
-        id('content_target_destination_a1'), id('user_owner_a')),
+        id('social_account_a1'), id('user_owner_a')),
       why: '§8.2 marks the viewer `N` on row 2 and `Y` on row 1, so this is the operation being '
          + 'refused rather than the table — asserted beside viewer-a-sees-the-content-target-of-a1.',
     },
@@ -12442,10 +12460,10 @@ export function buildCases(id) {
       id: 'editor-a-cannot-restate-the-content-target-outside-their-narrowing',
       covers: ['§8.6/3', '§12.6/2'],
       as: editorA,
-      ...contentTargetRestate(id('content_item_a2'), id('content_target_destination_a1'), '__SELF__'),
+      ...contentTargetRestate(id('content_item_a2'), id('social_account_a1'), '__SELF__'),
       expect: 'no-effect',
       witness: contentTargetStillStampedBy(ownerA, id('content_item_a2'),
-        id('content_target_destination_a1'), id('user_owner_a')),
+        id('social_account_a1'), id('user_owner_a')),
       why: 'The WRITE half of §8.6 case 3. The editor holds the role the policy names and is '
          + 'refused by the member scope instead, which is what a restrictive narrowing is for — and '
          + 'the witness is the unscoped owner, because the editor cannot read the row it is about.',
@@ -12454,10 +12472,10 @@ export function buildCases(id) {
       id: 'owner-a-cannot-restate-the-content-target-of-tenant-b',
       covers: ['§8.6/5', '§8.5'],
       as: ownerA,
-      ...contentTargetRestate(id('content_item_b1'), id('content_target_destination_b1'), '__SELF__'),
+      ...contentTargetRestate(id('content_item_b1'), id('social_account_b1'), '__SELF__'),
       expect: 'no-effect',
       witness: contentTargetStillStampedBy(ownerB, id('content_item_b1'),
-        id('content_target_destination_b1'), id('user_owner_b')),
+        id('social_account_b1'), id('user_owner_b')),
       why: 'The cross-tenant write on an EXISTING row, holding both of B\'s ids. The witness runs '
          + 'as B\'s owner because no A-side identity can see the row at all, which is the shape 020 '
          + 'established for a workspace name and every family has kept.',
@@ -12466,7 +12484,7 @@ export function buildCases(id) {
       id: 'owner-a-cannot-forge-the-actor-on-a-content-target-update',
       covers: ['§8.6/8', '§8.5'],
       as: ownerA,
-      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'),
+      ...contentTargetRestate(id('content_item_a1'), id('social_account_a1'),
         id('user_editor_a')),
       expect: 'denied',
       deniedBy: 'policy',
@@ -12481,7 +12499,7 @@ export function buildCases(id) {
       id: 'owner-a-cannot-repin-a-content-target',
       covers: ['§4/6', '§8.2'],
       as: ownerA,
-      ...contentTargetRepin(id('content_item_a1'), id('content_target_destination_a1'),
+      ...contentTargetRepin(id('content_item_a1'), id('social_account_a1'),
         id('content_version_a1')),
       expect: 'denied',
       deniedBy: 'grant',
@@ -12500,8 +12518,8 @@ export function buildCases(id) {
       id: 'owner-a-cannot-redirect-a-content-target',
       covers: ['§8.5', '§4/6'],
       as: ownerA,
-      ...contentTargetRedirect(id('content_item_a1'), id('content_target_destination_a1'),
-        id('content_target_destination_b1')),
+      ...contentTargetRedirect(id('content_item_a1'), id('social_account_a1'),
+        id('social_account_b1')),
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12517,7 +12535,7 @@ export function buildCases(id) {
       id: 'owner-a-cannot-rehome-a-content-target',
       covers: ['§8.5', '§12.6/7'],
       as: ownerA,
-      ...contentTargetRehome(id('content_item_a1'), id('content_target_destination_a1'),
+      ...contentTargetRehome(id('content_item_a1'), id('social_account_a1'),
         id('content_item_a1_sibling_page')),
       expect: 'denied',
       deniedBy: 'grant',
@@ -12533,7 +12551,7 @@ export function buildCases(id) {
       id: 'owner-a-can-retire-a-content-target',
       covers: ['§8.5', '§8.2'],
       as: ownerA,
-      ...contentTargetRetire(id('content_item_a1'), id('content_target_destination_a1'), '__SELF__'),
+      ...contentTargetRetire(id('content_item_a1'), id('social_account_a1'), '__SELF__'),
       expect: 'rows',
       why: '§8.5 asks for a soft delete through a typed lifecycle field where a delete is wanted at '
          + 'all, and `deleted_at` is in the client UPDATE grant for exactly that. It is also the '
@@ -12545,7 +12563,7 @@ export function buildCases(id) {
       id: 'owner-a-cannot-delete-a-content-target',
       covers: ['§8.5'],
       as: ownerA,
-      ...contentTargetDelete(id('content_item_a1'), id('content_target_destination_a1')),
+      ...contentTargetDelete(id('content_item_a1'), id('social_account_a1')),
       expect: 'denied',
       deniedBy: 'grant',
       deniedOn: { kind: 'table', name: 'content_targets' },
@@ -12558,7 +12576,7 @@ export function buildCases(id) {
       id: 'service-cannot-restate-a-content-target',
       covers: ['§12.6/8-negative', '§8.2/content-service-P'],
       as: service,
-      ...contentTargetRestate(id('content_item_a1'), id('content_target_destination_a1'),
+      ...contentTargetRestate(id('content_item_a1'), id('social_account_a1'),
         id('user_owner_a')),
       expect: 'denied',
       deniedBy: 'grant',

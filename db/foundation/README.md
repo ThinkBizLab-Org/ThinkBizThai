@@ -151,6 +151,14 @@ exactly the constant this catalog exists to fix — and fixing it is also what k
 because three ids that name no row are the first thing a reader meets. **Batch `111` must repoint all
 three, and the fixture will refuse to load until it does.** That failure is intended: a fixture that
 kept loading through the addition of a foreign key is one whose rows never depended on it.
+
+Batch `111` did exactly that. The three destination symbols are retired; `social_account_a1`,
+`social_account_a2` and `social_account_b1` name rows `110`'s fixture now loads with fixed ids (and a
+second `workspace_a` account, so one item can hold two destinations); `081`'s fixture and every case
+point at them; and `content_targets_social_scope_fk` is what makes a destination that does not
+exist, or belongs to another tenant, fail to load or to insert — `editor-a-cannot-aim-a-content-
+target-at-another-tenants-destination` is the case, refused with 23503 (not `…-social-account`:
+that word is batch `110`'s control pattern, and a case id may not satisfy another family's entry).
 Batch `090` added symbols for rows in **one of its three tables**, which is the smallest share any
 multi-table batch has claimed, and the split falls exactly where this catalog's rule puts it. An
 **approval policy** is addressed by `(workspace_id, business_profile_id, policy_key, version)` —

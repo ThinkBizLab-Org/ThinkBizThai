@@ -39,7 +39,9 @@
 --                            the same layer, with the same message, which is this batch's
 --                            substitute for a cross-tenant claim it cannot make — no client
 --                            identity may read the table at all.
---   two social accounts      one `fb` under each connection, sharing an external account hash.
+--   three social accounts    one `fb` under each connection sharing an external account hash, and
+--                            since batch 111 a second (`ig`) under workspace_a with its own, all
+--                            three with fixed ids.
 --   two credential refs      in `private`, one per connection, so the refusals on the SECRET-4
 --                            table are about a table with content.
 --   two inbox deliveries     one RESOLVED to workspace_a and one UNRESOLVED, and the pair is the
@@ -72,19 +74,30 @@ insert into app.meta_connections (id, workspace_id, display_name, created_by, up
    '297ad853-58a6-5e83-87e1-f936f9c3ddff', '297ad853-58a6-5e83-87e1-f936f9c3ddff')
 on conflict (id) do nothing;
 
--- One discovered account under each connection, both `fb`. No id is supplied and no symbol exists
--- for either: a social account is addressed by (workspace_id, external_account_hash), which
+-- One discovered account under each connection, both `fb`, plus workspace_a's second since batch
+-- 111. The ids are fixed and the symbols exist (social_account_a1/a2/b1) because content_targets now
+-- references these rows; a social account is ALSO addressed by (workspace_id, external_account_hash), which
 -- 110_meta_connector.sql makes unique and which is spelled out of ids this catalog already fixes
 -- plus text this file and the case file share — exactly as a version row, a member scope, an
 -- industry assignment and a billing subscription are addressed.
 --
 -- No created_by/updated_by: §4's ERD verb is "discovers", which is the service's act rather than a
 -- member's, and §3.2 attaches the actor columns to a user mutation. The columns do not exist.
+-- THE IDS ARE FIXED SINCE BATCH 111, which references these rows from app.content_targets and
+-- needs a uuid a case can hold: uuid5 of the symbol, the catalog's recipe, as every fixed id here.
+-- A THIRD ROW, workspace_a's second account, so that one content item can hold two destinations
+-- (§4.6's pair). Its hash differs because it is a different account; the a/b pair keeps the shared
+-- hash for the reason above.
 insert into app.social_accounts
-  (workspace_id, meta_connection_id, account_kind, display_name, external_account_hash) values
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
+  (id, workspace_id, meta_connection_id, account_kind, display_name, external_account_hash) values
+  ('71b10fff-e2b6-5f9a-b869-ba8f3854329c',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
    'fb', 'fixture social account a', sha256(convert_to('social_account_a1', 'utf8'))),
-  ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'd83a993a-1cec-598f-9a8d-c1b2566c5bdb',
+  ('f8d7b988-35f7-5dad-a2d9-516a445cf830',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'd01a6cd3-0bf0-5d97-a627-7bfcf620687d',
+   'ig', 'fixture social account a2', sha256(convert_to('social_account_a2', 'utf8'))),
+  ('bf855f7a-bbae-595f-b095-85be153f1148',
+   '43fd5c24-ebea-528f-9ce9-eedf1f8f9765', 'd83a993a-1cec-598f-9a8d-c1b2566c5bdb',
    'fb', 'fixture social account b', sha256(convert_to('social_account_a1', 'utf8')))
 on conflict (workspace_id, external_account_hash) do nothing;
 

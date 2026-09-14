@@ -5538,8 +5538,11 @@ test('the batch 110 fixture writes only catalog identities and loads both inbox 
   // THE SAME EXTERNAL ACCOUNT HASH ON BOTH SIDES, which is what makes the workspace-scoped natural
   // key legible: a key that had lost workspace_id would fail to LOAD rather than fail a case.
   const accountHashes = [...fixture.matchAll(/sha256\(convert_to\('(social_account_[a-z0-9_]+)'/g)].map((m) => m[1]);
-  assert.equal(accountHashes.length, 2, 'two discovered accounts, one per Workspace');
-  assert.equal(accountHashes[0], accountHashes[1],
+  // Three since batch 111: workspace_a's second account (a distinct hash, because it is a distinct
+  // account) so that one content item can hold two destinations. The a/b pair keeps the shared hash.
+  assert.equal(accountHashes.length, 3, 'three discovered accounts: two for workspace_a, one for workspace_b (batch 111)');
+  assert.notEqual(accountHashes[1], accountHashes[0], "workspace_a's second account is a different account, so a different hash");
+  assert.equal(accountHashes[0], accountHashes[2],
     'and they carry the SAME hash, on purpose: with two different hashes the workspace-scoped key '
     + 'and a global one would both accept both rows, and the fixture would prove nothing about which '
     + 'constraint the migration wrote');
@@ -9447,16 +9450,16 @@ test('the batch 081 fixture writes only catalog identities and states what each 
       + 'nobody can recompute is an unverifiable constant.');
   }
   for (const symbol of ['content_item_a1', 'content_item_a1_page', 'content_item_a1_sibling_page',
-    'content_item_a2', 'content_item_b1', 'content_target_destination_a1',
-    'content_target_destination_a2', 'content_target_destination_b1']) {
+    'content_item_a2', 'content_item_b1', 'social_account_a1',
+    'social_account_a2', 'social_account_b1']) {
     assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
   }
   assert.doesNotMatch(fixture, /from app\.social_accounts/,
-    'THE DESTINATIONS RESOLVE TO NOTHING, ON PURPOSE. A subselect against app.social_accounts would make every '
-    + 'target here look correctly bound and would hide the one property this batch most needs a reader to see '
-    + '— that nothing checks a destination. Batch 080 met the same choice on generation_run_id and wrote NULL '
-    + 'rather than a plausible uuid; social_account_id is NOT NULL, so the equivalent is a symbol that names '
-    + 'no row. Batch 111 must repoint all three and the fixture will refuse to load until it does.');
+    'THE DESTINATIONS ARE FIXED IDS, NEVER SUBSELECTS. Until batch 111 they named no row on purpose, so that '
+    + 'nothing could make a target look correctly bound while nothing checked a destination; since 111 they are '
+    + 'social_account_a1/a2/b1, fixed by the catalog recipe, and content_targets_social_scope_fk is what checks '
+    + 'them. A subselect against app.social_accounts is still refused here: a destination is a constant a case '
+    + 'can hold, not a lookup that happens to find something.');
   assert.doesNotMatch(fixture, /\bstatus\b\s*=/,
     'and no row is loaded with a status. §4.6 enumerates no vocabulary for the column, and a fixture is the '
     + 'last place one should first appear — which is why the witnesses read `updated_by` instead.');

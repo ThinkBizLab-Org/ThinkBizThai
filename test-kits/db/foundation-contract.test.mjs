@@ -341,6 +341,7 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
   '110_meta_connector.sql',
+  '111_social_fk.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -781,9 +782,9 @@ const ADDED_SYMBOLS = [
   // repoint all three at social accounts that exist, and the fixture will refuse to load until it
   // does — which is the intended failure, because a fixture that kept loading through the addition
   // of a foreign key is one whose rows never depended on it.
-  'content_target_destination_a1',
-  'content_target_destination_a2',
-  'content_target_destination_b1',
+  'social_account_a1',
+  'social_account_a2',
+  'social_account_b1',
   // Batch 090. SIX REQUESTS AND NOTHING ELSE, WHICH IS THE SMALLEST SYMBOL COUNT A THREE-TABLE
   // BATCH HAS ADDED, and the reason is that two of its three tables have natural keys this catalog
   // already fixes the parts of. A POLICY is (workspace_id, business_profile_id, policy_key,
@@ -2065,6 +2066,27 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
 // in the set, and fails on the pair that has no trigger -- before a database is involved, and by
 // name. The apply-time rule is the one that survives a later batch dropping the trigger; this one
 // is the one that fails on the author's machine.
+// A FORWARD FIX WHOSE ONLY GUARD IS ITS OWN APPLY-TIME BLOCK IS GUARDED BY NOTHING A REVIEWER CAN
+// SEE FAIL LOCALLY: Q0-111 F1 emptied 111_social_fk.sql and the static suite stayed green. The
+// closures (082/083/092/101) are held by SERVICE_PATH_CLOSURES and 093 by the rule below; 094 and
+// 111 were read by nothing. This pins each file's statements and the messages its block raises,
+// so deleting the block -- or the statement it guards -- fails here, by name, before a database.
+test('the forward fixes 094 and 111 keep their statements and their apply-time blocks', async () => {
+  const requestedBy = (await readFile('db/foundation/migrations/094_approval_requested_by.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  assert.match(requestedBy, /create policy approval_requests_requester_is_caller on app\.approval_requests\s+as restrictive\s+for insert to authenticated\s+with check \(requested_by = \(select auth\.uid\(\)\)\);/,
+    '094: one RESTRICTIVE INSERT policy, requested_by = auth.uid(), TO authenticated');
+  assert.match(requestedBy, /did not write approval_requests_requester_is_caller as a RESTRICTIVE INSERT policy/, '094 asserts its own policy at apply time');
+  assert.match(requestedBy, /requested_by became updatable by authenticated/, '094 asserts the column stays out of the UPDATE grant');
+  const socialKey = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  assert.match(socialKey, /alter table app\.social_accounts\s+add constraint social_accounts_scope_key unique \(workspace_id, id\);/, '111: the scope key on social_accounts');
+  assert.match(socialKey, /create index if not exists content_targets_social_scope_idx\s+on app\.content_targets \(workspace_id, social_account_id\);/, '111: the supporting index');
+  assert.match(socialKey, /add constraint content_targets_social_scope_fk\s+foreign key \(workspace_id, social_account_id\)\s+references app\.social_accounts \(workspace_id, id\)\s+not valid;/, '111: the key, NOT VALID first');
+  assert.match(socialKey, /validate constraint content_targets_social_scope_fk;/, '111: then validated');
+  for (const message of ['did not leave content_targets_social_scope_fk as a validated', 'a second foreign key involves social_account_id', 'content_targets_social_scope_idx does not lead with']) {
+    assert.match(socialKey, new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `111 asserts at apply time: ${message}`);
+  }
+});
+
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
   const dir = 'db/foundation/migrations';
   const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
