@@ -8991,8 +8991,10 @@ test('every batch 080 policy is written TO authenticated, and app_worker holds n
     'AND NO GRANT EITHER, WHICH IS THIS BATCH\'S ONE DEPARTURE FROM 070\'s SHAPE. Batch 070 grants its '
     + 'worker select, insert and update and lets row level security refuse it. The writer content needs is '
     + 'not a worker with privileges: §8.2 row 3 forbids updating a version at all, and the act that CREATES '
-    + 'one is a SECURITY DEFINER function owned by app_command, exempt by ownership rather than by grant '
-    + '(RFC-2026-017 §3). Granting app_worker a write here would be a second path to the same act.');
+    + 'one is a SECURITY DEFINER function owned by app_command — which RFC-2026-017 §3 keeps OFF the owner '
+    + 'seat precisely so the policies apply to it (this message read "exempt by ownership" until batch 082; '
+    + 'that was false, and what it licensed is finding S8). Granting app_worker a write here would be a '
+    + 'second path to the same act.');
   assert.doesNotMatch(contentCode, /to anon\b/, 'RFC-2026-021 §7/4 grants anon nothing anywhere');
   // And the consequence, stated in the cases rather than left implicit: every service case in this
   // batch is a GRANT-layer refusal, which is a different claim from batch 070's RLS-decided ones.
@@ -9151,4 +9153,90 @@ test('the coverage map records what batch 080 pays, including the one row it fli
   assert.match(AUTHORIZATION_CASE_COVERAGE[9], /BATCH 080 ADDS THREE MORE IMMUTABLE TABLES/,
     '§8.6/9 is where this batch\'s largest contribution goes: three tables no identity in this repository '
     + 'may write, which is §8.2 row 3 and not a choice this batch made');
+});
+
+// =================================================================================================
+// BATCH 082 — the content service path is closed. A forward fix for A1 finding S8 on batch 080:
+// the five scope narrowings are `to authenticated` and bind no other role, so the SECURITY DEFINER
+// writer 080 is waiting for would arrive unbounded. 080 is integrated and is not rewritten; 082 adds
+// one RESTRICTIVE policy per table, FOR ALL, TO PUBLIC, `current_user = 'authenticated'` on both
+// halves — shape C of Product Owner decision Q3 (2026-09-15). Shape B, the acting-user narrowing,
+// is an RFC owed to the first content command-function batch and is NOT here.
+//
+// These tests read 082's text. The catalog-level proof — that the policy exists with the shape
+// required, which fails against 080 alone — is the five `batch-082-closes-the-service-path-on-*`
+// isolation cases, and the apply-time block in 082 itself.
+const SERVICE_PATH_MIGRATION = 'db/foundation/migrations/082_content_service_path_closed.sql';
+const servicePath = await readFile(SERVICE_PATH_MIGRATION, 'utf8');
+const servicePathCode = servicePath.replace(/--[^\n]*/g, '');
+
+test('batch 082 writes one closure per content table, RESTRICTIVE, FOR ALL, naming no role', () => {
+  const closures = [...servicePathCode.matchAll(
+    /create policy (\w+)_service_path_closed on app\.(\w+)\s*\n\s*as restrictive\s*\n\s*for all\s*\n\s*using \(([^)]*)\)\s*\n\s*with check \(([^)]*)\);/g)];
+  assert.deepEqual(closures.map((m) => m[2]).sort(), [...CONTENT_TABLES].sort(),
+    'one closure per table, each RESTRICTIVE and FOR ALL, and each named after its table');
+  for (const [, prefix, table, usingHalf, checkHalf] of closures) {
+    assert.equal(prefix, table, `${table}: the policy name carries its table`);
+    assert.equal(usingHalf.trim(), "current_user = 'authenticated'",
+      `${table}: the USING half reads the role SET ROLE produced and nothing a service role can set for itself`);
+    assert.equal(checkHalf.trim(), usingHalf.trim(), `${table}: both halves, identical — the WITH CHECK is what `
+      + 'bounds the write the narrowing was written for and does not cover');
+  }
+  // NO `TO` CLAUSE IS THE WHOLE POINT. A policy applies to the roles its TO clause names; a closure
+  // that named app_command would miss app_worker, one that named both would miss the next role.
+  // No TO is TO PUBLIC, and PUBLIC is every role including the ones not yet created.
+  for (const [, , table] of closures) {
+    const body = servicePathCode.match(new RegExp(`create policy ${table}_service_path_closed[\\s\\S]*?;`))[0];
+    assert.doesNotMatch(body, /\bto\s+\w+/i, `${table}: the closure names no role, so it binds every role`);
+  }
+});
+
+test('batch 082 takes none of the three repairs RFC-2026-017 §4 forbids, and grants nothing', () => {
+  assert.doesNotMatch(servicePathCode, /^\s*alter role\b/mi, 'no role attribute changes, so no BYPASSRLS is granted; the assertion that '
+    + 'app_command still lacks it is in the apply-time block rather than here');
+  assert.match(servicePath, /rolbypassrls/, 'and the apply-time block asks pg_roles about it');
+  assert.doesNotMatch(servicePathCode, /no force row level security|disable row level security/i,
+    'FORCE is not dropped');
+  assert.doesNotMatch(servicePathCode, /alter table[\s\S]*?owner to/i, 'no table changes owner');
+  assert.doesNotMatch(servicePathCode, /^\s*grant\b/mi, 'THE BATCH GRANTS NOTHING. It changes nothing '
+    + 'today because no role but authenticated holds a privilege on these tables, and the apply-time '
+    + 'block asserts that premise rather than assuming it');
+  assert.doesNotMatch(servicePathCode, /^\s*(drop|alter) policy\b/mi,
+    "080's five narrowings are untouched: migration invariant 1, and the static rules above still read them");
+  // The fourth repair — naming app_command in a narrowing that uses 080's predicate — was measured
+  // vacuous (the helper sees zero rows for a role with no scope rows and admits everything). The
+  // closure therefore does NOT call the scope helpers at all.
+  assert.doesNotMatch(servicePathCode, /member_scope_/,
+    'the closure reads current_user, never the member-scope helpers, which answer about the CALLER and '
+    + 'would answer "not narrowed" for a service role');
+});
+
+test('batch 082 asserts the general rule S8 violates, and it holds for 080 by construction now', () => {
+  // Every role a PERMISSIVE policy admits must be bound by a RESTRICTIVE policy on the same table.
+  // The apply-time block asks pg_policy; this pins that it asks, and reads the same rule off 080's
+  // text as a static twin: every permissive policy in 080 is TO authenticated, and every table now
+  // carries a restrictive policy TO PUBLIC.
+  assert.match(servicePath, /a permissive policy admits a role no restrictive policy on the same table binds/,
+    'the apply-time rule is stated in the words a reader will meet in a failure');
+  assert.match(servicePath, /polroles = '\{0\}'::oid\[\]/, 'and PUBLIC is recognised by its catalog spelling, {0}');
+  const permissive = [...contentCode.matchAll(/create policy (\w+) on app\.(\w+)\s*\n\s*for (select|insert|update|delete|all) to (\w+)/g)];
+  assert.ok(permissive.length >= 5, "080's permissive policies were parsed");
+  for (const [, name, table, , role] of permissive) {
+    assert.equal(role, 'authenticated', `${name} on app.${table} admits only authenticated, which 082's closure binds`);
+  }
+});
+
+test('the "exempt by ownership" sentence is corrected where it can be, and the record says where it cannot', async () => {
+  // C0 and A1 both found 080:897 and :114 false: a SECURITY DEFINER function owned by app_command is
+  // NOT exempt from the policies on a forced table — 001_service_roles.sql:41-42 created the role
+  // NOBYPASSRLS and never the owner precisely so the policies WOULD apply to it. 080 cannot be
+  // edited. The editable copies were this file (see the message on `to app_worker` above),
+  // scripts/db/run.mjs and the manifest's blocker, and 082's header carries the correction.
+  assert.match(servicePath, /owner so that the policies APPLY to it/,
+    "082's header states the corrected reading");
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.doesNotMatch(runner, /is exempt from the policies on a forced table, so the whole point/,
+    'run.mjs no longer states the false reason beside a sound rule');
+  assert.match(runner, /subject to RLS and needs policies that name it/,
+    'and states the true one, in RFC-2026-017 §3\'s own words');
 });

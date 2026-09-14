@@ -623,9 +623,13 @@ export function tenantTableLint(catalog, { expected, forceExempt } = {}) {
     }
     if (!t.has_pk) problems.push(`app.${t.table}: no primary key`);
     if (!t.comment) problems.push(`app.${t.table}: no owner comment`);
-    // RFC-2026-017 §3: app_command is deliberately NOT the table owner. A SECURITY DEFINER function
-    // owned by the table owner is exempt from the policies on a forced table, so the whole point of
-    // routing privileged writes through such a function dies if the owner is the table's owner.
+    // RFC-2026-017 §3: app_command is deliberately NOT the table owner. FORCE makes the owner subject
+    // to its own policies, but a SECURITY DEFINER function owned by app_command on a table app_command
+    // owns is the shape §3 refuses for a different reason — the role that owns the function must be
+    // one the policies can NAME: such a function "is subject to RLS and needs policies that name it,
+    // which is the intended behaviour". (Batch 082 corrected this comment: it read "is exempt from the
+    // policies on a forced table", which contradicts the FORCE line six lines above and 001's own
+    // reason for creating the role NOBYPASSRLS.)
     if (t.owner === undefined) {
       problems.push(`app.${t.table}: no owner recorded — RFC-2026-017 §3 turns on which role owns it`);
     } else if (t.owner === 'app_command') {
