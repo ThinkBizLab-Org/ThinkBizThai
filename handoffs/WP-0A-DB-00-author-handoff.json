@@ -25,38 +25,25 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 102, A FORWARD FIX IN 094's SHAPE: updated_by is in the INSERT grant to authenticated on thirteen client-writable tables and was checked on UPDATE everywhere and on INSERT nowhere, so a row's first updater could be anybody until its first real update -- the LOW siblings A1-090 S13 named beside requested_by.",
-    "ONE RESTRICTIVE INSERT POLICY PER TABLE, `updated_by is null or updated_by = (select auth.uid())`, ANDed with each table's permissive policy. NULL is admitted and stated as the one difference from 094: a row never updated has no updater, and the triggers 093 maintains write updated_at, not updated_by.",
-    "A SCHEMA-WIDE APPLY-TIME ASSERTION names any table that grants updated_by at INSERT without a restrictive INSERT policy binding it, so the next batch that repeats the shape fails at apply time by table name rather than by a reviewer noticing.",
-    "NUMBERED 102 BECAUSE IT NAMES app.assets: 095 failed to apply (the table did not exist yet); the file sorts after 101 and before 110, and the not-applied tail stays contiguous."
+    "THIS INCREMENT IS DOCS ONLY, the close of the 2026-09-15 third pass: a state record (read-this-first for the next session), a per-family map of the S8 shape in the families merged before 080 so the Owner can answer that question per family, and the six assertion-strength findings read against what has merged since (two moot, two covered, two standing as text). It changes no migration, case, grant or policy."
   ],
   "acceptance_results": [
     {
-      "criterion": "Without the file both forgeries land; with it both are refused and every existing positive INSERT still passes",
+      "criterion": "The record states main, the counts and every merged PR of the pass, and what is owed to whom",
       "result": "met",
-      "evidence": "scratch 17.11 on the post-111 base: without 102 `FAILED -- 2 of 847` (owner-a-cannot-create-a-content-item-in-the-editors-name, owner-a-cannot-create-a-page-in-the-editors-name: \"1 row(s) came back\"); with it `applied 102_updated_by_is_caller.sql` and 847 isolation case(s) passed -- a0-batch-102-updated-by-2026-09-15.md §2"
+      "evidence": "evidence/WP-0A-DB-00/session-2026-09-15-third-pass.md §1, §2, §5 -- main ec5c0f4, 643 tests, 847 cases, PRs #140-#142"
     },
     {
-      "criterion": "The rule is asserted schema-wide at apply time",
+      "criterion": "The two memos change nothing and say so",
       "result": "met",
-      "evidence": "102_updated_by_is_caller.sql apply-time block: every table granting updated_by to authenticated at INSERT carries a restrictive INSERT policy naming auth.uid(); migrate-clean runs it on every apply"
-    },
-    {
-      "criterion": "The declarations keep the not-applied tail contiguous",
-      "result": "met",
-      "evidence": "catalog-snapshot.json and foundation-contract.test.mjs both list 102 between 101 and 110; contract suite 60/60"
+      "evidence": "a0-pre-080-families-s8-map-2026-09-15.md §4 (\"It writes no closure\"); a0-assertion-strength-findings-2026-09-15.md (\"No forward migration is written for this class tonight, and this file is the record of why\")"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
-    },
-    {
-      "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
-      "exit_code": 0,
-      "result": "applied 102_updated_by_is_caller.sql; lint ok; 847 isolation case(s) passed (845 + 2); the same run without the file: FAILED -- 2 of 847, exactly the two new cases"
+      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (unchanged)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -64,25 +51,23 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "Closes the LOW half of A1-090 S13: a client can no longer write another member's id as a row's first updated_by on thirteen tables. Adds no grant and no read surface; thirteen RESTRICTIVE policies that only narrow. The audit value of updated_by -- who last touched a row -- was forgeable at INSERT and is not now.",
-  "migration_and_data_impact": "Thirteen RESTRICTIVE INSERT policies and one apply-time assertion; no table, column, grant or trigger. Existing rows are untouched (a policy binds writes, not history). No fixture writes updated_by at INSERT as somebody else; measured by the full set still loading.",
-  "compatibility_impact": "A client that inserts a row may leave updated_by NULL or set it to its own auth.uid(); any other value is refused 42501 as the permissive policy's row would have been. Nothing in the repository writes another value except the two new cases.",
+  "security_privacy_cost_impact": "None; documentation.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "NULL updated_by at INSERT is admitted, so \"who created this row\" is answered by created_by where a table has it and by nothing where it does not; this batch binds the column it was asked about and does not invent a creator column.",
-    "The apply-time assertion reads the policy text for auth.uid(); a restrictive policy that named the function inside a comment would pass it. The two cases are the control behind the text."
+    "The S8 map is read from the migration set as of 2026-09-15 and RFC-2026-022 §3; a later batch that adds an S cell to a pre-080 family changes its row."
   ],
   "open_risks_or_blockers": [
-    "None opened. A1-090 S13 (the HIGH half, requested_by) was closed by 094; this batch closes the LOW siblings it named."
+    "None opened. The decisions the record §5 lists are the Owner's."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: thirteen policies and the assertion go; updated_by at INSERT becomes forgeable again on thirteen tables, which is the state A1-090 S13 recorded.",
+  "rollback_or_forward_fix": "Revert the merge commit; three files under evidence/ go.",
   "recommended_next_work_packages": [
-    "The pre-080 families closures once the Owner picks a row of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md).",
-    "Batch 120 (Publisher), the next §6 row."
+    "The pre-080 closures (022/031/042 in 082's shape) once the Owner picks a row of the map's §3.",
+    "Batch 120 (Publisher)."
   ],
   "reviewer_instructions": [
-    "Apply the set on a scratch PostgreSQL with and without 102_updated_by_is_caller.sql and run rls-smoke: exactly the two new cases must fail without it with \"1 row(s) came back\" and pass with it.",
-    "Count the tables that grant updated_by to authenticated at INSERT (thirteen) against the thirteen policies; the apply-time block does the same count and names any table it misses.",
-    "Compare the predicate with 094's: the only difference is `updated_by is null or`, and the header says why."
+    "Check the record's §1 against git log main and the CI runs it cites.",
+    "Check the map's S-cell column against RFC-2026-022 §3."
   ],
   "superseded_by": null
 }
