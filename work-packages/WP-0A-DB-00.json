@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-094",
+    "branch": "agent/claude/WP-0A-DB-00-q0-081-f2-why",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -113,7 +113,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT IS BATCH 094, A FORWARD FIX FOR A1-090 S13, and every file it changes but two is in this package writable paths (db/foundation/**, tests/db/identity/**, test-kits/db/**, evidence/WP-0A-DB-00/**). It amends two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. scripts/test-suite-contract.mjs and evidence/VERIFICATION.md did not move: no test was added and the module count stays 641."
+      "rationale": "THIS INCREMENT CORRECTS TWO CASE WHYS (Q0-081 F2) under tests/db/identity/**, which this package owns, plus one evidence file, and changes no case outcome. It amends two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. The contract and VERIFICATION.md did not move (641)."
     }
   },
   "inputs": {
