@@ -337,7 +337,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // 110 so the tail stays contiguous.
   '082_content_service_path_closed.sql', '083_content_targets_service_path_closed.sql',
   '090_approval.sql', '092_approval_service_path_closed.sql',
-  '093_updated_at_triggers.sql', '100_asset.sql',
+  '093_updated_at_triggers.sql',
+  '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
   '110_meta_connector.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
