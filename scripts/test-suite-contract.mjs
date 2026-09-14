@@ -160,7 +160,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '877c54619404737e',
+  'test-kits/db/foundation-contract.test.mjs': 'c022fcf86209fc14',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '86b5a1fb4daf526c',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',

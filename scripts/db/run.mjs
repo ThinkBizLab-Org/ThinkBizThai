@@ -60,6 +60,12 @@ async function migrationFiles() {
 // command, where it is applied on every database rather than on the two that were prepared.
 export const PREREQUISITE = 'db/foundation/prerequisites.sql';
 
+// A script larger than MAX_ARG_STRLEN (131,072 bytes on Linux) that changes nothing: one empty DO
+// block and a comment. Applied by db-migrate-clean after the real set, so a driver that silently
+// went back to `--command` fails the target instead of the next big migration.
+export const CEILING_PROBE_BYTES = 200000;
+export const CEILING_PROBE_SQL = `do \$\$ begin end \$\$;\n-- ${'x'.repeat(CEILING_PROBE_BYTES)}\n`;
+
 export async function migrateCleanSteps() {
   return [
     { name: PREREQUISITE, sql: await readFile(PREREQUISITE, 'utf8') },
@@ -1161,6 +1167,13 @@ async function runLive(target) {
       if (out.error) { stderr.write(`  ${name}: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return 1; }
       stdout.write(`  applied ${name}\n`);
     }
+    // THE CEILING PROBE. Every migration used to be capped at ~128 KiB by the driver handing it to
+    // psql as one argv string; the driver now feeds a script on stdin. That is a claim about the
+    // driver, so the target proves it on every run rather than in a comment: a script larger than
+    // the old ceiling is applied, and it does nothing to the database.
+    const probe = await script(CEILING_PROBE_SQL);
+    if (probe.error) { stderr.write(`  ceiling probe: ${probe.error.message} (${probe.error.code ?? 'no code'})\n`); return 1; }
+    stdout.write(`  ceiling probe: a ${Buffer.byteLength(CEILING_PROBE_SQL)}-byte script applied through stdin\n`);
     return 0;
   }
 

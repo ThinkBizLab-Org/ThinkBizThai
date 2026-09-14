@@ -119,21 +119,46 @@ export function connectionString(env = process.env) {
   return url;
 }
 
+// psql with the script on STDIN rather than as `--command`. Linux caps one argv string at
+// MAX_ARG_STRLEN = 131,072 bytes, so under `--command` every migration was capped at ~128 KiB and the
+// failure was `spawn E2BIG` before psql started, naming no statement: batch 100 hit it for real (CI run
+// 34753787430) and 070_research.sql had cleared it by 219 bytes. stdin has no such cap. What stdin
+// changes and `--command` did not: psql PARSES the script, so a line starting with a backslash is a
+// meta-command and is executed. Migrations are held to carrying none by a static rule; fixtures and
+// cases keep the `--command` path, whose whole-string-as-one-request semantics the case fences rely on.
+function runWithInput(file, args, input, options) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, args, { ...options, stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (d) => { stdout += d; });
+    child.stderr.on('data', (d) => { stderr += d; });
+    child.on('error', (error) => reject(Object.assign(error, { stderr })));
+    child.on('close', (code) => {
+      if (code === 0) resolve({ stdout, stderr });
+      else reject(Object.assign(new Error(`psql exited ${code}`), { code, stdout, stderr }));
+    });
+    child.stdin.on('error', () => { /* psql may exit before the whole script is written; close reports it */ });
+    child.stdin.end(input);
+  });
+}
+
 // The raw invocation: either the text psql printed, or a classified error. Everything above it
 // decides what the text MEANS; nothing below it does.
-async function invoke(sql, { env = process.env, url = null } = {}) {
+async function invoke(sql, { env = process.env, url = null, viaStdin = false } = {}) {
   const connection = url ?? connectionString(env);
   const args = [
     connection,
     '--no-psqlrc', '--quiet', '--no-align', '--csv',
     '--set', 'ON_ERROR_STOP=1',
     '--set', 'VERBOSITY=verbose',
-    '--command', sql,
   ];
+  const options = {
+    env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
+  };
   try {
-    const { stdout } = await run('psql', args, {
-      env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
-    });
+    const { stdout } = viaStdin
+      ? await runWithInput('psql', args, sql, options)
+      : await run('psql', [...args, '--command', sql], options);
     return { stdout };
   } catch (failure) {
     // A missing psql is not a database refusal, and must never be classified as one.
@@ -241,7 +266,7 @@ export async function queryFinal({ prelude = [], statement, epilogue = [] }, opt
 // Several statements as one transaction, for fixtures and migrations. Deliberately separate from
 // `query`: a fixture that half-applies leaves a suite asserting against a state nobody described.
 export async function script(sql, options = {}) {
-  return query(`begin;\n${sql}\ncommit;`, options);
+  return query(`begin;\n${sql}\ncommit;`, { ...options, viaStdin: true });
 }
 
 // The identity helpers, as SQL the driver issues rather than as functions in the database. They
