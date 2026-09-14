@@ -112,8 +112,10 @@
 -- needs a value in it, and §9.2 lists `fixture` among the surfaces its prohibitions cover, so this
 -- file supplies none.
 --
--- THIS FILE LOADS ADMINISTRATIVELY, as the table owner, before any identity is assumed, and on
--- app.approval_events that is the only way there is: batch 090 writes no INSERT policy on it and
+-- THIS FILE LOADS ADMINISTRATIVELY, as a role that BYPASSES row level security (the connection
+-- role, postgres in CI), before any identity is assumed -- not "as the table owner": FORCE makes an
+-- owner subject to its own policies, so ownership alone would be refused here (C0 H3, 2026-09-15).
+-- On app.approval_events that is the only way there is: batch 090 writes no INSERT policy on it and
 -- grants no role any INSERT privilege, because §8.3's fourth row is `N` for every role including the
 -- service. On the two client-writable tables it is a choice, and it is 020's: "a fixture that
 -- depends on the policies under test cannot distinguish 'the policy works' from 'the fixture
@@ -247,9 +249,9 @@ on conflict (id) do nothing;
 --
 -- THIS IS THE ONLY WAY THESE ROWS CAN EXIST. Batch 090 writes no INSERT policy on
 -- app.approval_events and grants no role any INSERT privilege, because §8.3's fourth row is `N` for
--- every role including the service. The fixture loads them as the table owner before any identity
--- is assumed, which is what makes the refusals below about an empty grant rather than about an
--- empty table.
+-- every role including the service. The fixture loads them as a role that bypasses row level
+-- security (not merely the owner -- FORCE binds an owner; C0 H3) before any identity is assumed,
+-- which is what makes the refusals below about an empty grant rather than about an empty table.
 --
 -- `request_id` and `correlation_id` follow app.audit_logs' spelling from batch 140, which is what
 -- §4.7's "request/correlation id" names. Both are NOT NULL there and here.

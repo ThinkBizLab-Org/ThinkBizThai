@@ -90,12 +90,15 @@
 -- table has "ไม่มี user update/delete policy และมี command/trigger/privilege defense ตามความเหมาะสม".
 -- A decision trail a client can author is a trail that proves nothing about the decision, so the row
 -- that records an approval is written by the act that approves. That act is a `SECURITY DEFINER`
--- command function owned by `app_command`, which is exempt from these policies by being the owner
--- rather than by holding a privilege (RFC-2026-017 §3), and RFC-2026-021 §10 records that no command
--- function exists.
+-- command function owned by `app_command` -- a role RFC-2026-017 §3 keeps OFF the owner seat
+-- precisely so that the policies here APPLY to it -- and RFC-2026-021 §10 records that no command
+-- function exists. (Until integration on 2026-09-15 this read "exempt from these policies by being
+-- the owner"; that is false, found so by C0 H1 and A1, and it is the sentence batch 082 corrects.)
 --
--- THE COST, STATED PLAINLY AND NOT SMOOTHED OVER: nothing in this repository can write an approval
--- event. A request can be raised, cancelled and decided by a client through the policies below, and
+-- THE COST, STATED PLAINLY AND NOT SMOOTHED OVER: no granted client or service path can write an
+-- approval event -- the only writer is a role that bypasses row level security, which is what the
+-- test fixture uses (C0 H3, 2026-09-15; the sentence read "nothing in this repository can write" and
+-- the fixture disproved it). A request can be raised, cancelled and decided by a client through the policies below, and
 -- the trail that is supposed to record the decision stays empty. Batch 080 ended in the same place
 -- for content versions and said so; this batch ends there for the audit half of its own family, and
 -- that is worse rather than equivalent, because §4 invariant 8 makes "Approval/Usage/Audit history"
@@ -415,8 +418,9 @@ comment on table app.approval_events is
   'while a policy can be widened by an edit. INSERT is absent on a READING rather than a '
   'quotation: §8.3''s row names UPDATE and DELETE, and a decision trail a client can author proves '
   'nothing about the decision, so the writer is a SECURITY DEFINER command function owned by '
-  'app_command (RFC-2026-017 §3) and none exists (RFC-2026-021 §10). NOTHING IN THIS REPOSITORY '
-  'CAN WRITE AN APPROVAL EVENT, which is in the open blockers. step carries no foreign key because '
+  'app_command, kept off the owner seat by RFC-2026-017 §3 so these policies apply to it, and none '
+  'exists (RFC-2026-021 §10). NO GRANTED PATH CAN WRITE AN APPROVAL EVENT -- only a role that bypasses '
+  'row level security, which the test fixture is; this is in the open blockers. step carries no foreign key because '
   'app.approval_policy_steps is named by §4.7 and given to no batch by §6.';
 
 -- ============================================================================================
@@ -892,8 +896,9 @@ begin
   -- "grants and no policy" shape batch 010 introduced. Approval does not, for the reason 080 gave
   -- and one of its own: §8.3 marks the Service column `P` on three rows and `N` on the fourth, so
   -- there is no `S` cell for a worker grant to anticipate, and the writer this family needs is a
-  -- SECURITY DEFINER command function owned by `app_command`, exempt from these policies by being
-  -- the owner rather than by holding a privilege (RFC-2026-017 §3). Granting app_worker a write
+  -- SECURITY DEFINER command function owned by `app_command`, which RFC-2026-017 §3 keeps off the
+  -- owner seat so that these policies apply to it (corrected at integration, 2026-09-15: this read
+  -- "exempt from these policies by being the owner", which is false). Granting app_worker a write
   -- here would be building the second path to the same act — the shape RFC-2026-018 was superseded
   -- for proposing.
   --
@@ -1129,10 +1134,12 @@ begin
   -- them: scripts/db/run.mjs holds every tenant table to the ownership rule against the COMMITTED
   -- SNAPSHOT, and this batch is deliberately not applied to the instance that snapshot describes.
   -- It matters more here than in most batches, because the writer app.approval_events is waiting for
-  -- is a SECURITY DEFINER function owned by app_command: if app_command also owned the table, that
-  -- function would be exempt from the policies above by ownership and the narrowings would bound
-  -- nothing it does — and this is the one table in the schema whose entire integrity claim rests on
-  -- who may write it.
+  -- is a SECURITY DEFINER function owned by app_command, and §3 wants that owner to be a role the
+  -- policies can NAME and so bind. (Corrected at integration, 2026-09-15: this read "would be exempt
+  -- from the policies above by ownership"; FORCE makes an owner subject to its own policies. What
+  -- leaves the narrowings binding nothing app_command does is their TO clause, which batch 092
+  -- closes.) This is the one table in the schema whose entire integrity claim rests on who may
+  -- write it.
   select string_agg(format('%s owned by %s', c.relname, pg_catalog.pg_get_userbyid(c.relowner)), ', ')
     into offending
     from pg_catalog.pg_class c

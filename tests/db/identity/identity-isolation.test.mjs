@@ -9682,6 +9682,7 @@ test('the "exempt by ownership" sentence is corrected where it can be, and the r
 const SERVICE_PATH_CLOSURES = {
   '082_content_service_path_closed.sql': CONTENT_TABLES,
   '083_content_targets_service_path_closed.sql': ['content_targets'],
+  '092_approval_service_path_closed.sql': ['approval_policies', 'approval_requests', 'approval_events'],
 };
 
 test('every service-path closure on disk is declared, and every declared closure has 082\'s shape', async () => {

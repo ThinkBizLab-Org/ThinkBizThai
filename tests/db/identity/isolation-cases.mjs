@@ -12601,6 +12601,33 @@ export function buildCases(id) {
          + 'is `to authenticated` like 080\'s five, and 082\'s closure names five tables. This case fails '
          + 'against 081 alone and passes with 083, which is the proof README §"Forward fix" asks for.',
     },
+    {
+      id: 'batch-092-closes-the-service-path-on-approval-policies',
+      covers: ['§12.6/2', '§8.3/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['approval_policies'],
+      expect: 'rows',
+      why: 'Batch 092: A1 S11 and C0 H2 (both stop-the-line, 2026-09-15) and Q0 F5 found 090\'s three narrowings are ' + '`to authenticated` like 080\'s, and its header says they bound the app_command writer. This case fails ' + 'against 090 alone and passes with 092.',
+    },
+    {
+      id: 'batch-092-closes-the-service-path-on-approval-requests',
+      covers: ['§12.6/2', '§8.3/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['approval_requests'],
+      expect: 'rows',
+      why: 'As for the policy.',
+    },
+    {
+      id: 'batch-092-closes-the-service-path-on-approval-events',
+      covers: ['§12.6/2', '§8.3/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['approval_events'],
+      expect: 'rows',
+      why: 'As for the policy, and this is the one table whose entire integrity claim rests on who may write it.',
+    },
 
     // -- BATCH 090 — approval: the policy, the request and the trail. -------------------------
     //
