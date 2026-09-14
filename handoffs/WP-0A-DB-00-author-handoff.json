@@ -4,18 +4,17 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1a72c061a40f8b0a8da10e7eb6f5727171f88267",
-  "head_revision_or_patch_checksum": "c5546ed79dbb2a606a4913c8b60eae3daa7e5a1c",
+  "base_revision": "b389ec2cffc85fb69a8ecbccfa7a811fad6a9d1a",
+  "head_revision_or_patch_checksum": "b5e61fcf5f3c9e6b798085c063c1b3b2522a4bb2",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-023-acting-user-narrowing.md"
+    "evidence/WP-0A-DB-00/a0-q0-100-f1-separation-rows-2026-09-15.md"
   ],
   "files_modified": [
-    "scripts/verify-test-coverage-floor.mjs",
-    "test-kits/branch-identity.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
-    "work-packages/WP-0A-DB-00.json"
+    "tests/db/identity/fixtures/100-asset-fixture.sql",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs"
   ],
   "files_deleted": [],
   "decisions_consumed": [],
