@@ -12560,6 +12560,19 @@ export function buildCases(id) {
     // row level security is switched off — does not count them; a catalog row does not change when
     // RLS is disabled, and a case that keeps passing under the control is not evidence for it.
     {
+      id: 'owner-a-cannot-backdate-a-content-item',
+      covers: ['§3.2/updated_at'],
+      as: ownerA,
+      sql: CONTENT_ITEM_BACKDATE_IS_OVERWRITTEN,
+      params: [id('content_item_a1')],
+      expect: 'rows',
+      why: 'Batch 093: updated_at is in the client UPDATE grant on this table (080:496) and until 093 '
+         + 'no trigger maintained it, so a client could write a date in the past (C0-080 M4, C0-081 M3, '
+         + 'C0-090 M5). The statement writes 2000-01-01 and returns a row only if what was stored is '
+         + 'within the last minute -- the trigger overwrote it. Fails against 080 alone, passes with '
+         + '093; rolled back with the case.',
+    },
+    {
       id: 'batch-082-closes-the-service-path-on-ideas',
       covers: ['§12.6/2', '§8.2/service-P-closed'],
       as: ownerA,
@@ -15187,6 +15200,12 @@ export const CONTENT_VERSION_OF_ITEM =
   'select id from app.content_versions where content_item_id = $1::uuid and version_no = 1';
 export const CONTENT_VARIANT_BY_VERSION =
   'select id from app.content_variants where content_version_id = $1::uuid and platform = $2';
+// Batch 093's proof: a client write of updated_at in the past is overwritten by the trigger. A CTE
+// so that the case is a single statement with one result set; it is a write, rolled back with the
+// case, and it is asserted with `rows` because the row it returns is the evidence.
+export const CONTENT_ITEM_BACKDATE_IS_OVERWRITTEN =
+  "with written as (update app.content_items set updated_at = '2000-01-01' where id = $1::uuid returning updated_at)"
+  + " select 1 as overwritten from written where updated_at > now() - interval '1 minute'";
 // Batch 082's proof, read from the catalog: the closure exists on the named table with the three
 // properties the batch requires — RESTRICTIVE, FOR ALL, TO PUBLIC ({0} is the catalog's spelling).
 // It fails against 080 alone, which is what README §"Forward fix" asks of a correction.
