@@ -4,11 +4,11 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "18c4c91a30ab905b145afefd8023491fdb3990b4",
-  "head_revision_or_patch_checksum": "a90102cef52b15fcfe4da1f955f3f60c1f1c20ca",
+  "base_revision": "3e1163e29f309e52482d31ce1280f8c7ab12e5c3",
+  "head_revision_or_patch_checksum": "9f793727a792c81d34f3de54f18e69ab7acb2db3",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/c0-review-batch-080-2026-09-13.md"
+    "evidence/WP-0A-DB-00/q0-test-batch-080-2026-09-13.md"
   ],
   "files_modified": [],
   "files_deleted": [],
