@@ -5,12 +5,13 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "e456ad91ec3660e12f8dc5c24a6275fa34f6b7f2",
-  "head_revision_or_patch_checksum": "a7801bad647c595f742d08ebf0b146e15e8c691c",
+  "head_revision_or_patch_checksum": "7722f21be57ddb1fcb7a4534d79a2bb4669d6a9f",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-fixture-loader-stdin-2026-09-15.md"
   ],
   "files_modified": [
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/psql-driver.mjs",
     "scripts/db/rls-smoke.mjs",
