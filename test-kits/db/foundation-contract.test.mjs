@@ -2118,3 +2118,23 @@ test('every table that grants updated_at to a role also has the database maintai
   assert.match(closer[1], /updated_at is client-writable and no BEFORE UPDATE trigger maintains it/,
     "and it asserts the general rule at apply time, against the live catalog, in the words a failure prints");
 });
+
+// THE FIXTURES AND THE AUTH-CONTEXT HELPER ARE FED TO psql ON STDIN TOO (driver `feed`), so the
+// meta-command rule that holds migrations holds them: a line beginning with a backslash is psql's,
+// and `\!` runs a shell command. The case path keeps --command and is not held to this.
+test('no fixture or test helper carries a psql meta-command, because the loader feeds them on stdin', async () => {
+  const driver = await readFile('scripts/db/psql-driver.mjs', 'utf8');
+  assert.match(driver, /export async function feed\(sql, options = \{\}\) \{\n  return query\(sql, \{ \.\.\.options, viaStdin: true \}\);/,
+    'feed() is the stdin path a fixture takes; a loader that went back to --command would bring the 128 KiB ceiling back for fixtures');
+  const smoke = await readFile('scripts/db/rls-smoke.mjs', 'utf8');
+  assert.match(smoke, /const installed = await feed\(helpers\);/, 'the auth-context helper installs through feed()');
+  assert.match(smoke, /const loaded = await feed\(await readFile\(path, 'utf8'\)\);/, 'every fixture loads through feed()');
+  const dir = 'tests/db/identity/fixtures';
+  const files = (await readdir(dir)).filter((n) => n.endsWith('.sql')).map((n) => `${dir}/${n}`);
+  files.push('db/foundation/test-helpers/auth-context.sql');
+  assert.ok(files.length >= 10, 'the fixtures were found');
+  for (const file of files) {
+    const meta = (await readFile(file, 'utf8')).split('\n').findIndex((line) => /^\s*\\/.test(line));
+    assert.equal(meta, -1, `${file} line ${meta + 1} begins with a backslash: on stdin psql executes that as a meta-command`);
+  }
+});

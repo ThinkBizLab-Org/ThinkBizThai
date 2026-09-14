@@ -14,7 +14,7 @@
 import { readFile } from 'node:fs/promises';
 import { argv, env, exit, stdout, stderr } from 'node:process';
 
-import { query, queryFinal, connectionString, openSession } from './psql-driver.mjs';
+import { query, queryFinal, connectionString, openSession, feed } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
 
@@ -184,7 +184,7 @@ async function main() {
   // failure folded into the assertion phase would have read as "the identity was denied", which is
   // what a passing isolation suite looks like from the outside.
   const helpers = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
-  const installed = await query(helpers);
+  const installed = await feed(helpers);
   if (installed.error) {
     stderr.write(`db-rls-smoke: the auth-context helpers did not install: ${installed.error.message}\n`
       + '  Without them every case fails at assume-identity, which is not the same as being denied.\n');
@@ -196,7 +196,7 @@ async function main() {
   // failure names WHICH file failed, because "the fixture did not load" over a concatenation of
   // two is a message that sends the reader to the wrong file half the time.
   for (const path of FIXTURE_SQL_FILES) {
-    const loaded = await query(await readFile(path, 'utf8'));
+    const loaded = await feed(await readFile(path, 'utf8'));
     if (loaded.error) {
       stderr.write(`db-rls-smoke: ${path} did not load: ${loaded.error.message}\n`
         + '  Every negative assertion below would be vacuous against an empty database, so this is a\n'
