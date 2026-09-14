@@ -4,13 +4,24 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e00d91800acdf5ff9678c1924b3f462881bb084e",
-  "head_revision_or_patch_checksum": "15a8887e477637f97724be5c8adb4f09eb812ee9",
+  "base_revision": "cb6fa132b2b53a76ad76740c2a5909c6760e286d",
+  "head_revision_or_patch_checksum": "f9b3d35cf57f8a92b06b9c49a720ed4142ad17d5",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/session-2026-09-15-second-pass.md"
+    "db/foundation/migrations/111_social_fk.sql",
+    "evidence/WP-0A-DB-00/a0-batch-111-social-fk-2026-09-15.md"
   ],
-  "files_modified": [],
+  "files_modified": [
+    "db/foundation/README.md",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "test-kits/db/foundation-contract.test.mjs",
+    "tests/db/identity/fixtures/081-content-targets-fixture.sql",
+    "tests/db/identity/fixtures/110-meta-connector-fixture.sql",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
