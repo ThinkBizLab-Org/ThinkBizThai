@@ -12424,6 +12424,73 @@ export function buildCases(id) {
          + 'nothing in this repository can move a target\'s state except a client, one row at a '
          + 'time, and that is stated here rather than left for whoever builds the publisher.',
     },
+    // ---------------------------------------------------------------------------------------------
+    // BATCH 082 — the service path on the five content tables is CLOSED, and the closure is proved
+    // the only way it can be today: at the catalog. No role but `authenticated` holds a privilege
+    // on these tables (080 asserts it, 082 asserts it again), so there is no identity in this suite
+    // that could be REFUSED by the new policy — `as_service` is app_worker, and app_worker is
+    // refused one layer earlier, at the grant, in the seven service cases above. A case that
+    // claimed to exercise the closure through a write would be claiming a refusal the grant layer
+    // produced. So each case below asks pg_policy whether the closure EXISTS with the shape 082
+    // requires — RESTRICTIVE, FOR ALL, TO PUBLIC — and that is exactly the test README §"Forward
+    // fix" asks for: it fails against 080 alone (no such policy) and passes with 082 applied.
+    //
+    // `as: ownerA` rather than a service identity, deliberately: the question is about the catalog,
+    // and pg_policy is readable by every role. The case ids do not contain a table word, so the CI
+    // negative control — which counts the cases matching `content-item` and friends that FAIL when
+    // row level security is switched off — does not count them; a catalog row does not change when
+    // RLS is disabled, and a case that keeps passing under the control is not evidence for it.
+    {
+      id: 'batch-082-closes-the-service-path-on-ideas',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_ideas'],
+      expect: 'rows',
+      why: 'A1 finding S8: 080\'s five narrowings are `to authenticated` and bind no other role. 082 '
+         + 'closes the path for every role that is not authenticated with a RESTRICTIVE policy TO '
+         + 'PUBLIC, and this case reads that policy back from pg_policy with all three properties.',
+    },
+    {
+      id: 'batch-082-closes-the-service-path-on-items',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_items'],
+      expect: 'rows',
+      why: 'The same closure on the item, which is the table the future command function would '
+         + 'write first.',
+    },
+    {
+      id: 'batch-082-closes-the-service-path-on-versions',
+      covers: ['§12.6/2', '§8.2/version-service-N'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_versions'],
+      expect: 'rows',
+      why: 'The version is §8.2 row 3, N for the service too; the closure here is belt over braces '
+         + 'and is asserted for the reason 080 gave for writing WITH CHECK on an immutable table: the '
+         + 'direction a mistake travels.',
+    },
+    {
+      id: 'batch-082-closes-the-service-path-on-variants',
+      covers: ['§12.6/2', '§8.2/version-service-N'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['content_variants'],
+      expect: 'rows',
+      why: 'As for the version.',
+    },
+    {
+      id: 'batch-082-closes-the-service-path-on-quality-reviews',
+      covers: ['§12.6/2', '§8.2/version-service-N'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['quality_reviews'],
+      expect: 'rows',
+      why: 'As for the version. Five cases rather than one joined query so that a closure dropped '
+         + 'from ONE table names that table in the suite output.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -12896,6 +12963,12 @@ export const CONTENT_VERSION_OF_ITEM =
   'select id from app.content_versions where content_item_id = $1::uuid and version_no = 1';
 export const CONTENT_VARIANT_BY_VERSION =
   'select id from app.content_variants where content_version_id = $1::uuid and platform = $2';
+// Batch 082's proof, read from the catalog: the closure exists on the named table with the three
+// properties the batch requires — RESTRICTIVE, FOR ALL, TO PUBLIC ({0} is the catalog's spelling).
+// It fails against 080 alone, which is what README §"Forward fix" asks of a correction.
+export const SERVICE_PATH_CLOSURE_ON =
+  'select polname from pg_catalog.pg_policy where polrelid = (\'app.\' || $1)::regclass '
+  + 'and not polpermissive and polcmd = \'*\' and polroles = \'{0}\'::oid[]';
 
 // The witnesses. Each reads a value that is NOT NULL in the fixture, so the comparison says what it
 // looks like it says: §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md records that

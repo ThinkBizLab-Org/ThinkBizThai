@@ -35,6 +35,23 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          # THE BRANCH, NOT THE MERGE COMMIT. Without a ref, a pull request is checked out at the
+          # merge commit GitHub builds, as a DETACHED HEAD. test-kits/handoff-conformance.test.mjs asks
+          # git which branch it is on, reads HEAD, finds no package claiming it, and returns early --
+          # reported as a pass. Measured at ffd9cc3: run 34753189118 green on every step while
+          # `npm run verify` on the same commit read 584/586. A guard that is green in CI for the
+          # branch whose handoff does not describe it is not a guard.
+          #
+          # Naming the MERGE commit after the branch was measured and rejected (2026-09-15,
+          # evidence/WP-0A-DB-00/a0-ci-measures-on-the-branch-2026-09-15.md): the guard then
+          # compares the handoff against the branch tip instead of the tip's parent and goes red on
+          # every correctly built branch. So the branch itself is checked out -- actions/checkout
+          # runs `git checkout -B <ref> refs/remotes/origin/<ref>` for a branch ref, which is what
+          # makes `git rev-parse --abbrev-ref HEAD` read the name -- and CI measures exactly what
+          # `npm run verify` on the branch measures. Nothing is lost by not testing the merge
+          # result: branch protection is strict, so a head must already contain main to merge.
+          # On a push, head_ref is empty and the checkout falls back to the pushed ref.
+          ref: ${{ github.head_ref }}
           persist-credentials: false
           # The branch-scope guard diffs against the pull request's base, so the base commit
           # must be in the clone. A shallow checkout has only the head.
