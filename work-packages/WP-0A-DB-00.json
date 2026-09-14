@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-111",
+    "branch": "agent/claude/WP-0A-DB-00-fixture-loader-stdin",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -115,7 +115,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT IS BATCH 111, THE SOCIAL FOREIGN KEY §6 GIVES A0 INTEGRATION BY NAME, and every file it changes but two is in this package writable paths (db/foundation/** including the catalog and README, tests/db/identity/** including 110 and 081 fixtures, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest). It amends four files it does not own, each for one reason. scripts/test-suite-contract.mjs: one contract-test rule (Q0-111 F1) moves the declared test count and name digest. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification (641 -> 642). test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested."
+      "rationale": "THIS INCREMENT IS THE SECOND HALF OF #131 -- the fixtures and the auth-context helper are fed to psql on stdin -- and every file it changes but four is in this package writable paths (scripts/db/**, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest, the handoff). It amends four files it does not own, each for one reason. scripts/test-suite-contract.mjs: one contract-test rule moves the declared test count, assertion floor and name digest. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification (642 -> 643). test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested."
     }
   },
   "inputs": {

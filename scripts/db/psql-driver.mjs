@@ -263,10 +263,20 @@ export async function queryFinal({ prelude = [], statement, epilogue = [] }, opt
   return { rows: rowsFromCsv(region.tail) };
 }
 
-// Several statements as one transaction, for fixtures and migrations. Deliberately separate from
-// `query`: a fixture that half-applies leaves a suite asserting against a state nobody described.
+// Several statements as one transaction, for migrations. Deliberately separate from `query`: a
+// script that half-applies leaves a suite asserting against a state nobody described.
 export async function script(sql, options = {}) {
   return query(`begin;\n${sql}\ncommit;`, { ...options, viaStdin: true });
+}
+
+// A file fed to psql AS WRITTEN, on stdin, for the fixtures and the auth-context helper: each of
+// those carries its own begin/commit (a fixture is one transaction by its own text, and a helper
+// install is a set of CREATE OR REPLACE statements), so wrapping them as `script` does would nest
+// a transaction inside one. Under --command these were capped at MAX_ARG_STRLEN like a migration;
+// on stdin they are not, and a line beginning with a backslash is a meta-command psql executes, so
+// a static rule holds every fixture and helper to carrying none.
+export async function feed(sql, options = {}) {
+  return query(sql, { ...options, viaStdin: true });
 }
 
 // The identity helpers, as SQL the driver issues rather than as functions in the database. They
