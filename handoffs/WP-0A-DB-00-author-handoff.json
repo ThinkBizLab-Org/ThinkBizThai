@@ -4,16 +4,13 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1b2d6bee8b90c6b6c0cc84700dda47087add87cc",
-  "head_revision_or_patch_checksum": "2da914f1a330a47a7f815740a930bc099e993f35",
+  "base_revision": "063c6ac1d33c79639b87c4de206dc7a54617eb9c",
+  "head_revision_or_patch_checksum": "3da1002bb2e9cb599801dd9d1742c9956673b76f",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/094_approval_requested_by.sql",
-    "evidence/WP-0A-DB-00/a0-batch-094-requested-by-2026-09-15.md"
+    "evidence/WP-0A-DB-00/a0-q0-081-f2-why-2026-09-15.md"
   ],
   "files_modified": [
-    "db/foundation/lint/catalog-snapshot.json",
-    "test-kits/db/foundation-contract.test.mjs",
     "tests/db/identity/isolation-cases.mjs"
   ],
   "files_deleted": [],
