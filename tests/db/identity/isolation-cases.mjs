@@ -2372,6 +2372,12 @@ export function buildCases(id) {
        + " values ($1, $2, 'attempted page', $3, $3) returning id",
     params: [workspace, business, createdBy],
   });
+  // The same create with the updater split from the creator (batch 102).
+  const createPageUpdatedBy = (workspace, business, createdBy, updatedBy) => ({
+    sql: 'insert into app.page_context_profiles (workspace_id, business_profile_id, name, created_by, updated_by)'
+       + " values ($1, $2, 'attempted page', $3, $4) returning id",
+    params: [workspace, business, createdBy, updatedBy],
+  });
 
   // version_number 2, never 1, and the reason is which constraint fires first. The fixture already
   // holds version 1 of every business, so a case reusing that number would hit the
@@ -4158,6 +4164,19 @@ export function buildCases(id) {
     },
 
     // -- §11.3. Archive closes new creation under a Business. -----------------------------------
+    {
+      id: 'owner-a-cannot-create-a-page-in-the-editors-name',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...createPageUpdatedBy('__A__', BUSINESS_A1, '__SELF__', id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'page_context_profiles' },
+      why: 'BATCH 102 on a batch 020 table: every policy of 020 admits this row -- created_by is the '
+         + 'caller, the business is live in the caller\'s workspace -- and updated_by names the editor. '
+         + 'Refused by the restrictive INSERT policy 095 adds, which is the same closure on thirteen '
+         + 'tables; the content-item case is the other one this suite carries.',
+    },
     {
       id: 'owner-a-can-create-a-page-under-a-live-business',
       covers: ['§8.6/1', '§8.1/business-page-write'],
@@ -11319,6 +11338,20 @@ export function buildCases(id) {
          + 'is no service policy here and no entry in the service-policy map.',
     },
     {
+      id: 'owner-a-cannot-create-a-content-item-in-the-editors-name',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentCreateItemUpdatedBy(A, BUSINESS_A1, '__SELF__', id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'BATCH 102: created_by is the caller, so 080\'s INSERT policy admits the row, and updated_by '
+         + 'is the editor. updated_by was checked on UPDATE everywhere and on INSERT nowhere, so a row\'s '
+         + 'first updater could be anybody until the first real update; 095\'s restrictive INSERT policy '
+         + 'refuses it on thirteen tables and this is the case for one. The positive below leaves the '
+         + 'column equal to created_by and passes; a NULL updated_by is admitted by design.',
+    },
+    {
       id: 'owner-a-can-create-a-content-item',
       covers: ['§8.2', '§8.6/1'],
       as: ownerA,
@@ -15340,6 +15373,17 @@ export function contentSoftDeleteItem(itemId, actor) {
 // live one under the Workspace, so when the CI negative control disables row level security the
 // insert LANDS rather than failing on a foreign key — a case that could not succeed proves nothing
 // about the policy that refuses it.
+// THE SAME CREATE WITH THE UPDATER SPLIT FROM THE CREATOR, which batch 102 refuses and every policy
+// before it admitted: created_by names the caller, updated_by names somebody else.
+export function contentCreateItemUpdatedBy(workspace, business, createdBy, updatedBy) {
+  return {
+    sql: 'insert into app.content_items (workspace_id, business_profile_id, title, content_type, '
+       + "created_by, updated_by) values ($1::uuid, $2::uuid, 'attempted content item', 'post', "
+       + '$3::uuid, $4::uuid) returning id',
+    params: [workspace, business, createdBy, updatedBy],
+  };
+}
+
 export function contentCreateItem(workspace, business, createdBy) {
   return {
     sql: 'insert into app.content_items (workspace_id, business_profile_id, title, content_type, '
