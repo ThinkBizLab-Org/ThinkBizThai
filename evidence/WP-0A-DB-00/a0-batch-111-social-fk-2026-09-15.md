@@ -31,6 +31,8 @@ One case: `editor-a-cannot-aim-a-content-target-at-another-tenants-destination` 
 
 ## 4. What is not done
 
-- No case that a target survives its social account's deletion or not: no client holds DELETE on `social_accounts`, and the default NO ACTION is recorded as the undecided question.
-- §6 gives batch 120 (Publisher) "intent/target/job/post" with 111 among its dependencies; nothing here anticipates it.
+- **The business-channel half of §6's row is not delivered** (C0-111 M2). §4 relation invariant 2 binds a social account to one active Business at a time; the binding it constrains (the ERD's `CHANNEL_BINDING`) has no table — 020 and 110 declined it, and so does this batch. 111 delivers the social key, the strongest reference that can be written without the binding; the binding stays owed to A0, and the manifest blocker on invariant 2 now says three batches have declined it.
+- No case that a target survives its social account's deletion or not: no client holds DELETE on `social_accounts`, so the question is about a service sweep; the default NO ACTION is recorded as an open blocker (C0-111 L4), not only here.
+- §6 row 120 (Publisher, `intent/target/job/post`) lists `080,091,100,110,050` — **not 111** — as its dependencies; A1-081 S3's second half asked for exactly that ordering and it is still absent from the registry. This file first said the opposite (C0-111 L3); the registry is `docs/**` and read-only to this package, so the sentence is owed to the registry's owner, not fixed here.
+- **No lint holds a foreign key to a supporting index** (C0-111 M1): `run.mjs:76-78` says the live targets assert it and none does; C0 counted twenty-one keys without one. This batch indexes its own key; the rule is a blocker.
 - Role runs: this batch gets its Reviewer, Tester and Security run before it merges, as the Owner's Q6 requires of every new batch.

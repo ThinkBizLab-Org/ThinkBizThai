@@ -17,9 +17,15 @@
 -- not create because nothing referenced it; it is added here, in the shape every scope key in this
 -- schema has (business_profiles, content_items, content_targets: `<table>_scope_key`).
 --
--- WHAT IT IS NOT. Not business-scoped: a social account belongs to a Workspace and a content target
--- to a Business inside it; §4 says a Workspace holds many Pages and nothing ties a Page to one
--- Business, so a business-scoped key would encode a rule no document states. No ON DELETE action:
+-- WHAT IT IS NOT. Not business-scoped, and the reason is NOT that no document ties an account to a
+-- Business: §4 relation invariant 2 does ("Social Account ผูก Active Business เดียวในช่วงเวลาเดียวกัน แต่
+-- Workspace มีหลาย Page/IG ได้"), and the manifest blocker on that invariant says what enforces it --
+-- nothing, because the binding it is a constraint ON (the ERD's CHANNEL_BINDING, three parents)
+-- has no table: batches 020 and 110 each declined to create it and this batch declines too. A
+-- business-scoped key here would encode the binding in a column pair that does not exist. So 111
+-- delivers the social half of §6's "business-channel/social FK" -- the strongest reference that
+-- can be written today -- and does NOT deliver the business-channel half, which stays owed to A0
+-- in the blocker (C0-111 M2 is where this sentence was corrected). No ON DELETE action:
 -- a social account that disappears while targets name it is a question §8's matrices do not answer
 -- (110 gives the row no client DELETE at all), and the default NO ACTION is the refusal that makes
 -- somebody decide. Not deferred: the reference is checked per statement, as every scope FK is.
@@ -41,7 +47,11 @@
 alter table app.social_accounts
   add constraint social_accounts_scope_key unique (workspace_id, id);
 
--- The supporting index, leading with the key's columns (the live lint asks every foreign key for one).
+-- The supporting index, leading with the key's columns. NO LINT ASKS FOR ONE: run.mjs:76-78 says the
+-- rule "every FK has a supporting index" is asserted by the live targets, and no live target asserts
+-- it -- C0-111 M1 counted twenty-one foreign keys in app/private with no index leading on their
+-- columns, every live target green. This batch indexes its own key and records the missing rule as a
+-- blocker rather than claiming a control that does not exist.
 create index if not exists content_targets_social_scope_idx
   on app.content_targets (workspace_id, social_account_id);
 
