@@ -4,20 +4,17 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e4baf64d7388853a20a593dd56c0ebe9887c6a87",
-  "head_revision_or_patch_checksum": "361a091560220f88a402401cc1f91973250aa0f6",
+  "base_revision": "1a72c061a40f8b0a8da10e7eb6f5727171f88267",
+  "head_revision_or_patch_checksum": "c5546ed79dbb2a606a4913c8b60eae3daa7e5a1c",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-driver-stdin-2026-09-15.md"
+    "architecture/decisions/RFC-2026-023-acting-user-narrowing.md"
   ],
   "files_modified": [
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/psql-driver.mjs",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],

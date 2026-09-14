@@ -117,6 +117,7 @@ const DECISION_RECORDS = [
   'RFC-2026-020-authorization-helper-role.md',
   'RFC-2026-021-client-read-allowlist.md',
   'RFC-2026-022-service-policy-shape.md',
+  'RFC-2026-023-acting-user-narrowing.md',
 ];
 
 test('the set of decision records is what it was, and each is digested', async () => {
