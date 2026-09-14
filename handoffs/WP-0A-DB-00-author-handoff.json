@@ -4,11 +4,11 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "02913bafe7fa397bbf769037eab192e4e85e0ad7",
-  "head_revision_or_patch_checksum": "cb8304d88ae8628d89e3699fea0b984e88de19e9",
+  "base_revision": "18c4c91a30ab905b145afefd8023491fdb3990b4",
+  "head_revision_or_patch_checksum": "a90102cef52b15fcfe4da1f955f3f60c1f1c20ca",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a1-security-batch-080-2026-09-13.md"
+    "evidence/WP-0A-DB-00/c0-review-batch-080-2026-09-13.md"
   ],
   "files_modified": [],
   "files_deleted": [],
