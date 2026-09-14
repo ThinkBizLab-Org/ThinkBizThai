@@ -4,13 +4,24 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "3e1163e29f309e52482d31ce1280f8c7ab12e5c3",
-  "head_revision_or_patch_checksum": "9f793727a792c81d34f3de54f18e69ab7acb2db3",
+  "base_revision": "06f70ee28121a4e00155eb754dfc7b4b09cf50f4",
+  "head_revision_or_patch_checksum": "e12968d78133274803488a1872e469ccc2ebc3b0",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/q0-test-batch-080-2026-09-13.md"
+    "db/foundation/migrations/082_content_service_path_closed.sql",
+    "evidence/WP-0A-DB-00/a0-batch-082-probes-2026-09-15.md"
   ],
-  "files_modified": [],
+  "files_modified": [
+    "db/foundation/lint/catalog-snapshot.json",
+    "evidence/VERIFICATION.md",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
