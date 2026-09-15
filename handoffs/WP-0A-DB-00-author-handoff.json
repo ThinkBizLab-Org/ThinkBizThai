@@ -27,37 +27,26 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 104 AND THE LIVE RULE BEHIND IT (C0-111 M1, blocker 162): run.mjs claimed \"every FK has a supporting index\" was asserted by the live targets and none read pg_index. FK_SUPPORT_PROBE_SQL now runs in migrate-clean after every set; a key is supported when an index leads with its columns (any order), whole or partial on one of them IS NOT NULL; four keys are exempt by name with a reason, in run.mjs and in 104's own block, held equal by the contract test and refused when stale.",
-    "ELEVEN INDEXES COVER THE TWELVE KEYS THE RULE FOUND UNSUPPORTED (five of C0's twenty-one were already supported by the partial shape the rule accepts). Partial where the key's last column is nullable, in 100's and 131's shape. No case, no policy, no grant: 857 cases unchanged.",
-    "THE STALENESS CHECK LIVES IN THE PROBE AND NOT IN 104's BLOCK because three of the four exempt keys are 130's and 131's, which sort after 104; the first version asked it in the block and failed at apply time (evidence §4)."
+    "THIS INCREMENT IS ONE STATIC RULE AND ONE MEMO. The rule closes the apply-time silencing class four Tester runs found (Q0-080 Q1, Q0-081 F4, Q0-pre-080 F3/P6, Q0-062-071 F2): every do-block of every migration, comments and string literals stripped, is refused if it contains `where false`, `if false`, `where true or`, `(false and`, `(true or`, `and false` / `or true` not after a comparison operator, or a bare `return;`. It is a vocabulary and says so; the clean set's 32 blocks pass, and 041's `is distinct from false` and 131's message that says \"false and\" are not matched.",
+    "THE MEMO lays out ON DELETE for content_targets_social_scope_fk (blocker 161) for the Owner and decides nothing: CASCADE deletes the publishing history 081 preserved on purpose; SET NULL needs 081 rewritten; NO ACTION is correct if social accounts are never hard-deleted, which is the question under the question and is put to the Owner with A0's recommendation (a)."
   ],
   "acceptance_results": [
     {
-      "criterion": "The rule is live and names a key that lacks support",
+      "criterion": "Each silencing shape is refused by name and the clean set passes",
       "result": "met",
-      "evidence": "scratch 17.11: without 104, migrate-clean FAILED at the probe naming exactly the twelve keys (P0001); with 104, \"fk support probe: every foreign key in app and private has a supporting index, 4 exempt by name\" -- a0-batch-104-fk-supporting-indexes-2026-09-15.md §3"
+      "evidence": "measured on 082: `where false` (P6), bare `return;`, `where true or`, `and false` each refused naming the file; contract suite 62/62 (61 -> 62) -- a0-apply-time-silencing-rule-2026-09-15.md §2"
     },
     {
-      "criterion": "An exemption without a key, or a list that drifts, fails",
+      "criterion": "The memo changes nothing and says what it rests on",
       "result": "met",
-      "evidence": "a fictitious exemption -> \"exempted foreign key(s) do not exist: no_such_fk\"; a misspelled real one -> the key it no longer exempted is named; the contract rule holds 104's list equal to run.mjs's and each reason non-empty; contract suite 61/61"
-    },
-    {
-      "criterion": "Nothing else moves",
-      "result": "met",
-      "evidence": "schema-lint ok; 857 isolation case(s) passed; the tail lists 104 after 103"
+      "evidence": "a0-social-key-on-delete-options-2026-09-15.md §3-§4; no migration, no manifest change beyond the plumbing"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 645, pass 645, fail 0, skipped 0, todo 0 (644 -> 645: the FK-support contract rule)"
-    },
-    {
-      "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
-      "exit_code": 0,
-      "result": "applied 104; ceiling probe ok; fk support probe ok (4 exempt); lint ok; 857 isolation case(s) passed; without 104 the probe fails naming twelve keys"
+      "result": "clean: exit 0 — tests 646, pass 646, fail 0, skipped 0, todo 0 (645 -> 646: the silencing rule)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -65,26 +54,24 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "None to access: no grant, policy or read surface changes. Operational: a parent DELETE/UPDATE no longer scans a child table under the parent's lock on twelve keys, and the next key added without an index fails migrate-clean by name instead of waiting for a large table.",
-  "migration_and_data_impact": "Eleven CREATE INDEX statements (SHARE lock for the build; every table empty on every instance this batch reaches; on a populated instance the recovery is CONCURRENTLY per statement outside a transaction, which the driver's one-transaction apply does not do -- stated in the file, as 131 did).",
-  "compatibility_impact": "None. run.mjs exports two new symbols (FK_SUPPORT_EXEMPTIONS, FK_SUPPORT_PROBE_SQL); the migrate-clean target gains one probe line of output.",
+  "security_privacy_cost_impact": "No database change. The cheap edit that made an apply-time block silent while every suite stayed green now fails the contract suite by file name.",
+  "migration_and_data_impact": "None.",
+  "compatibility_impact": "None.",
   "known_limitations": [
-    "The four exemptions rest on the referenced ids being globally unique; if a later batch makes a subscription or invoice id per-workspace, the exemption is wrong and the reason beside it says which fact it rests on.",
-    "The rule accepts a partial index only on one of the key's own columns IS NOT NULL; a partial on any other predicate is not support, by design."
+    "The rule is a vocabulary: `1 = 0`, `coalesce(false, …)`, `case when false` and a block opened with another dollar-quote tag are outside it; a block rewritten to assert something weaker is a reviewer's."
   ],
   "open_risks_or_blockers": [
-    "None opened; blocker 162 (no FK-index lint; twenty-one keys) is re-headed CLOSED."
+    "None opened. Blocker 161 (ON DELETE) stays open with the memo beside it, awaiting the Owner."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the eleven indexes, the probe and the rule go; the blocker reopens as it was.",
+  "rollback_or_forward_fix": "Revert the merge commit: the rule and the memo go.",
   "recommended_next_work_packages": [
-    "The apply-time silencing class (Q0 P6: `false and` / `return;` inside a do-block) as one static rule over every migration.",
-    "The closure generator into the tree (scripts/db/gen-closure.mjs) with a regenerate-and-diff test.",
-    "RFC-2026-023 disposition."
+    "The Owner's answer to the memo (a) or (b), then one sentence in the connector contract or a forward batch.",
+    "RFC-2026-023 disposition.",
+    "Batch 120 (Publisher)."
   ],
   "reviewer_instructions": [
-    "Remove 104 from the set on a scratch PostgreSQL and run migrate-clean: the probe must name the twelve keys.",
-    "Add a fictitious key to FK_SUPPORT_EXEMPTIONS and run migrate-clean: it must be refused as stale.",
-    "Read each of the four exemption reasons against the index it names (pg_indexes) and decide whether the fact it rests on holds."
+    "Prefix any apply-time claim's where with `false and` on a scratch copy and run the contract suite: it must name the file.",
+    "Read §2 of the memo and decide whether a social account row is ever hard-deleted; that answer is the whole decision."
   ],
   "superseded_by": null
 }
