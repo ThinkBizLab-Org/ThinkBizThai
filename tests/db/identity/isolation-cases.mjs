@@ -12660,7 +12660,7 @@ export function buildCases(id) {
       expect: 'rows',
       why: 'A1 finding S8: 080\'s five narrowings are `to authenticated` and bind no other role. 082 '
          + 'closes the path for every role that is not authenticated with a RESTRICTIVE policy TO '
-         + 'PUBLIC, and this case reads that policy back from pg_policy with all three properties.',
+         + 'PUBLIC, and this case reads that policy back from pg_policy with all three properties (and, since the pre-080 closures, its predicate).',
     },
     {
       id: 'batch-082-closes-the-service-path-on-items',
@@ -12775,6 +12775,91 @@ export function buildCases(id) {
       params: ['content_asset_links'],
       expect: 'rows',
       why: 'As for the asset; the link is the one table in this family that reaches into content.',
+    },
+    {
+      id: 'batch-022-closes-the-service-path-on-the-profile-table',
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['business_profiles'],
+      expect: 'rows',
+      why: 'Batch 022: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 020 and 021\'s narrowing on app.business_profiles as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 020 and 021 alone and passes with 022; the id names no family word because each is a CI control pattern.',
+    },
+    {
+      id: 'batch-022-closes-the-service-path-on-the-profile-version-table',
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['business_profile_versions'],
+      expect: 'rows',
+      why: 'Batch 022: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 020 and 021\'s narrowing on app.business_profile_versions as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 020 and 021 alone and passes with 022; the id names no family word because each is a CI control pattern.',
+    },
+    {
+      id: 'batch-022-closes-the-service-path-on-the-context-table',
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['page_context_profiles'],
+      expect: 'rows',
+      why: 'Batch 022: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 020 and 021\'s narrowing on app.page_context_profiles as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 020 and 021 alone and passes with 022; the id names no family word because each is a CI control pattern.',
+    },
+    {
+      id: 'batch-022-closes-the-service-path-on-the-context-version-table',
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['page_context_profile_versions'],
+      expect: 'rows',
+      why: 'Batch 022: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 020 and 021\'s narrowing on app.page_context_profile_versions as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 020 and 021 alone and passes with 022; the id names no family word because each is a CI control pattern.',
+    },
+    {
+      id: 'batch-031-closes-the-service-path-on-the-assignment-table',
+      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['industry_assignments'],
+      expect: 'rows',
+      why: 'Batch 031: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 030\'s narrowing on app.industry_assignments as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 030 alone and passes with 031; the id names no family word because each is a CI control pattern. '
+         + 'It cites §8.5 (the RLS patterns) rather than a matrix cell because §8 has no industry row (A1-pre-080 F3).',
+    },
+    {
+      id: 'batch-042-closes-the-service-path-on-the-item-table',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['knowledge_items'],
+      expect: 'rows',
+      why: 'Batch 042: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 040\'s narrowing on app.knowledge_items as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 040 alone and passes with 042; the id names no family word because each is a CI control pattern.',
+    },
+    {
+      id: 'batch-042-closes-the-service-path-on-the-item-version-table',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['knowledge_item_versions'],
+      expect: 'rows',
+      why: 'Batch 042: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
+         + 'row 1) reads 040\'s narrowing on app.knowledge_item_versions as `for all to authenticated`, binding no service '
+         + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
+         + 'This case fails against 040 alone and passes with 042; the id names no family word because each is a CI control pattern.',
     },
 
     // -- BATCH 090 — approval: the policy, the request and the trail. -------------------------
@@ -15303,9 +15388,15 @@ export const CONTENT_ITEM_BACKDATE_IS_OVERWRITTEN =
 // Batch 082's proof, read from the catalog: the closure exists on the named table with the three
 // properties the batch requires — RESTRICTIVE, FOR ALL, TO PUBLIC ({0} is the catalog's spelling).
 // It fails against 080 alone, which is what README §"Forward fix" asks of a correction.
+// FOUR PROPERTIES SINCE THE PRE-080 CLOSURES (Q0-pre-080 F1, A1-pre-080 F2, C0-pre-080 L1): restrictive,
+// FOR ALL, PUBLIC -- and the predicate itself, both halves, as PostgreSQL 17 renders it. Before this
+// the cases proved a closure EXISTED; `alter policy … using (true) with check (true)` left all of them
+// green. The rendering is pinned by measurement on 17.11 and by a static rule that reads this text.
 export const SERVICE_PATH_CLOSURE_ON =
   'select polname from pg_catalog.pg_policy where polrelid = (\'app.\' || $1)::regclass '
-  + 'and not polpermissive and polcmd = \'*\' and polroles = \'{0}\'::oid[]';
+  + 'and not polpermissive and polcmd = \'*\' and polroles = \'{0}\'::oid[] '
+  + 'and pg_catalog.pg_get_expr(polqual, polrelid) = \'(CURRENT_USER = \'\'authenticated\'\'::name)\' '
+  + 'and pg_catalog.pg_get_expr(polwithcheck, polrelid) = pg_catalog.pg_get_expr(polqual, polrelid)';
 
 // The witnesses. Each reads a value that is NOT NULL in the fixture, so the comparison says what it
 // looks like it says: §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md records that
