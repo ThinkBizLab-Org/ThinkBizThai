@@ -28,7 +28,14 @@
 -- and refused tomorrow by this closure whatever permissive policy it is later given. The refusal is
 -- the same; what changes is that it no longer depends on nobody ever writing the policy. Assertion 3
 -- below asks the question that is true here.
---
+----
+-- WHAT ROW (b) DECIDES FOR app_worker, SAID HERE BECAUSE NEITHER RFC SAYS IT (A1-062-071 F2): the only
+-- non-client grantee on this table is app_worker, whose SELECT/INSERT/UPDATE (the bucket recompute, 061_metering.sql:1002-1007) have no §8 cell, no row in the S8 map
+-- and no arm in RFC-2026-023 §3.3 (which is about app_command acting for a user). So this closure does
+-- not merely wait for shape B -- for the worker's verbs it is the end of the path until a further RFC
+-- gives them a cell and a classification under RFC-2026-022. That is the Owner's row (b) read to its
+-- end, not a gap this file leaves by accident.
+
 -- LEFT OPEN ON PURPOSE: app.usage_events and app.usage_reservations carry no narrowing, and app.usage_events is the family's S cell (RFC-2026-022 §3: usage ledger INSERT, CARRIED) -- the Owner's row (b) closes only the narrowed table that is not an S cell.
 
 create policy quota_buckets_service_path_closed on app.quota_buckets

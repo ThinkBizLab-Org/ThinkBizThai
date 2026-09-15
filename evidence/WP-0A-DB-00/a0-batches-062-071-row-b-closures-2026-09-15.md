@@ -46,7 +46,7 @@ replayed on a clean apply (0/4) and only the replay is in §2.
 | Run | Verdict | Applied here |
 |---|---|---|
 | C0 Reviewer `c0-review-batch-062-071-2026-09-15.md` | no stop-the-line; 0 HIGH, 2 MEDIUM, 5 LOW; 854/856/2-of-856, read and write probes both tables, apply-time block fired on a mutated count, 6 of 7 static mutations noticed | **M1** the Owner's words are now transcribed verbatim (`product-owner-disposition-2026-09-15-pr-144-and-row-b.md`); **M2** the blocker entry re-headed CLOSED … [ORIGINAL ENTRY FOLLOWS] with the S-cell remainder first; **L1** `research_snapshots` named in 071's left-open list; **L4** citations corrected (map §2 rows 4/5; 061/070's own statement of the shape; the negative control's `schema-lint` caveat, this row); L2, L3, L5 stand (inherited) |
-| A1 Security | (row added when it reports) | |
+| A1 Security `a1-security-batch-062-071-2026-09-15.md` | no stop-the-line; 0 HIGH, 0 MEDIUM, 2 LOW, 4 INFO; both tables confirmed non-S in RFC-2026-022 §3, §8.2/§8.4 and the policy map; closures refuse worker and app_command by name, dropped they read/write across both tenants; residual left open measured (usage_events 2, research_runs 5, research_snapshots 2) | **F1** = C0 L1 (`research_snapshots` named); **F2** both headers now say what row (b) means for `app_worker`'s own verbs — no §8 cell, no RFC arm, so the closure is the end of that path until a further RFC, not a wait for shape B; F3 = C0 L4; F4–F6 stand |
 | Q0 Tester | (row added when it reports) | |
 
 ## 4. What remains of the pre-080 question

@@ -28,7 +28,14 @@
 -- and refused tomorrow by this closure whatever permissive policy it is later given. The refusal is
 -- the same; what changes is that it no longer depends on nobody ever writing the policy. Assertion 3
 -- below asks the question that is true here.
---
+----
+-- WHAT ROW (b) DECIDES FOR app_worker, SAID HERE BECAUSE NEITHER RFC SAYS IT (A1-062-071 F2): the only
+-- non-client grantee on this table is app_worker, whose SELECT/INSERT (the suggestion insert, 070_research.sql:1224-1226) have no §8 cell, no row in the S8 map
+-- and no arm in RFC-2026-023 §3.3 (which is about app_command acting for a user). So this closure does
+-- not merely wait for shape B -- for the worker's verbs it is the end of the path until a further RFC
+-- gives them a cell and a classification under RFC-2026-022. That is the Owner's row (b) read to its
+-- end, not a gap this file leaves by accident.
+
 -- LEFT OPEN ON PURPOSE: app.research_snapshots carries no narrowing at all (app_worker holds SELECT, INSERT and
 -- a column-scoped UPDATE there, 070_research.sql:1214, and no policy admits it) -- not the S8 shape, since no
 -- narrowing claims to bound a writer; it is named here so the omission reads as a reading, not an oversight.
