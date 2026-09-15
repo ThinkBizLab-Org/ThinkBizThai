@@ -117,6 +117,41 @@ Nine entries were added to the work package's `open_blockers`. The five worth na
 - **§4 invariant 5's two conditions are unenforced on the asset pin** — blocker 153's sentence about
   `app.content_asset_links`, word for word, on a second table.
 
+## 6A. The three role runs, and what the Author changed because of them
+
+Three distinct runs, each in its own isolation worktree, each opening its file with the §0 spawning
+disclosure RFC-2026-024 made a rule. Every one reviewed head `bd732a0`; the Author's corrections are
+`42244d6` and the commit this record is in. None of them is the Author, and the Author approved
+nothing of its own.
+
+| Run | Findings | Stop-the-line | Measured live |
+|---|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | 1 HIGH, 7 MEDIUM, 5 LOW | **yes** (H1) | no, and its §0 says so |
+| A1 `/claude/a1_bastion` | 1 MEDIUM, 4 LOW | no | yes — its own cluster on 5501, eight probe scripts |
+| Q0 `/claude/q0_sentinel` | 1 HIGH, 1 MEDIUM, 1 LOW | no | yes — 25 mutations on its own cluster on 5503 |
+
+### Acted on
+
+| Finding | What it said | What changed |
+|---|---|---|
+| **C0 H1** (stop-the-line) | Every NARRATIVE field of the author handoff still described the fourth pass — `migration_and_data_impact: "None."` for two migrations and five tables, `open_risks_or_blockers: ["None opened…"]` against ten, a test count of 647 against its own `VERIFICATION.md`'s 658, and no PR or CI run where RFC-2026-002 requires them. | All rewritten. `refresh-author-handoff.mjs` regenerates the mechanical fields only; the narrative is the Author's and the Author had not written it. |
+| **A1 F1** | `publish_targets.failure_class` was the only PROVIDER-3 column inside the client SELECT with neither a bound nor a shape, so §9.2's "never a provider's message" was a comment ON the column rather than a control OVER it — the one path left by which the raw identifier this batch refuses a home could reach `app` and be read by every active member. | `publish_targets_failure_class_is_a_code`: at most 64 characters of lower-case, digits, dot and underscore (140's shape, tightened). A fifth apply-time probe writes what a careless worker would — a Graph API sentence with a post id in it — and the constraint refuses it `23514` by name. |
+| **Q0 F3** (HIGH) | `publish_jobs_provider_request_key_unique` could be dropped with **every layer green**. It is what stops one provider request key standing for two sends, and no isolation case attempts a collision because the job-open helper parameterises the key on purpose. | A new apply-time block asserts all eleven uniqueness rules this family rests on BY NAME against `pg_constraint`. Re-run of Q0's own mutation: `a uniqueness rule batch 120 depends on is gone: publish_jobs_provider_request_key_unique`. |
+| **Q0 F1** | Nothing asserted NOT NULL on any column the batch creates; three mutations removed one each, `publish_targets.workspace_id` among them, and every layer stayed green. Q0 checked before grading: an integrity gap, not a leak — a NULL workspace satisfies no policy comparison, so the row is invisible rather than misfiled. | The same block asserts thirty-four columns per column against `pg_attribute`. Re-run of Q0's M08: `a batch 120 column that may not be null has lost NOT NULL: publish_targets.workspace_id`. |
+| **Q0 F2** | The apply-time CHECK probes were asserted only by themselves; nothing counted them, so one could be deleted without the others objecting. | The probe set is counted, as item 12 counts the narrowings. |
+| **C0 M1** | `ADR-010` cited five times for a rule that is `ADR-012`'s — one occurrence inside a `comment on table`, which migration invariant 1 would have frozen after merge. | Six citations corrected. |
+| **C0 M2** and **A1 F2** | The same class, found twice independently: the migration header named two blockers that did not exist — the editor's undefined publishing capability, and the raw-identifier debt batch 110 assigned to batch 120 by name. | Both are now entries (174 and 175). |
+| **C0 M4** | `122`'s header claimed "no role but authenticated holds a privilege" on the tables it closes, which batch 120's own grants falsify; its probe omitted SELECT rather than test it; and closing the intent makes the worker's READ of it permanent — and that read is the first step of the fan-out the same file leaves open. | Header corrected, the assertion extended to SELECT in both directions, and the consequence named where a reader meets it. |
+
+### Recorded and not acted on
+
+- **C0 M3** — the blocker citations (5, 146, 153, 161) are indices into an unnumbered 173-string array, so they are unresolvable by anyone who does not know the convention. Checked: each number is correct under the package's own 0-based convention. The fragility is real and is not this batch's to fix.
+- **C0 M5–M7, A1 F3–F5, Q0's note on probe counting after the fifth probe** — recorded in their own files. The one worth repeating: A1 F4 measured that a child narrowing's scope term cannot decide a read (2=2, 3=3, 2=2), because the parent's own policy answers first inside the subquery. That is batch 081's finding one family further down, and this batch states the phenomenon in every affected case.
+
+### What no run could verify, in their own words
+
+C0 ran nothing live and adopted none of the Author's numbers. A1 could not verify the source `docs/**`, the Owner's answers as answers, or a real service identity — the only member of `app_worker` is `postgres`. Q0's three findings all come from classes its brief did not name, which it records as the main limit on its own run. **No run verified CI in execution**, and none of them is the Integration Owner.
+
 ## 7. What is still owed, and to whom
 
 **Nothing in this batch is waiting on the Product Owner.** All fourteen questions are answered and

@@ -1380,8 +1380,103 @@ begin
   if not ('post hash: 23514 published_posts_external_hash_is_sha256' = any (probe_seen)) then
     raise exception 'the post hash probe was not refused by published_posts_external_hash_is_sha256 with 23514: %', array_to_string(probe_seen, '; ');
   end if;
+  -- AND THE PROBES ARE COUNTED, not merely each asserted by itself (Q0-120 F2). Item 12 counts the
+  -- narrowings for the same reason: an assertion that only ever asks "is what I expected present"
+  -- cannot notice one being deleted, and five separate `if not (... = any (probe_seen))` checks are
+  -- five things a later editor can remove one at a time without any of the others objecting.
+  if array_length(probe_seen, 1) <> 5 then
+    raise exception 'batch 120 ran % check probe(s) and writes five', coalesce(array_length(probe_seen, 1), 0);
+  end if;
+
   if not ('failure class: 23514 publish_targets_failure_class_is_a_code' = any (probe_seen)) then
     raise exception 'a provider message carrying an external post id was not refused by publish_targets_failure_class_is_a_code with 23514: %', array_to_string(probe_seen, '; ')
       using hint = 'This column is PROVIDER-3 and is the only one of its class a client may read. A not-blank check admits the sentence this probe writes, and §9.2 forbids a provider message reaching a client surface at all.';
+  end if;
+end $$;
+
+-- ============================================================================================
+-- WHAT A MUTATION TEST FOUND THAT NOTHING ELSE WOULD HAVE (Q0-120 F1 and F3)
+-- ============================================================================================
+--
+-- The independent Tester ran twenty-five mutations against this batch and five survived every layer
+-- — the static suite, the apply-time block above, and 941 isolation cases. Two classes, and both are
+-- closed here rather than left for the batch that meets them:
+--
+--   F3 (HIGH). `publish_jobs_provider_request_key_unique` could be DROPPED with everything green.
+--   It is the key that stops one provider request key being sent for two different sends — the
+--   double post's mirror image, and the thing CONTRIBUTING_AGENTS.md makes non-negotiable. No
+--   isolation case attempts a colliding key, deliberately: the job-open helper parameterises the key
+--   so that two policy cases cannot collide on it and turn a policy refusal into a constraint
+--   violation. That is right for those cases and it left the constraint exercised by nothing.
+--
+--   F1 (MEDIUM). NOTHING asserted NOT NULL on any column this batch creates. Three mutations removed
+--   one each — `publish_targets.workspace_id` among them — and every layer stayed green. It is an
+--   integrity gap rather than a leak, and the Tester checked before grading it: a NULL workspace
+--   satisfies no policy comparison, so such a row is invisible rather than misfiled. Invisible is
+--   still wrong.
+--
+-- Both are closed the same way and against the LIVE CATALOG rather than against this file's text, so
+-- that a later batch that alters a column or drops a key is caught by the database rather than by a
+-- regex over the migration that made it.
+do $$
+declare
+  offending text;
+  required_keys constant text[] := array[
+    'publish_intents_idempotency_key_unique', 'publish_intents_scope_key',
+    'publish_targets_one_per_destination', 'publish_targets_scope_key',
+    'publish_targets_destination_key', 'publish_target_assets_one_per_slot',
+    'publish_jobs_one_per_target', 'publish_jobs_provider_request_key_unique',
+    'published_posts_one_per_target', 'published_posts_external_hash_unique',
+    'content_targets_destination_key'];
+  required_not_null constant text[] := array[
+    'publish_intents.workspace_id', 'publish_intents.business_profile_id',
+    'publish_intents.content_item_id', 'publish_intents.content_version_id',
+    'publish_intents.requested_by', 'publish_intents.request_kind',
+    'publish_intents.idempotency_key',
+    'publish_targets.workspace_id', 'publish_targets.business_profile_id',
+    'publish_targets.publish_intent_id', 'publish_targets.content_target_id',
+    'publish_targets.social_account_id', 'publish_targets.content_variant_id',
+    'publish_targets.status',
+    'publish_target_assets.workspace_id', 'publish_target_assets.business_profile_id',
+    'publish_target_assets.publish_target_id', 'publish_target_assets.asset_id',
+    'publish_target_assets.asset_version_id', 'publish_target_assets.sort_order',
+    'publish_target_assets.role',
+    'publish_jobs.workspace_id', 'publish_jobs.business_profile_id',
+    'publish_jobs.publish_target_id', 'publish_jobs.provider_request_key',
+    'publish_jobs.status', 'publish_jobs.attempt_count',
+    'published_posts.workspace_id', 'published_posts.business_profile_id',
+    'published_posts.publish_target_id', 'published_posts.social_account_id',
+    'published_posts.platform', 'published_posts.external_post_hash',
+    'published_posts.published_at'];
+begin
+  -- EVERY UNIQUENESS RULE THIS FAMILY RESTS ON, BY NAME, AGAINST pg_constraint. `content_targets_
+  -- destination_key` is in the list although batch 081 owns the table: this batch adds it and a
+  -- publish target's reference resolves through it, so losing it would take the aim's binding with it.
+  select string_agg(name, ', ' order by name) into offending
+    from unnest(required_keys) as name
+   where not exists (
+     select 1 from pg_catalog.pg_constraint con
+      join pg_catalog.pg_class c on c.oid = con.conrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'app' and con.conname = name and con.contype in ('u', 'p'));
+  if offending is not null then
+    raise exception 'a uniqueness rule batch 120 depends on is gone: %', offending
+      using hint = 'publish_jobs_provider_request_key_unique is the one Q0-120 F3 measured as droppable with every layer green: it stops one provider request key standing for two sends, which is the shape of a duplicate publication, and no isolation case attempts a collision because the job-open helper parameterises the key on purpose.';
+  end if;
+
+  -- AND EVERY COLUMN THAT MAY NOT BE NULL, per column, against pg_attribute.
+  select string_agg(name, ', ' order by name) into offending
+    from unnest(required_not_null) as name
+   where not exists (
+     select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'app'
+       and c.relname = split_part(name, '.', 1)
+       and a.attname = split_part(name, '.', 2)
+       and a.attnum > 0 and not a.attisdropped and a.attnotnull);
+  if offending is not null then
+    raise exception 'a batch 120 column that may not be null has lost NOT NULL: %', offending
+      using hint = 'Q0-120 F1: three mutations removed one of these each -- publish_targets.workspace_id among them -- and the static suite, this block and 941 isolation cases all stayed green. A NULL workspace satisfies no policy comparison, so the row is invisible rather than misfiled, and invisible is still wrong.';
   end if;
 end $$;
