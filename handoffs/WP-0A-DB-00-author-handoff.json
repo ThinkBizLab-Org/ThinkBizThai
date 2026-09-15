@@ -31,7 +31,8 @@
     "THIS INCREMENT IS THREE CLOSURE FILES -- 022 (business/page), 031 (industry), 042 (knowledge) -- in 082's exact shape, on the three families the S8 map (a0-pre-080-families-s8-map-2026-09-15.md §3 row 1) reads as closable with no decision beyond the Owner's Q3: no S cell in RFC-2026-022 §3, app_worker grants no policy admits, narrowings `for all to authenticated`. It is a DRAFT for the Owner's disposition, because both 2026-09-15 state records put the pre-080 question to the Owner.",
     "EACH FILE CARRIES 101's PREMISE CLAIM, not 082's: every family here grants app_worker verbs, so the apply-time premise is \"no permissive policy admits any role but authenticated\". A grant with no policy is refused by row level security before the closure exactly as after it, measured: no existing case moves when the three files are removed.",
     "METERING (061) AND RESEARCH (070) ARE NOT CLOSED, ON PURPOSE: a closure there refuses the CARRIED worker policies RFC-2026-022 §3 expects. The global industry tables carry no narrowing and make no S8 claim; workspace_member_scopes is 021's helper table and an app_authz question. All four are named in the new blocker.",
-    "THE SEVEN CASE IDS CARRY NO FAMILY WORD because business, page, scope, industry-assignment, knowledge-item and knowledge-version are CI control patterns; the closure rule finds each case by its table parameter, as it did for 101."
+    "THE SEVEN CASE IDS CARRY NO FAMILY WORD because business, page, scope, industry-assignment, knowledge-item and knowledge-version are CI control patterns; the closure rule finds each case by its table parameter, as it did for 101.",
+    "THREE ROLE RUNS SIGNED THIS BRANCH (A1 Security 3694bf2, C0 Reviewer ad7e4d3, Q0 Tester 90f365f, all cherry-picked with -x): no stop-the-line; the premise confirmed on all three legs against the tree and a live 17.11. Their findings are applied on the branch: the S8 map's grants column corrected in place (INSERT on all seven, UPDATE on four -- the consequence with a closure dropped is a cross-tenant WRITE, measured), 022's header attributions, the dead service_roles constant, the covers cells, an eaten handoff sentence -- and the closure query itself now asserts the PREDICATE (all 19 closure cases, 082 to 042), pinned by the static rule, which also reads the apply-time block from code rather than comments."
   ],
   "acceptance_results": [
     {
@@ -48,6 +49,11 @@
       "criterion": "The not-applied tail stays contiguous",
       "result": "met",
       "evidence": "catalog-snapshot.json and the contract tail list 022 after 021, 031 after 030, 042 after 041; contract suite 60/60; schema-lint ok"
+    },
+    {
+      "criterion": "A closure rewritten to USING (true) fails its case; an apply-time block replaced by its description fails the static rule",
+      "result": "met",
+      "evidence": "scratch 17.11: alter policy knowledge_items_service_path_closed … using (true) with check (true) -> FAILED 1 of 854 (its case); 031's do-block replaced by a comment -> identity suite red by name. Not caught and said so: `false and` inside claim 2 (Q0 P6)."
     }
   ],
   "tests": [
@@ -59,7 +65,7 @@
     {
       "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
       "exit_code": 0,
-      "result": "applied 022, 031, 042; lint ok; 854 isolation case(s) passed; without the three files: FAILED -- 7 of 854, the seven new cases"
+      "result": "applied 022, 031, 042; lint ok; 854 isolation case(s) passed (re-measured after every fix); without the three files: FAILED -- 7 of 854, the seven new cases; with one closure rewritten to USING (true): FAILED -- 1 of 854"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -72,7 +78,8 @@
   "compatibility_impact": "None for authenticated. A future service policy on these seven tables must come with the shape-B amendment, which is 082's rule one family over.",
   "known_limitations": [
     "This is a DRAFT: the Owner disposes it; A0 does not merge it under the 2026-09-15 instruction, which answered Q3 for 080's family and Q6 for 081/090/100.",
-    "industry_packs and industry_pack_versions, workspace_member_scopes, quota_buckets and the research tables are not closed; each is named with its reason in the blocker."
+    "industry_packs and industry_pack_versions, workspace_member_scopes, quota_buckets and the research tables are not closed; each is named with its reason in the blocker.",
+    "The closure query pins PostgreSQL 17's rendering of the predicate, (CURRENT_USER = 'authenticated'::name); a major version that renders it differently makes all 19 closure cases red at once, which is the right failure and is one line to fix."
   ],
   "open_risks_or_blockers": [
     "One blocker opened: the pre-080 closures drafted, metering and research left for the Owner's row of the map."
