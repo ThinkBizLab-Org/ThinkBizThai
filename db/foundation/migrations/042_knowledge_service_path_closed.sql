@@ -56,8 +56,6 @@ declare
   count_of   integer;
   probe      record;
   closed_tables constant text[] := array['knowledge_items', 'knowledge_item_versions'];
-  service_roles constant text[] :=
-    array['anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz'];
 begin
   -- 1. ONE CLOSURE PER TABLE, RESTRICTIVE, FOR ALL, TO PUBLIC, BOTH HALVES, BOTH READING current_user.
   count_of := 0;

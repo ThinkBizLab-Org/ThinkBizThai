@@ -1,7 +1,8 @@
 -- Batch 022 — the business and page service path is closed, by a policy that names every role.
 --
--- Owner: A0 Integration / DB-00. Closes the S8 shape in batch 020 and 021: narrowings `for all to
--- authenticated` that claim to bound every writer and bind no service role. Found not by a role run
+-- Owner: A0 Integration / DB-00. Closes the S8 shape in batches 020 and 021: the four narrowings are 021's
+-- (021_member_scope.sql:595-618), `for all to authenticated`, claiming to bound every writer and
+-- binding no service role, on the four tables 020 creates. Found not by a role run
 -- on 020 and 021 but by READING, after the 2026-09-15 role runs had found the shape in 081, 090 and 100
 -- and closures 083, 092 and 101 had followed 082: the S8 map of the families merged before 080
 -- (evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md §3, row 1) puts this family among
@@ -21,14 +22,14 @@
 -- rewrite what its reviewers signed. A forward file after it is the shape 082 set. It is numbered
 -- 022: §6's registry does not reserve it, as it did not reserve 082, 083, 092 or 101.
 --
--- Today this changes nothing observable, for 101's reason rather than 082's: batches 020 and 021 grant app_worker SELECT, INSERT and UPDATE on the two profile tables and SELECT and INSERT on their version tables
+-- Today this changes nothing observable, for 101's reason rather than 082's: batch 020 grants app_worker SELECT, INSERT and UPDATE on the two profile tables and SELECT and INSERT on their version tables (020_business.sql:452-455; 021's only worker grant is on workspace_member_scopes)
 -- (the "grants and no policy" shape batch 010 introduced), so a service role does reach the point
 -- where policies are consulted. It is refused there today because no permissive policy admits it,
 -- and refused tomorrow by this closure whatever permissive policy it is later given. The refusal is
 -- the same; what changes is that it no longer depends on nobody ever writing the policy. Assertion 3
 -- below asks the question that is true here.
 --
--- LEFT OPEN ON PURPOSE: app.workspace_member_scopes is 021's helper table, not a narrowed one, and is not closed here; a closure there is a question about app_authz, which the map does not ask.
+-- LEFT OPEN ON PURPOSE: app.workspace_member_scopes is 021's helper table and is not closed here. It carries no scope narrowing that claims to bound a writer (102's restrictive INSERT policy on it binds updated_by, not scope, and claims nothing about a service writer), and a closure there is a question about app_authz -- RFC-2026-023 §3.2 puts the acting-user helpers on that role -- which the map does not ask.
 
 create policy business_profiles_service_path_closed on app.business_profiles
   as restrictive
@@ -76,8 +77,6 @@ declare
   count_of   integer;
   probe      record;
   closed_tables constant text[] := array['business_profiles', 'business_profile_versions', 'page_context_profiles', 'page_context_profile_versions'];
-  service_roles constant text[] :=
-    array['anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz'];
 begin
   -- 1. ONE CLOSURE PER TABLE, RESTRICTIVE, FOR ALL, TO PUBLIC, BOTH HALVES, BOTH READING current_user.
   count_of := 0;
@@ -144,7 +143,7 @@ begin
   end if;
 
   -- 3. NOTHING CHANGED TODAY, in the form that is true for this family (101's form, not 082's):
-  --    batches 020 and 021 grant app_worker SELECT, INSERT and UPDATE on the two profile tables and SELECT and INSERT on their version tables, so a service role does reach the point where policies are consulted here. The
+  --    batch 020 grants app_worker SELECT, INSERT and UPDATE on the two profile tables and SELECT and INSERT on their version tables (020_business.sql:452-455; 021's only worker grant is on workspace_member_scopes), so a service role does reach the point where policies are consulted here. The
   --    premise is therefore not "no grant" but "no permissive policy admits any role but
   --    authenticated" -- a grant with no policy is refused by row level security before this closure
   --    exactly as after it.

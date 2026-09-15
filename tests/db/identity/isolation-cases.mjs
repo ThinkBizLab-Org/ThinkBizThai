@@ -12778,7 +12778,7 @@ export function buildCases(id) {
     },
     {
       id: 'batch-022-closes-the-service-path-on-the-profile-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['business_profiles'],
@@ -12790,7 +12790,7 @@ export function buildCases(id) {
     },
     {
       id: 'batch-022-closes-the-service-path-on-the-profile-version-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['business_profile_versions'],
@@ -12802,7 +12802,7 @@ export function buildCases(id) {
     },
     {
       id: 'batch-022-closes-the-service-path-on-the-context-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['page_context_profiles'],
@@ -12814,7 +12814,7 @@ export function buildCases(id) {
     },
     {
       id: 'batch-022-closes-the-service-path-on-the-context-version-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.1/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['page_context_profile_versions'],
@@ -12834,11 +12834,12 @@ export function buildCases(id) {
       why: 'Batch 031: the S8 map of the families merged before 080 (a0-pre-080-families-s8-map-2026-09-15.md §3 '
          + 'row 1) reads 030\'s narrowing on app.industry_assignments as `for all to authenticated`, binding no service '
          + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
-         + 'This case fails against 030 alone and passes with 031; the id names no family word because each is a CI control pattern.',
+         + 'This case fails against 030 alone and passes with 031; the id names no family word because each is a CI control pattern. '
+         + 'It cites §8.5 (the RLS patterns) rather than a matrix cell because §8 has no industry row (A1-pre-080 F3).',
     },
     {
       id: 'batch-042-closes-the-service-path-on-the-item-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['knowledge_items'],
@@ -12850,7 +12851,7 @@ export function buildCases(id) {
     },
     {
       id: 'batch-042-closes-the-service-path-on-the-item-version-table',
-      covers: ['§12.6/2', '§8.5/service-P-closed'],
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
       as: ownerA,
       sql: SERVICE_PATH_CLOSURE_ON,
       params: ['knowledge_item_versions'],
