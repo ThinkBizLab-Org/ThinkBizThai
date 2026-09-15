@@ -5,14 +5,17 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "fd666e0e617fd9270d554d985b8e7a49e885b242",
-  "head_revision_or_patch_checksum": "058548f621e3d7b20a643473de07f4419e632adf",
+  "head_revision_or_patch_checksum": "99e05e099f87fdee462bdf1d1812fe5ea314831b",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/120_publisher.sql",
     "db/foundation/migrations/122_publisher_service_path_closed.sql",
     "evidence/WP-0A-DB-00/a0-batch-120-integration-2026-09-15.md",
     "evidence/WP-0A-DB-00/a0-batch-120-plan-2026-09-15.md",
+    "evidence/WP-0A-DB-00/a1-security-batch-120-2026-09-15.md",
+    "evidence/WP-0A-DB-00/c0-review-batch-120-2026-09-15.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-batch-120.md",
+    "evidence/WP-0A-DB-00/q0-test-batch-120-2026-09-15.md",
     "tests/db/identity/fixtures/120-publisher-fixture.sql"
   ],
   "files_modified": [
