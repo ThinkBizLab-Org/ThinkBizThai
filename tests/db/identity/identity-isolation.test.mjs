@@ -9695,6 +9695,15 @@ const SERVICE_PATH_CLOSURES = {
 };
 
 test('every service-path closure on disk is declared, and every declared closure has 082\'s shape', async () => {
+  // Q0-pre-080 F2: the query every closure case runs is pinned here, because without its polroles term
+  // the cases pass with no closure at all, and without its predicate term (added with the pre-080
+  // closures) they pass with a closure rewritten to USING (true).
+  assert.equal(SERVICE_PATH_CLOSURE_ON,
+    "select polname from pg_catalog.pg_policy where polrelid = ('app.' || $1)::regclass "
+    + "and not polpermissive and polcmd = '*' and polroles = '{0}'::oid[] "
+    + "and pg_catalog.pg_get_expr(polqual, polrelid) = '(CURRENT_USER = ''authenticated''::name)' "
+    + 'and pg_catalog.pg_get_expr(polwithcheck, polrelid) = pg_catalog.pg_get_expr(polqual, polrelid)',
+    'the closure query asks for all four properties: restrictive, FOR ALL, PUBLIC, and the exact predicate in both halves');
   const onDisk = (await readdir(MIGRATIONS_DIR)).filter((n) => /^\d{3}_\w+_service_path_closed\.sql$/.test(n)).sort();
   assert.deepEqual(onDisk, Object.keys(SERVICE_PATH_CLOSURES).sort(),
     'a closure file with no declared table list, or a declared list with no file, is a closure nobody checks');
@@ -9716,9 +9725,12 @@ test('every service-path closure on disk is declared, and every declared closure
     assert.doesNotMatch(code, /^\s*alter role\b/mi, `${file} changes no role attribute`);
     assert.doesNotMatch(code, /^\s*(drop|alter) policy\b/mi, `${file} rewrites no earlier policy`);
     assert.doesNotMatch(code, /member_scope_/, `${file} does not call the scope helpers, which answer about the CALLER`);
-    assert.match(raw, /a permissive policy admits a role no restrictive policy on the same table binds/,
-      `${file} asserts the general rule S8 violates at apply time`);
-    assert.match(raw, /polroles = '\{0\}'::oid\[\]/, `${file} recognises PUBLIC by its catalog spelling`);
+    // Q0-pre-080 F3: read these from CODE, not raw -- a comment carrying the two sentences satisfied
+    // the old match, so an apply-time block replaced by its own description passed.
+    assert.match(code, /do \$\$[\s\S]*raise exception 'a permissive policy admits a role no restrictive policy on the same table binds: %', offending/,
+      `${file} asserts the general rule S8 violates at apply time, in a do block that raises, not in a comment`);
+    assert.match(code, /polroles = '\{0\}'::oid\[\]/, `${file} recognises PUBLIC by its catalog spelling, in code`);
+    assert.match(code, /if count_of <> \d+ then\s*\n\s*raise exception/, `${file} counts its closures at apply time and raises on the wrong number`);
     for (const table of tables) {
       // The case is found by what it ASKS -- its first parameter is the table -- rather than by a
       // spelling of the table in its id: 082 named its cases by a short form, and batch 100's control
