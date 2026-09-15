@@ -4,20 +4,20 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e47e72c4c7ba8edef98e3787b426e9b25079b3c7",
-  "head_revision_or_patch_checksum": "f91f5eedce81d3bb21611ac8a912c222df5ab27b",
+  "base_revision": "427050e53e610a763fe0ed4d006fb6c1be741c22",
+  "head_revision_or_patch_checksum": "57ec8f3abeeae8f43c3c980c774d3b22be822c00",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md"
+    "db/foundation/migrations/103_asset_original_filename_withheld.sql",
+    "evidence/WP-0A-DB-00/a0-batch-103-original-filename-withheld-2026-09-15.md"
   ],
   "files_modified": [
-    "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md",
-    "evidence/VERIFICATION.md",
+    "db/foundation/lint/catalog-snapshot.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
