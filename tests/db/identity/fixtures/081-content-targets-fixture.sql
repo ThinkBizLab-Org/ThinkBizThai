@@ -125,40 +125,55 @@ begin;
 -- variant_type). If 080's fixture ever stops loading one of them the subselect yields NULL, the pin
 -- silently becomes unset, and nothing here would notice -- so the two pinned rows are re-read at the
 -- end of this file and the load fails if either pin is null.
+--
+-- THE SIX IDS ARE FIXED, AND BATCH 120 IS WHY. This insert let `id` default until 2026-09-15, because
+-- nothing addressed a target by its id and this catalog gives a symbol only to a row that needs one.
+-- app.publish_targets references a content target BY ID over content_targets_destination_key, so the
+-- row is now addressed through -- the same thing that happened to batch 110's social accounts on the
+-- day batch 111's foreign key started naming them, and the catalog note
+-- `_batch_120_fixes_batch_081s_target_ids_and_adds_one_variant` records both. Nothing else about
+-- these rows changes, and no case that addressed them by (content_item_id, social_account_id) has to.
 insert into app.content_targets
-  (workspace_id, business_profile_id, content_item_id, social_account_id, content_variant_id,
+  (id, workspace_id, business_profile_id, content_item_id, social_account_id, content_variant_id,
    status, created_by, updated_by) values
   -- content_item_a1, destination a1: business-level, PINNED to the facebook variant of
   -- content_version_a1.
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
+  ('f21cae88-bf5f-5e7f-9447-bd497988f18d',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
    '963952b8-b41d-58cd-b10f-ca3a3557fe65', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    (select id from app.content_variants
      where content_version_id = '0516429c-c4af-5c3c-93fa-69844a240195' and platform = 'facebook'),
    null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a1, destination a2: the SECOND destination on the same item, UNPINNED.
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
+  ('948f1ccc-9ffa-5cd4-84d5-c2c04e21609f',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
    '963952b8-b41d-58cd-b10f-ca3a3557fe65', 'f8d7b988-35f7-5dad-a2d9-516a445cf830',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
-  -- content_item_a1_page, destination a1: page-level under page_a1, unpinned.
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
+  -- content_item_a1_page, destination a1: page-level under page_a1, unpinned. NO PUBLISH TARGET
+  -- USES THIS AIM, which is what makes it the one batch 120's four fan-out cases name.
+  ('987ee83a-8c82-5472-a2b9-c7fb42f03c39',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
    'ddefe11d-220d-5945-b6bf-af36693fc0a9', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a1_sibling_page, destination a1: page-level under page_a1_sibling, PINNED to the
   -- facebook variant of its own version. The negative half of §8.6 case 4 on this table.
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
+  ('996963f5-7497-58d5-ac2c-83cd4f85d5d7',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
    'f4d8fb50-98fb-5745-8c4f-fab6a0e8f910', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    (select id from app.content_variants
      where content_version_id = '25501c36-a088-5897-9166-f2913f7c6649' and platform = 'facebook'),
    null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_a2, destination a1: under business_a2, outside user_editor_a's member scope.
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
+  ('1ae11822-2246-55a2-8a2a-5e5f5966011a',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
    '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '71b10fff-e2b6-5f9a-b869-ba8f3854329c',
    null, null, '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   -- content_item_b1, destination b1: workspace_b's own social account, resolved against
   -- app.social_accounts (workspace_id, id) since batch 111. The database refuses a target naming
   -- another Workspace's account (content_targets_social_scope_fk), so this row could not name
   -- social_account_a1 even if it tried; the case that tries is 111's.
-  ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
+  ('c410fee4-f3ca-5bea-b954-9e986c71b8f0',
+   '43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
    '306426ca-a54a-5e3d-90ec-1feff18372ca', 'bf855f7a-bbae-595f-b095-85be153f1148',
    (select id from app.content_variants
      where content_version_id = '2478a854-613b-5250-b797-eb6d6b347aca' and platform = 'facebook'),

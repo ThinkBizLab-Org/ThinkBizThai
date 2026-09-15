@@ -154,6 +154,26 @@ export const FIXTURE_SQL_FILES = [
   // APPENDED rather than slotted, for the reason 130 gave and 061, 110, 131, 070 and 080 kept: the
   // list is an ORDER, and appending is the change that cannot reorder anything else.
   'tests/db/identity/fixtures/100-asset-fixture.sql',
+  // Batch 120's POSITION IS A DEPENDENCY ON FOUR SEPARATE ENTRIES, which is more than any entry above
+  // can say, and it is the first in this list that depends on batch 110's. Its five intents pin
+  // content versions 080's fixture writes over publish_intents_pinned_version_fk, a FOUR-column key
+  // that resolves through the item; its five sends resolve a CONTENT TARGET by (content_item_id,
+  // social_account_id) out of 081's fixture; each of those names a SOCIAL ACCOUNT 110's fixture loads
+  // with a fixed id, and publish_targets_social_scope_fk (batch 111's shape) refuses one that is not
+  // there; and its two asset pins name asset versions 100's fixture writes over a four-column key.
+  // So it may not precede 080's, 081's, 110's or 100's entry.
+  //
+  // AND IT IS THE FIRST ENTRY THAT WRITES INTO ANOTHER BATCH'S TABLE: three app.content_variants rows
+  // that batch 080's fixture had no occasion to load, because no send may leave content_variant_id
+  // null and 080 loads three `facebook` variants and no `instagram` one. That makes the dependency on
+  // 080's entry hard in the second direction as well -- the rows are inserted with `on conflict on
+  // constraint content_variants_logical_key do nothing`, so loading before 080's fixture would not
+  // fail, it would write the variants first and leave 080's own insert a no-op on two of them.
+  // The file's header says so where a reader will meet it.
+  //
+  // It is APPENDED, for the reason 130 gave and 061, 110, 131, 070, 080, 081, 090 and 100 kept: the
+  // list is an ORDER, and appending is the change that cannot reorder anything else.
+  'tests/db/identity/fixtures/120-publisher-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard

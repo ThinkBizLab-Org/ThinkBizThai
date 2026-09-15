@@ -360,7 +360,8 @@ export const SMOKE_COVERAGE = {
            + 'nothing, and on the trail that now includes the key whose whole purpose is to be '
            + 'unique. What is behind this boundary is who approved what, when, and why.'
            + '\n\n'
-           + 'BATCH 100 ADDS FOUR TABLES AND ASKS THE BOUNDARY ONCE MORE ON THE ONE COLUMN THAT IS NOT A ROW. Every asset family carries the pair — `owner-a-sees-the-library-asset-of-a1` beside `owner-a-cannot-see-the-library-asset-of-tenant-b`, and the same on the version, the rights record and the link — with tenant B\'s real ids in hand. What is new is `owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b`: §9.1 gives MEDIA-2 the client projection "authorized signed URL only" and §6.3 makes the object key an INPUT to a signed-URL request, so a boundary that held on the row and leaked the key would have leaked the thing the row exists to protect. No earlier batch has had a column whose disclosure is the disclosure.' },
+           + 'BATCH 100 ADDS FOUR TABLES AND ASKS THE BOUNDARY ONCE MORE ON THE ONE COLUMN THAT IS NOT A ROW. Every asset family carries the pair — `owner-a-sees-the-library-asset-of-a1` beside `owner-a-cannot-see-the-library-asset-of-tenant-b`, and the same on the version, the rights record and the link — with tenant B\'s real ids in hand. What is new is `owner-a-cannot-read-the-locator-of-the-asset-version-of-tenant-b`: §9.1 gives MEDIA-2 the client projection "authorized signed URL only" and §6.3 makes the object key an INPUT to a signed-URL request, so a boundary that held on the row and leaked the key would have leaked the thing the row exists to protect. No earlier batch has had a column whose disclosure is the disclosure.\n\n'
+           + 'BATCH 120 ADDS FIVE TABLES AND ASKS THE BOUNDARY ON EVERY ONE, AND ON FOUR OF THEM IT IS ASKED THROUGH A CHAIN NO EARLIER FAMILY HAS BEEN AS LONG AS. A publish target resolves its reach through its intent and the intent through its item; a job, a post and an asset pin resolve theirs through the target as well -- four links from the row to the Page override that decides it. `owner-b-cannot-read-publish-intent-a1-by-id` and its four siblings hold tenant A\'s exact ids and return nothing, and the `owner-a-sees-...` case beside each one proves the row is there to be seen. WHAT IS NEW IS NOT THE BOUNDARY BUT WHAT SITS BEHIND IT: a published post is the record of something that is PUBLIC at the provider, and the boundary is still absolute -- who published what, from which business, on which account, is tenant knowledge even when the post itself is on the open internet. The two objects are different and only the second is in this schema.' },
   2: { covered: true, note: 'PAID IN FULL BY BATCH 021, and the half that was owed is the half that moved. '
                            + 'Batch 020 asserted "user_editor_a sees Business A1/Page A1" and the tenant-'
                            + 'boundary half — never business_b1, never page_b1, never their versions — on all '
@@ -471,7 +472,8 @@ export const SMOKE_COVERAGE = {
            + 'member_scope_admits_business over the request\'s own columns, and '
            + '`pinned-editor-a-sees-the-approval-event-of-a-reachable-item` is the same caller '
            + 'admitted two links down, which is what stops the refusal being read as a caller who '
-           + 'reaches nothing.' },
+           + 'reaches nothing.\n\n'
+           + 'BATCH 120 CARRIES THE NARROWING FOUR TABLES DEEP AND SAYS WHAT THAT COSTS. `editor-a-sees-zero-publish-intents-under-a2` and its target, job and post siblings are §8.6 case 3 at each depth, and `pinned-editor-a-sees-zero-publish-intents-on-the-sibling-item` and its target sibling are case 4 -- the Page question, on a family where no table carries a page column at all. WHAT REFUSES THEM IS BATCH 081\'S MEASURED FINDING, INHERITED RATHER THAN RE-CLAIMED: the narrowing\'s subquery runs as the caller, so app.content_items\' own policy hides the sibling item before this batch\'s case-when is reached, and the Page branch written here is held by the apply-time block and the static rule rather than by any case. That limit is stated in every one of those cases rather than left for a reader to discover, which is the correction Q0-081 F2 asked for.' },
   // FLIPPED BY BATCH 080, and it is the only value in this map that has ever moved. It read
   // `knowledge-half` from batch 040 until the tables the other half of §12.6/3 names existed; five
   // batches recorded in turn that they were not content and did not move it. The paragraphs they
@@ -649,7 +651,7 @@ export const SMOKE_COVERAGE = {
            + 'halves and errors, while the viewer holds neither row and is filtered before any '
            + 'WITH CHECK is evaluated.'
            + '\n\n'
-           + 'ON BATCH 100 IT IS INSERT AND UPDATE ON THE TWO CLIENT-WRITABLE TABLES AND AN INSERT REFUSAL ON A THIRD. `viewer-a-cannot-upload-a-library-asset` and `viewer-a-cannot-record-an-asset-rights` RAISE, because an INSERT policy has no row to filter; `viewer-a-cannot-rename-a-library-asset` is `no-effect` with a witness. `viewer-a-cannot-attach-an-asset-link` is a GRANT-layer refusal and is labelled one: no client role holds INSERT on app.content_asset_links, so it says nothing about a viewer in particular — and it is recorded here rather than counted, because §8.2 marks "Asset SELECT/use" `Y` for the viewer and that is precisely the reading this batch refused.' },
+           + 'ON BATCH 100 IT IS INSERT AND UPDATE ON THE TWO CLIENT-WRITABLE TABLES AND AN INSERT REFUSAL ON A THIRD. `viewer-a-cannot-upload-a-library-asset` and `viewer-a-cannot-record-an-asset-rights` RAISE, because an INSERT policy has no row to filter; `viewer-a-cannot-rename-a-library-asset` is `no-effect` with a witness. `viewer-a-cannot-attach-an-asset-link` is a GRANT-layer refusal and is labelled one: no client role holds INSERT on app.content_asset_links, so it says nothing about a viewer in particular — and it is recorded here rather than counted, because §8.2 marks "Asset SELECT/use" `Y` for the viewer and that is precisely the reading this batch refused.\n\n' },
   5: { covered: true, note: 'suspended sees zero TENANT rows — and still sees their own user_profiles '
                            + 'row, which is user-scoped and not a tenant row (§5). Both halves are '
                            + 'asserted, because only the pair distinguishes a policy from an empty table. '
@@ -757,7 +759,8 @@ export const SMOKE_COVERAGE = {
            + 'app.workspace_member_role for the four write paths, and none of the predicates '
            + 'carries a `status` term of its own.'
            + '\n\n'
-           + 'BATCH 100 ASKS IT ON ALL FOUR ASSET TABLES, and on three of them the refusal has to resolve through a parent: a version, a rights record and a link carry no page column, so `suspended-a-sees-zero-asset-versions` and its two siblings fail if the child narrowing is cut as surely as if app.is_active_member stopped answering.' },
+           + 'BATCH 100 ASKS IT ON ALL FOUR ASSET TABLES, and on three of them the refusal has to resolve through a parent: a version, a rights record and a link carry no page column, so `suspended-a-sees-zero-asset-versions` and its two siblings fail if the child narrowing is cut as surely as if app.is_active_member stopped answering.\n\n\n\n'
+           + 'BATCH 120 ASKS IT ON ALL FIVE TABLES, and the write half is on the one table a client may write: `suspended-a-cannot-request-a-publish-intent` is refused by the role test in the WITH CHECK, because app.workspace_member_role returns nothing for a suspended membership rather than returning a role the predicate then rejects. The read half is `suspended-a-sees-zero-publish-intent-rows` and four siblings, each of which is in its table\'s negative-control basis -- which makes this the first family where the suspended member carries part of the control on every table it has.' },
   6: { covered: true, note: 'anonymous. Refused at the privilege layer rather than filtered by RLS, '
                            + 'because §8.5 gives anon no tenant policy and no batch grants anon '
                            + 'anything. Stronger than the assertion asks for; recorded as deniedBy, and '
@@ -874,7 +877,8 @@ export const SMOKE_COVERAGE = {
            + 'with what it holds: `anon` has no USAGE on app, so name resolution stops before a '
            + 'sensitivity class is ever consulted.'
            + '\n\n'
-           + 'BATCH 100 ADDS FOUR, all declaring `deniedOn with kind schema and name app` — including on the MEDIA-2 and RIGHTS-3 tables, which are the two families in this batch §9.1 restricts hardest and therefore the two where an accidental `anon` grant would cost most.' },
+           + 'BATCH 100 ADDS FOUR, all declaring `deniedOn with kind schema and name app` — including on the MEDIA-2 and RIGHTS-3 tables, which are the two families in this batch §9.1 restricts hardest and therefore the two where an accidental `anon` grant would cost most.\n\n'
+           + 'BATCH 120 ADDS FIVE, all declaring `deniedOn with kind schema and name app`. The one worth naming is `anon-cannot-read-a-published-post`: a publication is visible to anybody at the provider, so this is the case most likely to be read as pointless and it is the case that matters most -- the RECORD of a publication names the workspace, the business, the account and the variant that produced it, and none of that is public. An `anon` grant here would not leak a post; it would leak which tenant made which post.' },
   7: { covered: true, note: 'ALL THREE ID KINDS NOW FAIL, which batch 010 could only claim for one. A forged '
                            + 'workspace_id and a forged created_by fail on the INSERT path with 42501 (010, '
                            + 'and again on business_profiles in 020). A forged BUSINESS id — a page whose '
@@ -1006,7 +1010,7 @@ export const SMOKE_COVERAGE = {
            + '`decided_by` is held equal to auth.uid() by the decide policy\'s WITH CHECK half, '
            + 'and approval_requests_decision_has_a_decider makes the column mandatory on exactly '
            + 'the two status values that §8.3 row produces — so a decision cannot be recorded '
-           + 'without naming a decider and cannot name one who is not the caller.' },
+           + 'without naming a decider and cannot name one who is not the caller.\n\n' },
   8: { covered: 'negative-half', note: 'RFC-2026-017 §7. The POSITIVE half — the server fixture '
                            + 'succeeds — is not asserted, because §8.1 marks no identity operation `S` '
                            + 'and batch 010 therefore writes the service no policy. Asserting a success '
@@ -1266,7 +1270,8 @@ export const SMOKE_COVERAGE = {
            + 'matrix being implemented rather than a gap; the gap is that the writer it points to '
            + 'does not exist, and it is in the open blockers.'
            + '\n\n'
-           + 'BATCH 100 IS THE FIRST BATCH WHOSE SERVICE CASES COME OUT TWO DIFFERENT WAYS, AND THE DIFFERENCE IS THE POINT. §8.2 marks "Asset hard purge" `S`, and RFC-2026-022 §3\'s own table classifies that cell BOTH — CARRIED when a workspace closure drives it, DISCOVERED when a retention sweep does. NEITHER IS WRITTEN AS A POLICY: the decision is NOT IN EFFECT (§5/8, and M9 measures that the only member of app_worker is postgres, which bypasses RLS), so the classification is recorded as DATA in db/foundation/lint/service-policy-map.json and app_worker keeps grants and no policy. The consequence in this suite is a PAIR that batch 080 could not produce: `service-cannot-redact-an-asset-version` is `no-effect` with a witness, because app_worker holds the four columns the purge moves and row level security filters the row — so it IS in the CI negative control\'s basis and DOES flip when RLS is off — while `service-cannot-rewrite-the-digest-of-an-asset-version` is a GRANT refusal on the same table and the same identity, because sha256 is outside the four. The two outcomes differing is what proves the column allowlist is real. The POSITIVE half stays unpayable for the reason it has been since batch 010 and for RFC-2026-022 §5/8\'s: there is no identity that could be the service. NOTHING HERE IS CITED AS TENANT ISOLATION OF THE SERVICE PATH — RFC-2026-022 §5/4 forbids it, and no case in this batch names the confinement term at all.' },
+           + 'BATCH 100 IS THE FIRST BATCH WHOSE SERVICE CASES COME OUT TWO DIFFERENT WAYS, AND THE DIFFERENCE IS THE POINT. §8.2 marks "Asset hard purge" `S`, and RFC-2026-022 §3\'s own table classifies that cell BOTH — CARRIED when a workspace closure drives it, DISCOVERED when a retention sweep does. NEITHER IS WRITTEN AS A POLICY: the decision is NOT IN EFFECT (§5/8, and M9 measures that the only member of app_worker is postgres, which bypasses RLS), so the classification is recorded as DATA in db/foundation/lint/service-policy-map.json and app_worker keeps grants and no policy. The consequence in this suite is a PAIR that batch 080 could not produce: `service-cannot-redact-an-asset-version` is `no-effect` with a witness, because app_worker holds the four columns the purge moves and row level security filters the row — so it IS in the CI negative control\'s basis and DOES flip when RLS is off — while `service-cannot-rewrite-the-digest-of-an-asset-version` is a GRANT refusal on the same table and the same identity, because sha256 is outside the four. The two outcomes differing is what proves the column allowlist is real. The POSITIVE half stays unpayable for the reason it has been since batch 010 and for RFC-2026-022 §5/8\'s: there is no identity that could be the service. NOTHING HERE IS CITED AS TENANT ISOLATION OF THE SERVICE PATH — RFC-2026-022 §5/4 forbids it, and no case in this batch names the confinement term at all.\n\n'
+           + 'BATCH 120 IS THE BATCH WHERE THIS ROW\'S NEGATIVE HALF IS PAID ON FOUR TABLES AT ONCE, AND WHERE THE SERVICE\'S CASES COME OUT THREE DIFFERENT WAYS RATHER THAN BATCH 100\'S TWO. app_worker holds the INSERT grant §8.3 marks `S` on the target, the pin, the job and the post and NO POLICY, so `service-cannot-fan-out-a-publish-target`, `-attach-a-publish-pin`, `-open-a-publish-job` and `-record-a-published-post` are POLICY-layer refusals that FLIP when row level security is disabled. It holds a column-scoped UPDATE on the target\'s and the job\'s outcome columns -- the Product Owner\'s decision of 2026-09-15, not a matrix cell -- so `service-cannot-advance-a-publish-target` and `-a-publish-job` are `no-effect` with witnesses on `status`. And it holds neither the columns nor the verbs the `-rehome-`, `-delete-` and `-rewrite-a-published-post` cases name, so those are GRANT-layer and PERMANENT: RFC-2026-022 coming into effect gives the worker a CARRIED policy for the INSERT and gives it nothing there, because no policy restores a privilege no role holds. THE POSITIVE HALF IS STILL UNPAID AND STILL FOR THE SAME REASON -- §5/8 and M9 measure that the only member of app_worker is postgres, which bypasses RLS -- so this row does not move, and the four flip cases are written at the policy layer precisely so that they change the day it does.' },
 };
 
 // The ten §8.6 authorization cases every tenant table family owes, and where this suite stands
@@ -1391,7 +1396,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'is no allowed caller for a positive to be about. The owner\'s SOFT DELETE is counted here '
    + 'too, because §8.5 names it as the verb a client holds where a delete is wanted at all — and '
    + 'it is what makes the DELETE refusal beside it a statement about the verb rather than about '
-   + 'the caller.',
+   + 'the caller.\n\n'
+   + 'BATCH 120 PAYS IT ON THE ONE TABLE IN THE FAMILY A CLIENT MAY WRITE, AND TWICE, WHICH IS WHAT THE CELL REQUIRES HERE. §8.3\'s "Publish now/cancel pending" is the first row in this schema that is `Y` for the OWNER AND THE ADMIN and `P` for the editor, so a suite testing only the owner could not tell the two `Y`s apart from one: `owner-a-can-request-a-publish-intent` and `admin-a-can-request-a-publish-intent` are both here, and the second is the identity whose member scope actually narrows. `owner-a-can-cancel-a-publish-intent` is the row\'s second verb. The four tables below the intent have NO positive and cannot: §8.3 marks them `N` in every client column, so a passing client case there would have to invent the grant first.',
   2: 'covered — viewer, editor and approver are all refused the owner-only workspace update (010) '
    + 'and the owner-or-admin business and page writes (020). The editor is the one to read '
    + 'carefully, and batch 021 is where the reading changed. §8.1 marks Business/Page INSERT/UPDATE '
@@ -1533,7 +1539,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'version carries no scope question of its own and resolves through its item, so that case '
    + 'fails if the resolution is replaced by a predicate over the version\'s own columns.'
            + '\n\n'
-           + 'BATCH 100 REPEATS THE PAIR ON app.assets AND THEN ASKS IT THREE TABLES SIDEWAYS. `editor-a-cannot-see-the-library-asset-outside-their-narrowing` is the direct form; the version, rights and link cases reach the same refusal through a parent, which is the shape a child with no scope columns of its own can carry.',
+           + 'BATCH 100 REPEATS THE PAIR ON app.assets AND THEN ASKS IT THREE TABLES SIDEWAYS. `editor-a-cannot-see-the-library-asset-outside-their-narrowing` is the direct form; the version, rights and link cases reach the same refusal through a parent, which is the shape a child with no scope columns of its own can carry.\n\n'
+   + 'BATCH 120 ADDS `approver-a-cannot-request-a-publish-intent`, and the approver\'s read beside it is what makes it a claim about the ROLE. It is the same separation §4.7 asks for one family over: an approver decides whether content may go out and does not send it.',
   4: 'COVERED BY BATCH 021, and it needed two fixture rows §12.6 does not name. Case 4 is "same '
    + 'Business, allowed Page A, row Page B", and every identity §12.6 lists is scoped at BUSINESS '
    + 'level or not at all — a business scope admits every Page beneath it by §7\'s own definition, '
@@ -1606,7 +1613,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'publishable text. The fixture loads a variant and a review under the sibling-page item for '
    + 'no other purpose.'
            + '\n\n'
-           + 'BATCH 100 ASKS IT FOUR TIMES, AND SINCE 2026-09-15 SEPARATES THE TWO PARENTS OF A LINK IN BOTH DIRECTIONS (Q0-100 F1: two fixture rows, one half refusing each; this note read "can only separate … in one direction", which was false -- same Business is not same narrowing). `pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target` and the version and rights cases beside it are clean single-parent refusals. The sibling-target link case is not: both of its parents are restricted to the same sibling target, so either half of the ANDed narrowing would refuse it. What makes the AND falsifiable is the pair beside it -- `pinned-editor-a-cannot-see-the-asset-link-whose-content-half-is-restricted` and `…-whose-asset-half-is-restricted`, each refused by exactly one half, with an owner positive for each row. Replaying Q0\'s probe (the content half made an uncorrelated exists()) turns exactly the first of them red and nothing else.',
+           + 'BATCH 100 ASKS IT FOUR TIMES, AND SINCE 2026-09-15 SEPARATES THE TWO PARENTS OF A LINK IN BOTH DIRECTIONS (Q0-100 F1: two fixture rows, one half refusing each; this note read "can only separate … in one direction", which was false -- same Business is not same narrowing). `pinned-editor-a-cannot-see-the-library-asset-of-a-sibling-target` and the version and rights cases beside it are clean single-parent refusals. The sibling-target link case is not: both of its parents are restricted to the same sibling target, so either half of the ANDed narrowing would refuse it. What makes the AND falsifiable is the pair beside it -- `pinned-editor-a-cannot-see-the-asset-link-whose-content-half-is-restricted` and `…-whose-asset-half-is-restricted`, each refused by exactly one half, with an owner positive for each row. Replaying Q0\'s probe (the content half made an uncorrelated exists()) turns exactly the first of them red and nothing else.\n\n'
+   + 'BATCH 120 ADDS `viewer-a-cannot-request-a-publish-intent`, with `viewer-a-sees-publish-intent-a1` beside it -- both halves, because §8.3 gives publishing no SELECT row at all and the read is therefore a reading rather than a cell. On the four tables below the intent the viewer is refused with everybody else, at the grant layer, which says nothing about a viewer in particular and is not counted here.',
   5: 'covered — the cross-tenant cases, run while holding workspace_b\'s exact id (010), and the '
    + 'same on business_profiles, page_context_profiles and both version tables while holding '
    + "business_b1's and page_b1's exact ids, which is also how the version rows beneath them are "
@@ -1859,7 +1867,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '— and the refusal is attributable to `created_by = (select auth.uid())` and to nothing '
    + 'else. The UPDATE half is asserted too, on the idea.'
            + '\n\n'
-           + 'BATCH 100 CARRIES IT ON THREE STATEMENTS AND ON THE ONE TABLE WHERE IT IS A LEGAL CLAIM. `owner-a-cannot-forge-the-actor-on-a-library-asset-upload`, `-rename` and `-on-an-asset-rights` are each the passing write above with `created_by` or `updated_by` changed to another member of the same workspace. The third is the one worth reading: §6.2 of the asset design requires "Audit ทุกครั้ง" on a rights change, this schema cannot supply an audit record, and `created_by` is therefore the only record of who asserted a licence — which is worth nothing if it is forgeable.',
+           + 'BATCH 100 CARRIES IT ON THREE STATEMENTS AND ON THE ONE TABLE WHERE IT IS A LEGAL CLAIM. `owner-a-cannot-forge-the-actor-on-a-library-asset-upload`, `-rename` and `-on-an-asset-rights` are each the passing write above with `created_by` or `updated_by` changed to another member of the same workspace. The third is the one worth reading: §6.2 of the asset design requires "Audit ทุกครั้ง" on a rights change, this schema cannot supply an audit record, and `created_by` is therefore the only record of who asserted a licence — which is worth nothing if it is forgeable.\n\n'
+   + 'BATCH 120 ADDS THREE, and they are three DIFFERENT columns rather than one forged three ways. `owner-a-cannot-request-a-publish-intent-for-tenant-b` forges the tenant while holding every one of B\'s real ids, so each composite key would have accepted the row and only app.workspace_member_role refuses it. `owner-a-cannot-request-a-publish-intent-as-somebody-else` forges `requested_by` -- batch 094\'s shape applied where the column is created rather than as a forward fix, because A1-090 S13 found the same column unchecked on app.approval_requests long after the batch that granted it. `owner-a-cannot-request-a-publish-intent-naming-another-updater` forges `updated_by`, batch 102\'s shape, where NULL is admitted and another name is not.',
   9: 'COVERED BY BATCH 020, and this is the case 010 could only approximate. app.business_profile_'
    + 'versions and app.page_context_profile_versions are immutable by §3.2, §4 invariant 8 and '
    + "§8.1's `N N N N N N` row — the only row in §8.1 where the SERVICE column is N. SIX LIVE CASES, "
@@ -2065,7 +2074,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + 'privilege refusals held by the owner, which is the same evidence shape as the seven above '
    + 'applied to a column rather than to a table.'
            + '\n\n'
-           + 'BATCH 100 ADDS AN IMMUTABLE TABLE AND AN APPEND-ONLY ONE, AND THE IMMUTABLE ONE IS IMMUTABLE IN ALL BUT FOUR COLUMNS. app.asset_versions is held to that by an apply-time per-column assertion against the live ACL rather than by the absence of a verb, so the cases come in three kinds: a client refused the write (`owner-a-cannot-write-an-asset-version`, `-redact-`, `-rewrite-the-digest-of-`, `-mark-...-ready`, `-delete-`), the service refused a column it does not hold (`service-cannot-rewrite-the-digest-of-an-asset-version`), and the service FILTERED on a column it does (`service-cannot-redact-an-asset-version`). app.content_asset_links is append-only on batch 100\'s own reading of §4.7\'s "การแก้ link หลังอนุมัติต้อง invalidate Approval" — a sentence that conditions mutation on a mechanism batch 090 has not written — and `owner-a-cannot-reorder-an-asset-link` and `-delete-an-asset-link` are where a reviewer would refuse that reading.',
+           + 'BATCH 100 ADDS AN IMMUTABLE TABLE AND AN APPEND-ONLY ONE, AND THE IMMUTABLE ONE IS IMMUTABLE IN ALL BUT FOUR COLUMNS. app.asset_versions is held to that by an apply-time per-column assertion against the live ACL rather than by the absence of a verb, so the cases come in three kinds: a client refused the write (`owner-a-cannot-write-an-asset-version`, `-redact-`, `-rewrite-the-digest-of-`, `-mark-...-ready`, `-delete-`), the service refused a column it does not hold (`service-cannot-rewrite-the-digest-of-an-asset-version`), and the service FILTERED on a column it does (`service-cannot-redact-an-asset-version`). app.content_asset_links is append-only on batch 100\'s own reading of §4.7\'s "การแก้ link หลังอนุมัติต้อง invalidate Approval" — a sentence that conditions mutation on a mechanism batch 090 has not written — and `owner-a-cannot-reorder-an-asset-link` and `-delete-an-asset-link` are where a reviewer would refuse that reading.\n\n'
+   + 'BATCH 120 CARRIES IT ON TWO TABLES AND THE SECOND IS THE STRONGER OF THE TWO. app.published_posts is immutable in §3.2\'s own list ("publish history: ห้าม update เนื้อหาเดิม") and no role holds UPDATE or DELETE on any of its columns -- so `owner-a-cannot-rewrite-a-published-post` and `service-cannot-rewrite-a-published-post` are the same refusal reached by the tenant and by the service, and the apply-time block asserts the absence per role against the live ACL rather than against the grant lines above it. app.publish_target_assets is append-only for the same reason one table over: a pin that can be removed after the fact is not a record of what was sent. NEITHER IS DEFENDED BY A TRIGGER, which batch 140 is and these are not -- the table owner is exempt from nothing here only because FORCE is set, and that is a weaker guarantee than 140\'s and is named as one.',
   // A DEAD DUPLICATE `10:` KEY STOOD HERE, AND WHAT IT HELD IS WHY IT IS RECORDED RATHER THAN
   // QUIETLY DELETED. `AUTHORIZATION_CASE_COVERAGE` declared key 10 TWICE; JavaScript keeps the
   // last, so thirty-five lines were unreachable — and they were the pre-correction copies of
@@ -2254,7 +2264,8 @@ export const AUTHORIZATION_CASE_COVERAGE = {
    + '(RFC-2026-017 §3) and a worker with grants would be a second path to the same act. Every '
    + '`service-cannot-*` case in this batch is therefore a PRIVILEGE refusal, which is stronger '
    + 'and is a different claim: none of them carries RFC-2026-017 §7, because §7 asks for a '
-   + 'refusal BY row level security and there is no grant here for row level security to refuse.',
+   + 'refusal BY row level security and there is no grant here for row level security to refuse.\n\n'
+   + 'BATCH 120 CANNOT PAY IT EITHER, AND IT IS THE FAMILY WHERE THAT COSTS THE MOST. §8.6 case 10 is "authorized server command → pass + expected audit/outbox", and no command function exists anywhere in this repository (RFC-2026-021 §10). Every earlier batch could say the absence cost it a positive; here the absence is the whole of the family\'s write path: §8.3 marks the delivery, the post and the metric `S`, RFC-2026-022 §5/8 measures that the only member of app_worker is postgres, and the two ids the fan-out case must carry as parameters were measured into existence by the same gap -- app_worker cannot read a content target or a content variant, so the service could not compose the statement even if a policy admitted it. NOTHING IN THIS REPOSITORY CAN PUBLISH ANYTHING, and that is the design followed rather than a limitation of the batch: the writer is a decision with an owner (DATA-DEC-03, due before G1), and it is in the work package\'s open blockers rather than approximated here.',
 };
 
 const WORKSPACE_A_NAME = 'fixture workspace a';
@@ -2298,6 +2309,13 @@ export function buildCases(id) {
   const ownerB = { helper: 'as_user', subject: id('user_owner_b') };
   const anonymous = { helper: 'as_anonymous' };
   const service = { helper: 'as_service' };
+  // Batch 061 was the first family to need an ADMIN as a case identity and wrote the binding inline;
+  // batch 120 needs it eleven times, because §8.3's "Publish now" row is the first cell in this
+  // schema that is `Y` for the owner AND the admin and `P` for the editor, so a suite that tested
+  // only the owner could not tell the two `Y`s apart from one. user_admin_a holds a `business` scope
+  // on business_a1, which is what makes its positives statements about the ADMIN rather than about
+  // an identity the narrowing happens not to touch.
+  const adminA = { helper: 'as_user', subject: id('user_admin_a') };
 
   const A = id('workspace_a');
   const B = id('workspace_b');
@@ -14950,6 +14968,1148 @@ export function buildCases(id) {
          + 'CHECK refuses the new row. The four cases together say: no client may attach, the '
          + 'service may not either, and the two refusals come from different layers.',
     },
+
+    // -- BATCH 120 — publisher.meta: the intent, the fan-out, the delivery and the post. -------
+    //
+    // FIVE TABLES AND THREE KINDS OF CLAIM, because §8.3 gives this family two rows and they do not
+    // fall one per table.
+    //
+    //   * THE INTENT IS THE USER'S ACT. §8.3's "Publish now/cancel pending" is `Y` for the owner and
+    //     the admin, `P` for the editor with no capability defined anywhere, and `N` for the approver
+    //     and the viewer. So the write cases here are ROLE cases, and the editor's refusal is the one
+    //     the Product Owner decided on 2026-09-15 (question 2): if that reading is ever reversed, the
+    //     case that has to change is `editor-a-cannot-request-a-publish-intent`, named here as batch
+    //     081 named its own.
+    //   * EVERYTHING BELOW THE INTENT IS THE SERVICE'S. "Publish delivery/post/metric INSERT" is `N`
+    //     in every client column, so every client write case on the target, the pin, the job and the
+    //     post is a GRANT-layer refusal, and they are deliberately not part of any control's basis:
+    //     a privilege refusal passes unchanged when row level security is switched off.
+    //   * THE SERVICE CASES COME OUT TWO DIFFERENT WAYS ON PURPOSE, which batch 100 was the first
+    //     batch to manage and this one does on four tables. app_worker holds the INSERT grant on the
+    //     target, the pin, the job and the post and NO POLICY, so its insert is refused by row level
+    //     security with 42501 — `deniedBy: policy`, and it FLIPS when the control disables RLS. Its
+    //     column-scoped UPDATE on the target's and the job's outcome columns is refused by the USING
+    //     half FILTERING the row, which raises nothing — `no-effect` with a witness, and it flips too.
+    //     But `…-rehome-…` and `…-delete-…` name columns and verbs it does not hold, so those are
+    //     `grant` and permanent. Three layers on one identity is what proves the column allowlist is
+    //     a list rather than a sentence.
+    //
+    // WHAT NO CASE HERE ASSERTS, SAID SO THAT ITS ABSENCE IS NOT READ AS COVERAGE. Nothing checks that
+    // a pinned asset version is `ready` or that its rights are valid (§4 invariant 5), because
+    // NOTHING IN THE DATABASE DOES — blocker 153's sentence about app.content_asset_links, one table
+    // over. Nothing checks that a target's variant platform agrees with its account kind or its post's
+    // platform, because that is a cross-table rule and belongs to the command surface. And no case
+    // asserts a SERVICE POSITIVE anywhere: RFC-2026-022 §5/8 measures that the only member of
+    // app_worker is postgres, which bypasses row level security, so the identity that would carry one
+    // does not exist.
+    {
+      id: 'owner-a-sees-publish-intent-a1',
+      covers: ['§8.3', '§12.6/1'],
+      as: ownerA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: 'The positive every negative below is measured against. §8.3 gives publishing NO SELECT '
+         + 'ROW AT ALL — as it gives approval none, which is in the work package\'s open blockers — '
+         + 'so the read surface is a reading: RFC-2026-012 classifies this family "view only", and '
+         + 'this repository has done "view only" two ways, a column-scoped grant on the base table '
+         + '(070, 090, 100) and no client read at all (050, 110). The Product Owner chose the first '
+         + 'on 2026-09-15 (question 4), because §11.1 puts publish history in the PDPA export minimum '
+         + 'and DB-10 requires partial success to be SHOWN. The policy therefore tests active '
+         + 'membership and not role.',
+    },
+    {
+      id: 'admin-a-sees-publish-intent-a1',
+      covers: ['§8.3', '§8.6/1'],
+      as: adminA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: 'The admin holds a `business` member scope naming business_a1 and this intent is under it, '
+         + 'so the narrowing admits the row. It is the read half of the identity whose WRITE half is '
+         + 'the second `Y` on §8.3 row 1.',
+    },
+    {
+      id: 'viewer-a-sees-publish-intent-a1',
+      covers: ['§8.3', '§12.6/4'],
+      as: viewerA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: 'A viewer sees what was asked to be published and may not ask for it, and both halves are '
+         + 'asserted: this case and viewer-a-cannot-request-a-publish-intent. Without the read, the '
+         + 'refusal beside it would be equally consistent with a table the viewer cannot reach at all.',
+    },
+    {
+      id: 'editor-a-sees-the-publish-intents-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/2'],
+      as: editorA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: 'user_editor_a holds a `business` scope on business_a1 and this intent\'s ITEM is under it, '
+         + 'so the narrowing resolves through app.content_items and admits the row. Without this '
+         + 'positive the case below would be satisfied by a narrowing that denied the editor '
+         + 'everything — and that matters more here than on most tables, because the editor is '
+         + 'refused the WRITE on this same table for a different reason entirely.',
+    },
+    {
+      id: 'editor-a-sees-zero-publish-intents-under-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3: same Workspace, an intent whose item is under a Business the member scope '
+         + 'does not cover. The permissive policy admits it — the editor is an active member — and '
+         + 'the RESTRICTIVE narrowing subtracts it, which is the only shape that can subtract. One '
+         + 'of the cases the CI negative control for app.publish_intents rests on.',
+    },
+    {
+      id: 'pinned-editor-a-sees-zero-publish-intents-on-the-sibling-item',
+      covers: ['§8.6/4', '§12.6/2'],
+      as: pageEditorA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1_sibling_page')],
+      expect: 'no-rows',
+      why: '§8.6 case 4: the member is admitted to business_a1 and must still be refused an intent '
+         + 'whose item is pinned to a SIBLING Page. What refuses it is measured rather than assumed, '
+         + 'and it is batch 081\'s finding one family further down: the narrowing\'s subquery runs as '
+         + 'this identity, so app.content_items\' own policy hides the sibling item from it and the '
+         + 'exists() is false whatever question this batch\'s case-when asks. The Page branch here is '
+         + 'held by the apply-time block and the static rule, and that is stated as the limit it is.',
+    },
+    {
+      id: 'owner-b-cannot-read-publish-intent-a1-by-id',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerB,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read, holding tenant A\'s exact intent id, which is what makes the '
+         + 'refusal a property of the policy rather than of a guess. The row IS there: '
+         + 'owner-a-sees-publish-intent-a1 is the same statement returning it. One of the cases the '
+         + 'control for this table rests on.',
+    },
+    {
+      id: 'suspended-a-sees-zero-publish-intent-rows',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'no-rows',
+      why: '§8.6 case 6: a suspended member is refused IMMEDIATELY rather than at the next token '
+         + 'refresh, because app.is_active_member reads the membership state on every evaluation.',
+    },
+    {
+      id: 'anon-cannot-read-a-publish-intent',
+      covers: ['§12.6/6', '§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA rather than the table: `anon` holds no USAGE on app, so name '
+         + 'resolution stops before a table is reached. RFC-2026-021 §7/4 makes that an approved '
+         + 'decision, and declaring the object is what makes this case notice the day it changes.',
+    },
+    {
+      id: 'owner-a-can-request-a-publish-intent',
+      covers: ['§8.3', '§8.6/1'],
+      as: ownerA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:owner-a'),
+      expect: 'rows',
+      why: 'The first `Y` of §8.3 row 1, and the case that makes every refusal below a statement about '
+         + 'WHO was asking rather than about the table being closed. The idempotency key is one no '
+         + 'fixture row holds, so the insert LANDS when the negative control disables row level '
+         + 'security instead of failing on publish_intents_idempotency_key_unique.',
+    },
+    {
+      id: 'admin-a-can-request-a-publish-intent',
+      covers: ['§8.3', '§8.6/1'],
+      as: adminA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:admin-a'),
+      expect: 'rows',
+      why: 'The second `Y`, from the identity whose member scope actually narrows: user_admin_a holds '
+         + 'a `business` scope on business_a1 and this item is inside it, so the case says the ADMIN '
+         + 'may publish rather than that the narrowing is inert.',
+    },
+    {
+      id: 'editor-a-cannot-request-a-publish-intent',
+      covers: ['§8.3/editor-P', '§8.6/2'],
+      as: editorA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:editor-a'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: 'THE CASE THIS BATCH\'S READING OF §8 TURNS ON, named here so that reversing the reading '
+         + 'changes a test in a diff. §8.3 marks the editor `P` on "Publish now/cancel pending" — '
+         + '"ผ่านตาม policy/explicit capability" — and no document in this repository defines that '
+         + 'capability. The repository holds TWO shapes for a client `P`: refused where nothing '
+         + 'defines it (070\'s approver, 090\'s admin and editor, 110\'s owner cells) and implemented '
+         + 'as an explicit-scope conditional grant where the scope IS the capability (021, 030). §5.1 '
+         + 'of the workstream document ties an editor\'s publishing to "เมื่อ policy อนุญาตและ approved", '
+         + 'which is an APPROVAL condition and not a scope one, so the 021 shape would implement half '
+         + 'of that sentence and read as the whole of it. The Product Owner chose the refusal on '
+         + '2026-09-15 (question 2). The editor CAN read the same row — '
+         + 'editor-a-sees-the-publish-intents-inside-their-narrowing — so this is the OPERATION being '
+         + 'refused and not the table.',
+    },
+    {
+      id: 'approver-a-cannot-request-a-publish-intent',
+      covers: ['§12.6/3', '§8.6/2'],
+      as: approverA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:approver-a'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§8.3 marks the approver `N` on row 1. An approver decides whether content may go out and '
+         + 'does not send it, which is the same separation §4.7 asks for one table over.',
+    },
+    {
+      id: 'viewer-a-cannot-request-a-publish-intent',
+      covers: ['§12.6/4', '§8.6/2'],
+      as: viewerA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:viewer-a'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§12.6/4: "user_viewer_a cannot insert/update/delete". An INSERT is REFUSED rather than '
+         + 'filtered, because a WITH CHECK clause rejects the new row with 42501 — the one half of '
+         + '§8.6\'s negatives where a refusal is actually available.',
+    },
+    {
+      id: 'suspended-a-cannot-request-a-publish-intent',
+      covers: ['§12.6/5', '§8.6/6'],
+      as: suspendedA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'case:publish:suspended-a'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§12.6/5 asks for both halves — "sees zero tenant rows AND cannot mutate" — and this is the '
+         + 'second. app.workspace_member_role returns nothing for a suspended membership, so the role '
+         + 'test in the WITH CHECK is false rather than merely unsatisfied.',
+    },
+    {
+      id: 'owner-a-cannot-request-a-publish-intent-for-tenant-b',
+      covers: ['§8.6/5', '§12.6/7'],
+      as: ownerA,
+      ...publishIntentRequest('__B__', BUSINESS_B1, id('content_item_b1'), id('content_version_b1'),
+        '__SELF__', 'case:publish:forged-tenant'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: 'The cross-tenant WRITE, holding B\'s workspace, B\'s Business, B\'s item and B\'s version. '
+         + 'Every id in the statement is real and the row is internally consistent, so every composite '
+         + 'foreign key — publish_intents_pinned_version_fk over four columns included — would ACCEPT '
+         + 'it, which is what makes the refusal attributable to app.workspace_member_role returning '
+         + 'nothing for a non-member rather than to a key catching the mismatch first.',
+    },
+    {
+      id: 'owner-a-cannot-request-a-publish-intent-as-somebody-else',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...publishIntentRequestAs('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', id('user_editor_a'), 'case:publish:forged-requester'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§8.6 case 8, on the column that says WHOSE act a publication was. This is '
+         + 'owner-a-can-request-a-publish-intent with ONE argument changed — `requested_by` — so the '
+         + 'refusal is attributable to the forged column and not to the owner being unable to write '
+         + 'here. The policy that refuses it is batch 094\'s shape, applied at the point the column is '
+         + 'created rather than as a forward fix: A1-090 S13 found requested_by unchecked on '
+         + 'app.approval_requests months after the batch that granted it.',
+    },
+    {
+      id: 'owner-a-cannot-request-a-publish-intent-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...publishIntentRequestNamingUpdater('__A__', BUSINESS_A1, id('content_item_a1'),
+        id('content_version_a1'), '__SELF__', id('user_editor_a'), 'case:publish:forged-updater'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: 'Batch 102\'s shape at the point of creation: `updated_by` is in the INSERT grant, and a '
+         + 'row\'s first updated_by is the value an audit reads until the first real update. NULL is '
+         + 'admitted and a name that is not the caller\'s is not, which is the difference between '
+         + 'this and the requested_by case beside it (094 refused a NULL there because §4.8 makes the '
+         + 'requester the substance of the row).',
+    },
+    {
+      id: 'owner-a-can-cancel-a-publish-intent',
+      covers: ['§8.3', '§8.5'],
+      as: ownerA,
+      ...publishIntentCancel(id('publish_intent_a1'), '__SELF__'),
+      expect: 'rows',
+      why: 'The second verb of §8.3 row 1 — "cancel pending" — as the one column a client may move. '
+         + 'IT IS NOT GUARDED BY A STATE, and that is recorded rather than hidden: there is no '
+         + '`pending` for the database to check, because app.publish_intents carries no status column '
+         + '(the Product Owner\'s question 5b, 2026-09-15) and its state is what its targets say. '
+         + 'This positive is what makes the two `no-effect` cases below claims about WHO rather than '
+         + 'about a row nobody can cancel.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-a-publish-intent',
+      covers: ['§8.6/2', '§8.3/editor-P'],
+      as: editorA,
+      ...publishIntentCancel(id('publish_intent_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: publishIntentStillStampedBy(ownerA, id('publish_intent_a1'), id('user_owner_a')),
+      why: '`no-effect` rather than `denied` because the USING half of an UPDATE policy FILTERS: a row '
+         + 'the policy does not admit is not a row the statement refuses, it is a row the statement '
+         + 'never sees. The witness reads `updated_by`, which a landed write would have replaced with '
+         + 'the editor\'s. One of the cases the control for this table rests on — with row level '
+         + 'security off the cancellation LANDS and the witness detects it.',
+    },
+    {
+      id: 'owner-b-cannot-cancel-publish-intent-a1',
+      covers: ['§8.6/5', '§8.5'],
+      as: ownerB,
+      ...publishIntentCancel(id('publish_intent_a1'), '__SELF__'),
+      expect: 'no-effect',
+      witness: publishIntentStillStampedBy(ownerA, id('publish_intent_a1'), id('user_owner_a')),
+      why: 'The cross-tenant write on an EXISTING row, holding A\'s exact id. The witness runs as A\'s '
+         + 'owner because no B-side identity can see the row at all, which is the shape batch 020 '
+         + 'established for a workspace name and every family has kept.',
+    },
+    {
+      id: 'owner-a-cannot-repin-a-publish-intent',
+      covers: ['§4/4', '§8.5'],
+      as: ownerA,
+      ...publishIntentRepin(id('publish_intent_a1'), id('content_version_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§4 invariant 4: "Content ที่ approve/schedule/publish ต้อง pin content_version_id". A pin '
+         + 'the pinner can move afterwards is not a pin, so `content_version_id` is in the INSERT '
+         + 'grant and OUTSIDE the UPDATE grant, and the refusal is an absent privilege rather than a '
+         + 'policy predicate — an absent privilege has to be WRITTEN to be undone. The argument '
+         + 'resolves to the version the fixture ALREADY pinned here, so the refusal cannot be the '
+         + 'foreign key.',
+    },
+    {
+      id: 'owner-a-cannot-rehome-a-publish-intent',
+      covers: ['§8.5', '§12.6/7'],
+      as: ownerA,
+      ...publishIntentRehome(id('publish_intent_a1'), id('content_item_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§8.5: "ห้ามย้าย row ข้าม tenant/scope ด้วย update". `content_item_id` is the column that '
+         + 'would do it, because the item is where the Page override lives — moving this intent onto '
+         + 'the sibling-Page item would move it into a scope the caller is admitted to and the row was '
+         + 'not, WITHOUT changing any column a policy reads. The refusal is the missing privilege, '
+         + 'which is why the case names an item the owner can see: a refusal by the narrowing would '
+         + 'prove the policy and not the grant.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-publish-intent',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...publishIntentDelete(id('publish_intent_a1')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: '§8.5 has no broad user delete, and this family has no soft one either: publish history is '
+         + 'kept for the life of the Workspace (§10, PUBLISH-HISTORY) and its removal is batch 160\'s '
+         + 'at closure, through app_maintenance, which this batch grants nothing. A `deleted_at` a '
+         + 'client could set would be a way to hide a delivery from the export §11.1 requires — that '
+         + 'is the reading, and it is in the work package.',
+    },
+    {
+      id: 'service-sees-zero-publish-intent-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: PUBLISH_INTENT_BY_ID,
+      params: [id('publish_intent_a1')],
+      expect: 'no-rows',
+      why: 'app_worker holds the column-scoped SELECT it needs to fan an intent out and NO POLICY, so '
+         + 'the empty result is row level security and not a forgotten GRANT (010\'s shape). THE GRANT '
+         + 'IS NARROWER THAN BATCH 110 READ THE SAME `P`: 110 gave the worker all three verbs on its '
+         + 'connection rows, "read conservatively"; here the intent\'s writer is the user and the '
+         + 'worker only reads, which is A0\'s reading and is recorded in the work package.',
+    },
+    {
+      id: 'service-cannot-request-a-publish-intent',
+      covers: ['§12.6/8-negative', '§8.3/service-P'],
+      as: service,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        id('user_owner_a'), 'case:publish:service'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: 'The service holds no INSERT here, so this is the privilege system and not a policy — and '
+         + 'the layer differs from the four service INSERT cases below it, which is the whole point of '
+         + 'declaring it. `created_by` names an EXISTING user rather than `__SELF__`, because '
+         + 'as_service sets a claim set with no subject and the substitution would inline the literal '
+         + 'text `undefined` (the build error batch 040 introduced after CI found it).',
+    },
+    {
+      id: 'owner-a-cannot-pin-a-publish-intent-to-another-items-version',
+      covers: ['§4/10', '§3.3/composite-fk'],
+      as: ownerA,
+      ...publishIntentRequest('__A__', BUSINESS_A2, id('content_item_a2'), id('content_version_a1'),
+        '__SELF__', 'case:publish:pinned-across'),
+      expect: 'rejected',
+      sqlstate: '23503',
+      why: '§4 invariant 10: an unrelated Workspace/Business/row triple must fail AT THE DATABASE, even '
+         + 'for an actor with rights over the entities separately. The intent is created under '
+         + 'business_a2 on content_item_a2 and pins content_version_a1, which belongs to a different '
+         + 'item under a different Business — user_owner_a can read both, holds no member scope row, '
+         + 'and every policy admits the row — so the only thing that can refuse it is '
+         + 'publish_intents_pinned_version_fk over (workspace_id, business_profile_id, content_item_id, '
+         + 'content_version_id). THAT KEY IS FOUR COLUMNS AND NOT THREE, which is what makes this case '
+         + 'stronger than batch 081\'s equivalent: 080 created content_versions_item_scope_id_key as '
+         + '"the target of every child\'s scope path", so a version is held to its ITEM here, where '
+         + '081\'s variant pin could only be held to the tenant and the Business.',
+    },
+    {
+      id: 'owner-a-cannot-repeat-a-publish-intent-under-the-same-idempotency-key',
+      covers: ['§4.8/idempotency', '§8.6/9'],
+      as: ownerA,
+      ...publishIntentRequest('__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'),
+        '__SELF__', 'fixture:publish:a1'),
+      expect: 'rejected',
+      sqlstate: '23505',
+      why: 'THE LEDGER, AND THE ONE CASE THAT NOTICES IT DISAPPEARING. §4.8 requires "unique '
+         + '(workspace_id, idempotency_key)" and CTR-PUB-001 names an idempotency ledger as its freeze '
+         + 'dependency; ID-001 fixes the key scope as workspace plus operation. EVERY POLICY ADMITS '
+         + 'THIS ROW — the workspace is the caller\'s own, the caller is its owner, created_by and '
+         + 'requested_by are the caller, and the item is inside every scope — so the only thing that '
+         + 'can stop it is publish_intents_idempotency_key_unique, and the case demands the index\'s '
+         + 'own SQLSTATE. A double-tap on a mobile client is the shape of a double post, and '
+         + 'CONTRIBUTING_AGENTS.md makes publishing idempotency non-negotiable.',
+    },
+    {
+      id: 'owner-a-cannot-request-a-publish-intent-of-an-unknown-kind',
+      covers: ['§3.2/state', '§4.8'],
+      as: ownerA,
+      ...publishIntentRequestOfUnknownKind('__A__', BUSINESS_A1, id('content_item_a1'),
+        id('content_version_a1'), '__SELF__', 'case:publish:unknown-kind'),
+      expect: 'rejected',
+      sqlstate: '23514',
+      why: '§4.8 gives this column its two values in terms — "request_kind(now|scheduled)" — which is '
+         + 'why it carries a CHECK where app.content_targets.status does not: §4.6 enumerated nothing '
+         + 'for that one and 081 refused to invent a vocabulary for Product. The case demands 23514 '
+         + 'rather than 42501 so it cannot be satisfied by a policy refusing the caller on a database '
+         + 'whose CHECK was dropped.',
+    },
+    {
+      id: 'owner-a-cannot-request-a-publish-intent-with-a-blank-idempotency-key',
+      covers: ['§4.8/idempotency'],
+      as: ownerA,
+      ...publishIntentRequestWithBlankKey('__A__', BUSINESS_A1, id('content_item_a1'),
+        id('content_version_a1'), '__SELF__'),
+      expect: 'rejected',
+      sqlstate: '23514',
+      why: 'A blank key is not a key, and a NOT NULL column alone would accept one. Without this the '
+         + 'uniqueness rule above could be satisfied by every caller sending whitespace, which is one '
+         + 'row per workspace and an idempotency ledger that refuses the second publication of '
+         + 'anything. The bound is also a ceiling — 128 characters, as app.jobs gives its dedupe key.',
+    },
+    {
+      id: 'owner-a-sees-both-publish-targets-of-intent-a1',
+      covers: ['§4/7', '§12.6/1'],
+      as: ownerA,
+      sql: PUBLISH_TARGETS_OF_INTENT_ARE_TWO,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: '§4 relation invariant 7: "FB และ IG เป็น Publish Target แยกกัน; partial success ไม่ rollback '
+         + 'target ที่สำเร็จ". The statement GROUPS and returns a row only when the count is exactly '
+         + 'two, because `rows` on its own would pass against a fan-out that lost a destination — '
+         + 'which is the failure this invariant is about. One intent, two sends, and the case below '
+         + 'counts the posts.',
+    },
+    {
+      id: 'editor-a-sees-zero-publish-targets-under-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 one level down, and the first case that exercises the TWO-STEP narrowing: a '
+         + 'target carries no item, so its reach is its intent\'s item\'s reach and the predicate '
+         + 'resolves through app.publish_intents and then app.content_items. One of the cases the '
+         + 'control for app.publish_targets rests on.',
+    },
+    {
+      id: 'pinned-editor-a-sees-zero-publish-targets-on-the-sibling-item',
+      covers: ['§8.6/4', '§12.6/2'],
+      as: pageEditorA,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a1_sibling_page')],
+      expect: 'no-rows',
+      why: 'The Page half of the two-step narrowing: same Business, an intent whose item is pinned to '
+         + 'the sibling Page. As on the intent, what refuses it is the parent\'s own policy inside the '
+         + 'subquery rather than this batch\'s case-when, and that limit is stated rather than claimed.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-publish-target-of-tenant-a',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerB,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read holding A\'s exact send id. The row IS there — '
+         + 'owner-a-sees-both-publish-targets-of-intent-a1 counts it — so the refusal is the policy.',
+    },
+    {
+      id: 'suspended-a-sees-zero-publish-target-rows',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The suspended member on the delivery table. One of the cases the control for '
+         + 'app.publish_targets rests on.',
+    },
+    {
+      id: 'anon-cannot-read-a-publish-target',
+      covers: ['§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, as every anonymous case in this suite is, and declared so that the '
+         + 'day anon is granted USAGE on app this case fails rather than quietly moving a layer.',
+    },
+    {
+      id: 'owner-a-cannot-fan-out-a-publish-target',
+      covers: ['§8.3/delivery-N', '§8.6/2'],
+      as: ownerA,
+      ...publishFanOut('__A__', BUSINESS_A1, id('publish_intent_a1_page'), id('content_target_a1_page'),
+        id('social_account_a1'), id('content_variant_a1_page_facebook')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'THE ROW §8.3 MARKS `N` FOR THE WORKSPACE OWNER, which is unusual enough to say out loud: '
+         + 'the person who asked for the publication may not write the delivery record for it. No '
+         + 'client role holds INSERT here at all, so the refusal is the privilege system — and it '
+         + 'passes unchanged when the negative control disables row level security, which is why it '
+         + 'is deliberately NOT in that control\'s basis. The row it attempts is well formed and is '
+         + 'the one the service case below attempts, so the two differ in the IDENTITY and in nothing '
+         + 'else.',
+    },
+    {
+      id: 'admin-a-cannot-fan-out-a-publish-target',
+      covers: ['§8.3/delivery-N', '§8.6/2'],
+      as: adminA,
+      ...publishFanOut('__A__', BUSINESS_A1, id('publish_intent_a1_page'), id('content_target_a1_page'),
+        id('social_account_a1'), id('content_variant_a1_page_facebook')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'The same `N`, from the other identity §8.3 row 1 marks `Y`. The pair says the refusal is '
+         + 'about the OPERATION and not about which of the two publishing roles is asking.',
+    },
+    {
+      id: 'editor-a-cannot-fan-out-a-publish-target',
+      covers: ['§8.3/delivery-N', '§8.6/2'],
+      as: editorA,
+      ...publishFanOut('__A__', BUSINESS_A1, id('publish_intent_a1_page'), id('content_target_a1_page'),
+        id('social_account_a1'), id('content_variant_a1_page_facebook')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'AND THE REFUSAL HERE IS A DIFFERENT ONE FROM THE EDITOR\'S REFUSAL ON THE INTENT, which is '
+         + 'why both cases exist. On the intent the editor is refused by a POLICY, because §8.3 marks '
+         + 'them `P` and no capability is defined; here they are refused by an absent GRANT, because '
+         + '§8.3 marks every client role `N`. If the Owner ever defines the publishing capability, the '
+         + 'first flips and this one does not.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-publish-target',
+      covers: ['§8.3/delivery-N', '§8.5'],
+      as: ownerA,
+      ...publishTargetAdvance(id('publish_target_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'A client may not move a send\'s state either: the outcome of a publication is what the '
+         + 'provider said, and the party it is about is exactly the party §8.3 refuses. The same '
+         + 'statement run by the service is `no-effect` rather than `denied`, which is the pair that '
+         + 'proves the worker\'s UPDATE grant exists and is bounded by row level security alone.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-publish-target',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...publishTargetDelete(id('publish_target_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'No role holds DELETE on any table in this family, asserted per role against the live ACL '
+         + 'at apply time as well. §11.4\'s ordered purge at workspace closure is batch 160\'s.',
+    },
+    {
+      id: 'service-sees-zero-publish-target-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: PUBLISH_TARGET_BY_ID,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'THE FIRST OF THE TWO CASES THE CONTROL FOR THIS TABLE RESTS ON. app_worker holds the full '
+         + 'column-scoped SELECT — it has to read a send to advance it — and NO POLICY, so the empty '
+         + 'result can only have come from row level security. A service role that had quietly '
+         + 'acquired BYPASSRLS would SUCCEED here, which is the reason 010 introduced this shape.',
+    },
+    {
+      id: 'service-cannot-fan-out-a-publish-target',
+      covers: ['§8.3/delivery-S', 'RFC-2026-022§5/8', '§12.6/8-negative'],
+      as: service,
+      ...publishFanOut('__A__', BUSINESS_A1, id('publish_intent_a1_page'), id('content_target_a1_page'),
+        id('social_account_a1'), id('content_variant_a1_page_facebook')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'THE `S` CELL ITSELF, REFUSED AT THE POLICY LAYER, AND THE REFUSAL IS PENDING RATHER THAN '
+         + 'PERMANENT. RFC-2026-022 §3 classes §8.3\'s "Publish delivery/post/metric INSERT" CARRIED '
+         + 'for batches 120 and 121, and §5/8 declares the whole decision NOT IN EFFECT — measured, '
+         + 'the only member of app_worker is postgres, which bypasses row level security — so batch '
+         + '120 records the classification in db/foundation/lint/service-policy-map.json and writes no '
+         + 'policy. app_worker HOLDS the INSERT grant, so with row level security off the write '
+         + 'LANDS: this is the second case the control for this table rests on, and it FLIPS the day '
+         + 'the CARRIED policy is written. THE ROW IT ATTEMPTS IS WELL FORMED AND ITS SLOT IS FREE: '
+         + 'publish_intent_a1_page is the one intent the fixture leaves with no send, so '
+         + 'publish_targets_one_per_destination admits it; the aim it names is batch 081\'s own '
+         + '(content_item_a1_page, social_account_a1), which no send uses and whose id batch 120 fixed '
+         + 'for exactly this reason; and the facebook variant of that item\'s version 1 is one of the '
+         + 'three rows batch 120\'s fixture adds. A case that could not succeed proves nothing '
+         + 'about the policy that refuses it.',
+    },
+    {
+      id: 'service-cannot-advance-a-publish-target',
+      covers: ['§8.3/delivery-S', 'RFC-2026-022§5/8'],
+      as: service,
+      ...publishTargetAdvance(id('publish_target_a1_sibling_page')),
+      expect: 'no-effect',
+      witness: publishTargetStillAt(ownerA, id('publish_target_a1_sibling_page'), 'pending'),
+      why: 'THE WORKER\'S UPDATE, WHICH IS A DECISION RATHER THAN A MATRIX CELL, AND THE THIRD LAYER '
+         + 'THIS ONE IDENTITY MEETS ON THIS FAMILY. §8.3\'s `S` is INSERT; the column-scoped UPDATE on '
+         + 'the outcome columns is the Product Owner\'s answer to question 10 of 2026-09-15, following '
+         + '070 (which granted a worker a run\'s progress timestamps) and 071 (which left that grant '
+         + 'standing when it closed the family\'s no-cell table) rather than 062/071\'s treatment of '
+         + 'the tables that had no cell at all. So the grant exists, no policy admits it, the USING '
+         + 'half filters the row and the statement RAISES NOTHING — which is why this is `no-effect` '
+         + 'and needs the witness. The witness reads `status`, which is NOT NULL, carries the Owner\'s '
+         + 'vocabulary and is a column this very statement sets. A case demanding 42501 here would '
+         + 'pass against a database where the grant had simply been forgotten.',
+    },
+    {
+      id: 'service-cannot-rehome-a-publish-target',
+      covers: ['§8.5', '§4/10'],
+      as: service,
+      ...publishTargetRedirect(id('publish_target_a1_sibling_page'), id('social_account_a2')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'THE SAME IDENTITY, THE SAME TABLE, A DIFFERENT COLUMN AND A DIFFERENT LAYER — which is what '
+         + 'proves the worker\'s six-column UPDATE allowlist is a list rather than a sentence. '
+         + 'Re-aiming a send at another destination is creating a different send, so '
+         + '`social_account_id` is outside every UPDATE grant and this refusal is PERMANENT: it does '
+         + 'not flip when RFC-2026-022 comes into effect, because no CARRIED policy can restore a '
+         + 'privilege nobody holds.',
+    },
+    {
+      id: 'service-cannot-delete-a-publish-target',
+      covers: ['§8.5'],
+      as: service,
+      ...publishTargetDelete(id('publish_target_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_targets' },
+      why: 'No role holds DELETE anywhere in this family, the service included. Permanent, and in the '
+         + 'basis of no control for that reason.',
+    },
+    {
+      id: 'owner-a-sees-the-publish-pin-of-the-fb-send',
+      covers: ['§4/5', '§12.6/1'],
+      as: ownerA,
+      sql: PUBLISH_PIN_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'rows',
+      why: 'ADR-010: "Content Version และ Publish Target ต้อง pin asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า '
+         + 'latest". The pin is a row, so this case is what makes the refusals below about WHO rather '
+         + 'than about a table nobody populated. WHAT IT DOES NOT ASSERT: that the pinned version is '
+         + '`ready` or that its rights are valid. §4 invariant 5 asks for both and NOTHING IN THE '
+         + 'DATABASE ENFORCES EITHER — blocker 153\'s sentence about app.content_asset_links applies '
+         + 'here word for word, and no case here pretends otherwise.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-publish-pin-of-tenant-a',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerB,
+      sql: PUBLISH_PIN_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read, three tables deep: the pin resolves its reach through its target, '
+         + 'its target through the intent, and the intent through the item. One of the cases the '
+         + 'control for app.publish_target_assets rests on.',
+    },
+    {
+      id: 'suspended-a-sees-zero-publish-pin-rows',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: PUBLISH_PIN_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The second case the control for this table rests on, and the one that does not depend on '
+         + 'there being a second tenant at all.',
+    },
+    {
+      id: 'anon-cannot-read-a-publish-pin',
+      covers: ['§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PUBLISH_PIN_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema. MEDIA-2 by reference: the row names an asset version and §9.1 keeps '
+         + 'the object itself behind a short signed URL, so what an anonymous caller is refused here '
+         + 'is the knowledge that a particular image went out on a particular send.',
+    },
+    {
+      id: 'owner-a-cannot-attach-a-publish-pin',
+      covers: ['§8.3/delivery-N', '§8.6/2'],
+      as: ownerA,
+      ...publishPinAttach('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'),
+        id('asset_a1_sibling_page'), id('asset_version_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_target_assets' },
+      why: 'No client role holds INSERT on the pin: what a send carries is decided when the send is '
+         + 'composed, which is the service\'s act. The row attempted is the same one the service case '
+         + 'below attempts, so the two differ in the identity alone.',
+    },
+    {
+      id: 'owner-a-cannot-detach-a-publish-pin',
+      covers: ['§8.5', '§3.2/immutable'],
+      as: ownerA,
+      ...publishPinDetach(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_target_assets' },
+      why: 'The pin is APPEND-ONLY for every role: no UPDATE and no DELETE anywhere, asserted per role '
+         + 'against the live ACL at apply time. A pin that can be removed after the fact is not a '
+         + 'record of what was sent.',
+    },
+    {
+      id: 'service-sees-zero-publish-pin-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: PUBLISH_PIN_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'app_worker holds SELECT and INSERT here and no policy. The read is refused by row level '
+         + 'security, which is what makes the empty result evidence rather than an accident.',
+    },
+    {
+      id: 'service-cannot-attach-a-publish-pin',
+      covers: ['§12.6/8-negative', '§8/no-cell'],
+      as: service,
+      ...publishPinAttach('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'),
+        id('asset_a1_sibling_page'), id('asset_version_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_target_assets' },
+      why: 'A POLICY-LAYER REFUSAL THAT IS PERMANENT RATHER THAN PENDING, and the distinction matters '
+         + 'because the three beside it are not. §8 has NO ROW for an asset pin in any of its four '
+         + 'matrices — the `S` cell names the delivery, the post and the metric — so there is no cell '
+         + 'here for RFC-2026-022 to classify and no CARRIED policy anyone should expect. That is why '
+         + 'batch 122 closes this table together with app.publish_intents under the Product Owner\'s '
+         + 'decision of 2026-09-15 (question 11), applying the logic of the row (b) the Owner gave '
+         + 'metering and research: close the narrowed tables that are not `S` cells. A LATER READER '
+         + 'MUST NOT "FIX" THIS by writing a service policy; the fix, if the product needs one, is an '
+         + 'RFC that gives the pin a cell. The row it attempts is well formed — the sibling-page send '
+         + 'carries no pin and slot 0 is free — so it lands with row level security off.',
+    },
+    {
+      id: 'owner-a-sees-the-publish-job-of-the-fb-send',
+      covers: ['§4.8', '§12.6/1'],
+      as: ownerA,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'rows',
+      why: 'The client read of a delivery\'s job, which is the REDACTED set and not the row: the '
+         + 'grant names id, scope, target, status, attempt count and timestamps, and withholds the '
+         + 'kernel job id, the provider request key and the error code. That shape satisfies both '
+         + 'readings of which matrix row governs a publisher job — §8.3\'s delivery row, which has no '
+         + 'SELECT, and §8.4\'s "Job redacted status SELECT", which does — so the question does not '
+         + 'have to be answered to write the grant. It is in the work package\'s open blockers.',
+    },
+    {
+      id: 'editor-a-sees-zero-publish-jobs-under-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 three tables deep. One of the cases the control for app.publish_jobs rests on.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-publish-job-of-tenant-a',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerB,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read on the row that carries a provider\'s request key — the one column '
+         + 'in this family whose leakage would let another tenant reason about a publication that is '
+         + 'not theirs. The key is outside the client grant entirely, so this case is about the ROW; '
+         + 'owner-a-cannot-read-a-publish-jobs-provider-key is about the column.',
+    },
+    {
+      id: 'suspended-a-sees-zero-publish-jobs',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'A suspended member on the delivery\'s job. One of the cases the control for this table '
+         + 'rests on.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-publish-jobs-provider-key',
+      covers: ['§9.1/PROVIDER-3', 'RFC-2026-012'],
+      as: ownerA,
+      sql: PUBLISH_JOB_PROVIDER_KEY,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'THE COLUMN, NOT THE ROW, AND THAT DIFFERENCE IS THE ASSERTION. The workspace owner reads '
+         + 'this job — owner-a-sees-the-publish-job-of-the-fb-send is the same target — and is refused '
+         + 'the one column §9.1 classes PROVIDER-3 with "safe projection only". The refusal names the '
+         + 'TABLE because PostgreSQL reports a column-privilege failure as "permission denied for '
+         + 'column … of relation …", which the harness attributes to the relation.',
+    },
+    {
+      id: 'anon-cannot-read-a-publish-job',
+      covers: ['§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema, before a column list is consulted at all.',
+    },
+    {
+      id: 'owner-a-cannot-open-a-publish-job',
+      covers: ['§8.3/delivery-N', '§8.6/2'],
+      as: ownerA,
+      ...publishJobOpen('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'), 'case:publish:owner-job'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'A client may not open the job that talks to the provider, which is the half of "delivery" '
+         + 'that actually leaves the database. No client role holds INSERT.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-publish-job',
+      covers: ['§8.3/delivery-N', '§8.5'],
+      as: ownerA,
+      ...publishJobAdvance(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'Nor may a client move an attempt count or a status: what a provider answered is not a '
+         + 'thing the tenant edits. The service running the same statement is `no-effect`, which is '
+         + 'the pair that distinguishes a missing grant from a policy.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-publish-job',
+      covers: ['§8.5'],
+      as: ownerA,
+      ...publishJobDelete(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'No DELETE for any role on any table in this family.',
+    },
+    {
+      id: 'service-sees-zero-publish-jobs',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: PUBLISH_JOB_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'app_worker holds the FULL column set on this table — the provider key and the error code '
+         + 'included, because it is the identity that writes them — and no policy, so the empty read '
+         + 'is row level security. The id says `publish-jobs` and not `job-row`, which is batch 050\'s '
+         + 'control pattern: a case id may not satisfy another family\'s entry.',
+    },
+    {
+      id: 'service-cannot-open-a-publish-job',
+      covers: ['§8.3/delivery-S', 'RFC-2026-022§5/8'],
+      as: service,
+      ...publishJobOpen('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'), 'case:publish:service-job'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'The second statement of the `S` cell, refused at the policy layer and pending on '
+         + 'RFC-2026-022 §7 exactly as the first is. The row is well formed and its slot is free — the '
+         + 'sibling-page send has no job, publish_jobs_one_per_target admits it, and the provider key '
+         + 'is one no fixture row holds — so it lands with row level security off, which is what makes '
+         + 'it the second case the control for this table rests on.',
+    },
+    {
+      id: 'service-cannot-advance-a-publish-job',
+      covers: ['§8.3/delivery-S', 'RFC-2026-022§5/8'],
+      as: service,
+      ...publishJobAdvance(id('publish_target_a1_fb')),
+      expect: 'no-effect',
+      witness: publishJobStillAt(ownerA, id('publish_target_a1_fb'), 'succeeded'),
+      why: 'The worker\'s UPDATE on the job, the second half of the Product Owner\'s question 10: the '
+         + 'grant exists, no policy admits it, the USING half filters the row and nothing is raised. '
+         + 'The witness reads `status`, which this statement sets and which the fixture leaves at '
+         + '`succeeded`. It flips with the control, as the target\'s does.',
+    },
+    {
+      id: 'service-cannot-rehome-a-publish-job',
+      covers: ['§8.5'],
+      as: service,
+      ...publishJobRehome(id('publish_target_a1_fb'), id('publish_target_a1_sibling_page')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'Moving a job onto another send would give one delivery two provider conversations and the '
+         + 'other none, so `publish_target_id` is outside every UPDATE grant. A permanent refusal, and '
+         + 'the counterpart to the `no-effect` case above on the same table and the same identity.',
+    },
+    {
+      id: 'service-cannot-delete-a-publish-job',
+      covers: ['§8.5'],
+      as: service,
+      ...publishJobDelete(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'publish_jobs' },
+      why: 'Permanent. §10 gives PUBLISH-HISTORY the life of the Workspace and batch 160 the purge.',
+    },
+    {
+      id: 'owner-a-sees-the-published-post-of-the-fb-send',
+      covers: ['§4.8', '§12.6/1'],
+      as: ownerA,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'rows',
+      why: 'The record that a publication happened, which §11.1 puts in the PDPA export minimum '
+         + '("Content/version/variant/quality/approval/calendar/publish history"). The client reads '
+         + 'every column but the external post hash.',
+    },
+    {
+      id: 'owner-a-sees-exactly-one-published-post-for-intent-a1',
+      covers: ['§4/7', '§8.6/1'],
+      as: ownerA,
+      sql: PUBLISHED_POSTS_OF_INTENT_IS_ONE,
+      params: [id('publish_intent_a1')],
+      expect: 'rows',
+      why: 'PARTIAL SUCCESS AS AN ASSERTION RATHER THAN AS A SENTENCE. §4 relation invariant 7 says a '
+         + 'failure on one channel must not roll back the channel that succeeded, and DB-10\'s '
+         + 'acceptance says the same from the product side ("FB success + IG fail แสดง partial โดยไม่ลบ '
+         + 'FB"). The fixture fans intent a1 out to two sends, the Facebook one succeeds and the '
+         + 'Instagram one fails with a dated failure class, and the statement GROUPS and returns a row '
+         + 'only when the count of posts is exactly one — so it fails if the failed send ever acquires '
+         + 'a post, and it fails if the successful one loses its own. A plain `rows` could not say '
+         + 'either.',
+    },
+    {
+      id: 'editor-a-sees-zero-published-posts-under-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a2')],
+      expect: 'no-rows',
+      why: '§8.6 case 3 on the last table of the chain. One of the cases the control for '
+         + 'app.published_posts rests on.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-published-post-of-tenant-a',
+      covers: ['§8.6/5', '§12.6/5'],
+      as: ownerB,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'The cross-tenant read on a record that names an external publication. The row IS there — '
+         + 'owner-a-sees-the-published-post-of-the-fb-send returns it — so this is the policy.',
+    },
+    {
+      id: 'suspended-a-sees-zero-published-post-rows',
+      covers: ['§8.6/6', '§12.6/6'],
+      as: suspendedA,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'A suspended member on the publication record. One of the cases the control for this table '
+         + 'rests on.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-published-posts-external-hash',
+      covers: ['§9.1/PROVIDER-3', '§9.3'],
+      as: ownerA,
+      sql: PUBLISHED_POST_EXTERNAL_HASH,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'THE COLUMN §9.1 CALLS "external post ID … private, redact/log hash" WITH THE CLIENT '
+         + 'PROJECTION "safe projection only". The owner reads the post and is refused its hash, which '
+         + 'is batch 110\'s treatment of an external ACCOUNT identifier one table over. AND WHAT IS '
+         + 'NOT HERE MATTERS MORE: the RAW identifier is stored nowhere in this schema and neither is '
+         + 'a permalink, because a permalink embeds the identifier. 110 named batch 120 as the batch '
+         + 'that would have to give the raw value a home; 120 defers it to the typed service in '
+         + 'writing, with the consequence stated — nothing can address a Page at the provider until it '
+         + 'is paid — and the blocker stays open.',
+    },
+    {
+      id: 'anon-cannot-read-a-published-post',
+      covers: ['§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the schema. A published post is public AT THE PROVIDER and the record of it is '
+         + 'not: the two are different objects and this case is about the second.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-published-post',
+      covers: ['§8.3/post-N', '§8.6/2'],
+      as: ownerA,
+      ...publishPostRecord('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'),
+        id('social_account_a1'), 'case:published-post:owner-a'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'A tenant may not assert that a publication happened. The record is the provider\'s answer '
+         + 'as the service received it, which is what §8.3 marks `S`, and a client-writable one would '
+         + 'be a claim rather than a record.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-published-post',
+      covers: ['§3.2/immutable', '§8.6/9'],
+      as: ownerA,
+      ...publishPostRewrite(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: '§8.6 case 9 and §3.2\'s "Immutable … publish history: ห้าม update เนื้อหาเดิม". No role '
+         + 'holds UPDATE on any column of this table, asserted per role against the live ACL at apply '
+         + 'time, and the table carries no UPDATE policy either — both halves, because a policy with '
+         + 'no grant is inert and a grant with no policy is a weaker refusal than immutability asks '
+         + 'for.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-published-post',
+      covers: ['§3.2/immutable', '§8.5'],
+      as: ownerA,
+      ...publishPostDelete(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'The other half of immutability. Retention is §10\'s and the purge is batch 160\'s at '
+         + 'workspace closure.',
+    },
+    {
+      id: 'service-sees-zero-published-post-rows',
+      covers: ['§12.6/8', 'RFC-2026-017§7'],
+      as: service,
+      sql: PUBLISHED_POST_OF_TARGET,
+      params: [id('publish_target_a1_fb')],
+      expect: 'no-rows',
+      why: 'app_worker holds the full SELECT — the hash included, because it writes it — and no '
+         + 'policy. One of the two cases the control for app.published_posts rests on.',
+    },
+    {
+      id: 'service-cannot-record-a-published-post',
+      covers: ['§8.3/post-S', 'RFC-2026-022§5/8'],
+      as: service,
+      ...publishPostRecord('__A__', BUSINESS_A1, id('publish_target_a1_sibling_page'),
+        id('social_account_a1'), 'case:published-post:service'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'The third statement of the `S` cell, refused at the policy layer and pending on '
+         + 'RFC-2026-022 §7. The row is well formed: the sibling-page send has no post, so '
+         + 'published_posts_one_per_target admits it; its social account is the one that send is aimed '
+         + 'at, so published_posts_target_destination_fk resolves; and its hash is over a string no '
+         + 'fixture row uses, so published_posts_external_hash_unique admits it. It lands with row '
+         + 'level security off, which is the second case the control for this table rests on.',
+    },
+    {
+      id: 'service-cannot-rewrite-a-published-post',
+      covers: ['§3.2/immutable', '§8.6/9'],
+      as: service,
+      ...publishPostRewrite(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'AND THIS ONE IS PERMANENT WHERE THE INSERT BESIDE IT IS PENDING, which is the pair that '
+         + 'says what immutability means for a service path. RFC-2026-022 coming into effect gives '
+         + 'app_worker a CARRIED policy for the INSERT §8.3 marks `S`; it gives it nothing here, '
+         + 'because no policy can restore an UPDATE privilege no role holds. A later reader must not '
+         + 'read this case as waiting for anything.',
+    },
+    {
+      id: 'service-cannot-delete-a-published-post',
+      covers: ['§3.2/immutable', '§8.5'],
+      as: service,
+      ...publishPostDelete(id('publish_target_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'published_posts' },
+      why: 'Permanent, for the same reason. §11.4 step 7 purges tenant content at closure and batch '
+         + '160 owns it through app_maintenance, which this batch grants nothing.',
+    },
+    // BATCH 122 — the service path is closed on the two publisher tables that are not `S` cells.
+    // Read as batch 082's cases are read: the closure is proved at the CATALOG, because no identity
+    // in this suite could be refused BY it that is not already refused one layer earlier. `as: ownerA`
+    // deliberately — pg_policy is readable by every role and the question is about the catalog — and
+    // the ids carry no family word, so the CI negative control does not count them: a catalog row
+    // does not change when row level security is switched off, and a case that keeps passing under
+    // the control is not evidence for it.
+    {
+      id: 'batch-122-closes-the-service-path-on-the-intent-table',
+      covers: ['§12.6/2', '§8.3/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['publish_intents'],
+      expect: 'rows',
+      why: 'Finding S8\'s shape on batch 120: its five narrowings are `to authenticated` and bind no '
+         + 'other role. 122 closes the path on the two tables that are not `S` cells — this one, whose '
+         + 'Service column is `P` — with a RESTRICTIVE policy TO PUBLIC, and this case reads it back '
+         + 'from pg_policy with all four properties, its predicate included. THE DECISION IS NEW AND '
+         + 'IS NOT THE ROW (b) THE OWNER GAVE METERING AND RESEARCH: that answer named quota_buckets '
+         + 'and research_suggestions and its record says it applies to no other family. What carried '
+         + 'over is the LOGIC, and the Product Owner applied it here on 2026-09-15 (question 11).',
+    },
+    {
+      id: 'batch-122-closes-the-service-path-on-the-pin-table',
+      covers: ['§12.6/2', '§8/no-cell'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['publish_target_assets'],
+      expect: 'rows',
+      why: 'The second closed table, and the one with no §8 cell at all — batch 071\'s '
+         + 'app.research_suggestions, one family over: a narrowed table on which app_worker holds '
+         + 'grants that no policy admits and that RFC-2026-022 §3 does not name. Closing it turns '
+         + 'service-cannot-attach-a-publish-pin from a pending refusal into a permanent one. The three '
+         + '`S`-cell tables of this family are left open BY NAME in 122\'s header, so that the CARRIED '
+         + 'policy RFC-2026-022 §7 will one day put beside their narrowings is not pre-empted.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -16368,3 +17528,319 @@ export function assetRightsStillRefusePaidAds(as, rightsId) {
 // unused builder carrying a latent type error is what the next batch copies, so it is removed; the
 // day a link becomes updatable (batch 090's approval, see the migration header), the batch that
 // grants the UPDATE writes the witness it actually needs.
+
+
+// -- BATCH 120 — publisher.meta: the intent, the fan-out, the delivery and the post. -------------
+//
+// AN INTENT AND A TARGET CARRY SYMBOLS AND A JOB, A POST AND AN ASSET PIN DO NOT, which is this
+// catalog's own rule rather than a count anybody chose: a target is addressed THROUGH its intent's
+// id and a job, a post and a pin are each addressed through their target's, while nothing is
+// addressed through any of the three. `publish_target_id` is UNIQUE on the job and on the post and
+// (publish_target_id, sort_order) identifies a pin, so each of them is reached here by the target's
+// symbol and its own natural key — which is batch 090's approval event addressed by
+// (approval_request_id, action, idempotency_key), one family over.
+//
+// TWO IDS IN THIS BLOCK BELONG TO OTHER BATCHES' TABLES AND ARE PARAMETERS ANYWAY, and the reason is
+// worth reading before the fan-out helper below. A subselect in a case runs AS THAT CASE'S IDENTITY.
+// Batch 080 grants app_worker nothing on app.content_variants and batch 081 nothing on
+// app.content_targets, so a fan-out helper that resolved its aim or its variant by subselect would
+// have had `service-cannot-fan-out-a-publish-target` refused on app.content_variants at the PRIVILEGE
+// layer — the right identity, the wrong table, the wrong layer, and a case that passes while proving
+// nothing. THE MEASUREMENT BEHIND THAT IS A FINDING IN ITS OWN RIGHT and is in the work package: the
+// service cannot read a content target or a content variant, so the fan-out §8.3 marks `S` cannot be
+// performed by the service as this schema stands — the server resolves both before the statement is
+// formed, which is exactly what RFC-2026-022 §3 calls CARRIED.
+const PUBLISH_INTENT_BY_ID = 'select id from app.publish_intents where id = $1::uuid';
+const PUBLISH_TARGET_BY_ID = 'select id from app.publish_targets where id = $1::uuid';
+const PUBLISH_PIN_OF_TARGET =
+  'select id from app.publish_target_assets where publish_target_id = $1::uuid';
+const PUBLISH_JOB_OF_TARGET = 'select id from app.publish_jobs where publish_target_id = $1::uuid';
+const PUBLISHED_POST_OF_TARGET =
+  'select id from app.published_posts where publish_target_id = $1::uuid';
+
+// PROVIDER-3, withheld from the client (§9.1, "safe projection only"). Naming the column is the
+// point: the row is readable and this is not, so the refusal is about the column and not the table.
+const PUBLISH_JOB_PROVIDER_KEY =
+  'select provider_request_key from app.publish_jobs where publish_target_id = $1::uuid';
+const PUBLISHED_POST_EXTERNAL_HASH =
+  'select external_post_hash from app.published_posts where publish_target_id = $1::uuid';
+
+// TWO STATEMENTS THAT COUNT RATHER THAN LIST, because `rows` on its own means "at least one" and §4
+// invariant 7 is a claim about a NUMBER: two sends for one intent, and exactly one post between
+// them. Each GROUPS and returns a row only when the count is right, so the case fails if a
+// destination is lost and fails if the failed send ever acquires a post. Batch 093's backdate case
+// is the same shape — a statement that returns a row only when what was stored is what it claims.
+const PUBLISH_TARGETS_OF_INTENT_ARE_TWO =
+  'select publish_intent_id from app.publish_targets where publish_intent_id = $1::uuid '
+  + 'group by publish_intent_id having count(*) = 2';
+const PUBLISHED_POSTS_OF_INTENT_IS_ONE =
+  'select t.publish_intent_id from app.published_posts p '
+  + 'join app.publish_targets t on t.id = p.publish_target_id '
+  + 'where t.publish_intent_id = $1::uuid group by t.publish_intent_id having count(*) = 1';
+
+// §8.3 row 1's create half, as the columns the client INSERT grant actually names. No `id`: the
+// column defaults, the row is rolled back with its transaction, and no case needs the id of a row it
+// is creating. The actor is a parameter rather than `(select auth.uid())` so that the two forgery
+// cases are visibly the same statement with one argument changed.
+export function publishIntentRequest(workspace, business, itemId, versionId, actor, key) {
+  return {
+    sql: 'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'now', $6, $5::uuid, $5::uuid) "
+       + 'returning id',
+    params: [workspace, business, itemId, versionId, actor, key],
+  };
+}
+
+// §8.6 case 8 on `requested_by`: the caller creates the row and names somebody else as the person who
+// asked for the publication. Batch 094's shape, applied where the column is created rather than as a
+// forward fix — A1-090 S13 found the same column unchecked on app.approval_requests long afterwards.
+export function publishIntentRequestAs(workspace, business, itemId, versionId, actor, requestedBy, key) {
+  return {
+    sql: 'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $6::uuid, 'now', $7, $5::uuid, $5::uuid) "
+       + 'returning id',
+    params: [workspace, business, itemId, versionId, actor, requestedBy, key],
+  };
+}
+
+// Batch 102's shape at the point of creation: a client may leave `updated_by` null or name itself,
+// and may not name anybody else. The difference from the helper above is one argument.
+export function publishIntentRequestNamingUpdater(workspace, business, itemId, versionId, actor, updatedBy, key) {
+  return {
+    sql: 'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'now', $7, $5::uuid, $6::uuid) "
+       + 'returning id',
+    params: [workspace, business, itemId, versionId, actor, updatedBy, key],
+  };
+}
+
+// §4.8 gives `request_kind` its two values in terms, so the CHECK is the document's vocabulary and
+// not this batch's. 23514 rather than 42501, or the case would pass on a database whose CHECK was
+// dropped and whose policy happened to refuse the caller.
+export function publishIntentRequestOfUnknownKind(workspace, business, itemId, versionId, actor, key) {
+  return {
+    sql: 'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'later', $6, $5::uuid, $5::uuid) "
+       + 'returning id',
+    params: [workspace, business, itemId, versionId, actor, key],
+  };
+}
+
+// A blank key is not a key. NOT NULL alone would accept one, and an idempotency ledger every caller
+// can satisfy with whitespace refuses the second publication of anything.
+export function publishIntentRequestWithBlankKey(workspace, business, itemId, versionId, actor) {
+  return {
+    sql: 'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, '
+       + 'content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'now', '   ', $5::uuid, $5::uuid) "
+       + 'returning id',
+    params: [workspace, business, itemId, versionId, actor],
+  };
+}
+
+// §8.3 row 1's second verb. `cancelled_at` is the only column of this table a client may move, and
+// there is no state for the database to guard it with — app.publish_intents carries no `status`
+// (the Product Owner's question 5b of 2026-09-15), so "cancel PENDING" is a product rule the command
+// surface will have to hold. Recorded in the work package rather than implied by an absence.
+export function publishIntentCancel(intentId, actor) {
+  return {
+    sql: 'update app.publish_intents set cancelled_at = now(), updated_by = $2::uuid '
+       + 'where id = $1::uuid returning id',
+    params: [intentId, actor],
+  };
+}
+
+// The witness for every `no-effect` case on the intent. It reads `updated_by`, which the fixture
+// fills with a known uuid on every row and which a landed cancellation would have replaced with the
+// attacker's — §6.4 of evidence/WP-0A-DB-00/parallel-integration-2026-09-07.md is why it is not a
+// nullable column: the driver reads CSV, CSV has no NULL, and a witness comparing against `null`
+// holds against every correct database.
+export function publishIntentStillStampedBy(as, intentId, actor) {
+  return {
+    as,
+    sql: 'select updated_by from app.publish_intents where id = $1::uuid',
+    params: [intentId],
+    column: 'updated_by',
+    equals: actor,
+  };
+}
+
+// §4 invariant 4's pin, which is in the INSERT grant and outside the UPDATE grant. The argument
+// resolves to the version the fixture ALREADY pinned here, so the refusal cannot be the foreign key
+// and cannot be a value the row would have rejected anyway.
+export function publishIntentRepin(intentId, versionId) {
+  return {
+    sql: 'update app.publish_intents set content_version_id = $2::uuid where id = $1::uuid returning id',
+    params: [intentId, versionId],
+  };
+}
+
+// §8.5: a row may not be moved across tenant or scope by an update, and `content_item_id` is the
+// column that would do it, because the item carries the Page override the narrowing turns on.
+export function publishIntentRehome(intentId, itemId) {
+  return {
+    sql: 'update app.publish_intents set content_item_id = $2::uuid where id = $1::uuid returning id',
+    params: [intentId, itemId],
+  };
+}
+
+export function publishIntentDelete(intentId) {
+  return {
+    sql: 'delete from app.publish_intents where id = $1::uuid returning id',
+    params: [intentId],
+  };
+}
+
+// THE FAN-OUT, and the one statement in this family whose every argument is a parameter. The aim and
+// the variant are ids rather than subselects for the reason at the head of this block: the identity
+// this case is most about cannot read either table. `status` is written explicitly rather than left
+// to its default, because the default is the thing a later batch is most likely to change and a
+// statement that named no status would stop exercising publish_targets_status_known.
+export function publishFanOut(workspace, business, intentId, aimId, accountId, variantId) {
+  return {
+    sql: 'insert into app.publish_targets (workspace_id, business_profile_id, publish_intent_id, '
+       + 'content_target_id, social_account_id, content_variant_id, status) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'pending') returning id",
+    params: [workspace, business, intentId, aimId, accountId, variantId],
+  };
+}
+
+// The worker's UPDATE on a send's outcome — the Product Owner's question 10 of 2026-09-15 — and the
+// same statement a client is refused at the grant layer. `status` is one of the six columns the
+// worker holds and is what the witness reads.
+export function publishTargetAdvance(targetId) {
+  return {
+    sql: "update app.publish_targets set status = 'publishing', dispatched_at = now(), "
+       + 'updated_at = now() where id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+export function publishTargetStillAt(as, targetId, status) {
+  return {
+    as,
+    sql: 'select status from app.publish_targets where id = $1::uuid',
+    params: [targetId],
+    column: 'status',
+    equals: status,
+  };
+}
+
+// Re-aiming a send at another destination is creating a different send, so `social_account_id` is
+// outside every UPDATE grant — for the service as well, which is what makes the pair with
+// publishTargetAdvance say that the six-column allowlist is a list rather than a sentence. The new
+// destination is one the fixture already uses on another row, so the refusal cannot be a constraint
+// on the value.
+export function publishTargetRedirect(targetId, accountId) {
+  return {
+    sql: 'update app.publish_targets set social_account_id = $2::uuid where id = $1::uuid returning id',
+    params: [targetId, accountId],
+  };
+}
+
+export function publishTargetDelete(targetId) {
+  return {
+    sql: 'delete from app.publish_targets where id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+// ADR-010's pin, as the columns the worker's INSERT grant names. Slot 0 on the sibling-page send is
+// free, so this lands with row level security off.
+export function publishPinAttach(workspace, business, targetId, assetId, versionId) {
+  return {
+    sql: 'insert into app.publish_target_assets (workspace_id, business_profile_id, '
+       + 'publish_target_id, asset_id, asset_version_id, sort_order, role) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 0, 'cover') returning id",
+    params: [workspace, business, targetId, assetId, versionId],
+  };
+}
+
+export function publishPinDetach(targetId) {
+  return {
+    sql: 'delete from app.publish_target_assets where publish_target_id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+// The job that talks to the provider. The request key is a parameter so the two cases using this
+// helper cannot collide on publish_jobs_provider_request_key_unique — which would turn a policy case
+// into a constraint case and prove neither.
+export function publishJobOpen(workspace, business, targetId, requestKey) {
+  return {
+    sql: 'insert into app.publish_jobs (workspace_id, business_profile_id, publish_target_id, '
+       + "provider_request_key, status) values ($1::uuid, $2::uuid, $3::uuid, $4, 'queued') returning id",
+    params: [workspace, business, targetId, requestKey],
+  };
+}
+
+export function publishJobAdvance(targetId) {
+  return {
+    sql: "update app.publish_jobs set status = 'running', attempt_count = attempt_count + 1, "
+       + 'last_attempt_at = now(), updated_at = now() where publish_target_id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+export function publishJobStillAt(as, targetId, status) {
+  return {
+    as,
+    sql: 'select status from app.publish_jobs where publish_target_id = $1::uuid',
+    params: [targetId],
+    column: 'status',
+    equals: status,
+  };
+}
+
+export function publishJobRehome(targetId, newTargetId) {
+  return {
+    sql: 'update app.publish_jobs set publish_target_id = $2::uuid '
+       + 'where publish_target_id = $1::uuid returning id',
+    params: [targetId, newTargetId],
+  };
+}
+
+export function publishJobDelete(targetId) {
+  return {
+    sql: 'delete from app.publish_jobs where publish_target_id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+// The publication record. The hash is composed from a string the case names, exactly as batch 110's
+// fixture composes an account hash and batch 010's an invitation digest: sha256() from pg_catalog
+// rather than pgcrypto's digest(), for batch 010's measured reason that public.digest does not exist
+// on the provisioned instance. No raw provider identifier appears in any statement in this suite,
+// because none exists anywhere in this schema.
+export function publishPostRecord(workspace, business, targetId, accountId, label) {
+  return {
+    sql: 'insert into app.published_posts (workspace_id, business_profile_id, publish_target_id, '
+       + 'social_account_id, platform, external_post_hash, published_at) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'facebook', "
+       + "sha256(convert_to($5, 'utf8')), now()) returning id",
+    params: [workspace, business, targetId, accountId, label],
+  };
+}
+
+// §3.2: "Immutable … publish history: ห้าม update เนื้อหาเดิม". No role holds UPDATE on any column of
+// this table, so both the client and the service case are grant-layer refusals — and the service one
+// is PERMANENT where its INSERT beside it is pending, because no policy can restore a privilege
+// nobody holds.
+export function publishPostRewrite(targetId) {
+  return {
+    sql: "update app.published_posts set platform = 'instagram' "
+       + 'where publish_target_id = $1::uuid returning id',
+    params: [targetId],
+  };
+}
+
+export function publishPostDelete(targetId) {
+  return {
+    sql: 'delete from app.published_posts where publish_target_id = $1::uuid returning id',
+    params: [targetId],
+  };
+}

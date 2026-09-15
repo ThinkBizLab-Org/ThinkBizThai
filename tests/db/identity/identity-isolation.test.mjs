@@ -9696,6 +9696,14 @@ const SERVICE_PATH_CLOSURES = {
   '083_content_targets_service_path_closed.sql': ['content_targets'],
   '092_approval_service_path_closed.sql': ['approval_policies', 'approval_requests', 'approval_events'],
   '101_asset_service_path_closed.sql': ['assets', 'asset_versions', 'asset_rights', 'content_asset_links'],
+  // 122 is the Owner's decision of 2026-09-15 on batch 120's question 11, and it is a NEW decision
+  // rather than the row (b) given to metering and research -- that answer named quota_buckets and
+  // research_suggestions and its record says it applies to no other family. What carried over is the
+  // LOGIC: close the narrowed tables that are not `S` cells. app.publish_intents is §8.3's "Publish
+  // now" row, whose Service column is `P`; app.publish_target_assets has no §8 row at all. The three
+  // `S`-cell tables -- publish_targets, publish_jobs, published_posts -- stay open by name, so the
+  // CARRIED policy RFC-2026-022 §7 will one day put beside their narrowings is not pre-empted.
+  '122_publisher_service_path_closed.sql': ['publish_intents', 'publish_target_assets'],
 };
 
 test('every service-path closure on disk is declared, and every declared closure has 082\'s shape', async () => {
@@ -11001,4 +11009,476 @@ test('every witness compares a string, because the driver returns CSV text and t
         + 'second assertion nobody reads');
     }
   }
+});
+
+// =============================================================================================
+// Batch 120 — the publisher. The one §8.3 cell this family implements, and the four it does not.
+// =============================================================================================
+//
+// The static half carries what an apply-time block cannot see and what the migration's own block
+// would be the wrong place for, following 110's split: the three claims an approved decision is
+// EXPECTED to change one day — no service policy, the worker's grants, and the closure's table list
+// — live here, where the batch that lands RFC-2026-022 §7's CARRIED policy edits a line a reviewer
+// reads rather than deleting an assertion inside an applied migration.
+const PUBLISHER_MIGRATION = 'db/foundation/migrations/120_publisher.sql';
+const PUBLISHER_CLOSURE = 'db/foundation/migrations/122_publisher_service_path_closed.sql';
+const PUBLISHER_FIXTURE = 'tests/db/identity/fixtures/120-publisher-fixture.sql';
+const publisher = await readFile(PUBLISHER_MIGRATION, 'utf8');
+const publisherCode = publisher.replace(/--[^\n]*/g, '');
+const PUBLISH_INTENTS = 'publish_intents';
+const PUBLISH_TARGETS = 'publish_targets';
+const PUBLISH_TARGET_ASSETS = 'publish_target_assets';
+const PUBLISH_JOBS = 'publish_jobs';
+const PUBLISHED_POSTS = 'published_posts';
+const PUBLISHER_TABLES = [PUBLISH_INTENTS, PUBLISH_TARGETS, PUBLISH_TARGET_ASSETS, PUBLISH_JOBS,
+  PUBLISHED_POSTS];
+// The four §8.3 marks `N` in every client column. The intent is the family's only client-writable
+// table, which is the whole shape of this batch.
+const PUBLISHER_SERVICE_WRITTEN = [PUBLISH_TARGETS, PUBLISH_TARGET_ASSETS, PUBLISH_JOBS,
+  PUBLISHED_POSTS];
+// The Product Owner's vocabularies of 2026-09-15 (question 5a), written here as well as in the
+// migration: the migration asserts them against the live catalog and this asserts them against the
+// text, and a batch that widened one without the other fails here. `cancelled` is absent from the
+// target's list deliberately — cancellation is the intent's `cancelled_at`, a person's verb the
+// worker holds no grant on.
+const TARGET_STATES = ['pending', 'publishing', 'published', 'failed', 'skipped'];
+const JOB_STATES = ['queued', 'running', 'succeeded', 'failed'];
+// PROVIDER-3 under §9.1, "safe projection only". These four may not appear in a grant to a client.
+const PUBLISHER_WITHHELD = [[PUBLISHED_POSTS, 'external_post_hash'], [PUBLISH_JOBS, 'provider_request_key'],
+  [PUBLISH_JOBS, 'last_error_code'], [PUBLISH_JOBS, 'kernel_job_id']];
+const publisherGrantsFor = (table, verb) => [...publisherCode.matchAll(
+  new RegExp(`grant ${verb} \\(([^)]*)\\)\\s*\\n?\\s*on app\\.${table} to (\\w+)`, 'g'))]
+  .map((m) => ({ columns: m[1].split(/[,\s]+/).filter(Boolean), grantee: m[2] }));
+const publisherPolicies = [...publisherCode.matchAll(/create policy (\w+)\s+on app\.(\w+)([\s\S]*?);\n/g)]
+  .map((m) => ({ name: m[1], table: m[2], body: m[3] }));
+
+test('every batch 120 table carries RLS, FORCE, a primary key and an owner comment', () => {
+  const bodies = [...publisherCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)];
+  assert.equal(bodies.length, PUBLISHER_TABLES.length,
+    "§6's registry gives batch 120 four words — \"intent/target/job/post\" — and this batch creates FIVE "
+    + 'tables. The fifth is the asset pin, which §4.8 names in the same breath as the target ("pinned '
+    + 'content variant + asset version refs") and which ADR-010 makes a rule of its own ("ต้อง pin '
+    + 'asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า latest"). A SIXTH table appearing here without a registry '
+    + "row or a §4.8 sentence is batch 021's finding: reserving somebody else's work.");
+  for (const table of PUBLISHER_TABLES) {
+    assert.match(publisherCode, new RegExp(`create table if not exists app\\.${table}\\b`));
+    assert.match(publisherCode, new RegExp(`alter table app\\.${table}\\s+enable row level security`));
+    assert.match(publisherCode, new RegExp(`alter table app\\.${table}\\s+force  ?row level security`),
+      `app.${table}: ENABLE and FORCE are different catalog columns and the data package's own lint `
+      + 'rule reads only the first, so ENABLE alone leaves the table owner — the role migrations run '
+      + 'as — exempt from every policy.');
+    assert.match(publisher, new RegExp(`comment on table app\\.${table} is`),
+      `app.${table} carries an owner comment (§3.1)`);
+    for (const synonym of ['tenant_id', 'organization_id', 'org_id', 'brand_id', 'page_id']) {
+      assert.doesNotMatch(publisherCode, new RegExp(`\\b${synonym}\\b`, 'i'),
+        `§3.3 forbids the synonym ${synonym} in the canonical domain schema`);
+    }
+  }
+});
+
+test('batch 120 writes no service policy, and every policy it writes is TO authenticated', () => {
+  assert.ok(publisherPolicies.length >= 10, 'five tables, a read policy and a narrowing on each, and '
+    + 'three more on the intent');
+  for (const policy of publisherPolicies) {
+    assert.match(policy.body, /\bto authenticated\b/,
+      `${policy.name}: §8.5 writes tenant policies TO authenticated. RFC-2026-022 is approved and NOT `
+      + 'IN EFFECT (§5/8 — the only member of app_worker is postgres, which bypasses RLS), so a policy '
+      + 'naming a service role is not written until §7 holds; batch 120 classifies its cells in '
+      + 'db/foundation/lint/service-policy-map.json instead.');
+    for (const role of ['app_worker', 'app_command', 'app_maintenance', 'app_authz', 'anon']) {
+      assert.ok(!new RegExp(`\\bto\\s+${role}\\b`).test(policy.body),
+        `${policy.name} names ${role}, which no policy in this batch may`);
+    }
+  }
+  // AND THE OTHER DIRECTION, over the WHOLE migration set: a policy naming a service role on one of
+  // these tables added by a LATER batch would not appear in 120_publisher.sql at all, and it would
+  // silently turn every grant-layer service refusal in the suite into a policy-layer one while the
+  // cases still declared `grant`.
+  for (const table of PUBLISHER_TABLES) {
+    const elsewhere = [...migrationText.matchAll(
+      new RegExp(`create policy (\\w+)\\s+on app\\.${table}([\\s\\S]*?);`, 'g'))];
+    for (const [, name, body] of elsewhere) {
+      if (/service_path_closed/.test(name)) continue;
+      assert.match(body, /\bto authenticated\b/,
+        `${name} on app.${table} is written by some migration and does not name authenticated. The `
+        + 'day a CARRIED policy lands here, this rule is the line that has to be edited — which is '
+        + 'the point of it.');
+    }
+  }
+});
+
+test('the batch 120 grants give the client one writable table and the worker no verb §8.3 withholds', () => {
+  // §8.3 row 1 is the intent and nothing else: the client creates it and cancels it.
+  const intentInsert = publisherGrantsFor(PUBLISH_INTENTS, 'insert').filter((g) => g.grantee === 'authenticated');
+  assert.equal(intentInsert.length, 1, 'one client INSERT grant on the intent');
+  const intentUpdate = publisherGrantsFor(PUBLISH_INTENTS, 'update').filter((g) => g.grantee === 'authenticated');
+  assert.deepEqual(intentUpdate[0].columns, ['cancelled_at', 'updated_at', 'updated_by'],
+    'THREE COLUMNS. The pin, the item, the requester, the kind and the idempotency key are outside the '
+    + 'client UPDATE grant: re-pinning, re-homing or re-keying an intent is creating a different '
+    + 'intent (§8.5, §4 invariant 4), and the refusals are absent privileges rather than policy '
+    + 'predicates — an absent privilege has to be WRITTEN to be undone.');
+  for (const column of ['content_version_id', 'content_item_id', 'requested_by', 'request_kind',
+    'idempotency_key', 'workspace_id', 'business_profile_id']) {
+    assert.ok(!intentUpdate[0].columns.includes(column),
+      `${column} must not be client-updatable on app.publish_intents`);
+  }
+  // §8.3 row 2 is `N` in every client column, on all four of the tables below the intent.
+  for (const table of PUBLISHER_SERVICE_WRITTEN) {
+    for (const verb of ['insert', 'update']) {
+      assert.equal(publisherGrantsFor(table, verb).filter((g) => g.grantee === 'authenticated').length, 0,
+        `no client role may ${verb} app.${table}: §8.3's "Publish delivery/post/metric INSERT" is `
+        + '`N` for the owner, the admin, the editor, the approver and the viewer alike — which is '
+        + 'unusual enough that owner-a-cannot-fan-out-a-publish-target says it out loud.');
+    }
+  }
+  // THE WORKER. It reads the intent and writes nothing there; it writes the four below it.
+  assert.equal(publisherGrantsFor(PUBLISH_INTENTS, 'select').filter((g) => g.grantee === 'app_worker').length, 1,
+    'app_worker reads the intent, because a fan-out has to. THAT IS NARROWER THAN BATCH 110 READ THE '
+    + 'SAME `P` CELL — 110 granted the worker select, insert AND update on its connection rows, "read '
+    + 'conservatively" — and the narrowing is A0\'s reading, recorded in the work package: the '
+    + "intent's writer is the user.");
+  for (const verb of ['insert', 'update']) {
+    assert.equal(publisherGrantsFor(PUBLISH_INTENTS, verb).filter((g) => g.grantee === 'app_worker').length, 0,
+      `app_worker may not ${verb} app.publish_intents; cancellation in particular is a person's verb, `
+      + 'which is why `cancelled` is not one of the target states either (070 withheld '
+      + 'cancel_requested_at from a worker for the same reason).');
+  }
+  const targetUpdate = publisherGrantsFor(PUBLISH_TARGETS, 'update').filter((g) => g.grantee === 'app_worker');
+  assert.deepEqual(targetUpdate[0].columns,
+    ['status', 'dispatched_at', 'completed_at', 'failed_at', 'failure_class', 'updated_at'],
+    'THE PRODUCT OWNER\'S QUESTION 10 OF 2026-09-15, as a list. §8.3\'s `S` is INSERT; this UPDATE is a '
+    + 'decision the Owner took, following 070 (which gave a worker a run\'s progress timestamps) and '
+    + '071 (which left that grant standing when it closed the family\'s no-cell table) rather than '
+    + "062/071's treatment of the tables that had no cell at all. The intent's aim, account and pin "
+    + 'are not in it, and neither is a cancellation.');
+  const jobUpdate = publisherGrantsFor(PUBLISH_JOBS, 'update').filter((g) => g.grantee === 'app_worker');
+  assert.deepEqual(jobUpdate[0].columns,
+    ['status', 'attempt_count', 'last_attempt_at', 'last_error_code', 'updated_at'],
+    "the job's attempt summary, and not its target, its provider key or its kernel job id");
+  // THE POST AND THE PIN ARE IMMUTABLE FOR EVERYBODY, the service included.
+  for (const table of [PUBLISHED_POSTS, PUBLISH_TARGET_ASSETS]) {
+    assert.equal(publisherGrantsFor(table, 'update').length, 0,
+      `app.${table} carries no UPDATE grant to any role: §3.2 makes publish history immutable and a `
+      + 'pin that can be moved after the fact is not a record of what was sent.');
+  }
+  assert.doesNotMatch(publisherCode, /grant delete/i,
+    '§8.5 has no broad delete, and this family has no soft one either — publish history is kept for '
+    + "the life of the Workspace (§10, PUBLISH-HISTORY) and batch 160 owns the purge at closure "
+    + 'through app_maintenance, which this batch grants nothing.');
+  // §9.1's PROVIDER-3 projection, per column, against the grant TEXT. The migration asserts the same
+  // four against the live ACL, and a batch that widened one without the other fails in one of the two.
+  for (const [table, column] of PUBLISHER_WITHHELD) {
+    for (const grant of publisherGrantsFor(table, 'select').filter((g) => g.grantee === 'authenticated')) {
+      assert.ok(!grant.columns.includes(column),
+        `app.${table}.${column} is PROVIDER-3 and §9.1 gives it the client projection "safe projection `
+        + 'only", so it may not be in a grant to authenticated. The raw provider identifier behind the '
+        + 'post hash is stored NOWHERE in this schema — batch 110 refused it a home, named batch 120 '
+        + 'as the batch that would have to answer, and 120 defers it to the typed service in writing.');
+    }
+  }
+});
+
+test('no batch 120 policy names a membership table, and every narrowing resolves through the item', () => {
+  for (const policy of publisherPolicies) {
+    for (const table of ['workspace_members', 'workspace_member_scopes']) {
+      assert.doesNotMatch(policy.body, new RegExp(table),
+        `${policy.name} must not name app.${table}. A policy that scanned it would evaluate that scan `
+        + "AS THE CALLER, so another module's whole policy set would expand inside this table's "
+        + 'evaluation (RFC-2026-020 §5/5). Membership goes through batch 011\'s helpers and scope '
+        + "through 021's, and both answer about the CALLER only.");
+    }
+  }
+  for (const table of PUBLISHER_TABLES) {
+    const selects = publisherPolicies.filter((p) => p.table === table && /for select/.test(p.body));
+    assert.equal(selects.length, 1, `app.${table} has exactly one SELECT policy`);
+    assert.match(selects[0].body, /app\.is_active_member\(workspace_id\)/,
+      `§8.3 gives publishing NO SELECT ROW AT ALL, so the read predicate on app.${table} tests ACTIVE `
+      + 'MEMBERSHIP and not role — which is a reading, recorded in the work package as batch 090 '
+      + 'recorded the same absence for approval.');
+    const narrowings = publisherPolicies.filter((p) => p.table === table && /as restrictive[\s\S]*for all/.test(p.body));
+    assert.equal(narrowings.length, 1, `app.${table} has exactly one restrictive FOR ALL narrowing`);
+    const halves = [...narrowings[0].body.matchAll(/(using|with check)\s*\(([\s\S]*?)\n  \)/g)];
+    assert.equal(halves.length, 2,
+      `app.${table}: BOTH HALVES. 040's probe is why this is asserted rather than assumed — a `
+      + 'narrowing whose USING lost its exists() would leak every page-restricted item\'s deliveries '
+      + 'to every active member of the workspace while still refusing their writes: the leak without '
+      + 'the symptom.');
+    for (const [, half, body] of halves) {
+      assert.match(body, /app\.content_items/,
+        `app.${table}: the ${half} half must resolve through app.content_items, because that is where `
+        + "§4 invariant 3's nullable Page override lives and no table in this family copies it");
+      assert.match(body, /member_scope_admits_business/, `app.${table}: the ${half} half asks the Business question`);
+      assert.match(body, /member_scope_admits_page/, `app.${table}: the ${half} half asks the Page question`);
+      if (table !== PUBLISH_INTENTS) {
+        assert.match(body, /app\.publish_intents/,
+          `app.${table}: the ${half} half must reach the item THROUGH the intent. A child of this `
+          + "family carries no item column — its reach is its intent's item's reach — so a narrowing "
+          + 'that resolved the item directly would be asking about a column the row does not have.');
+      }
+    }
+  }
+});
+
+test('batch 120 carries the Owner\'s vocabularies and no state a worker could cancel with', () => {
+  const targetCheck = publisherCode.match(/constraint publish_targets_status_known\s*\n?\s*check \(status in \(([^)]*)\)\)/);
+  assert.ok(targetCheck, 'app.publish_targets.status carries a named CHECK (§3.2: a Phase 1 state is '
+    + 'text plus a named CHECK whose values change by migration only)');
+  assert.deepEqual(targetCheck[1].split(/[,\s]+/).filter(Boolean).map((v) => v.replace(/'/g, '')), TARGET_STATES,
+    'the Product Owner gave these five on 2026-09-15 (question 5a). `cancelled` IS NOT AMONG THEM and '
+    + 'must not be: the worker holds this column, cancellation is the intent\'s cancelled_at, and a '
+    + 'vocabulary that quietly gained the word would hand a service a person\'s verb — which is '
+    + 'exactly what 070 refused when it kept cancel_requested_at out of a worker\'s grant.');
+  const jobCheck = publisherCode.match(/constraint publish_jobs_status_known\s*\n?\s*check \(status in \(([^)]*)\)\)/);
+  assert.ok(jobCheck, 'app.publish_jobs.status carries a named CHECK');
+  assert.deepEqual(jobCheck[1].split(/[,\s]+/).filter(Boolean).map((v) => v.replace(/'/g, '')), JOB_STATES);
+  // AND THE COLUMN THAT IS NOT THERE. §4.8 lists `status` on publish_intents; the Owner chose no
+  // column (question 5b), because under this batch's grants no role could move it — the client's
+  // UPDATE is the cancellation and the worker holds SELECT alone. The cost is stated rather than
+  // absorbed: "cancel PENDING" cannot be checked in the database, and that is in the open blockers.
+  const intentBody = publisherCode.match(/create table if not exists app\.publish_intents \([\s\S]*?\n\);/)[0];
+  assert.doesNotMatch(intentBody, /^\s*status\s/m,
+    'app.publish_intents carries no status column. A later batch that adds one owes a MOVER and a '
+    + 'vocabulary in the same diff, or it is adding a value set at INSERT and never again.');
+  assert.match(intentBody, /request_kind\s+text\s+not null/,
+    "§4.8 gives request_kind its two values in terms — \"request_kind(now|scheduled)\" — which is why "
+    + 'this column carries a CHECK where app.content_targets.status does not: §4.6 enumerated nothing '
+    + 'for that one and batch 081 refused to invent a vocabulary for Product.');
+});
+
+test('batch 120 holds the aim, the account and the pins to the tenant, and cascades nothing', () => {
+  // 111's key, column for column. A publish target is the second table in this schema to reference a
+  // social account, and it references it the way the first one does.
+  assert.match(publisherCode,
+    /constraint publish_targets_social_scope_fk\s*\n\s*foreign key \(workspace_id, social_account_id\)\s*\n\s*references app\.social_accounts \(workspace_id, id\)/,
+    'the social key is batch 111\'s shape exactly: composite over workspace_id, so a destination in '
+    + 'another tenant is refused at the database (§4 invariant 10) rather than by a policy that could '
+    + 'be widened.');
+  // The forward key on batch 081's merged table, and the reference that uses it.
+  assert.match(publisherCode,
+    /alter table app\.content_targets\s*\n\s*add constraint content_targets_destination_key unique \(workspace_id, business_profile_id, id, social_account_id\);/,
+    'batch 120 adds ONE key to a table batch 081 owns — ADDED, never rewritten (migration invariant '
+    + '1), which is batch 111\'s precedent on batch 110\'s table. Without it a publish target could '
+    + 'name one tenant\'s aim and another destination and every key would accept it.');
+  assert.match(publisherCode,
+    /constraint publish_targets_content_target_fk\s*\n\s*foreign key \(workspace_id, business_profile_id, content_target_id, social_account_id\)/,
+    'and the send references the aim AND the account it resolves to, in one key');
+  // §4 invariant 4's pin, held to the item by FOUR columns — which batch 081's variant pin could not be.
+  assert.match(publisherCode,
+    /constraint publish_intents_pinned_version_fk\s*\n\s*foreign key \(workspace_id, business_profile_id, content_item_id, content_version_id\)\s*\n\s*references app\.content_versions \(workspace_id, business_profile_id, content_item_id, id\)/,
+    "§4 invariant 4's pin, resolved through the ITEM by content_versions_item_scope_id_key — which 080 "
+    + 'created as "the target of every child\'s scope path". Batch 081\'s variant pin is held to the '
+    + 'tenant and the Business only, because app.content_variants carries no item column to key '
+    + "against (100:854-861 records the gap on 080's table); this one is stronger, and "
+    + 'owner-a-cannot-pin-a-publish-intent-to-another-items-version is what says so.');
+  // NO ON DELETE ANYWHERE, and the reason is this batch's own rather than the Owner's decision (a).
+  const keys = [...publisherCode.matchAll(/constraint \w+\s*\n?\s*foreign key \([^)]*\)\s*\n?\s*references [\s\S]*?(?=,\n\s*constraint|\n\);)/g)];
+  assert.ok(keys.length >= 8, `batch 120 writes ${keys.length} foreign keys; the set is larger than that, so the parse missed some`);
+  for (const [body] of keys) {
+    assert.doesNotMatch(body, /on delete/i,
+      'every foreign key in this batch is NO ACTION. THAT IS NOT THE OWNER\'S DECISION (a) OF '
+      + '2026-09-15 BEING CITED: that decision is about content_targets_social_scope_fk and says a '
+      + 'social account is never hard-deleted. The reason here is this batch\'s own — publish history '
+      + 'outlives its parents (§10 gives PUBLISH-HISTORY the life of the Workspace, §11.4 makes the '
+      + 'purge batch 160\'s at closure), so a sweep that reached a content item, a variant or an asset '
+      + 'version while a send still names it is expected to FAIL against the history rather than '
+      + 'cascade through it. README\'s sentence about CASCADE applies unchanged.');
+  }
+  // And the one column that deliberately has no key at all.
+  const jobBody = publisherCode.match(/create table if not exists app\.publish_jobs \([\s\S]*?\n\);/)[0];
+  assert.match(jobBody, /kernel_job_id\s+uuid/, 'app.publish_jobs records which kernel job ran it');
+  assert.doesNotMatch(jobBody, /kernel_job_id[\s\S]{0,200}?references/,
+    'and carries NO foreign key on it, for batch 061\'s reason on usage_events.job_id: §10 gives '
+    + 'JOB-SHORT thirty days for a success and ninety for a failure while this family has the life of '
+    + 'the Workspace, and "a foreign key would make the ledger row die with the event it dedupes".');
+});
+
+test('batch 120 stores a provider post identifier as a digest and nothing else', () => {
+  const postBody = publisherCode.match(/create table if not exists app\.published_posts \([\s\S]*?\n\);/)[0];
+  assert.match(postBody, /external_post_hash\s+bytea\s+not null/,
+    '§9.1 classes an external post ID PROVIDER-3 — "private, redact/log hash" — so `app` holds the '
+    + "hash, which is batch 110's treatment of an external ACCOUNT identifier one table over.");
+  assert.match(postBody, /octet_length\(external_post_hash\) = 32/,
+    'exactly one sha256, as an EQUALITY rather than a floor: §9.3 asks for a stable hash, and a '
+    + 'different digest is a migration a reviewer reads (110\'s sentence).');
+  // THE FORBIDDEN COLUMNS ARE SOUGHT IN THE TABLE BODIES AND NOT IN THE FILE, and the difference is
+  // not pedantry: this migration's own comments say in terms that it stores NO permalink and NO raw
+  // identifier, so a scan over the whole text would be defeated by the sentence explaining the rule.
+  // Batch 100 met the same shape when its `using hint` strings named app.workspace_members.
+  const publisherTableBodies = [...publisherCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
+    .map((m) => m[0]).join('\n');
+  for (const forbidden of ['external_post_id', 'permalink', 'post_url', 'provider_response',
+    'raw_response', 'payload', 'access_token', 'refresh_token']) {
+    assert.doesNotMatch(publisherTableBodies, new RegExp(`\\b${forbidden}\\b`, 'i'),
+      `a batch 120 table carries a column named ${forbidden}. §9.1 makes an external post ID `
+      + 'PROVIDER-3 ("private, redact/log hash") and a permalink embeds it; §9.2 forbids a provider '
+      + 'stack trace, a full SDK error and a plaintext token outright. The raw identifier is owed to '
+      + 'the typed service — batch 110 refused it a home and named batch 120 as the batch that would '
+      + 'have to answer, and this batch DEFERS it in writing, with the consequence stated: nothing '
+      + 'can address a Page at the provider until the debt is paid.');
+  }
+  assert.doesNotMatch(postBody, /updated_at/,
+    'and the post carries no updated_at at all: §3.2 puts publish history in the immutable list, so a '
+    + 'column whose whole purpose is to record a change would contradict the table.');
+});
+
+test('the tables batch 120 adds have their own entries in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  // A case is restored by disabling row level security if it is a filtered read, a filtered write
+  // with a witness, or a POLICY-layer refused write. A grant-layer refusal passes unchanged and is
+  // not counted — batch 140 established the third kind and every entry here needs it.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+  for (const table of PUBLISHER_TABLES) {
+    const entry = entries.find((e) => e.table === table);
+    assert.ok(entry, `app.${table} has no entry in the per-family negative control. The step disables `
+      + 'row level security ONE TABLE AT A TIME, so a family without an entry is a family nothing '
+      + 'would notice losing its policies.');
+    assert.equal(entry.batch, '120', `app.${table}: the entry is attributed to the batch that owes it`);
+    const matching = cases.filter((c) => new RegExp(`^${entry.pattern}`).test(c.id));
+    const basis = matching.filter(restoredByDisablingRls);
+    assert.ok(basis.length >= 2,
+      `app.${table}'s control entry rests on ${basis.length} case(s) that disabling row level security `
+      + 'would change, and it needs at least two.');
+  }
+  // THE FIVE POLICY-LAYER SERVICE CASES, PINNED BY ID AND LAYER, because they are what makes this
+  // family's entries stronger than batch 080's — 080 granted app_worker nothing at all, so its
+  // service cases could not be in any basis.
+  for (const [name, expect, layer] of [
+    ['service-cannot-fan-out-a-publish-target', 'denied', 'policy'],
+    ['service-cannot-attach-a-publish-pin', 'denied', 'policy'],
+    ['service-cannot-open-a-publish-job', 'denied', 'policy'],
+    ['service-cannot-record-a-published-post', 'denied', 'policy'],
+    ['service-cannot-advance-a-publish-target', 'no-effect', undefined],
+    ['service-cannot-advance-a-publish-job', 'no-effect', undefined],
+  ]) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `a case this batch's controls rest on is missing: ${name}`);
+    assert.equal(found.expect, expect, `${name}: the entry rests on this outcome kind`);
+    if (layer) assert.equal(found.deniedBy, layer, `${name}: and on this layer`);
+    if (expect === 'no-effect') {
+      assert.ok(found.witness, `${name}: a no-effect case is only as strong as its witness, and this `
+        + "one's reads `status` — NOT NULL, the Owner's vocabulary, and a column the refused statement "
+        + 'actually sets');
+    }
+  }
+  // AND THE THREE THAT ARE GRANT-LAYER ON THE SAME IDENTITY AND THE SAME TABLES, which is what proves
+  // the worker's column allowlist is a list rather than a sentence — batch 100's pairing, on four
+  // tables instead of one.
+  for (const name of ['service-cannot-rehome-a-publish-target', 'service-cannot-rehome-a-publish-job',
+    'service-cannot-rewrite-a-published-post']) {
+    const found = cases.find((c) => c.id === name);
+    assert.equal(found.deniedBy, 'grant',
+      `${name}: the same identity, the same table, a different column and a different LAYER. This one `
+      + 'is PERMANENT where the INSERT beside it is pending: RFC-2026-022 coming into effect gives '
+      + 'app_worker a CARRIED policy for the INSERT §8.3 marks `S` and gives it nothing here, because '
+      + 'no policy can restore a privilege no role holds.');
+  }
+});
+
+test('no batch 120 case id can satisfy another control entry, and its own five are disjoint', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ours = new Set(entries.filter((e) => e.batch === '120').map((e) => e.table));
+  assert.equal(ours.size, 5, 'batch 120 owns five control entries');
+  const mine = cases.filter((c) => /publish-intent|publish-target|publish-pin|publish-job|published-post/.test(c.id));
+  assert.equal(mine.length, 82,
+    'batch 120 contributes exactly 82 case ids across its five patterns — 30 on app.publish_intents, '
+    + '16 on app.publish_targets, 8 on app.publish_target_assets, 14 on app.publish_jobs and 14 on '
+    + 'app.published_posts. The two batch-122 closure cases are NOT among them and must not be: they '
+    + 'ask pg_policy a question, a catalog row does not change when row level security is switched '
+    + 'off, and a case that keeps passing under the control is not evidence for it. A case renamed out '
+    + 'of its own family changes this number, which is the only thing a rename cannot hide from.');
+  for (const testCase of mine) {
+    for (const entry of entries) {
+      if (ours.has(entry.table)) continue;
+      assert.doesNotMatch(testCase.id, new RegExp(`^${entry.pattern}`),
+        `${testCase.id} matches the control pattern /${entry.pattern}/ for app.${entry.table} (batch `
+        + `${entry.batch}), so that entry could be satisfied by batch 120's regression rather than by `
+        + 'its own. This is why the ids say `of-tenant-b` and `on-the-sibling-item` rather than '
+        + 'naming a workspace, a business or a page, and why no job id contains `job-row`.');
+    }
+  }
+  // AND THIS BATCH'S OWN FIVE ARE PAIRWISE DISJOINT OVER EVERY CASE IN THE SUITE. The first draft used
+  // `publish-target-asset` for the pin, which `[a-z0-9-]*publish-target` matches in full — so
+  // app.publish_targets' entry would have been satisfiable by a regression on the pin table, the exact
+  // defect the step's own comment names. It says `publish-pin`, for the reason batch 100 chose
+  // `library-asset` over `asset`.
+  const ourPatterns = entries.filter((e) => e.batch === '120').map((e) => new RegExp(`^${e.pattern}`));
+  for (const c of cases) {
+    const hits = ourPatterns.filter((re) => re.test(c.id));
+    assert.ok(hits.length <= 1, `${c.id} matches more than one batch 120 control pattern`);
+  }
+});
+
+test('the batch 120 fixture writes only catalog identities and loads the absences its cases need', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  // The RAW text as well as the stripped one, and the reason is a trap this file met here first: the
+  // fixture's own `raise exception` messages contain ` -- `, so stripping line comments truncates the
+  // strings this test is about. Ids are read from the stripped text (a uuid in a comment is not a
+  // row); the assertions are read from the raw.
+  const fixtureRaw = await readFile(PUBLISHER_FIXTURE, 'utf8');
+  const fixture = fixtureRaw.replace(/--[^\n]*/g, '');
+  const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
+  assert.ok(used.size > 0, 'the fixture must actually load rows');
+  for (const value of used) {
+    assert.ok(known.has(value), `the fixture writes ${value}, which is not a catalog identity. A `
+      + 'fixture id nobody can recompute is an unverifiable constant.');
+  }
+  for (const symbol of ['publish_intent_a1', 'publish_intent_a1_page', 'publish_intent_a1_sibling_page',
+    'publish_intent_a2', 'publish_intent_b1', 'publish_target_a1_fb', 'publish_target_a1_ig',
+    'publish_target_a1_sibling_page', 'publish_target_a2', 'publish_target_b1',
+    'content_variant_a1_page_facebook']) {
+    assert.ok(used.has(id(symbol)), `the fixture must load ${symbol}`);
+  }
+  // AND THE AIM THE FAN-OUT CASES NAME IS BATCH 081's, WITH THE ID BATCH 120 FIXED FOR IT. The fixture
+  // asserts at load that no send uses it, because publish_targets_one_per_destination would otherwise
+  // refuse those four inserts with 23505 and turn a policy case into a constraint case.
+  const aimFixture = await readFile('tests/db/identity/fixtures/081-content-targets-fixture.sql', 'utf8');
+  assert.ok(aimFixture.includes(id('content_target_a1_page')),
+    "batch 081's fixture must load the page-level aim with the fixed id batch 120 gives it");
+  assert.match(fixtureRaw, /a send already uses the aim the fan-out cases attempt/);
+  // THE FOUR ABSENCES FOUR SERVICE CASES DEPEND ON, asserted by the fixture at LOAD as well. A fixture
+  // that quietly gave publish_intent_a1_page a send, or the sibling-page send a job, a post or a pin,
+  // would turn each of those cases into a uniqueness violation — a `rejected` dressed as a `denied`,
+  // passing for the wrong reason and taking a control's basis with it.
+  for (const message of ['has % target(s) and must have none', 'the sibling-page send has a job',
+    'the sibling-page send has a post', 'the sibling-page send has an asset pin']) {
+    assert.ok(fixtureRaw.includes(message), `the fixture must assert at load: ${message}`);
+  }
+  // §4 INVARIANT 7 AS DATA, and the fixture says so twice — here and in the case that counts it.
+  assert.match(fixtureRaw, /must fan out to two, one per platform/);
+  assert.match(fixtureRaw, /must have exactly one -- the Facebook send succeeded and the Instagram send did not/);
+  // NO MEDIA AND NO PROVIDER IDENTIFIER ANYWHERE. The digests are over synthetic strings, exactly as
+  // batch 110's account hashes and batch 010's invitation digests are.
+  assert.match(fixture, /sha256\(convert_to\(/,
+    "the post digests are composed from strings this repository owns: sha256() from pg_catalog rather "
+    + "than pgcrypto's digest(), for batch 010's measured reason that public.digest does not exist on "
+    + 'the provisioned instance.');
+  assert.doesNotMatch(fixture, /base64|decode\(|bytea '/i,
+    'a fixture is where a prohibition is most often broken for convenience');
+});
+
+test('the coverage map records what batch 120 pays, and the row it does not move', () => {
+  for (const key of [1, 2, 5, 6, 8]) {
+    assert.match(SMOKE_COVERAGE[key].note, /BATCH 120/,
+      `§12.6/${key} must record what this batch adds to it. A batch that changed no note would be `
+      + 'claiming its cases pay nothing.');
+  }
+  for (const key of [1, 3, 4, 8, 9, 10]) {
+    assert.match(AUTHORIZATION_CASE_COVERAGE[key], /BATCH 120/,
+      `§8.6 case ${key} must record this batch's contribution`);
+  }
+  // THE ROW THIS BATCH COMES CLOSEST TO MOVING AND DOES NOT, for batch 100's reason exactly: it
+  // carries RLS-decided service NEGATIVES on four tables — more than any batch before it — and the
+  // POSITIVE half still needs an identity that could BE app_worker, which RFC-2026-022 §5/8 measures
+  // does not exist. Half a claim reported as a whole one is what this map exists to prevent.
+  assert.equal(SMOKE_COVERAGE[8].covered, 'negative-half');
+  assert.match(AUTHORIZATION_CASE_COVERAGE[10], /BATCH 120 CANNOT PAY IT EITHER/,
+    '§8.6 case 10 is "authorized server command → pass + expected audit/outbox", and no command '
+    + 'function exists anywhere in this repository (RFC-2026-021 §10). Batch 120 is the family where '
+    + 'that absence costs the most — the fan-out §8.3 marks `S` has no writer — so the note must say '
+    + 'so rather than letting the row stay silent.');
 });
