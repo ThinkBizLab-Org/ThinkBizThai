@@ -20,6 +20,8 @@ A RESTRICTIVE policy `TO PUBLIC`, `current_user = 'authenticated'`, refuses **ev
 
 ## 3. What the map says
 
+> **Disposed, 2026-09-15:** the Owner merged 022/031/042 (PR #144) and chose **row (b)** for metering and research — batches 062 (`quota_buckets`) and 071 (`research_suggestions`). The `S`-cell tables stay open until RFC-2026-023's amendment lands beside their closures.
+
 > **Correction, 2026-09-15 (from the role runs on PR #144):** §2's grants column understated the worker's grants on all three closable families — the tree grants INSERT on all seven tables and UPDATE on four, not SELECT alone. The conclusion does not move (the `S`-cell column and every permissive policy's TO clause were re-verified against the tree and a live 17.11 by A1 and C0), but the consequence does: with a closure dropped, a permissive worker policy is a cross-tenant **write**, not only a read — A1-pre-080 measured 5 rows in 2 tenants. The rows above are struck and corrected in place rather than rewritten.
 
 - **Three families can take 082's shape tonight with no decision beyond the one already made**: business/page, industry, knowledge. No `S` cell, worker holds SELECT grants that no policy admits, and their narrowings make the same claim 080's did.

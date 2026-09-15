@@ -9684,10 +9684,14 @@ test('the "exempt by ownership" sentence is corrected where it can be, and the r
 // it. Adding a family means adding a row; a file on disk with no row, or a row with no file, fails.
 // 022, 031 and 042 (2026-09-15) close the three pre-080 families the S8 map reads as closable with no
 // decision beyond Q3 (no S cell); the map's other rows stay open on purpose and are the Owner's.
+// 062 and 071 are the Owner's row (b) for the other two (2026-09-15): the one narrowed table per family
+// that is not an S cell; the S-cell tables (usage_events; research runs/sources/evidence) stay open.
 const SERVICE_PATH_CLOSURES = {
   '022_business_service_path_closed.sql': ['business_profiles', 'business_profile_versions', 'page_context_profiles', 'page_context_profile_versions'],
   '031_industry_service_path_closed.sql': ['industry_assignments'],
   '042_knowledge_service_path_closed.sql': ['knowledge_items', 'knowledge_item_versions'],
+  '062_metering_service_path_closed.sql': ['quota_buckets'],
+  '071_research_service_path_closed.sql': ['research_suggestions'],
   '082_content_service_path_closed.sql': CONTENT_TABLES,
   '083_content_targets_service_path_closed.sql': ['content_targets'],
   '092_approval_service_path_closed.sql': ['approval_policies', 'approval_requests', 'approval_events'],

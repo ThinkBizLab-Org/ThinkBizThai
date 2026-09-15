@@ -330,7 +330,7 @@ test('the committed catalog snapshot matches the migrations it claims to describ
 const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_scope.sql', '022_business_service_path_closed.sql',
   '030_industry.sql', '031_industry_service_path_closed.sql', '040_knowledge.sql', '041_knowledge_resolution.sql', '042_knowledge_service_path_closed.sql',
   '050_async_kernel.sql', '051_notification.sql', '060_ai_gateway.sql',
-  '061_metering.sql', '070_research.sql', '080_content.sql', '081_content_targets.sql',
+  '061_metering.sql', '062_metering_service_path_closed.sql', '070_research.sql', '071_research_service_path_closed.sql', '080_content.sql', '081_content_targets.sql',
   // Batch 082 creates no table and no fixture: five RESTRICTIVE policies on batch 080's tables and an
   // apply-time block, which the instance has not run. Declared for batch 132's reason — the list is
   // about which FILES the instance has run, not which objects they make — and INSERTED between 081 and

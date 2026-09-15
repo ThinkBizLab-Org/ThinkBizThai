@@ -12861,6 +12861,32 @@ export function buildCases(id) {
          + 'role, with app_worker holding grants no policy admits and no S cell in RFC-2026-022 §3 to pre-empt. '
          + 'This case fails against 040 alone and passes with 042; the id names no family word because each is a CI control pattern.',
     },
+    {
+      id: 'batch-062-closes-the-service-path-on-the-bucket-table',
+      covers: ['§12.6/2', '§8.4/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['quota_buckets'],
+      expect: 'rows',
+      why: 'Batch 062: the Owner\'s row (b) of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md §3, 2026-09-15) -- '
+         + 'close only the narrowed tables that are not S cells in RFC-2026-022 §3. app.quota_buckets is 061\'s '
+         + 'one such table: narrowing `for all to authenticated`, app_worker holding grants no policy admits, and no '
+         + 'service cell that a closure would pre-empt. This case fails against 061 alone and passes with 062; the S-cell '
+         + 'tables of the family are left open by name in the header. The id names no family word (CI control pattern).',
+    },
+    {
+      id: 'batch-071-closes-the-service-path-on-the-suggestion-table',
+      covers: ['§12.6/2', '§8.2/service-P-closed'],
+      as: ownerA,
+      sql: SERVICE_PATH_CLOSURE_ON,
+      params: ['research_suggestions'],
+      expect: 'rows',
+      why: 'Batch 071: the Owner\'s row (b) of the S8 map (a0-pre-080-families-s8-map-2026-09-15.md §3, 2026-09-15) -- '
+         + 'close only the narrowed tables that are not S cells in RFC-2026-022 §3. app.research_suggestions is 070\'s '
+         + 'one such table: narrowing `for all to authenticated`, app_worker holding grants no policy admits, and no '
+         + 'service cell that a closure would pre-empt. This case fails against 070 alone and passes with 071; the S-cell '
+         + 'tables of the family are left open by name in the header. The id names no family word (CI control pattern).',
+    },
 
     // -- BATCH 090 — approval: the policy, the request and the trail. -------------------------
     //
