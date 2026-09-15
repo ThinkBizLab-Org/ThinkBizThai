@@ -11057,7 +11057,7 @@ test('every batch 120 table carries RLS, FORCE, a primary key and an owner comme
   assert.equal(bodies.length, PUBLISHER_TABLES.length,
     "§6's registry gives batch 120 four words — \"intent/target/job/post\" — and this batch creates FIVE "
     + 'tables. The fifth is the asset pin, which §4.8 names in the same breath as the target ("pinned '
-    + 'content variant + asset version refs") and which ADR-010 makes a rule of its own ("ต้อง pin '
+    + 'content variant + asset version refs") and which ADR-012 makes a rule of its own ("ต้อง pin '
     + 'asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า latest"). A SIXTH table appearing here without a registry '
     + "row or a §4.8 sentence is batch 021's finding: reserving somebody else's work.");
   for (const table of PUBLISHER_TABLES) {

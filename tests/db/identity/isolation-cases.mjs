@@ -15638,7 +15638,7 @@ export function buildCases(id) {
       sql: PUBLISH_PIN_OF_TARGET,
       params: [id('publish_target_a1_fb')],
       expect: 'rows',
-      why: 'ADR-010: "Content Version และ Publish Target ต้อง pin asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า '
+      why: 'ADR-012: "Content Version และ Publish Target ต้อง pin asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า '
          + 'latest". The pin is a row, so this case is what makes the refusals below about WHO rather '
          + 'than about a table nobody populated. WHAT IT DOES NOT ASSERT: that the pinned version is '
          + '`ready` or that its rights are valid. §4 invariant 5 asks for both and NOTHING IN THE '
@@ -17749,7 +17749,7 @@ export function publishTargetDelete(targetId) {
   };
 }
 
-// ADR-010's pin, as the columns the worker's INSERT grant names. Slot 0 on the sibling-page send is
+// ADR-012's pin, as the columns the worker's INSERT grant names. Slot 0 on the sibling-page send is
 // free, so this lands with row level security off.
 export function publishPinAttach(workspace, business, targetId, assetId, versionId) {
   return {

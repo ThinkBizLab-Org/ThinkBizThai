@@ -31,7 +31,7 @@
 -- LANDS with row level security disabled -- and loading a row on one of them turned two of 081's
 -- positives into 23505. Batch 120 fixes ids instead, which takes nothing from anybody.
 --
--- The alternative was to make the pin nullable, which would have deleted the one thing ADR-010 asks
+-- The alternative was to make the pin nullable, which would have deleted the one thing ADR-012 asks
 -- of a publish target ("ต้อง pin asset_version_id ที่ใช้จริง ห้ามอ้างคำว่า latest", and the same for the
 -- content variant). Writing the rows from here is the smaller cost and it is visible in a diff --
 -- and it keeps batches 080's and 081's own merged fixtures untouched.

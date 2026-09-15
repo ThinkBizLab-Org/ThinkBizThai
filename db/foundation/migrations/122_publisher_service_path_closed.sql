@@ -29,10 +29,26 @@
 -- batch 120's own apply-time block asserts that every policy it wrote is TO authenticated alone; a
 -- closure written into 120 would trip both. 122 is the next free number after 121 (metrics).
 --
--- Today this changes nothing observable on publish_intents: no role but authenticated holds a
--- privilege there, asserted below. On publish_target_assets it changes ONE thing, and the suite says
--- so: app_worker's INSERT was refused by an empty policy set and is now refused by this closure as
--- well -- `service-cannot-attach-a-publish-pin` is a permanent refusal, not a pending one.
+-- WHAT THIS CHANGES TODAY, STATED EXACTLY RATHER THAN AS "NOTHING". On neither table is the
+-- observable outcome different, because no permissive policy on either names a role other than
+-- `authenticated` -- but "no role but authenticated holds a privilege here" is FALSE of both, and
+-- saying it would have been the sentence a later reader reasoned from. Batch 120 grants app_worker
+-- SELECT on app.publish_intents (it has to read an intent to fan it out) and SELECT and INSERT on
+-- app.publish_target_assets. Those grants stand; this closure is what refuses them, where before an
+-- empty policy set did. The assertions below therefore check that each role holds EXACTLY what
+-- batch 120 gave it and nothing more, rather than that it holds nothing.
+--
+-- AND THE CONSEQUENCE IS NAMED BECAUSE IT IS NOT SMALL. Closing app.publish_intents makes the
+-- worker's READ of an intent a PERMANENT refusal rather than a pending one -- and that read is the
+-- first step of the fan-out §8.3 marks `S` on app.publish_targets, which this file deliberately
+-- leaves open. So the day RFC-2026-022 §7 holds and a CARRIED policy lands on the send, the worker
+-- will still not be able to reach the intent the send belongs to unless a batch amends THIS policy
+-- beside it. That is the same amendment shape B already owes every closure, it is what a closure is
+-- FOR -- the first service reader arrives in a diff a reviewer reads rather than silently -- and it
+-- is recorded in the work package's open blockers rather than discovered by whoever writes the
+-- worker. It compounds a finding batch 120 measured and recorded: app_worker cannot read
+-- app.content_targets or app.content_variants either, so the statement that cell classifies CARRIED
+-- cannot be composed by the service as this schema stands, closure or no closure.
 
 create policy publish_intents_service_path_closed on app.publish_intents
   as restrictive
@@ -130,9 +146,12 @@ begin
       using hint = 'This is finding S8: the narrowing exists, and does not apply to the role being admitted.';
   end if;
 
-  -- 3. WHAT CHANGED TODAY, STATED EXACTLY: no service role and no anon holds a privilege on
-  --    publish_intents, and on publish_target_assets app_worker holds SELECT and INSERT and nothing
-  --    else -- the grants 120 made and this file now refuses through the closure.
+  -- 3. WHAT EACH ROLE HOLDS ON THE CLOSED TABLES, EXACTLY -- not "nothing", which would be false of
+  --    both. On publish_intents app_worker holds SELECT and no other verb; on
+  --    publish_target_assets it holds SELECT and INSERT and no other verb; and no OTHER service role
+  --    and no anon holds anything on either. SELECT is TESTED rather than omitted: a closure whose
+  --    own assertion skipped the one verb the worker actually has would be checking the verbs nobody
+  --    granted.
   select string_agg(format('%s to %s', c.relname, r.rolname), ', ') into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -142,10 +161,16 @@ begin
      and r.rolname::text = any (service_roles)
      and (pg_catalog.has_any_column_privilege(r.rolname, c.oid, 'INSERT')
           or pg_catalog.has_any_column_privilege(r.rolname, c.oid, 'UPDATE')
-          or pg_catalog.has_table_privilege(r.rolname, c.oid, 'DELETE'));
+          or pg_catalog.has_table_privilege(r.rolname, c.oid, 'DELETE')
+          or (r.rolname <> 'app_worker'
+              and pg_catalog.has_any_column_privilege(r.rolname, c.oid, 'SELECT')));
   if offending is not null then
-    raise exception 'a role this batch closes the path for can write the intent: %', offending
-      using hint = 'Batch 122 is written on the premise that the worker reads the intent and writes nothing. If a grant was made, the batch that made it owes the shape-B narrowing first.';
+    raise exception 'a role this batch closes the path for holds an unexpected privilege on the intent: %', offending
+      using hint = 'Batch 122 is written on the premise that app_worker READS the intent and writes nothing, and that no other service role reaches it at all. If another grant was made, the batch that made it owes the shape-B narrowing first.';
+  end if;
+  if not pg_catalog.has_any_column_privilege('app_worker', 'app.publish_intents'::regclass, 'SELECT') then
+    raise exception 'app_worker has lost its SELECT on app.publish_intents'
+      using hint = 'That grant is the first step of the fan-out and batch 120 made it deliberately. This closure refuses the read; it does not remove the grant, and a refusal attributable to a missing GRANT is weaker than one attributable to a policy (batch 010''s rule).';
   end if;
   select string_agg(format('%s to %s', c.relname, r.rolname), ', ') into offending
     from pg_catalog.pg_class c

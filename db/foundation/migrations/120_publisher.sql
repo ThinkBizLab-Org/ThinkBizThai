@@ -333,8 +333,16 @@ create table if not exists app.publish_targets (
   updated_at           timestamptz not null default now(),
   constraint publish_targets_status_known
     check (status in ('pending', 'publishing', 'published', 'failed', 'skipped')),
-  constraint publish_targets_failure_class_not_blank
-    check (failure_class is null or length(btrim(failure_class)) > 0),
+  -- A CODE, HELD TO BEING ONE. Not-blank alone would have left this the only PROVIDER-3 column in
+  -- the batch inside the client SELECT with neither a bound nor a shape -- so §9.2's "never a
+  -- provider's message or stack trace" would have been a comment ON the column rather than a control
+  -- OVER it, and the raw external identifier this batch deliberately refuses a home would have had
+  -- one path left into `app` where every active member could read it (A1-120 F1). Batch 131 bounds
+  -- its client-facing failure code at 1..128 and batch 140 holds `reason_key` to a regex; this is
+  -- 140's shape, tightened, because a code that must fit 64 characters of lower-case, digits, dot
+  -- and underscore cannot carry a sentence, a URL or an external post id.
+  constraint publish_targets_failure_class_is_a_code
+    check (failure_class is null or failure_class ~ '^[a-z][a-z0-9_.]{0,63}$'),
   -- A failure class without a failure time is not a failure record.
   constraint publish_targets_failure_is_dated
     check (failure_class is null or failed_at is not null),
@@ -395,7 +403,11 @@ comment on column app.publish_targets.status is
   'is not a state here because cancellation is the intent''s cancelled_at, a person''s verb.';
 comment on column app.publish_targets.failure_class is
   'PROVIDER-3, safe projection only. A short code naming why a send failed; never a provider''s '
-  'message, payload or stack trace (§9.2). Readable by the client so partial success can be shown.';
+  'message, payload or stack trace (§9.2). Readable by the client so partial success can be shown, '
+  'which is why the shape is a CONSTRAINT rather than a comment: at most 64 characters of lower-case, '
+  'digits, dot and underscore, which cannot hold a sentence, a URL or an external post id. NO '
+  'VOCABULARY, for the reason §4.6''s status columns carry none -- no document enumerates the failure '
+  'classes and inventing them here would be this batch choosing them for Product.';
 
 -- ============================================================================================
 -- app.publish_target_assets — the asset versions a send carries, pinned to the version and not to
@@ -433,7 +445,7 @@ create index if not exists publish_target_assets_asset_version_idx
 
 comment on table app.publish_target_assets is
   'Owner: A6 Publisher (publisher.meta, batch 120). The asset versions one send carries, pinned by '
-  'id (ADR-010: "ห้ามอ้างคำว่า latest") over content_asset_links'' four-column key into '
+  'id (ADR-012: "ห้ามอ้างคำว่า latest") over content_asset_links'' four-column key into '
   'app.asset_versions. APPEND-ONLY: no role holds UPDATE or DELETE, and the row has no updated_at. '
   'This table has NO §8 cell -- the matrix''s S cell names the delivery, the post and the metric -- '
   'so it has no service-policy-map row, no service policy is ever expected here, and it is one of '
@@ -1098,7 +1110,7 @@ begin
      and pg_catalog.has_any_column_privilege(r.rolname, c.oid, 'UPDATE');
   if offending is not null then
     raise exception 'an immutable batch 120 table can be updated: %', offending
-      using hint = '§3.2: "Immutable ... publish history: ห้าม update เนื้อหาเดิม"; the pin is append-only for ADR-010''s reason (a pin that can move is not a pin).';
+      using hint = '§3.2: "Immutable ... publish history: ห้าม update เนื้อหาเดิม"; the pin is append-only for ADR-012''s reason (a pin that can move is not a pin).';
   end if;
   select string_agg(format('%s on %s', pol.polname, c.relname), ', ') into offending
     from pg_catalog.pg_policy pol
@@ -1336,6 +1348,20 @@ begin
       get stacked diagnostics probe_sqlstate = returned_sqlstate, offending = constraint_name;
       probe_seen := probe_seen || format('post hash: %s %s', probe_sqlstate, offending);
     end;
+    -- A1-120 F1: the one PROVIDER-3 column a client reads. The value probed is what a careless
+    -- worker would actually write -- a provider's sentence with an external id inside it -- and the
+    -- point of the probe is that the CONSTRAINT refuses it rather than a comment asking nobody to.
+    begin
+      insert into app.publish_targets (workspace_id, business_profile_id, publish_intent_id, content_target_id,
+                                       social_account_id, content_variant_id, status, failed_at, failure_class)
+      values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(),
+              gen_random_uuid(), gen_random_uuid(), 'failed', now(),
+              'Graph API error: (#100) the post 17841400000000000 could not be created');
+      probe_seen := probe_seen || 'failure class: accepted';
+    exception when others then
+      get stacked diagnostics probe_sqlstate = returned_sqlstate, offending = constraint_name;
+      probe_seen := probe_seen || format('failure class: %s %s', probe_sqlstate, offending);
+    end;
     raise exception 'batch 120 check probes complete' using errcode = 'ZZ121';
   exception when sqlstate 'ZZ121' then
     -- The subtransaction is rolled back with everything the probes did. PL/pgSQL variables are not
@@ -1353,5 +1379,9 @@ begin
   end if;
   if not ('post hash: 23514 published_posts_external_hash_is_sha256' = any (probe_seen)) then
     raise exception 'the post hash probe was not refused by published_posts_external_hash_is_sha256 with 23514: %', array_to_string(probe_seen, '; ');
+  end if;
+  if not ('failure class: 23514 publish_targets_failure_class_is_a_code' = any (probe_seen)) then
+    raise exception 'a provider message carrying an external post id was not refused by publish_targets_failure_class_is_a_code with 23514: %', array_to_string(probe_seen, '; ')
+      using hint = 'This column is PROVIDER-3 and is the only one of its class a client may read. A not-blank check admits the sentence this probe writes, and §9.2 forbids a provider message reaching a client surface at all.';
   end if;
 end $$;
