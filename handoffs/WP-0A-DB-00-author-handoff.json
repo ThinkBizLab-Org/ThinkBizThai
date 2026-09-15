@@ -4,27 +4,19 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1a80f431071a0102f1483cdbe27ef06cfc213bf2",
-  "head_revision_or_patch_checksum": "06076af241f7d3b9f46e14d9310013a84c1acbbb",
+  "base_revision": "e47e72c4c7ba8edef98e3787b426e9b25079b3c7",
+  "head_revision_or_patch_checksum": "2b78bfd7e74eb8faddb81964427ea71e913fc346",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/062_metering_service_path_closed.sql",
-    "db/foundation/migrations/071_research_service_path_closed.sql",
-    "evidence/WP-0A-DB-00/a0-batches-062-071-row-b-closures-2026-09-15.md",
-    "evidence/WP-0A-DB-00/a1-security-batch-062-and-071-2026-09-15.md",
-    "evidence/WP-0A-DB-00/c0-review-batch-062-and-071-2026-09-15.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-pr-144-and-row-b.md",
-    "evidence/WP-0A-DB-00/q0-test-batch-062-and-071-2026-09-15.md"
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md"
   ],
   "files_modified": [
-    "db/foundation/lint/catalog-snapshot.json",
-    "evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md",
+    "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
