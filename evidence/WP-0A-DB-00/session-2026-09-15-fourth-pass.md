@@ -9,7 +9,7 @@ answer is transcribed verbatim in the two disposition files named in §2 before 
 
 ## 1. Where `main` is
 
-`main` = `__MAIN__` = merge of the last pull request in §2. No force-push, no direct push.
+`main` = `f925213` = merge of [PR #149](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/149) at the time of writing; the pull request that carries this record merges after it and adds one contract test (646 → 647) and no case. No force-push, no direct push.
 
 | Measure | Value |
 |---|---|
