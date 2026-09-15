@@ -25,32 +25,37 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT LANDS RFC-2026-024 AS APPROVED. The Owner answered `approve` in session (transcribed verbatim in evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md with the two answers beside it). §3 of the RFC lands as written and nothing more: DB-00's prefer_cross_vendor_review is false; cross_vendor_exception is replaced by a sentence that records the withdrawal, the history, and what independence still means; the §0 spawning disclosure is a static rule; G0's external verification and RFC-2026-002's green-CI requirement are untouched.",
-    "RFC-2026-023 STAYS IN REVIEW: the Owner answered \"รอ + ขอรายละเอียดเพิ่มเติม\" (wait; more detail asked). Nothing in the tree changes for it.",
-    "A1-100 S2 IS ANSWERED \"ตามแนะนำ\" (as recommended): original_filename leaves the client SELECT grant in a forward migration. That is the next increment (batch 103), not this one."
+    "THIS INCREMENT IS BATCH 103, THE OWNER'S ANSWER 3 (\"ตามแนะนำ\", product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md) TO A1-100 S2: app.asset_versions.original_filename (PII-2, storage contract §4.2 \"จำกัดสิทธิ์\") was in batch 100's client SELECT grant while 100's own column comment said it was withheld. One revoke from authenticated, a corrected catalog comment, an apply-time block, one case.",
+    "WHO IS ENTITLED IS DEFINED BY NO DOCUMENT, so the column is granted back to nobody -- the same refusal batch 100 recorded for asset_rights' proof columns (\"by permission\" names a permission this repository does not define). When a document names the role, the batch that reads it grants the column to that role's projection (RFC-2026-021 §3), not to authenticated. app_worker keeps SELECT and INSERT on the column (upload pipeline, signed-URL Content-Disposition), behind 101's closure.",
+    "THE CASE IS ASKED OF THE TENANT'S OWN OWNER, the strongest client role, and is refused by the GRANT on the column (deniedBy grant, deniedOn asset_versions), not filtered by a policy. Its id carries no asset word because batch 100's control rule pins the count of ids that do."
   ],
   "acceptance_results": [
     {
-      "criterion": "The manifest matches the approved RFC",
+      "criterion": "No client role reads the column; the rest of the projection and the worker's privileges are unchanged",
       "result": "met",
-      "evidence": "work-packages/WP-0A-DB-00.json independence: prefer_cross_vendor_review false, cross_vendor_exception rewritten to cite Q1 and RFC-2026-024; no other manifest touched (§3/1)"
+      "evidence": "103's apply-time block asserts all three against the live ACL; migrate-clean runs it; scratch 17.11: 857 = 856 + 1, every existing asset_versions case unchanged"
     },
     {
-      "criterion": "The §0 disclosure is a rule, and every existing role file satisfies it",
+      "criterion": "Without the file the finding reproduces",
       "result": "met",
-      "evidence": "test-kits/repository-json.test.mjs: 21 role files since 2026-09-13 matched, each carries the disclosure; suite 8/8 (7 -> 8)"
+      "evidence": "the same set without 103: FAILED -- 1 of 857, the new case, \"1 row(s) came back\"; the value read was fixture-a1.jpg (a0-batch-103-original-filename-withheld-2026-09-15.md §2)"
     },
     {
-      "criterion": "The RFC records its own approval in the Owner's word",
+      "criterion": "The tail stays contiguous",
       "result": "met",
-      "evidence": "RFC-2026-024 Status line; the disposition file quotes the question and the answer verbatim"
+      "evidence": "103 declared after 102 in catalog-snapshot.json and the contract tail; contract suite 60/60; schema-lint ok"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 644, pass 644, fail 0, skipped 0, todo 0 (643 -> 644: the disclosure rule)"
+      "result": "clean: exit 0 — tests 644, pass 644, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
+    },
+    {
+      "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
+      "exit_code": 0,
+      "result": "applied 103_asset_original_filename_withheld.sql; lint ok; 857 isolation case(s) passed; without the file: FAILED -- 1 of 857"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -58,23 +63,25 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "No database change. The repository's statement of independence now matches its practice: same-vendor role runs sign, and every signature carries the disclosure a reader needs to weigh it. What a same-vendor signature does not do (G0 external verification, automatic merge) is unchanged and restated in the exception field.",
-  "migration_and_data_impact": "None.",
-  "compatibility_impact": "None.",
+  "security_privacy_cost_impact": "Closes A1-100 S2 (HIGH): a PII-2 value projected to every active member of the workspace is now projected to no client role. No tenant boundary was crossed before; what changes is a stated control that did not exist now exists. The \"เข้ารหัส\" half of §4.2 (encryption at rest) is unchanged and stays in the blocker.",
+  "migration_and_data_impact": "One column-privilege revoke and one comment; no table, column, policy or trigger. Existing rows untouched.",
+  "compatibility_impact": "A client that selected original_filename from app.asset_versions is refused 42501 on the column. Nothing in the repository does; the fixture writes it as postgres.",
   "known_limitations": [
-    "The Decision Register's cross-vendor clause (docs/**, read-only to this package) still reads as before; the RFC records the disagreement as the Owner's to amend."
+    "The entitlement (\"ผู้มีสิทธิ์\") is undefined; until a document names the role, no client reads the filename at all. Batch 100's column comment in its migration text still says the column is withheld -- true now, and the file is not rewritten (invariant 1); the catalog comment is corrected by 103."
   ],
   "open_risks_or_blockers": [
-    "None opened."
+    "None opened; the §4.2 blocker is re-headed PARTLY CLOSED with the encryption half and the entitlement remaining."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the field returns to true, the exception to its former text, the rule goes; the RFC returns to In review.",
+  "rollback_or_forward_fix": "Revert the merge commit: the grant returns to 100's, the comment to 100's, and the finding is open again.",
   "recommended_next_work_packages": [
-    "Batch 103: original_filename withheld from the client SELECT grant (A1-100 S2, \"ตามแนะนำ\").",
-    "RFC-2026-023: the detail the Owner asked for, then disposition."
+    "The FK supporting-index lint (blocker from 111).",
+    "The apply-time silencing class (Q0 P6) as one static rule over every do-block.",
+    "RFC-2026-023 disposition, after the detail the Owner asked for."
   ],
   "reviewer_instructions": [
-    "Read the disposition file's §2 against §3 of RFC-2026-024: every clause that landed is one the Owner approved.",
-    "Run the new rule against a role file with its §0 paragraph removed: it must name the file."
+    "Apply the set with and without 103 on a scratch PostgreSQL and run rls-smoke: exactly the new case must fail without it, reading fixture-a1.jpg.",
+    "Read 100_asset.sql:709-713 beside 100:1059-1063: the comment and the grant disagreed; 103 makes the grant match the comment rather than the reverse.",
+    "Confirm app_worker still holds SELECT and INSERT on the column (the apply-time block's claim 3)."
   ],
   "superseded_by": null
 }
