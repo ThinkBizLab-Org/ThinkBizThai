@@ -5,13 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "04e163500ba3af98f8cbc8807de978646f660afb",
-  "head_revision_or_patch_checksum": "8d10763101a8af66d16941e39d033cc751bc9964",
+  "head_revision_or_patch_checksum": "0ea97596d70a9f652cb8f2c88c8d1bf9f9cd0ef4",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-apply-time-silencing-rule-2026-09-15.md",
     "evidence/WP-0A-DB-00/a0-social-key-on-delete-options-2026-09-15.md"
   ],
   "files_modified": [
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
