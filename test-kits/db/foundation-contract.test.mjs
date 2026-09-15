@@ -340,7 +340,7 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '093_updated_at_triggers.sql',
   '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
-  '102_updated_by_is_caller.sql', '103_asset_original_filename_withheld.sql',
+  '102_updated_by_is_caller.sql', '103_asset_original_filename_withheld.sql', '104_fk_supporting_indexes.sql',
   '110_meta_connector.sql',
   '111_social_fk.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
@@ -2138,4 +2138,28 @@ test('no fixture or test helper carries a psql meta-command, because the loader 
     const meta = (await readFile(file, 'utf8')).split('\n').findIndex((line) => /^\s*\\/.test(line));
     assert.equal(meta, -1, `${file} line ${meta + 1} begins with a backslash: on stdin psql executes that as a meta-command`);
   }
+});
+
+// EVERY FOREIGN KEY HAS A SUPPORTING INDEX, AND THE RULE IS LIVE (batch 104, C0-111 M1). run.mjs said
+// so for months while no target read pg_index. Now migrate-clean applies FK_SUPPORT_PROBE_SQL after
+// every set, and the four exemptions are named twice -- in run.mjs with a reason, and in 104's own
+// apply-time block -- and this rule holds the two lists equal so neither can drift.
+const FK_SUPPORT_PROBE_SQL_TEXT = (runner) => runner.slice(runner.indexOf('export const FK_SUPPORT_PROBE_SQL'), runner.indexOf('export async function migrateCleanSteps'));
+test('every foreign key has a supporting index, asserted live after every migrate-clean, with named and reasoned exemptions', async () => {
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  assert.match(runner, /const fkProbe = await script\(FK_SUPPORT_PROBE_SQL\);/, 'migrate-clean applies the probe');
+  assert.match(runner, /if \(fkProbe\.error\) \{[\s\S]{0,200}?return 1; \}/, 'and a failing probe fails the target');
+  assert.match(FK_SUPPORT_PROBE_SQL_TEXT(runner), /exempted foreign key\(s\) do not exist/, 'and the probe refuses a stale exemption');
+  const { FK_SUPPORT_EXEMPTIONS, FK_SUPPORT_PROBE_SQL } = await import('../../scripts/db/run.mjs');
+  assert.match(FK_SUPPORT_PROBE_SQL, /pg_catalog\.pg_index/, 'the probe reads pg_index');
+  assert.match(FK_SUPPORT_PROBE_SQL, /IS NOT NULL\)'/, 'and accepts a partial index on one of the key\'s own columns IS NOT NULL');
+  for (const [key, reason] of Object.entries(FK_SUPPORT_EXEMPTIONS)) {
+    assert.ok(reason.length > 40, `exemption ${key} carries a reason`);
+    assert.match(FK_SUPPORT_PROBE_SQL, new RegExp(`'${key}'`), `the probe exempts ${key}`);
+  }
+  const migration = await readFile('db/foundation/migrations/104_fk_supporting_indexes.sql', 'utf8');
+  const code = migration.replace(/--[^\n]*/g, '');
+  const listed = [...code.matchAll(/'([a-z_]+_fk)'/g)].map((m) => m[1]).sort();
+  assert.deepEqual(listed, Object.keys(FK_SUPPORT_EXEMPTIONS).sort(), '104\'s block and run.mjs exempt the same keys');
+  assert.equal([...code.matchAll(/create index if not exists/g)].length, 11, '104 creates the eleven indexes it says it does');
 });
