@@ -2204,3 +2204,20 @@ test('no apply-time block in any migration is silenced from inside its own predi
   // opened with another dollar-quote tag is outside this rule, and a reviewer should ask why it was.
   assert.ok(blocks >= 30, `the do-blocks were found (${blocks})`);
 });
+
+// THE SOCIAL KEY CARRIES NO ON DELETE ACTION, BY DECISION (Owner, 2026-09-15, disposition §5): a social
+// account row is never hard-deleted except by workspace closure, so NO ACTION is the answer and not a
+// default. A later batch that adds CASCADE or SET NULL here is changing that decision, and this rule
+// makes it do so in a diff that says so rather than in a clause nobody reads.
+test('content_targets_social_scope_fk carries no ON DELETE action, by the Owner\'s decision of 2026-09-15', async () => {
+  const code = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const key = code.match(/add constraint content_targets_social_scope_fk[\s\S]*?;/);
+  assert.ok(key, '111 adds the key');
+  assert.doesNotMatch(key[0], /on\s+(delete|update)/i, 'the key names no ON DELETE or ON UPDATE action: a social account row is never hard-deleted (disposition 2026-09-15 §5), so there is nothing to cascade, null or restrict');
+  const readme = await readFile('db/foundation/README.md', 'utf8');
+  assert.match(readme, /The key carries no ON DELETE action, by decision/, 'and the README records the decision beside the key');
+  for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '111_social_fk.sql')) {
+    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(/--[^\n]*/g, '');
+    assert.doesNotMatch(text, /content_targets_social_scope_fk[\s\S]{0,300}on\s+delete/i, `${later} does not give the social key an ON DELETE action without changing the decision first`);
+  }
+});
