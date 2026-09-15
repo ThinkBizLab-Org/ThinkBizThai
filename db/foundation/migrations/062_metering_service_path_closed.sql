@@ -4,7 +4,7 @@
 -- authenticated` that claim to bound every writer and bind no service role. Found not by a role run
 -- on 061 but by READING, after 082/083/092/101 and then 022/031/042 had closed the same shape in
 -- seven families: the S8 map of the families merged before 080
--- (evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md §3, row 2) put the metering family
+-- (evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md §2 row 4, §3 second bullet) put the metering family
 -- among the two that need the Owner, because the family holds an S cell in RFC-2026-022 §3 that a
 -- closure would pre-empt. THE OWNER CHOSE ROW (b) ON 2026-09-15 -- close only the narrowed tables
 -- that are not S cells -- and this file is that choice for metering: one table, the S-cell tables
@@ -23,7 +23,7 @@
 -- 062: §6's registry does not reserve it, as it did not reserve 082, 083, 092 or 101.
 --
 -- Today this changes nothing observable, for 101's reason rather than 082's: batch 061 grants app_worker SELECT, INSERT and UPDATE (column-scoped) on app.quota_buckets
--- (the "grants and no policy" shape batch 010 introduced), so a service role does reach the point
+-- (the "grants and no policy" shape batch 010 introduced and 061_metering.sql:1082-1095 states for this family), so a service role does reach the point
 -- where policies are consulted. It is refused there today because no permissive policy admits it,
 -- and refused tomorrow by this closure whatever permissive policy it is later given. The refusal is
 -- the same; what changes is that it no longer depends on nobody ever writing the policy. Assertion 3

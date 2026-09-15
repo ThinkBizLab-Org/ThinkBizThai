@@ -4,7 +4,7 @@
 -- authenticated` that claim to bound every writer and bind no service role. Found not by a role run
 -- on 070 but by READING, after 082/083/092/101 and then 022/031/042 had closed the same shape in
 -- seven families: the S8 map of the families merged before 080
--- (evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md §3, row 2) put the research family
+-- (evidence/WP-0A-DB-00/a0-pre-080-families-s8-map-2026-09-15.md §2 row 5, §3 second bullet) put the research family
 -- among the two that need the Owner, because the family holds an S cell in RFC-2026-022 §3 that a
 -- closure would pre-empt. THE OWNER CHOSE ROW (b) ON 2026-09-15 -- close only the narrowed tables
 -- that are not S cells -- and this file is that choice for research: one table, the S-cell tables
@@ -23,13 +23,16 @@
 -- 071: §6's registry does not reserve it, as it did not reserve 082, 083, 092 or 101.
 --
 -- Today this changes nothing observable, for 101's reason rather than 082's: batch 070 grants app_worker SELECT and INSERT (column-scoped) on app.research_suggestions
--- (the "grants and no policy" shape batch 010 introduced), so a service role does reach the point
+-- (the "grants and no policy" shape batch 010 introduced and 070_research.sql:1064-1070 states for this family), so a service role does reach the point
 -- where policies are consulted. It is refused there today because no permissive policy admits it,
 -- and refused tomorrow by this closure whatever permissive policy it is later given. The refusal is
 -- the same; what changes is that it no longer depends on nobody ever writing the policy. Assertion 3
 -- below asks the question that is true here.
 --
--- LEFT OPEN ON PURPOSE: app.research_runs, app.research_sources and app.research_evidence are narrowed too, and each is an S cell (RFC-2026-022 §3: run/source/evidence INSERT, CARRIED) -- the Owner's row (b) closes only the narrowed table RFC-2026-022 does not name; their closures come with the shape-B amendment (RFC-2026-023 §3.3) in the same file, when that RFC is in effect.
+-- LEFT OPEN ON PURPOSE: app.research_snapshots carries no narrowing at all (app_worker holds SELECT, INSERT and
+-- a column-scoped UPDATE there, 070_research.sql:1214, and no policy admits it) -- not the S8 shape, since no
+-- narrowing claims to bound a writer; it is named here so the omission reads as a reading, not an oversight.
+-- app.research_runs, app.research_sources and app.research_evidence are narrowed too, and each is an S cell (RFC-2026-022 §3: run/source/evidence INSERT, CARRIED) -- the Owner's row (b) closes only the narrowed table RFC-2026-022 does not name; their closures come with the shape-B amendment (RFC-2026-023 §3.3) in the same file, when that RFC is in effect.
 
 create policy research_suggestions_service_path_closed on app.research_suggestions
   as restrictive
