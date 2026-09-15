@@ -23,25 +23,38 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS DOCS ONLY, the close of the 2026-09-15 third pass: a state record (read-this-first for the next session), a per-family map of the S8 shape in the families merged before 080 so the Owner can answer that question per family, and the six assertion-strength findings read against what has merged since (two moot, two covered, two standing as text). It changes no migration, case, grant or policy."
+    "THIS INCREMENT IS THREE CLOSURE FILES -- 022 (business/page), 031 (industry), 042 (knowledge) -- in 082's exact shape, on the three families the S8 map (a0-pre-080-families-s8-map-2026-09-15.md §3 row 1) reads as closable with no decision beyond the Owner's Q3: no S cell in RFC-2026-022 §3, app_worker grants no policy admits, narrowings . It is a DRAFT for the Owner's disposition, because both 2026-09-15 state records put the pre-080 question to the Owner.",
+    "EACH FILE CARRIES 101's PREMISE CLAIM, not 082's: every family here grants app_worker verbs, so the apply-time premise is \"no permissive policy admits any role but authenticated\". A grant with no policy is refused by row level security before the closure exactly as after it, measured: no existing case moves when the three files are removed.",
+    "METERING (061) AND RESEARCH (070) ARE NOT CLOSED, ON PURPOSE: a closure there refuses the CARRIED worker policies RFC-2026-022 §3 expects. The global industry tables carry no narrowing and make no S8 claim; workspace_member_scopes is 021's helper table and an app_authz question. All four are named in the new blocker.",
+    "THE SEVEN CASE IDS CARRY NO FAMILY WORD because business, page, scope, industry-assignment, knowledge-item and knowledge-version are CI control patterns; the closure rule finds each case by its table parameter, as it did for 101."
   ],
   "acceptance_results": [
     {
-      "criterion": "The record states main, the counts and every merged PR of the pass, and what is owed to whom",
+      "criterion": "Every closure has 082's shape and one catalog case per table",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/session-2026-09-15-third-pass.md §1, §2, §5 -- main ec5c0f4, 643 tests, 847 cases, PRs #140-#142"
+      "evidence": "SERVICE_PATH_CLOSURES rows for 022/031/042; identity suite 285/285; the seven cases read the policy back from pg_policy with all three properties"
     },
     {
-      "criterion": "The two memos change nothing and say so",
+      "criterion": "The closures change nothing observable today and close the S8 shape tomorrow",
       "result": "met",
-      "evidence": "a0-pre-080-families-s8-map-2026-09-15.md §4 (\"It writes no closure\"); a0-assertion-strength-findings-2026-09-15.md (\"No forward migration is written for this class tonight, and this file is the record of why\")"
+      "evidence": "scratch 17.11: 854 = 847 + 7 with the files; without them FAILED -- 7 of 854, exactly the seven new cases, nothing else moves. Probe on knowledge_items: a permissive worker policy reads 0 rows with the closure and 5 with it dropped (a0-batches-022-031-042-pre-080-closures-2026-09-15.md §2)"
+    },
+    {
+      "criterion": "The not-applied tail stays contiguous",
+      "result": "met",
+      "evidence": "catalog-snapshot.json and the contract tail list 022 after 021, 031 after 030, 042 after 041; contract suite 60/60; schema-lint ok"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (unchanged)"
+      "result": "clean: exit 0 — tests 643, pass 643, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
+    },
+    {
+      "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
+      "exit_code": 0,
+      "result": "applied 022, 031, 042; lint ok; 854 isolation case(s) passed; without the three files: FAILED -- 7 of 854, the seven new cases"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -49,23 +62,25 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "None; documentation.",
-  "migration_and_data_impact": "None.",
-  "compatibility_impact": "None.",
+  "security_privacy_cost_impact": "Closes the S8 shape on seven tables of three families: a service role that is later given a permissive policy on them is refused every row until a shape-B narrowing (RFC-2026-023) is amended beside the closure. Adds no grant, no read surface; today's refusals are unchanged (measured). The two families with S cells are left for the Owner so that RFC-2026-022's remedy is not pre-empted.",
+  "migration_and_data_impact": "Seven RESTRICTIVE policies and three apply-time blocks; no table, column, grant or trigger. Existing rows untouched.",
+  "compatibility_impact": "None for authenticated. A future service policy on these seven tables must come with the shape-B amendment, which is 082's rule one family over.",
   "known_limitations": [
-    "The S8 map is read from the migration set as of 2026-09-15 and RFC-2026-022 §3; a later batch that adds an S cell to a pre-080 family changes its row."
+    "This is a DRAFT: the Owner disposes it; A0 does not merge it under the 2026-09-15 instruction, which answered Q3 for 080's family and Q6 for 081/090/100.",
+    "industry_packs and industry_pack_versions, workspace_member_scopes, quota_buckets and the research tables are not closed; each is named with its reason in the blocker."
   ],
   "open_risks_or_blockers": [
-    "None opened. The decisions the record §5 lists are the Owner's."
+    "One blocker opened: the pre-080 closures drafted, metering and research left for the Owner's row of the map."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit; three files under evidence/ go.",
+  "rollback_or_forward_fix": "Revert the merge commit: seven policies and three files go; the seven tables return to a narrowing that binds one role, which is the S8 shape the map recorded.",
   "recommended_next_work_packages": [
-    "The pre-080 closures (022/031/042 in 082's shape) once the Owner picks a row of the map's §3.",
+    "The Owner's row of the S8 map for metering and research (then 062/071 in the same shape, with or without the amendment).",
     "Batch 120 (Publisher)."
   ],
   "reviewer_instructions": [
-    "Check the record's §1 against git log main and the CI runs it cites.",
-    "Check the map's S-cell column against RFC-2026-022 §3."
+    "Apply the set with and without the three files on a scratch PostgreSQL: exactly the seven new cases must fail without them.",
+    "Replay the probe in the evidence §2 on any of the seven tables: a permissive worker policy must read 0 rows with the closure present.",
+    "Check the map's S-cell column for the three families against RFC-2026-022 §3 -- the whole premise of \"no decision beyond Q3\" rests on it."
   ],
   "superseded_by": null
 }
