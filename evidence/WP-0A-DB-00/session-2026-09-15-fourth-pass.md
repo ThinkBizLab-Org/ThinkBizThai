@@ -42,7 +42,7 @@ Dispositions: [`product-owner-disposition-2026-09-15-pr-144-and-row-b.md`](produ
 1. **The closure cases proved existence, not predicate** (Q0-pre-080 F1, A1 F2, C0 L1): `alter policy … using (true)` left all of them green. `SERVICE_PATH_CLOSURE_ON` now compares `pg_get_expr` of both halves; one closure rewritten to `true` goes 1-of-N red.
 2. **The S8 map understated the worker's grants** on all three closable families (INSERT on seven tables, UPDATE on four; the map said SELECT) — corrected in place; the consequence with a closure dropped is a cross-tenant *write* (A1 measured 5 rows in 2 tenants).
 3. **A partial index on the key's own `IS NOT NULL` supports a foreign key**, which C0's count did not accept: five of the twenty-one were already supported; the rule accepts that shape.
-4. **The secret scan reads `062-071-2026` as a Thai phone number**; role-run files are named `…-062-and-071-…`.
+4. **The secret scan reads two batch numbers and a year joined by hyphens as a Thai phone number** (it did so on the role-run file names of the 062/071 pass, and again on the first draft of this very sentence); role-run files are named `…-062-and-071-…`.
 5. **The apply-time silencing class** (`false and`, bare `return;`) had been found by four Tester runs and closed by none; one static rule over 32 do-blocks, four shapes refused by name.
 
 ## 4. Where this session was wrong
