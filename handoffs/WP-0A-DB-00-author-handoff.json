@@ -25,37 +25,37 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 103, THE OWNER'S ANSWER 3 (\"ตามแนะนำ\", product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md) TO A1-100 S2: app.asset_versions.original_filename (PII-2, storage contract §4.2 \"จำกัดสิทธิ์\") was in batch 100's client SELECT grant while 100's own column comment said it was withheld. One revoke from authenticated, a corrected catalog comment, an apply-time block, one case.",
-    "WHO IS ENTITLED IS DEFINED BY NO DOCUMENT, so the column is granted back to nobody -- the same refusal batch 100 recorded for asset_rights' proof columns (\"by permission\" names a permission this repository does not define). When a document names the role, the batch that reads it grants the column to that role's projection (RFC-2026-021 §3), not to authenticated. app_worker keeps SELECT and INSERT on the column (upload pipeline, signed-URL Content-Disposition), behind 101's closure.",
-    "THE CASE IS ASKED OF THE TENANT'S OWN OWNER, the strongest client role, and is refused by the GRANT on the column (deniedBy grant, deniedOn asset_versions), not filtered by a policy. Its id carries no asset word because batch 100's control rule pins the count of ids that do."
+    "THIS INCREMENT IS BATCH 104 AND THE LIVE RULE BEHIND IT (C0-111 M1, blocker 162): run.mjs claimed \"every FK has a supporting index\" was asserted by the live targets and none read pg_index. FK_SUPPORT_PROBE_SQL now runs in migrate-clean after every set; a key is supported when an index leads with its columns (any order), whole or partial on one of them IS NOT NULL; four keys are exempt by name with a reason, in run.mjs and in 104's own block, held equal by the contract test and refused when stale.",
+    "ELEVEN INDEXES COVER THE TWELVE KEYS THE RULE FOUND UNSUPPORTED (five of C0's twenty-one were already supported by the partial shape the rule accepts). Partial where the key's last column is nullable, in 100's and 131's shape. No case, no policy, no grant: 857 cases unchanged.",
+    "THE STALENESS CHECK LIVES IN THE PROBE AND NOT IN 104's BLOCK because three of the four exempt keys are 130's and 131's, which sort after 104; the first version asked it in the block and failed at apply time (evidence §4)."
   ],
   "acceptance_results": [
     {
-      "criterion": "No client role reads the column; the rest of the projection and the worker's privileges are unchanged",
+      "criterion": "The rule is live and names a key that lacks support",
       "result": "met",
-      "evidence": "103's apply-time block asserts all three against the live ACL; migrate-clean runs it; scratch 17.11: 857 = 856 + 1, every existing asset_versions case unchanged"
+      "evidence": "scratch 17.11: without 104, migrate-clean FAILED at the probe naming exactly the twelve keys (P0001); with 104, \"fk support probe: every foreign key in app and private has a supporting index, 4 exempt by name\" -- a0-batch-104-fk-supporting-indexes-2026-09-15.md §3"
     },
     {
-      "criterion": "Without the file the finding reproduces",
+      "criterion": "An exemption without a key, or a list that drifts, fails",
       "result": "met",
-      "evidence": "the same set without 103: FAILED -- 1 of 857, the new case, \"1 row(s) came back\"; the value read was fixture-a1.jpg (a0-batch-103-original-filename-withheld-2026-09-15.md §2)"
+      "evidence": "a fictitious exemption -> \"exempted foreign key(s) do not exist: no_such_fk\"; a misspelled real one -> the key it no longer exempted is named; the contract rule holds 104's list equal to run.mjs's and each reason non-empty; contract suite 61/61"
     },
     {
-      "criterion": "The tail stays contiguous",
+      "criterion": "Nothing else moves",
       "result": "met",
-      "evidence": "103 declared after 102 in catalog-snapshot.json and the contract tail; contract suite 60/60; schema-lint ok"
+      "evidence": "schema-lint ok; 857 isolation case(s) passed; the tail lists 104 after 103"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 644, pass 644, fail 0, skipped 0, todo 0 (unchanged: a case is not a test)"
+      "result": "clean: exit 0 — tests 645, pass 645, fail 0, skipped 0, todo 0 (644 -> 645: the FK-support contract rule)"
     },
     {
       "command": "DB_TEST_URL=<scratch 17.11> node scripts/db/run.mjs migrate-clean && schema-lint && rls-smoke",
       "exit_code": 0,
-      "result": "applied 103_asset_original_filename_withheld.sql; lint ok; 857 isolation case(s) passed; without the file: FAILED -- 1 of 857"
+      "result": "applied 104; ceiling probe ok; fk support probe ok (4 exempt); lint ok; 857 isolation case(s) passed; without 104 the probe fails naming twelve keys"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -63,25 +63,26 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "Closes A1-100 S2 (HIGH): a PII-2 value projected to every active member of the workspace is now projected to no client role. No tenant boundary was crossed before; what changes is a stated control that did not exist now exists. The \"เข้ารหัส\" half of §4.2 (encryption at rest) is unchanged and stays in the blocker.",
-  "migration_and_data_impact": "One column-privilege revoke and one comment; no table, column, policy or trigger. Existing rows untouched.",
-  "compatibility_impact": "A client that selected original_filename from app.asset_versions is refused 42501 on the column. Nothing in the repository does; the fixture writes it as postgres.",
+  "security_privacy_cost_impact": "None to access: no grant, policy or read surface changes. Operational: a parent DELETE/UPDATE no longer scans a child table under the parent's lock on twelve keys, and the next key added without an index fails migrate-clean by name instead of waiting for a large table.",
+  "migration_and_data_impact": "Eleven CREATE INDEX statements (SHARE lock for the build; every table empty on every instance this batch reaches; on a populated instance the recovery is CONCURRENTLY per statement outside a transaction, which the driver's one-transaction apply does not do -- stated in the file, as 131 did).",
+  "compatibility_impact": "None. run.mjs exports two new symbols (FK_SUPPORT_EXEMPTIONS, FK_SUPPORT_PROBE_SQL); the migrate-clean target gains one probe line of output.",
   "known_limitations": [
-    "The entitlement (\"ผู้มีสิทธิ์\") is undefined; until a document names the role, no client reads the filename at all. Batch 100's column comment in its migration text still says the column is withheld -- true now, and the file is not rewritten (invariant 1); the catalog comment is corrected by 103."
+    "The four exemptions rest on the referenced ids being globally unique; if a later batch makes a subscription or invoice id per-workspace, the exemption is wrong and the reason beside it says which fact it rests on.",
+    "The rule accepts a partial index only on one of the key's own columns IS NOT NULL; a partial on any other predicate is not support, by design."
   ],
   "open_risks_or_blockers": [
-    "None opened; the §4.2 blocker is re-headed PARTLY CLOSED with the encryption half and the entitlement remaining."
+    "None opened; blocker 162 (no FK-index lint; twenty-one keys) is re-headed CLOSED."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the grant returns to 100's, the comment to 100's, and the finding is open again.",
+  "rollback_or_forward_fix": "Revert the merge commit: the eleven indexes, the probe and the rule go; the blocker reopens as it was.",
   "recommended_next_work_packages": [
-    "The FK supporting-index lint (blocker from 111).",
-    "The apply-time silencing class (Q0 P6) as one static rule over every do-block.",
-    "RFC-2026-023 disposition, after the detail the Owner asked for."
+    "The apply-time silencing class (Q0 P6: `false and` / `return;` inside a do-block) as one static rule over every migration.",
+    "The closure generator into the tree (scripts/db/gen-closure.mjs) with a regenerate-and-diff test.",
+    "RFC-2026-023 disposition."
   ],
   "reviewer_instructions": [
-    "Apply the set with and without 103 on a scratch PostgreSQL and run rls-smoke: exactly the new case must fail without it, reading fixture-a1.jpg.",
-    "Read 100_asset.sql:709-713 beside 100:1059-1063: the comment and the grant disagreed; 103 makes the grant match the comment rather than the reverse.",
-    "Confirm app_worker still holds SELECT and INSERT on the column (the apply-time block's claim 3)."
+    "Remove 104 from the set on a scratch PostgreSQL and run migrate-clean: the probe must name the twelve keys.",
+    "Add a fictitious key to FK_SUPPORT_EXEMPTIONS and run migrate-clean: it must be refused as stale.",
+    "Read each of the four exemption reasons against the index it names (pg_indexes) and decide whether the fact it rests on holds."
   ],
   "superseded_by": null
 }
