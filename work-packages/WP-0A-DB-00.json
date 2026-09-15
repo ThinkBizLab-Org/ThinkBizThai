@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-apply-time-silencing-rule",
+    "branch": "agent/claude/WP-0A-DB-00-fourth-pass-close",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -115,7 +115,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT IS ONE STATIC RULE (the apply-time silencing class, Q0 P6) IN test-kits/db/** AND ONE MEMO IN evidence/WP-0A-DB-00/**, both writable to this package, plus the manifest and the handoff. It amends four files it does not own, each for one reason. scripts/test-suite-contract.mjs: one contract-test rule moves the declared test count and name digest. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification (645 -> 646). test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested."
+      "rationale": "THIS INCREMENT LANDS THE OWNER DECISION (a) ON THE SOCIAL KEY AND THE FOURTH-PASS STATE RECORD: db/foundation/README.md, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest and the handoff, all writable to this package. It amends four files it does not own, each for one reason. scripts/test-suite-contract.mjs: one contract-test rule moves the declared test count and name digest. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification (646 -> 647). test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested."
     }
   },
   "inputs": {

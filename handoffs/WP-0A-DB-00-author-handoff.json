@@ -25,26 +25,26 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS ONE STATIC RULE AND ONE MEMO. The rule closes the apply-time silencing class four Tester runs found (Q0-080 Q1, Q0-081 F4, Q0-pre-080 F3/P6, Q0-062-071 F2): every do-block of every migration, comments and string literals stripped, is refused if it contains `where false`, `if false`, `where true or`, `(false and`, `(true or`, `and false` / `or true` not after a comparison operator, or a bare `return;`. It is a vocabulary and says so; the clean set's 32 blocks pass, and 041's `is distinct from false` and 131's message that says \"false and\" are not matched.",
-    "THE MEMO lays out ON DELETE for content_targets_social_scope_fk (blocker 161) for the Owner and decides nothing: CASCADE deletes the publishing history 081 preserved on purpose; SET NULL needs 081 rewritten; NO ACTION is correct if social accounts are never hard-deleted, which is the question under the question and is put to the Owner with A0's recommendation (a)."
+    "THIS INCREMENT CLOSES THE FOURTH PASS OF 2026-09-15: the Owner's answer \"1. a\" to the social key's ON DELETE memo is landed -- a social account row is never hard-deleted except by workspace closure, disconnection is a status, NO ACTION stands as the answer -- in db/foundation/README.md, in a contract rule that pins content_targets_social_scope_fk to carrying no action and refuses a later migration that gives it one, and in blocker 161 re-headed CLOSED. The connector contract under docs/** (read-only to this package) is owed the same sentence by its owner.",
+    "THE FOURTH-PASS STATE RECORD (session-2026-09-15-fourth-pass.md) is the next session's read-this-first and supersedes the third-pass record for STATE. It names main at f925213 (after #149); this pull request merges after it."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each silencing shape is refused by name and the clean set passes",
+      "criterion": "The decision is where this package can write it and pinned",
       "result": "met",
-      "evidence": "measured on 082: `where false` (P6), bare `return;`, `where true or`, `and false` each refused naming the file; contract suite 62/62 (61 -> 62) -- a0-apply-time-silencing-rule-2026-09-15.md §2"
+      "evidence": "README paragraph \"The key carries no ON DELETE action, by decision\"; contract rule reads 111's key clause and every later migration; suite 63/63 (62 -> 63); the Owner's word verbatim in the disposition file §5"
     },
     {
-      "criterion": "The memo changes nothing and says what it rests on",
+      "criterion": "The record states main, the counts and every merged PR of the pass",
       "result": "met",
-      "evidence": "a0-social-key-on-delete-options-2026-09-15.md §3-§4; no migration, no manifest change beyond the plumbing"
+      "evidence": "session-2026-09-15-fourth-pass.md §1-§2: f925213, 857 cases, #144-#149 with the Owner's word beside each"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 646, pass 646, fail 0, skipped 0, todo 0 (645 -> 646: the silencing rule)"
+      "result": "clean: exit 0 — tests 647, pass 647, fail 0, skipped 0, todo 0 (646 -> 647)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
@@ -52,24 +52,23 @@
       "result": "every changed path owned or declared"
     }
   ],
-  "security_privacy_cost_impact": "No database change. The cheap edit that made an apply-time block silent while every suite stayed green now fails the contract suite by file name.",
+  "security_privacy_cost_impact": "None; documentation and a pin on an existing key's absence of action.",
   "migration_and_data_impact": "None.",
   "compatibility_impact": "None.",
   "known_limitations": [
-    "The rule is a vocabulary: `1 = 0`, `coalesce(false, …)`, `case when false` and a block opened with another dollar-quote tag are outside it; a block rewritten to assert something weaker is a reviewer's."
+    "The connector contract (docs/**) does not yet carry the ON DELETE sentence; the blocker's remaining line names the document owner."
   ],
   "open_risks_or_blockers": [
-    "None opened. Blocker 161 (ON DELETE) stays open with the memo beside it, awaiting the Owner."
+    "None opened. Blocker 161 closed with one line remaining for docs/**."
   ],
-  "rollback_or_forward_fix": "Revert the merge commit: the rule and the memo go.",
+  "rollback_or_forward_fix": "Revert the merge commit: the README paragraph, the rule and the record go; blocker 161 reopens.",
   "recommended_next_work_packages": [
-    "The Owner's answer to the memo (a) or (b), then one sentence in the connector contract or a forward batch.",
-    "RFC-2026-023 disposition.",
-    "Batch 120 (Publisher)."
+    "Batch 120 (Publisher): a plan and a case list for the Owner first; the first S-cell family written after RFC-2026-022.",
+    "RFC-2026-023 disposition."
   ],
   "reviewer_instructions": [
-    "Prefix any apply-time claim's where with `false and` on a scratch copy and run the contract suite: it must name the file.",
-    "Read §2 of the memo and decide whether a social account row is ever hard-deleted; that answer is the whole decision."
+    "Add `on delete cascade` to 111's key on a scratch copy and run the contract suite: it must refuse by name.",
+    "Check the record's §2 against git log main and the six CI runs it implies."
   ],
   "superseded_by": null
 }
