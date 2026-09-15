@@ -14288,6 +14288,23 @@ export function buildCases(id) {
          + 'would have leaked the thing the row exists to protect.',
     },
     {
+      id: 'owner-a-cannot-read-the-uploaded-filename-of-version-a1',
+      covers: ['§9.1', '§4.2/storage-contract', 'A1-100/S2'],
+      as: ownerA,
+      sql: ASSET_VERSION_ORIGINAL_FILENAME_BY_ID,
+      params: [id('asset_version_a1')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'asset_versions' },
+      why: 'Batch 103 (A1-100 S2, Owner disposition 2026-09-15 "ตามแนะนำ"): original_filename is PII-2 and the storage '
+         + 'contract §4.2 says "จำกัดสิทธิ์"; batch 100 put it in the client SELECT grant while its comment said it was '
+         + 'withheld. The OWNER of the tenant that owns the row -- the strongest client role there is -- is refused on '
+         + 'the column by the grant (42501), not filtered by a policy: nobody has defined who has the right, so no '
+         + 'client role has it, exactly as 100 did for asset_rights\' proof columns. The row itself is still readable '
+         + '(owner-a-sees-the-asset-version-of-a1); only the one column is gone. The id names no asset word: batch '
+         + '100\'s control rule pins the count of ids that do.',
+    },
+    {
       id: 'owner-b-sees-the-asset-version-of-b1',
       covers: ['§8.2', '§12.6/1'],
       as: ownerB,
@@ -16075,6 +16092,12 @@ export const ASSET_VERSION_BY_ID =
 // to hold on it exactly as it holds on the row.
 export const ASSET_VERSION_OBJECT_KEY_BY_ID =
   'select object_key from app.asset_versions where id = $1::uuid';
+
+// The uploaded filename, read on its own. PII-2 in a MEDIA-2 row; batch 103 withdrew it from the client
+// SELECT grant (A1-100 S2), so for every client role the refusal is the GRANT's -- 42501 on the column --
+// and not a policy's, which is the same shape as asset_rights' withheld proof columns.
+export const ASSET_VERSION_ORIGINAL_FILENAME_BY_ID =
+  'select original_filename from app.asset_versions where id = $1::uuid';
 
 export const ASSET_RIGHTS_BY_ID =
   'select id from app.asset_rights where id = $1::uuid';
