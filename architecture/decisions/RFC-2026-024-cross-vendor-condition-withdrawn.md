@@ -1,6 +1,6 @@
 # RFC-2026-024 — The cross-vendor review condition is withdrawn, and what independence means without it
 
-Status: **In review** — proposed 2026-09-15 by `/claude/a0_atlas` (A0), transcribing a Product Owner decision already recorded in evidence. Not approved as a rule until the Product Owner disposes it; until then every manifest keeps `prefer_cross_vendor_review: true` and every `cross_vendor_exception` stands as written.
+Status: **Approved 2026-09-15 by the Product Owner** — the answer was one word, `approve` (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md`), and §3 landed as written in the same pull request: `WP-0A-DB-00.json` carries `prefer_cross_vendor_review: false` and a `cross_vendor_exception` that records the withdrawal; the §0 spawning disclosure is a static rule over every role file since 2026-09-13 (`test-kits/repository-json.test.mjs`). Other packages' manifests are untouched (§3/1: DB-00 only). Proposed 2026-09-15 by `/claude/a0_atlas` (A0).
 Date: 2026-09-15
 Author: `/claude/a0_atlas` (A0 Integration / DB-00)
 Reviewer sought: `/claude/r0_steward` (Integration Owner of WP-0A-DB-00), to whom the 2026-09-15 disposition records this document as owed

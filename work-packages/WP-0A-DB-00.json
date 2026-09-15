@@ -36,8 +36,8 @@
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-09-15 BY THE PRODUCT OWNER (RFC-2026-024, approved; Q1 of product-owner-disposition-2026-09-15-six-questions.md: \"ยอมรับ ขอถอดเงื่อนไข cross vendor ทั้งหมด เพราะผมจะ dev ใน claude เป็นหลัก\"). Until then this field read: every assigned run is Anthropic, permitted only as the Decision Register's recorded exception, not waived and not equivalent to cross-vendor review -- which is why the signatures on #49-#113 are recorded as absent. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, no run approving, test-verifying, integrating or gate-approving its own work; a distinct same-vendor run in a named role IS that role's signature, and every role file opens with the §0 spawning disclosure (a static rule since RFC-2026-024). G0's external verification is unchanged and is satisfied by nothing an agent here can do."
   },
   "accountable_owners": [
     "A0"
