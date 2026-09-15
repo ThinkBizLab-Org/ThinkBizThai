@@ -2163,3 +2163,44 @@ test('every foreign key has a supporting index, asserted live after every migrat
   assert.deepEqual(listed, Object.keys(FK_SUPPORT_EXEMPTIONS).sort(), '104\'s block and run.mjs exempt the same keys');
   assert.equal([...code.matchAll(/create index if not exists/g)].length, 11, '104 creates the eleven indexes it says it does');
 });
+
+// AN APPLY-TIME BLOCK CANNOT BE SILENCED FROM INSIDE ITS OWN PREDICATE. Q0-080 Q1, Q0-081 F4,
+// Q0-pre-080 F3 (P6) and Q0-062-071 F2 each showed the same reversal: prefix a claim's `where` with
+// `false and`, or put a bare `return;` ahead of the assertions, and every suite stays green while
+// the block asserts nothing. The database side cannot see it (a silent block applies clean), and
+// the static rules that read a block's SENTENCES were satisfied by the sentences. This rule reads
+// every do-block of every migration with comments and string literals stripped, and refuses the
+// shapes that make a predicate constant or the block return early. It is a vocabulary, and it says
+// so: `1 = 0`, `coalesce(false, ...)` and a `when false then` inside a case are not in it -- a
+// reviewer reads the diff; this rule makes the cheap version of the trick fail by name.
+const SILENCERS = [
+  ['where false', /\bwhere\s+false\b/i],
+  ['if false', /\bif\s+false\b/i],
+  ['where true or', /\bwhere\s+true\s+or\b/i],
+  ['(false and', /\(\s*false\s+and\b/i],
+  ['(true or', /\(\s*true\s+or\b/i],
+  ['and false', /[^=<>!]\s+and\s+false\b/i],
+  ['or true', /[^=<>!]\s+or\s+true\b/i],
+  ['bare return', /^\s*return;\s*$/m],
+];
+test('no apply-time block in any migration is silenced from inside its own predicate or by an early return', async () => {
+  const dir = 'db/foundation/migrations';
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
+  let blocks = 0;
+  for (const name of names) {
+    const raw = await readFile(`${dir}/${name}`, 'utf8');
+    // comments first, then string literals ('...' with '' inside), so a message that SAYS "false and"
+    // (131_billing_projection.sql:1295 does) is not a predicate that IS.
+    const code = raw.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
+    for (const block of code.matchAll(/do \$\$[\s\S]*?end \$\$;/g)) {
+      blocks += 1;
+      for (const [label, pattern] of SILENCERS) {
+        assert.doesNotMatch(block[0], pattern,
+          `${name}: an apply-time block contains \`${label}\`, which makes a claim constant or returns before it -- Q0's reversal, refused by name`);
+      }
+    }
+  }
+  // 32 on 2026-09-15 (a `grep -c 'do $$'` says 39: the rest are in comments and messages). A block
+  // opened with another dollar-quote tag is outside this rule, and a reviewer should ask why it was.
+  assert.ok(blocks >= 30, `the do-blocks were found (${blocks})`);
+});
