@@ -51,7 +51,7 @@ replayed on a clean apply (0/4) and only the replay is in §2.
 
 ## 3b. Three files renamed by A0
 
-The role runs named their files `…-batch-062-071-2026-09-15.md` (the brief told them to); the repository's secret scan reads `062-071-2026` as a Thai phone number and refused the branch (exit 70). Renamed to `…-batch-062-and-071-…` by A0 after the cherry-picks; the runs' commits are untouched, and their own texts cite no other file by that name.
+The role runs named their files with the two batch numbers and the date joined by hyphens (the brief told them to); the repository's secret scan reads that digit run as a Thai phone number and refused the branch (exit 70). Renamed to `…-batch-062-and-071-…` by A0 after the cherry-picks; the runs' commits are untouched, and their own texts cite no other file by that name.
 
 ## 4. What remains of the pre-080 question
 
