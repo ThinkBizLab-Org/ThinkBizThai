@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-pre-080-closures",
+    "branch": "agent/claude/WP-0A-DB-00-closures-062-071",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -113,7 +113,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT IS BATCHES 022, 031 AND 042, closures in 082's shape on the three pre-080 families the S8 map reads as closable, DRAFTED FOR THE OWNER'S DISPOSITION, and every file it changes but two is in this package writable paths (db/foundation/** including the snapshot, tests/db/identity/**, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest, the handoff). It amends two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. No test moves (a case is not a test), so VERIFICATION.md and scripts/test-suite-contract.mjs are untouched."
+      "rationale": "THIS INCREMENT IS BATCHES 062 AND 071, the Owner row (b) closures on quota_buckets and research_suggestions, and every file it changes but two is in this package writable paths (db/foundation/** including the snapshot, tests/db/identity/**, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest, the handoff). It amends two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. No test moves (a case is not a test), so VERIFICATION.md and scripts/test-suite-contract.mjs are untouched."
     }
   },
   "inputs": {
