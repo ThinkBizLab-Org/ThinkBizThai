@@ -36,8 +36,8 @@
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-09-15 BY THE PRODUCT OWNER (RFC-2026-024, approved; Q1 of product-owner-disposition-2026-09-15-six-questions.md: \"ยอมรับ ขอถอดเงื่อนไข cross vendor ทั้งหมด เพราะผมจะ dev ใน claude เป็นหลัก\"). Until then this field read: every assigned run is Anthropic, permitted only as the Decision Register's recorded exception, not waived and not equivalent to cross-vendor review -- which is why the signatures on #49-#113 are recorded as absent. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, no run approving, test-verifying, integrating or gate-approving its own work; a distinct same-vendor run in a named role IS that role's signature, and every role file opens with the §0 spawning disclosure (a static rule since RFC-2026-024). G0's external verification is unchanged and is satisfied by nothing an agent here can do."
   },
   "accountable_owners": [
     "A0"
@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-closures-062-071",
+    "branch": "agent/claude/WP-0A-DB-00-rfc-024-approved",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -110,10 +110,13 @@
     ],
     "amends_without_owning": {
       "paths": [
+        "evidence/VERIFICATION.md",
+        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
-        "test-kits/integrity-manifest.json"
+        "test-kits/integrity-manifest.json",
+        "test-kits/repository-json.test.mjs"
       ],
-      "rationale": "THIS INCREMENT IS BATCHES 062 AND 071, the Owner row (b) closures on quota_buckets and research_suggestions, and every file it changes but two is in this package writable paths (db/foundation/** including the snapshot, tests/db/identity/**, test-kits/db/**, evidence/WP-0A-DB-00/**, the manifest, the handoff). It amends two files it does not own, each for one reason. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites are digested. No test moves (a case is not a test), so VERIFICATION.md and scripts/test-suite-contract.mjs are untouched."
+      "rationale": "THIS INCREMENT LANDS RFC-2026-024 AS APPROVED BY THE OWNER and every file it changes but five is in this package writable paths (architecture/decisions/** for the RFC, evidence/WP-0A-DB-00/**, the manifest, the handoff). It amends five files it does not own, each for one reason. test-kits/repository-json.test.mjs: the §0 disclosure rule the RFC §3/4 makes a requirement of the role files lives beside the decision-record rules there. scripts/test-suite-contract.mjs: that one test moves the declared count and name digest. evidence/VERIFICATION.md is written by the verifier and regenerated with npm run record:verification (643 -> 644). test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP, two lines, one row repointed. test-kits/integrity-manifest.json is regenerated because the suites and the RFC are digested."
     }
   },
   "inputs": {

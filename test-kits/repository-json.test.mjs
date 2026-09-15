@@ -156,6 +156,23 @@ test('the set of decision records is what it was, and each is digested', async (
   assert.deepEqual(wrong, [], `decision-record problem(s):\n  ${wrong.join('\n  ')}`);
 });
 
+// RFC-2026-024 §3/4 (approved 2026-09-15): the cross-vendor condition is withdrawn, and what lets a
+// reader weigh a same-vendor signature is the §0 disclosure every role file has carried since
+// 2026-09-13 -- that it is a subagent of the Author's run, in the same vendor and model family, on a
+// brief the Author wrote, and that a measurement against the tree stands regardless. A role file
+// without it is a signature nobody can weigh, so the courtesy is a rule from here.
+test('every role file since 2026-09-13 opens by disclosing that it is a subagent of the Author\'s run (RFC-2026-024 §3/4)', async () => {
+  const directory = 'evidence/WP-0A-DB-00';
+  const roleFile = /^(a1-security|c0-review|q0-test)-.*-2026-(09-1[3-9]|09-[23][0-9]|1[0-2]-[0-3][0-9])\.md$/;
+  const files = (await readdir(directory)).filter((n) => roleFile.test(n)).sort();
+  assert.ok(files.length >= 21, `the role files of 2026-09-13 onward are found (${files.length})`);
+  for (const name of files) {
+    const text = await readFile(join(directory, name), 'utf8');
+    assert.match(text, /subagent|sub-agent|spawned/i,
+      `${name} does not disclose that it is a subagent of the Author's run; RFC-2026-024 §3/4 makes that disclosure a requirement of a role file`);
+  }
+});
+
 test('no decision record exists outside the directory that holds them', async () => {
   // The recursive walk added one wave earlier starts at `architecture/decisions`, so
   // `architecture/RFC-2026-011-exemption.md` and `docs/sprint-0a/RFC-2026-011-exemption.md` were
