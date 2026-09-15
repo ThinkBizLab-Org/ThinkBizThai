@@ -204,6 +204,51 @@ Tests must read ids from here and never generate them. The cross-tenant assertio
 proving tenant A cannot reach tenant B **by guessing** is worthless; proving it cannot while holding
 B's exact id is the control that matters.
 
+## The publisher, and the one thing it cannot do
+
+Batch `120` lands `publisher.meta` — the intent a person raises, the sends it fans out to, the asset
+versions each send carries, the job that talks to the provider and the record of the publication —
+and `122` closes the service path on the two of those five tables that are not `S` cells. The Product
+Owner's fourteen answers of 2026-09-15 are transcribed in
+`evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-batch-120.md`; the plan they answer is
+`a0-batch-120-plan-2026-09-15.md`.
+
+**§8.3 gives this family two rows and they do not fall one per table.** "Publish now/cancel pending"
+is the INTENT: `Y` for the owner and the admin, `P` for the editor with no capability defined
+anywhere, `N` for the approver and the viewer. "Publish delivery/post/metric INSERT" is everything
+below it: `N` in every client column and `S` for the service. So one table in five is client-writable,
+and the other four are refused to every client role at the GRANT layer — which is why
+`owner-a-cannot-fan-out-a-publish-target` is worth reading: the person who asked for the publication
+may not write the delivery record for it.
+
+**The `S` cell is classified and not enforced.** `RFC-2026-022` is approved and NOT IN EFFECT, so the
+three statements it names — the target, the job, the post — get rows in
+`db/foundation/lint/service-policy-map.json` marked CARRIED and no policy at all. `app_worker` holds
+the grants and no policy, which is batch `010`'s shape and the reason the four `service-cannot-…`
+INSERT cases are refused at the POLICY layer and FLIP when the negative control disables row level
+security. The worker's column-scoped UPDATE on a send's outcome and a job's attempt summary is the
+Owner's decision rather than a matrix cell (question 10), and it never includes a cancellation:
+that is a person's verb and lives on the intent's `cancelled_at`.
+
+**A provider's post identifier is stored as a digest and the raw value is stored nowhere.** §9.1
+classes it `PROVIDER-3` — "private, redact/log hash", client projection "safe projection only" — so
+`app.published_posts` carries `external_post_hash`, exactly one sha256, and no permalink, because a
+permalink embeds the identifier. Batch `110` refused the same value a home for the external ACCOUNT
+identifier and named batch `120` as the batch that would have to answer. **It does not answer; it
+defers, in writing**, because the mechanism §9.3 would need has no decision behind it and the typed
+service still does not exist — and the consequence is stated rather than absorbed: nothing can
+address a Page at the provider until that debt is paid.
+
+**And the measurement that says the same thing from the other side.** Asked of a live PostgreSQL
+17.11 while the cases were being written: `app_worker` is refused `app.content_targets` and
+`app.content_variants` outright. A send COPIES an aim and a variant from those two tables, so the
+statement `RFC-2026-022` §3 calls CARRIED cannot be composed by the identity the cell names — the
+server must resolve both ids first, which is exactly what CARRIED means. That is why the four
+fan-out cases hold their aim and their variant as PARAMETERS, and why batch `120` fixes the ids of
+batch `081`'s six content targets: a subselect there would have run as `app_worker` and been refused
+on the wrong table at the wrong layer, and the case would have passed while proving nothing. It is
+in the work package's open blockers.
+
 ## Forward fix, never a downgrade
 
 There is no `down` migration and there will not be one. A merged migration is never rewritten

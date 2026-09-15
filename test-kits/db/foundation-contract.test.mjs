@@ -343,6 +343,12 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '102_updated_by_is_caller.sql', '103_asset_original_filename_withheld.sql', '104_fk_supporting_indexes.sql',
   '110_meta_connector.sql',
   '111_social_fk.sql',
+  // Batch 120 creates five tables and alters one batch 081 created, and every one of its foreign
+  // keys reaches a batch that is itself on this list; 122 creates nothing but two closures and an
+  // apply-time block. Both are INSERTED between 111 and 130 rather than appended, because the
+  // declaration must name a TAIL of the ordered set and appending would have made it a set with a
+  // hole in it -- the trap 051 recorded and 070, 080 and 100 recorded after it.
+  '120_publisher.sql', '122_publisher_service_path_closed.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -845,6 +851,44 @@ const ADDED_SYMBOLS = [
   'asset_rights_a1',
   'asset_rights_a1_sibling_page',
   'asset_rights_b1',
+  // Batch 120. A PUBLISH INTENT has a natural key -- (workspace_id, idempotency_key), the same shape
+  // §4.6 gives a content idea, which this catalog refuses a symbol for -- and carries one anyway,
+  // because every publish target is addressed THROUGH its intent's id and a case that resolved that
+  // id by subselect would put app.publish_intents' whole policy set behind the result of a case about
+  // app.publish_targets. That is the catalog's second clause, the one a content version carries a
+  // symbol under.
+  'publish_intent_a1',
+  'publish_intent_a1_page',
+  'publish_intent_a1_sibling_page',
+  'publish_intent_a2',
+  'publish_intent_b1',
+  // A PUBLISH TARGET carries one for the same reason a level down: a job, a post and an asset pin are
+  // each addressed through `publish_target_id`, which app.publish_jobs and app.published_posts make
+  // UNIQUE. THE THREE OF THEM GET NONE, because nothing is addressed through any of them -- each is
+  // reached by its target's symbol and its own natural key, which is batch 090's approval event
+  // addressed by (approval_request_id, action, idempotency_key).
+  'publish_target_a1_fb',
+  'publish_target_a1_ig',
+  'publish_target_a1_sibling_page',
+  'publish_target_a2',
+  'publish_target_b1',
+  // AND BATCH 081's SIX CONTENT TARGETS, which that batch declared needed no symbol and which batch
+  // 120 gives one each -- the catalog's own second clause arriving on schedule (app.publish_targets
+  // references a content target BY ID, so the row is now addressed through, exactly as a content
+  // version is) plus a third clause this catalog did not have before. A case resolves a natural key
+  // with a subselect and a subselect runs AS THE CASE'S IDENTITY; batches 080 and 081 grant app_worker
+  // nothing on app.content_variants or app.content_targets, so a fan-out helper resolving its aim or
+  // its variant that way would have had `service-cannot-fan-out-a-publish-target` refused on the wrong
+  // table at the wrong layer -- and passing. The variant is written by batch 120's own fixture; the
+  // six ids are FIXED in batch 081's, which is what batch 111 did to batch 110's on the day a foreign
+  // key started naming those rows.
+  'content_target_a1_fb',
+  'content_target_a1_ig',
+  'content_target_a1_page',
+  'content_target_a1_sibling_page',
+  'content_target_a2',
+  'content_target_b1',
+  'content_variant_a1_page_facebook',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

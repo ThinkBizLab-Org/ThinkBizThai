@@ -816,4 +816,44 @@ jobs:
           control app.asset_versions          '[a-z0-9-]*asset-version'    100
           control app.asset_rights            '[a-z0-9-]*asset-rights'     100
           control app.content_asset_links     '[a-z0-9-]*asset-link'       100
+          # BATCH 120 — publisher.meta. Five tables, five entries, because the step disables row level
+          # security ONE TABLE AT A TIME and an entry is what makes a family detectable on its own.
+          #
+          # THE FIVE PATTERNS ARE PAIRWISE DISJOINT OVER EVERY CASE IN THE SUITE, which is a property
+          # this batch had to design for rather than discover. The obvious word for the asset pin was
+          # `publish-target-asset`, and `[a-z0-9-]*publish-target` would have matched every one of its
+          # ids -- so app.publish_targets' entry would have been satisfiable by a regression on the pin
+          # table, which is the defect this step's own comment names. The pin says `publish-pin`
+          # instead, for the reason batch 100 chose `library-asset` over `asset`.
+          #
+          # WHAT EACH ENTRY RESTS ON, and every one of them is a case row level security actually
+          # decides rather than a privilege refusal that would pass unchanged with RLS off:
+          #
+          #   * THE TENANT BOUNDARY, on all five. `owner-b-cannot-read-publish-intent-a1-by-id` and its
+          #     four siblings hold tenant A's exact id and return nothing, while the `owner-a-sees-...`
+          #     case beside each one proves the row is there to be seen.
+          #   * THE MEMBER NARROWING, resolved through the INTENT and then the item on four of them.
+          #     `editor-a-sees-zero-publish-intents-under-a2` and the target, job and post cases beside
+          #     it are the ones that fail if a child's two-step `exists()` is flattened to one.
+          #   * THE SUSPENDED MEMBER, on all five.
+          #   * AND THE `S` CELL ITSELF, WHICH IS WHY THIS FAMILY'S ENTRIES ARE THE STRONGEST YET.
+          #     `service-cannot-fan-out-a-publish-target`, `-open-a-publish-job`,
+          #     `-record-a-published-post` and `-attach-a-publish-pin` are POLICY-layer refusals:
+          #     app_worker holds the INSERT grant §8.3 marks `S` and NO POLICY (RFC-2026-022 is
+          #     approved and NOT IN EFFECT), so disabling row level security makes each write LAND.
+          #     Each one's row is well formed and its slot is free -- the fixture leaves one intent
+          #     with no send and one send with no job, no post and no pin precisely so that they can
+          #     succeed. `service-cannot-advance-a-publish-target` and `-a-publish-job` are `no-effect`
+          #     with witnesses on `status`, which is the shape batch 100 introduced with
+          #     `service-cannot-redact-an-asset-version`.
+          #
+          # NOT the `service-cannot-rehome-...`, `-delete-...` or `-rewrite-a-published-post` cases:
+          # each is a refusal of a COLUMN or a VERB app_worker does not hold, and a privilege-layer
+          # refusal passes unchanged with row level security off. Three layers on one identity, on one
+          # family, is what proves the worker's column allowlist is a list rather than a sentence.
+          control app.publish_intents         '[a-z0-9-]*publish-intent'   120
+          control app.publish_targets         '[a-z0-9-]*publish-target'   120
+          control app.publish_target_assets   '[a-z0-9-]*publish-pin'      120
+          control app.publish_jobs            '[a-z0-9-]*publish-job'      120
+          control app.published_posts         '[a-z0-9-]*published-post'   120
           echo "negative control: every family above failed the suite, as each must."
