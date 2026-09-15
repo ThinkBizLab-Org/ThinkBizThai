@@ -30,3 +30,20 @@ in the same session.
 ## 4. What this file is not
 
 Not a disposition of RFC-2026-023; not a definition of who is entitled to read an uploaded filename.
+
+## 5. Later the same session: the social key's ON DELETE (blocker 161)
+
+A0 put `a0-social-key-on-delete-options-2026-09-15.md` to the Owner with two answers:
+
+> 1. **ON DELETE ของ social key** — อ่าน memo แล้วตอบ `(a)` (account ไม่เคยถูก hard-delete; disconnect = status → NO ACTION ถูกแล้ว, ปิด blocker ด้วย 1 ประโยคใน contract) หรือ `(b)` (retention ลบ account ได้ → ต้อง batch จริง: SET NULL + แก้ natural key ของ target) — ผมแนะนำ (a)
+
+The Owner's answer (verbatim):
+
+> 1. a
+
+Reading: **a social account row is never hard-deleted except by workspace closure; disconnection is
+a status. NO ACTION on `content_targets_social_scope_fk` stands.** Acted: the sentence is written
+where this package can write it — `db/foundation/README.md` and a contract rule that pins the key
+to carrying no ON DELETE action by this decision — and the connector contract (`docs/**`, read-only
+to this package) is owed the same sentence by its owner; blocker 161 closes with that one thing
+remaining.

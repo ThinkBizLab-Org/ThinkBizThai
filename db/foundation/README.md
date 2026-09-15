@@ -159,6 +159,14 @@ point at them; and `content_targets_social_scope_fk` is what makes a destination
 exist, or belongs to another tenant, fail to load or to insert — `editor-a-cannot-aim-a-content-
 target-at-another-tenants-destination` is the case, refused with 23503 (not `…-social-account`:
 that word is batch `110`'s control pattern, and a case id may not satisfy another family's entry).
+
+**The key carries no ON DELETE action, by decision.** The Owner answered the question batch `111`
+left open (2026-09-15, `product-owner-disposition-2026-09-15-rfcs-and-pii-filename.md` §5): a social
+account row is never hard-deleted except by workspace closure — disconnection is a *status* — so
+there is nothing for the key to cascade, null or restrict, and NO ACTION is the correct answer
+rather than a default. CASCADE was refused because it would delete the publishing history `081`
+preserved on purpose; SET NULL because `social_account_id` is NOT NULL and the target's natural key.
+A batch that wants to hard-delete an account must first change that decision, in writing.
 Batch `090` added symbols for rows in **one of its three tables**, which is the smallest share any
 multi-table batch has claimed, and the split falls exactly where this catalog's rule puts it. An
 **approval policy** is addressed by `(workspace_id, business_profile_id, policy_key, version)` —
