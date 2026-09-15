@@ -66,6 +66,53 @@ export const PREREQUISITE = 'db/foundation/prerequisites.sql';
 export const CEILING_PROBE_BYTES = 200000;
 export const CEILING_PROBE_SQL = `do \$\$ begin end \$\$;\n-- ${'x'.repeat(CEILING_PROBE_BYTES)}\n`;
 
+// FOREIGN-KEY SUPPORT, ASSERTED LIVE. run.mjs used to say this was "asserted by the live targets"
+// and no live target read pg_index (C0-111 M1: twenty-one keys, every target green). Batch 104
+// wrote the rule and paid the debt; this is the rule, applied after every migrate-clean so the next
+// key without an index fails the target by name. A key is supported when some index on its table
+// leads with the key's columns (any order), whole or partial on one of them IS NOT NULL. The four
+// exemptions carry their reasons and are the same four 104's own block names; the contract test
+// holds the two lists equal.
+export const FK_SUPPORT_EXEMPTIONS = {
+  assets_current_version_scope_fk: 'assets_current_version_idx (workspace_id, business_profile_id, current_version_id) WHERE current_version_id IS NOT NULL finds every row a version delete checks; id is the asset\'s own key and adds nothing',
+  billing_invoices_subscription_scope_fk: 'billing_invoices_subscription_idx (billing_subscription_id): the subscription id is unique across workspaces, so the single column is the lookup',
+  billing_payments_invoice_mode_fk: 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
+  billing_payments_invoice_scope_fk: 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
+};
+export const FK_SUPPORT_PROBE_SQL = `do \$\$
+declare
+  offending text;
+  exempt constant text[] := array[${Object.keys(FK_SUPPORT_EXEMPTIONS).map((k) => `'${k}'`).join(', ')}];
+begin
+  with fk as (
+    select c.oid, c.conname, c.conrelid, c.conkey
+      from pg_catalog.pg_constraint c join pg_catalog.pg_namespace n on n.oid = c.connamespace
+     where c.contype = 'f' and n.nspname in ('app', 'private')
+  ), covered as (
+    select distinct fk.oid from fk join pg_catalog.pg_index i on i.indrelid = fk.conrelid
+     where (select array_agg(x order by x) from unnest((i.indkey::int2[])[0:array_length(fk.conkey, 1) - 1]) x)
+         = (select array_agg(x order by x) from unnest(fk.conkey) x)
+       and (i.indpred is null
+            or exists (select 1 from unnest(fk.conkey) k
+                        where pg_catalog.pg_get_expr(i.indpred, i.indrelid)
+                            = '(' || quote_ident((select attname from pg_catalog.pg_attribute where attrelid = fk.conrelid and attnum = k)) || ' IS NOT NULL)'))
+  )
+  select string_agg(fk.conrelid::regclass::text || '.' || fk.conname, ', ' order by fk.conname) into offending
+    from fk where fk.oid not in (select oid from covered) and not (fk.conname = any (exempt));
+  if offending is not null then
+    raise exception 'foreign key(s) with no supporting index and no named exemption: %', offending;
+  end if;
+  -- Every exemption names a key that exists; a stale exemption is a lie about the catalog. Asked
+  -- here and not in 104's own block because three of the four are 130's and 131's keys, which sort
+  -- after 104.
+  select string_agg(e, ', ') into offending from unnest(exempt) e
+   where not exists (select 1 from pg_catalog.pg_constraint c where c.conname = e and c.contype = 'f');
+  if offending is not null then
+    raise exception 'exempted foreign key(s) do not exist: %', offending;
+  end if;
+end \$\$;
+`;
+
 export async function migrateCleanSteps() {
   return [
     { name: PREREQUISITE, sql: await readFile(PREREQUISITE, 'utf8') },
@@ -74,8 +121,10 @@ export async function migrateCleanSteps() {
 }
 
 // STATIC: the lint rules §12.3 item 8 lists that can be decided from the migration text without
-// connecting anywhere. The rules that need the live catalog — every FK has a supporting index,
-// every role's attributes — are asserted by the live targets and are NOT silently claimed here.
+// connecting anywhere. The rules that need the live catalog are asserted by the live targets and
+// are NOT silently claimed here: every FK has a supporting index is FK_SUPPORT_PROBE_SQL in
+// migrate-clean (since batch 104; before it this sentence claimed a target that did not exist);
+// every role's attributes is rls-smoke's.
 export async function schemaLint(files) {
   const problems = [];
   const all = files ?? await migrationFiles();
@@ -1174,6 +1223,11 @@ async function runLive(target) {
     const probe = await script(CEILING_PROBE_SQL);
     if (probe.error) { stderr.write(`  ceiling probe: ${probe.error.message} (${probe.error.code ?? 'no code'})\n`); return 1; }
     stdout.write(`  ceiling probe: a ${Buffer.byteLength(CEILING_PROBE_SQL)}-byte script applied through stdin\n`);
+    // THE FOREIGN-KEY SUPPORT PROBE (batch 104). Reads pg_index on the database just built; a key
+    // with no supporting index and no named exemption fails the target here, by name.
+    const fkProbe = await script(FK_SUPPORT_PROBE_SQL);
+    if (fkProbe.error) { stderr.write(`  fk support probe: ${fkProbe.error.message} (${fkProbe.error.code ?? 'no code'})\n`); return 1; }
+    stdout.write(`  fk support probe: every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name\n`);
     return 0;
   }
 
