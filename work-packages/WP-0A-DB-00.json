@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-120",
+    "branch": "agent/claude/WP-0A-DB-00-fifth-pass-record",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -110,13 +110,10 @@
     ],
     "amends_without_owning": {
       "paths": [
-        ".github/workflows/ci.yml",
-        "evidence/VERIFICATION.md",
-        "scripts/test-suite-contract.mjs",
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT LANDS BATCH 120 (publisher.meta) AND ITS CLOSURE 122, under the Product Owner's disposition of 2026-09-15 (evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-batch-120.md: fourteen questions, every one answered with the recommended option). Everything it creates is writable to this package -- db/foundation/migrations/120_publisher.sql and 122_publisher_service_path_closed.sql, db/foundation/lint/service-policy-map.json and catalog-snapshot.json, db/foundation/seeds/fixture-catalog.json, tests/db/identity/**, test-kits/db/**, db/foundation/README.md, the manifest and the handoff. It amends FIVE files it does not own, each for one reason.\n\n.github/workflows/ci.yml gains FIVE per-family negative-control entries -- app.publish_intents, app.publish_targets, app.publish_target_assets, app.publish_jobs and app.published_posts -- because the step disables row level security ONE TABLE AT A TIME and a control that grows stale as the suite grows reports a coverage it does not have. Measured on a scratch PostgreSQL 17.11 before the push: each of the five turns the suite red, and every failing case matches that entry's own pattern and no other (14 of 14, 7 of 7, 4 of 4, 6 of 6, 5 of 5). The pin table's pattern is `publish-pin` and not `publish-target-asset`, because `[a-z0-9-]*publish-target` matches the latter in full and app.publish_targets' entry would have been satisfiable by a regression on the pin table -- batch 100's reason for choosing `library-asset` over `asset`.\n\nscripts/test-suite-contract.mjs carries the declared floors for the two suites this batch grows, and all three of its numbers move together: tests/db/identity/identity-isolation.test.mjs 285 -> 296 tests and 2026 -> 2101 assertions with a new name digest (86b5a1fb4daf526c -> 98c84d8c924b5708), and test-kits/db/foundation-contract.test.mjs 243 -> 258 assertions. Every figure is the one `node scripts/verify-test-coverage-floor.mjs` printed, not a count taken by hand.\n\ntest-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch for this package cannot be declared without the pinned row moving with it -- two lines, the ref list and the BRANCH_OWNERSHIP row. The field holds ONE value, so this is a replacement of agent/claude/WP-0A-DB-00-fourth-pass-close.\n\ntest-kits/integrity-manifest.json is regenerated with `npm run regenerate:manifest` because the suites it digests changed. evidence/VERIFICATION.md is written by `npm run record:verification` because the test count moved (647 -> 658)."
+      "rationale": "THIS INCREMENT IS THE FIFTH PASS'S STATE RECORD AND NOTHING ELSE. It adds one file, evidence/WP-0A-DB-00/session-2026-09-15-fifth-pass.md, which is writable to this package, and it creates, alters and drops no database object: no migration, no policy, no grant, no case, no fixture. The test count and the isolation case count do not move, so neither evidence/VERIFICATION.md nor scripts/test-suite-contract.mjs is touched -- the two files a batch normally amends alongside these.\n\nIt amends TWO files it does not own, each for one reason, and both for the branch rather than for the record. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch cannot be declared without the pinned row moving with it -- two lines, the ref list and the BRANCH_OWNERSHIP row. The field holds ONE value, so this replaces agent/claude/WP-0A-DB-00-batch-120, which merged as PR #151 and is deleted on both sides. test-kits/integrity-manifest.json is regenerated with `npm run regenerate:manifest` because branch-identity.test.mjs is one of the files it digests.\n\nWHY THE SLOT IS REPOINTED BY A RECORD RATHER THAN BY THE NEXT BATCH: it has to be repointed by whichever branch comes next, and leaving it naming a deleted branch means `node scripts/verify-branch-scope.mjs main WP-0A-DB-00` reads 74 against a settled main for as long as the package has no open branch. The next batch repoints it again, which is the normal cost of a one-value slot and is recorded here rather than discovered."
     }
   },
   "inputs": {
@@ -190,6 +187,7 @@
       "evidence/WP-0A-DB-00/q0-test-batch-100-2026-09-15.md",
       "evidence/WP-0A-DB-00/session-2026-09-13-14-fanout-relaunched-six-draft-prs.md",
       "evidence/WP-0A-DB-00/session-2026-09-13-batch-080-landed-fanout-cut.md",
+      "evidence/WP-0A-DB-00/session-2026-09-15-fifth-pass.md",
       "evidence/WP-0A-DB-00/session-2026-09-15-overnight-integration.md",
       "scripts/db/authz-proofs.mjs",
       "scripts/db/rls-smoke.mjs",
