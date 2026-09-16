@@ -11,16 +11,32 @@ words are transcribed verbatim in the disposition file named in §2 before they 
 
 | Measure | Value |
 |---|---|
-| `main` | **`0f3a08b`** — unchanged this pass. Nothing was merged. |
-| Branch | `agent/claude/WP-0A-DB-00-batch-121`, 11 commits |
-| Pull request | [#153](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/153), **Draft, open, not merged** |
+| `main` | **`2d75606`** = merge of [PR #153](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/153) (`0f3a08b` before) |
+| Branch | `agent/claude/WP-0A-DB-00-batch-121`, 13 commits, merged and deleted on both sides |
+| Pull request | [#153](https://github.com/ThinkBizLab-Org/ThinkBizThai/pull/153), **MERGED** |
+| CI on the merged head | run `35057961176`, **success** on `0c86c7b` — every step, database and negative control included |
 | `npm run verify` on the branch | **clean: exit 0 — tests 663, pass 663, fail 0, skipped 0, todo 0** (658 before) |
 | Isolation cases | **965** (941 before: +24) |
 | Migrations added | `121_publisher_metrics.sql` |
 | `open_blockers` | **187** (175 before: +12, none closed) |
 | Open Draft PRs for this package | one — #153 |
 
-No force-push, no direct push to `main`, and `main` was not touched at all this pass.
+No force-push and no direct push to `main`; the merge is a merge commit.
+
+**THE MERGE WAS THE PRODUCT OWNER'S INSTRUCTION AND WAS PERFORMED BY A0, AND THAT IS WRITTEN DOWN
+RATHER THAN LEFT TO THE COMMIT AUTHOR FIELD.** A0 twice said it could not merge its own work, citing
+`CONTRIBUTING_AGENTS.md` ("The Author never approves, test-verifies, integrates, or authorizes their
+own work") and its own plan §10. The Owner then said `คุณ merge เลย`. A0 checked rather than assumed
+before acting: PRs #149, #150, #151 and #152 were each authored AND merged through the same account
+A0's `gh` is authenticated as, so the mechanical merge through the Owner's account under the Owner's
+delegation is this repository's established practice and not a new thing.
+
+WHAT THAT DOES AND DOES NOT CHANGE. A0 EXECUTED the Owner's decision; it did not MAKE it, and it did
+not approve, review or test-verify its own work. The separation that carries the meaning held: three
+independent role runs reviewed head `426c294`, two of C0's findings were graded stop-the-line and
+were answered, and a green required CI run exists on the merged head. What is NOT satisfied is the
+literal sentence of RFC-2026-002 that the Product Owner merges, and a reader should see that here
+rather than infer it from a username.
 
 ## 2. What was decided, and on whose word
 
@@ -152,5 +168,11 @@ pre-empted. No `123` closure file exists and a test asserts 122 has not been ext
   coincidence and not a payment instrument; recorded so that nobody later reads the history and
   believes a card number was committed.
 - Scratch clusters: the Author's on `127.0.0.1:5499` stopped and removed; A1's on 5501 and Q0's on
-  5503 stopped and removed by their own runs. Role worktrees remain until the branch merges.
-- Nothing merged. `main` is where the fifth pass left it.
+  5503 stopped and removed by their own runs. The user's own server on port 5432 was checked
+  afterwards and was reachable on the same pid.
+- **This file was written before the merge and said "Nothing merged"**, which stopped being true the
+  moment PR #153 landed. It is corrected by the increment that follows the merge rather than amended
+  in place, because the handoff must be the last commit on a branch and amending after
+  `refresh:handoff` breaks its citation. A read-this-first STATE record that is stale about `main` is
+  the one kind of staleness that cannot be tolerated, so the correction is its own increment and not
+  a line in the next batch's.
