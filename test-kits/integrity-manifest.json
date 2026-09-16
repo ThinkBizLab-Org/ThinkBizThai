@@ -45,7 +45,7 @@
     "scripts/regenerate-integrity-manifest.mjs": "6bafae1737d7de9c0ea0679315e8dcca167eed7faa7df5b3f61ed9d39c597173",
     "scripts/run-test-suite.mjs": "c7dede2b77083b1343f9a328da562784bfa579f686d23e51bb2803d60a9d1b19",
     "scripts/scan-repository-secrets.mjs": "fef5cd72140dd7275a3a7fb905933d69a9630b1c1e30d8e9eadbc98c803dfea5",
-    "scripts/test-suite-contract.mjs": "9ff6d44f2703cce38bcb862b743a520f42cf8d7f7e08aed199d03b7ee2da4d13",
+    "scripts/test-suite-contract.mjs": "49122c11d9204b41e30e584313726704654b52c15e9cd7967a32b550a1a93eee",
     "scripts/toolchain-contract.mjs": "c84becb9ffb43800063204eac6ec2820a7d6f8112bcf9df5299c5859e4c65d27",
     "scripts/validate-capability-profiles.mjs": "aba9f1b6157d55e22b7a9e633ed5645b285d0a7bb2c9e7e0af8b274d74b28c89",
     "scripts/validate-work-package-ownership.mjs": "4b2e878f4ff1c56cf19d2b5363359cf4b22069b4ab499d2d6d6d2d9486b03518",
@@ -86,7 +86,7 @@
     "test-kits/verification-record.test.mjs": "b4bfae315b847ca26ac4d1020e1b27400965a13ee6e2f8bf3fdd154981470ff2",
     "test-kits/work-package-discovery.test.mjs": "e9b443efeb85e3c88c943ac94ab4d6f9deaa10a190dc5e405c290eb95eb34e7a",
     "test-kits/work-package-ownership.test.mjs": "e54f48423e8dff19e7ed0ea296649f1c9991b6914958c4df928497fe4b3c69fe",
-    "tests/db/identity/identity-isolation.test.mjs": "78623f2f0d5e2326ebd8bec6c1bfbd487f348892889a2f5eff445d9b63cc35c8",
+    "tests/db/identity/identity-isolation.test.mjs": "b15eba66cef97617492b8e2523193336ff38555e72034f6270b1b8620ccdad5d",
     "work-packages/WP-0A-CON-008.json": "6b01d063136aeaf54f1f629ae1a4d1cbb7c77818762e13902c61c2c0e8302eaa"
   },
   "cross_package_note": "Any package that adds a test file must add it here, because the guard requires every discovered test file to be digested. This is a deliberate coupling: an unprotected suite can be gutted with the manifest byte-identical. It surfaced when WP-0A-CON-002 added three contract suites and CI failed at exit 87 while a local run on the unrebased branch passed - GitHub tests the MERGE of head into base, so a stacked branch that has not been rebased does not see its own integration."

@@ -415,7 +415,10 @@ do $$
 declare
   offending      text;
   count_of       integer;
-  probes_passed  integer := 0;
+  found_keys     text[];
+  metric_keys constant text[] := array[
+    'clicks', 'comments', 'engagements', 'impressions', 'likes',
+    'profile_visits', 'reach', 'saves', 'shares', 'video_views'];
   required_keys constant text[] := array[
     'performance_snapshots_one_per_post_instant',
     'published_posts_scope_unique'];
@@ -593,135 +596,87 @@ begin
   end if;
 
   -- ------------------------------------------------------------------------------------------
-  -- 8. THE PAYLOAD PROBES. Each one writes a row a careless collector would write and demands the
-  --    SQLSTATE of the constraint that must refuse it, BY NAME. They run in a subtransaction that
-  --    always aborts (140's shape) and they need NO PARENT ROW: a CHECK is evaluated before any
-  --    foreign key trigger fires, so the SQLSTATE each one demands is the constraint's own.
-  --
-  --    THE TWO PROBES THAT DO NEED A PARENT ROW -- a snapshot whose tenant disagrees with its
-  --    post's, and a second collection at an instant already recorded -- run in the batch 121
-  --    FIXTURE's own block, after the rows they need exist. That is batch 120's rule and its
-  --    reason: a migration runs against an empty database, so a probe written here that needs a
-  --    post would silently never run.
+  -- 8. WHAT THE CONSTRAINTS SAY, AND NOT ONLY THAT THEY EXIST — Q0's FINDING F1 (HIGH).
   -- ------------------------------------------------------------------------------------------
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
-            '{"error": "Graph API (#100) unsupported get request for post 17841400000000000"}'::jsonb, 1);
-    raise exception 'a metrics payload with a provider sentence under an unknown key was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_keys_are_known%' then
-        raise exception 'the wrong constraint refused the unknown-key probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
+  -- Item 3 above asserts the five payload CHECKs exist BY NAME. Q0 measured that this is not
+  -- enough and demonstrated the cost rather than asserting it: add an eleventh key to
+  -- `..._metrics_keys_are_known` and nothing else, and all three layers stay green -- after which a
+  -- Graph API error sentence INSERTS SUCCESSFULLY and is readable by every active member in the
+  -- PROVIDER-3 column question D deliberately put inside the client SELECT. That is exactly A1's
+  -- finding against batch 120's publish_targets.failure_class, which this batch's header claims to
+  -- be closing one batch early: TRUE OF THE CODE AS WRITTEN AND FALSE OF THE CODE AS DEFENDED.
+  --
+  -- It is not hypothetical. The header above says batch 150 must REBUILD this table to partition
+  -- it, and a rebuild that reinstates four of the five CHECKs was invisible to every layer.
+  --
+  -- So the key set is pinned by TEXT, in all three constraints that carry it, and the three must
+  -- agree with each other. Widening, narrowing and dropping are all caught, and so is the subtler
+  -- one Q0 named: a key added to the allowlist but not to the value rules.
+  for offending in
+    select name from unnest(array[
+      'performance_snapshots_metrics_keys_are_known',
+      'performance_snapshots_metrics_values_are_numbers',
+      'performance_snapshots_metrics_values_are_plausible']) as name
+  loop
+    select array_agg(distinct m[1] order by m[1]) into found_keys
+      from pg_catalog.pg_constraint con
+      join pg_catalog.pg_class c on c.oid = con.conrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace,
+      lateral regexp_matches(pg_catalog.pg_get_constraintdef(con.oid), '''([a-z_]{4,})''', 'g') as m
+     where n.nspname = 'app' and c.relname = 'performance_snapshots' and con.conname = offending;
 
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
-            '{"impressions": "see the Graph API response for post 17841400000000000"}'::jsonb, 1);
-    raise exception 'a provider sentence under a KNOWN key was accepted as a metric value';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_values_are_numbers%' then
-        raise exception 'the wrong constraint refused the string-value probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
+    -- `number` is the type literal the value rule compares against; it is not a metric key.
+    found_keys := array(select k from unnest(found_keys) k where k <> 'number' order by k);
 
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '[]'::jsonb, 1);
-    raise exception 'a metrics payload that is not an object was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_is_an_object%' then
-        raise exception 'the wrong constraint refused the not-an-object probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
+    if found_keys is distinct from metric_keys then
+      raise exception 'batch 121 constraint % no longer names the ten metric keys: it names %',
+        offending, coalesce(array_to_string(found_keys, ', '), '(none)')
+        using hint = 'Q0-121 F1: the three payload constraints must carry the SAME ten keys. A key added to the allowlist and not to the value rules lets a provider sentence into a PROVIDER-3 column that every active member reads -- Q0 measured that end to end with the key `followers`. Widening, narrowing and dropping are all refused here.';
+    end if;
+  end loop;
 
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '{"reach": 1}'::jsonb, 0);
-    raise exception 'a metrics_schema_version of 0 was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_schema_version_is_positive%' then
-        raise exception 'the wrong constraint refused the schema-version probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
-
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
-            jsonb_build_object('reach', 1, 'clicks', repeat('9', 4096)::numeric), 1);
-    raise exception 'a metrics payload over the size bound was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_is_bounded%' then
-        raise exception 'the wrong constraint refused the size probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
-
-  -- A1's F1 PROBE. The value that made the finding: an Instagram post-id shape under a key this
-  -- schema allows, which every type-discriminating constraint accepted and A1 read back as an
-  -- ordinary client. It is refused by magnitude now, and the probe writes the exact literal A1 used
-  -- so that a later reader meets the measurement rather than a paraphrase of it.
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
-            '{"impressions": 17841400000000000, "clicks": 100064823456789}'::jsonb, 1);
-    raise exception 'a provider identifier shaped as a metric count was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
-        raise exception 'the wrong constraint refused the provider-identifier probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
-
-  -- The other half of the same bound: a negative reading is not a count of anybody.
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
-            '{"reach": -999999}'::jsonb, 1);
-    raise exception 'a negative metric was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
-        raise exception 'the wrong constraint refused the negative-value probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
-
-  -- A1's F4: a snapshot that measures nothing.
-  begin
-    insert into app.performance_snapshots
-      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
-    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '{}'::jsonb, 1);
-    raise exception 'an empty metrics payload was accepted';
-  exception
-    when check_violation then
-      if sqlerrm not like '%performance_snapshots_metrics_is_not_empty%' then
-        raise exception 'the wrong constraint refused the empty-payload probe: %', sqlerrm;
-      end if;
-      probes_passed := probes_passed + 1;
-  end;
-
-  -- Q0-120 F2: COUNT THE PROBES, so one cannot be deleted without the others objecting.
-  if probes_passed <> 8 then
-    raise exception 'batch 121 ran % payload probe(s) in the migration and there are 8', probes_passed;
+  -- ------------------------------------------------------------------------------------------
+  -- 9. THIS TABLE'S OWN MEMBERSHIP TEST — Q0's FINDING F2 (MEDIUM-HIGH).
+  -- ------------------------------------------------------------------------------------------
+  -- Q0 changed `performance_snapshots_select_active_member` from
+  -- `using (app.is_active_member(workspace_id))` to `using (true)` and ALL THREE LAYERS STAYED
+  -- GREEN. Not because the suite is lazy: every read is also gated by the restrictive narrowing,
+  -- whose exists() traverses four parent tables that each carry their own membership policy, so the
+  -- suspended member, the cross-tenant owner and the out-of-scope editor are all still refused --
+  -- BY SOMEBODY ELSE'S POLICY. 021_member_scope.sql is exact about why that is not good enough:
+  -- app.member_scope_admits_business "is NOT a membership test and must be ANDed with one."
+  --
+  -- A case cannot isolate this, because the parents refuse the same callers a case would use. So it
+  -- is asserted here. The change most likely to disturb it is already scheduled: RFC-2026-022 §7
+  -- coming into effect puts CARRIED service policies on exactly those parent tables.
+  select pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) into offending
+    from pg_catalog.pg_policy pol
+    join pg_catalog.pg_class c on c.oid = pol.polrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app' and c.relname = 'performance_snapshots'
+     and pol.polname = 'performance_snapshots_select_active_member';
+  if offending is null or offending not like '%is_active_member%' then
+    raise exception 'batch 121''s own membership test is gone from its SELECT policy: using (%)',
+      coalesce(offending, '(no such policy)')
+      using hint = 'Q0-121 F2: this table''s membership boundary would become wholly inherited from four parent tables, and no layer in this repository can tell.';
   end if;
-  raise notice 'batch 121: 8 payload probe(s) passed; the 2 that need a published post are in the fixture';
+
+  -- ------------------------------------------------------------------------------------------
+  -- 10. THE IDENTITY IS `ALWAYS` AND NOT `BY DEFAULT` — Q0's FINDING F3 (MEDIUM).
+  -- ------------------------------------------------------------------------------------------
+  -- Latent rather than live: app_worker's INSERT grant is column-scoped and excludes `id`, so no
+  -- role can supply one today. Q0's point is the contrast -- the suite notices the MECHANISM
+  -- changing (a bigserial moves the refusal to a different layer) and was blind to the STRENGTH
+  -- changing. One line, and the blindness is gone.
+  if not exists (
+    select 1 from pg_catalog.pg_attribute a
+     join pg_catalog.pg_class c on c.oid = a.attrelid
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'app' and c.relname = 'performance_snapshots'
+      and a.attname = 'id' and a.attidentity = 'a')
+  then
+    raise exception 'batch 121''s primary key is no longer `generated always as identity`';
+  end if;
+
+  raise notice 'batch 121: structure asserted; the ten payload probes are in the fixture, where they re-run on every rls-smoke';
 end $$;

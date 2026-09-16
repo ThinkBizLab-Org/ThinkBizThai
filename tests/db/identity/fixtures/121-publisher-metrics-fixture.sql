@@ -94,20 +94,32 @@ on conflict on constraint performance_snapshots_one_per_post_instant do nothing;
 
 
 -- ---------------------------------------------------------------------------------------------
--- WHAT THE FIXTURE RE-READS BEFORE IT COMMITS, AND THE TWO PROBES THAT NEED A POST
+-- WHAT THE FIXTURE RE-READS BEFORE IT COMMITS, AND ALL TEN PROBES
 -- ---------------------------------------------------------------------------------------------
--- Batch 120's rule, applied: a probe that needs a parent row belongs HERE and not in the migration,
--- because a migration runs against an empty database and such a probe written there would silently
--- never run. The migration's own five payload probes need no parent row -- a CHECK is evaluated
--- before any foreign key trigger fires -- and they are there.
+-- TWO of the ten need a parent row -- a snapshot whose tenant disagrees with its post's, and a
+-- second collection at an instant already recorded -- and they were always here, for batch 120's
+-- reason: a migration runs against an empty database, so such a probe written there would silently
+-- never run.
 --
--- Both probes below run in a subtransaction that always aborts (140's shape), so neither leaves a
--- row behind, and each demands the SQLSTATE of the constraint that must refuse it BY NAME. Q0's
--- finding F2 against batch 120 is closed the same way it was there: the probe set is counted.
+-- THE OTHER EIGHT WERE IN THE MIGRATION AND Q0 MEASURED WHY THEY BELONG HERE TOO. An apply-time
+-- block runs once, when its own file is applied; a later migration that weakens one of batch 121's
+-- constraints is invisible to it for ever. rls-smoke does not re-migrate -- it applies the helpers
+-- and the fixtures onto the database as the whole set left it -- so a probe here re-runs against
+-- the schema as it actually stands, every time.
+--
+-- Every probe runs in a subtransaction that always aborts (140's shape), so none leaves a row
+-- behind; each demands the SQLSTATE of the constraint that must refuse it BY NAME; each has a
+-- `when others` arm so a fall-through is reported as a fall-through (Q0's F4); and the set is
+-- counted, which is Q0's finding F2 against batch 120 kept.
 do $$
 declare
   count_of      integer;
   probes_passed integer := 0;
+  offending     text;
+  found_keys    text[];
+  metric_keys constant text[] := array[
+    'clicks', 'comments', 'engagements', 'impressions', 'likes',
+    'profile_visits', 'reach', 'saves', 'shares', 'video_views'];
 begin
   select count(*) into count_of from app.performance_snapshots;
   if count_of <> 4 then
@@ -150,6 +162,8 @@ begin
         raise exception 'the wrong constraint refused the cross-tenant scope probe: %', sqlerrm;
       end if;
       probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the cross-tenant scope probe fell through performance_snapshots_post_scope_fk and was refused by something else: % (%)', sqlerrm, sqlstate;
   end;
 
   -- PROBE 2 — THE OVERWRITE PROBE. §4.8's "no destructive overwrite" is this key and nothing else: a
@@ -168,10 +182,196 @@ begin
         raise exception 'the wrong constraint refused the overwrite probe: %', sqlerrm;
       end if;
       probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the overwrite probe fell through performance_snapshots_one_per_post_instant and was refused by something else: % (%)', sqlerrm, sqlstate;
   end;
 
-  if probes_passed <> 2 then
-    raise exception 'batch 121''s fixture ran % probe(s) and there are 2', probes_passed;
+  -- ===========================================================================================
+  -- THE EIGHT PAYLOAD PROBES. THEY WERE IN THE MIGRATION AND Q0 MEASURED WHY THEY BELONG HERE.
+  -- ===========================================================================================
+  -- Q0's finding F1 (HIGH), third survivor: an apply-time block runs ONCE, when its own file is
+  -- applied, and nothing re-tests it afterwards. A later migration that weakens one of these
+  -- constraints is invisible to every layer -- and the migration's own header says batch 150 must
+  -- REBUILD this table to partition it, so a rebuild that reinstates four of the five CHECKs was a
+  -- real path, not a hypothetical one. In the fixture they re-run on EVERY rls-smoke, against the
+  -- database as the whole migration set left it.
+  --
+  -- The batch's stated reason for keeping them in the migration was that a probe needing a parent
+  -- row belongs in the fixture -- which is an argument for moving the other two here, not an
+  -- argument for keeping these there. Q0 called it "a move, not new code" and it is.
+  --
+  -- EVERY PROBE HAS A `when others` ARM — Q0's finding F4 (MEDIUM). The probes insert with
+  -- gen_random_uuid() for the scope columns. A CHECK is evaluated before a foreign key trigger, so
+  -- while the CHECKs bite the probes work; the moment the targeted CHECK stops refusing, the row
+  -- falls through to performance_snapshots_post_scope_fk, the `when check_violation` arm never
+  -- runs, and the `if sqlerrm not like ...` assertion that MAKES it a probe is never evaluated.
+  -- Q0 hit this twice and was told the composite foreign key was broken when what had moved was the
+  -- size bound. A fall-through is now reported as a fall-through.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"error": "Graph API (#100) unsupported get request for post 17841400000000000"}'::jsonb, 1);
+    raise exception 'a metrics payload with a provider sentence under an unknown key was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_keys_are_known%' then
+        raise exception 'the wrong constraint refused the unknown-key probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the unknown-key probe fell through performance_snapshots_metrics_keys_are_known and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"impressions": "see the Graph API response for post 17841400000000000"}'::jsonb, 1);
+    raise exception 'a provider sentence under a KNOWN key was accepted as a metric value';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_values_are_numbers%' then
+        raise exception 'the wrong constraint refused the string-value probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the string-value probe fell through performance_snapshots_metrics_values_are_numbers and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '[]'::jsonb, 1);
+    raise exception 'a metrics payload that is not an object was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_is_an_object%' then
+        raise exception 'the wrong constraint refused the not-an-object probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the not-an-object probe fell through performance_snapshots_metrics_is_an_object and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '{"reach": 1}'::jsonb, 0);
+    raise exception 'a metrics_schema_version of 0 was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_schema_version_is_positive%' then
+        raise exception 'the wrong constraint refused the schema-version probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the schema-version probe fell through performance_snapshots_schema_version_is_positive and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            jsonb_build_object('reach', 1, 'clicks', repeat('9', 4096)::numeric), 1);
+    raise exception 'a metrics payload over the size bound was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_is_bounded%' then
+        raise exception 'the wrong constraint refused the size probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the size probe fell through performance_snapshots_metrics_is_bounded and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  -- A1's F1: the Instagram post-id shape that passed every type-discriminating constraint and was
+  -- read back as an ordinary client. A1's exact literal, so a later reader meets the measurement.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"impressions": 17841400000000000, "clicks": 100064823456789}'::jsonb, 1);
+    raise exception 'a provider identifier shaped as a metric count was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
+        raise exception 'the wrong constraint refused the provider-identifier probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the provider-identifier probe fell through performance_snapshots_metrics_values_are_plausible and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"reach": -999999}'::jsonb, 1);
+    raise exception 'a negative metric was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
+        raise exception 'the wrong constraint refused the negative-value probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the negative-value probe fell through performance_snapshots_metrics_values_are_plausible and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  -- A1's F4: a snapshot that measures nothing.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '{}'::jsonb, 1);
+    raise exception 'an empty metrics payload was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_is_not_empty%' then
+        raise exception 'the wrong constraint refused the empty-payload probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+    when others then
+      raise exception 'the empty-payload probe fell through performance_snapshots_metrics_is_not_empty and was refused by something else: % (%)', sqlerrm, sqlstate;
+  end;
+
+  -- ===========================================================================================
+  -- AND THE KEY SET ITSELF, RE-ASSERTED AFTER THE WHOLE MIGRATION SET — Q0's D01h.
+  -- ===========================================================================================
+  -- MOVING THE PROBES HERE WAS NOT SUFFICIENT AND THE AUTHOR MEASURED THAT BEFORE WRITING IT DOWN.
+  -- Q0's recommendation was to move the payload probes into the fixture so they re-run on every
+  -- rls-smoke. They now do, and rls-smoke does NOT re-migrate -- it applies the helpers and the
+  -- fixtures onto the database as the whole migration set left it, which is exactly the property
+  -- the recommendation wanted. But a probe fires a FIXED LITERAL: the unknown-key probe sends
+  -- `error`, and widening the allowlist with `followers` still refuses `error`. The Author applied
+  -- Q0's own M17 after the migration set and rls-smoke stayed green.
+  --
+  -- What catches a widened, narrowed or reinstated key set is the TEXT of the constraint, and the
+  -- migration asserts that in a block which runs ONCE. So it is asserted again here, where it runs
+  -- every time. The two are deliberately the same assertion in two places with different lifetimes,
+  -- and neither is redundant: the migration's fails the APPLY, this one fails the SUITE.
+  for offending in
+    select name from unnest(array[
+      'performance_snapshots_metrics_keys_are_known',
+      'performance_snapshots_metrics_values_are_numbers',
+      'performance_snapshots_metrics_values_are_plausible']) as name
+  loop
+    select array_agg(distinct m[1] order by m[1]) into found_keys
+      from pg_catalog.pg_constraint con
+      join pg_catalog.pg_class c on c.oid = con.conrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace,
+      lateral regexp_matches(pg_catalog.pg_get_constraintdef(con.oid), '''([a-z_]{4,})''', 'g') as m
+     where n.nspname = 'app' and c.relname = 'performance_snapshots' and con.conname = offending;
+    found_keys := array(select k from unnest(found_keys) k where k <> 'number' order by k);
+    if found_keys is distinct from metric_keys then
+      raise exception 'batch 121 constraint % no longer names the ten metric keys: it names %',
+        offending, coalesce(array_to_string(found_keys, ', '), '(none)')
+        using hint = 'Q0-121 F1/D01h: a later migration weakened this AFTER batch 121 was applied, so batch 121''s own apply-time block never re-ran. A key in the allowlist that is not in the value rules lets a provider sentence into a PROVIDER-3 column every active member reads.';
+    end if;
+  end loop;
+
+  if probes_passed <> 10 then
+    raise exception 'batch 121''s fixture ran % probe(s) and there are 10', probes_passed;
   end if;
-  raise notice 'batch 121 fixture: 4 snapshot(s) loaded, 2 probe(s) passed';
+  raise notice 'batch 121 fixture: 4 snapshot(s) loaded, 10 probe(s) passed';
 end $$;

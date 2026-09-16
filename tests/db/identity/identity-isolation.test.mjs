@@ -11615,9 +11615,35 @@ test('the batch 121 fixture writes only catalog identities, and into one table',
       + 'constraint on this table — no client role holds INSERT and the service is refused at the '
       + 'policy layer — so these two probes are the only thing that exercises them.');
   }
-  assert.match(raw, /probes_passed <> 2/,
-    'the batch 121 fixture no longer COUNTS its probes. Q0 graded exactly this against batch 120: a '
-    + 'probe asserted only by itself can be deleted without the others objecting.');
+  assert.match(raw, /probes_passed <> 10/,
+    'the batch 121 fixture no longer COUNTS its ten probes. Q0 graded exactly this against batch 120: '
+    + 'a probe asserted only by itself can be deleted without the others objecting.');
+
+  // EIGHT OF THE TEN MOVED HERE FROM THE MIGRATION on Q0's finding F1, and the move is asserted so
+  // that putting them back is a visible change. An apply-time block runs once, when its own file is
+  // applied; rls-smoke re-runs a fixture against the database as the WHOLE migration set left it.
+  const migration = await readFile(METRICS_MIGRATION, 'utf8');
+  assert.doesNotMatch(migration, /probes_passed/,
+    'batch 121\'s migration has regained payload probes. They belong in the fixture, where they '
+    + 're-run on every rls-smoke — Q0 measured that a later migration weakening one of this batch\'s '
+    + 'constraints is invisible to an apply-time block for ever, and the header itself says batch 150 '
+    + 'must REBUILD this table.');
+  for (const arm of ['fell through']) {
+    const count = (raw.match(new RegExp(arm, 'g')) ?? []).length;
+    assert.equal(count, 10, `each of the ten probes needs a \`when others\` arm reporting a `
+      + `fall-through (Q0 F4); ${count} say "${arm}". A CHECK is evaluated before a foreign key `
+      + 'trigger, so when a targeted CHECK stops refusing, the row falls through to the composite FK, '
+      + 'the check_violation arm never runs, and the assertion that MAKES it a probe is never '
+      + 'evaluated — Q0 hit this twice and was told the foreign key was broken.');
+  }
+
+  // AND THE KEY SET IS RE-ASSERTED HERE, not only in the migration — Q0's D01h. Moving the probes
+  // was NOT sufficient and the Author measured that: a probe fires a fixed literal, so widening the
+  // allowlist with a key the probe does not send leaves every layer green.
+  assert.match(raw, /no longer names the ten metric keys/,
+    'the batch 121 fixture no longer re-asserts the metric key set. The migration asserts it once, '
+    + 'at apply time; this is the copy that runs on every rls-smoke and therefore the one that '
+    + 'catches a LATER migration widening, narrowing or reinstating the constraint.');
 });
 
 test('batch 121 writes no service policy, and says where the cell is classified instead', async () => {
