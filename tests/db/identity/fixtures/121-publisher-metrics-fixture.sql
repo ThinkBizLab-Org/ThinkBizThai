@@ -26,12 +26,25 @@
 -- social_account_a2 and an instagram variant on that item -- two rows in batches 081's and 080's
 -- tables, which is the shape of the mistake named above.
 --
--- SO §8.6 CASE 4 IS EXERCISED HERE IN ITS OTHER DIRECTION and the limit is stated rather than
--- papered over: the page-pinned member is admitted to NOTHING in this family, because every post
--- that exists hangs off a business-level item, and `pinned-editor-a-sees-zero-metric-snapshot-rows`
--- is that measurement. The case that a page-pinned member is refused a row on ANOTHER page's item
--- cannot be written for this table until a page-pinned send produces a post, and that is in the
--- work package's open blockers against the batch that gives the family a second page-level post.
+-- SO §8.6 CASE 4 IS NOT EXERCISED ON THIS TABLE AT ALL, AND THIS PARAGRAPH SAID THE OPPOSITE UNTIL
+-- TWO REVIEWERS CAUGHT IT. It claimed "the page-pinned member is admitted to NOTHING in this family"
+-- and cited a case called `pinned-editor-a-sees-zero-metric-snapshot-rows` as the measurement. NO
+-- SUCH CASE EXISTS. It never did: the claim came from batch 121's plan, the live run contradicted
+-- the plan before a line of the case list was written, and the case that was actually committed --
+-- `pinned-editor-a-sees-the-metric-snapshots-of-the-fb-send`, `expect: 'rows'` -- says so in its own
+-- `why`. The fixture was not corrected with it. C0 graded the contradiction stop-the-line and A1
+-- found the dangling id independently.
+--
+-- WHAT IS ACTUALLY TRUE, MEASURED: the page-pinned editor reads TWO snapshots -- the business-level
+-- series -- because the narrowing's CASE expression tests app.member_scope_admits_business for an
+-- item whose page_context_profile_id is null. A single-Page scope is a scope WITHIN a business, not
+-- one that excludes the business's own rows.
+--
+-- The case §8.6 case 4 actually asks for -- a member allowed Page A refused a row on Page B --
+-- cannot be written for this table until a page-pinned send produces a post, and it is in the work
+-- package's open blockers against the batch that gives this family one. The metric table is
+-- therefore the only publishing table with no `pinned-editor-...-sibling-item` deny case, which C0
+-- noticed by comparing it against the other four rather than by reading this comment.
 
 -- ---------------------------------------------------------------------------------------------
 -- The snapshots. FOUR on THREE posts: the A-side post carries a SERIES of two, the other two one

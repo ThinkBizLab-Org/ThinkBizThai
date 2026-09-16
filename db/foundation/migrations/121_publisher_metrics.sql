@@ -190,6 +190,40 @@ create table if not exists app.performance_snapshots (
   -- A bound, because a shape with no size is not a bound. Ten numbers do not reach 2 KiB.
   constraint performance_snapshots_metrics_is_bounded
     check (octet_length(metrics::text) <= 2048),
+  -- A1's FINDING F1 AGAINST THIS BATCH, closed here rather than recorded and left open.
+  -- The four constraints above discriminate on JSON TYPE and not on MEANING, and A1 measured the
+  -- consequence end to end: `{"impressions": 17841400000000000}` is an Instagram post-id shape, it
+  -- passed every one of them, and A1 read it back AS AN ORDINARY CLIENT IDENTITY. §9.1 classifies
+  -- "external post ID" PROVIDER-3 and §9.3 requires a hash; batch 120 withholds even the HASH of one
+  -- from `authenticated`, so `metrics` would have carried the RAW identifier to the same client that
+  -- is refused its digest one table up. The same value as a STRING was already refused -- an external
+  -- identifier changed type for free.
+  --
+  -- A metric is a COUNT OF PEOPLE. No Facebook Page or Instagram account has 10^12 of anything, and
+  -- a provider identifier has about seventeen digits, so a magnitude bound separates the two cleanly
+  -- where a type check cannot. THE THRESHOLD IS A0's AND NOT THE OWNER'S: question D approved "a
+  -- bounded key set, every value numeric, total size bounded" and this is a fourth kind of bound
+  -- A1's measurement showed that phrase needs. A1 declined to name a number, calling it a product
+  -- decision, and the work package records it as A0's choice for the Owner to move.
+  constraint performance_snapshots_metrics_values_are_plausible
+    check (
+      coalesce((metrics ->> 'impressions')::numeric,    0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'reach')::numeric,          0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'engagements')::numeric,    0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'likes')::numeric,          0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'comments')::numeric,       0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'shares')::numeric,         0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'saves')::numeric,          0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'video_views')::numeric,    0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'clicks')::numeric,         0) between 0 and 1000000000000
+      and coalesce((metrics ->> 'profile_visits')::numeric, 0) between 0 and 1000000000000
+    ),
+  -- A1's F4, the same measurement one grade down: `{}` passed every constraint, so "a reading
+  -- happened and measured nothing" was a valid row. Combined with the unenforced cadence it let a
+  -- collector append empty snapshots at distinct instants for ever. A reading of zero is
+  -- `{"reach": 0}` and says so; an empty object says nothing at all.
+  constraint performance_snapshots_metrics_is_not_empty
+    check (metrics <> '{}'::jsonb),
   constraint performance_snapshots_schema_version_is_positive
     check (metrics_schema_version >= 1),
 
@@ -278,13 +312,22 @@ grant insert (workspace_id, business_profile_id, published_post_id, metric_time,
 -- ============================================================================================
 --
 -- The narrowing is batch 120's, one family deeper: post → target → intent → item, four joins, and
--- it terminates on app.content_items exactly as every publisher narrowing does. The subqueries run
--- as the CALLER, so the policies of app.published_posts, app.publish_targets, app.publish_intents
--- and app.content_items all apply inside them -- which is what A1 measured against batch 120 (F4)
--- and what batch 081 measured before it: THE PARENT'S POLICY ANSWERS FIRST, so the scope term in
--- this restrictive policy cannot decide a read on its own. It is written in full anyway, for the
--- reason 120 gave: a narrowing that relies on a parent's policy is a narrowing that a later change
--- to the parent can silently remove.
+-- it terminates on app.content_items exactly as every publisher narrowing does.
+--
+-- AN EARLIER DRAFT OF THIS COMMENT SAID THE TERM "CANNOT DECIDE A READ BY ITSELF", CARRYING OVER
+-- A1's FINDING F4 AGAINST BATCH 120, AND A1 MEASURED THAT IT IS FALSE HERE. Dropping this policy
+-- takes `editor_a` from 2 snapshots to 3 and the page-pinned editor from 2 to 3 -- business_a2's
+-- row, which nothing else refuses them -- and disabling row level security on all four PARENT
+-- tables changes the count not at all. The Author re-measured before changing the text and got the
+-- same numbers.
+--
+-- So on THIS table the restrictive term is THE ONLY business-and-page-scope control there is, and
+-- the sentence it replaces would have invited a later reader to delete it as redundant -- with
+-- migration invariant 1 freezing that invitation permanently after merge. Why the difference: 120's
+-- F4 was about a term that duplicates a parent's OWN narrowing, and app.published_posts' narrowing
+-- is not consulted here, because these subqueries select FROM the parent rather than reading it
+-- through a policy that has already answered. The general claim was never safe to carry between
+-- families, and it is not carried.
 
 create policy performance_snapshots_select_active_member on app.performance_snapshots
   for select to authenticated
@@ -386,6 +429,8 @@ declare
     'performance_snapshots_metrics_keys_are_known',
     'performance_snapshots_metrics_values_are_numbers',
     'performance_snapshots_metrics_is_bounded',
+    'performance_snapshots_metrics_values_are_plausible',
+    'performance_snapshots_metrics_is_not_empty',
     'performance_snapshots_schema_version_is_positive'];
 begin
   -- ------------------------------------------------------------------------------------------
@@ -627,9 +672,56 @@ begin
       probes_passed := probes_passed + 1;
   end;
 
+  -- A1's F1 PROBE. The value that made the finding: an Instagram post-id shape under a key this
+  -- schema allows, which every type-discriminating constraint accepted and A1 read back as an
+  -- ordinary client. It is refused by magnitude now, and the probe writes the exact literal A1 used
+  -- so that a later reader meets the measurement rather than a paraphrase of it.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"impressions": 17841400000000000, "clicks": 100064823456789}'::jsonb, 1);
+    raise exception 'a provider identifier shaped as a metric count was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
+        raise exception 'the wrong constraint refused the provider-identifier probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+  end;
+
+  -- The other half of the same bound: a negative reading is not a count of anybody.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(),
+            '{"reach": -999999}'::jsonb, 1);
+    raise exception 'a negative metric was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_values_are_plausible%' then
+        raise exception 'the wrong constraint refused the negative-value probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+  end;
+
+  -- A1's F4: a snapshot that measures nothing.
+  begin
+    insert into app.performance_snapshots
+      (workspace_id, business_profile_id, published_post_id, metric_time, metrics, metrics_schema_version)
+    values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), '{}'::jsonb, 1);
+    raise exception 'an empty metrics payload was accepted';
+  exception
+    when check_violation then
+      if sqlerrm not like '%performance_snapshots_metrics_is_not_empty%' then
+        raise exception 'the wrong constraint refused the empty-payload probe: %', sqlerrm;
+      end if;
+      probes_passed := probes_passed + 1;
+  end;
+
   -- Q0-120 F2: COUNT THE PROBES, so one cannot be deleted without the others objecting.
-  if probes_passed <> 5 then
-    raise exception 'batch 121 ran % payload probe(s) in the migration and there are 5', probes_passed;
+  if probes_passed <> 8 then
+    raise exception 'batch 121 ran % payload probe(s) in the migration and there are 8', probes_passed;
   end if;
-  raise notice 'batch 121: 5 payload probe(s) passed; the 2 that need a published post are in the fixture';
+  raise notice 'batch 121: 8 payload probe(s) passed; the 2 that need a published post are in the fixture';
 end $$;

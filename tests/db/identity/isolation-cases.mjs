@@ -16211,7 +16211,11 @@ export function buildCases(id) {
     },
     {
       id: 'pinned-editor-a-sees-the-metric-snapshots-of-the-fb-send',
-      covers: ['§8.6/4', '§12.6/1'],
+      // NOT tagged `§8.6/4`. It was, and C0 graded the tag a MEDIUM finding: §8.6's case 4 is "Same
+      // Business + allowed Page A but row Page B → deny" and this case measures a PASS, so the tag
+      // claimed a mandatory authorization case on the case that shows its opposite. The gap is real
+      // and is an open blocker, not a tag.
+      covers: ['§12.6/1'],
       as: pageEditorA,
       sql: METRIC_SERIES_OF_POST,
       params: [id('published_post_a1_fb')],
