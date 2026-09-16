@@ -4,15 +4,34 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b61c634d7bf34a691309e26ba5c97b23dc88129a",
-  "head_revision_or_patch_checksum": "3bf8584b5e7253cb386ff795d8b8da5ca239842e",
+  "base_revision": "0f3a08b065cd8a316e9dda50b531ae83e2d89b40",
+  "head_revision_or_patch_checksum": "ce1ecfed857ec9100b2d452b02e6931b52fd380d",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/session-2026-09-15-fifth-pass.md"
+    "db/foundation/migrations/121_publisher_metrics.sql",
+    "evidence/WP-0A-DB-00/a0-batch-121-integration-2026-09-16.md",
+    "evidence/WP-0A-DB-00/a0-batch-121-plan-2026-09-16.md",
+    "evidence/WP-0A-DB-00/a1-batch-121-security-review-2026-09-16.md",
+    "evidence/WP-0A-DB-00/c0-batch-121-contract-review-2026-09-16.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-16-batch-121.md",
+    "evidence/WP-0A-DB-00/q0-batch-121-test-review-2026-09-16.md",
+    "evidence/WP-0A-DB-00/session-2026-09-16-sixth-pass.md",
+    "tests/db/identity/fixtures/121-publisher-metrics-fixture.sql"
   ],
   "files_modified": [
+    ".github/workflows/ci.yml",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/service-policy-map.json",
+    "db/foundation/seeds/fixture-catalog.json",
+    "evidence/VERIFICATION.md",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
+    "tests/db/identity/fixtures/120-publisher-fixture.sql",
+    "tests/db/identity/identity-isolation.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -20,123 +39,125 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT LANDS BATCH 120 (publisher.meta) AND ITS CLOSURE 122, under the Product Owner's disposition of 2026-09-15 (evidence/WP-0A-DB-00/product-owner-disposition-2026-09-15-batch-120.md), which answers the fourteen questions in evidence/WP-0A-DB-00/a0-batch-120-plan-2026-09-15.md §11 with the Author's recommended option on every one. Nothing here re-opens any of them.",
-    "§8.3 gives this family TWO rows and they do not fall one per table. \"Publish now/cancel pending\" is the INTENT -- `Y` for the owner and the admin, `P` for the editor with no capability defined anywhere, `N` for the approver and the viewer. \"Publish delivery/post/metric INSERT\" is everything below it -- `N` in every client column, `S` for the service. So one table of five is client-writable and the other four are refused to every client role at the GRANT layer.",
-    "RFC-2026-022 IS APPROVED AND NOT IN EFFECT, so the `S` cell is CLASSIFIED AND NOT ENFORCED: three CARRIED rows in db/foundation/lint/service-policy-map.json for the target, the job and the post, and no policy anywhere. app_worker holds the grants and no policy (batch 010's shape), so its four INSERT refusals are POLICY-layer and flip with the negative control, while its rehome and delete refusals are GRANT-layer and permanent.",
-    "THE READINGS THIS BATCH TOOK AND LABELLED AS READINGS, each now an entry in the work package's open_blockers rather than a sentence in a comment: that \"delivery\" means the target AND the job; that a client may write an intent although RFC-2026-012's inventory line says the family's INSERT is service-only; that §8.4's \"Job redacted status SELECT\" may or may not govern a publisher job, which the redacted client grant satisfies either way; that one job per send is the right shape although §4.8 states a per-target uniqueness that then becomes moot; and that the editor's undefined `P` is a refusal rather than an explicit-scope grant.",
-    "THE RAW PROVIDER IDENTIFIER IS DEFERRED RATHER THAN SOLVED. §9.1 makes an external post ID PROVIDER-3, so app.published_posts stores one sha256 and no permalink. Batch 110 named batch 120 as the batch that would have to give the raw value a home; it does not, because the mechanism §9.3 would need has no decision behind it and the typed service does not exist. The consequence is stated rather than absorbed: nothing can address a Page at the provider until that debt is paid."
+    "THIS INCREMENT LANDS BATCH 121 (app.performance_snapshots), under the Product Owner's disposition of 2026-09-16 (evidence/WP-0A-DB-00/product-owner-disposition-2026-09-16-batch-121.md). Thirteen lettered questions were put with A0's recommendation named ON each as a recommendation; the answer was \"เอาตามคุณแนะนำ\" and is read as taking the recommended option on every one. Every substantive shape below is that reading and not an inference: the table name from §4.8 rather than the ERD (A), partition-READY and not partitioned (B), a single-column identity PK (C), the PROVIDER-3 payload INSIDE the client projection behind a shape (D), a client SELECT §8.3 does not authorise (E), metric_time as the provider's instant with no cadence enforced (F), an integer schema version (G), a forward key on batch 120's table (H), no UPDATE or DELETE for any role (I), the S cell classified and NOT enforced (J), no closure file (K), retention commented and enforced nowhere (L), and 121 alone in one pull request (M).",
+    "BATCH 121 WAS CHOSEN OVER BATCH 091 AND THE CHOICE WAS PUT TO THE OWNER FIRST. §6's registry depends 121 on 120 alone and 120 is merged, while it assigns 091 to A5 and three existing blockers (138, 140, 172) put 091's opening questions in other packages' hands. RFC-2026-022 §3 names 120 AND 121 in one row, so this batch continues a classification rather than opening one.",
+    "THE MAGNITUDE BOUND ON METRIC VALUES IS A0's NUMBER AND NOT THE OWNER'S. Question D approved \"a bounded key set, every value numeric, total size bounded\"; A1's finding showed that phrase needs a fourth kind of bound, A1 declined to name a threshold and called it a product decision, and A0 chose 10^12. It is in the open blockers as owed to the Owner.",
+    "§3.3 NAMES social_account_id AS REQUIRED FOR METRICS AND THIS TABLE HAS NONE. C0 found the tension after the Owner had answered. It is NOT implemented, because choosing between §3.3 and §4.8 is the Owner's; it is a blocker."
   ],
   "acceptance_results": [
     {
-      "criterion": "Batch 120 creates the tables §6's registry and §4.8 name, and nothing else",
+      "criterion": "Batch 121 creates the table §6's registry and §4.8 name, and nothing else",
       "result": "met",
-      "evidence": "five tables in app: publish_intents, publish_targets, publish_target_assets, publish_jobs, published_posts. The fifth is the asset pin, which §4.8 names in the same breath as the target (\"pinned content variant + asset version refs\") and ADR-012 makes a rule of; identity-isolation.test.mjs asserts the count is exactly five and says why a sixth would be reserving another batch's work."
+      "evidence": "one table in app: performance_snapshots, plus one forward UNIQUE key on batch 120's app.published_posts. db-migrate-clean ok on a scratch PostgreSQL 17.11; db-schema-lint ok."
     },
     {
-      "criterion": "The §8 cell this family implements is classified and NOT enforced",
+      "criterion": "§4.8's bullet is implemented, deferred with a stated reason, or contradicted in writing",
       "result": "met",
-      "evidence": "three CARRIED rows in db/foundation/lint/service-policy-map.json (publish_targets, publish_jobs, published_posts), the _what_batch_120_classified note for the three absences, and an apply-time assertion that every policy batch 120 writes is TO authenticated alone. RFC-2026-022 §5/8 is why."
+      "evidence": "C0 checked it clause by clause and found it fully accounted for. The one tension -- 'high-volume identity PK' against 'partition-ready by month' -- is stated in the header with the consequence for batch 150 (a rebuild, not an alter) and is an open blocker."
     },
     {
-      "criterion": "Every client write the matrix marks `N` is refused at the privilege layer, and every service write at the layer its grant implies",
+      "criterion": "Every tenant table has ENABLE + FORCE row level security and the §8.6 case set",
       "result": "met",
-      "evidence": "live on PostgreSQL 17.11: `authenticated` inserting a send is refused 42501 on the table (no grant); app_worker inserting the same row is refused 42501 BY ROW LEVEL SECURITY (grant, no policy); app_worker rehoming or deleting is refused at the grant layer. Three layers on one identity across one family."
+      "evidence": "24 isolation cases on one table; 965 pass in total (941 before). A1 measured tenant isolation in both directions across all nine fixture identities on a live cluster."
     },
     {
-      "criterion": "The tenant boundary holds four links deep, and every negative control is detectable on its own",
+      "criterion": "The §8 `S` cell is classified and not enforced",
       "result": "met",
-      "evidence": "rls-smoke: 941 isolation case(s) passed. Disabling row level security one table at a time turned the suite red on each of the five, and EVERY failing case matched that entry's own pattern and no other: 14/14, 7/7, 4/4, 6/6, 5/5."
+      "evidence": "one CARRIED row in db/foundation/lint/service-policy-map.json for the metric INSERT; app_worker holds SELECT and INSERT and NO policy; the service INSERT case is refused at the POLICY layer and LANDS when the negative control disables row level security, verified by Q0 independently."
     },
     {
-      "criterion": "The closure is provable and its mutations are caught",
+      "criterion": "The family is detectable on its own by the CI negative control",
       "result": "met",
-      "evidence": "dropping both 122 closures reds exactly the two batch-122 cases; rewriting one to `using (true)` reds exactly one. The second is the mutation SERVICE_PATH_CLOSURE_ON gained its predicate term for after Q0-pre-080 F1."
+      "evidence": "one entry, pattern '[a-z0-9-]*metric-snapshot'. Disabling row level security on app.performance_snapshots fails exactly seven cases and no other family's; Q0 verified the row counts and the reverse direction (no non-121 id matches the pattern across all 965)."
     },
     {
-      "criterion": "npm run check stays green with no test skipped and no declared floor lowered",
+      "criterion": "An independent Reviewer, Tester and Security reviewer have reported",
       "result": "met",
-      "evidence": "clean: exit 0 -- tests 658, pass 658, fail 0, skipped 0, todo 0 (647 -> 658). Floors RAISED to the numbers verify-test-coverage-floor.mjs printed: identity-isolation 285 -> 296 tests and 2026 -> 2101 assertions with a new name digest; foundation-contract 243 -> 258 assertions."
+      "evidence": "three distinct runs in isolation worktrees, each with its §0 disclosure: A1 (2 MEDIUM, 3 LOW), C0 (2 HIGH both stop-the-line, 3 MEDIUM), Q0 (1 HIGH, 1 MEDIUM-HIGH, 2 MEDIUM, 2 LOW). Every finding is acted on or recorded with a reason. THE AUTHOR APPROVED NOTHING OF ITS OWN."
     },
     {
-      "criterion": "The raw provider identifier does not reach the exposed schema",
-      "result": "met",
-      "evidence": "app.published_posts carries external_post_hash (bytea, octet_length = 32) and no raw id and no permalink; a static rule scans the TABLE BODIES for external_post_id, permalink, post_url, provider_response, raw_response, payload, access_token and refresh_token; the apply-time block asserts per column against the live ACL that no client role reads the hash, the provider request key, the error code or the kernel job id."
+      "criterion": "A green required CI run on the head",
+      "result": "not_met",
+      "evidence": "PENDING AND THE INTEGRATION OWNER MUST VERIFY IT. The only completed run on this branch is 35054617678 on head 426c294, which FAILED on the handoff guard alone -- and because bootstrap failed first, the branch-scope, database and negative-control steps were SKIPPED. CI has therefore never validated this batch's database half. The run on the head this handoff cites is what must be read before merge."
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 658, pass 658, fail 0, skipped 0, todo 0 (647 -> 658)"
+      "result": "clean: exit 0 — tests 663, pass 663, fail 0, skipped 0, todo 0 (658 -> 663)"
+    },
+    {
+      "command": "node scripts/db/run.mjs migrate-clean",
+      "exit_code": 0,
+      "result": "db-migrate-clean: ok — the full set 001..140 including 121_publisher_metrics.sql, on a scratch PostgreSQL 17.11 built for this batch"
+    },
+    {
+      "command": "node scripts/db/run.mjs schema-lint",
+      "exit_code": 0,
+      "result": "db-schema-lint: ok"
+    },
+    {
+      "command": "node scripts/db/run.mjs rls-smoke",
+      "exit_code": 0,
+      "result": "db-rls-smoke: 965 isolation case(s) passed (941 -> 965)"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "floors met; the declared test floor moved 296 -> 301 and the assertion floor 2101 -> 2133, both to the numbers this guard prints"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 22 changed path(s) are declared, and every amendment explains one"
+      "result": "all 18 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "npm run check:handoff",
+      "command": "node scripts/scan-repository-secrets.mjs",
       "exit_code": 0,
-      "result": "describes the branch: nothing substantive after its cited head"
+      "result": "0 findings. It refused the tree twice during this increment and was correct both times -- see migration_and_data_impact."
     },
     {
-      "command": "DB_TEST_URL=… node scripts/db/run.mjs migrate-clean",
+      "command": "per-family negative control, app.performance_snapshots",
       "exit_code": 0,
-      "result": "ok — 120_publisher.sql and 122_publisher_service_path_closed.sql applied on a scratch PostgreSQL 17.11; ceiling probe 200,024 bytes; FK support probe: every key in app and private supported, 4 exempt by name"
+      "result": "exactly 7 cases fail with row level security disabled on the table and no other family's; the service INSERT lands. Adjacent families re-checked in both directions: research_snapshots 2/2, published_posts 5/5, publish_targets 7/7 -- each satisfied only by its own cases."
     },
     {
-      "command": "DB_TEST_URL=… node scripts/db/run.mjs schema-lint",
+      "command": "apply-time mutation re-runs (A0), and Q0's own survivors",
       "exit_code": 0,
-      "result": "ok"
-    },
-    {
-      "command": "DB_TEST_URL=… node scripts/db/run.mjs rls-smoke",
-      "exit_code": 0,
-      "result": "941 isolation case(s) passed (857 -> 941)"
-    },
-    {
-      "command": "negative control, one table at a time (the ci.yml step, run by hand)",
-      "exit_code": 0,
-      "result": "each of the five turns the suite red and every failing case matches that entry's own pattern and no other: publish_intents 14/14, publish_targets 7/7, publish_target_assets 4/4, publish_jobs 6/6, published_posts 5/5"
-    },
-    {
-      "command": "closure mutations (drop both; rewrite one to USING (true))",
-      "exit_code": 0,
-      "result": "exactly 2 cases red, then exactly 1 — the batch-122 cases and no others"
-    },
-    {
-      "command": "exploit probes (six, evidence §4)",
-      "exit_code": 0,
-      "result": "cross-tenant destination 23503; post naming an account its send does not 23503; second job on one send 23505; provider key reused 23505; app_worker insert 42501 by RLS; authenticated insert 42501 by privilege"
+      "result": "ten A0 mutations each caught by name; Q0's M17, M45, M27 and M32b each re-run against the fix and each now refused by name; Q0's D01h reproduced after the migration set and now fails the suite."
     }
   ],
-  "security_privacy_cost_impact": "SUBSTANTIAL AND THE WHOLE POINT OF THE BATCH. Five new tenant tables, every one ENABLE + FORCE ROW LEVEL SECURITY, each with one SELECT policy on active membership and one RESTRICTIVE narrowing resolving through the intent and then through app.content_items -- four links from the row to the Page override that decides it. §9.1's PROVIDER-3 columns are withheld from the client per column and asserted against the live ACL: external_post_hash, provider_request_key, last_error_code, kernel_job_id. NO RAW PROVIDER IDENTIFIER AND NO PERMALINK EXISTS ANYWHERE IN THE SCHEMA -- batch 110 named this batch as the one that would have to give the raw external identifier a home and it defers to the typed service in writing, with the consequence stated. app_worker holds grants and NO POLICY on the four service-written tables (RFC-2026-022 approved and NOT IN EFFECT), so every service refusal is attributable to row level security rather than to a forgotten GRANT. Cost: none beyond storage; no provider call, no credential, no network.",
-  "migration_and_data_impact": "TWO MIGRATIONS AND ONE FORWARD KEY ON A MERGED TABLE. 120_publisher.sql creates five tables, fourteen indexes, three set_updated_at triggers, ten policies and the grants, and ADDS (never rewrites -- migration invariant 1) one unique key to batch 081's app.content_targets: content_targets_destination_key (workspace_id, business_profile_id, id, social_account_id), which is what lets a send name an aim AND the account it resolves to in one key. That is batch 111's precedent on batch 110's table. 122_publisher_service_path_closed.sql creates two RESTRICTIVE policies and no object. NO DATA IS MIGRATED and no instance is provisioned: the migration set has never been applied to any database this repository owns, so there is no deployed schema to change. tests/db/identity/fixtures/081-content-targets-fixture.sql now writes its six rows with ids fixed from the catalog rather than defaulting, which changes no row's content. Forward fix only; no down migration exists and none will.",
-  "compatibility_impact": "The isolation suite grows 857 -> 941 cases and the static suite 647 -> 658 tests; three declared floors are RAISED and none lowered. .github/workflows/ci.yml gains five negative-control entries, so the CI job does five more suite runs. The fixture catalog gains twelve symbols and overturns batch 081's \"no symbol for a content target\" declaration with a stated third clause. No contract in contract-catalog/ changes; no public interface exists yet to break.",
+  "security_privacy_cost_impact": "SUBSTANTIAL, AND IT IS WHERE EVERY ROLE RUN SPENT ITS TIME. One new tenant table, ENABLE + FORCE ROW LEVEL SECURITY, one SELECT policy on active membership and one RESTRICTIVE narrowing four joins deep (snapshot -> post -> send -> intent -> item). A1 measured tenant isolation closing in BOTH directions for all nine fixture identities, 17 write attempts refused across three distinct layers, and the per-column ACL exactly as claimed: authenticated reads 8 columns and writes none, app_worker reads 8 and inserts 6, anon holds nothing, relacl is NULL so there is no hidden PUBLIC grant, and no role at all holds UPDATE, DELETE, TRUNCATE or REFERENCES.\n\nTHE CLASSIFICATION DECISION THIS BATCH TURNS ON: `metrics` is PROVIDER-3 and sits INSIDE the client projection (question D), so the control is a SHAPE and not a projection. A1 threw 28 attacks at it -- nested objects, arrays, numeric strings, Thai unicode, case-variant and Cyrillic-homoglyph keys, jsonb scalars -- and no provider-authored TEXT reached app. It then found what did: a NUMERIC external post id passed all four type-discriminating constraints and was readable by an ordinary client, while batch 120 withholds even the HASH of one from the same role. Closed by a magnitude bound (A0's number, owed to the Owner). Q0 then found that the constraints themselves were undefended -- widening the allowlist by one key let a Graph API error sentence through with every layer green -- and that is closed by pinning the key set BY TEXT in the migration and again in the fixture.\n\nCost: negligible. One table, two indexes, no new role, no new grant to any existing role beyond this table, and no external call anywhere.",
+  "migration_and_data_impact": "ONE MIGRATION AND ONE FORWARD KEY ON A MERGED TABLE. 121_publisher_metrics.sql creates app.performance_snapshots (8 columns, 7 constraints, 2 indexes, 2 policies, no trigger and no updated_at), and adds published_posts_scope_unique to batch 120's app.published_posts.\n\nTHE FORWARD KEY IS THE PART A REVIEWER SHOULD LOOK AT FIRST. app.published_posts carried no unique on (workspace_id, business_profile_id, id), so the composite scope FK every other child in this schema uses could not be written against it. Migration invariant 1 forbids rewriting 120, so the key is added here -- 111's shape on 110's table and 120's on 081's. It was reported to the Owner BEFORE the work as question H, not discovered during it. A reader of 120_publisher.sql will see a table whose scope key is not there; the comment on the constraint says which batch added it and why.\n\nNO DATA MIGRATION AND NO BACKFILL: the table is new and empty. Nothing in this repository can write to it -- no client role holds INSERT and the service is refused at the policy layer -- so it will stay empty until RFC-2026-022 §7 holds and a command surface exists.\n\nTHE SECRET SCANNER REFUSED THE TREE TWICE DURING THIS INCREMENT, both times correctly and neither time a secret. A regenerated sha256 of scripts/test-suite-contract.mjs contained a thirteen-digit run beginning with 4 that satisfied Luhn, and then the paragraph written to explain that quoted the digits. The tree moved both times; the scanner was not changed to forgive either, for the reason its own header gives. THE DIGITS REMAIN IN TWO COMMIT MESSAGES IN THIS BRANCH'S HISTORY and cannot be removed without a history rewrite, which is forbidden. They are a hash coincidence and not a payment instrument.",
+  "compatibility_impact": "The isolation suite grows 941 -> 965 cases and the static suite 658 -> 663 tests; two declared floors are RAISED (296 -> 301 tests, 2101 -> 2133 assertions) and none lowered. .github/workflows/ci.yml gains ONE line -- the per-family negative control for app.performance_snapshots -- and that file is the Integration Owner's, so the line is PROPOSED and not claimed as approved.\n\nBATCH 120's OWN FIXTURE CHANGES, and a reviewer should check it took nothing: the three app.published_posts rows get FIXED ids, because the catalog gave a post no symbol on the ground that 'nothing is addressed through them' and app.performance_snapshots is addressed through a post. That note in db/foundation/seeds/fixture-catalog.json is corrected where it was written, and three symbols are added. No row is added to any other batch's table and no (item, destination) pair or target slot is taken -- which is the failure batch 120 recorded against itself, and a static test now asserts the 121 fixture writes into one table only.\n\nNOTHING DOWNSTREAM CONSUMES THIS TABLE. No generated types, no ERD regeneration, no contract change: contracts_consumed and contracts_produced_or_changed are both empty and that is accurate, not unfilled.",
   "known_limitations": [
-    "NOTHING IN THIS REPOSITORY CAN PUBLISH ANYTHING, and that is the design followed rather than a limitation of the batch: §8.3 marks the delivery, the post and the metric `S`, RFC-2026-022 §5/8 measures that the only member of app_worker is postgres (which bypasses RLS), and no command function exists anywhere (RFC-2026-021 §10).",
-    "AND THE SERVICE COULD NOT COMPOSE THE STATEMENT EVEN IF A POLICY ADMITTED IT. Measured live: app_worker is refused app.content_targets and app.content_variants outright, and a send COPIES an aim and a variant from those two tables. New open blocker; it is also why two case ids hold their ids as parameters rather than resolving them by subselect.",
-    "§4 invariant 5's two conditions -- a pinned asset version `ready` with rights valid -- are enforced by nothing on app.publish_target_assets, which is blocker 153's finding about app.content_asset_links on a second table.",
-    "app.publish_intents carries no `status` column (the Owner's question 5b), so \"cancel PENDING\" is not a database rule: a cancellation is accepted whatever the sends already did.",
-    "Nothing holds a variant's platform (`facebook`/`instagram`) to its destination's account_kind (`fb`/`ig`) or to its post's platform; the fixture keeps them consistent by hand so no case demonstrates the gap as though it were a feature.",
-    "Batch 091 does not exist; `request_kind = 'scheduled'` may be declared with no schedule row anywhere and nothing refuses the combination."
+    "THE SERVICE CANNOT RESOLVE THE POST WHOSE METRICS IT WOULD COLLECT, so the statement this batch classifies CARRIED cannot be composed by any service in this schema. Measured: as app_worker, app.published_posts, app.publish_targets and app.publish_intents all return ZERO -- the grant exists and the policy does not, because RFC-2026-022 is approved and NOT IN EFFECT. RFC-2026-022 §3 calls the cell CARRIED because published_post_id is a PARAMETER, which is true of the statement and silent about where the parameter comes from. This is the fifth pass's fan-out finding one table further down and it now covers ALL FOUR statements of the publishing S cell.",
+    "§8.3 HAS NO SELECT ROW FOR A METRIC and the client read is the Owner's decision of 2026-09-16, not a citation. It matters more here than on the other four publisher tables: an intent, a send, a job and a post are records of what the system did and have a use unread; a metric has none.",
+    "NOTHING ENFORCES THE COLLECTION CADENCE and nothing holds a snapshot to be no older than its post. The first has no column to hold it; the second is a cross-table rule a CHECK cannot express.",
+    "PARTITION-READY IN ONLY TWO OF THE THREE SENSES §4.8 ASKS FOR. The unique carries metric_time and the index prunes on it; the primary key is `id` alone and a partitioned table requires the key to contain the partition column, so batch 150 must REBUILD rather than alter.",
+    "§8.6's CASE 4 IS NOT EXERCISED ON THIS TABLE. Every post in the fixture hangs off a business-level item, and the two page-pinned rows in this family are absences three of batch 120's own cases depend on. What IS measured is that a page-pinned member SEES the business-level series -- a single-Page scope is a scope within a business -- which contradicted this batch's own plan and was kept as the measurement.",
+    "NOTHING RE-RUNS ANY BATCH'S APPLY-TIME INVARIANTS AFTER THE WHOLE MIGRATION SET. Q0 says plainly this is a property of the harness and that every batch from 000 to 140 has it. Batch 121 closed only its own case, by putting its probes and its key-set assertion in the fixture."
   ],
   "open_risks_or_blockers": [
-    "TEN opened by this increment (work-packages/WP-0A-DB-00.json open_blockers, 164 -> 174). The one a reader should meet first: THE SERVICE CANNOT PERFORM THE FAN-OUT §8.3 MARKS `S` FOR IT, because app_worker holds no grant on app.content_targets or app.content_variants and a send copies from both -- measured, not reasoned. Then: which §8 row governs a publisher job; the client INSERT on the intent departing from RFC-2026-012's inventory line (the Owner's question 14); no `status` on the intent; two vocabularies for one distinction; no soft lifecycle on three mutable tables; one job per send as a reading that makes §4.8's own uniqueness rule moot; §4 invariant 5 unenforced on the pin; batch 091 absent; and the editor's undefined publishing capability, which the Owner disposed as a refusal (question 2).",
-    "None closed by this increment."
+    "TWELVE opened by this increment (work-packages/WP-0A-DB-00.json open_blockers, 175 -> 187), none closed. The one a reader should meet first: THE SERVICE CANNOT RESOLVE THE POST IT WOULD COLLECT FOR, which makes all four CARRIED classifications in service-policy-map.json descriptions of statements no service in this schema can form.",
+    "THREE OF THE TWELVE ARE THE OWNER'S AND ARE NAMED AS SUCH: the 10^12 magnitude threshold is A0's choice, not the Owner's; A1 graded a finding MEDIUM against a brief that pre-declared it HIGH and stop-the-line, wrote the disagreement into its own file and said the Owner may overrule -- THE AUTHOR TOOK NO POSITION, because an Author may not grade its own batch's severity; and §3.3 versus §4.8 on social_account_id is a choice between two source documents that was found after the Owner had answered.",
+    "C0 GRADED TWO FINDINGS STOP-THE-LINE against head 426c294. Both are answered -- the blocker claims by f154519 and the false fixture header by 0c04008 -- but a reader should know that this batch was stop-the-line at the head the Reviewer read, and that C0's F1 is the THIRD time in two batches a reviewer has caught the same class (claims of 'recorded in the open blockers' that were not).",
+    "NO GREEN CI RUN EXISTS FOR THIS BATCH'S DATABASE HALF. The only completed run, 35054617678 on 426c294, failed on the handoff guard and SKIPPED the branch-scope, database and negative-control steps. Everything in `tests` above was measured by the Author on a local scratch cluster and by A1 and Q0 on theirs. The Integration Owner must read the run on this handoff's cited head.",
+    "RFC-2026-023 (shape B) remains In review at the Owner's own request, and the connector contract (docs/**, read-only to this package) still owes itself the ON DELETE sentence from blocker 161's disposition. Neither is this batch's to close."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR: the two migrations, the five tables and the forward key on app.content_targets go, the isolation suite returns to 857 cases and the static suite to 647 tests, the three floors return to their previous numbers, the five ci.yml entries go, and the twelve fixture symbols and batch 081's six fixed ids revert with them. No database has ever received the migration set -- no instance is provisioned -- so there is no deployed schema to roll back and no data to restore. A defect found after merge is corrected by a forward batch, never by rewriting 120 or 122 (migration invariant 1).",
+  "rollback_or_forward_fix": "Revert through a reviewed revert pull request: the migration, the table and the forward key on app.published_posts go, the isolation suite returns to 941 cases and the static suite to 658 tests, the two declared floors return to 296 and 2101, the CI control line and the service-policy-map cell are removed, and batch 120's three published_posts ids return to defaulting along with the three catalog symbols. NEVER a force-push, and never a rewrite of 121_publisher_metrics.sql once it has merged (migration invariant 1).\n\nFORWARD FIX IS THE DEFAULT AND IS CHEAP HERE: the table is new and will be empty until a command surface exists, so any correction to its shape is an ALTER in a later batch with no backfill and no data at risk. The one exception is the forward key on app.published_posts: dropping it would take performance_snapshots_post_scope_fk with it, which the apply-time block asserts by name in both files.",
   "recommended_next_work_packages": [
-    "Batch 121 (metric snapshots): the other half of the same §8.3 `S` cell, partition-ready and append-only, with its own map row.",
-    "Batch 091 (calendar/schedules), which owes the schedule row `request_kind = 'scheduled'` implies and will meet §8.3's \"Schedule/unschedule\" row from the other side.",
-    "RFC-2026-023 disposition, still In review at the Owner's request."
+    "Batch 091 (calendar/schedules) is the natural successor and the FIRST QUESTION IS WHETHER A0 SHOULD WRITE IT AT ALL: §6's registry assigns it to A5 Calendar, blocker 172 says the schedule question is owed to A5, and blockers 138 and 140 put two more of its opening questions in other packages' hands. Put that to the Owner before planning it.",
+    "A post-migrate assertion pass that re-runs every batch's apply-time invariants after the full migration set (Q0's D01h in general form). It is A0 Integration's, it is not large, and batch 150 needs it before it rebuilds app.performance_snapshots to partition the table.",
+    "The three Owner decisions this batch opened -- the magnitude threshold, A1's severity disagreement, and §3.3 versus §4.8 on social_account_id -- want answers before another batch inherits the same shape."
   ],
   "reviewer_instructions": [
-    "Re-measure rather than adopt: initdb a scratch cluster (--locale=C, TCP-only, LC_ALL=C in the environment or the postmaster refuses), apply db/foundation/ci/supabase-shim.sql, then migrate-clean / schema-lint / rls-smoke. Batch 001 creates cluster-level roles, so re-initdb per run.",
-    "Disable row level security on each of the five tables in turn and confirm the suite goes red ONLY on that family's cases. The numbers to reproduce are 14/14, 7/7, 4/4, 6/6, 5/5.",
-    "Drop the two 122 closures and confirm exactly the two batch-122 cases go red; then rewrite one closure to `using (true)` and confirm exactly one does.",
-    "Try to defeat the two-step narrowing: write a send whose intent is in another Business, a post whose social_account_id is not its send's, a send whose aim belongs to another tenant. All three should be refused by a key or a policy, and the evidence file names which.",
-    "Check every citation in 120_publisher.sql against the document it names. The batch already corrected one found this way (ADR-010 -> ADR-012) and one claim that named a blocker before the blocker existed."
+    "RE-MEASURE RATHER THAN ADOPT. Nothing in `tests` above was verified by CI. initdb a scratch cluster (--locale=C, TCP-only on a port of your own, unix_socket_directories='', and LC_ALL=C IN THE ENVIRONMENT or the postmaster refuses to start), apply db/foundation/ci/supabase-shim.sql BEFORE the migration set, and re-initdb between rounds because 001 creates a cluster role. NEVER TOUCH THE USER'S SERVER ON PORT 5432. Do not use make -- it needs an Xcode licence.",
+    "START WITH THE FORWARD KEY on app.published_posts and decide for yourself whether adding a UNIQUE to a merged batch's table is the right call, or whether the composite FK should have been given up instead (question H's declined option (b)).",
+    "THEN THE PROVIDER-3 DECISION. `metrics` is inside the client projection on purpose and the whole of its protection is seven constraints, three of which are pinned BY TEXT because Q0 showed the others were undefended. Try to get a provider's identifier or sentence into `app` through it. A1 used 28 attacks and Q0 50 mutations; the classes they did NOT try are the ones worth your time.",
+    "READ THE THREE ROLE FILES' §0 DISCLOSURES BEFORE THEIR FINDINGS. All three runs are subagents of the Author's session, and Q0 states the sharpest limit of the three in its own words: the Author wrote the batch, the brief AND the mutation list, so every class the Author named was caught -- which measures the list, not the suite.",
+    "THE AUTHOR IS NOT THE REVIEWER, THE TESTER, THE SECURITY REVIEWER OR THE INTEGRATION OWNER, and has approved nothing of its own. Under RFC-2026-002 the merge is the Product Owner's, after a green required CI run on this handoff's cited head."
   ],
   "superseded_by": null
 }
