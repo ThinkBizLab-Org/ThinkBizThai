@@ -78,6 +78,11 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 15,
   'test-kits/db/foundation-contract.test.mjs': 63,
   'test-kits/db/rls-assertions.test.mjs': 20,
+// Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
+// -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
+// because C0 graded the omission a finding: five assertion-bearing tests had been added
+// under a floor that did not move, which is the shape of a floor that stops meaning
+// anything. Both numbers are what the guard itself prints, never a count taken by hand.
   'tests/db/identity/identity-isolation.test.mjs': 301,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
