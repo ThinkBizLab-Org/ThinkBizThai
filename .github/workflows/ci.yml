@@ -856,4 +856,34 @@ jobs:
           control app.publish_target_assets   '[a-z0-9-]*publish-pin'      120
           control app.publish_jobs            '[a-z0-9-]*publish-job'      120
           control app.published_posts         '[a-z0-9-]*published-post'   120
+
+          # BATCH 121 — one table, and the entry rests on SEVEN cases, measured by running the
+          # suite with row level security disabled on it and reading which ids came back:
+          #
+          #     editor-a-sees-zero-metric-snapshots-under-a2          1 row became visible
+          #     admin-a-sees-zero-metric-snapshots-under-a2           1
+          #     owner-b-cannot-read-a-metric-snapshot-of-tenant-a     2
+          #     owner-a-cannot-read-a-metric-snapshot-of-tenant-b     1
+          #     suspended-a-sees-zero-metric-snapshot-rows            4
+          #     service-sees-zero-metric-snapshot-rows                4
+          #     service-cannot-record-a-metric-snapshot               the write LANDED
+          #
+          # The last one is the `S` cell's fourth statement: app_worker holds the INSERT grant §8.3
+          # marks `S` and NO POLICY (RFC-2026-022 approved and NOT IN EFFECT), so the write lands
+          # when the policy stops applying -- and its row is well formed on purpose, with a
+          # metric_time no fixture row holds so performance_snapshots_one_per_post_instant admits it.
+          #
+          # NOT the client insert, update or delete cases, and NOT the service's update or delete:
+          # every one of those is 42501 on the TABLE, because no such grant exists, and a
+          # privilege-layer refusal passes unchanged with row level security off. NOT
+          # `anon-cannot-read-a-metric-snapshot` either -- that is 42501 on the SCHEMA, one layer
+          # earlier still.
+          #
+          # THE PATTERN IS DISJOINT FROM EVERY OTHER ENTRY IN BOTH DIRECTIONS. Against 070's:
+          # `[a-z0-9-]*research-snapshot` does not match a metric-snapshot id and this one does not
+          # match a research-snapshot id. Against batch 120's five: no case id in batch 121 contains
+          # `publish-intent`, `publish-target`, `publish-pin`, `publish-job` or `published-post`, and
+          # tests/db/identity/identity-isolation.test.mjs asserts that in both directions rather than
+          # leaving it to be read here.
+          control app.performance_snapshots   '[a-z0-9-]*metric-snapshot'  121
           echo "negative control: every family above failed the suite, as each must."

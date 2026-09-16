@@ -78,7 +78,12 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 15,
   'test-kits/db/foundation-contract.test.mjs': 63,
   'test-kits/db/rls-assertions.test.mjs': 20,
-  'tests/db/identity/identity-isolation.test.mjs': 296,
+// Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
+// -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
+// because C0 graded the omission a finding: five assertion-bearing tests had been added
+// under a floor that did not move, which is the shape of a floor that stops meaning
+// anything. Both numbers are what the guard itself prints, never a count taken by hand.
+  'tests/db/identity/identity-isolation.test.mjs': 301,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -125,7 +130,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 19,
   'test-kits/db/foundation-contract.test.mjs': 258,
   'test-kits/db/rls-assertions.test.mjs': 108,
-  'tests/db/identity/identity-isolation.test.mjs': 2101,
+  'tests/db/identity/identity-isolation.test.mjs': 2133,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -162,7 +167,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/foundation-contract.test.mjs': '9de2dd9f7b8d4dd1',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': '98c84d8c924b5708',
+  'tests/db/identity/identity-isolation.test.mjs': 'aff0bae3374bdee5',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

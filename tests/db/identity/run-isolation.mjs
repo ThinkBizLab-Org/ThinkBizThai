@@ -174,6 +174,16 @@ export const FIXTURE_SQL_FILES = [
   // It is APPENDED, for the reason 130 gave and 061, 110, 131, 070, 080, 081, 090 and 100 kept: the
   // list is an ORDER, and appending is the change that cannot reorder anything else.
   'tests/db/identity/fixtures/120-publisher-fixture.sql',
+  // Batch 121's POSITION IS A DEPENDENCY, like 061's and unlike 140's. Every row it loads carries
+  // published_post_id against performance_snapshots_post_scope_fk, whose target is the composite key
+  // batch 121 adds to app.published_posts -- so it cannot load before 120's entry, and unlike 120's
+  // own relationship to 080's it would not merely no-op: the insert has nothing to reference and
+  // raises 23503 at load. It writes into ONE table, its own, and takes no (item, destination) pair
+  // and no (target) slot from any batch, which is the failure batch 120 recorded against itself.
+  //
+  // It is APPENDED, for the reason every entry above gives: the list is an ORDER, and appending is
+  // the change that cannot reorder anything else.
+  'tests/db/identity/fixtures/121-publisher-metrics-fixture.sql',
 ];
 
 // §12.6 and db/foundation/README: ids are READ, never generated. An unknown symbol is a hard

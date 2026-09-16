@@ -313,16 +313,26 @@ on conflict on constraint publish_jobs_one_per_target do nothing;
 --
 -- The A-side posts share one social account (social_account_a1) and differ in their hash, which is
 -- what published_posts_external_hash_unique is over.
+--
+-- THE THREE IDS ARE FIXED BY BATCH 121 AND WERE DEFAULTED HERE BEFORE IT. The note in
+-- db/foundation/seeds/fixture-catalog.json that gave a post no symbol said "nothing is addressed
+-- through them"; app.performance_snapshots is addressed through a post, so batch 121 gives each one
+-- a symbol and fixes the id here -- which is exactly what batch 120 did to batch 081's six content
+-- target ids on the day app.publish_targets started naming them, and what batch 111 did to batch
+-- 110's social accounts before that. The hash argument was already each post's own symbol name.
 insert into app.published_posts
-  (workspace_id, business_profile_id, publish_target_id, social_account_id, platform,
+  (id, workspace_id, business_profile_id, publish_target_id, social_account_id, platform,
    external_post_hash, published_at) values
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
+  ('afd4dde9-c824-51b2-ab0b-d82f36131f5d',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', 'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a',
    '2caeb3c1-954f-5551-866c-c2181121b74c', '71b10fff-e2b6-5f9a-b869-ba8f3854329c', 'facebook',
    sha256(convert_to('published_post_a1_fb', 'utf8')), timestamptz '2026-09-01 09:00:20+00'),
-  ('c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
+  ('7ff92ce8-686d-560d-a202-72e673d02ee5',
+   'c4840acc-0323-5e13-b1d3-c18d7eb615cb', '0a5bed73-2981-5699-b2a1-e1c1663127f4',
    'e0f72ca8-8b9d-5c21-8540-a6d1484f18c4', '71b10fff-e2b6-5f9a-b869-ba8f3854329c', 'facebook',
    sha256(convert_to('published_post_a2', 'utf8')), timestamptz '2026-09-01 10:00:18+00'),
-  ('43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
+  ('cd8df3a5-9a3a-57ed-bb37-5d57dfba1265',
+   '43fd5c24-ebea-528f-9ce9-eedf1f8f9765', '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3',
    '7298ada0-fb45-5196-9980-654f2ed3340d', 'bf855f7a-bbae-595f-b095-85be153f1148', 'facebook',
    sha256(convert_to('published_post_b1', 'utf8')), timestamptz '2026-09-01 11:00:22+00')
 on conflict on constraint published_posts_one_per_target do nothing;

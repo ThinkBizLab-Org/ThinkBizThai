@@ -11482,3 +11482,204 @@ test('the coverage map records what batch 120 pays, and the row it does not move
     + 'that absence costs the most — the fan-out §8.3 marks `S` has no writer — so the note must say '
     + 'so rather than letting the row stay silent.');
 });
+
+// ================================================================================================
+// BATCH 121 — app.performance_snapshots. One table, and the checks a reviewer would otherwise have
+// to make by hand.
+// ================================================================================================
+const METRICS_TABLE = 'performance_snapshots';
+const METRICS_MIGRATION = 'db/foundation/migrations/121_publisher_metrics.sql';
+const METRICS_FIXTURE = 'tests/db/identity/fixtures/121-publisher-metrics-fixture.sql';
+const METRICS_PATTERN_WORD = 'metric-snapshot';
+
+test('the table batch 121 adds has its own entry in the CI negative control', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const entry = entries.find((e) => e.table === METRICS_TABLE);
+  assert.ok(entry, 'app.performance_snapshots has no entry in the per-family negative control. The '
+    + 'step disables row level security ONE TABLE AT A TIME, so a family without an entry is a family '
+    + 'nothing would notice losing its policies.');
+  assert.equal(entry.batch, '121', 'the entry is attributed to the batch that owes it');
+
+  // The same rule batch 140 established and every entry since has needed: a case is RESTORED by
+  // disabling row level security only if it is a filtered read, a filtered write with a witness, or
+  // a POLICY-layer refused write. A grant-layer refusal passes unchanged and is not a basis.
+  const restoredByDisablingRls = (c) => ['no-rows', 'no-effect'].includes(c.expect)
+    || (c.expect === 'denied' && c.deniedBy === 'policy');
+  const matching = cases.filter((c) => new RegExp(`^${entry.pattern}`).test(c.id));
+  const basis = matching.filter(restoredByDisablingRls);
+  assert.equal(basis.length, 7,
+    `app.performance_snapshots' control entry rests on ${basis.length} case(s) and it was MEASURED at `
+    + 'seven: six reads that start returning rows and one service INSERT that lands. The number is '
+    + 'pinned rather than bounded below, because this table has exactly one policy pair and a change '
+    + 'that moved a case out of the basis would otherwise be invisible.');
+
+  // THE ONE POLICY-LAYER WRITE, PINNED BY ID AND BY LAYER. It is the fourth statement of §8.3's `S`
+  // cell and the last one the publishing family has.
+  const serviceInsert = cases.find((c) => c.id === 'service-cannot-record-a-metric-snapshot');
+  assert.ok(serviceInsert, 'the case this entry\'s strongest half rests on is missing');
+  assert.equal(serviceInsert.expect, 'denied');
+  assert.equal(serviceInsert.deniedBy, 'policy',
+    'app_worker holds the INSERT grant §8.3 marks `S` and NO POLICY, so this refusal is PENDING on '
+    + 'RFC-2026-022 §7 and the write LANDS when row level security is off. If this ever reads `grant` '
+    + 'the control has lost its only write and nobody would have been told.');
+
+  // AND THE TWO ON THE SAME IDENTITY AND THE SAME TABLE THAT ARE GRANT-LAYER, which is what proves
+  // the worker's verb list is a list rather than a sentence — batch 120's pairing, on one table.
+  for (const name of ['service-cannot-rewrite-a-metric-snapshot', 'service-cannot-delete-a-metric-snapshot']) {
+    const found = cases.find((c) => c.id === name);
+    assert.ok(found, `missing: ${name}`);
+    assert.equal(found.deniedBy, 'grant',
+      `${name}: the same identity, the same table, a different VERB and a different LAYER. This one is `
+      + 'PERMANENT where the INSERT beside it is pending: RFC-2026-022 coming into effect gives '
+      + 'app_worker a CARRIED policy for the INSERT and gives it nothing here, because no policy can '
+      + 'restore a privilege no role holds. §4.8 says "no destructive overwrite" and this is it.');
+  }
+});
+
+test('no batch 121 case id can satisfy another control entry, and no other can satisfy its own', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ourEntry = entries.find((e) => e.batch === '121');
+  assert.ok(ourEntry, 'batch 121 owns exactly one control entry');
+  assert.equal(entries.filter((e) => e.batch === '121').length, 1, 'one table, one entry');
+
+  const mine = cases.filter((c) => c.id.includes(METRICS_PATTERN_WORD));
+  assert.equal(mine.length, 24,
+    'batch 121 contributes exactly 24 case ids, all on one table. A case renamed out of its own '
+    + 'family changes this number, which is the only thing a rename cannot hide from.');
+
+  // OUTWARD: no metric case may satisfy anybody else's entry.
+  for (const testCase of mine) {
+    for (const entry of entries) {
+      if (entry.batch === '121') continue;
+      assert.doesNotMatch(testCase.id, new RegExp(`^${entry.pattern}`),
+        `${testCase.id} matches the control pattern /${entry.pattern}/ for app.${entry.table} (batch `
+        + `${entry.batch}), so that entry could be satisfied by batch 121's regression rather than by `
+        + "its own. This is why no metric id contains `published-post` even though every one of these "
+        + 'rows hangs off a post, and why the series case says `of-the-fb-send`.');
+    }
+  }
+  // INWARD, and this direction is the one batch 120 did not need: `[a-z0-9-]*research-snapshot` and
+  // `[a-z0-9-]*metric-snapshot` share a word, so the disjointness has to be shown BOTH ways. No case
+  // outside this batch may satisfy the metric entry.
+  const ourPattern = new RegExp(`^${ourEntry.pattern}`);
+  for (const c of cases) {
+    if (mine.includes(c)) continue;
+    assert.doesNotMatch(c.id, ourPattern,
+      `${c.id} is not a batch 121 case and matches its control pattern /${ourEntry.pattern}/, so the `
+      + 'metric table\'s entry could be satisfied by another family\'s regression.');
+  }
+  // And explicitly against the one it shares a word with, so the reason is legible in the failure.
+  const research = entries.find((e) => e.table === 'research_snapshots');
+  if (research) {
+    for (const c of mine) {
+      assert.doesNotMatch(c.id, new RegExp(`^${research.pattern}`),
+        `${c.id}: \`research-snapshot\` and \`metric-snapshot\` share the word \`snapshot\`, and the `
+        + 'two entries must not be mutually satisfiable. They are not, because each pattern requires '
+        + 'its own qualifier — but the check is written down rather than reasoned about.');
+    }
+  }
+});
+
+test('the batch 121 fixture writes only catalog identities, and into one table', async () => {
+  const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
+  const raw = await readFile(METRICS_FIXTURE, 'utf8');
+  const stripped = raw.replace(/--[^\n]*/g, '');
+  const ids = [...stripped.matchAll(/'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'/g)]
+    .map((m) => m[1]);
+  assert.ok(ids.length > 0, 'the fixture writes ids and this test read none, which means the pattern broke');
+  for (const value of ids) {
+    assert.ok(known.has(value), `${value} appears in the batch 121 fixture and in no catalog entry. An `
+      + 'id that is not a catalog identity is the unverifiable constant §12.6 exists to refuse.');
+  }
+
+  // ONE TABLE. Batch 120 recorded the cost of a fixture reaching into another batch's: every free
+  // (item, destination) pair in workspace A is already the subject of one of batch 081's insert
+  // cases, and a row on one of them turned two of those cases from a landing insert into a 23505.
+  // Batch 121 takes nothing from anybody, and this is where that claim is checkable.
+  const written = [...stripped.matchAll(/insert\s+into\s+app\.(\w+)/gi)].map((m) => m[1]);
+  assert.deepEqual([...new Set(written)], [METRICS_TABLE],
+    'the batch 121 fixture inserts into more than its own table. Every other publisher fixture slot '
+    + 'is load-bearing for a case that must LAND with row level security off, and taking one turns '
+    + "that case's proof into a constraint violation.");
+
+  // THE TWO PROBES THAT NEED A POST LIVE HERE AND NOT IN THE MIGRATION, which is batch 120's rule:
+  // a migration runs against an empty database, so a probe written there that needs a parent row
+  // would silently never run.
+  for (const needle of ['performance_snapshots_post_scope_fk', 'performance_snapshots_one_per_post_instant']) {
+    assert.ok(raw.includes(needle),
+      `the batch 121 fixture no longer probes ${needle} by name. No isolation case can reach a `
+      + 'constraint on this table — no client role holds INSERT and the service is refused at the '
+      + 'policy layer — so these two probes are the only thing that exercises them.');
+  }
+  assert.match(raw, /probes_passed <> 10/,
+    'the batch 121 fixture no longer COUNTS its ten probes. Q0 graded exactly this against batch 120: '
+    + 'a probe asserted only by itself can be deleted without the others objecting.');
+
+  // EIGHT OF THE TEN MOVED HERE FROM THE MIGRATION on Q0's finding F1, and the move is asserted so
+  // that putting them back is a visible change. An apply-time block runs once, when its own file is
+  // applied; rls-smoke re-runs a fixture against the database as the WHOLE migration set left it.
+  const migration = await readFile(METRICS_MIGRATION, 'utf8');
+  assert.doesNotMatch(migration, /probes_passed/,
+    'batch 121\'s migration has regained payload probes. They belong in the fixture, where they '
+    + 're-run on every rls-smoke — Q0 measured that a later migration weakening one of this batch\'s '
+    + 'constraints is invisible to an apply-time block for ever, and the header itself says batch 150 '
+    + 'must REBUILD this table.');
+  for (const arm of ['fell through']) {
+    const count = (raw.match(new RegExp(arm, 'g')) ?? []).length;
+    assert.equal(count, 10, `each of the ten probes needs a \`when others\` arm reporting a `
+      + `fall-through (Q0 F4); ${count} say "${arm}". A CHECK is evaluated before a foreign key `
+      + 'trigger, so when a targeted CHECK stops refusing, the row falls through to the composite FK, '
+      + 'the check_violation arm never runs, and the assertion that MAKES it a probe is never '
+      + 'evaluated — Q0 hit this twice and was told the foreign key was broken.');
+  }
+
+  // AND THE KEY SET IS RE-ASSERTED HERE, not only in the migration — Q0's D01h. Moving the probes
+  // was NOT sufficient and the Author measured that: a probe fires a fixed literal, so widening the
+  // allowlist with a key the probe does not send leaves every layer green.
+  assert.match(raw, /no longer names the ten metric keys/,
+    'the batch 121 fixture no longer re-asserts the metric key set. The migration asserts it once, '
+    + 'at apply time; this is the copy that runs on every rls-smoke and therefore the one that '
+    + 'catches a LATER migration widening, narrowing or reinstating the constraint.');
+});
+
+test('batch 121 writes no service policy, and says where the cell is classified instead', async () => {
+  const migration = await readFile(METRICS_MIGRATION, 'utf8');
+  const map = JSON.parse(await readFile('db/foundation/lint/service-policy-map.json', 'utf8'));
+  const ours = map.cells.filter((c) => c.batch === '121_publisher_metrics.sql');
+  assert.equal(ours.length, 1, 'batch 121 classifies exactly one §8 `S` cell: the metric INSERT');
+  assert.equal(ours[0].table, METRICS_TABLE);
+  assert.equal(ours[0].operation, 'insert');
+  assert.equal(ours[0].shape, 'carried',
+    'RFC-2026-022 §3 names batches 120 AND 121 in one row and classifies the cell CARRIED. A row here '
+    + 'that read `discovered` would contradict the RFC in the file the RFC points at.');
+  assert.ok(ours[0].why.length > 200, 'the classification states which half of §3\'s test the '
+    + 'STATEMENT falls on, in a sentence someone can disagree with');
+
+  // AND NO POLICY IS WRITTEN. The decision is approved and NOT IN EFFECT; the migration's own
+  // apply-time block asserts the same thing against the live catalog, and this asserts it against
+  // the text, because the two fail in different circumstances.
+  const policyRoles = [...migration.matchAll(/create policy\s+\w+\s+on\s+app\.performance_snapshots[\s\S]*?to\s+(\w+)/g)]
+    .map((m) => m[1]);
+  assert.ok(policyRoles.length >= 2, 'the migration writes the two policies this table has');
+  for (const role of policyRoles) {
+    assert.equal(role, 'authenticated',
+      'a batch 121 policy names a role other than `authenticated`. RFC-2026-022 is approved and NOT '
+      + 'IN EFFECT (§5/8): the cell is CLASSIFIED in service-policy-map.json and a policy here would '
+      + 'pre-empt §7 — and would make service-cannot-record-a-metric-snapshot pass for a reason the '
+      + 'case does not claim.');
+  }
+});
+
+test('batch 121 leaves its table open, and 122 is not extended to cover it', async () => {
+  const closure = await readFile('db/foundation/migrations/122_publisher_service_path_closed.sql', 'utf8');
+  assert.doesNotMatch(closure, /performance_snapshots/,
+    'batch 122 has been extended to close app.performance_snapshots. It must not be: 122 is MERGED '
+    + '(migration invariant 1), and its own reason for closing two tables of five is that an `S`-cell '
+    + 'table stays OPEN so the CARRIED policy RFC-2026-022 §7 will one day put beside its narrowing '
+    + 'is not pre-empted by a closure that would have to be amended first. The metric table is an '
+    + '`S`-cell table (question K).');
+});
