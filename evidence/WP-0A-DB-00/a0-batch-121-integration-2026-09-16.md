@@ -96,10 +96,12 @@ this record should be read as saying so even though the code is now fixed. It is
    rather than assumed: it was still listening on the same pid afterwards. The brief told each run to
    use its own scratchpad and its own port; it did not say that the parent directory is shared.
 2. **A regenerated digest failed the secret scan.** Editing `scripts/test-suite-contract.mjs` gave it
-   a sha256 whose digits contained `4695474047860` — thirteen digits, leading 4, Luhn-valid — and
+   a sha256 containing a thirteen-digit run that began with a 4 and happened to satisfy Luhn — and
    `scan-repository-secrets.mjs` correctly refused the tree. The scanner's own header explains why it
    has no allowlist: "an allowlist of safe card numbers is the shape a real leak hides in." The tree
-   changed to move the digest; the scanner did not change to forgive it.
+   changed to move the digest; the scanner did not change to forgive it. **The first draft of this
+   very paragraph quoted the offending digits and tripped the scanner a second time**, which is the
+   rule working exactly as written — the digits are not reproduced here.
 
 Q0 also recorded two honesty notes of its own: it broke its harness mid-sweep and one run reported a
 false survivor, which it caught from its log and redid; and five drift probes were confounded by an
