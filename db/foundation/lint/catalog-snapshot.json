@@ -39,6 +39,7 @@
       "110_meta_connector.sql",
       "111_social_fk.sql",
       "120_publisher.sql",
+      "121_publisher_metrics.sql",
       "122_publisher_service_path_closed.sql",
       "130_billing.sql",
       "131_billing_projection.sql",

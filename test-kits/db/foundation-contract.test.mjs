@@ -348,7 +348,11 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // apply-time block. Both are INSERTED between 111 and 130 rather than appended, because the
   // declaration must name a TAIL of the ordered set and appending would have made it a set with a
   // hole in it -- the trap 051 recorded and 070, 080 and 100 recorded after it.
-  '120_publisher.sql', '122_publisher_service_path_closed.sql',
+  // Batch 121 creates ONE table, whose only foreign key reaches app.published_posts -- a batch 120
+  // table, itself on this list -- and adds one key to that table as a forward fix. INSERTED between
+  // 120 and 122, which is both its numeric place and the place that keeps the declaration a TAIL of
+  // the ordered set rather than a set with a hole in it.
+  '120_publisher.sql', '121_publisher_metrics.sql', '122_publisher_service_path_closed.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -889,6 +893,17 @@ const ADDED_SYMBOLS = [
   'content_target_a2',
   'content_target_b1',
   'content_variant_a1_page_facebook',
+  // AND BATCH 120's THREE POSTS, which that batch declared needed no symbol -- "nothing is addressed
+  // through them" -- and which batch 121 gives one each, because something now is. §4.8 makes
+  // (published_post_id, metric_time) a metric snapshot's natural key and batch 121 makes it a unique,
+  // so a metric case that resolved its post by subselect would put app.published_posts' whole policy
+  // set behind the result of a case about app.performance_snapshots. That is the catalog's first
+  // clause, arriving for a post exactly as batch 120 recorded it arriving for a content target. The
+  // ids are FIXED in batch 120's own fixture, which is what batch 120 did to batch 081's on the day a
+  // foreign key started naming those rows. A JOB AND AN ASSET PIN STILL CARRY NO SYMBOL.
+  'published_post_a1_fb',
+  'published_post_a2',
+  'published_post_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 

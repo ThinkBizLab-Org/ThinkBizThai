@@ -16110,6 +16110,341 @@ export function buildCases(id) {
          + '`S`-cell tables of this family are left open BY NAME in 122\'s header, so that the CARRIED '
          + 'policy RFC-2026-022 §7 will one day put beside their narrowings is not pre-empted.',
     },
+    // ==========================================================================================
+    // BATCH 121 — app.performance_snapshots. The metric half of §8.3's `S` cell.
+    // ==========================================================================================
+    //
+    // EVERY CASE BELOW IS WRITTEN FROM A MEASUREMENT AND NOT FROM THE POLICY TEXT. The whole set was
+    // run against a scratch cluster before any of it was written down, and two of the readings
+    // contradicted what the plan assumed -- see `pinned-editor-a-sees-the-business-level-metric-
+    // series` and the note on the client verbs below. What is here is what the database did.
+    //
+    // THE LAYER EACH REFUSAL LANDS ON, MEASURED, because it decides which cases the CI negative
+    // control can rest on:
+    //   - every CLIENT insert, update and delete: 42501 on the TABLE. No client grant exists, so
+    //     these are GRANT-layer and they do NOT flip when row level security is disabled.
+    //   - anonymous, every verb including the read: 42501 on the SCHEMA `app`.
+    //   - the SERVICE's insert: "new row violates row-level security policy" -- POLICY layer, and
+    //     pending on RFC-2026-022 §7. It is the one write in this batch that flips under the control.
+    //   - the SERVICE's update and delete: 42501 on the TABLE. Permanent: no role holds either verb.
+    // So this table's control entry rests on the READ cases, which are RLS-decided, plus the one
+    // service insert -- stated here rather than left for whoever next edits the control to work out.
+    //
+    // NO CASE ID BELOW CONTAINS `published-post`, `publish-target`, `publish-job`, `publish-intent`
+    // OR `publish-pin`. Batch 120's five control patterns must not be satisfiable by a metric case,
+    // and identity-isolation.test.mjs asserts the disjointness in both directions rather than
+    // leaving it to be read.
+    {
+      id: 'owner-a-sees-the-metric-snapshot-of-the-fb-send',
+      covers: ['§4.8', '§12.6/1'],
+      as: ownerA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      why: 'The client read of a publication\'s numbers. §8.3 has no SELECT row for publishing at '
+         + 'all -- not for the intent, the send, the job, the post, nor this -- and the Product '
+         + 'Owner\'s answer of 2026-09-16 (question E) is the answer 120\'s question 4 got for the '
+         + 'post: a column-scoped read to active members, narrowed through the item. The reading is '
+         + 'in the work package\'s open blockers as its own entry, not as an inheritance of 120\'s.',
+    },
+    {
+      id: 'owner-a-sees-both-metric-snapshots-of-the-fb-send',
+      covers: ['§4.8/no-destructive-overwrite'],
+      as: ownerA,
+      sql: 'select count(*)::int as n from app.performance_snapshots where published_post_id = $1::uuid',
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      column: 'n',
+      equals: 2,
+      why: 'A SERIES, and the reason the fixture loads two readings on one post rather than one on '
+         + 'each. §4.8 asks for "unique (published_post_id, metric_time)" AND "no destructive '
+         + 'overwrite", and both sentences are about a post having more than one reading over time: '
+         + 'one row per post would satisfy the unique trivially and would say nothing about either. '
+         + 'A collector that overwrote the 10:00 reading with the 11:00 one instead of appending it '
+         + 'would leave this count at 1, and nothing else in the suite would notice.',
+    },
+    {
+      id: 'admin-a-sees-the-metric-snapshot-of-the-fb-send',
+      covers: ['§8.6/1'],
+      as: adminA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      why: 'The admin reads what the owner reads. Measured, not assumed: user_admin_a holds a '
+         + '`business` scope on business_a1, so its 2 rows here are exactly its 1 row on '
+         + 'app.published_posts -- and its ZERO under business_a2 is the same scope refusing, which '
+         + '`admin-a-sees-zero-metric-snapshots-under-a2` states separately.',
+    },
+    {
+      id: 'viewer-a-sees-the-metric-snapshot-of-the-fb-send',
+      covers: ['§8.6/1'],
+      as: viewerA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      why: 'The viewer too, and this is the role the table exists for. §8.3 marks the viewer `N` on '
+         + 'every publishing WRITE and the read row does not exist to mark; a metric nobody may look '
+         + 'at is the one table in this family with no purpose at all, which is why question D kept '
+         + 'the payload inside the projection instead of withholding it as the post\'s hash is.',
+    },
+    {
+      id: 'approver-a-sees-the-metric-snapshot-of-the-fb-send',
+      covers: ['§8.6/1'],
+      as: approverA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      why: 'The approver reads it as well: 2 rows, measured. Its refusals in this family are all on '
+         + 'the WRITE side (§8.3 marks it `N` on "Publish now"), and nothing about approving content '
+         + 'narrows what of the publication\'s outcome it may see.',
+    },
+    {
+      id: 'editor-a-sees-the-metric-snapshots-inside-their-narrowing',
+      covers: ['§8.6/1', '§12.6/1'],
+      as: editorA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      why: 'The positive half of the editor\'s member scope, without which the two zeros below would '
+         + 'be satisfied by an editor who sees nothing anywhere. user_editor_a is scoped to '
+         + 'business_a1 and published_post_a1_fb hangs off a business-level item of business_a1.',
+    },
+    {
+      id: 'pinned-editor-a-sees-the-metric-snapshots-of-the-fb-send',
+      covers: ['§8.6/4', '§12.6/1'],
+      as: pageEditorA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'rows',
+      // THE ID SAYS `of-the-fb-send` AND NOT `of-the-business-level-item`, and the first draft said
+      // the latter: `[a-z0-9-]*business` is batch 020's control pattern for app.business_profiles, so
+      // that entry would have been satisfiable by a regression on the metric table. Found by this
+      // batch's own disjointness test rather than by review, which is what it is for.
+      why: 'MEASURED, AND IT CONTRADICTED THE PLAN. Batch 121\'s plan asserted that the page-pinned '
+         + 'member would be admitted to nothing in this family; the live run returned 2. The reason '
+         + 'is the narrowing\'s own CASE expression, which every publisher policy carries: an item '
+         + 'with a NULL page_context_profile_id is tested by app.member_scope_admits_business, and '
+         + 'content_item_a1 is business-level. A single-Page scope is a scope WITHIN a business, not '
+         + 'a scope that excludes the business\'s own rows. The case is kept as the measurement '
+         + 'rather than deleted as an inconvenience, and the plan\'s sentence is corrected in the '
+         + 'fixture that made the claim.',
+    },
+    {
+      id: 'editor-a-sees-zero-metric-snapshots-under-a2',
+      covers: ['§8.6/3', '§12.6/2'],
+      as: editorA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a2')],
+      expect: 'no-rows',
+      why: 'Same Workspace, allowed business_a1, row under business_a2 -- §8.6 case 3, and the row '
+         + 'IS there: owner-a returns it. This is one of the cases the CI negative control for this '
+         + 'table rests on, because it is decided by row level security and starts returning a row '
+         + 'the moment that is switched off. The narrowing it fails is four joins deep -- snapshot, '
+         + 'post, send, intent, item -- and A1\'s finding F4 against batch 120 holds here one family '
+         + 'further down: the parent\'s policy answers FIRST inside the subquery, so this term could '
+         + 'not decide the read alone even if it were the only one.',
+    },
+    {
+      id: 'admin-a-sees-zero-metric-snapshots-under-a2',
+      covers: ['§8.6/3'],
+      as: adminA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a2')],
+      expect: 'no-rows',
+      why: 'The same refusal for the ADMIN, which is not implied by the editor\'s. §8.3 puts the '
+         + 'admin beside the owner (`Y`) on the write this family is about, so a suite that showed '
+         + 'only the editor refused would leave open whether a scope narrows an admin at all. '
+         + 'Measured: it does -- user_admin_a\'s business scope on business_a1 refuses business_a2 '
+         + 'exactly as the editor\'s does.',
+    },
+    {
+      id: 'owner-b-cannot-read-a-metric-snapshot-of-tenant-a',
+      covers: ['§8.6/5', '§12.6/2'],
+      as: ownerB,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'no-rows',
+      why: '§8.6 case 5: the attacker holds the EXACT id of the post whose numbers it wants and is '
+         + 'the owner of its own Workspace. Zero rows, and not because the rows are absent -- '
+         + 'owner-a-sees-both-metric-snapshots-of-the-fb-send counts two. So this is the policy.',
+    },
+    {
+      id: 'owner-b-sees-the-metric-snapshot-of-their-own-send',
+      covers: ['§12.6/1'],
+      as: ownerB,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_b1')],
+      expect: 'rows',
+      why: 'The other half of the tenant boundary, in the direction a one-sided suite never checks: '
+         + 'workspace B is refused A\'s rows AND is served its own. Without this, every B-side zero '
+         + 'above would also be satisfied by a policy that returns nothing to anybody.',
+    },
+    {
+      id: 'owner-a-cannot-read-a-metric-snapshot-of-tenant-b',
+      covers: ['§8.6/5'],
+      as: ownerA,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_b1')],
+      expect: 'no-rows',
+      why: 'And the mirror of it: A\'s owner holds B\'s post id and reads nothing, while '
+         + 'owner-b-sees-the-metric-snapshot-of-their-own-send proves the row is there to be read.',
+    },
+    {
+      id: 'suspended-a-sees-zero-metric-snapshot-rows',
+      covers: ['§8.6/6'],
+      as: suspendedA,
+      sql: 'select id from app.performance_snapshots',
+      params: [],
+      expect: 'no-rows',
+      why: '§8.6 case 6: a suspended member is refused IMMEDIATELY, not at the next session. The '
+         + 'query names no row on purpose -- it asks for the whole table -- so this is a statement '
+         + 'about app.is_active_member and not about one post being out of scope.',
+    },
+    {
+      id: 'anon-cannot-read-a-metric-snapshot',
+      covers: ['§8.6/7', 'RFC-2026-021§7'],
+      as: anonymous,
+      sql: METRIC_SERIES_OF_POST,
+      params: [id('published_post_a1_fb')],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'schema', name: 'app' },
+      why: 'Refused on the SCHEMA, measured, and therefore one layer before any policy. The numbers '
+         + 'of a post are visible to the world AT THE PROVIDER; this table is the tenant\'s own '
+         + 'record of them and is a different object, which is the sentence batch 120 wrote about '
+         + 'the post itself.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-metric-snapshot',
+      covers: ['§8.3/metric-N', '§8.6/2'],
+      as: ownerA,
+      ...metricSnapshotRecord('__A__', BUSINESS_A1, id('published_post_a1_fb'), '2026-09-05 10:00:00+00'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'A tenant may not assert what its own post achieved. §8.3 marks the metric `N` in every '
+         + 'client column, and a client-writable performance number is a claim rather than a '
+         + 'measurement -- the same sentence batch 120 wrote about the post, and it matters more '
+         + 'here: a post is a fact the provider confirms, a metric is the fact somebody wants to '
+         + 'look good. Refused at the GRANT layer, so it does not flip under the negative control.',
+    },
+    {
+      id: 'admin-a-cannot-record-a-metric-snapshot',
+      covers: ['§8.3/metric-N'],
+      as: adminA,
+      ...metricSnapshotRecord('__A__', BUSINESS_A1, id('published_post_a1_fb'), '2026-09-05 11:00:00+00'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'The admin too. §8.3\'s metric row is the one cell in this family where the owner and the '
+         + 'admin are NOT `Y` together -- they are `N` together -- and a suite that tested only the '
+         + 'owner would not have shown that the split in the row above it does not carry down.',
+    },
+    {
+      id: 'editor-a-cannot-record-a-metric-snapshot',
+      covers: ['§8.3/metric-N'],
+      as: editorA,
+      ...metricSnapshotRecord('__A__', BUSINESS_A1, id('published_post_a1_fb'), '2026-09-05 12:00:00+00'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'And the editor, whose `P` on the row ABOVE this one (publish now) is the undefined '
+         + 'capability batch 120 recorded as a blocker. On THIS row there is no `P` to argue about: '
+         + 'the editor is `N` like everybody else.',
+    },
+    {
+      id: 'owner-a-cannot-record-a-metric-snapshot-for-tenant-b',
+      covers: ['§8.6/5', '§8.6/8'],
+      as: ownerA,
+      ...metricSnapshotRecord('__B__', BUSINESS_B1, id('published_post_b1'), '2026-09-05 13:00:00+00'),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'The cross-tenant write, holding every one of B\'s real identifiers. It is refused at the '
+         + 'grant layer before any policy is consulted, which is WEAKER evidence than a policy '
+         + 'refusal and is recorded as such: this case proves the client cannot write here at all, '
+         + 'not that the narrowing would have caught it. What proves the second is the apply-time '
+         + 'probe in the fixture, which writes a mismatched scope AS THE LOADER and is refused '
+         + '23503 by performance_snapshots_post_scope_fk.',
+    },
+    {
+      id: 'owner-a-cannot-rewrite-a-metric-snapshot',
+      covers: ['§4.8/no-destructive-overwrite', '§3.2/immutable'],
+      as: ownerA,
+      ...metricSnapshotRewrite(id('published_post_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'The table is append-only and has no updated_at at all. §4.8 says "no destructive '
+         + 'overwrite" and §3.2 says publish history may not be updated; this is the client half of '
+         + 'that, and `service-cannot-rewrite-a-metric-snapshot` is the other.',
+    },
+    {
+      id: 'owner-a-cannot-delete-a-metric-snapshot',
+      covers: ['§8.5/no-broad-delete', '§3.2/immutable'],
+      as: ownerA,
+      ...metricSnapshotDelete(id('published_post_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'No broad user delete anywhere in this schema (§8.5), and here not even a soft one: there '
+         + 'is no lifecycle column to move. Retention is §10\'s "metrics detail 24 เดือน" and belongs '
+         + 'to batch 160, which this batch grants nothing.',
+    },
+    {
+      id: 'service-sees-zero-metric-snapshot-rows',
+      covers: ['§8.3/metric-S', 'RFC-2026-022§5/8'],
+      as: service,
+      sql: 'select id from app.performance_snapshots',
+      params: [],
+      expect: 'no-rows',
+      why: 'app_worker holds the SELECT grant and NO POLICY, so it reads nothing -- RFC-2026-022 is '
+         + 'approved and NOT IN EFFECT (§5/8). The same shape the target, the job and the post have '
+         + 'carried since batch 120. This is an RLS-decided zero and is one of the cases the '
+         + 'negative control for this table rests on.',
+    },
+    {
+      id: 'service-cannot-record-a-metric-snapshot',
+      covers: ['§8.3/metric-S', 'RFC-2026-022§5/8'],
+      as: service,
+      ...metricSnapshotRecord('__A__', BUSINESS_A1, id('published_post_a1_fb'), '2026-09-05 14:00:00+00'),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'THE FOURTH STATEMENT OF THE `S` CELL, and the last one the family has. Refused at the '
+         + 'POLICY layer -- measured as "new row violates row-level security policy" -- and pending '
+         + 'on RFC-2026-022 §7, exactly as the target\'s, the job\'s and the post\'s inserts are. '
+         + 'The row is WELL FORMED and lands when row level security is off: its scope agrees with '
+         + 'its post\'s, so the composite FK resolves; its metric_time is an instant no fixture row '
+         + 'holds, so performance_snapshots_one_per_post_instant admits it; and its payload is ten '
+         + 'known keys with numeric values. A case that could not succeed proves nothing about the '
+         + 'policy that refuses it (081\'s rule, kept).',
+    },
+    {
+      id: 'service-cannot-rewrite-a-metric-snapshot',
+      covers: ['§4.8/no-destructive-overwrite', '§3.2/immutable'],
+      as: service,
+      ...metricSnapshotRewrite(id('published_post_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'PERMANENT, AND NOT PENDING -- the distinction this batch is careful about. The service\'s '
+         + 'INSERT waits on RFC-2026-022 §7; its UPDATE waits on nothing, because no role holds '
+         + 'UPDATE on this table and disabling row level security does not restore a grant nobody '
+         + 'made. A collector that re-reads a post gets a NEW ROW at a new metric_time or a 23505; '
+         + 'it never gets to change what it said before.',
+    },
+    {
+      id: 'service-cannot-delete-a-metric-snapshot',
+      covers: ['§3.2/immutable', '§8.5'],
+      as: service,
+      ...metricSnapshotDelete(id('published_post_a1_fb')),
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'performance_snapshots' },
+      why: 'Permanent for the same reason. §11.4 step 7 purges tenant content at closure and batch '
+         + '160 owns it through app_maintenance, which this batch grants nothing.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -17842,5 +18177,52 @@ export function publishPostDelete(targetId) {
   return {
     sql: 'delete from app.published_posts where publish_target_id = $1::uuid returning id',
     params: [targetId],
+  };
+}
+
+
+// ==============================================================================================
+// BATCH 121's HELPERS AND ITS ONE SHARED READ.
+// ==============================================================================================
+// Module-level constants declared AFTER buildCases, which is batch 061's placement and its reason,
+// kept by 132, 070 and 100: a `const` here is in scope inside buildCases at CALL time -- the module
+// has finished evaluating by then -- so the whole of a batch's contribution to this file is one
+// block a reviewer reads in one place rather than a diff scattered through three thousand lines.
+
+// The read every metric case issues. It names the POST and not the snapshot, because a snapshot has
+// no symbol -- the catalog gives one to a row something is addressed THROUGH, and nothing is
+// addressed through a metric. (published_post_id, metric_time) is its natural key, and the post half
+// of that pair carries a symbol from batch 121 onward for exactly this reason.
+export const METRIC_SERIES_OF_POST =
+  'select id from app.performance_snapshots where published_post_id = $1::uuid';
+
+// A collector's insert, parameterised on the instant so that two cases cannot collide on
+// performance_snapshots_one_per_post_instant and turn a policy refusal into a 23505. That is batch
+// 120's rule for its job-open helper, and Q0's finding F3 against batch 120 is what it costs: a key
+// no case attempts is a key nothing exercises, so the overwrite probe lives in the fixture instead.
+export function metricSnapshotRecord(workspace, business, postId, metricTime) {
+  return {
+    sql: 'insert into app.performance_snapshots (workspace_id, business_profile_id, '
+       + 'published_post_id, metric_time, metrics, metrics_schema_version) '
+       + "values ($1::uuid, $2::uuid, $3::uuid, $4::timestamptz, "
+       + '\'{"impressions": 100, "reach": 90, "engagements": 5}\'::jsonb, 1) returning id',
+    params: [workspace, business, postId, metricTime],
+  };
+}
+
+// The rewrite no role may perform. It sets `metrics` because that is the column somebody would want
+// to change, and the table has no updated_at to set beside it.
+export function metricSnapshotRewrite(postId) {
+  return {
+    sql: 'update app.performance_snapshots set metrics = \'{"impressions": 0}\'::jsonb '
+       + 'where published_post_id = $1::uuid',
+    params: [postId],
+  };
+}
+
+export function metricSnapshotDelete(postId) {
+  return {
+    sql: 'delete from app.performance_snapshots where published_post_id = $1::uuid',
+    params: [postId],
   };
 }
