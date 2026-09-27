@@ -4,90 +4,48 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "903973884867ac28ec03ef7ebb237df1ff46d37d",
-  "head_revision_or_patch_checksum": "8ded9ed543fd06788a013c93a92ddf3348455b01",
+  "base_revision": "b7984535ec6e53b1810d5d6f633097707ffcaa96",
+  "head_revision_or_patch_checksum": "b7984535ec6e53b1810d5d6f633097707ffcaa96",
   "task_ids": [],
-  "files_added": [
-    "evidence/WP-0A-DB-00/a0-catalog-rule-probes-integration-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a0-catalog-rule-probes-plan-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a1-catalog-rule-probes-security-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/c0-catalog-rule-probes-contract-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-27-catalog-rule-probes.md",
-    "evidence/WP-0A-DB-00/q0-catalog-rule-probes-test-review-2026-09-27.md"
-  ],
-  "files_modified": [
-    "db/foundation/README.md",
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT ADDS FOUR CATALOG-RULE PROBES TO migrate-clean, the weak-assertion survey's items 1, 2 and 4, built to A0's recommended option on each question of a0-catalog-rule-probes-plan-2026-09-27.md §6 under the Owner's advance delegation `ทำเลยทุกอย่างตามคุณแนะนำไม่ต้องรอง` -- which the Owner gave before those questions existed; the disposition says so.",
-    "Measured before writing: 87 of 87 FKs NO ACTION and not deferrable, 5 of 5 SECURITY DEFINER functions with search_path=\"\", 47 of 47 triggers enabled, 14 + 2 closures in one deparse each. No exemption needed."
+    "THIS INCREMENT ADDS ONE STATE RECORD: session-2026-09-27-eighth-pass.md, superseding the seventh-pass record for STATE after PR #159 merged (main b798453).",
+    "It records the Owner's `เอาตามคุณแนะนำ` as choosing blocker 189 next and NOT choosing 189's remedy or grade, which A0 had not recommended."
   ],
   "acceptance_results": [
     {
-      "criterion": "Each probe fails migrate-clean by name on the drift it closes",
+      "criterion": "The read-this-first record agrees with main",
       "result": "met",
-      "evidence": "23 drifts appended to 140_audit.sql on a fresh cluster, each caught by the responsible probe (integration record §2)"
-    },
-    {
-      "criterion": "Each probe proves on every run that it can fail",
-      "result": "met",
-      "evidence": "self-test drift per probe, rolled back, must raise P0001 with the probe's own message; a silenced FK predicate fails migrate-clean live even with the static test bypassed"
-    },
-    {
-      "criterion": "The verdict is pure and tested",
-      "result": "met",
-      "evidence": "decideCatalogProbes, eight wrong outcome shapes plus a control; Q0's R01-R04 each fail the suite"
-    },
-    {
-      "criterion": "Three role runs, findings disposed",
-      "result": "met",
-      "evidence": "c0-/a1-/q0-catalog-rule-probes-*-2026-09-27.md cherry-picked with -x; none stop-the-line; a0-catalog-rule-probes-integration-2026-09-27.md §2-§3"
+      "evidence": "§1: main b798453, CI 36317253284, 669 tests, 189 blockers"
     }
   ],
   "tests": [
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 669, pass 669, fail 0, skipped 0, todo 0 (667 before)"
-    },
-    {
-      "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
-      "exit_code": 0,
-      "result": "four probes print their claims with '(self-test: refused its drift)'; rls-smoke ok"
+      "result": "clean: exit 0 — tests 669, pass 669 (unmoved)"
     }
   ],
-  "security_privacy_cost_impact": "NO SCHEMA, POLICY, GRANT OR ROLE CHANGES. Four read-only catalog probes, each in its own transaction via script(), failing migrate-clean where a later file weakens an FK action, a caller-binding closure, a SECURITY DEFINER search_path or a trigger. This strengthens the tenant and audit controls' defence against future change; it changes nothing they do today.",
-  "migration_and_data_impact": "NONE. No migration; the set is unchanged at 000..140.",
-  "compatibility_impact": "migrate-clean can now fail on a set it used to accept, by design. A future batch that adds a closure, a SECURITY DEFINER function (or rewrites one's body), an append-only trigger, or an FK with an action must extend the pinned list in the same change, and the probe digest in the test with it. The closure and trigger pins compare PG 17's deparse. Tests 667 -> 669 (foundation-contract 67 -> 69).",
+  "security_privacy_cost_impact": "NONE. One markdown file, one manifest field, two pinned lines and a regenerated digest.",
+  "migration_and_data_impact": "NONE.",
+  "compatibility_impact": "NONE beyond the branch slot.",
   "known_limitations": [
-    "The closure pin is exact text; a different Postgres major version may deparse differently and fail it by name (the fix is to re-measure, not to loosen).",
-    "The survey's item 3 (eleven forging cases), items 5-7 (batch 150's own pins, vocabulary and narrowing text) and blocker 188's unasserted CHECKs, NOT NULLs, columns and FORCE remain owed.",
-    "The Owner's authority for the seven plan questions is a delegation given before they were written."
+    "A record describes; it does not make the merges satisfy RFC-2026-002's sentence that the Product Owner merges."
   ],
   "open_risks_or_blockers": [
-    "OPENED: 189 -- updated_by forgeable through UPDATE on seven tables on the clean set (A1 F1, MEDIUM, pre-existing; needs a migration). Narrowed, not closed: the survey blocker and 188.",
-    "FOR THE OWNER: 189's grade and remedy; A1's objection that questions F and C should not have been delegated in advance (integration record §4)."
+    "NONE OPENED OR CLOSED (189)."
   ],
-  "rollback_or_forward_fix": "A reviewed revert PR removes the probes and returns migrate-clean to what it accepted before; no database object is involved. NEVER a force-push. A probe that fails for a legitimate change is extended in the same change as that change, never disabled.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR, paired with a correction. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Blocker 189: the updated_by UPDATE forgery on seven tables, once the Owner picks the remedy (A1 ranks it ahead of the INSERT forging cases).",
-    "The eleven INSERT forging cases (survey item 3).",
-    "Before batch 150: 121's objects pinned by definition text in 150's own block."
+    "Blocker 189: measure, propose the remedy to the Owner with a recommendation, then the batch."
   ],
   "reviewer_instructions": [
-    "READ THE FOUR PROBES IN scripts/db/run.mjs AND THE PLAN'S §2 MEASUREMENTS; then reproduce two or three drifts by appending them to 140_audit.sql on a fresh cluster.",
+    "Check §1 against `git log origin/main` and `gh run list --branch main`.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null
