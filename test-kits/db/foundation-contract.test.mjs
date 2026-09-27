@@ -2230,36 +2230,80 @@ test('every foreign key has a supporting index, asserted live after every migrat
 // THE CATALOG-RULE PROBES (plan and disposition of 2026-09-27; the weak-assertion survey's items 1,
 // 2 and 4). Each states a rule over all of app and private that no apply-time block states; the live
 // half is `make db-migrate-clean` itself, where each was shown to fail by name on the drift it closes.
-test('the four catalog-rule probes run in migrate-clean after the FK-support probe, and each failure fails the target', async () => {
+test('the four catalog-rule probes run in migrate-clean after the FK-support probe, each as built and after its own drift', async () => {
+  // Comments stripped first: a `return 1` moved into a comment must not satisfy a text match.
   const runner = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
   const fk = runner.indexOf('const fkProbe = await script(FK_SUPPORT_PROBE_SQL);');
-  const loop = runner.indexOf('for (const [label, sql, claim] of CATALOG_RULE_PROBES) {');
+  const loop = runner.indexOf('const probeOutcomes = [];');
   const pass = runner.indexOf('plan = await postMigratePlan();');
   assert.ok(fk > 0 && loop > fk && pass > loop, 'after the FK-support probe and before the post-migrate pass');
-  assert.match(runner.slice(loop, pass), /const probe = await script\(sql\);\n\s*if \(probe\.error\) \{[^\n]*return 1; \}\n\s*stdout\.write\(`  \$\{label\}: \$\{claim\}\\n`\);\n\s*\}/,
-    'each probe runs, a failing one fails the target, and only a passing one prints its claim');
+  // The executor, whole: every job the pure planner names, run as named, nothing between it and the verdict.
+  assert.match(runner.slice(loop, pass).replace(/\n\s*\n/g, '\n'),
+    /^const probeOutcomes = \[\];\n\s*for \(const job of catalogProbeJobs\(CATALOG_RULE_PROBES\)\) probeOutcomes\.push\(\{ \.\.\.job, result: await rerun\(job\.sql\) \}\);\n\s*const probeVerdict = decideCatalogProbes\(CATALOG_RULE_PROBES, probeOutcomes\);\n\s*for \(const failure of probeVerdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!probeVerdict\.ok\) return 1;\n\s*for \(const claim of probeVerdict\.claims\) stdout\.write\([^\n]*\);\n\s*let plan;\n\s*try \{ $/,
+    'the executor is exactly: run every job, decide, fail on a failing verdict -- no skip, no substitute, no early return');
   const m = await import('../../scripts/db/run.mjs');
-  assert.deepEqual(m.CATALOG_RULE_PROBES.map(([, sql]) => sql),
+  assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_ACTION_PROBE_SQL, m.CLOSURE_TEXT_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL], 'all four, in order');
-  // Each probe reads the catalog column it claims to.
-  assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable/);
-  assert.match(m.FK_ACTION_PROBE_SQL, /exempted foreign key\(s\) do not exist/, 'a stale exemption is refused');
-  for (const [key, reason] of Object.entries(m.FK_ACTION_EXEMPTIONS)) assert.ok(reason.length > 40, `FK action exemption ${key} carries a reason`);
-  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, 'the closures are compared by TEXT, not by tokens');
-  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pol\.polqual is null/);
-  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /not pol\.polpermissive and pol\.polcmd = 'a'/);
-  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /p\.prosecdef and n\.nspname in \('app', 'private'\)/);
-  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /proconfig is distinct from array\['search_path=""'\]/);
-  assert.match(m.TRIGGER_PROBE_SQL, /t\.tgenabled <> 'O'/);
-  for (const [name, list] of [['UPDATED_BY_CLOSURES', m.UPDATED_BY_CLOSURES], ['REQUESTER_CLOSURES', m.REQUESTER_CLOSURES]]) {
-    assert.deepEqual(list, [...new Set(list)].sort(), `${name} is sorted and has no duplicate`);
+  // THE PROBES AND THEIR PINS, BY DIGEST (Q0 F2: no test pinned the values). A change to a probe, its
+  // pinned lists, its drift or its raise changes one of these, in the same diff as the reason for it.
+  const { createHash } = await import('node:crypto');
+  const digests = Object.fromEntries(m.CATALOG_RULE_PROBES.map((p) => [p.label,
+    createHash('sha256').update(`${p.sql}\u0000${p.drift}\u0000${p.raises}`).digest('hex').slice(0, 16)]));
+  assert.deepEqual(digests, {
+    'fk action probe': 'd5454eaec7997fd7',
+    'closure text probe': '0b4597c5c092ed35',
+    'security definer probe': '11591f0ab317753e',
+    'trigger probe': 'd32161f00a2a325f',
+  }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');
+  // What each probe must READ, stated as intent beside the digest (the digest says THAT it changed;
+  // these say WHAT must survive a change). Each names the finding that made it necessary.
+  assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable or not c\.convalidated/, 'actions, deferrable and NOT VALID (Q0 F4)');
+  assert.match(m.FK_ACTION_PROBE_SQL, /n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema but the system ones (Q0 F07)');
+  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, 'closures compared by TEXT, not tokens (A1 F3)');
+  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /has no %s_updated_by_is_caller[\s\S]*where not exists/, 'a dropped closure is caught (C0 LOW 3)');
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema (A1 F3, Q0 F3)');
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
+  assert.doesNotMatch(m.SECURITY_DEFINER_PROBE_SQL, /array_to_string\(p\.proconfig/, 'settings compared, never printed (A1 F5)');
+  assert.match(m.TRIGGER_PROBE_SQL, /where n\.nspname not in \('pg_catalog', 'information_schema'\) and t\.tgenabled <> 'O';/, 'internal triggers included (C0 M2)');
+  assert.match(m.TRIGGER_PROBE_SQL, /array_agg\(pg_catalog\.pg_get_triggerdef\(t\.oid\) order by/, 'definitions by TEXT (C0 M1)');
+  assert.match(m.TRIGGER_PROBE_SQL, /session_replication_role=%/, 'no default session_replication_role (Q0 F5)');
+  assert.match(m.TRIGGER_PROBE_SQL, /pg_inherits i where i\.inhparent = c\.oid or i\.inhrelid = c\.oid/, 'no child, no partitions (A1 F2)');
+  for (const [key, reason] of Object.entries(m.FK_ACTION_EXEMPTIONS)) {
+    assert.match(key, /^[a-z_]+\.[a-z_]+\.[a-z_]+$/, `FK action exemption ${key} is keyed schema.table.constraint`);
+    assert.ok(reason.length > 40, `FK action exemption ${key} carries a reason`);
   }
-  assert.equal(m.UPDATED_BY_CLOSURES.length, 14, '102\'s thirteen and 120\'s fourteenth');
   // THE LESSON OF PR #157: a list a probe prints is ordered, or two runs of the same database disagree.
-  for (const [label, sql] of m.CATALOG_RULE_PROBES) {
-    for (const agg of sql.matchAll(/string_agg\(([\s\S]*?)\) into/g)) {
-      assert.match(agg[1], /order by/i, `${label}: a string_agg with no ORDER BY`);
-    }
+  for (const { label, sql } of m.CATALOG_RULE_PROBES) {
+    for (const agg of sql.matchAll(/string_agg\(([\s\S]*?)\) into/g)) assert.match(agg[1], /order by/i, `${label}: a string_agg with no ORDER BY`);
+  }
+});
+
+test('the catalog-probe verdict fails on every way the outcomes can be wrong, and passes only on the right ones', async () => {
+  const { decideCatalogProbes, catalogProbeJobs } = await import('../../scripts/db/run.mjs');
+  const probes = [{ label: 'p', sql: 'S', claim: 'holds', drift: 'D;', raises: 'p refused' }];
+  assert.deepEqual(catalogProbeJobs(probes).map((j) => `${j.kind}:${j.sql}`), ['as built:S', 'after its drift:D;\nS']);
+  const good = () => [
+    { label: 'p', kind: 'as built', sql: 'S', result: { rows: [] } },
+    { label: 'p', kind: 'after its drift', sql: 'D;\nS', result: { error: { code: 'P0001', message: 'p refused: x' } } },
+  ];
+  const control = decideCatalogProbes(probes, good());
+  assert.equal(control.ok, true, `control: the right outcomes pass (${control.failures.join('; ')})`);
+  const wrong = [
+    ['the probe fails as built', (o) => { o[0].result = { error: { code: 'P0001', message: 'p refused: y' } }; }, /p: p refused/],
+    ['the probe passes after its drift', (o) => { o[1].result = { rows: [] }; }, /self-test drift passed/],
+    ['the drift fails with a syntax error', (o) => { o[1].result = { error: { code: '42601', message: 'syntax' } }; }, /failed with 42601/],
+    ['the drift trips another raise', (o) => { o[1].result = { error: { code: 'P0001', message: 'something else' } }; }, /must refuse it/],
+    ['the self-test was skipped', (o) => o.splice(1, 1), /not run after its drift/],
+    ['the probe was fed something else', (o) => { o[0].sql = 'select 1'; }, /not run as built/],
+    ['nothing was run', (o) => o.splice(0), /2 probe run\(s\) were due and 0/],
+    ['an outcome has no result', (o) => { delete o[0].result; }, /not run as built/],
+  ];
+  for (const [label, mutate, pattern] of wrong) {
+    const outcomes = good(); mutate(outcomes);
+    const verdict = decideCatalogProbes(probes, outcomes);
+    assert.equal(verdict.ok, false, `${label}: the verdict must fail`);
+    assert.match(verdict.failures.join('\n'), pattern, `${label}: and say why`);
   }
 });
 

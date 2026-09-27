@@ -324,16 +324,26 @@ After the FK-support probe, `make db-migrate-clean` asserts four rules over all 
 it silently:
 
 1. **Every foreign key has NO ACTION on delete and on update, and is not deferrable.** A key that
-   needs an action is named in `FK_ACTION_EXEMPTIONS` with its reason, in the same change.
+   needs an action is named in `FK_ACTION_EXEMPTIONS` with its reason, in the same change. **An
+   exemption that lets a delete cascade through tenant data is the "irreversible deletion"
+   stop-the-line class.** It goes to the Security reviewer and the Product Owner, not only the
+   Reviewer (A1's review of the probes, F6).
 2. **Every `*_updated_by_is_caller` and `*_requester_is_caller` policy matches its exact pinned
    text:** restrictive, INSERT, TO authenticated, no USING, and a WITH CHECK that deparses to the
    pinned string, on the pinned tables. A batch that adds a closure adds its table to
    `UPDATED_BY_CLOSURES` or `REQUESTER_CLOSURES`.
-3. **Every SECURITY DEFINER function has `search_path=""`, and nothing else, in `proconfig`.**
-4. **Every trigger is enabled.** The `private.refuse_mutation` triggers are exactly the four on
-   `audit_logs` and `security_events`.
+3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
+   list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
+   `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds
+   or rewrites one updates the list in the same change, so every SECURITY DEFINER change reaches a
+   reviewer.
+4. **Every trigger on a table in `app` and `private` is enabled**, including the internal triggers
+   that enforce foreign keys. The `private.refuse_mutation` triggers are exactly four pinned
+   `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
+   `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
+   another table.
 
-Rule 2 compares PostgreSQL's deparsed text. A change of the Postgres major version in CI could
+Rules 2 and 4 compare PostgreSQL's deparsed text. A change of the Postgres major version in CI could
 change that text without the policy changing. If that happens, the probe fails by name, and the
 fix is to re-measure the text, not to loosen the rule.
 
