@@ -113,6 +113,244 @@ begin
 end \$\$;
 `;
 
+// FOUR CATALOG-RULE PROBES (the weak-assertion survey's items 1, 2 and 4; plan and disposition of
+// 2026-09-27). Each asserts a rule over the whole of app and private that no apply-time block
+// states, so no later file can break it silently and no replacement could carry it (a replacement
+// exists only for a block a later file made false). Measured on the full set before any was written:
+// 87 of 87 foreign keys NO ACTION and not deferrable; 5 of 5 SECURITY DEFINER functions with
+// search_path=""; 395 of 395 triggers enabled (348 of them internal); 14 + 2 closures in one deparse each. No exemption is
+// needed for any of them today. Every list a probe prints is ORDERED: PR #157 is what an unordered
+// string_agg in a comparison costs.
+
+// 1. Every foreign key, in EVERY schema but the system ones: NO ACTION on delete and update, not
+// deferrable, and VALIDATED. The survey measured `ON UPDATE CASCADE`, and `ON DELETE CASCADE` written
+// under a temporary name and renamed into place, each surviving every layer; Q0 measured a NOT VALID
+// key and a cascading key from a `public` table surviving the first version (F4, F07). An exemption
+// is keyed `schema.table.constraint` (Q0 F6) and carries its reason; one that lets a delete cascade
+// through tenant data is the irreversible-deletion stop-the-line class (A1 F6, README).
+export const FK_ACTION_EXEMPTIONS = {};
+export const FK_ACTION_PROBE_SQL = `do \$\$
+declare
+  offending text;
+  exempt constant text[] := array[${Object.keys(FK_ACTION_EXEMPTIONS).map((k) => `'${k}'`).join(', ')}]::text[];
+begin
+  select string_agg(format('%s.%s (on delete %s, on update %s%s%s)', c.conrelid::regclass, c.conname,
+                           c.confdeltype, c.confupdtype, case when c.condeferrable then ', deferrable' else '' end,
+                           case when c.convalidated then '' else ', NOT VALID' end),
+                    ', ' order by c.conrelid::regclass::text, c.conname) into offending
+    from pg_catalog.pg_constraint c join pg_catalog.pg_namespace n on n.oid = c.connamespace
+   where c.contype = 'f' and n.nspname not in ('pg_catalog', 'information_schema')
+     and (c.confdeltype <> 'a' or c.confupdtype <> 'a' or c.condeferrable or not c.convalidated)
+     and not (format('%s.%s', c.conrelid::regclass, c.conname) = any (exempt));
+  if offending is not null then
+    raise exception 'foreign key(s) with an action, deferrable or NOT VALID, and no named exemption: %', offending;
+  end if;
+  select string_agg(e, ', ' order by e) into offending from unnest(exempt) e
+   where not exists (select 1 from pg_catalog.pg_constraint c where format('%s.%s', c.conrelid::regclass, c.conname) = e and c.contype = 'f');
+  if offending is not null then
+    raise exception 'exempted foreign key(s) do not exist: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2. The caller-binding closures, by EXACT deparse text on an exact (table, name) set. Every block
+// that reads them reads tokens, and \`... or true\` keeps the tokens: A1 measured three tables, Q0 one,
+// the survey a fourth, each surviving every layer. A batch that adds a closure adds its pair here.
+export const UPDATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'asset_rights', 'assets',
+  'business_profiles', 'content_ideas', 'content_items', 'content_targets', 'industry_assignments',
+  'knowledge_items', 'page_context_profiles', 'publish_intents', 'workspace_invitations', 'workspace_member_scopes'];
+export const REQUESTER_CLOSURES = ['approval_requests', 'publish_intents'];
+export const UPDATED_BY_CHECK_TEXT = '((updated_by IS NULL) OR (updated_by = ( SELECT auth.uid() AS uid)))';
+export const REQUESTER_CHECK_TEXT = '(requested_by = ( SELECT auth.uid() AS uid))';
+const closureRule = (suffix, tables, text) => `
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s.%s', c.relname, pol.polname) as x
+      from pg_catalog.pg_policy pol
+      join pg_catalog.pg_class c on c.oid = pol.polrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where right(pol.polname, ${suffix.length + 1}) = '_${suffix}'
+       and not (n.nspname = 'app'
+                and c.relname = any (array[${tables.map((t) => `'${t}'`).join(', ')}])
+                and pol.polname = c.relname || '_${suffix}'
+                and not pol.polpermissive and pol.polcmd = 'a'
+                and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
+                and pol.polqual is null
+                and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = '${text}')
+    union all
+    select format('app.%s has no %s_${suffix}', t, t) from unnest(array[${tables.map((t) => `'${t}'`).join(', ')}]) t
+     where not exists (select 1 from pg_catalog.pg_policy pol
+                        where pol.polrelid = to_regclass('app.' || t) and pol.polname = t || '_${suffix}')
+  ) found;
+  if offending is not null then
+    raise exception '${suffix} closure(s) not in their pinned shape (restrictive, INSERT, TO authenticated, no USING, WITH CHECK exactly ${text.replace(/'/g, "''")}) on their pinned tables: %', offending;
+  end if;`;
+export const CLOSURE_TEXT_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT)}${closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT)}
+end \$\$;
+`;
+
+// 3. SECURITY DEFINER, in EVERY schema but the system ones: exactly the pinned functions, each with
+// its pinned owner and body digest, proconfig exactly search_path="", and no EXECUTE for PUBLIC.
+// The first version read app and private only, and read proconfig only: A1 measured a definer
+// function in `public` or a new schema, one keeping EXECUTE for PUBLIC, one resetting search_path
+// inside its body, a changed owner and a replaced refuse_mutation body each passing every layer (A1
+// F2, F3). A batch that adds or rewrites a definer function updates this list in the same change,
+// which puts every SECURITY DEFINER change in front of a reviewer. `migration owner` is the role
+// that applied the set (current_user here). Settings are never PRINTED, only compared: a value set
+// at function level would otherwise land in the CI log (A1 F5).
+export const SECURITY_DEFINER_FUNCTIONS = [
+  ['app.is_active_member(workspace uuid)', 'app_authz', '552b6db607ddb258f6917f7e9e01cfd4'],
+  ['app.jwt_subject()', 'app_authz', '185148c2a93687d4574a2c66df66d3f3'],
+  ['app.workspace_member_role(workspace uuid)', 'app_authz', '83e32b7264d1cf2532581a88bf6e7732'],
+  ['private.refuse_mutation()', 'migration owner', '6db127bec23ecfaaf041b7dc5c031615'],
+  ['private.set_updated_at()', 'migration owner', '1c4318bee4240d4113d86fad7eb15623'],
+];
+export const SECURITY_DEFINER_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s.%s(%s)%s%s%s%s', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid),
+                  case when p.proconfig is distinct from array['search_path=""'] then ' [proconfig is not exactly search_path=""]' else '' end,
+                  case when pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE') then ' [PUBLIC can execute]' else '' end,
+                  case when pin.owner is null then ' [not a pinned SECURITY DEFINER function]'
+                       when pg_catalog.pg_get_userbyid(p.proowner) <> case when pin.owner = 'migration owner' then current_user::text else pin.owner end
+                         then ' [owner is not the pinned owner]' else '' end,
+                  case when pin.digest is not null and md5(p.prosrc) <> pin.digest then ' [body differs from the pinned digest]' else '' end) as x,
+           p.proconfig, p.oid, pin.owner, pin.digest, p.prosrc, p.proowner
+      from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+      left join (values ${SECURITY_DEFINER_FUNCTIONS.map(([f, o, d]) => `('${f}', '${o}', '${d}')`).join(', ')}) as pin(fn, owner, digest)
+        on pin.fn = format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid))
+     where p.prosecdef and n.nspname not in ('pg_catalog', 'information_schema')
+       and not exists (select 1 from pg_catalog.pg_depend d where d.classid = 'pg_catalog.pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+  ) f
+   where x ~ '\\[';
+  if offending is not null then
+    raise exception 'SECURITY DEFINER function(s) not in their pinned shape: %', offending;
+  end if;
+  select string_agg(fn, ', ' order by fn) into offending
+    from (values ${SECURITY_DEFINER_FUNCTIONS.map(([f]) => `('${f}')`).join(', ')}) as pin(fn)
+   where not exists (select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+                      where p.prosecdef and format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) = pin.fn);
+  if offending is not null then
+    raise exception 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 4. Every trigger on a table in app and private is ENABLED -- internal ones included, because an
+// FK is enforced by internal triggers and `disable trigger all` turns them off (C0 MEDIUM 2) -- and
+// the append-only set is exactly four definitions, compared by pg_get_triggerdef TEXT: matching on
+// table, name and tgtype let `WHEN (false)` or `UPDATE OF id` through, and with the first a
+// security_events row could be updated and deleted (C0 MEDIUM 1). 093, 120 and 140 assert that
+// triggers exist and never read tgenabled; Q0 D20b disabled security_events' triggers unnoticed.
+export const REFUSE_MUTATION_TRIGGERS = [
+  'CREATE TRIGGER refuse_mutation BEFORE DELETE OR UPDATE ON app.audit_logs FOR EACH ROW EXECUTE FUNCTION private.refuse_mutation()',
+  'CREATE TRIGGER refuse_truncate BEFORE TRUNCATE ON app.audit_logs FOR EACH STATEMENT EXECUTE FUNCTION private.refuse_mutation()',
+  'CREATE TRIGGER refuse_mutation BEFORE DELETE OR UPDATE ON app.security_events FOR EACH ROW EXECUTE FUNCTION private.refuse_mutation()',
+  'CREATE TRIGGER refuse_truncate BEFORE TRUNCATE ON app.security_events FOR EACH STATEMENT EXECUTE FUNCTION private.refuse_mutation()',
+];
+export const TRIGGER_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('%s.%s (tgenabled %s%s)', t.tgrelid::regclass, t.tgname, t.tgenabled,
+                           case when t.tgisinternal then ', internal' else '' end), ', '
+                    order by t.tgrelid::regclass::text, t.tgname) into offending
+    from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname not in ('pg_catalog', 'information_schema') and t.tgenabled <> 'O';
+  if offending is not null then
+    raise exception 'trigger(s) not enabled: %', offending;
+  end if;
+  if (select array_agg(pg_catalog.pg_get_triggerdef(t.oid) order by pg_catalog.pg_get_triggerdef(t.oid))
+        from pg_catalog.pg_trigger t
+        join pg_catalog.pg_proc p on p.oid = t.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
+       where not t.tgisinternal and pn.nspname = 'private' and p.proname = 'refuse_mutation')
+     is distinct from array[${[...REFUSE_MUTATION_TRIGGERS].sort().map((d) => `'${d}'`).join(', ')}] then
+    raise exception 'the private.refuse_mutation triggers are not exactly the four pinned definitions on audit_logs and security_events';
+  end if;
+  -- No role or database may default session_replication_role, which stops every trigger and every FK
+  -- trigger from firing; 140's block caught it only by accident, on a CHECK violation (Q0 F5).
+  select string_agg(format('%s/%s', coalesce(r.rolname, '<every role>'), coalesce(d.datname, '<every database>')), ', '
+                    order by coalesce(r.rolname, ''), coalesce(d.datname, '')) into offending
+    from pg_catalog.pg_db_role_setting s
+    left join pg_catalog.pg_roles r on r.oid = s.setrole left join pg_catalog.pg_database d on d.oid = s.setdatabase
+   where exists (select 1 from unnest(s.setconfig) g where g like 'session_replication_role=%');
+  if offending is not null then
+    raise exception 'session_replication_role is set as a default for: %', offending;
+  end if;
+  -- No child and no partitioning: rows in a table inheriting from audit_logs are deleted THROUGH the
+  -- parent without its row trigger (A1 F2, measured), and PostgreSQL 17 does not copy a statement
+  -- TRUNCATE trigger to partitions, so a rebuild as a partitioned table would open TRUNCATE on each.
+  select string_agg(format('%s', c.oid::regclass), ', ' order by c.oid::regclass::text) into offending
+    from pg_catalog.pg_class c
+   where c.oid in ('app.audit_logs'::regclass, 'app.security_events'::regclass)
+     and (c.relkind <> 'r'
+          or exists (select 1 from pg_catalog.pg_inherits i where i.inhparent = c.oid or i.inhrelid = c.oid));
+  if offending is not null then
+    raise exception 'append-only table(s) partitioned, inherited from or inheriting: %', offending;
+  end if;
+end \$\$;
+`;
+// Each probe carries a DRIFT it must catch and the start of the raise it must catch it with. On every
+// migrate-clean the probe runs twice, each time in a transaction that is rolled back: once on the
+// database as built, where it must pass, and once after its drift, where it must fail with its own
+// raise (P0001). So a probe that has been silenced, skipped or emptied fails the target, whatever its
+// text says: Q0's test of the first version found eleven edits to the probes and their loop that
+// passed every regex over this file (Q0 F2, the same class as its F1 on the post-migrate pass).
+export const CATALOG_RULE_PROBES = [
+  { label: 'fk action probe', sql: FK_ACTION_PROBE_SQL,
+    claim: `every foreign key is NO ACTION on delete and update, not deferrable and validated, ${Object.keys(FK_ACTION_EXEMPTIONS).length} exempt by name`,
+    drift: 'alter table app.content_targets drop constraint content_targets_social_scope_fk; alter table app.content_targets add constraint content_targets_social_scope_fk foreign key (workspace_id, social_account_id) references app.social_accounts (workspace_id, id) on update cascade;',
+    raises: 'foreign key(s) with an action, deferrable or NOT VALID' },
+  { label: 'closure text probe', sql: CLOSURE_TEXT_PROBE_SQL,
+    claim: `${UPDATED_BY_CLOSURES.length} updated_by and ${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
+    drift: 'alter policy knowledge_items_updated_by_is_caller on app.knowledge_items with check (true);',
+    raises: 'updated_by_is_caller closure(s) not in their pinned shape' },
+  { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
+    claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC`,
+    drift: 'alter function private.set_updated_at() reset search_path;',
+    raises: 'SECURITY DEFINER function(s) not in their pinned shape' },
+  { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
+    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, and the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children`,
+    drift: 'alter table app.security_events disable trigger refuse_mutation;',
+    raises: 'trigger(s) not enabled' },
+];
+
+export function catalogProbeJobs(probes) {
+  const jobs = [];
+  for (const probe of probes) {
+    jobs.push({ label: probe.label, kind: 'as built', sql: probe.sql });
+    jobs.push({ label: probe.label, kind: 'after its drift', sql: `${probe.drift}\n${probe.sql}` });
+  }
+  return jobs;
+}
+
+// What the outcomes MEAN, pure and exported, driven by synthetic outcomes in the tests. An outcome
+// counts only if it ran exactly the script the job names.
+export function decideCatalogProbes(probes, outcomes) {
+  const failures = [];
+  const expected = catalogProbeJobs(probes);
+  if (outcomes.length !== expected.length) failures.push(`${expected.length} probe run(s) were due and ${outcomes.length} came back`);
+  for (const job of expected) {
+    const got = outcomes.find((o) => o.label === job.label && o.kind === job.kind && o.sql === job.sql);
+    if (!got || !got.result) { failures.push(`${job.label}: not run ${job.kind}`); continue; }
+    const error = got.result.error;
+    if (job.kind === 'as built') {
+      if (error) failures.push(`${job.label}: ${error.message} (${error.code ?? 'no code'})`);
+    } else {
+      const probe = probes.find((p) => p.label === job.label);
+      if (!error || error.code !== 'P0001' || !String(error.message).startsWith(probe.raises)) {
+        failures.push(`${job.label}: its self-test drift ${error ? `failed with ${error.code ?? 'no code'}: ${error.message}` : 'passed'} -- the probe must refuse it with P0001 beginning "${probe.raises}"; a probe that cannot fail asserts nothing`);
+      }
+    }
+  }
+  return { ok: failures.length === 0, failures, claims: probes.map((p) => `${p.label}: ${p.claim} (self-test: refused its drift)`) };
+}
+
 // THE POST-MIGRATE ASSERTION PASS. Most batches end with a `do $$` block asserting what they built
 // (000-003 and 010 carry none), and until this pass each block ran ONCE, when its own file was applied. A later file could undo any of
 // those guarantees and every layer stayed green: Q0's D01h on batch 121 dropped a CHECK in a later
@@ -1363,11 +1601,18 @@ async function runLive(target) {
     const fkProbe = await script(FK_SUPPORT_PROBE_SQL);
     if (fkProbe.error) { stderr.write(`  fk support probe: ${fkProbe.error.message} (${fkProbe.error.code ?? 'no code'})\n`); return 1; }
     stdout.write(`  fk support probe: every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name\n`);
+    // THE CATALOG-RULE PROBES: each as built and after its own drift, rolled back; the verdict is pure.
+    const { feed } = await import('./psql-driver.mjs');
+    const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);
+    const probeOutcomes = [];
+    for (const job of catalogProbeJobs(CATALOG_RULE_PROBES)) probeOutcomes.push({ ...job, result: await rerun(job.sql) });
+    const probeVerdict = decideCatalogProbes(CATALOG_RULE_PROBES, probeOutcomes);
+    for (const failure of probeVerdict.failures) stderr.write(`  ${failure}\n`);
+    if (!probeVerdict.ok) return 1;
+    for (const claim of probeVerdict.claims) stdout.write(`  ${claim}\n`);
     // THE POST-MIGRATE ASSERTION PASS, after everything else: each block in its own transaction,
     // ROLLED BACK, so the pass changes nothing -- two blocks carry idempotent DDL guards and two
     // fire probe rows inside a subtransaction, and none of that may outlive the check.
-    const { feed } = await import('./psql-driver.mjs');
-    const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);
     let plan;
     try { plan = await postMigratePlan(); } catch (error) { stderr.write(`  post-migrate pass: ${error.message}\n`); return 1; }
     // The executor is dumb on purpose: it runs every job and records what came back, and

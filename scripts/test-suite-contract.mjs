@@ -78,8 +78,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-registry.test.mjs': 15,
 // The post-migrate assertion pass (2026-09-27) added three tests to foundation-contract: the
 // wiring, the coverage of every do-block, and the refusals. 63 to 66. Q0's F1 on that head added a
-// fourth, the verdict driven by synthetic outcomes: 66 to 67.
-  'test-kits/db/foundation-contract.test.mjs': 67,
+// fourth, the verdict driven by synthetic outcomes: 66 to 67. The catalog-rule probes added one
+// more (2026-09-27): 67 to 68, and Q0's F2 on that head a sixth, the probe verdict: 68 to 69.
+  'test-kits/db/foundation-contract.test.mjs': 69,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -135,7 +136,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // three role runs to 288: the count the guard's own regex reads, not one taken by hand. Batch 121's lesson from C0 is that a floor that stays put
 // while assertion-bearing tests are added has stopped meaning anything.
 // 288 to 290 with the fails_with determinism rule (main CI run 36311266393).
-  'test-kits/db/foundation-contract.test.mjs': 290,
+// 290 to 305 with the catalog-rule probes' contract test (2026-09-27), and to 313 after the three role
+// runs' corrections (the verdict test, the self-tests' intent assertions): the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 313,
   'test-kits/db/rls-assertions.test.mjs': 108,
   'tests/db/identity/identity-isolation.test.mjs': 2133,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
@@ -172,7 +175,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'afe33c28b7f0d1ab',
+  'test-kits/db/foundation-contract.test.mjs': '49387c5f4743d21b',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': 'aff0bae3374bdee5',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
