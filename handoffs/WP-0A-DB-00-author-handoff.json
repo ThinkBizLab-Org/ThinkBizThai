@@ -4,82 +4,65 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "4b98185a8946c02705f0e8f18536aed7fa1d8cb7",
-  "head_revision_or_patch_checksum": "08c8c51b7b8a63be2ba51b8c4e8a9d49e9eef278",
+  "base_revision": "b5b944c7ef2b609eb3f1e1da9e94be62fa84b1ad",
+  "head_revision_or_patch_checksum": "88293f68cecd3fd45221ea767e768d5c52c7dc4b",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
-    "db/foundation/invariants/superseded.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
   ],
-  "files_deleted": [],
+  "files_deleted": [
+    "tests/db/identity/isolation-cases.mjs.rej.orig"
+  ],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT FIXES MAIN'S RED CI (run 36311266393 on 4b98185): a register entry of the post-migrate pass depended on the order of a string_agg with no ORDER BY. The block failed exactly as recorded; the entry was reported stale for the order of two names.",
-    "The fix changes what the stale check compares (a prefix that stops before any text-valued %), not what the pass or any replacement asserts: the replacements still pin every name."
+    "THIS INCREMENT REMOVES ONE STRAY FILE AND NOTHING ELSE: tests/db/identity/isolation-cases.mjs.rej.orig, a patch-reject artifact that merge commit 1385005 created (neither parent carries it) and PR #118 (9c2ab02) landed on main. Reported by Q0 as F12 in its test of the post-migrate pass (PR #155).",
+    "Nothing reads the file: `git grep` over main finds it only in this manifest's outputs list, which drops the line; test-kits/integrity-manifest.json does not digest it; scripts/test-suite-contract.mjs does not name it."
   ],
   "acceptance_results": [
     {
-      "criterion": "migrate-clean no longer depends on string_agg order",
+      "criterion": "The stray file is gone and nothing referred to it",
       "result": "met",
-      "evidence": "120, 081 and 110 fails_with stop before the first %; a fresh-cluster migrate-clean passes"
+      "evidence": "git rm; git grep for the name on main finds only work-packages/WP-0A-DB-00.json outputs, removed in the same commit"
     },
     {
-      "criterion": "the rule is enforced, not remembered",
+      "criterion": "Its arrival is established, not assumed",
       "result": "met",
-      "evidence": "foundation-contract: fails_with must match one of its block's raises and run past % only into an integer argument; restoring 120's old entry fails it by name"
+      "evidence": "`git log --full-history` names merge 1385005 and PR #118's merge 9c2ab02; `git ls-tree` shows neither parent of 1385005 carries the file; evidence/WP-0A-DB-00/a0-batch-101-integration-2026-09-15.md:25 records the hand-applied `.rej` hunks"
     }
   ],
   "tests": [
     {
-      "command": "npm run verify",
+      "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (663 before)"
+      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (main's count; this increment moves none)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00 (on the branch name)",
+      "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00",
       "exit_code": 0,
-      "result": "every changed path declared, and every amendment explains one"
-    },
-    {
-      "command": "LC_ALL=C TZ=UTC make db-migrate-clean (fresh private cluster 127.0.0.1:5499, shim first)",
-      "exit_code": 0,
-      "result": "post-migrate pass: 42 apply-time blocks, 32 re-run as written, 10 superseded and replaced"
-    },
-    {
-      "command": "LC_ALL=C TZ=UTC make db-rls-smoke (same cluster)",
-      "exit_code": 0,
-      "result": "db-rls-smoke: ok; 965 isolation cases unmoved"
-    },
-    {
-      "command": "make db-migrate-clean with each of four drifts appended to 140_audit.sql",
-      "exit_code": 1,
-      "result": "each FAILED naming the block or replacement: 061#1, 121#1, 120#1's replacement, 030#1 and 102#1 (integration record §3)"
+      "result": "all 5 changed path(s) are declared, and every amendment explains one"
     }
   ],
-  "security_privacy_cost_impact": "NONE. The stale check's comparison string is shortened for three entries; every replacement still pins the same names by (table, name), and each verbatim block must still fail with P0001 at the same raise.",
-  "migration_and_data_impact": "NONE. No database object and no migration.",
-  "compatibility_impact": "Turns main green again. Test count unmoved at 667; foundation-contract assertions 288 -> 290. PR #156 holds the same branch slot; whichever merges second resolves one line.",
+  "security_privacy_cost_impact": "NONE. One deleted text file that no code reads, one manifest line, two pinned lines and a regenerated digest file. No schema object, grant, policy, role, external call or data.",
+  "migration_and_data_impact": "NONE. No database object; the migration set is unchanged.",
+  "compatibility_impact": "NONE beyond the branch slot. PR #155 and then PR #157 repointed the same ownership.branch line and the same two pinned lines and merged first (4b98185, b5b944c); each time this branch merged main and kept its own name in the slot. Test and case counts unmoved against main.",
   "known_limitations": [
-    "The stale check for these three entries now identifies the raise and not the specific names; the names are the replacements' to pin, and they do.",
-    "The test reads raises of the form `raise exception '...', arg` only, which is every raise the ten entries use today."
+    "The file's contents are a reject hunk of isolation-cases.mjs from the batch-100 merge; the batch-101 record says those hunks were applied by hand, and this increment does not re-verify that application -- the isolation suite passing on main is the evidence that it was."
   ],
   "open_risks_or_blockers": [
-    "NONE OPENED OR CLOSED (188 on main)."
+    "NONE OPENED OR CLOSED. open_blockers is unchanged against main (188 after PR #155)."
   ],
-  "rollback_or_forward_fix": "A reviewed revert PR would make main's CI order-dependent again, so a revert must be paired with another fix. NEVER a force-push.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert pull request, which restores a file nothing reads. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Merge this first, so main is green; then PR #156 merges main again; then the seventh-pass record's post-merge correction and the FK-action probe."
+    "The post-merge correction of the seventh-pass state record (it was written before #155 merged), then the FK-action probe and the updated_by/requester text pins the weak-assertion survey ranks first."
   ],
   "reviewer_instructions": [
-    "READ THE THREE fails_with LINES AND THE NEW TEST. Main's failing log: `gh run view 36311266393 --log-failed`.",
+    "READ THE DIFF: one deletion, one manifest line, two pinned lines, one digest. Confirm with `git grep` that nothing names the file and with `git ls-tree 1385005^1 / ^2` that the merge created it.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null
