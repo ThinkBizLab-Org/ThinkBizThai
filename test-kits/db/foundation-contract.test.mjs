@@ -2227,6 +2227,42 @@ test('every foreign key has a supporting index, asserted live after every migrat
   assert.equal([...code.matchAll(/create index if not exists/g)].length, 11, '104 creates the eleven indexes it says it does');
 });
 
+// THE CATALOG-RULE PROBES (plan and disposition of 2026-09-27; the weak-assertion survey's items 1,
+// 2 and 4). Each states a rule over all of app and private that no apply-time block states; the live
+// half is `make db-migrate-clean` itself, where each was shown to fail by name on the drift it closes.
+test('the four catalog-rule probes run in migrate-clean after the FK-support probe, and each failure fails the target', async () => {
+  const runner = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
+  const fk = runner.indexOf('const fkProbe = await script(FK_SUPPORT_PROBE_SQL);');
+  const loop = runner.indexOf('for (const [label, sql, claim] of CATALOG_RULE_PROBES) {');
+  const pass = runner.indexOf('plan = await postMigratePlan();');
+  assert.ok(fk > 0 && loop > fk && pass > loop, 'after the FK-support probe and before the post-migrate pass');
+  assert.match(runner.slice(loop, pass), /const probe = await script\(sql\);\n\s*if \(probe\.error\) \{[^\n]*return 1; \}\n\s*stdout\.write\(`  \$\{label\}: \$\{claim\}\\n`\);\n\s*\}/,
+    'each probe runs, a failing one fails the target, and only a passing one prints its claim');
+  const m = await import('../../scripts/db/run.mjs');
+  assert.deepEqual(m.CATALOG_RULE_PROBES.map(([, sql]) => sql),
+    [m.FK_ACTION_PROBE_SQL, m.CLOSURE_TEXT_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL], 'all four, in order');
+  // Each probe reads the catalog column it claims to.
+  assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable/);
+  assert.match(m.FK_ACTION_PROBE_SQL, /exempted foreign key\(s\) do not exist/, 'a stale exemption is refused');
+  for (const [key, reason] of Object.entries(m.FK_ACTION_EXEMPTIONS)) assert.ok(reason.length > 40, `FK action exemption ${key} carries a reason`);
+  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, 'the closures are compared by TEXT, not by tokens');
+  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pol\.polqual is null/);
+  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /not pol\.polpermissive and pol\.polcmd = 'a'/);
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /p\.prosecdef and n\.nspname in \('app', 'private'\)/);
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /proconfig is distinct from array\['search_path=""'\]/);
+  assert.match(m.TRIGGER_PROBE_SQL, /t\.tgenabled <> 'O'/);
+  for (const [name, list] of [['UPDATED_BY_CLOSURES', m.UPDATED_BY_CLOSURES], ['REQUESTER_CLOSURES', m.REQUESTER_CLOSURES]]) {
+    assert.deepEqual(list, [...new Set(list)].sort(), `${name} is sorted and has no duplicate`);
+  }
+  assert.equal(m.UPDATED_BY_CLOSURES.length, 14, '102\'s thirteen and 120\'s fourteenth');
+  // THE LESSON OF PR #157: a list a probe prints is ordered, or two runs of the same database disagree.
+  for (const [label, sql] of m.CATALOG_RULE_PROBES) {
+    for (const agg of sql.matchAll(/string_agg\(([\s\S]*?)\) into/g)) {
+      assert.match(agg[1], /order by/i, `${label}: a string_agg with no ORDER BY`);
+    }
+  }
+});
+
 // AN APPLY-TIME BLOCK CANNOT BE SILENCED FROM INSIDE ITS OWN PREDICATE. Q0-080 Q1, Q0-081 F4,
 // Q0-pre-080 F3 (P6) and Q0-062-071 F2 each showed the same reversal: prefix a claim's `where` with
 // `false and`, or put a bare `return;` ahead of the assertions, and every suite stays green while

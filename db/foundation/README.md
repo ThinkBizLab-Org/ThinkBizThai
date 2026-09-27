@@ -317,6 +317,26 @@ so in the handoff.
 What the pass cannot do is make a block stronger. A block that asserts a constraint **exists by
 name** still misses a change to what the constraint **says**.
 
+## The catalog-rule probes, and what a new batch must keep true
+
+After the FK-support probe, `make db-migrate-clean` asserts four rules over all of `app` and
+`private`. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
+it silently:
+
+1. **Every foreign key has NO ACTION on delete and on update, and is not deferrable.** A key that
+   needs an action is named in `FK_ACTION_EXEMPTIONS` with its reason, in the same change.
+2. **Every `*_updated_by_is_caller` and `*_requester_is_caller` policy matches its exact pinned
+   text:** restrictive, INSERT, TO authenticated, no USING, and a WITH CHECK that deparses to the
+   pinned string, on the pinned tables. A batch that adds a closure adds its table to
+   `UPDATED_BY_CLOSURES` or `REQUESTER_CLOSURES`.
+3. **Every SECURITY DEFINER function has `search_path=""`, and nothing else, in `proconfig`.**
+4. **Every trigger is enabled.** The `private.refuse_mutation` triggers are exactly the four on
+   `audit_logs` and `security_events`.
+
+Rule 2 compares PostgreSQL's deparsed text. A change of the Postgres major version in CI could
+change that text without the policy changing. If that happens, the probe fails by name, and the
+fix is to re-measure the text, not to loosen the rule.
+
 ## What this package deliberately does not contain
 
 **No tenant table, and therefore no RLS policy.** Batch `010` belongs to A1 Identity, and proposing
