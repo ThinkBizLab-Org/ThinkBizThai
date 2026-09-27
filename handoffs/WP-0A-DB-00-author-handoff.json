@@ -5,11 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b07a8d967712560033d4cf41b55d67d3ed402778",
-  "head_revision_or_patch_checksum": "b07a8d967712560033d4cf41b55d67d3ed402778",
+  "head_revision_or_patch_checksum": "b03af4b0040f314009e98a7b9927578abc5f9553",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [],
-  "files_deleted": [],
+  "files_modified": [
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-DB-00.json"
+  ],
+  "files_deleted": [
+    "tests/db/identity/isolation-cases.mjs.rej.orig"
+  ],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
@@ -33,12 +40,12 @@
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "see the commit; the static suite count is unchanged at 663"
+      "result": "clean: exit 0 — tests 663, pass 663, fail 0, skipped 0, todo 0 (unmoved)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00",
       "exit_code": 0,
-      "result": "every changed path declared"
+      "result": "all 5 changed path(s) are declared, and every amendment explains one"
     }
   ],
   "security_privacy_cost_impact": "NONE. One deleted text file that no code reads, one manifest line, two pinned lines and a regenerated digest file. No schema object, grant, policy, role, external call or data.",
