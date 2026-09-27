@@ -330,8 +330,11 @@ it silently:
    Reviewer (A1's review of the probes, F6).
 2. **Every `*_updated_by_is_caller` and `*_requester_is_caller` policy matches its exact pinned
    text:** restrictive, INSERT, TO authenticated, no USING, and a WITH CHECK that deparses to the
-   pinned string, on the pinned tables. A batch that adds a closure adds its table to
-   `UPDATED_BY_CLOSURES` or `REQUESTER_CLOSURES`.
+   pinned string, on the pinned tables. So is every `*_updated_by_on_update_is_caller` policy
+   (batch 105: restrictive, UPDATE, TO authenticated, no USING). A batch that adds a closure adds its
+   table to `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. Batch
+   105's own block also refuses any table that lets authenticated UPDATE `updated_by` without an
+   UPDATE policy binding it to the caller.
 3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
    list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
    `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds

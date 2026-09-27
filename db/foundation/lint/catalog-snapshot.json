@@ -36,6 +36,7 @@
       "102_updated_by_is_caller.sql",
       "103_asset_original_filename_withheld.sql",
       "104_fk_supporting_indexes.sql",
+      "105_updated_by_on_update_is_caller.sql",
       "110_meta_connector.sql",
       "111_social_fk.sql",
       "120_publisher.sql",
