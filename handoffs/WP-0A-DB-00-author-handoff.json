@@ -4,65 +4,59 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b5b944c7ef2b609eb3f1e1da9e94be62fa84b1ad",
-  "head_revision_or_patch_checksum": "88293f68cecd3fd45221ea767e768d5c52c7dc4b",
+  "base_revision": "ec597376fa4ea4f1ed3752ba83534dd14e0d2371",
+  "head_revision_or_patch_checksum": "ec597376fa4ea4f1ed3752ba83534dd14e0d2371",
   "task_ids": [],
   "files_added": [],
-  "files_modified": [
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "work-packages/WP-0A-DB-00.json"
-  ],
-  "files_deleted": [
-    "tests/db/identity/isolation-cases.mjs.rej.orig"
-  ],
+  "files_modified": [],
+  "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT REMOVES ONE STRAY FILE AND NOTHING ELSE: tests/db/identity/isolation-cases.mjs.rej.orig, a patch-reject artifact that merge commit 1385005 created (neither parent carries it) and PR #118 (9c2ab02) landed on main. Reported by Q0 as F12 in its test of the post-migrate pass (PR #155).",
-    "Nothing reads the file: `git grep` over main finds it only in this manifest's outputs list, which drops the line; test-kits/integrity-manifest.json does not digest it; scripts/test-suite-contract.mjs does not name it."
+    "THIS INCREMENT CORRECTS ONE STATE RECORD AND ADDS ONE SURVEY. The seventh-pass record said nothing was merged; #155, #157 and #156 have merged since (main ec59737, CI 36312726123 success).",
+    "The survey (weak-assertion-survey-2026-09-27.md) was written by a read-only subagent of A0 under A0's brief; it is a survey and not a role signature, and A0 read it in full before committing it. It marks every claim measured, read or inferred."
   ],
   "acceptance_results": [
     {
-      "criterion": "The stray file is gone and nothing referred to it",
+      "criterion": "The read-this-first record agrees with where main is and says who merged",
       "result": "met",
-      "evidence": "git rm; git grep for the name on main finds only work-packages/WP-0A-DB-00.json outputs, removed in the same commit"
+      "evidence": "§1 main = ec59737 with CI run 36312726123; §1a names A0 as the one who pressed all three merges on the Owner's words, quoted verbatim, and that RFC-2026-002's literal sentence is not satisfied; §1b records main's red CI and its cause"
     },
     {
-      "criterion": "Its arrival is established, not assumed",
+      "criterion": "The owed survey is in evidence",
       "result": "met",
-      "evidence": "`git log --full-history` names merge 1385005 and PR #118's merge 9c2ab02; `git ls-tree` shows neither parent of 1385005 carries the file; evidence/WP-0A-DB-00/a0-batch-101-integration-2026-09-15.md:25 records the hand-applied `.rej` hunks"
+      "evidence": "evidence/WP-0A-DB-00/weak-assertion-survey-2026-09-27.md"
     }
   ],
   "tests": [
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (main's count; this increment moves none)"
+      "result": "clean: exit 0 — tests 667, pass 667 (unmoved)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00",
+      "command": "node scripts/verify-branch-scope.mjs ec59737 WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 5 changed path(s) are declared, and every amendment explains one"
+      "result": "every changed path declared"
     }
   ],
-  "security_privacy_cost_impact": "NONE. One deleted text file that no code reads, one manifest line, two pinned lines and a regenerated digest file. No schema object, grant, policy, role, external call or data.",
+  "security_privacy_cost_impact": "NONE. Two markdown files in evidence/WP-0A-DB-00/, one manifest field, two pinned lines and a regenerated digest. No schema object, grant, policy, role, external call or data; the survey carries no secret or customer data.",
   "migration_and_data_impact": "NONE. No database object; the migration set is unchanged.",
-  "compatibility_impact": "NONE beyond the branch slot. PR #155 and then PR #157 repointed the same ownership.branch line and the same two pinned lines and merged first (4b98185, b5b944c); each time this branch merged main and kept its own name in the slot. Test and case counts unmoved against main.",
+  "compatibility_impact": "NONE beyond the branch slot. Test and case counts unmoved.",
   "known_limitations": [
-    "The file's contents are a reject hunk of isolation-cases.mjs from the batch-100 merge; the batch-101 record says those hunks were applied by hand, and this increment does not re-verify that application -- the isolation suite passing on main is the evidence that it was."
+    "THE RECORD RECORDS, IT DOES NOT CONFORM: it says in words that A0 pressed three merges on the Owner's order; that does not make them satisfy RFC-2026-002's sentence that the Product Owner merges.",
+    "The survey's classification is from reading by four helpers under one subagent; only three drifts in it (m1-m3) are new measurements."
   ],
   "open_risks_or_blockers": [
-    "NONE OPENED OR CLOSED. open_blockers is unchanged against main (188 after PR #155)."
+    "NONE OPENED OR CLOSED (188)."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert pull request, which restores a file nothing reads. NEVER a force-push.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR, which would make the read-this-first record wrong about main again; pair any revert with a correction. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "The post-merge correction of the seventh-pass state record (it was written before #155 merged), then the FK-action probe and the updated_by/requester text pins the weak-assertion survey ranks first."
+    "The survey's §6 item 1: an FK-action probe in migrate-clean (all 87 FKs NO ACTION today; m1 and m2 survive every layer), and item 2: text pins of the updated_by and requester closures (m3)."
   ],
   "reviewer_instructions": [
-    "READ THE DIFF: one deletion, one manifest line, two pinned lines, one digest. Confirm with `git grep` that nothing names the file and with `git ls-tree 1385005^1 / ^2` that the merge created it.",
+    "CHECK §1 AND §1a OF THE CORRECTED RECORD AGAINST `gh pr view 155/157/156 --json mergedBy,mergeCommit` AND `gh run list --branch main`.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null
