@@ -134,7 +134,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // The same tests moved the assertion floor with them, 258 to 276, and the corrections after the
 // three role runs to 288: the count the guard's own regex reads, not one taken by hand. Batch 121's lesson from C0 is that a floor that stays put
 // while assertion-bearing tests are added has stopped meaning anything.
-  'test-kits/db/foundation-contract.test.mjs': 288,
+// 288 to 290 with the fails_with determinism rule (main CI run 36311266393).
+  'test-kits/db/foundation-contract.test.mjs': 290,
   'test-kits/db/rls-assertions.test.mjs': 108,
   'tests/db/identity/identity-isolation.test.mjs': 2133,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
