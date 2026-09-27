@@ -73,7 +73,7 @@
     "approved_fixtures": []
   },
   "ownership": {
-    "branch": "agent/claude/WP-0A-DB-00-batch-121-merged-record",
+    "branch": "agent/claude/WP-0A-DB-00-remove-rej-orig",
     "writable_paths": [
       "Makefile",
       "architecture/decisions/RFC-2026-021-client-read-allowlist.md",
@@ -113,7 +113,7 @@
         "test-kits/branch-identity.test.mjs",
         "test-kits/integrity-manifest.json"
       ],
-      "rationale": "THIS INCREMENT CORRECTS ONE SENTENCE IN A STATE RECORD AND NOTHING ELSE. evidence/WP-0A-DB-00/session-2026-09-16-sixth-pass.md is the read-this-first file for the next Author run and it was written BEFORE PR #153 merged, so it said `main` was `0f3a08b` and that nothing had been merged. Both stopped being true when the pull request landed. It creates, alters and drops no database object: no migration, no policy, no grant, no case, no fixture. The test count and the isolation case count do not move, so neither evidence/VERIFICATION.md nor scripts/test-suite-contract.mjs is touched.\n\nWHY A SEPARATE INCREMENT RATHER THAN AN AMENDMENT IN PLACE: the handoff must be the last commit on a branch and must stand alone, and amending after `npm run refresh:handoff` breaks the citation with the script refusing to guess. The record could therefore not be corrected on the branch it describes without redoing the handoff after the fact. A read-this-first STATE record that is stale about `main` is the one kind of staleness that cannot be tolerated, so this is its own increment.\n\nIt also records something that belongs in the record rather than in a username: the merge of #153 was the Product Owner's explicit instruction, executed by A0 after A0 had twice declined and cited CONTRIBUTING_AGENTS.md. A0 measured before acting -- PRs #149 through #152 were each authored and merged through the same account -- so the practice is established. The separation that carries meaning held (three independent role runs, two stop-the-line findings answered, a green CI run on the merged head); the literal sentence of RFC-2026-002 that the Product Owner merges did not, and the record says so.\n\nIt amends TWO files it does not own, each for one reason, and both for the branch rather than for the record. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so a new branch cannot be declared without the pinned row moving with it -- two lines. The field holds ONE value, so this replaces agent/claude/WP-0A-DB-00-batch-121, which merged as PR #153 and is deleted on both sides. test-kits/integrity-manifest.json is regenerated with `npm run regenerate:manifest` because branch-identity.test.mjs is one of the files it digests."
+      "rationale": "THIS INCREMENT REMOVES ONE STRAY FILE AND NOTHING ELSE. tests/db/identity/isolation-cases.mjs.rej.orig is a patch-reject artifact created by merge commit 1385005 (\"Merge main into batch 100\"; neither parent carries it) and landed on main by PR #118 (9c2ab02). The batch-101 integration record says the rejected hunks were applied by hand from the `.rej`, and the leftover was committed with the merge. Nothing reads it: no script, test, digest or floor names it; the only reference was this manifest's own outputs list, which drops the line. Q0 reported it as F12 in its test of the post-migrate pass. It creates, alters and drops no database object, and no case, fixture or test count moves, so neither evidence/VERIFICATION.md nor scripts/test-suite-contract.mjs is touched.\n\nIt amends TWO files it does not own, both for the branch. test-kits/branch-identity.test.mjs pins BRANCH_OWNERSHIP with deepEqual against the branch each manifest declares, so the new branch moves two pinned lines; the field holds ONE value, and PR #155 (the post-migrate pass, open at the time of writing) repoints the same line, so whichever of the two merges second resolves a one-line conflict. test-kits/integrity-manifest.json is regenerated because it digests branch-identity.test.mjs."
     }
   },
   "inputs": {
@@ -208,7 +208,6 @@
       "tests/db/identity/fixtures/140-audit-fixture.sql",
       "tests/db/identity/identity-isolation.test.mjs",
       "tests/db/identity/isolation-cases.mjs",
-      "tests/db/identity/isolation-cases.mjs.rej.orig",
       "tests/db/identity/run-isolation.mjs",
       "work-packages/WP-0A-DB-00.json"
     ],
