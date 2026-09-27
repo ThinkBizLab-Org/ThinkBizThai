@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "4b98185a8946c02705f0e8f18536aed7fa1d8cb7",
-  "head_revision_or_patch_checksum": "6e255eaee27c8901ac6e13a21ffbeadbf7b3df3e",
+  "head_revision_or_patch_checksum": "d0775389adda6bec8ab8479dea3817be451d282a",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -40,7 +40,7 @@
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (main's count after PR #155; this increment moves none)"
+      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (main's count; this increment moves none)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00",
@@ -50,7 +50,7 @@
   ],
   "security_privacy_cost_impact": "NONE. One deleted text file that no code reads, one manifest line, two pinned lines and a regenerated digest file. No schema object, grant, policy, role, external call or data.",
   "migration_and_data_impact": "NONE. No database object; the migration set is unchanged.",
-  "compatibility_impact": "NONE beyond the branch slot. PR #155 repointed the same ownership.branch line and the same two pinned lines and merged first (4b98185); this branch merged main and kept its own name in the slot. Test and case counts unmoved against main.",
+  "compatibility_impact": "NONE beyond the branch slot. PR #155 and then PR #157 repointed the same ownership.branch line and the same two pinned lines and merged first (4b98185, b5b944c); each time this branch merged main and kept its own name in the slot. Test and case counts unmoved against main.",
   "known_limitations": [
     "The file's contents are a reject hunk of isolation-cases.mjs from the batch-100 merge; the batch-101 record says those hunks were applied by hand, and this increment does not re-verify that application -- the isolation suite passing on main is the evidence that it was."
   ],
