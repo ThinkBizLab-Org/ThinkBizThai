@@ -58,7 +58,7 @@ begin
      -- wrote `content_targets_social_scope_fk`. The final-state form says the social FK on this table
      -- is that one key and no other, so a second key on social_account_id still fails here, as
      -- written by anyone other than 111. 111's own block asserts the key's shape and validation.
-     and con.conname <> 'content_targets_social_scope_fk';
+     and not (c.relname = 'content_targets' and con.conname = 'content_targets_social_scope_fk');
   if not exists (select 1 from pg_catalog.pg_constraint con
                   where con.conrelid = 'app.content_targets'::regclass and con.contype = 'f'
                     and con.conname = 'content_targets_social_scope_fk') then
@@ -303,7 +303,7 @@ begin
    where n.nspname = 'app'
      and c.relname = 'content_targets'
      and not pol.polpermissive
-     and pol.polname::text <> all (array['content_targets_service_path_closed', 'content_targets_updated_by_is_caller']);
+     and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'));  -- SUPERSEDED BY 083, 102, 111: names another file wrote, see the header
   if count_of <> 1 then
     raise exception 'batch 081 wrote % restrictive policies and it creates one table to narrow', count_of;
   end if;
@@ -322,7 +322,7 @@ begin
      where n.nspname = 'app'
        and c.relname = 'content_targets'
        and not pol.polpermissive
-       and pol.polname::text <> all (array['content_targets_service_path_closed', 'content_targets_updated_by_is_caller'])
+       and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'))  -- SUPERSEDED BY 083, 102, 111: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

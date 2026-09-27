@@ -113,13 +113,16 @@ begin
 end \$\$;
 `;
 
-// THE POST-MIGRATE ASSERTION PASS. Every batch ends with a `do $$` block asserting what it built, and
-// until this pass each block ran ONCE, when its own file was applied. A later file could undo any of
+// THE POST-MIGRATE ASSERTION PASS. Most batches end with a `do $$` block asserting what they built
+// (000-003 and 010 carry none), and until this pass each block ran ONCE, when its own file was applied. A later file could undo any of
 // those guarantees and every layer stayed green: Q0's D01h on batch 121 dropped a CHECK in a later
 // migration and survived all three. So migrate-clean re-runs every block against the database the
 // whole set built. Measured on 2026-09-27 before this was written: of 42 blocks, 32 passed as written
 // and 10 failed, each because a later batch legitimately changed what it asserted. Those ten are in
 // the register with a final-state replacement; the register's own `_guards` says what keeps it honest.
+// Two of the 32 -- 011#1 and 131#1 -- are idempotent `if not exists` guards that CREATE rather than
+// assert, so re-running them (rolled back) cannot fail; what they create is asserted by 011#2 and
+// 131#2 (C0's review of d70d2d6). They are counted among the blocks, not among the assertions.
 export const INVARIANTS = 'db/foundation/invariants';
 export const SUPERSEDED = `${INVARIANTS}/superseded.json`;
 
@@ -138,7 +141,14 @@ export function applyTimeBlocks(name, sql) {
     blocks.push({ id: `${name}#${blocks.length + 1}`, line: i + 1, sql: `${lines.slice(i, j + 1).join('\n')}\n` });
     i = j;
   }
-  const openers = lines.filter((l) => /^\s*do\s*\$/i.test(l.replace(/--.*$/, ''))).length;
+  // Anything that opens a do-block, anywhere on a line: C0 and Q0 found the first version missed
+  // `do language plpgsql $$`, a `do` with its `$$` on the next line, and a block opened mid-line.
+  // Counted over the text with comments and string literals removed, so a message or a comment that
+  // mentions `do $$` is not a block.
+  // Literals are stripped line by line: a pattern allowed to cross a newline pairs an apostrophe in
+  // one statement with one in another and swallows whole blocks (measured on 050).
+  const code = sql.replace(/--[^\n]*/g, '').replace(/'(?:[^'\n]|'')*'/g, "''");
+  const openers = (code.match(/\bdo\b(?:\s+language\s+\w+)?\s*\$|^\s*do\s*$/gim) ?? []).length;
   if (openers !== blocks.length) {
     throw new Error(`${name}: ${openers} line(s) open a do-block and ${blocks.length} are in the form the post-migrate pass extracts; write each as a line "do $$" ... a line "end $$;"`);
   }
@@ -157,6 +167,7 @@ export async function postMigratePlan(register = undefined) {
     if (byBlock.has(entry.block)) throw new Error(`${SUPERSEDED}: ${entry.block} is listed twice`);
     const [file] = entry.block.split('#');
     if (!entry.superseded_by?.length) throw new Error(`${SUPERSEDED}: ${entry.block} names no later file`);
+    if (typeof entry.fails_with !== 'string' || entry.fails_with.length < 20) throw new Error(`${SUPERSEDED}: ${entry.block} does not record the raise it fails with (fails_with)`);
     for (const later of entry.superseded_by) {
       if (!names.includes(later)) throw new Error(`${SUPERSEDED}: ${entry.block} is superseded by ${later}, which is not a migration`);
       if (later <= file) throw new Error(`${SUPERSEDED}: ${entry.block} is superseded by ${later}, which does not sort after it`);
@@ -164,6 +175,19 @@ export async function postMigratePlan(register = undefined) {
     const replacementSql = await readFile(join(INVARIANTS, entry.replacement ?? ''), 'utf8').catch(() => {
       throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} is not a file in ${INVARIANTS}`);
     });
+    // A replacement is fed to psql on stdin, where a line beginning with a backslash is a meta-command
+    // psql EXECUTES (`\\!` runs a shell command) and anything after `end $$;` runs outside the block.
+    // A1 measured both passing the first version's tests: a `commit;`, a DDL statement and a shell
+    // command, the table it created persisting into the database schema-lint and rls-smoke then read.
+    // So the file must be exactly one block in the house form, and nothing else, checked HERE, at
+    // runtime, and not only by a test.
+    const inFile = applyTimeBlocks(entry.replacement, replacementSql);
+    if (inFile.length !== 1 || inFile[0].sql !== replacementSql) {
+      throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} is not exactly one do-block and nothing else`);
+    }
+    if (/^\s*\\/m.test(replacementSql)) {
+      throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} carries a line beginning with a backslash, which psql would execute as a meta-command`);
+    }
     byBlock.set(entry.block, { ...entry, replacementSql });
   }
   const plan = [];
@@ -176,6 +200,52 @@ export async function postMigratePlan(register = undefined) {
   }
   if (byBlock.size) throw new Error(`${SUPERSEDED}: no such block(s): ${[...byBlock.keys()].join(', ')}`);
   return plan;
+}
+
+// Every script the pass must run: each block as written, and each superseded block's replacement.
+export function postMigrateJobs(plan) {
+  const jobs = [];
+  for (const block of plan) {
+    jobs.push({ id: block.id, kind: 'verbatim', sql: block.sql });
+    if (block.superseded) jobs.push({ id: block.id, kind: 'replacement', sql: block.superseded.replacementSql });
+  }
+  return jobs;
+}
+
+// What the outcomes MEAN, as a pure function. An outcome counts only if it ran exactly the script
+// the plan names, so a block fed something else, or not run at all, fails rather than passes.
+export function decidePostMigrate(plan, outcomes) {
+  const failures = [];
+  const expected = postMigrateJobs(plan);
+  if (outcomes.length !== expected.length) failures.push(`${expected.length} script(s) were due and ${outcomes.length} outcome(s) came back`);
+  const ran = (id, kind, sql) => outcomes.find((o) => o.id === id && o.kind === kind && o.sql === sql);
+  let superseded = 0;
+  for (const block of plan) {
+    const verbatim = ran(block.id, 'verbatim', block.sql);
+    if (!verbatim) { failures.push(`${block.id} was not run as written`); continue; }
+    const error = verbatim.result?.error;
+    if (!block.superseded) {
+      if (error || !verbatim.result) {
+        failures.push(`${block.id} (line ${block.line}) no longer holds on the migrated database: ${error?.message ?? 'no result'} (${error?.code ?? 'no code'})\n`
+          + `    If a later migration changed this on purpose, list the block in ${SUPERSEDED} with a final-state replacement.`);
+      }
+      continue;
+    }
+    superseded += 1;
+    // Its OWN raise, and the one the register recorded: a block that starts failing for another
+    // reason has moved, and the entry describing why it fails is no longer true (C0 NOTE 6, Q0 F8).
+    if (!error || error.code !== 'P0001' || !String(error.message).startsWith(block.superseded.fails_with)) {
+      failures.push(`${block.id} is listed as superseded but ${error ? `fails with ${error.code ?? 'no code'}: ${error.message} -- the register expects P0001 beginning "${block.superseded.fails_with}"` : 'passes as written'}; the register entry is stale`);
+    }
+    const replaced = ran(block.id, 'replacement', block.superseded.replacementSql);
+    if (!replaced) failures.push(`${block.id}'s replacement ${block.superseded.replacement} was not run`);
+    else if (replaced.result?.error || !replaced.result) failures.push(`${block.id}'s replacement ${block.superseded.replacement} fails: ${replaced.result?.error?.message ?? 'no result'} (${replaced.result?.error?.code ?? 'no code'})`);
+  }
+  return {
+    ok: failures.length === 0,
+    failures,
+    summary: `${plan.length} apply-time blocks, ${plan.length - superseded} re-run as written, ${superseded} superseded and replaced`,
+  };
 }
 
 export async function migrateCleanSteps() {
@@ -1300,29 +1370,16 @@ async function runLive(target) {
     const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);
     let plan;
     try { plan = await postMigratePlan(); } catch (error) { stderr.write(`  post-migrate pass: ${error.message}\n`); return 1; }
-    let superseded = 0;
-    for (const block of plan) {
-      const verbatim = await rerun(block.sql);
-      if (!block.superseded) {
-        if (verbatim.error) {
-          stderr.write(`  post-migrate pass: ${block.id} (line ${block.line}) no longer holds on the migrated database: ${verbatim.error.message} (${verbatim.error.code ?? 'no code'})\n`
-            + `    If a later migration changed this on purpose, list the block in ${SUPERSEDED} with a final-state replacement.\n`);
-          return 1;
-        }
-        continue;
-      }
-      superseded += 1;
-      if (!verbatim.error || verbatim.error.code !== 'P0001') {
-        stderr.write(`  post-migrate pass: ${block.id} is listed as superseded but ${verbatim.error ? `fails with ${verbatim.error.code ?? 'no code'} rather than its own raise (P0001): ${verbatim.error.message}` : 'passes as written'}; the register entry is stale\n`);
-        return 1;
-      }
-      const replaced = await rerun(block.superseded.replacementSql);
-      if (replaced.error) {
-        stderr.write(`  post-migrate pass: ${block.id}'s replacement ${block.superseded.replacement} fails: ${replaced.error.message} (${replaced.error.code ?? 'no code'})\n`);
-        return 1;
-      }
-    }
-    stdout.write(`  post-migrate pass: ${plan.length} apply-time blocks, ${plan.length - superseded} re-run as written, ${superseded} superseded and replaced\n`);
+    // The executor is dumb on purpose: it runs every job and records what came back, and
+    // decidePostMigrate -- pure, exported, driven by synthetic outcomes in the tests -- says what
+    // that means. Q0's review of d70d2d6 skipped superseded blocks, fed `select 1` for the rest,
+    // never ran a replacement and returned early, and each survived tests that read this file as text.
+    const outcomes = [];
+    for (const job of postMigrateJobs(plan)) outcomes.push({ ...job, result: await rerun(job.sql) });
+    const verdict = decidePostMigrate(plan, outcomes);
+    for (const failure of verdict.failures) stderr.write(`  post-migrate pass: ${failure}\n`);
+    if (!verdict.ok) return 1;
+    stdout.write(`  post-migrate pass: ${verdict.summary}\n`);
     return 0;
   }
 

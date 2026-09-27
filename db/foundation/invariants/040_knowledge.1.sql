@@ -128,7 +128,7 @@ begin
    where n.nspname = 'app'
      and c.relname in ('knowledge_items', 'knowledge_item_versions')
      and not pol.polpermissive
-     and pol.polname::text <> all (array['knowledge_item_versions_service_path_closed', 'knowledge_items_service_path_closed', 'knowledge_items_updated_by_is_caller']);
+     and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'));  -- SUPERSEDED BY 042, 102: names another file wrote, see the header
   if count_of <> 2 then
     raise exception 'batch 040 wrote % restrictive policies and it creates two tables to narrow', count_of
       using hint = 'One per table. A version row holds what a knowledge item used to say, so a '
@@ -164,7 +164,7 @@ begin
      where n.nspname = 'app'
        and c.relname in ('knowledge_items', 'knowledge_item_versions')
        and not pol.polpermissive
-       and pol.polname::text <> all (array['knowledge_item_versions_service_path_closed', 'knowledge_items_service_path_closed', 'knowledge_items_updated_by_is_caller'])
+       and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'))  -- SUPERSEDED BY 042, 102: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

@@ -262,7 +262,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (content_tables)
      and not pol.polpermissive
-     and pol.polname::text <> all (array['content_ideas_service_path_closed', 'content_ideas_updated_by_is_caller', 'content_items_service_path_closed', 'content_items_updated_by_is_caller', 'content_variants_service_path_closed', 'content_versions_service_path_closed', 'quality_reviews_service_path_closed']);
+     and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'));  -- SUPERSEDED BY 082, 102: names another file wrote, see the header
   if count_of <> 5 then
     raise exception 'batch 080 wrote % restrictive policies and it creates five tables to narrow', count_of;
   end if;
@@ -284,7 +284,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (content_tables)
        and not pol.polpermissive
-       and pol.polname::text <> all (array['content_ideas_service_path_closed', 'content_ideas_updated_by_is_caller', 'content_items_service_path_closed', 'content_items_updated_by_is_caller', 'content_variants_service_path_closed', 'content_versions_service_path_closed', 'quality_reviews_service_path_closed'])
+       and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'))  -- SUPERSEDED BY 082, 102: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

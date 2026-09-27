@@ -155,7 +155,9 @@ begin
          -- the target of the composite FK content_targets_social_scope_fk. It is a scope key and not a
          -- natural key, and it is (workspace_id, id) over a primary key, so it adds no oracle 110's
          -- reasoning was guarding against. It is excluded by name and pinned by its columns below.
-         and con.conname <> 'social_accounts_scope_key'
+         -- As a (table, name) PAIR: C0 measured that the bare name let a unique constraint called
+         -- social_accounts_scope_key on private.meta_webhook_inbox pass.
+         and not (n.nspname = 'app' and c.relname = 'social_accounts' and con.conname = 'social_accounts_scope_key')
     ) as keys
    where not (
      (target = 'social_accounts' and cols = 'external_account_hash,workspace_id')

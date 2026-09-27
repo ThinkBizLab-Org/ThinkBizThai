@@ -363,7 +363,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (asset_tables)
      and not pol.polpermissive
-     and pol.polname::text <> all (array['asset_rights_service_path_closed', 'asset_rights_updated_by_is_caller', 'asset_versions_service_path_closed', 'assets_service_path_closed', 'assets_updated_by_is_caller', 'content_asset_links_service_path_closed']);
+     and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'));  -- SUPERSEDED BY 101, 102: names another file wrote, see the header
   if count_of <> 4 then
     raise exception 'batch 100 wrote % restrictive policies and it creates four tables to narrow', count_of
       using hint = 'A child table with no narrowing is a table where every active member reaches every row their membership admits, which would leave a page-restricted asset''s versions and rights readable to a member the asset.';
@@ -387,7 +387,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (asset_tables)
        and not pol.polpermissive
-       and pol.polname::text <> all (array['asset_rights_service_path_closed', 'asset_rights_updated_by_is_caller', 'asset_versions_service_path_closed', 'assets_service_path_closed', 'assets_updated_by_is_caller', 'content_asset_links_service_path_closed'])
+       and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'))  -- SUPERSEDED BY 101, 102: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

@@ -2106,7 +2106,11 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   const dir = 'db/foundation/migrations';
   const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
   assert.ok(names.length > 0, 'there must be migrations for this rule to be about anything');
-  for (const name of [...names, 'db/foundation/prerequisites.sql']) {
+  // The post-migrate pass feeds its replacements on stdin too (A1's review of d70d2d6 measured a `\\!`
+  // line in one running on the host), so they are held to the same rule.
+  const replacements = (await readdir('db/foundation/invariants')).filter((n) => n.endsWith('.sql')).map((n) => `db/foundation/invariants/${n}`);
+  assert.ok(replacements.length >= 10, 'the replacements are read by this rule');
+  for (const name of [...names, 'db/foundation/prerequisites.sql', ...replacements]) {
     const text = await readFile(name.includes('/') ? name : `${dir}/${name}`, 'utf8');
     const meta = text.split('\n').findIndex((line) => /^\s*\\/.test(line));
     assert.equal(meta, -1,
@@ -2270,15 +2274,55 @@ test('no apply-time block in any migration is silenced from inside its own predi
 // drops 061's `usage_events_dimension_known` left rls-smoke ok. These rules hold the wiring, the
 // coverage and the register; the live half is `make db-migrate-clean` itself, on every CI run.
 test('migrate-clean re-runs every apply-time block after the FK probe, each rolled back, and any failure fails the target', async () => {
-  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  // Comments removed first: Q0 moved `return 1;` into a comment and a text match still found it.
+  const runner = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
   const fk = runner.indexOf('const fkProbe = await script(FK_SUPPORT_PROBE_SQL);');
   const pass = runner.indexOf('plan = await postMigratePlan();');
   assert.ok(fk > 0 && pass > fk, 'the pass runs inside migrate-clean, after the FK probe');
   assert.match(runner, /const rerun = \(sql\) => feed\(`begin;\\n\$\{sql\}\\nrollback;\\n`\);/, 'each block runs in its own transaction and is rolled back, so the pass changes nothing');
-  const body = runner.slice(pass, runner.indexOf("if (target === 'migrate-upgrade')"));
-  assert.equal([...body.matchAll(/return 1;/g)].length, 4, 'an unreadable register, an unregistered failure, a stale entry and a failing replacement each fail the target');
-  assert.match(body, /verbatim\.error\.code !== 'P0001'/, 'a superseded block must still fail with its OWN raise, not with a syntax error');
-  assert.match(body, /superseded and replaced\\n`\);\s*return 0;\s*\}\s*$/, 'and the target succeeds only after the whole plan');
+  // The executor, whole: every job the pure planner names, run as named, nothing between it and the verdict.
+  const body = runner.slice(pass, runner.indexOf("if (target === 'migrate-upgrade')")).replace(/\n\s*\n/g, '\n');
+  assert.match(body, /^plan = await postMigratePlan\(\); \} catch \(error\) \{ stderr\.write\([^\n]*\); return 1; \}\n\s*const outcomes = \[\];\n\s*for \(const job of postMigrateJobs\(plan\)\) outcomes\.push\(\{ \.\.\.job, result: await rerun\(job\.sql\) \}\);\n\s*const verdict = decidePostMigrate\(plan, outcomes\);\n\s*for \(const failure of verdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!verdict\.ok\) return 1;\n\s*stdout\.write\([^\n]*verdict\.summary[^\n]*\);\n\s*return 0;\n\s*\}\n\s*$/,
+    'the executor is exactly: plan, run every job, decide, fail on a failing verdict -- no skip, no substitute script, no early return');
+});
+
+// THE DECISION, driven by synthetic outcomes (Q0 F1: the first version was guarded only by regexes over
+// its own text, and five evasive edits survived with real drift present).
+test('the post-migrate verdict fails on every way the outcomes can be wrong, and passes only on the right ones', async () => {
+  const { decidePostMigrate, postMigrateJobs } = await import('../../scripts/db/run.mjs');
+  const plan = [
+    { id: 'a.sql#1', line: 1, sql: 'A' },
+    { id: 'b.sql#1', line: 9, sql: 'B', superseded: { replacement: 'b.1.sql', replacementSql: 'B2', fails_with: 'b counts three and writes one' } },
+  ];
+  const good = () => [
+    { id: 'a.sql#1', kind: 'verbatim', sql: 'A', result: { rows: [] } },
+    { id: 'b.sql#1', kind: 'verbatim', sql: 'B', result: { error: { code: 'P0001', message: 'b counts three and writes one, and more' } } },
+    { id: 'b.sql#1', kind: 'replacement', sql: 'B2', result: { rows: [] } },
+  ];
+  assert.deepEqual(postMigrateJobs(plan).map((j) => `${j.id}/${j.kind}`), ['a.sql#1/verbatim', 'b.sql#1/verbatim', 'b.sql#1/replacement'], 'every block, then each replacement');
+  const control = decidePostMigrate(plan, good());
+  assert.equal(control.ok, true, `control: the right outcomes pass (${control.failures.join('; ')})`);
+  assert.equal(control.summary, '2 apply-time blocks, 1 re-run as written, 1 superseded and replaced');
+  const wrong = [
+    ['an unregistered block fails', (o) => { o[0].result = { error: { code: 'P0001', message: 'drift' } }; }, /no longer holds/],
+    ['an unregistered block was fed something else', (o) => { o[0].sql = 'select 1'; }, /a\.sql#1 was not run as written/],
+    ['a superseded block was skipped', (o) => o.splice(1, 1), /b\.sql#1 was not run as written/],
+    ['a superseded block passes as written', (o) => { o[1].result = { rows: [] }; }, /passes as written; the register entry is stale/],
+    ['a superseded block fails with a syntax error', (o) => { o[1].result = { error: { code: '42601', message: 'b counts three and writes one' } }; }, /stale/],
+    ['a superseded block fails at another raise', (o) => { o[1].result = { error: { code: 'P0001', message: 'something earlier broke' } }; }, /stale/],
+    ['the replacement was never run', (o) => o.splice(2, 1), /replacement b\.1\.sql was not run/],
+    ['the replacement was fed something else', (o) => { o[2].sql = 'null;'; }, /replacement b\.1\.sql was not run/],
+    ['the replacement fails', (o) => { o[2].result = { error: { code: 'P0001', message: 'pin broken' } }; }, /replacement b\.1\.sql fails/],
+    ['an outcome came back with no result', (o) => { delete o[0].result; }, /no longer holds/],
+    ['nothing was run', (o) => o.splice(0), /3 script\(s\) were due and 0/],
+  ];
+  for (const [label, mutate, pattern] of wrong) {
+    const outcomes = good();
+    mutate(outcomes);
+    const verdict = decidePostMigrate(plan, outcomes);
+    assert.equal(verdict.ok, false, `${label}: the verdict must fail`);
+    assert.match(verdict.failures.join('\n'), pattern, `${label}: and say why`);
+  }
 });
 
 test('the post-migrate plan covers every do-block of every migration, and each superseded one has a final-state replacement', async () => {
@@ -2303,10 +2347,28 @@ test('the post-migrate plan covers every do-block of every migration, and each s
       assert.match(text, new RegExp(`SUPERSEDED BY [^\\n]*\\b${later.slice(0, 3)}\\b`), `${block.superseded.replacement} says where ${later} changed it`);
     }
     const code = text.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
+    // One block and nothing else, and nothing that could end the pass's transaction from inside it:
+    // C0 found `end $$; commit; ...` satisfied the shape rule above and would commit past the rollback.
+    assert.equal(code.split('end $$;').length - 1, 1, `${block.superseded.replacement} closes exactly one block`);
+    assert.doesNotMatch(code, /\b(commit|rollback|savepoint|release)\b/i, `${block.superseded.replacement} carries no transaction control`);
+    assert.doesNotMatch(code, /pol\.polname::text <> all|con\.conname <> '/, `${block.superseded.replacement} excludes later names as (table, name) pairs, never bare`);
     for (const [label, pattern] of SILENCERS) {
       assert.doesNotMatch(code, pattern, `${block.superseded.replacement} contains \`${label}\``);
     }
     assert.ok(block.superseded.why.length > 20, `${block.id} says why`);
+    // ADDITIVE ONLY. Every line of the original block is still in its replacement, in order; a
+    // replacement may add (a pin, an exclusion, a comment) and may move a trailing semicolon, and may
+    // remove nothing. A1 measured the first version accepting a replacement that dropped a FORCE ROW
+    // LEVEL SECURITY check, and one whose whole body was `null;`. An exclusion added to a predicate
+    // is still a relaxation this rule cannot see -- that is the reviewer's, and the README says so.
+    const norm = (l) => l.replace(/;\s*$/, '').replace(/\s+$/, '');
+    const theirs = text.split('\n').map(norm);
+    let at = 0;
+    for (const line of block.sql.split('\n').map(norm).filter((l) => l.trim() !== '')) {
+      const found = theirs.indexOf(line, at);
+      assert.ok(found >= 0, `${block.superseded.replacement} no longer carries this line of ${block.id}, in order: ${line.trim()}`);
+      at = found + 1;
+    }
   }
 });
 
@@ -2316,11 +2378,16 @@ test('a do-block the pass cannot extract is refused, and a register that lies ab
   assert.throws(() => applyTimeBlocks('x.sql', 'DO $body$\nbegin\nend $body$;\n'), /open a do-block/, 'another dollar tag would escape the pass');
   assert.throws(() => applyTimeBlocks('x.sql', '  do $$ begin end $$;\n'), /open a do-block/, 'so would an inline block');
   assert.throws(() => applyTimeBlocks('x.sql', 'do $$\nbegin\n'), /never closes/, 'and an unterminated one');
-  const entry = { block: '030_industry.sql#1', superseded_by: ['031_industry_service_path_closed.sql'], replacement: '030_industry.1.sql', why: 'a control entry for this test' };
+  assert.throws(() => applyTimeBlocks('x.sql', 'do language plpgsql $$\nbegin\nend $$;\n'), /open a do-block/, 'and a block naming its language first (C0)');
+  assert.throws(() => applyTimeBlocks('x.sql', 'do\n$$\nbegin\nend $$;\n'), /open a do-block/, 'and one with its $$ on the next line (C0)');
+  assert.throws(() => applyTimeBlocks('x.sql', 'select 1; do $$\nbegin\nend $$;\n'), /open a do-block/, 'and one opened mid-line (Q0 X3)');
+  assert.equal(applyTimeBlocks('x.sql', "do $$\nbegin\n  raise exception 'we do $$ here';\nend $$;\n").length, 1, 'control: a message that mentions do $$ is not a block');
+  const entry = { block: '030_industry.sql#1', superseded_by: ['031_industry_service_path_closed.sql'], replacement: '030_industry.1.sql', fails_with: 'app.industry_assignments carries 3 restrictive policies', why: 'a control entry for this test' };
   await postMigratePlan({ entries: [entry] }); // control: a true entry is accepted
   const lies = [
     [[entry, entry], /listed twice/],
     [[{ ...entry, superseded_by: [] }], /names no later file/],
+    [[{ ...entry, fails_with: undefined }], /does not record the raise/],
     [[{ ...entry, superseded_by: ['999_nothing.sql'] }], /not a migration/],
     [[{ ...entry, superseded_by: ['020_business.sql'] }], /does not sort after/],
     [[{ ...entry, replacement: 'absent.sql' }], /is not a file/],

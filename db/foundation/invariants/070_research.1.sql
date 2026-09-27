@@ -351,7 +351,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (research_tables)
      and not pol.polpermissive
-     and pol.polname::text <> all (array['research_suggestions_service_path_closed']);
+     and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'));  -- SUPERSEDED BY 071: names another file wrote, see the header
   if count_of <> 4 then
     raise exception 'batch 070 wrote % restrictive policies and it creates four tables to narrow', count_of
       using hint = 'One per table a client may read. app.research_snapshots has none because it has '
@@ -385,7 +385,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (research_tables)
        and not pol.polpermissive
-       and pol.polname::text <> all (array['research_suggestions_service_path_closed'])
+       and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'))  -- SUPERSEDED BY 071: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

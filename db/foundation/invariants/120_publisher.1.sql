@@ -268,7 +268,11 @@ begin
      and pol.polroles <> array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
      -- SUPERSEDED BY 122. The comment above already says 122's closures are TO PUBLIC and asserted by
      -- 122; the query did not exclude them, because when 120 was applied they did not exist yet.
-     and pol.polname::text <> all (array['publish_intents_service_path_closed', 'publish_target_assets_service_path_closed']);
+     -- Excluded as (table, name) PAIRS, each on the one table 122 wrote it on: C0 measured that a name
+     -- excluded on all five tables let a permissive TO PUBLIC `using (true)` policy carrying that name
+     -- onto publish_jobs pass this block, 122's block and every other.
+     and (c.relname::text, pol.polname::text) not in (('publish_intents', 'publish_intents_service_path_closed'),
+                                                      ('publish_target_assets', 'publish_target_assets_service_path_closed'));
   if offending is not null then
     raise exception 'a batch 120 policy is not TO authenticated alone: %', offending
       using hint = '§8.5: "Policy ระบุ TO authenticated". A closure TO PUBLIC belongs to batch 122, which applies after this block has run.';
@@ -330,7 +334,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (publisher_tables)
        and not pol.polpermissive
-       and pol.polname::text <> all (array['publish_intents_service_path_closed', 'publish_target_assets_service_path_closed'])
+       and (c.relname::text, pol.polname::text) not in (('publish_intents', 'publish_intents_service_path_closed'), ('publish_target_assets', 'publish_target_assets_service_path_closed'))  -- SUPERSEDED BY 122: names another file wrote, see the header
        -- FOR ALL ONLY, and the qualifier is a measurement rather than a precaution: this batch writes
        -- THREE restrictive policies on app.publish_intents, and two of them are batch 094's and 102's
        -- shape -- RESTRICTIVE FOR INSERT, which has no USING half at all, so pg_get_expr(polqual) is

@@ -325,7 +325,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (approval_tables)
      and not pol.polpermissive
-     and pol.polname::text <> all (array['approval_events_service_path_closed', 'approval_policies_service_path_closed', 'approval_policies_updated_by_is_caller', 'approval_requests_requester_is_caller', 'approval_requests_service_path_closed', 'approval_requests_updated_by_is_caller']);
+     and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'));  -- SUPERSEDED BY 092, 094, 102: names another file wrote, see the header
   if count_of <> 3 then
     raise exception 'batch 090 wrote % restrictive policies and it creates three tables to narrow', count_of;
   end if;
@@ -352,7 +352,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (approval_tables)
        and not pol.polpermissive
-       and pol.polname::text <> all (array['approval_events_service_path_closed', 'approval_policies_service_path_closed', 'approval_policies_updated_by_is_caller', 'approval_requests_requester_is_caller', 'approval_requests_service_path_closed', 'approval_requests_updated_by_is_caller'])
+       and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'))  -- SUPERSEDED BY 092, 094, 102: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop
