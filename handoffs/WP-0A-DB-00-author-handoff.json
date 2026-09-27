@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b07a8d967712560033d4cf41b55d67d3ed402778",
-  "head_revision_or_patch_checksum": "6879edfc65fd47c15ec9418b88e1aca76a607931",
+  "head_revision_or_patch_checksum": "2752844c595a037c1c1d524c6423c8fd414fb965",
   "task_ids": [],
   "files_added": [
     "db/foundation/invariants/030_industry.1.sql",
@@ -19,6 +19,7 @@
     "db/foundation/invariants/110_meta_connector.1.sql",
     "db/foundation/invariants/120_publisher.1.sql",
     "db/foundation/invariants/superseded.json",
+    "evidence/WP-0A-DB-00/a0-post-migrate-pass-integration-2026-09-27.md",
     "evidence/WP-0A-DB-00/a0-post-migrate-pass-plan-2026-09-27.md",
     "evidence/WP-0A-DB-00/a1-post-migrate-pass-security-review-2026-09-27.md",
     "evidence/WP-0A-DB-00/c0-post-migrate-pass-contract-review-2026-09-27.md",
@@ -41,71 +42,100 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT CORRECTS ONE STATE RECORD AND NOTHING ELSE. evidence/WP-0A-DB-00/session-2026-09-16-sixth-pass.md is the read-this-first file for the next Author run on this package; it was written before PR #153 merged and said `main` was 0f3a08b and that nothing had been merged. Both stopped being true when the pull request landed on 2026-09-16 as merge commit 2d75606.",
-    "IT IS A SEPARATE INCREMENT RATHER THAN AN AMENDMENT IN PLACE because the handoff must be the last commit on a branch and must stand alone, and amending after `npm run refresh:handoff` breaks the citation with the script refusing to guess. The record could not be corrected on the branch it describes without redoing the handoff after the fact.",
-    "THE MERGE OF PR #153 WAS THE PRODUCT OWNER'S EXPLICIT INSTRUCTION AND WAS EXECUTED BY THE AUTHOR RUN, after the Author had twice declined and cited CONTRIBUTING_AGENTS.md and its own plan. The Author measured before acting: PRs #149, #150, #151 and #152 were each authored AND merged through the same account, so the mechanical merge under the Owner's delegation is this repository's established practice. The Author executed a decision it did not make and did not review, test-verify or approve its own work; the literal sentence of RFC-2026-002 that the Product Owner merges was not satisfied, and the record says so."
+    "THIS INCREMENT IS THE POST-MIGRATE ASSERTION PASS, chosen by the Owner over batch 091 and built to the seven answers of evidence/WP-0A-DB-00/product-owner-disposition-2026-09-27-post-migrate-pass.md (\"เอาตามคุณแนะนำ\" to all seven questions of the plan's §9). `make db-migrate-clean` re-runs every `do $$` block of every migration after the whole set, each rolled back; 10 of 42 blocks, which a later batch legitimately made false, are registered in db/foundation/invariants/superseded.json with additive final-state replacements.",
+    "The Author's claim about main before this pass, reproduced independently by Q0: a later file dropping 061's usage_events_dimension_known left migrate-clean and rls-smoke green on b07a8d9; with the pass, migrate-clean fails naming 061_metering.sql#1.",
+    "The migration set is untouched. Replacements are not migrations, so migration invariant 1 holds."
   ],
   "acceptance_results": [
     {
-      "criterion": "The read-this-first STATE record agrees with where main actually is",
+      "criterion": "Plan §9 A: re-run the original blocks, with a register and full final-state replacements",
       "result": "met",
-      "evidence": "§1 now reads main = 2d75606 = merge of PR #153, with CI run 35057961176 success on the merged head 0c86c7b; §7 records that the file was written before the merge and why the correction is its own increment."
+      "evidence": "scripts/db/run.mjs postMigratePlan / postMigrateJobs / decidePostMigrate; db/foundation/invariants/**"
     },
     {
-      "criterion": "No database object is created, altered or dropped",
+      "criterion": "§9 B: all 42 blocks in this PR",
       "result": "met",
-      "evidence": "no migration, no policy, no grant, no case, no fixture. The isolation case count (965) and the static test count (663) do not move, so neither evidence/VERIFICATION.md nor scripts/test-suite-contract.mjs is touched."
+      "evidence": "`post-migrate pass: 42 apply-time blocks, 32 re-run as written, 10 superseded and replaced` on a fresh cluster"
     },
     {
-      "criterion": "The branch slot moves with the branch",
+      "criterion": "§9 C: inside migrate-clean after the FK probe, no protected edit",
       "result": "met",
-      "evidence": "ownership.branch repointed, the two pinned lines of test-kits/branch-identity.test.mjs moved with it, and test-kits/integrity-manifest.json regenerated because it digests that file."
+      "evidence": "no change to ci.yml, Makefile or any migration; a wiring test holds the position"
+    },
+    {
+      "criterion": "§9 D: measured proofs plus contract tests, the ci.yml line proposed and not written",
+      "result": "met",
+      "evidence": "a0-post-migrate-pass-integration-2026-09-27.md §3 (proofs) and §5 (proposed job)"
+    },
+    {
+      "criterion": "§9 E: no RFC, the rule recorded in the README",
+      "result": "met",
+      "evidence": "db/foundation/README.md, 'The post-migrate assertion pass, and what a later batch owes an earlier one'"
+    },
+    {
+      "criterion": "§9 F: the D01h blocker closed and a weaker-blocks blocker opened",
+      "result": "met",
+      "evidence": "work-packages/WP-0A-DB-00.json open_blockers; plus a second blocker from Q0 F7, 187 -> 188"
+    },
+    {
+      "criterion": "§9 G: C0, Q0 and A1",
+      "result": "met",
+      "evidence": "c0-/a1-/q0-post-migrate-pass-*-2026-09-27.md, cherry-picked with -x; none stop-the-line; findings disposed in the integration record §2"
     }
   ],
   "tests": [
     {
       "command": "npm run verify",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 663, pass 663, fail 0, skipped 0, todo 0 (unmoved)"
+      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (663 before)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs main WP-0A-DB-00",
+      "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00 (on the branch name)",
       "exit_code": 0,
       "result": "every changed path declared, and every amendment explains one"
     },
     {
-      "command": "node scripts/scan-repository-secrets.mjs",
+      "command": "LC_ALL=C TZ=UTC make db-migrate-clean (fresh private cluster 127.0.0.1:5499, shim first)",
       "exit_code": 0,
-      "result": "0 findings"
+      "result": "post-migrate pass: 42 apply-time blocks, 32 re-run as written, 10 superseded and replaced"
     },
     {
-      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "command": "LC_ALL=C TZ=UTC make db-rls-smoke (same cluster)",
       "exit_code": 0,
-      "result": "floors met; neither floor moved, because no test and no assertion was added"
+      "result": "db-rls-smoke: ok; 965 isolation cases unmoved"
+    },
+    {
+      "command": "make db-migrate-clean with each of four drifts appended to 140_audit.sql",
+      "exit_code": 1,
+      "result": "each FAILED naming the block or replacement: 061#1, 121#1, 120#1's replacement, 030#1 and 102#1 (integration record §3)"
     }
   ],
-  "security_privacy_cost_impact": "NONE. One markdown file in evidence/WP-0A-DB-00/, one manifest field, two pinned lines and a regenerated digest file. No schema object, no grant, no policy, no role, no external call, and no data of any kind.",
-  "migration_and_data_impact": "NONE. This increment adds, alters and drops no database object. The migration set is unchanged at 001..140 with 121_publisher_metrics.sql as merged.",
-  "compatibility_impact": "NONE beyond the branch slot. The isolation suite stays at 965 cases and the static suite at 663 tests; no declared floor moves in either direction; .github/workflows/ci.yml is untouched.",
+  "security_privacy_cost_impact": "NO SCHEMA, POLICY, GRANT OR ROLE CHANGES (A1 verified this independently). The pass runs each block as the connecting role inside a transaction that is rolled back; A1 measured three extra passes leave the database, roles and ACLs identical. A replacement is refused at runtime unless it is exactly one block with no psql meta-command line (A1 F2). The README says a register diff that relaxes a security assertion goes to the Security reviewer; whether that is a gate is the Owner's (integration record §4).",
+  "migration_and_data_impact": "NONE. No migration is added or edited; the set is unchanged at 000..140. migrate-clean does more work after applying it (about one second more on a fresh cluster) and fails where an earlier batch's apply-time assertion no longer holds.",
+  "compatibility_impact": "migrate-clean can now FAIL on a migration set it used to accept, which is the point: a future batch that makes an earlier block false must add a register entry and an additive replacement in the same change (README). Isolation cases unmoved at 965; foundation-contract 63 -> 67 tests and 258 -> 288 assertions; .github/workflows/ci.yml untouched.",
   "known_limitations": [
-    "THE CORRECTED RECORD IS STILL A RECORD AND APPROVES NOTHING. It states where main is and who merged; it does not make the merge conform to RFC-2026-002's literal sentence, and it is not a disposition of the three decisions batch 121 put to the Product Owner.",
-    "THE TWELVE BLOCKERS BATCH 121 OPENED ARE UNCHANGED AT 187 and none is closed by this increment. Three of them are the Owner's: the 10^12 magnitude threshold is A0's number, A1's severity disagreement with its own brief, and §3.3 versus §4.8 on social_account_id."
+    "THE PASS RE-RUNS WHAT BLOCKS SAY AND MAKES NO BLOCK STRONGER. A block asserting that a constraint exists by name misses a change to what it says, and closures are checked for tokens (A1 F3, Q0 F5): three updated_by closures gutted with `or true` were caught by neither layer. Blocker.",
+    "MOST LATER-FILE DRIFT TOUCHES THINGS NO BLOCK NAMES: twelve of Q0's fourteen surviving drifts (SECURITY DEFINER search_path outside app_authz, security_events triggers disabled, unasserted CHECKs, NOT NULL drops). Blocker 188; Q0's structural remedy is a live catalog snapshot for 011-140.",
+    "No CI run yet shows the pass can fail: the control job needs ci.yml, the Integration Owner's file, and is proposed in the integration record §5.",
+    "A pin ADDED in a replacement can be deleted unnoticed: the additive test protects the original's lines, not the added ones (Q0 F9). Review reads it.",
+    "Every role run is a same-vendor subagent of the Author under the Author's brief, and says so in its §0."
   ],
   "open_risks_or_blockers": [
-    "NONE OPENED BY THIS INCREMENT. open_blockers stays at 187 and nothing is closed.",
-    "THE ONE A READER SHOULD CARRY FORWARD is unchanged from the batch this record describes: the service cannot resolve the post whose metrics it would collect, which makes all four CARRIED classifications in db/foundation/lint/service-policy-map.json descriptions of statements no service in this schema can form. 27 of the 187 blockers are that class, spanning fourteen batches."
+    "OPENED: the name-or-token survey owed before batch 150, now carrying A1 F3 and Q0 F5 (replaces the D01h blocker, which this pass closes); and 188, drift in things no block names (Q0 F4, F6, F7).",
+    "FOR THE OWNER: whether a security-relaxing register change requires A1 as a gate; A1 F3's MEDIUM against A1-090's LOW. The three decisions owed from batch 121 are unchanged."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert pull request; the record returns to its pre-merge text, which would then be wrong about main again, so a revert of this increment should be paired with a correction rather than left. NEVER a force-push. Forward fix is the default and costs nothing here: the file is prose in evidence/WP-0A-DB-00/**, which this package owns outright.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert pull request; no database object is involved, so a revert only removes the pass and returns migrate-clean to what it accepted before. NEVER a force-push. A register entry that turns out wrong is a forward fix in invariants/, never an edit to a migration.",
   "recommended_next_work_packages": [
-    "A post-migrate assertion pass that re-runs every batch's apply-time invariants after the full migration set (Q0's D01h in general form). It belongs to A0 Integration, needs no cross-package decision, and batch 150 needs it before it rebuilds app.performance_snapshots to partition the table.",
-    "Batch 091 (calendar/schedules) ONLY AFTER the ownership question is answered: §6's registry assigns it to A5 Calendar and blockers 138, 140 and 172 put three of its opening questions in other packages' hands.",
-    "The three decisions batch 121 put to the Product Owner, which no later batch should inherit unanswered."
+    "The name-or-token survey this PR's blocker owes, block by block, before batch 150 rebuilds app.performance_snapshots; with it, pinned closure expression text and rls-smoke cases forging updated_by on each of the 13 tables.",
+    "A live SECURITY DEFINER search_path probe in migrate-clean, in the FK probe's pattern (Q0 F4) -- small, A0's own.",
+    "The ci.yml control job in the integration record §5, through the Integration Owner.",
+    "Batch 091 only after A5 answers the ownership question; blockers 138, 140 and 172 are its entry price."
   ],
   "reviewer_instructions": [
-    "READ THE DIFF, NOT THE DATABASE. This increment changes one markdown file, one manifest field, two pinned lines and a regenerated digest file. There is nothing to measure on a cluster and no reason to build one.",
-    "CHECK THE ONE CLAIM THAT MATTERS: that §1 of the corrected record agrees with `git rev-parse main` and with the merge commit of PR #153, and that §7 says plainly that the file was written before the merge.",
-    "THEN CHECK THE PARAGRAPH ABOUT WHO MERGED. It says the Author executed the Product Owner's instruction after twice declining, that the practice was measured against PRs #149 through #152 before acting, and that the literal sentence of RFC-2026-002 was not satisfied. Decide for yourself whether that is stated plainly enough for a reader who was not present.",
-    "THIS INCREMENT WAS WRITTEN BY THE AUTHOR RUN AND SIGNS FOR NO OTHER ROLE. Nothing in this file is a sign-off. Under RFC-2026-002 the merge belongs to the Product Owner, after a green required CI run on this handoff's cited head."
+    "START WITH evidence/WP-0A-DB-00/a0-post-migrate-pass-integration-2026-09-27.md: every role-run finding and what happened to it.",
+    "READ THE REPLACEMENTS AS DIFFS AGAINST THEIR ORIGINALS: each is the original block plus lines marked SUPERSEDED BY; a test holds them additive, and a reviewer judges whether each added exclusion is what the named later file requires.",
+    "MEASURE ON THE BRANCH NAME, NEVER DETACHED: a detached HEAD skips the handoff and branch-scope guards and reads false green.",
+    "A LIVE CHECK needs a fresh cluster per round (roles are cluster-wide): shim, then `make db-migrate-clean`, then `make db-rls-smoke`. To see it fail, append a drift to 140_audit.sql, not a new file."
   ],
   "superseded_by": null
 }
