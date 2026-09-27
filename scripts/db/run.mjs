@@ -113,6 +113,71 @@ begin
 end \$\$;
 `;
 
+// THE POST-MIGRATE ASSERTION PASS. Every batch ends with a `do $$` block asserting what it built, and
+// until this pass each block ran ONCE, when its own file was applied. A later file could undo any of
+// those guarantees and every layer stayed green: Q0's D01h on batch 121 dropped a CHECK in a later
+// migration and survived all three. So migrate-clean re-runs every block against the database the
+// whole set built. Measured on 2026-09-27 before this was written: of 42 blocks, 32 passed as written
+// and 10 failed, each because a later batch legitimately changed what it asserted. Those ten are in
+// the register with a final-state replacement; the register's own `_guards` says what keeps it honest.
+export const INVARIANTS = 'db/foundation/invariants';
+export const SUPERSEDED = `${INVARIANTS}/superseded.json`;
+
+// A block is a line that is exactly `do $$` through the next line that is exactly `end $$;`, which is
+// how every migration in this repository writes them. A block written any other way (`DO $body$`, an
+// inline `do $$ begin ... end $$;`) would escape the pass silently, so it is refused rather than
+// skipped: the count of anything that opens a do-block must equal the count extracted.
+export function applyTimeBlocks(name, sql) {
+  const lines = sql.split('\n');
+  const blocks = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/^do \$\$\s*$/.test(lines[i])) continue;
+    let j = i + 1;
+    while (j < lines.length && !/^end \$\$;\s*$/.test(lines[j])) j += 1;
+    if (j === lines.length) throw new Error(`${name}: a do-block opened at line ${i + 1} never closes with a line that is exactly "end $$;"`);
+    blocks.push({ id: `${name}#${blocks.length + 1}`, line: i + 1, sql: `${lines.slice(i, j + 1).join('\n')}\n` });
+    i = j;
+  }
+  const openers = lines.filter((l) => /^\s*do\s*\$/i.test(l.replace(/--.*$/, ''))).length;
+  if (openers !== blocks.length) {
+    throw new Error(`${name}: ${openers} line(s) open a do-block and ${blocks.length} are in the form the post-migrate pass extracts; write each as a line "do $$" ... a line "end $$;"`);
+  }
+  return blocks;
+}
+
+// What the pass will run, in order, with every register entry checked against the files before a
+// database is touched. Static on purpose: a register naming a block, a later file or a replacement
+// that does not exist is a lie about the repository, and a test can catch it without Postgres.
+export async function postMigratePlan(register = undefined) {
+  register ??= JSON.parse(await readFile(SUPERSEDED, 'utf8'));
+  const files = await migrationFiles();
+  const names = files.map((f) => f.name);
+  const byBlock = new Map();
+  for (const entry of register.entries) {
+    if (byBlock.has(entry.block)) throw new Error(`${SUPERSEDED}: ${entry.block} is listed twice`);
+    const [file] = entry.block.split('#');
+    if (!entry.superseded_by?.length) throw new Error(`${SUPERSEDED}: ${entry.block} names no later file`);
+    for (const later of entry.superseded_by) {
+      if (!names.includes(later)) throw new Error(`${SUPERSEDED}: ${entry.block} is superseded by ${later}, which is not a migration`);
+      if (later <= file) throw new Error(`${SUPERSEDED}: ${entry.block} is superseded by ${later}, which does not sort after it`);
+    }
+    const replacementSql = await readFile(join(INVARIANTS, entry.replacement ?? ''), 'utf8').catch(() => {
+      throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} is not a file in ${INVARIANTS}`);
+    });
+    byBlock.set(entry.block, { ...entry, replacementSql });
+  }
+  const plan = [];
+  for (const { name, sql } of files) {
+    for (const block of applyTimeBlocks(name, sql)) {
+      const entry = byBlock.get(block.id);
+      byBlock.delete(block.id);
+      plan.push(entry ? { ...block, superseded: entry } : block);
+    }
+  }
+  if (byBlock.size) throw new Error(`${SUPERSEDED}: no such block(s): ${[...byBlock.keys()].join(', ')}`);
+  return plan;
+}
+
 export async function migrateCleanSteps() {
   return [
     { name: PREREQUISITE, sql: await readFile(PREREQUISITE, 'utf8') },
@@ -1228,6 +1293,36 @@ async function runLive(target) {
     const fkProbe = await script(FK_SUPPORT_PROBE_SQL);
     if (fkProbe.error) { stderr.write(`  fk support probe: ${fkProbe.error.message} (${fkProbe.error.code ?? 'no code'})\n`); return 1; }
     stdout.write(`  fk support probe: every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name\n`);
+    // THE POST-MIGRATE ASSERTION PASS, after everything else: each block in its own transaction,
+    // ROLLED BACK, so the pass changes nothing -- two blocks carry idempotent DDL guards and two
+    // fire probe rows inside a subtransaction, and none of that may outlive the check.
+    const { feed } = await import('./psql-driver.mjs');
+    const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);
+    let plan;
+    try { plan = await postMigratePlan(); } catch (error) { stderr.write(`  post-migrate pass: ${error.message}\n`); return 1; }
+    let superseded = 0;
+    for (const block of plan) {
+      const verbatim = await rerun(block.sql);
+      if (!block.superseded) {
+        if (verbatim.error) {
+          stderr.write(`  post-migrate pass: ${block.id} (line ${block.line}) no longer holds on the migrated database: ${verbatim.error.message} (${verbatim.error.code ?? 'no code'})\n`
+            + `    If a later migration changed this on purpose, list the block in ${SUPERSEDED} with a final-state replacement.\n`);
+          return 1;
+        }
+        continue;
+      }
+      superseded += 1;
+      if (!verbatim.error || verbatim.error.code !== 'P0001') {
+        stderr.write(`  post-migrate pass: ${block.id} is listed as superseded but ${verbatim.error ? `fails with ${verbatim.error.code ?? 'no code'} rather than its own raise (P0001): ${verbatim.error.message}` : 'passes as written'}; the register entry is stale\n`);
+        return 1;
+      }
+      const replaced = await rerun(block.superseded.replacementSql);
+      if (replaced.error) {
+        stderr.write(`  post-migrate pass: ${block.id}'s replacement ${block.superseded.replacement} fails: ${replaced.error.message} (${replaced.error.code ?? 'no code'})\n`);
+        return 1;
+      }
+    }
+    stdout.write(`  post-migrate pass: ${plan.length} apply-time blocks, ${plan.length - superseded} re-run as written, ${superseded} superseded and replaced\n`);
     return 0;
   }
 

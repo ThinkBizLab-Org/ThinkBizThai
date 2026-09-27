@@ -2264,6 +2264,71 @@ test('no apply-time block in any migration is silenced from inside its own predi
   assert.ok(blocks >= 30, `the do-blocks were found (${blocks})`);
 });
 
+// THE POST-MIGRATE ASSERTION PASS (Q0's D01h in general form; plan and Owner disposition of
+// 2026-09-27). Until this pass every apply-time block ran once, when its own file was applied, so a
+// later file could undo any batch's guarantee with every layer green -- measured: a later file that
+// drops 061's `usage_events_dimension_known` left rls-smoke ok. These rules hold the wiring, the
+// coverage and the register; the live half is `make db-migrate-clean` itself, on every CI run.
+test('migrate-clean re-runs every apply-time block after the FK probe, each rolled back, and any failure fails the target', async () => {
+  const runner = await readFile('scripts/db/run.mjs', 'utf8');
+  const fk = runner.indexOf('const fkProbe = await script(FK_SUPPORT_PROBE_SQL);');
+  const pass = runner.indexOf('plan = await postMigratePlan();');
+  assert.ok(fk > 0 && pass > fk, 'the pass runs inside migrate-clean, after the FK probe');
+  assert.match(runner, /const rerun = \(sql\) => feed\(`begin;\\n\$\{sql\}\\nrollback;\\n`\);/, 'each block runs in its own transaction and is rolled back, so the pass changes nothing');
+  const body = runner.slice(pass, runner.indexOf("if (target === 'migrate-upgrade')"));
+  assert.equal([...body.matchAll(/return 1;/g)].length, 4, 'an unreadable register, an unregistered failure, a stale entry and a failing replacement each fail the target');
+  assert.match(body, /verbatim\.error\.code !== 'P0001'/, 'a superseded block must still fail with its OWN raise, not with a syntax error');
+  assert.match(body, /superseded and replaced\\n`\);\s*return 0;\s*\}\s*$/, 'and the target succeeds only after the whole plan');
+});
+
+test('the post-migrate plan covers every do-block of every migration, and each superseded one has a final-state replacement', async () => {
+  const { postMigratePlan, INVARIANTS, SUPERSEDED } = await import('../../scripts/db/run.mjs');
+  const plan = await postMigratePlan();
+  const dir = 'db/foundation/migrations';
+  let opened = 0;
+  for (const name of (await readdir(dir)).filter((n) => n.endsWith('.sql'))) {
+    opened += (await readFile(`${dir}/${name}`, 'utf8')).split('\n').filter((l) => /^do \$\$\s*$/.test(l)).length;
+  }
+  assert.equal(plan.length, opened, 'every block is in the plan exactly once');
+  assert.ok(plan.length >= 42, `42 blocks on 2026-09-27 and a migration is never edited, so never fewer (${plan.length})`);
+  const register = JSON.parse(await readFile(SUPERSEDED, 'utf8'));
+  const superseded = plan.filter((b) => b.superseded);
+  assert.equal(superseded.length, register.entries.length, 'every register entry landed on a block');
+  const replacements = (await readdir(INVARIANTS)).filter((n) => n.endsWith('.sql')).sort();
+  assert.deepEqual(replacements, register.entries.map((e) => e.replacement).sort(), 'no replacement file sits outside the register');
+  for (const block of superseded) {
+    const text = block.superseded.replacementSql;
+    assert.match(text, /^do \$\$\n[\s\S]*\nend \$\$;\n$/, `${block.superseded.replacement} is one do-block and nothing else`);
+    for (const later of block.superseded.superseded_by) {
+      assert.match(text, new RegExp(`SUPERSEDED BY [^\\n]*\\b${later.slice(0, 3)}\\b`), `${block.superseded.replacement} says where ${later} changed it`);
+    }
+    const code = text.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
+    for (const [label, pattern] of SILENCERS) {
+      assert.doesNotMatch(code, pattern, `${block.superseded.replacement} contains \`${label}\``);
+    }
+    assert.ok(block.superseded.why.length > 20, `${block.id} says why`);
+  }
+});
+
+test('a do-block the pass cannot extract is refused, and a register that lies about the repository is refused', async () => {
+  const { applyTimeBlocks, postMigratePlan } = await import('../../scripts/db/run.mjs');
+  assert.equal(applyTimeBlocks('x.sql', 'select 1;\ndo $$\nbegin\nend $$;\n-- do $$ in a comment\n').length, 1, 'control: the house form is extracted and a comment is not a block');
+  assert.throws(() => applyTimeBlocks('x.sql', 'DO $body$\nbegin\nend $body$;\n'), /open a do-block/, 'another dollar tag would escape the pass');
+  assert.throws(() => applyTimeBlocks('x.sql', '  do $$ begin end $$;\n'), /open a do-block/, 'so would an inline block');
+  assert.throws(() => applyTimeBlocks('x.sql', 'do $$\nbegin\n'), /never closes/, 'and an unterminated one');
+  const entry = { block: '030_industry.sql#1', superseded_by: ['031_industry_service_path_closed.sql'], replacement: '030_industry.1.sql', why: 'a control entry for this test' };
+  await postMigratePlan({ entries: [entry] }); // control: a true entry is accepted
+  const lies = [
+    [[entry, entry], /listed twice/],
+    [[{ ...entry, superseded_by: [] }], /names no later file/],
+    [[{ ...entry, superseded_by: ['999_nothing.sql'] }], /not a migration/],
+    [[{ ...entry, superseded_by: ['020_business.sql'] }], /does not sort after/],
+    [[{ ...entry, replacement: 'absent.sql' }], /is not a file/],
+    [[{ ...entry, block: '030_industry.sql#2' }], /no such block/],
+  ];
+  for (const [entries, pattern] of lies) await assert.rejects(postMigratePlan({ entries }), pattern);
+});
+
 // THE SOCIAL KEY CARRIES NO ON DELETE ACTION, BY DECISION (Owner, 2026-09-15, disposition §5): a social
 // account row is never hard-deleted except by workspace closure, so NO ACTION is the answer and not a
 // default. A later batch that adds CASCADE or SET NULL here is changing that decision, and this rule
