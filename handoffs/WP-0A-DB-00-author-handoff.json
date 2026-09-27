@@ -5,10 +5,11 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5922684c7d51dbf09537fa4e3ee03f0a4b06f3d0",
-  "head_revision_or_patch_checksum": "5ba7eb0417b0d41c39ba17db4cc1f9dc0af79a33",
+  "head_revision_or_patch_checksum": "f82a70dd98be15dd3372445b7ea401c691371bda",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/105_updated_by_on_update_is_caller.sql",
+    "evidence/WP-0A-DB-00/a0-batch-105-integration-2026-09-27.md",
     "evidence/WP-0A-DB-00/a0-batch-105-plan-2026-09-27.md",
     "evidence/WP-0A-DB-00/a1-batch-105-security-review-2026-09-27.md",
     "evidence/WP-0A-DB-00/c0-batch-105-contract-review-2026-09-27.md",
@@ -65,12 +66,12 @@
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "see the commit"
+      "result": "clean: exit 0 — tests 670, pass 670, fail 0, skipped 0, todo 0"
     },
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "43 blocks, 33 as written, 10 replaced; four probes with self-tests; rls-smoke 972 cases ok"
+      "result": "43 blocks, 33 as written, 10 replaced; four probes with self-tests; rls-smoke 976 cases ok"
     }
   ],
   "security_privacy_cost_impact": "CLOSES A LIVE ATTRIBUTION FORGERY: an owner could write another member as updated_by through UPDATE on seven tables; now refused by a restrictive policy on each. No grant changes; no tenant-boundary change; every client UPDATE on the seventeen updated_by tables now names its caller.",
