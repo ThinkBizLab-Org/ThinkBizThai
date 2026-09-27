@@ -5,9 +5,10 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "903973884867ac28ec03ef7ebb237df1ff46d37d",
-  "head_revision_or_patch_checksum": "b0cafcb200b7dadb9f439b04f86e07acd7afb8b3",
+  "head_revision_or_patch_checksum": "8ded9ed543fd06788a013c93a92ddf3348455b01",
   "task_ids": [],
   "files_added": [
+    "evidence/WP-0A-DB-00/a0-catalog-rule-probes-integration-2026-09-27.md",
     "evidence/WP-0A-DB-00/a0-catalog-rule-probes-plan-2026-09-27.md",
     "evidence/WP-0A-DB-00/a1-catalog-rule-probes-security-review-2026-09-27.md",
     "evidence/WP-0A-DB-00/c0-catalog-rule-probes-contract-review-2026-09-27.md",
@@ -59,7 +60,7 @@
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "see the commit"
+      "result": "clean: exit 0 — tests 669, pass 669, fail 0, skipped 0, todo 0 (667 before)"
     },
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
