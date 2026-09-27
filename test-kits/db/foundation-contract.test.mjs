@@ -2356,6 +2356,19 @@ test('the post-migrate plan covers every do-block of every migration, and each s
       assert.doesNotMatch(code, pattern, `${block.superseded.replacement} contains \`${label}\``);
     }
     assert.ok(block.superseded.why.length > 20, `${block.id} says why`);
+    // fails_with IS DETERMINISTIC. It must match the literal of one of the block's own raises, and
+    // may run past that literal's first `%` only when the argument is declared integer. A text
+    // argument is built by string_agg in an order Postgres does not fix: 120's first entry included
+    // the first of two policy names, and main's CI run 36311266393 received them the other way round
+    // and failed the pass on an entry that was not stale.
+    const raises = [...block.sql.matchAll(/raise exception '((?:[^']|'')*)'\s*,\s*([a-z_]+)/g)];
+    const raise = raises.find(([, literal]) => block.superseded.fails_with.startsWith(literal.split('%')[0]));
+    assert.ok(raise, `${block.id}'s fails_with matches none of its block's raises`);
+    const [, literal, argument] = raise;
+    if (block.superseded.fails_with.length > literal.split('%')[0].length) {
+      assert.match(block.sql, new RegExp(`^\\s*${argument}\\s+integer\\b`, 'm'),
+        `${block.id}'s fails_with runs past the first % into \`${argument}\`, which is not declared integer; stop it before the %`);
+    }
     // ADDITIVE ONLY. Every line of the original block is still in its replacement, in order; a
     // replacement may add (a pin, an exclusion, a comment) and may move a trailing semicolon, and may
     // remove nothing. A1 measured the first version accepting a replacement that dropped a FORCE ROW
