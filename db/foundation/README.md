@@ -262,6 +262,61 @@ batch `N`:
 
 The recovery path is tested before it is needed, not after.
 
+## The post-migrate assertion pass, and what a later batch owes an earlier one
+
+Most batches end with a `do $$` block that asserts what they built. Files 000–003 and 010 have
+none, and two blocks (011#1 and 131#1) are idempotent guards that create rather than assert.
+`make db-migrate-clean` re-runs
+**every** such block from every migration after the whole set has applied, each one in its own
+transaction, which is rolled back. So a later file cannot silently undo an earlier batch's
+guarantee. On 2026-09-27, before this pass existed, a later file dropping 061's
+`usage_events_dimension_known` left `rls-smoke` green. It now fails `migrate-clean` and names the
+block.
+
+Write every block as a line that is exactly `do $$` through a line that is exactly `end $$;`. A
+block written any other way is refused, because the pass could not extract it. That includes
+`do language plpgsql $$`, a `do` with its `$$` on the next line, and a block opened mid-line. The
+first version missed all three (C0 and Q0 found them).
+
+**If your batch legitimately makes an earlier block false** (a new restrictive policy on its
+table, a key it said would come later, one more closure of a counted shape), `migrate-clean` fails
+and names that block. Do not edit the earlier migration. Do all of the following in the same
+change:
+
+1. Add an entry to [`invariants/superseded.json`](invariants/superseded.json) naming the block
+   (`file#ordinal`), your file under `superseded_by`, and a replacement.
+2. Write the replacement in `invariants/`: the original block **word for word**, except where your
+   batch changed it. Each changed line carries a `SUPERSEDED BY nnn` comment naming your file, and
+   a comment at the top of the block lists every name your file added. Exclude what your file added
+   as **(table, name) pairs**, never as bare names: a name excluded everywhere lets the same name
+   onto another table unchecked (C0 measured that, on 120's replacement).
+3. Restate the change in final-state form, pinning the new set by name so that anything beyond it
+   still fails. Do not delete the assertion.
+
+If the block is already superseded, edit its existing replacement and add your file to
+`superseded_by`.
+
+The register keeps itself honest in three ways:
+
+- A registered block must still fail as written, with its own raise (`P0001`). Otherwise the entry
+  is stale and the pass fails.
+- Its replacement must pass.
+- A test holds every block in the plan exactly once.
+
+A replacement must be additive. Every line of the original block stays in it, in order, and a test
+enforces that. It must also be exactly one block, with no line starting with a backslash, and
+`migrate-clean` refuses it otherwise.
+
+**A register diff is a security diff.** Adding an exclusion to a predicate relaxes an assertion, and
+no mechanical rule can tell a legitimate relaxation from one that hides a regression. A1 measured
+this: a later file dropped FORCE ROW LEVEL SECURITY on a table, and three register edits made every
+layer green. So when an entry or a replacement relaxes anything about RLS, policies, grants, role
+attributes or tenant keys, it goes to the Security reviewer as well as the Reviewer. The Author says
+so in the handoff.
+
+What the pass cannot do is make a block stronger. A block that asserts a constraint **exists by
+name** still misses a change to what the constraint **says**.
+
 ## What this package deliberately does not contain
 
 **No tenant table, and therefore no RLS policy.** Batch `010` belongs to A1 Identity, and proposing

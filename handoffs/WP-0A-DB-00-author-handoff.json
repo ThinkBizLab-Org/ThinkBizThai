@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b07a8d967712560033d4cf41b55d67d3ed402778",
-  "head_revision_or_patch_checksum": "b03af4b0040f314009e98a7b9927578abc5f9553",
+  "head_revision_or_patch_checksum": "570f351e9698d954e0578eb0eeb0ab10ba769b05",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -50,16 +50,16 @@
   ],
   "security_privacy_cost_impact": "NONE. One deleted text file that no code reads, one manifest line, two pinned lines and a regenerated digest file. No schema object, grant, policy, role, external call or data.",
   "migration_and_data_impact": "NONE. No database object; the migration set is unchanged.",
-  "compatibility_impact": "NONE beyond the branch slot. PR #155 repoints the same ownership.branch line and the same two pinned lines; whichever merges second resolves a one-line conflict. Test and case counts unmoved.",
+  "compatibility_impact": "NONE beyond the branch slot. PR #155 repointed the same ownership.branch line and the same two pinned lines and merged first (4b98185); this branch merged main and kept its own name in the slot. Test and case counts unmoved against main.",
   "known_limitations": [
     "The file's contents are a reject hunk of isolation-cases.mjs from the batch-100 merge; the batch-101 record says those hunks were applied by hand, and this increment does not re-verify that application -- the isolation suite passing on main is the evidence that it was."
   ],
   "open_risks_or_blockers": [
-    "NONE OPENED OR CLOSED. open_blockers is unchanged on this branch (187; PR #155 carries its own changes)."
+    "NONE OPENED OR CLOSED. open_blockers is unchanged against main (188 after PR #155)."
   ],
   "rollback_or_forward_fix": "Revert through a reviewed revert pull request, which restores a file nothing reads. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Merge PR #155 (the post-migrate pass), then the FK-action probe and the updated_by/requester text pins the weak-assertion survey ranks first."
+    "The post-merge correction of the seventh-pass state record (it was written before #155 merged), then the FK-action probe and the updated_by/requester text pins the weak-assertion survey ranks first."
   ],
   "reviewer_instructions": [
     "READ THE DIFF: one deletion, one manifest line, two pinned lines, one digest. Confirm with `git grep` that nothing names the file and with `git ls-tree 1385005^1 / ^2` that the merge created it.",
