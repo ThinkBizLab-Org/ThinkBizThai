@@ -139,8 +139,8 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 288 to 290 with the fails_with determinism rule (main CI run 36311266393).
 // 290 to 305 with the catalog-rule probes' contract test (2026-09-27), and to 313 after the three role
 // runs' corrections (the verdict test, the self-tests' intent assertions): the guard's own count.
-// 318 with batch 105's pin test (2026-09-27), the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 318,
+// 318 with batch 105's pin test, 322 after its role runs' corrections (2026-09-27), the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 322,
   'test-kits/db/rls-assertions.test.mjs': 108,
   'tests/db/identity/identity-isolation.test.mjs': 2133,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,

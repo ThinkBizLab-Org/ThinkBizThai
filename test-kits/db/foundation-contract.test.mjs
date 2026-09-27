@@ -2167,7 +2167,12 @@ test('the forward fix 105 keeps its seven UPDATE closures and its apply-time blo
   }
   assert.equal([...code.matchAll(/create policy/g)].length, 7, '105 creates exactly seven policies');
   assert.match(code, /of its seven updated_by UPDATE closures in their required shape/, '105 asserts its seven at apply time');
-  assert.match(code, /updated_by is client-updatable and no UPDATE policy binds it to the caller/, '105 asserts the general rule at apply time');
+  assert.match(code, /updated_by is client-updatable and no UPDATE policy for authenticated even names updated_by = auth\.uid\(\), or row level security is not enabled and forced/, '105 asserts the general rule at apply time');
+  // The rule's SQL, not only its message (C0's review of 105, F7): every client-updatable updated_by, every UPDATE or ALL policy.
+  assert.match(code, /has_column_privilege\('authenticated', c\.oid, a\.attnum, 'UPDATE'\)/);
+  assert.match(code, /pol\.polcmd in \('w', '\*'\)/);
+  assert.match(code, /c\.relkind in \('r', 'p'\)/, 'partitioned tables too (Q0 F2)');
+  assert.match(code, /not \(c\.relrowsecurity and c\.relforcerowsecurity\)/, 'a policy binds nothing with RLS off (Q0 F2)');
 });
 
 test('every table that grants updated_at to a role also has the database maintain it', async () => {

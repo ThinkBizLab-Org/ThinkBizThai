@@ -2593,10 +2593,11 @@ export function buildCases(id) {
   });
 
   // BATCH 105: a rename names its caller as updated_by. The restrictive UPDATE closure refuses any
-  // other value, so a rename that left the column alone is refused wherever the row's last updater
-  // was somebody else -- which is the forgery 105 closes, seen from the honest side.
-  // An identity with no JWT subject (the service) passes one explicitly: its refusal is the privilege
-  // system's, before any value of updated_by is read.
+  // other value, NULL included, so a rename that left the column alone is refused wherever the row's
+  // last updater was somebody else -- which is the forgery 105 closes, seen from the honest side.
+  // An identity with no JWT subject (the service) passes one explicitly. The service HOLDS UPDATE on
+  // the column and is filtered by row level security, as its case's `why` says; the value named is
+  // never the thing that decides its case (C0's review of 105, F2).
   const renameKnowledge = (item, to, updatedBy = '__SELF__') => ({
     sql: 'update app.knowledge_items set name = $2, updated_by = $3 where id = $1 returning id',
     params: [item, to, updatedBy],
@@ -16555,6 +16556,54 @@ export function buildCases(id) {
       why: 'BATCH 105: knowledge_items granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
          + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
          + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-workspace-a-clearing-its-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set updated_by = null where id = $1 returning id',
+      params: [A],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 105, the NULL half (Q0\'s test of 105, F4): 102 admits a NULL updated_by at INSERT because a '
+         + 'row may be created unattributed, but an UPDATE is always somebody\'s, so 105 uses equality and a '
+         + 'NULL is refused like any other name that is not the caller.',
+    },
+    // The honest side on the three workspace-family tables, which no other positive exercised after 105
+    // (C0's review of 105, F4): the same owner, the same rows, naming itself, is admitted.
+    {
+      id: 'owner-a-can-update-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set updated_by = $2 where id = $1 returning id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspaces. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
+    },
+    {
+      id: 'owner-a-can-update-the-settings-of-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_settings set updated_by = $2 where workspace_id = $1 returning workspace_id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspace_settings. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
+    },
+    {
+      id: 'owner-a-can-update-the-invitations-of-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_invitations set updated_by = $2 where workspace_id = $1 returning id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspace_invitations. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

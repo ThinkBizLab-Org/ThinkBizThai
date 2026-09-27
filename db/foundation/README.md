@@ -333,8 +333,10 @@ it silently:
    pinned string, on the pinned tables. So is every `*_updated_by_on_update_is_caller` policy
    (batch 105: restrictive, UPDATE, TO authenticated, no USING). A batch that adds a closure adds its
    table to `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. Batch
-   105's own block also refuses any table that lets authenticated UPDATE `updated_by` without an
-   UPDATE policy binding it to the caller.
+   105's own block also refuses any table that lets authenticated UPDATE `updated_by` with no UPDATE
+   policy whose WITH CHECK even names `updated_by = auth.uid()`. It checks that the text is present,
+   not that the policy binds the column: a looser permissive policy added beside it would still pass.
+   Only the seven restrictive closures are held by exact text.
 3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
    list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
    `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds

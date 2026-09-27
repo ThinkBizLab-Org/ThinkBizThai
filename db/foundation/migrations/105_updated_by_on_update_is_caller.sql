@@ -74,22 +74,30 @@ begin
     raise exception 'batch 105 finds % of its seven updated_by UPDATE closures in their required shape', count_of;
   end if;
 
-  -- THE GENERAL RULE, over the whole schema, so a later table cannot reopen the class: no app table
-  -- lets authenticated UPDATE updated_by unless some UPDATE policy for authenticated (FOR UPDATE or
-  -- FOR ALL, permissive or restrictive) has a WITH CHECK containing `updated_by = auth.uid()`.
+  -- THE GENERAL RULE, over the whole schema: no app table lets authenticated UPDATE updated_by unless
+  -- some UPDATE policy for authenticated (FOR UPDATE or FOR ALL, permissive or restrictive) has a WITH
+  -- CHECK CONTAINING `updated_by = auth.uid()`. WHAT IT DOES NOT PROVE, measured by C0's review of this
+  -- batch: that the clause BINDS. A later second, looser permissive UPDATE policy, or `... or true`
+  -- added to a permissive one, keeps the text and reopens the forgery on the ten tables whose binding
+  -- is permissive. It catches a NEW table granted the column with no binding at all. The seven tables
+  -- above are held by exact text, restrictive, in the closure-text probe; the ten are an open item on
+  -- the name-or-token blocker.
   select string_agg(format('app.%s', c.relname), ', ' order by c.relname) into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
     join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attname = 'updated_by' and not a.attisdropped
-   where n.nspname = 'app' and c.relkind = 'r'
+   where n.nspname = 'app' and c.relkind in ('r', 'p')
      and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'UPDATE')
-     and not exists (
+     -- A policy binds nothing on a table whose row level security is off or unforced, and a
+     -- partitioned table is still a table (Q0's test of this batch measured both passing).
+     and (not (c.relrowsecurity and c.relforcerowsecurity)
+          or not exists (
        select 1 from pg_catalog.pg_policy pol
         where pol.polrelid = c.oid and pol.polcmd in ('w', '*')
           and (select oid from pg_catalog.pg_roles where rolname = 'authenticated') = any (pol.polroles)
-          and position('(updated_by = ( SELECT auth.uid() AS uid))' in coalesce(pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid), '')) > 0);
+          and position('(updated_by = ( SELECT auth.uid() AS uid))' in coalesce(pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid), '')) > 0));
   if offending is not null then
-    raise exception 'updated_by is client-updatable and no UPDATE policy binds it to the caller: %', offending
+    raise exception 'updated_by is client-updatable and no UPDATE policy for authenticated even names updated_by = auth.uid(), or row level security is not enabled and forced: %', offending
       using hint = 'Bind it in the batch that grants the column, in batch 105''s shape, or keep updated_by out of '
                    'the UPDATE grant. A1 measured this class forgeable on seven tables before 105.';
   end if;

@@ -5,10 +5,32 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5922684c7d51dbf09537fa4e3ee03f0a4b06f3d0",
-  "head_revision_or_patch_checksum": "5922684c7d51dbf09537fa4e3ee03f0a4b06f3d0",
+  "head_revision_or_patch_checksum": "5ba7eb0417b0d41c39ba17db4cc1f9dc0af79a33",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/migrations/105_updated_by_on_update_is_caller.sql",
+    "evidence/WP-0A-DB-00/a0-batch-105-plan-2026-09-27.md",
+    "evidence/WP-0A-DB-00/a1-batch-105-security-review-2026-09-27.md",
+    "evidence/WP-0A-DB-00/c0-batch-105-contract-review-2026-09-27.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-27-batch-105.md",
+    "evidence/WP-0A-DB-00/q0-batch-105-test-review-2026-09-27.md"
+  ],
+  "files_modified": [
+    "db/foundation/README.md",
+    "db/foundation/invariants/030_industry.1.sql",
+    "db/foundation/invariants/040_knowledge.1.sql",
+    "db/foundation/invariants/superseded.json",
+    "db/foundation/lint/catalog-snapshot.json",
+    "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/isolation-cases.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
@@ -32,6 +54,11 @@
       "criterion": "Honest updates still work",
       "result": "met",
       "evidence": "the four editor positives name their caller and pass"
+    },
+    {
+      "criterion": "Three role runs, findings disposed",
+      "result": "met",
+      "evidence": "c0-/a1-/q0-batch-105-*-2026-09-27.md cherry-picked with -x; none stop-the-line; a0-batch-105-integration-2026-09-27.md"
     }
   ],
   "tests": [
@@ -48,18 +75,20 @@
   ],
   "security_privacy_cost_impact": "CLOSES A LIVE ATTRIBUTION FORGERY: an owner could write another member as updated_by through UPDATE on seven tables; now refused by a restrictive policy on each. No grant changes; no tenant-boundary change; every client UPDATE on the seventeen updated_by tables now names its caller.",
   "migration_and_data_impact": "ONE MIGRATION, 105_updated_by_on_update_is_caller.sql, creating seven policies and nothing else. Forward-only; a later change is a new batch. It sorts after 104 (the 102-104 precedent) and is declared in the snapshot's not-applied tail.",
-  "compatibility_impact": "A client UPDATE on the seven tables that does not set updated_by to its caller is now refused, as it already was on the other ten; four cases changed accordingly. Cases 965 -> 972; foundation-contract 69 -> 70 tests.",
+  "compatibility_impact": "A client UPDATE on the seven tables that does not set updated_by to its caller is now refused, as it already was on the other ten; four cases changed accordingly. Cases 965 -> 976; foundation-contract 69 -> 70 tests.",
   "known_limitations": [
     "Remedy (b) -- the database maintaining updated_by on all seventeen tables -- is recorded as a possible later change, not done.",
     "The eleven INSERT forging cases (survey item 3) remain owed."
   ],
   "open_risks_or_blockers": [
-    "CLOSED: 189. Count 188."
+    "CLOSED: the updated_by UPDATE forgery (old 189). OPENED: 189 -- approval_requests.decided_by forgeable at cancellation (A1 F2, Q0 F1, MEDIUM, pre-existing). Count 189.",
+    "FOR THE OWNER: extending 105's restrictive closure to all seventeen updated_by tables (A0 recommends; the general rule is text-presence only on the ten); the new 189's grade and remedy."
   ],
   "rollback_or_forward_fix": "A reviewed revert PR would reopen the forgery; the forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "The eleven INSERT forging cases (survey item 3).",
-    "Before batch 150: 121's objects pinned by definition text in 150's own block."
+    "105's closure on all seventeen updated_by tables, pinned, with the general rule requiring it (A0 recommends; C0/A1/Q0 finding).",
+    "Blocker 189: decided_by at cancellation.",
+    "The INSERT and remaining UPDATE forging cases (survey item 3; Q0's five bound tables)."
   ],
   "reviewer_instructions": [
     "Read 105 and its block; run the negative control (remove 105, expect exactly the seven forging cases to fail).",

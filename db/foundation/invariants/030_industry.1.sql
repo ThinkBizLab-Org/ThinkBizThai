@@ -106,8 +106,8 @@ begin
   -- SUPERSEDED BY 031, 102 AND 105. Batch 030 wrote one restrictive policy here; 031 added
   -- `industry_assignments_service_path_closed`, 102 added `industry_assignments_updated_by_is_caller`
   -- and 105 added `industry_assignments_updated_by_on_update_is_caller`,
-  -- both restrictive and both asserted by their own batches' blocks, which this pass also re-runs.
-  -- The final-state form pins the whole set by name, so a fourth restrictive policy still fails here
+  -- all three restrictive and each asserted by its own batch's block, which this pass also re-runs.
+  -- The final-state form pins the whole set by name, so a fifth restrictive policy still fails here
   -- exactly as a second one failed 030's original, and 030's own policy is still counted as one.
   if (select array_agg(pol.polname::text order by pol.polname)
         from pg_catalog.pg_policy pol
