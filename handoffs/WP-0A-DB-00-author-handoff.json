@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b07a8d967712560033d4cf41b55d67d3ed402778",
-  "head_revision_or_patch_checksum": "570f351e9698d954e0578eb0eeb0ab10ba769b05",
+  "base_revision": "4b98185a8946c02705f0e8f18536aed7fa1d8cb7",
+  "head_revision_or_patch_checksum": "6e255eaee27c8901ac6e13a21ffbeadbf7b3df3e",
   "task_ids": [],
   "files_added": [],
   "files_modified": [
@@ -40,7 +40,7 @@
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 663, pass 663, fail 0, skipped 0, todo 0 (unmoved)"
+      "result": "clean: exit 0 — tests 667, pass 667, fail 0, skipped 0, todo 0 (main's count after PR #155; this increment moves none)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs b07a8d9 WP-0A-DB-00",
