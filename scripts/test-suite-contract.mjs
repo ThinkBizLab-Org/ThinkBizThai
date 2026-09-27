@@ -76,7 +76,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 7,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 15,
-  'test-kits/db/foundation-contract.test.mjs': 63,
+// The post-migrate assertion pass (2026-09-27) added three tests to foundation-contract: the
+// wiring, the coverage of every do-block, and the refusals. 63 to 66. Q0's F1 on that head added a
+// fourth, the verdict driven by synthetic outcomes: 66 to 67.
+  'test-kits/db/foundation-contract.test.mjs': 67,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -128,7 +131,10 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
   'test-kits/contracts/catalog-groups.test.mjs': 9,
   'test-kits/contracts/catalog-reference-integrity.test.mjs': 6,
   'test-kits/contracts/catalog-registry.test.mjs': 19,
-  'test-kits/db/foundation-contract.test.mjs': 258,
+// The same tests moved the assertion floor with them, 258 to 276, and the corrections after the
+// three role runs to 288: the count the guard's own regex reads, not one taken by hand. Batch 121's lesson from C0 is that a floor that stays put
+// while assertion-bearing tests are added has stopped meaning anything.
+  'test-kits/db/foundation-contract.test.mjs': 288,
   'test-kits/db/rls-assertions.test.mjs': 108,
   'tests/db/identity/identity-isolation.test.mjs': 2133,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
@@ -165,7 +171,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '9de2dd9f7b8d4dd1',
+  'test-kits/db/foundation-contract.test.mjs': 'afe33c28b7f0d1ab',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': 'aff0bae3374bdee5',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
