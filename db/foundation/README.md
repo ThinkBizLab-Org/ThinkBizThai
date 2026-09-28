@@ -319,8 +319,9 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the FK-support probe, `make db-migrate-clean` asserts four families of rules over all of `app`
-and `private`, in nine probes. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
+After the ceiling probe, `make db-migrate-clean` asserts five families of rules over all of `app` and
+`private`, in eleven probes. The first is the FK-support probe (batch 104): every foreign key has a
+supporting index, and each of its four exemptions names a key that exists. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
 it silently:
 
 1. **Every foreign key has NO ACTION on delete and on update, and is not deferrable.** A key that
@@ -350,27 +351,47 @@ it silently:
    name no decider, 090's `approval_requests_decision_has_a_decider` and 123's
    `approval_requests_decider_is_a_pair`, are pinned by definition text in `PINNED_CHECKS`. A batch
    that changes any of them updates the pin in the same change.
-3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
+
+   **A settled request cannot be touched, and its time is the database's (batch 125).**
+   `approval_requests_settled_is_immutable` is restrictive, UPDATE, TO authenticated, with
+   `USING (status = 'pending') WITH CHECK (true)`. It is pinned in `PINNED_POLICIES`, because
+   `closureRule` requires no USING. The WITH CHECK is `true` on purpose: with USING alone, the new row
+   would have to be pending too, and every cancel and decide would be refused. The invoker trigger
+   `private.set_decided_at()` sets `decided_at` to `now()` when `decided_by` is first set, whatever
+   the client sent. It refuses any later change to either column, for every writer. 125's own block
+   pins the trigger's definition and the function body's md5.
+3. **Every client-updatable `*_by` column has a pinned closure for its column:** `updated_by` in
+   `UPDATED_BY_ON_UPDATE_CLOSURES`, `decided_by` in `DECIDER_CLOSURES`. A new attribution column that
+   clients can update fails the coverage probe by name, until the batch that grants it adds its
+   closure and its list.
+4. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
    list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
    `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds
    or rewrites one updates the list in the same change, so every SECURITY DEFINER change reaches a
    reviewer.
-4. **Every trigger on a table in `app` and `private` is enabled**, including the internal triggers
+5. **Every trigger on a table in `app` and `private` is enabled**, including the internal triggers
    that enforce foreign keys. The `private.refuse_mutation` triggers are exactly four pinned
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
    another table.
 
-**Every catalog-rule probe's rules are shown able to fail on every run.** (The FK-support probe that
-runs before them has no self-test yet; C0's re-verification of batch 123, F6, recorded as owed.) Each
-probe carries one self-test drift per rule
+**Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
+self-test drift per rule
 (`selfTests` in `CATALOG_RULE_PROBES`). The probe must pass on the database as built, and after each
 drift it must fail with that rule's own raise, in a transaction that is rolled back. A static test
 holds the number of drifts equal to the number of raises, so a rule added without its drift fails
 the suite. A rule no drift reaches runs live and is never shown able to fire. Q0's test of batch 123 (F3) found
 two such rules in the closure probe, and applying the same check to every probe found six more.
 
-Rules 2 and 4 compare PostgreSQL's deparsed text. A change of the Postgres major version in CI could
+After every drift has run, each probe runs **as built again**, so a drift that outlived its rollback
+fails the target. A drift may not contain transaction control (`begin`, `commit`, `rollback`, `end`,
+`savepoint`, `release`, `abort`, `start transaction`, `prepare transaction`). The contract test
+derives the whole job list independently and compares it with `catalogProbeJobs`. It drives the
+verdict with outcomes built from the real probes, and it counts every spelling of `raise`. Each claim
+line counts the drifts that were refused, not the drifts declared (Q0's re-test of batch 123's
+corrections, F1–F3).
+
+Rules 2 and 5 compare PostgreSQL's deparsed text. A change of the Postgres major version in CI could
 change that text without the policy changing. If that happens, the probe fails by name, and the
 fix is to re-measure the text, not to loosen the rule.
 
