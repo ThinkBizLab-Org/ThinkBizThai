@@ -17,6 +17,7 @@ declare
     array['research_runs', 'research_sources', 'research_snapshots', 'research_evidence',
           'research_suggestions'];
 begin
+  -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to research_runs, research_suggestions.
   -- SUPERSEDED BY 071. Batch 070 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: research_suggestions_service_path_closed (071).
   -- Each of those is asserted by its own batch's block, which this pass also re-runs. The final-state
@@ -29,8 +30,8 @@ begin
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_runs'::regclass and not pol.polpermissive)
-     is distinct from array['research_runs_scope_narrows_member'] then
-    raise exception 'app.research_runs restrictive policies are not exactly batch 070''s narrowing and the ones no later file added';
+     is distinct from array['research_runs_scope_narrows_member', 'research_runs_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+    raise exception 'app.research_runs restrictive policies are not exactly batch 070''s narrowing and the ones 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_sources'::regclass and not pol.polpermissive)
@@ -39,8 +40,8 @@ begin
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_suggestions'::regclass and not pol.polpermissive)
-     is distinct from array['research_suggestions_scope_narrows_member', 'research_suggestions_service_path_closed'] then
-    raise exception 'app.research_suggestions restrictive policies are not exactly batch 070''s narrowing and the ones 071 added';
+     is distinct from array['research_suggestions_scope_narrows_member', 'research_suggestions_service_path_closed', 'research_suggestions_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+    raise exception 'app.research_suggestions restrictive policies are not exactly batch 070''s narrowing and the ones 071, 123 added';
   end if;
   -- ENABLE and FORCE on all five. The two are DIFFERENT CATALOG COLUMNS and the data package's own
   -- lint rule reads only the first (RFC-2026-016 §4). On app.research_snapshots, which carries no
@@ -351,7 +352,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (research_tables)
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'));  -- SUPERSEDED BY 071: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'), ('research_runs', 'research_runs_updated_by_on_update_is_caller'), ('research_suggestions', 'research_suggestions_updated_by_on_update_is_caller'));  -- SUPERSEDED BY 071, 123: names another file wrote, see the header
   if count_of <> 4 then
     raise exception 'batch 070 wrote % restrictive policies and it creates four tables to narrow', count_of
       using hint = 'One per table a client may read. app.research_snapshots has none because it has '
@@ -385,7 +386,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (research_tables)
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'))  -- SUPERSEDED BY 071: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('research_suggestions', 'research_suggestions_service_path_closed'), ('research_runs', 'research_runs_updated_by_on_update_is_caller'), ('research_suggestions', 'research_suggestions_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 071, 123: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

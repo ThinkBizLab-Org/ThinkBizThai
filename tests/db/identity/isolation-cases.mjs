@@ -13544,6 +13544,86 @@ export function buildCases(id) {
          + 'against. §4.7 gives the vocabulary the word `cancelled` and this is the only path that '
          + 'writes it.',
     },
+    // -- BATCH 123: who decided, at cancellation and at decision ------------------------------------
+    //
+    // Each `rejected` case below is admitted by every policy and refused by exactly the constraint it
+    // names in `violates`, so dropping that constraint fails exactly its case. Row level security's
+    // WITH CHECK is evaluated before CHECK constraints, so those cancellations name the CALLER as
+    // decider: naming anyone else is refused first by the decider closure, which has its own cases.
+    {
+      id: 'editor-a-cannot-cancel-an-approval-request-naming-a-decider',
+      covers: ['§8.3', '§8.5'],
+      as: editorA,
+      sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid, decided_by = $2::uuid "
+         + 'where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'approval_requests_decider_is_a_pair',
+      why: 'BATCH 123 (A1\'s review of 105, F2; Q0\'s, F1): the cancel policy admits this row -- the editor is a '
+         + 'writer, the request is pending, updated_by is the caller -- and 090\'s equivalence let decided_by '
+         + 'through ALONE, so a cancellation could record a decider. approval_requests_decider_is_a_pair '
+         + 'makes decided_at and decided_by a pair, and the database refuses it whichever policy admitted the '
+         + 'row. The decider is the caller so that the decider closure admits it (the next case names another). '
+         + 'The positive above is the same cancel without the stamp.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-an-approval-request-naming-another-decider',
+      covers: ['§8.3', '§8.5'],
+      as: editorA,
+      sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid, decided_by = $3::uuid "
+         + 'where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__', id('user_approver_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'BATCH 123, item 3: the cancellation A1 measured on 105 (`UPDATE 3`, the approver named as decider). '
+         + 'approval_requests_decided_by_on_update_is_caller refuses a decider who is not the caller, before '
+         + 'any constraint is evaluated. Until 123\'s corrections this case was the pair\'s, at 23514.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-an-approval-request-with-only-a-decided-at',
+      covers: ['§8.3', '§8.5'],
+      as: editorA,
+      sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid, decided_at = now() "
+         + 'where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'approval_requests_decider_is_a_pair',
+      why: 'BATCH 123, the pair\'s other direction (Q0\'s test of 123, F4): a decision time with no decider. '
+         + '090\'s equivalence admits it, since for a cancellation both of its sides are false, so only the pair '
+         + 'refuses it. The decider closure admits a NULL decided_by.',
+    },
+    {
+      id: 'editor-a-cannot-cancel-an-approval-request-with-a-whole-decision-stamp',
+      covers: ['§8.3', '§8.5'],
+      as: editorA,
+      sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid, decided_by = $2::uuid, "
+         + 'decided_at = now() where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'approval_requests_decision_has_a_decider',
+      why: 'BATCH 123 (Q0\'s test of 123, F1): both columns set on a cancellation satisfy the pair, so what refuses '
+         + 'it is 090\'s equivalence -- the half of the rule 123 completes and now asserts by text. Q0 dropped '
+         + 'that constraint in a later file and a cancellation carried a whole decision with every layer green.',
+    },
+    {
+      id: 'approver-a-cannot-decide-an-approval-request-naming-another-decider',
+      covers: ['§8.3', '§8.5', '§8.6/8'],
+      as: approverA,
+      sql: "update app.approval_requests set status = 'approved', decided_at = now(), decided_by = $3::uuid, "
+         + 'updated_by = $2::uuid where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__', id('user_owner_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'BATCH 123, item 3 (Q0\'s test of 123, F2): an approver approving in the owner\'s name. The decide '
+         + 'policy binds decided_by to the caller, and so does 123\'s restrictive closure, which no looser '
+         + 'sibling policy can widen: Q0 removed the binding from the decide policy (E19b) and this forgery '
+         + 'landed with every layer green, because no case named another decider.',
+    },
     {
       id: 'owner-a-can-cancel-an-approval-request',
       covers: ['§8.3', '§8.6/1'],
@@ -16604,6 +16684,69 @@ export function buildCases(id) {
       why: 'BATCH 105: the positive beside the forging case on workspace_invitations. 105\'s restrictive closure admits the '
          + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
          + 'because every UPDATE on the table was refused.',
+    },
+
+    // -- BATCH 123: updated_by at UPDATE on the ten, where no case forged it ------------------------
+    //
+    // Q0's test of 123 (F5): five of 123's ten tables had no case forging updated_by at UPDATE, so a
+    // looser permissive policy plus a dropped closure on one of them (E02c, on content_items) was a
+    // live forgery rls-smoke could not see. Each case is the passing statement of an existing positive
+    // (named in its why) with the actor changed to another member, run as the identity that positive
+    // runs as.
+    {
+      id: 'editor-a-cannot-rename-the-content-item-of-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: editorA,
+      ...contentRenameItem(id('content_item_a1'), id('user_owner_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'BATCH 123: editor-a-can-rename-the-content-item-of-a1 with updated_by naming the owner. The permissive '
+         + 'UPDATE policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
+    },
+    {
+      id: 'owner-a-cannot-toggle-an-approval-policy-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...approvalTogglePolicy(A, BUSINESS_A1, APPROVAL_POLICY_A1_BUSINESS, '2', id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_policies' },
+      why: 'BATCH 123: owner-a-can-toggle-an-approval-policy with updated_by naming the editor. The permissive '
+         + 'UPDATE policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
+    },
+    {
+      id: 'owner-a-cannot-cancel-an-approval-request-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...approvalCancelRequest(id('approval_request_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'approval_requests' },
+      why: 'BATCH 123: owner-a-can-cancel-an-approval-request with updated_by naming the editor. The cancel '
+         + 'policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
+    },
+    {
+      id: 'owner-a-cannot-allow-paid-ads-on-an-asset-rights-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...assetAllowPaidAds(id('asset_rights_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'asset_rights' },
+      why: 'BATCH 123: owner-a-allows-paid-ads-on-an-asset-rights with updated_by naming the editor. The permissive '
+         + 'UPDATE policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
+    },
+    {
+      id: 'owner-a-cannot-cancel-a-publish-intent-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...publishIntentCancel(id('publish_intent_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'publish_intents' },
+      why: 'BATCH 123: owner-a-can-cancel-a-publish-intent with updated_by naming the editor. The permissive '
+         + 'UPDATE policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

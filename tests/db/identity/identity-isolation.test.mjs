@@ -27,7 +27,7 @@ import {
   AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SERVICE_PATH_CLOSURE_ON, SMOKE_COVERAGE,
   buildCases, isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
-import { ASSERTION_FOR, ROLE_FOR_HELPER, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
+import { ASSERTION_FOR, ROLE_FOR_HELPER, assertRejectedWith, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
 // Batch 060 widened `schemaLint` to hold a table in `private` to the same rules as one in `app`,
 // because §3.1 puts secret references there and the previous pattern matched `app.` alone. The
 // widening is exercised HERE rather than only where the migration is read: a lint rule nobody
@@ -228,6 +228,26 @@ test('a rejected case names a SQLSTATE, and never the one that means a policy re
   }
   assert.equal(ASSERTION_FOR.rejected, undefined, "'rejected' is handled by the runner, which compares "
     + 'the code; a single-helper mapping for it would lose the SQLSTATE that is the entire assertion.');
+});
+
+// Q0's test of batch 123, F4: two CHECKs on one table refuse with the same 23514, so a case may name
+// the one it proves. The name is then held to exist, and the runner is held to reading it.
+test('a rejected case that names the constraint it proves names one a migration creates, and the runner reads it', async () => {
+  const dir = 'db/foundation/migrations';
+  const sql = (await Promise.all((await readdir(dir)).filter((n) => n.endsWith('.sql'))
+    .map((n) => readFile(`${dir}/${n}`, 'utf8')))).join('\n').replace(/--[^\n]*/g, '');
+  const naming = cases.filter((c) => c.violates !== undefined);
+  assert.ok(naming.length >= 3, 'batch 123 names the pair and 090\'s equivalence in its cancellation cases');
+  for (const testCase of naming) {
+    assert.equal(testCase.expect, 'rejected', `${testCase.id}: only a 'rejected' case is checked against a constraint name`);
+    assert.match(sql, new RegExp(`constraint ${testCase.violates}\\b`), `${testCase.id}: no migration creates ${testCase.violates}`);
+  }
+  const refused = (name) => ({ error: { code: '23514', message: `new row for relation "t" violates check constraint "${name}"` } });
+  assert.deepEqual(assertRejectedWith(refused('a_pair'), '23514', 'c', 'a_pair'), { kind: 'rejected', code: '23514' });
+  assert.deepEqual(assertRejectedWith(refused('a_pair'), '23514', 'c'), { kind: 'rejected', code: '23514' }, 'naming one stays optional');
+  assert.throws(() => assertRejectedWith(refused('another'), '23514', 'c', 'a_pair'), /but not by a_pair/);
+  assert.throws(() => assertRejectedWith(refused('a_pair_longer'), '23514', 'c', 'a_pair'), /but not by a_pair/, 'the name is matched whole, in its quotes');
+  assert.throws(() => assertRejectedWith({ rows: [{}] }, '23514', 'c', 'a_pair'), /accepted the row/);
 });
 
 test('the runner maps each outcome kind to the helper it claims, with nothing softened', () => {
@@ -10889,9 +10909,11 @@ test('no batch 100 case id can satisfy another batch\'s control entry', async ()
   // is not a filter. So the sweep runs over every case id in the suite that mentions an asset at
   // all, and the count of ids this batch's four patterns claim is PINNED, so a rename that escapes
   // both fails on the number.
-  assert.equal(assetCases.length, 80,
-    'batch 100 contributes exactly 80 case ids across its four patterns — 24 on app.assets, 18 on '
-    + 'app.asset_versions, 20 on app.asset_rights and 18 on app.content_asset_links (14, plus the four '
+  // 80 until batch 123, whose forging case on the rights row (owner-a-cannot-allow-paid-ads-on-an-
+  // asset-rights-naming-another-updater) is a row-level refusal on app.asset_rights.
+  assert.equal(assetCases.length, 81,
+    'batch 100 contributes exactly 81 case ids across its four patterns — 24 on app.assets, 18 on '
+    + 'app.asset_versions, 21 on app.asset_rights and 18 on app.content_asset_links (14, plus the four '
     + 'separation cases Q0-100 F1 added on 2026-09-15). A case renamed out of '
     + 'its own family changes this number, which is the only thing a rename cannot hide from.');
   for (const testCase of cases.filter((c) => c.id.includes('asset'))) {
@@ -11384,8 +11406,10 @@ test('no batch 120 case id can satisfy another control entry, and its own five a
   const ours = new Set(entries.filter((e) => e.batch === '120').map((e) => e.table));
   assert.equal(ours.size, 5, 'batch 120 owns five control entries');
   const mine = cases.filter((c) => /publish-intent|publish-target|publish-pin|publish-job|published-post/.test(c.id));
-  assert.equal(mine.length, 82,
-    'batch 120 contributes exactly 82 case ids across its five patterns — 30 on app.publish_intents, '
+  // 82 until batch 123, whose forging case on the intent (owner-a-cannot-cancel-a-publish-intent-naming-
+  // another-updater) is a row-level refusal on app.publish_intents and belongs to that family's control.
+  assert.equal(mine.length, 83,
+    'batch 120 contributes exactly 83 case ids across its five patterns — 31 on app.publish_intents, '
     + '16 on app.publish_targets, 8 on app.publish_target_assets, 14 on app.publish_jobs and 14 on '
     + 'app.published_posts. The two batch-122 closure cases are NOT among them and must not be: they '
     + 'ask pg_policy a question, a catalog row does not change when row level security is switched '

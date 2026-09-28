@@ -225,9 +225,20 @@ export const ASSERTION_FOR = {
 // It lives here rather than in rls-assertions.mjs on purpose: adding a non-RLS assertion to the RLS
 // helper module is how "any error counts" gets back in through the module that exists to keep it
 // out.
-export function assertRejectedWith(result, sqlstate, what) {
+//
+// `violates`, when a case declares it, is the CONSTRAINT that must refuse the row, read from the
+// message Postgres writes for 23503, 23505 and 23514 (`... violates check constraint "name"`). A code
+// alone cannot tell two CHECKs on one table apart, and Q0's test of batch 123 (F4) noted the runner
+// compared only the code: batch 123's pair and 090's equivalence both refuse with 23514.
+export function assertRejectedWith(result, sqlstate, what, violates) {
   const code = result?.error?.code ?? null;
-  if (code === sqlstate) return { kind: 'rejected', code };
+  if (code === sqlstate && (!violates || String(result.error.message ?? '').includes(`"${violates}"`))) {
+    return { kind: 'rejected', code };
+  }
+  if (code === sqlstate) {
+    throw new Error(`${what}: the database refused with ${sqlstate} as the case demands, but not by `
+      + `${violates}, which is the constraint the case exists to prove. Message: ${result.error.message ?? ''}`);
+  }
   if (!result?.error) {
     const rows = result?.rows?.length ?? 0;
     throw new Error(`${what}: the database accepted the row (${rows} returned) and had to refuse it with `
@@ -385,7 +396,7 @@ async function runOne(testCase, driver) {
             + 'Without one it asserts only that something went wrong, which a broken fixture also '
             + 'satisfies.');
         }
-        assertRejectedWith(outcome, testCase.sqlstate, testCase.id);
+        assertRejectedWith(outcome, testCase.sqlstate, testCase.id, testCase.violates);
         return { ...base, ok: true };
       }
 

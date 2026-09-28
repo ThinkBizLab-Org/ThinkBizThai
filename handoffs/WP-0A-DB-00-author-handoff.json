@@ -4,32 +4,45 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5922684c7d51dbf09537fa4e3ee03f0a4b06f3d0",
-  "head_revision_or_patch_checksum": "f82a70dd98be15dd3372445b7ea401c691371bda",
+  "base_revision": "e276c9addc4be0c6acde2d3b6509cf555b265028",
+  "head_revision_or_patch_checksum": "5a4c4127e2dc2a8814d4e1c9ede69ed88e125bf1",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/105_updated_by_on_update_is_caller.sql",
-    "evidence/WP-0A-DB-00/a0-batch-105-integration-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a0-batch-105-plan-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a1-batch-105-security-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/c0-batch-105-contract-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-27-batch-105.md",
-    "evidence/WP-0A-DB-00/q0-batch-105-test-review-2026-09-27.md"
+    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
+    "db/foundation/migrations/123_attribution_closures_everywhere.sql",
+    "evidence/WP-0A-DB-00/a0-batch-123-integration-2026-09-28.md",
+    "evidence/WP-0A-DB-00/a1-batch-123-corrections-reverify-2026-09-28.md",
+    "evidence/WP-0A-DB-00/a1-batch-123-security-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-123-contract-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-123-corrections-reverify-2026-09-28.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-one-page-summary.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-rfc-025.md",
+    "evidence/WP-0A-DB-00/q0-batch-123-corrections-retest-2026-09-28.md",
+    "evidence/WP-0A-DB-00/q0-batch-123-test-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/session-2026-09-28-ninth-pass.md"
   ],
   "files_modified": [
     "db/foundation/README.md",
-    "db/foundation/invariants/030_industry.1.sql",
-    "db/foundation/invariants/040_knowledge.1.sql",
+    "db/foundation/invariants/070_research.1.sql",
+    "db/foundation/invariants/080_content.1.sql",
+    "db/foundation/invariants/081_content_targets.1.sql",
+    "db/foundation/invariants/090_approval.1.sql",
+    "db/foundation/invariants/100_asset.1.sql",
+    "db/foundation/invariants/120_publisher.1.sql",
     "db/foundation/invariants/superseded.json",
     "db/foundation/lint/catalog-snapshot.json",
     "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
+    "tests/db/identity/identity-isolation.test.mjs",
     "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -37,62 +50,78 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 105: blocker 189 (A1 F1 of the catalog-rule probes review) closed by remedy (a), which the Owner chose (`ก`) after A0 recommended it; the grade MEDIUM was A0's recommendation in the message the Owner answered, and the disposition says it was not stated separately.",
-    "Measured before writing: 17 tables grant authenticated UPDATE on updated_by, 10 bind it, 7 do not (matching A1). Without 105, exactly the seven new forging cases fail; with it, all 972 cases pass."
+    "THIS INCREMENT IS BATCH 123 plus RFC-2026-025 and the ninth-pass record, on the Owner's `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว` taking the one-page summary's items 1, 2, 3 and 5 as recommended (disposition 2026-09-28). RFC-2026-025 was approved by the Owner (`อนุมัติ RFC-2026-025`, 10d4a2a) and its §5 amendment too (`อนุมัติ §5 ของ RFC-025`).",
+    "The decided_by remedy at cancellation is a CHECK pair; the disposition records that change of mechanism (A1's own suggested remedy). The corrections after the three role runs on 5856f0b ADD the restrictive closure A1 recommended for decided_by at decision (C0 F6, A1 F3, Q0 F2), so both are now in place.",
+    "The corrections are A0's integration of C0, A1 and Q0 on 5856f0b (a0-batch-123-integration-2026-09-28.md). Under RFC-2026-025 §5 item 2 they were re-verified by all three role runs on f2c1a54 (a00fed2, 7646324, 741001f): nothing blocks the Owner's merge, no stop-the-line, every negative control reproduced; what they found is recorded (blocker 186 and two new blockers), none of it live on the clean set."
   ],
   "acceptance_results": [
     {
-      "criterion": "The seven tables refuse a forged updated_by at UPDATE",
+      "criterion": "All seventeen updated_by tables carry the exact restrictive UPDATE closure",
       "result": "met",
-      "evidence": "seven owner-a-cannot-update-...-naming-another-updater cases, denied by policy; negative control without 105: exactly those seven fail"
+      "evidence": "123's block (exact rule), the updated_by update closure probe and the closure coverage probe, each with its own self-test drift; every one of the seventeen tables has an rls-smoke case forging updated_by at UPDATE, and dropping a closure beside an open permissive policy fails that table's case (measured on all five tables Q0 F5 named)"
     },
     {
-      "criterion": "The class cannot reopen",
+      "criterion": "decided_by cannot be stamped on a cancellation",
       "result": "met",
-      "evidence": "105's apply-time general rule, re-run after the whole set by the post-migrate pass; the closure-text probe pins the seven by exact text"
+      "evidence": "approval_requests_decider_is_a_pair and 090's approval_requests_decision_has_a_decider, asserted by definition text in 123's block and pinned in the pinned check probe; dropping the pair fails exactly the two pair cases, dropping 090's exactly the whole-stamp case (measured)"
     },
     {
-      "criterion": "Honest updates still work",
+      "criterion": "decided_by at decision is the caller whichever permissive policy admits the row",
       "result": "met",
-      "evidence": "the four editor positives name their caller and pass"
+      "evidence": "approval_requests_decided_by_on_update_is_caller, pinned in the decider closure probe; with the decide policy's binding removed (Q0 E19b) it holds, and with both gone the two naming-another-decider cases fail (measured)"
     },
     {
-      "criterion": "Three role runs, findings disposed",
+      "criterion": "Every catalog-probe rule is shown able to fail on every migrate-clean",
       "result": "met",
-      "evidence": "c0-/a1-/q0-batch-105-*-2026-09-27.md cherry-picked with -x; none stop-the-line; a0-batch-105-integration-2026-09-27.md"
+      "evidence": "nine probes, one self-test drift per rule (1+1+1+1+1+1+1+2+4), each refused by its own raise; a static test holds drifts equal to raises"
     }
   ],
   "tests": [
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 670, pass 670, fail 0, skipped 0, todo 0"
+      "result": "see the commit"
     },
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "43 blocks, 33 as written, 10 replaced; four probes with self-tests; rls-smoke 976 cases ok"
+      "result": "44 blocks, 34 as written, 10 replaced; nine catalog probes, each refused each of its drifts; rls-smoke 986 cases ok"
+    },
+    {
+      "command": "negative controls (private cluster, one drift per run)",
+      "exit_code": 0,
+      "result": "pair dropped: 2 named cases fail; 090 equivalence dropped: 1; decide binding removed: 0 (closure holds); binding and closure removed: 2; per table, closure dropped beside an open permissive policy: that table's new case fails"
+    },
+    {
+      "command": "CI on Draft PR #162 at f2c1a54",
+      "exit_code": 0,
+      "result": "run 36387036665 green (observed by C0 and via the PR status)"
     }
   ],
-  "security_privacy_cost_impact": "CLOSES A LIVE ATTRIBUTION FORGERY: an owner could write another member as updated_by through UPDATE on seven tables; now refused by a restrictive policy on each. No grant changes; no tenant-boundary change; every client UPDATE on the seventeen updated_by tables now names its caller.",
-  "migration_and_data_impact": "ONE MIGRATION, 105_updated_by_on_update_is_caller.sql, creating seven policies and nothing else. Forward-only; a later change is a new batch. It sorts after 104 (the 102-104 precedent) and is declared in the snapshot's not-applied tail.",
-  "compatibility_impact": "A client UPDATE on the seven tables that does not set updated_by to its caller is now refused, as it already was on the other ten; four cases changed accordingly. Cases 965 -> 976; foundation-contract 69 -> 70 tests.",
+  "security_privacy_cost_impact": "CLOSES the decided_by forgery at cancellation (A1 F2 / Q0 F1 on 105, MEDIUM) at the database for every path, removes the looser-permissive-sibling route to updated_by forgery on ten tables (C0 F1 / A1 F1 / Q0 F2 on 105), and after the role runs on 5856f0b binds decided_by at decision to the caller by a restrictive closure (Q0 F2, MEDIUM) and pins 090's equivalence the pair leans on (Q0 F1, MEDIUM). No grant changes; nothing that works today is refused.",
+  "migration_and_data_impact": "ONE MIGRATION, 123_attribution_closures_everywhere.sql: eleven policies and one CHECK on approval_requests. Numbered after 122 because it touches 120's publish_intents; declared in the snapshot's not-applied tail. A CHECK added over rows that already violate it fails the migration (Q0 F8): nothing to recover before G0.",
+  "compatibility_impact": "None for correct clients: the ten tables already required updated_by = caller; a request that is cancelled, pending or expired never carried a decider by 090's own intent; a decision already names its caller. A `rejected` case may now name the constraint it proves (`violates`). Cases 976 -> 977 -> 986.",
   "known_limitations": [
-    "Remedy (b) -- the database maintaining updated_by on all seventeen tables -- is recorded as a possible later change, not done.",
-    "The eleven INSERT forging cases (survey item 3) remain owed."
+    "created_by at INSERT is still bound only inside permissive policies on seventeen tables, and most created_by forging cases test updated_by (A1 F5; recorded on the survey blocker).",
+    "decided_at is whatever the decider sends (A1 F4, Q0 F7); the database setting it is the Owner's behaviour change (recorded).",
+    "The rules and probes read schema app and role authenticated only (A1 F6, Q0 F6; the service half is RFC-2026-023's).",
+    "A settled approval decision is protected only by the two permissive USING halves; a later owner-only widening lets the owner take it over (A1 N1 / C0 F2, LOW; recorded, fix recommended next).",
+    "The probe executor (catalogProbeJobs, decideCatalogProbes) is pinned by a regex and synthetic tests only (Q0 F1-F3; recorded, fix recommended next).",
+    "No Integration Owner (r0) evidence exists for this package (C0 F4; new blocker)."
   ],
   "open_risks_or_blockers": [
-    "CLOSED: the updated_by UPDATE forgery (old 189). OPENED: 189 -- approval_requests.decided_by forgeable at cancellation (A1 F2, Q0 F1, MEDIUM, pre-existing). Count 189.",
-    "FOR THE OWNER: extending 105's restrictive closure to all seventeen updated_by tables (A0 recommends; the general rule is text-presence only on the ten); the new 189's grade and remedy."
+    "CLOSED: the decided_by blocker. Count 190: the name-or-token blocker records the re-verification findings with their grades, and two blockers are new (no r0 evidence; what RFC-2026-025 §5 leaves open, for the Owner).",
+    "FOR THE OWNER: this PR carries RFC-2026-025, so under its §5 item 6 the Owner merges it personally; decided_at set by the database; the RFC-2026-025 points on the new blocker (C0 F1 MEDIUM); the summary's sections 2-4."
   ],
-  "rollback_or_forward_fix": "A reviewed revert PR would reopen the forgery; the forward fix is the default. NEVER a force-push.",
+  "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "105's closure on all seventeen updated_by tables, pinned, with the general rule requiring it (A0 recommends; C0/A1/Q0 finding).",
-    "Blocker 189: decided_by at cancellation.",
-    "The INSERT and remaining UPDATE forging cases (survey item 3; Q0's five bound tables)."
+    "One small forward fix right after #162: the settled-decision closure `using (status = 'pending') with check (true)` with an owner redecide case (A1 N1, C0 F2), the probe-executor pins (Q0 F1-F3), an owner forging case on content_items (Q0 F4), a runOne test for violates (Q0 F5), and the FK-support probe's self-test (C0 F6).",
+    "Batch 091 (A0 writes; C0, Q0 and A1 review; the A5 review of the schedule states recorded as owed), drafted on f2c1a54 and waiting on #162.",
+    "created_by at INSERT in 102's shape."
   ],
   "reviewer_instructions": [
-    "Read 105 and its block; run the negative control (remove 105, expect exactly the seven forging cases to fail).",
+    "Read 123 and its block; reproduce the negative controls: drop the pair; drop 090's approval_requests_decision_has_a_decider; remove decided_by from the decide policy's WITH CHECK with and without dropping 123's decider closure; drop one of the ten updated_by closures beside an open permissive policy.",
+    "Check that each catalog probe has one drift per raise and that each drift is refused by its own rule in the migrate-clean output.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null

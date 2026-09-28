@@ -356,6 +356,9 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // 120 and 122, which is both its numeric place and the place that keeps the declaration a TAIL of
   // the ordered set rather than a set with a hole in it.
   '120_publisher.sql', '121_publisher_metrics.sql', '122_publisher_service_path_closed.sql',
+  // Batch 123: ten restrictive UPDATE policies on tables batches 070-120 made and one CHECK on 090's
+  // approval_requests; INSERTED after 122, its numeric place, so the declaration stays a TAIL.
+  '123_attribution_closures_everywhere.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -2159,9 +2162,10 @@ test('the forward fixes 094 and 111 keep their statements and their apply-time b
 // emptied file fails before a database, as Q0-111 F1 showed a forward fix otherwise can.
 test('the forward fix 105 keeps its seven UPDATE closures and its apply-time block', async () => {
   const code = (await readFile('db/foundation/migrations/105_updated_by_on_update_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
-  const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
-  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 7);
-  for (const t of UPDATED_BY_ON_UPDATE_CLOSURES) {
+  // 105's own seven; batch 123 added the other ten to the probe's list (its own test is below).
+  const SEVEN = ['business_profiles', 'industry_assignments', 'knowledge_items', 'page_context_profiles',
+    'workspace_invitations', 'workspace_settings', 'workspaces'];
+  for (const t of SEVEN) {
     assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
       `105: ${t} carries a RESTRICTIVE UPDATE policy binding updated_by to the caller, with no USING`);
   }
@@ -2173,6 +2177,37 @@ test('the forward fix 105 keeps its seven UPDATE closures and its apply-time blo
   assert.match(code, /pol\.polcmd in \('w', '\*'\)/);
   assert.match(code, /c\.relkind in \('r', 'p'\)/, 'partitioned tables too (Q0 F2)');
   assert.match(code, /not \(c\.relrowsecurity and c\.relforcerowsecurity\)/, 'a policy binds nothing with RLS off (Q0 F2)');
+});
+
+// BATCH 123 (the Owner's one-page summary items 2 and 3, 2026-09-28): batch 105's restrictive UPDATE closure
+// on the ten remaining updated_by tables, the general rule made EXACT, and decided_by as a pair with
+// decided_at. Pinned here so an emptied file fails before a database.
+test('the forward fix 123 keeps its ten UPDATE closures, its decider closure and pair, and its exact general rule', async () => {
+  const code = (await readFile('db/foundation/migrations/123_attribution_closures_everywhere.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
+  const TEN = ['approval_policies', 'approval_requests', 'asset_rights', 'assets', 'content_ideas', 'content_items',
+    'content_targets', 'publish_intents', 'research_runs', 'research_suggestions'];
+  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 17, "105's seven and 123's ten");
+  for (const t of TEN) {
+    assert.ok(UPDATED_BY_ON_UPDATE_CLOSURES.includes(t), `the probe pins ${t}`);
+    assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
+      `123: ${t} carries 105's restrictive UPDATE closure`);
+  }
+  assert.match(code, /create policy approval_requests_decided_by_on_update_is_caller on app\.approval_requests\s+as restrictive for update to authenticated\s+with check \(decided_by is null or decided_by = \(select auth\.uid\(\)\)\);/,
+    '123: who decided is the caller, whichever permissive policy admitted the row (Q0 on 123, F2)');
+  assert.equal([...code.matchAll(/create policy/g)].length, 11, '123 creates exactly eleven policies: ten updated_by closures and the decider closure');
+  assert.match(code, /add constraint approval_requests_decider_is_a_pair\s+check \(\(decided_at is null\) = \(decided_by is null\)\);/, '123: decided_at and decided_by are a pair');
+  // The general rule requires the CLOSURE itself, by name and exact text -- not text presence (105's weakness).
+  assert.match(code, /pol\.polname = c\.relname \|\| '_updated_by_on_update_is_caller'/);
+  assert.match(code, /pg_catalog\.pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '\(updated_by = \( SELECT auth\.uid\(\) AS uid\)\)'/);
+  assert.match(code, /updated_by is client-updatable without batch 105''s exact restrictive UPDATE closure/);
+  assert.match(code, /CHECK \(\(\(decided_at IS NULL\) = \(decided_by IS NULL\)\)\)/, '123 asserts the pair by definition text');
+  assert.match(code, /con\.conname = 'approval_requests_decision_has_a_decider' and con\.convalidated/, "123 asserts 090's equivalence beside the pair (Q0 on 123, F1)");
+  assert.match(code, /batch 123''s approval_requests_decided_by_on_update_is_caller is missing or not in its required shape/, '123 asserts its decider closure at apply time');
+  const { PINNED_CHECKS, DECIDER_CLOSURES } = await import('../../scripts/db/run.mjs');
+  assert.deepEqual(DECIDER_CLOSURES, ['approval_requests'], 'the probe pins the decider closure');
+  assert.ok(code.includes(PINNED_CHECKS['approval_requests.approval_requests_decider_is_a_pair']), '123 and the probe pin the pair in one text');
+  assert.ok(code.includes(PINNED_CHECKS['approval_requests.approval_requests_decision_has_a_decider'].replace(/'/g, "''")), "123 and the probe pin 090's equivalence in one text");
 });
 
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
@@ -2254,7 +2289,7 @@ test('every foreign key has a supporting index, asserted live after every migrat
 // THE CATALOG-RULE PROBES (plan and disposition of 2026-09-27; the weak-assertion survey's items 1,
 // 2 and 4). Each states a rule over all of app and private that no apply-time block states; the live
 // half is `make db-migrate-clean` itself, where each was shown to fail by name on the drift it closes.
-test('the four catalog-rule probes run in migrate-clean after the FK-support probe, each as built and after its own drift', async () => {
+test('the catalog-rule probes run in migrate-clean after the FK-support probe, each as built and after its own drift', async () => {
   // Comments stripped first: a `return 1` moved into a comment must not satisfy a text match.
   const runner = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
   const fk = runner.indexOf('const fkProbe = await script(FK_SUPPORT_PROBE_SQL);');
@@ -2267,25 +2302,52 @@ test('the four catalog-rule probes run in migrate-clean after the FK-support pro
     'the executor is exactly: run every job, decide, fail on a failing verdict -- no skip, no substitute, no early return');
   const m = await import('../../scripts/db/run.mjs');
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
-    [m.FK_ACTION_PROBE_SQL, m.CLOSURE_TEXT_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL], 'all four, in order');
+    [m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL, m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL,
+      m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL],
+    'all nine, in order: one rule per probe, so each has its own self-test (C0 on 123, F5; Q0 on 123, F3)');
+  // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
+  // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed.
+  for (const { label, sql, selfTests } of m.CATALOG_RULE_PROBES) {
+    const raises = [...sql.matchAll(/raise exception '([^']*)/g)].map((r) => r[1]);
+    assert.equal(selfTests.length, raises.length, `${label}: ${raises.length} rule(s) and ${selfTests.length} self-test(s)`);
+    selfTests.forEach(({ raises: prefix }, i) => assert.ok(raises[i].startsWith(prefix), `${label}: self-test ${i + 1} answers rule ${i + 1} ("${prefix}")`));
+  }
   // THE PROBES AND THEIR PINS, BY DIGEST (Q0 F2: no test pinned the values). A change to a probe, its
   // pinned lists, its drift or its raise changes one of these, in the same diff as the reason for it.
   const { createHash } = await import('node:crypto');
   const digests = Object.fromEntries(m.CATALOG_RULE_PROBES.map((p) => [p.label,
-    createHash('sha256').update(`${p.sql}\u0000${p.drift}\u0000${p.raises}`).digest('hex').slice(0, 16)]));
+    createHash('sha256').update([p.sql, ...p.selfTests.flatMap((t) => [t.drift, t.raises])].join('\u0000')).digest('hex').slice(0, 16)]));
+  // Batch 123's corrections gave every rule its own drift (Q0 on 123, F3). A probe with one drift keeps
+  // its digest's form; fk action (its stale-exemption rule is written only when an exemption exists)
+  // d5454eaec7997fd7 to d73a065f573244b3, security definer 11591f0ab317753e to 46a6b919f897b53f and
+  // trigger d32161f00a2a325f to f182e8b44bddb963 each changed.
   assert.deepEqual(digests, {
-    'fk action probe': 'd5454eaec7997fd7',
+    'fk action probe': 'd73a065f573244b3',
     // Batch 105 added its seven UPDATE closures to the pinned sets: 0b4597c5c092ed35 to 76a9037be80cf0bf.
-    'closure text probe': '76a9037be80cf0bf',
-    'security definer probe': '11591f0ab317753e',
-    'trigger probe': 'd32161f00a2a325f',
+    // Batch 123: its ten closures, and the live coverage rule: 76a9037be80cf0bf to caec5674e583d3cc.
+    // Batch 123's corrections moved the coverage rule into its own probe: caec5674e583d3cc to 0f9f006bf3c26bd2;
+    // then split what was left into one probe per rule (Q0 on 123, F3), so the three below replace it.
+    'updated_by insert closure probe': '5fd640a3e261fa4c',
+    'requester closure probe': '85ca653329a540a6',
+    'updated_by update closure probe': 'a0ec08b58ae6db06',
+    'decider closure probe': 'e93e1cc95122a8ea',
+    'closure coverage probe': 'f42eb9fea5983fb7',
+    'pinned check probe': 'e42a2631d4abb36e',
+    'security definer probe': '46a6b919f897b53f',
+    'trigger probe': 'f182e8b44bddb963',
   }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');
   // What each probe must READ, stated as intent beside the digest (the digest says THAT it changed;
   // these say WHAT must survive a change). Each names the finding that made it necessary.
   assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable or not c\.convalidated/, 'actions, deferrable and NOT VALID (Q0 F4)');
   assert.match(m.FK_ACTION_PROBE_SQL, /n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema but the system ones (Q0 F07)');
-  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, 'closures compared by TEXT, not tokens (A1 F3)');
-  assert.match(m.CLOSURE_TEXT_PROBE_SQL, /has no %s_updated_by_is_caller[\s\S]*where not exists/, 'a dropped closure is caught (C0 LOW 3)');
+  for (const [sql, suffix] of [[m.UPDATED_BY_CLOSURE_PROBE_SQL, 'updated_by_is_caller'], [m.REQUESTER_CLOSURE_PROBE_SQL, 'requester_is_caller'],
+    [m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, 'updated_by_on_update_is_caller'], [m.DECIDER_CLOSURE_PROBE_SQL, 'decided_by_on_update_is_caller']]) {
+    assert.match(sql, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, `${suffix}: closures compared by TEXT, not tokens (A1 F3)`);
+    assert.match(sql, new RegExp(`has no %s_${suffix}[\\s\\S]*where not exists`), `${suffix}: a dropped closure is caught (C0 LOW 3)`);
+  }
+  assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
+  assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
+    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema (A1 F3, Q0 F3)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
@@ -2306,22 +2368,25 @@ test('the four catalog-rule probes run in migrate-clean after the FK-support pro
 
 test('the catalog-probe verdict fails on every way the outcomes can be wrong, and passes only on the right ones', async () => {
   const { decideCatalogProbes, catalogProbeJobs } = await import('../../scripts/db/run.mjs');
-  const probes = [{ label: 'p', sql: 'S', claim: 'holds', drift: 'D;', raises: 'p refused' }];
-  assert.deepEqual(catalogProbeJobs(probes).map((j) => `${j.kind}:${j.sql}`), ['as built:S', 'after its drift:D;\nS']);
+  const probes = [{ label: 'p', sql: 'S', claim: 'holds', selfTests: [{ drift: 'D;', raises: 'p refused' }, { drift: 'E;', raises: 'p also' }] }];
+  assert.deepEqual(catalogProbeJobs(probes).map((j) => `${j.kind}:${j.sql}`), ['as built:S', 'after drift 1:D;\nS', 'after drift 2:E;\nS']);
   const good = () => [
     { label: 'p', kind: 'as built', sql: 'S', result: { rows: [] } },
-    { label: 'p', kind: 'after its drift', sql: 'D;\nS', result: { error: { code: 'P0001', message: 'p refused: x' } } },
+    { label: 'p', kind: 'after drift 1', sql: 'D;\nS', result: { error: { code: 'P0001', message: 'p refused: x' } } },
+    { label: 'p', kind: 'after drift 2', sql: 'E;\nS', result: { error: { code: 'P0001', message: 'p also: y' } } },
   ];
   const control = decideCatalogProbes(probes, good());
   assert.equal(control.ok, true, `control: the right outcomes pass (${control.failures.join('; ')})`);
   const wrong = [
     ['the probe fails as built', (o) => { o[0].result = { error: { code: 'P0001', message: 'p refused: y' } }; }, /p: p refused/],
-    ['the probe passes after its drift', (o) => { o[1].result = { rows: [] }; }, /self-test drift passed/],
+    ['the probe passes after its drift', (o) => { o[1].result = { rows: [] }; }, /self-test after drift 1 passed/],
     ['the drift fails with a syntax error', (o) => { o[1].result = { error: { code: '42601', message: 'syntax' } }; }, /failed with 42601/],
     ['the drift trips another raise', (o) => { o[1].result = { error: { code: 'P0001', message: 'something else' } }; }, /must refuse it/],
-    ['the self-test was skipped', (o) => o.splice(1, 1), /not run after its drift/],
+    ['the second drift trips the first rule', (o) => { o[2].result = { error: { code: 'P0001', message: 'p refused: z' } }; }, /after drift 2 failed with P0001: p refused/],
+    ['the self-test was skipped', (o) => o.splice(1, 1), /not run after drift 1/],
+    ['only the second self-test was skipped', (o) => o.splice(2, 1), /not run after drift 2/],
     ['the probe was fed something else', (o) => { o[0].sql = 'select 1'; }, /not run as built/],
-    ['nothing was run', (o) => o.splice(0), /2 probe run\(s\) were due and 0/],
+    ['nothing was run', (o) => o.splice(0), /3 probe run\(s\) were due and 0/],
     ['an outcome has no result', (o) => { delete o[0].result; }, /not run as built/],
   ];
   for (const [label, mutate, pattern] of wrong) {
@@ -2330,6 +2395,11 @@ test('the catalog-probe verdict fails on every way the outcomes can be wrong, an
     assert.equal(verdict.ok, false, `${label}: the verdict must fail`);
     assert.match(verdict.failures.join('\n'), pattern, `${label}: and say why`);
   }
+  // A probe with no self-test fails even when everything that was due came back right.
+  const bare = [{ label: 'q', sql: 'S', claim: 'holds', selfTests: [] }];
+  const unproven = decideCatalogProbes(bare, [{ label: 'q', kind: 'as built', sql: 'S', result: { rows: [] } }]);
+  assert.equal(unproven.ok, false, 'a probe that cannot be shown to fail');
+  assert.match(unproven.failures.join('\n'), /q: carries no self-test drift/);
 });
 
 // AN APPLY-TIME BLOCK CANNOT BE SILENCED FROM INSIDE ITS OWN PREDICATE. Q0-080 Q1, Q0-081 F4,

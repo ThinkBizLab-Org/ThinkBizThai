@@ -319,8 +319,8 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the FK-support probe, `make db-migrate-clean` asserts four rules over all of `app` and
-`private`. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
+After the FK-support probe, `make db-migrate-clean` asserts four families of rules over all of `app`
+and `private`, in nine probes. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
 it silently:
 
 1. **Every foreign key has NO ACTION on delete and on update, and is not deferrable.** A key that
@@ -331,12 +331,25 @@ it silently:
 2. **Every `*_updated_by_is_caller` and `*_requester_is_caller` policy matches its exact pinned
    text:** restrictive, INSERT, TO authenticated, no USING, and a WITH CHECK that deparses to the
    pinned string, on the pinned tables. So is every `*_updated_by_on_update_is_caller` policy
-   (batch 105: restrictive, UPDATE, TO authenticated, no USING). A batch that adds a closure adds its
-   table to `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. Batch
-   105's own block also refuses any table that lets authenticated UPDATE `updated_by` with no UPDATE
-   policy whose WITH CHECK even names `updated_by = auth.uid()`. It checks that the text is present,
-   not that the policy binds the column: a looser permissive policy added beside it would still pass.
-   Only the seven restrictive closures are held by exact text.
+   (batches 105 and 123: restrictive, UPDATE, TO authenticated, no USING), on all seventeen tables
+   that grant `authenticated` UPDATE on `updated_by`. A batch that adds a closure adds its table to
+   `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. **An `app` table that
+   grants UPDATE on `updated_by` without the closure fails twice:** once in the probe, which reads
+   the grant live, and once in batch 123's block, which requires the exact closure. Both read schema `app`
+   and role `authenticated` only: a table in `public`, or a policy for another role, is seen by neither
+   (A1's review of batch 123, F6; recorded as owed).
+
+   105's first general rule only checked that some policy *contained* the binding, so a looser
+   permissive sibling could reopen the forgery. 123 closed that: a restrictive policy ANDs with
+   whatever admits the row. `created_by` at INSERT is still bound only inside permissive policies;
+   that gap is recorded as a blocker.
+
+   **Who decided an approval request is held the same way.** `approval_requests_decided_by_on_update_is_caller`
+   (batch 123) is restrictive, UPDATE, TO authenticated: `decided_by` is NULL or the caller, and its text
+   is pinned in `DECIDER_CLOSURES`. The two CHECKs that make a cancelled, pending or expired request
+   name no decider, 090's `approval_requests_decision_has_a_decider` and 123's
+   `approval_requests_decider_is_a_pair`, are pinned by definition text in `PINNED_CHECKS`. A batch
+   that changes any of them updates the pin in the same change.
 3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
    list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
    `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds
@@ -347,6 +360,15 @@ it silently:
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
    another table.
+
+**Every catalog-rule probe's rules are shown able to fail on every run.** (The FK-support probe that
+runs before them has no self-test yet; C0's re-verification of batch 123, F6, recorded as owed.) Each
+probe carries one self-test drift per rule
+(`selfTests` in `CATALOG_RULE_PROBES`). The probe must pass on the database as built, and after each
+drift it must fail with that rule's own raise, in a transaction that is rolled back. A static test
+holds the number of drifts equal to the number of raises, so a rule added without its drift fails
+the suite. A rule no drift reaches runs live and is never shown able to fire. Q0's test of batch 123 (F3) found
+two such rules in the closure probe, and applying the same check to every probe found six more.
 
 Rules 2 and 4 compare PostgreSQL's deparsed text. A change of the Postgres major version in CI could
 change that text without the policy changing. If that happens, the probe fails by name, and the
