@@ -5,11 +5,12 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "e276c9addc4be0c6acde2d3b6509cf555b265028",
-  "head_revision_or_patch_checksum": "8ba29d0e68703160b0b28603748899cbb81bd61c",
+  "head_revision_or_patch_checksum": "f429fe6750a8e496c84f7176e10f339de465c966",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
     "db/foundation/migrations/123_attribution_closures_everywhere.sql",
+    "evidence/WP-0A-DB-00/a0-batch-123-integration-2026-09-28.md",
     "evidence/WP-0A-DB-00/a1-batch-123-security-review-2026-09-28.md",
     "evidence/WP-0A-DB-00/c0-batch-123-contract-review-2026-09-28.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-one-page-summary.md",
@@ -36,7 +37,9 @@
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "test-kits/repository-json.test.mjs",
+    "tests/db/identity/identity-isolation.test.mjs",
     "tests/db/identity/isolation-cases.mjs",
+    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
