@@ -26,8 +26,14 @@ option of each.
 ## 2. What the Owner answered
 
 - `merge #162 แล้ว เอาตามแนะนำทุกข้อ` ("#162 is merged; as recommended, on every point").
-- After A0 reported that GitHub still showed #162 as OPEN: `merge #162 แล้ว ทำต่อได้เลย` ("#162 is
-  merged; go ahead").
+- After A0 reported that GitHub still showed #162 as OPEN: `merge #162 แล้ว ทำต่อได้เลย`. A0 first
+  read this as "#162 is merged; go ahead".
+- After A0 reported the same again, the Owner wrote the identical words a second time. §4 records
+  how A0 read them then. In Thai, `แล้ว` can mean "already" or "and then", so the same words can
+  also mean "merge #162, then carry on".
+
+The Owner wrote "merge #162 แล้ว" three times in all: once with `เอาตามแนะนำทุกข้อ` and twice with
+`ทำต่อได้เลย` (C0's review of batch 125, F9).
 
 When A0 read GitHub after each message, #162 was `OPEN`. Its timeline had no merge event, and its
 merge state was `CLEAN`. A0 did not press the button. Under RFC-2026-025 §5 item 6, a PR that changes
@@ -54,8 +60,9 @@ what the merge record shows once it exists.
 
 ## 4. The merge record
 
-- **The third message.** The Owner wrote `merge #162 แล้ว ทำต่อได้เลย` a third time, and #162 was
-  still `OPEN`. A0 read it as the instruction it can also mean in Thai: "merge #162, then carry on".
+- **The third message.** The Owner's third "merge #162 แล้ว" (the second `merge #162 แล้ว ทำต่อได้เลย`)
+  arrived while #162 was still `OPEN`. A0 read it as the instruction those words can also mean:
+  "merge #162, then carry on".
 - **A0 had objected twice.** Each objection cited RFC-2026-025 §5 item 6, and each offered two ways
   for the Owner to press the merge personally: the button, or a one-line command to run.
 - **The merge.** A0 then pressed the merge itself: `gh pr merge 162 --merge --match-head-commit
@@ -71,7 +78,9 @@ what the merge record shows once it exists.
 changes governance is merged by the Owner personally, never by delegation. **Its literal sentence
 was not satisfied for #162.** The Owner's instruction overrode the Owner's own rule for this PR, and
 the RFC's text is unchanged. The same holds for RFC-2026-002's literal sentence, as in every earlier
-record of an Owner-directed merge (2026-09-16 onward). The commit's author field is not the evidence
+record of an Owner-directed merge (2026-09-16 onward). Its clauses 2 and 4 are already recorded on
+the open blockers: the clause-by-clause compliance entry, and the missing Integration Owner
+evidence. The commit's author field is not the evidence
 of who decided; this paragraph is.
 
 For the next merges, 125's and 091's, A0 will again ask the Owner to press. If the Owner again

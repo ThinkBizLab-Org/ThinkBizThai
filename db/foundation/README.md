@@ -319,10 +319,11 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts five families of rules over all of `app` and
+After the ceiling probe, `make db-migrate-clean` asserts six families of rules over all of `app` and
 `private`, in eleven probes. The first is the FK-support probe (batch 104): every foreign key has a
-supporting index, and each of its four exemptions names a key that exists. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot break
-it silently:
+supporting index, and each of its four exemptions names a key that exists. The other five are
+numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
+break it silently:
 
 1. **Every foreign key has NO ACTION on delete and on update, and is not deferrable.** A key that
    needs an action is named in `FK_ACTION_EXEMPTIONS` with its reason, in the same change. **An
@@ -352,14 +353,16 @@ it silently:
    `approval_requests_decider_is_a_pair`, are pinned by definition text in `PINNED_CHECKS`. A batch
    that changes any of them updates the pin in the same change.
 
-   **A settled request cannot be touched, and its time is the database's (batch 125).**
+   **A settled request cannot be touched by a client, and its time is the database's (batch 125).**
    `approval_requests_settled_is_immutable` is restrictive, UPDATE, TO authenticated, with
    `USING (status = 'pending') WITH CHECK (true)`. It is pinned in `PINNED_POLICIES`, because
    `closureRule` requires no USING. The WITH CHECK is `true` on purpose: with USING alone, the new row
    would have to be pending too, and every cancel and decide would be refused. The invoker trigger
    `private.set_decided_at()` sets `decided_at` to `now()` when `decided_by` is first set, whatever
-   the client sent. It refuses any later change to either column, for every writer. 125's own block
-   pins the trigger's definition and the function body's md5.
+   the client sent. It refuses any later change to either column, for every writer that fires
+   triggers. For a writer that is not a client, the trigger does not freeze the request's OUTCOME
+   (`status`), and it does not cover INSERT. Both are owed (A1's review of batch 125, V1). 125's own
+   block pins the trigger's definition and the md5 of the function body.
 3. **Every client-updatable `*_by` column has a pinned closure for its column:** `updated_by` in
    `UPDATED_BY_ON_UPDATE_CLOSURES`, `decided_by` in `DECIDER_CLOSURES`. A new attribution column that
    clients can update fails the coverage probe by name, until the batch that grants it adds its

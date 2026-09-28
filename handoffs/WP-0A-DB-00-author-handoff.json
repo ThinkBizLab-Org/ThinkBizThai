@@ -5,12 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "7f6cefbc375facea143f9df63650266b7d6e63a9",
-  "head_revision_or_patch_checksum": "43f4d962e206364cd2a118307d21cbc54e44cb5f",
+  "head_revision_or_patch_checksum": "56b10e093297de10eaa091e1aa8eb85a9c836640",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/125_approval_settled_is_immutable.sql",
     "evidence/WP-0A-DB-00/a0-batch-125-record-2026-09-28.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-after-162.md"
+    "evidence/WP-0A-DB-00/a1-batch-125-security-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-125-contract-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-after-162.md",
+    "evidence/WP-0A-DB-00/q0-batch-125-test-review-2026-09-28.md"
   ],
   "files_modified": [
     "db/foundation/README.md",
@@ -35,7 +38,8 @@
   "assumptions": [
     "THIS INCREMENT IS BATCH 125, on the Owner's `เอาตามแนะนำทุกข้อ` (2026-09-28) taking A0's three recommendations after #162: this forward fix first, then batch 091; the database sets decided_at; RFC-2026-025's open points deferred, with the Owner pressing every merge (product-owner-disposition-2026-09-28-after-162.md).",
     "Its content is the re-verification round's items (1)-(8) on blocker 186 plus decided_at (A1 F4, Q0 F7 on batch 123); a0-batch-125-record-2026-09-28.md maps each finding to its change and measurement.",
-    "decided_at stays in the client UPDATE grant so no client statement changes shape; the value a decider sends is ignored at a decision and refused by 123's pair elsewhere."
+    "decided_at stays in the client UPDATE grant so no client statement changes shape; the value a decider sends is ignored at a decision and refused by 123's pair elsewhere.",
+    "C0, A1 and Q0 reviewed d85a643 (e8773d4, abc27d0, 56b10e0): no stop-the-line, nothing blocking the Owner's merge, every negative control reproduced. Where A0's own text overclaimed (the trigger freezes the outcome for clients only; item 8 closed for UPDATE only; item 4's meta-command half open; the RFC blocker's stale opening; README counts and wording; the disposition's reading of the Owner's words), the following commit corrects the text and nothing else."
   ],
   "acceptance_results": [
     {
@@ -44,9 +48,9 @@
       "evidence": "approval_requests_settled_is_immutable, pinned in the pinned policy probe; with A1's R3c widening it holds, and with R3c and the closure dropped exactly owner-a-cannot-redecide-a-settled-approval-request fails (measured)"
     },
     {
-      "criterion": "The database records when a decision was taken, and a recorded decision does not change",
+      "criterion": "The database records when a decision was taken, and a recorded decision keeps its decider and time for every writer that fires triggers",
       "result": "met",
-      "evidence": "private.set_decided_at(), pinned by trigger definition and body md5 in 125's block; 2001 and 2999 read back as now(); trigger dropped or no-op fails three cases; a superuser backdate or revert is refused (measured)"
+      "evidence": "private.set_decided_at(), pinned by trigger definition and body md5 in 125's block; 2001 and 2999 read back as now(); trigger dropped or no-op fails three cases; a superuser backdate or revert is refused (measured); the OUTCOME of a settled request is frozen for clients only (A1 V1 on 125, recorded as owed for other writers)"
     },
     {
       "criterion": "Every catalog-probe rule is shown able to fail, every drift leaves nothing behind, and the executor is pinned against the real probes",
@@ -75,19 +79,22 @@
   "migration_and_data_impact": "ONE MIGRATION, 125_approval_settled_is_immutable.sql: one restrictive policy, one SECURITY INVOKER trigger function in private (EXECUTE revoked from PUBLIC) and one BEFORE UPDATE trigger on approval_requests. Declared in the snapshot's not-applied tail. The trigger does not rewrite existing rows.",
   "compatibility_impact": "None for correct clients: a pending request is the only one a client could update already; a decider's decided_at is replaced by the transaction's time, so an API that sends it gets now() recorded. Cases 986 -> 990.",
   "known_limitations": [
+    "The probe executor still trusts a P0001 prefix, and a psql meta-command in a drift or migration still runs (C0 F1, Q0 F1-F2, F4, A1 V4; blocker 186 items 11-12).",
+    "For writers that are not clients, a settled request's outcome is not frozen and INSERT is not covered; batch 160's anonymisation needs a route through the trigger (A1 V1, V2; blocker 186 items 15-16).",
     "The attribution closures bind `authenticated` only (A1 N2; for RFC-2026-023's disposition).",
     "A self-test proves each raise can fire, not each predicate inside it (A1 N4); the digests make any edit visible.",
     "created_by at INSERT and the schema-public / other-role reach are still owed (A1 F5, F6; Q0 F6).",
     "No Integration Owner (r0) evidence exists for this package (its own blocker)."
   ],
   "open_risks_or_blockers": [
-    "Count 190. Blocker 186 records what 125 closes; the RFC-2026-025 blocker records the Owner's disposition.",
+    "Count 190. Blocker 186 records what 125 closes, what its review round found (items 11-20, graded), and corrects three overclaims; the RFC-2026-025 blocker records the Owner's disposition and the A0-pressed merge of #162.",
     "FOR THE OWNER: press the merge (every merge is the Owner's until the RFC-2026-025 points are decided)."
   ],
   "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Batch 091 (A0 writes; C0, Q0 and A1 review; the A5 review of the schedule states recorded as owed), drafted and rebased, waiting on 125.",
-    "created_by at INSERT in 102's shape."
+    "Batch 091 (A0 writes; C0, Q0 and A1 review; the A5 review of the schedule states recorded as owed), drafted and rebased on d85a643, waiting on 125.",
+    "One hardening batch after 091 for blocker 186 items 11-19 (the verdict and residue, a second trigger, the parameter ACL, non-client writers and INSERT, statement_timestamp, FK exemption keys, the coverage predicate).",
+    "created_by at INSERT in 102's shape, with the coverage probe's INSERT half."
   ],
   "reviewer_instructions": [
     "Read 125 and its block; reproduce the negative controls: A1's R3c with and without the settled closure; the trigger dropped and made a no-op; an owner-only content_items sibling with the closure dropped.",
