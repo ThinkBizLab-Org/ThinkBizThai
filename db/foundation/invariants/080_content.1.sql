@@ -23,12 +23,12 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_ideas'::regclass and not pol.polpermissive)
      is distinct from array['content_ideas_scope_narrowing', 'content_ideas_service_path_closed', 'content_ideas_updated_by_is_caller', 'content_ideas_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.content_ideas restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102 added';
+    raise exception 'app.content_ideas restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_items'::regclass and not pol.polpermissive)
      is distinct from array['content_items_scope_narrowing', 'content_items_service_path_closed', 'content_items_updated_by_is_caller', 'content_items_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.content_items restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102 added';
+    raise exception 'app.content_items restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_variants'::regclass and not pol.polpermissive)

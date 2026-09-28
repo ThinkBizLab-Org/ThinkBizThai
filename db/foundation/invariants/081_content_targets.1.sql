@@ -21,7 +21,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_targets'::regclass and not pol.polpermissive)
      is distinct from array['content_targets_scope_narrowing', 'content_targets_service_path_closed', 'content_targets_updated_by_is_caller', 'content_targets_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.content_targets restrictive policies are not exactly batch 081''s narrowing and the ones 083, 102 added';
+    raise exception 'app.content_targets restrictive policies are not exactly batch 081''s narrowing and the ones 083, 102, 123 added';
   end if;
   -- ENABLE AND FORCE. They are DIFFERENT CATALOG COLUMNS and the data package's own lint rule reads
   -- only the first (RFC-2026-016 §4). Without FORCE the table owner is exempt from every policy,

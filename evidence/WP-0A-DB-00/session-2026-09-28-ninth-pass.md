@@ -12,7 +12,7 @@ PR's branch before the PR merged. **If `main` has moved, `git log` is the truth.
 | Measure | Value |
 |---|---|
 | `main` when this branch was cut | `e276c9a` (merge of PR #161, batch 105) |
-| Merged since the eighth pass | #160 (the eighth-pass record, `5922684`) and #161 (batch 105, `e276c9a`), both pressed by A0 on the Owner's words (#161: `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว`) |
+| Merged since the eighth pass | #160 (the eighth-pass record, `5922684`) and #161 (batch 105, `e276c9a`), both pressed by A0 on the Owner's words (#161: `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว`). **Both merged before RFC-2026-025 was approved, so they carry the caveat every earlier record gave: RFC-2026-002's sentence that the Product Owner merges is not satisfied.** #161's fix commit `f82a70d` (migration 105 and 57 lines of cases, answering its role runs) also merged without re-review (C0's review of batch 123, F2). |
 | This branch | `agent/claude/WP-0A-DB-00-batch-123`: batch 123, RFC-2026-025 (approved), this record |
 | Isolation cases | 977 |
 | Post-migrate pass | 44 blocks, 34 as written, 10 replaced |
@@ -23,7 +23,7 @@ PR's branch before the PR merged. **If `main` has moved, `git log` is the truth.
 See [`product-owner-disposition-2026-09-28-one-page-summary.md`](product-owner-disposition-2026-09-28-one-page-summary.md).
 
 - **Decided:** the summary's items 1, 2, 3 and 5.
-- **Item 4:** RFC-2026-025, written as Proposed and then **approved by the Owner** (`อนุมัติ RFC-2026-025`; [disposition](product-owner-disposition-2026-09-28-rfc-025.md)).
+- **Item 4:** RFC-2026-025, written as Proposed and then **approved by the Owner** (`อนุมัติ RFC-2026-025`), and its §5 amendment approved as well (`อนุมัติ §5 ของ RFC-025`; [disposition](product-owner-disposition-2026-09-28-rfc-025.md)). **§5 item 6 means this PR, which carries the RFC, is merged by the Owner personally.**
 - **Not decided:** sections 2–4 of the summary. A0 is drafting options with recommendations for
   section 2.
 

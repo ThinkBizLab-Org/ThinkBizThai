@@ -5,12 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "e276c9addc4be0c6acde2d3b6509cf555b265028",
-  "head_revision_or_patch_checksum": "5856f0bf3388200ff1742797a0fe86f93cd6e388",
+  "head_revision_or_patch_checksum": "8ba29d0e68703160b0b28603748899cbb81bd61c",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
     "db/foundation/migrations/123_attribution_closures_everywhere.sql",
+    "evidence/WP-0A-DB-00/a1-batch-123-security-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-123-contract-review-2026-09-28.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-one-page-summary.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-rfc-025.md",
+    "evidence/WP-0A-DB-00/q0-batch-123-test-review-2026-09-28.md",
     "evidence/WP-0A-DB-00/session-2026-09-28-ninth-pass.md"
   ],
   "files_modified": [
@@ -40,19 +44,30 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 123 plus RFC-2026-025 (Proposed) and the ninth-pass record, on the Owner's `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว` taking the one-page summary's items 1, 2, 3 and 5 as recommended (disposition 2026-09-28).",
-    "The decided_by remedy is a CHECK pair rather than the restrictive policy A0's summary line named; the disposition records that change of mechanism (A1's own suggested remedy)."
+    "THIS INCREMENT IS BATCH 123 plus RFC-2026-025 and the ninth-pass record, on the Owner's `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว` taking the one-page summary's items 1, 2, 3 and 5 as recommended (disposition 2026-09-28). RFC-2026-025 was approved by the Owner (`อนุมัติ RFC-2026-025`, 10d4a2a) and its §5 amendment too (`อนุมัติ §5 ของ RFC-025`).",
+    "The decided_by remedy at cancellation is a CHECK pair; the disposition records that change of mechanism (A1's own suggested remedy). The corrections after the three role runs on 5856f0b ADD the restrictive closure A1 recommended for decided_by at decision (C0 F6, A1 F3, Q0 F2), so both are now in place.",
+    "The corrections are A0's integration of C0, A1 and Q0 on 5856f0b (a0-batch-123-integration-2026-09-28.md). Under RFC-2026-025 §5 item 2 they are re-verified by role runs before merge; the runs on 5856f0b do not cover them."
   ],
   "acceptance_results": [
     {
       "criterion": "All seventeen updated_by tables carry the exact restrictive UPDATE closure",
       "result": "met",
-      "evidence": "123's block (exact rule) and the closure-text probe (pinned list + live coverage); a looser permissive UPDATE policy on content_items forges without 123 and is refused by 123's policy with it (measured)"
+      "evidence": "123's block (exact rule), the updated_by update closure probe and the closure coverage probe, each with its own self-test drift; every one of the seventeen tables has an rls-smoke case forging updated_by at UPDATE, and dropping a closure beside an open permissive policy fails that table's case (measured on all five tables Q0 F5 named)"
     },
     {
       "criterion": "decided_by cannot be stamped on a cancellation",
       "result": "met",
-      "evidence": "approval_requests_decider_is_a_pair; case editor-a-cannot-cancel-an-approval-request-naming-a-decider (23514) fails without the constraint and passes with it; migrate-clean names 123's block when the constraint is dropped"
+      "evidence": "approval_requests_decider_is_a_pair and 090's approval_requests_decision_has_a_decider, asserted by definition text in 123's block and pinned in the pinned check probe; dropping the pair fails exactly the two pair cases, dropping 090's exactly the whole-stamp case (measured)"
+    },
+    {
+      "criterion": "decided_by at decision is the caller whichever permissive policy admits the row",
+      "result": "met",
+      "evidence": "approval_requests_decided_by_on_update_is_caller, pinned in the decider closure probe; with the decide policy's binding removed (Q0 E19b) it holds, and with both gone the two naming-another-decider cases fail (measured)"
+    },
+    {
+      "criterion": "Every catalog-probe rule is shown able to fail on every migrate-clean",
+      "result": "met",
+      "evidence": "nine probes, one self-test drift per rule (1+1+1+1+1+1+1+2+4), each refused by its own raise; a static test holds drifts equal to raises"
     }
   ],
   "tests": [
@@ -64,28 +79,36 @@
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "44 blocks, 34 as written, 10 replaced; rls-smoke 977 cases ok"
+      "result": "44 blocks, 34 as written, 10 replaced; nine catalog probes, each refused each of its drifts; rls-smoke 986 cases ok"
+    },
+    {
+      "command": "negative controls (private cluster, one drift per run)",
+      "exit_code": 0,
+      "result": "pair dropped: 2 named cases fail; 090 equivalence dropped: 1; decide binding removed: 0 (closure holds); binding and closure removed: 2; per table, closure dropped beside an open permissive policy: that table's new case fails"
     }
   ],
-  "security_privacy_cost_impact": "CLOSES the decided_by forgery at cancellation (A1 F2 / Q0 F1 on 105, MEDIUM) at the database for every path, and removes the looser-permissive-sibling route to updated_by forgery on ten tables (C0 F1 / A1 F1 / Q0 F2 on 105). No grant changes; nothing that works today is refused.",
-  "migration_and_data_impact": "ONE MIGRATION, 123_attribution_closures_everywhere.sql: ten policies and one CHECK on approval_requests. Numbered after 122 because it touches 120's publish_intents; declared in the snapshot's not-applied tail.",
-  "compatibility_impact": "None for correct clients: the ten tables already required updated_by = caller; a request that is cancelled, pending or expired never carried a decider by 090's own intent. Cases 976 -> 977.",
+  "security_privacy_cost_impact": "CLOSES the decided_by forgery at cancellation (A1 F2 / Q0 F1 on 105, MEDIUM) at the database for every path, removes the looser-permissive-sibling route to updated_by forgery on ten tables (C0 F1 / A1 F1 / Q0 F2 on 105), and after the role runs on 5856f0b binds decided_by at decision to the caller by a restrictive closure (Q0 F2, MEDIUM) and pins 090's equivalence the pair leans on (Q0 F1, MEDIUM). No grant changes; nothing that works today is refused.",
+  "migration_and_data_impact": "ONE MIGRATION, 123_attribution_closures_everywhere.sql: eleven policies and one CHECK on approval_requests. Numbered after 122 because it touches 120's publish_intents; declared in the snapshot's not-applied tail. A CHECK added over rows that already violate it fails the migration (Q0 F8): nothing to recover before G0.",
+  "compatibility_impact": "None for correct clients: the ten tables already required updated_by = caller; a request that is cancelled, pending or expired never carried a decider by 090's own intent; a decision already names its caller. A `rejected` case may now name the constraint it proves (`violates`). Cases 976 -> 977 -> 986.",
   "known_limitations": [
-    "created_by at INSERT is still bound only inside permissive policies on seventeen tables (recorded on the survey blocker).",
-    "RFC-2026-025 is Proposed, not approved."
+    "created_by at INSERT is still bound only inside permissive policies on seventeen tables, and most created_by forging cases test updated_by (A1 F5; recorded on the survey blocker).",
+    "decided_at is whatever the decider sends (A1 F4, Q0 F7); the database setting it is the Owner's behaviour change (recorded).",
+    "The rules and probes read schema app and role authenticated only (A1 F6, Q0 F6; the service half is RFC-2026-023's).",
+    "The corrections are not yet re-verified by role runs (RFC-2026-025 §5 item 2)."
   ],
   "open_risks_or_blockers": [
-    "CLOSED: the decided_by blocker. Count 188.",
-    "FOR THE OWNER: RFC-2026-025; the summary's sections 2-4."
+    "CLOSED: the decided_by blocker. Count 188. The name-or-token blocker records what the corrections closed and what the three runs left owed.",
+    "FOR THE OWNER: this PR carries RFC-2026-025, so under its §5 item 6 the Owner merges it personally; decided_at set by the database; the summary's sections 2-4."
   ],
   "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Batch 091 (A0 writes, A5 reviews), planned first.",
-    "created_by at INSERT in 102's shape.",
-    "The forging cases of survey item 3."
+    "Role runs re-verifying the corrections commit (RFC-2026-025 §5 item 2), then the Owner's merge.",
+    "Batch 091 (A0 writes; C0, Q0 and A1 review; the A5 review of the schedule states recorded as owed), drafted and waiting on 123.",
+    "created_by at INSERT in 102's shape."
   ],
   "reviewer_instructions": [
-    "Read 123 and its block; reproduce the two negative controls (drop 123's closure beside a looser permissive policy on content_items; drop the pair constraint).",
+    "Read 123 and its block; reproduce the negative controls: drop the pair; drop 090's approval_requests_decision_has_a_decider; remove decided_by from the decide policy's WITH CHECK with and without dropping 123's decider closure; drop one of the ten updated_by closures beside an open permissive policy.",
+    "Check that each catalog probe has one drift per raise and that each drift is refused by its own rule in the migrate-clean output.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null

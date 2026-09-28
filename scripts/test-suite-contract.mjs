@@ -80,7 +80,7 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // wiring, the coverage of every do-block, and the refusals. 63 to 66. Q0's F1 on that head added a
 // fourth, the verdict driven by synthetic outcomes: 66 to 67. The catalog-rule probes added one
 // more (2026-09-27): 67 to 68, and Q0's F2 on that head a sixth, the probe verdict: 68 to 69. Batch
-// 105's pin test: 69 to 70. Batch 123's pin test: 70 to 71.
+// 105's pin test: 69 to 70. Batch 123's pin test: 70 to 71. Its corrections renamed two and added none.
   'test-kits/db/foundation-contract.test.mjs': 71,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
@@ -88,7 +88,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // because C0 graded the omission a finding: five assertion-bearing tests had been added
 // under a floor that did not move, which is the shape of a floor that stops meaning
 // anything. Both numbers are what the guard itself prints, never a count taken by hand.
-  'tests/db/identity/identity-isolation.test.mjs': 301,
+// Batch 123's corrections: 301 to 302 tests and 2133 to 2141 assertions, the named-constraint test
+// (Q0's test of 123, F4), the guard's own counts.
+  'tests/db/identity/identity-isolation.test.mjs': 302,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -141,9 +143,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // runs' corrections (the verdict test, the self-tests' intent assertions): the guard's own count.
 // 318 with batch 105's pin test, 322 after its role runs' corrections (2026-09-27), the guard's own count.
 // 322 to 330 with batch 123's pin test (2026-09-28), the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 330,
+// 330 to 342 after its role runs' corrections: one self-test per rule, the decider closure and the
+// pinned checks (2026-09-28), the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 342,
   'test-kits/db/rls-assertions.test.mjs': 108,
-  'tests/db/identity/identity-isolation.test.mjs': 2133,
+  'tests/db/identity/identity-isolation.test.mjs': 2141,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -178,9 +182,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'd5c8c4ec39b370ec',
+  'test-kits/db/foundation-contract.test.mjs': '3ddc9162e5a55499',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': 'aff0bae3374bdee5',
+  'tests/db/identity/identity-isolation.test.mjs': '68bcaed3dae11053',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

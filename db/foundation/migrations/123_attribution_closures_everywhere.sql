@@ -1,11 +1,14 @@
--- Batch 123: the updated_by UPDATE closure on all seventeen tables, and decided_by as a pair with decided_at.
+-- Batch 123: the updated_by UPDATE closure on all seventeen tables, decided_by as a pair with decided_at,
+-- and decided_by bound to the caller by a restrictive closure.
 --
 -- NUMBERED 123 BECAUSE IT MUST SORT AFTER THE NEWEST TABLE IT TOUCHES (app.publish_intents, batch 120)
 -- and its closure file 122; a first draft numbered 106 failed on exactly that. A forward fix numbered
 -- inside the range it fixes is the 102-105 precedent.
 --
--- TWO FORWARD FIXES, one batch, both the Product Owner's (2026-09-28, the one-page decision summary
--- items 2 and 3, "ลุยงานทั้งหมด ตามที่คุณแนะนำ"; disposition in evidence/WP-0A-DB-00/).
+-- THREE FORWARD FIXES, one batch. The first two are the Product Owner's (2026-09-28, the one-page
+-- decision summary items 2 and 3, "ลุยงานทั้งหมด ตามที่คุณแนะนำ"; disposition in evidence/WP-0A-DB-00/).
+-- The third is what the three role runs on the first draft found in the same class, folded in under
+-- the same instruction (A0's integration record of 2026-09-28).
 --
 -- 1. THE TEN TABLES BATCH 105 LEFT TO THEIR PERMISSIVE POLICIES. Seventeen app tables grant
 --    `authenticated` UPDATE on updated_by. Batch 105 bound seven of them with a RESTRICTIVE UPDATE
@@ -28,7 +31,18 @@
 --    and migration invariant 1 forbids correcting it in place. A second CHECK makes decided_at and
 --    decided_by a PAIR, so with the first a cancelled, pending or expired row carries neither. It
 --    refuses the forgery at the database for every writer and path, whichever policy admitted the
---    row.
+--    row. 090's equivalence is half of that guarantee, so the block below asserts it by definition
+--    text beside the pair (Q0's test of 123, F1: dropped in a later file, it let a cancellation carry
+--    a whole decision stamp with every layer green).
+--
+-- 3. decided_by AT DECISION (Q0's test of 123, F2; C0's review of 123, F6; A1's, F3). Who decided was
+--    bound only inside the permissive decide policy, `decided_by = (select auth.uid()) and ...`: the
+--    same weakness item 1 closes for updated_by, so a looser sibling policy would let an approver
+--    approve in the owner's name. A RESTRICTIVE UPDATE closure, `decided_by is null or` the caller,
+--    ANDs with whatever admits the row. It refuses nothing that works today: a client can update
+--    only a pending request (both USING halves), a cancellation names no decider (the pair and 090),
+--    and a decision already names its caller. decided_by is in no INSERT grant (090), so no INSERT
+--    closure is needed.
 
 create policy approval_policies_updated_by_on_update_is_caller on app.approval_policies
   as restrictive for update to authenticated
@@ -61,6 +75,15 @@ create policy research_suggestions_updated_by_on_update_is_caller on app.researc
   as restrictive for update to authenticated
   with check (updated_by = (select auth.uid()));
 
+create policy approval_requests_decided_by_on_update_is_caller on app.approval_requests
+  as restrictive for update to authenticated
+  with check (decided_by is null or decided_by = (select auth.uid()));
+
+comment on policy approval_requests_decided_by_on_update_is_caller on app.approval_requests is
+  'Batch 123: a client UPDATE names no decider or names its caller, whichever permissive policy '
+  'admitted the row. The decide policy already requires the caller; this is the closure no sibling '
+  'policy can widen (Q0''s test of 123, F2).';
+
 alter table app.approval_requests
   add constraint approval_requests_decider_is_a_pair
     check ((decided_at is null) = (decided_by is null));
@@ -73,7 +96,6 @@ comment on constraint approval_requests_decider_is_a_pair on app.approval_reques
 do $$
 declare
   offending text;
-  count_of  integer;
 begin
   -- THE GENERAL RULE, NOW EXACT. Every app table where authenticated holds UPDATE on updated_by must
   -- carry `<table>_updated_by_on_update_is_caller`: RESTRICTIVE, UPDATE, TO authenticated alone, no
@@ -100,13 +122,10 @@ begin
                    'or keep updated_by out of the UPDATE grant.';
   end if;
 
-  -- The seventeen, counted, so a table that silently stops granting the column is noticed too.
-  select count(*) into count_of
-    from pg_catalog.pg_policy pol
-   where pol.polname like '%\_updated\_by\_on\_update\_is\_caller' escape '\';
-  if count_of <> 17 then
-    raise exception 'there are % updated_by UPDATE closures by name; 105 wrote seven and 123 ten', count_of;
-  end if;
+  -- NO FIXED COUNT. A first draft also required exactly seventeen closures by name; planning batch
+  -- 091 showed that any later table granting updated_by would fail that count at apply time, when
+  -- the rule above already requires the closure on every such table. The probe's pinned list is
+  -- where a count is kept, and it is edited with each new table.
 
   -- THE PAIR, by definition text.
   if not exists (
@@ -115,5 +134,26 @@ begin
           and con.conname = 'approval_requests_decider_is_a_pair' and con.convalidated
           and pg_catalog.pg_get_constraintdef(con.oid) = 'CHECK (((decided_at IS NULL) = (decided_by IS NULL)))') then
     raise exception 'batch 123''s approval_requests_decider_is_a_pair is missing, unvalidated or not in its required shape';
+  end if;
+
+  -- AND 090's EQUIVALENCE, which the pair only completes (Q0's test of 123, F1). Without it the pair
+  -- admits a cancellation carrying both columns, so it is asserted here beside the pair, by text.
+  if not exists (
+       select 1 from pg_catalog.pg_constraint con
+        where con.conrelid = 'app.approval_requests'::regclass and con.contype = 'c'
+          and con.conname = 'approval_requests_decision_has_a_decider' and con.convalidated
+          and pg_catalog.pg_get_constraintdef(con.oid) = 'CHECK (((status = ANY (ARRAY[''approved''::text, ''changes_requested''::text])) = ((decided_at IS NOT NULL) AND (decided_by IS NOT NULL))))') then
+    raise exception 'batch 090''s approval_requests_decision_has_a_decider, which batch 123''s pair completes, is missing, unvalidated or not in its required shape';
+  end if;
+
+  -- THE DECIDER CLOSURE (item 3), in its exact shape.
+  if not exists (
+       select 1 from pg_catalog.pg_policy pol
+        where pol.polrelid = 'app.approval_requests'::regclass
+          and pol.polname = 'approval_requests_decided_by_on_update_is_caller'
+          and not pol.polpermissive and pol.polcmd = 'w' and pol.polqual is null
+          and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
+          and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = '((decided_by IS NULL) OR (decided_by = ( SELECT auth.uid() AS uid)))') then
+    raise exception 'batch 123''s approval_requests_decided_by_on_update_is_caller is missing or not in its required shape';
   end if;
 end $$;

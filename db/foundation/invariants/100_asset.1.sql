@@ -31,7 +31,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.asset_rights'::regclass and not pol.polpermissive)
      is distinct from array['asset_rights_scope_narrows_member', 'asset_rights_service_path_closed', 'asset_rights_updated_by_is_caller', 'asset_rights_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.asset_rights restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102 added';
+    raise exception 'app.asset_rights restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.asset_versions'::regclass and not pol.polpermissive)
@@ -41,7 +41,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.assets'::regclass and not pol.polpermissive)
      is distinct from array['assets_scope_narrows_member', 'assets_service_path_closed', 'assets_updated_by_is_caller', 'assets_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.assets restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102 added';
+    raise exception 'app.assets restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_asset_links'::regclass and not pol.polpermissive)

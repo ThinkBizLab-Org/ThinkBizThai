@@ -144,12 +144,12 @@ begin
      and not (format('%s.%s', c.conrelid::regclass, c.conname) = any (exempt));
   if offending is not null then
     raise exception 'foreign key(s) with an action, deferrable or NOT VALID, and no named exemption: %', offending;
-  end if;
+  end if;${Object.keys(FK_ACTION_EXEMPTIONS).length === 0 ? '' : `
   select string_agg(e, ', ' order by e) into offending from unnest(exempt) e
    where not exists (select 1 from pg_catalog.pg_constraint c where format('%s.%s', c.conrelid::regclass, c.conname) = e and c.contype = 'f');
   if offending is not null then
     raise exception 'exempted foreign key(s) do not exist: %', offending;
-  end if;
+  end if;`}
 end \$\$;
 `;
 
@@ -192,12 +192,30 @@ const closureRule = (suffix, tables, text, cmd = 'a') => `
   if offending is not null then
     raise exception '${suffix} closure(s) not in their pinned shape (restrictive, ${cmd === 'a' ? 'INSERT' : 'UPDATE'}, TO authenticated, no USING, WITH CHECK exactly ${text.replace(/'/g, "''")}) on their pinned tables: %', offending;
   end if;`;
-export const CLOSURE_TEXT_PROBE_SQL = `do \$\$
+// ONE RULE PER PROBE, so each has its own self-test drift (Q0's test of 123, F3: three rules in one
+// probe with one drift left two of them live but never shown able to fail).
+const closureProbe = (rule) => `do \$\$
 declare
   offending text;
-begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT)}${closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT)}${closureRule('updated_by_on_update_is_caller', UPDATED_BY_ON_UPDATE_CLOSURES, UPDATED_BY_ON_UPDATE_CHECK_TEXT, 'w')}
-  -- COVERAGE, live (Q0's test of 105, F3: nothing proved the general rule could fire). A table that
-  -- grants authenticated UPDATE on updated_by and is not in the pinned list fails here by name.
+begin${rule}
+end \$\$;
+`;
+export const UPDATED_BY_CLOSURE_PROBE_SQL = closureProbe(closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT));
+export const REQUESTER_CLOSURE_PROBE_SQL = closureProbe(closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT));
+export const UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL = closureProbe(closureRule('updated_by_on_update_is_caller', UPDATED_BY_ON_UPDATE_CLOSURES, UPDATED_BY_ON_UPDATE_CHECK_TEXT, 'w'));
+// Batch 123's decider closure: who decided is the caller, whichever permissive policy admitted the row.
+export const DECIDER_CLOSURES = ['approval_requests'];
+export const DECIDER_CHECK_TEXT = '((decided_by IS NULL) OR (decided_by = ( SELECT auth.uid() AS uid)))';
+export const DECIDER_CLOSURE_PROBE_SQL = closureProbe(closureRule('decided_by_on_update_is_caller', DECIDER_CLOSURES, DECIDER_CHECK_TEXT, 'w'));
+
+// 2b. COVERAGE of the updated_by UPDATE closures, as its own probe so it has its own self-test drift
+// (Q0's test of 105, F3; C0's review of 123, F5: folded into the closure probe, it could be silenced
+// with `and false` while the closure probe's drift still passed). A table that grants authenticated
+// UPDATE on updated_by and is not in UPDATED_BY_ON_UPDATE_CLOSURES fails by name.
+export const CLOSURE_COVERAGE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
   select string_agg(format('app.%s', c.relname), ', ' order by c.relname) into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -207,6 +225,31 @@ begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK
      and not (c.relname = any (array[${UPDATED_BY_ON_UPDATE_CLOSURES.map((t) => `'${t}'`).join(', ')}]));
   if offending is not null then
     raise exception 'updated_by is client-updatable on table(s) with no pinned UPDATE closure: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2c. The CHECK constraints the attribution closures lean on, by EXACT definition text: 090's
+// equivalence and 123's pair together are what make a cancelled, pending or expired request name no
+// decider. Q0's test of 123 dropped or weakened either in a later file (E20, E20b, G06b+E08) and every
+// layer stayed green, because only the batches' own apply-time blocks read them.
+export const PINNED_CHECKS = {
+  'approval_requests.approval_requests_decision_has_a_decider': "CHECK (((status = ANY (ARRAY['approved'::text, 'changes_requested'::text])) = ((decided_at IS NOT NULL) AND (decided_by IS NOT NULL))))",
+  'approval_requests.approval_requests_decider_is_a_pair': 'CHECK (((decided_at IS NULL) = (decided_by IS NULL)))',
+};
+export const PINNED_CHECK_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(pin.k, ', ' order by pin.k) into offending
+    from (values ${Object.entries(PINNED_CHECKS).map(([k, def]) => `('${k}', '${def.replace(/'/g, "''")}')`).join(', ')}) as pin(k, def)
+   where not exists (
+     select 1 from pg_catalog.pg_constraint con
+      where con.conrelid = to_regclass('app.' || split_part(pin.k, '.', 1)) and con.contype = 'c'
+        and con.conname = split_part(pin.k, '.', 2) and con.convalidated
+        and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
+  if offending is not null then
+    raise exception 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text: %', offending;
   end if;
 end \$\$;
 `;
@@ -315,36 +358,80 @@ begin
   end if;
 end \$\$;
 `;
-// Each probe carries a DRIFT it must catch and the start of the raise it must catch it with. On every
-// migrate-clean the probe runs twice, each time in a transaction that is rolled back: once on the
-// database as built, where it must pass, and once after its drift, where it must fail with its own
-// raise (P0001). So a probe that has been silenced, skipped or emptied fails the target, whatever its
-// text says: Q0's test of the first version found eleven edits to the probes and their loop that
-// passed every regex over this file (Q0 F2, the same class as its F1 on the post-migrate pass).
+// Each probe carries a DRIFT for EACH RULE it states, and the start of the raise that rule must answer
+// it with. On every migrate-clean the probe runs once on the database as built, where it must pass,
+// and once after each drift, where it must fail with that rule's own raise (P0001), each run in a
+// transaction that is rolled back. So a rule that has been silenced, skipped or emptied fails the
+// target, whatever its text says: Q0's test of the first version found eleven edits to the probes and
+// their loop that passed every regex over this file (Q0 F2, the same class as its F1 on the
+// post-migrate pass), and Q0's test of 123 found rules that ran live beside a drift that never reached
+// them (F3), which is why a probe now has exactly as many drifts as raises.
 export const CATALOG_RULE_PROBES = [
   { label: 'fk action probe', sql: FK_ACTION_PROBE_SQL,
     claim: `every foreign key is NO ACTION on delete and update, not deferrable and validated, ${Object.keys(FK_ACTION_EXEMPTIONS).length} exempt by name`,
-    drift: 'alter table app.content_targets drop constraint content_targets_social_scope_fk; alter table app.content_targets add constraint content_targets_social_scope_fk foreign key (workspace_id, social_account_id) references app.social_accounts (workspace_id, id) on update cascade;',
-    raises: 'foreign key(s) with an action, deferrable or NOT VALID' },
-  { label: 'closure text probe', sql: CLOSURE_TEXT_PROBE_SQL,
-    claim: `${UPDATED_BY_CLOSURES.length} updated_by INSERT, ${UPDATED_BY_ON_UPDATE_CLOSURES.length} updated_by UPDATE and ${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
-    drift: 'alter policy knowledge_items_updated_by_is_caller on app.knowledge_items with check (true);',
-    raises: 'updated_by_is_caller closure(s) not in their pinned shape' },
+    selfTests: [
+      { drift: 'alter table app.content_targets drop constraint content_targets_social_scope_fk; alter table app.content_targets add constraint content_targets_social_scope_fk foreign key (workspace_id, social_account_id) references app.social_accounts (workspace_id, id) on update cascade;',
+        raises: 'foreign key(s) with an action, deferrable or NOT VALID' },
+      // The stale-exemption rule is written only when an exemption exists, and so is its drift.
+      ...Object.keys(FK_ACTION_EXEMPTIONS).slice(0, 1).map((k) => ({
+        drift: `alter table ${k.split('.').slice(0, 2).join('.')} drop constraint ${k.split('.')[2]};`,
+        raises: 'exempted foreign key(s) do not exist' })),
+    ] },
+  { label: 'updated_by insert closure probe', sql: UPDATED_BY_CLOSURE_PROBE_SQL,
+    claim: `${UPDATED_BY_CLOSURES.length} updated_by INSERT closures in their exact text on their pinned tables`,
+    selfTests: [{ drift: 'alter policy knowledge_items_updated_by_is_caller on app.knowledge_items with check (true);',
+      raises: 'updated_by_is_caller closure(s) not in their pinned shape' }] },
+  { label: 'requester closure probe', sql: REQUESTER_CLOSURE_PROBE_SQL,
+    claim: `${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
+    selfTests: [{ drift: 'alter policy publish_intents_requester_is_caller on app.publish_intents with check (true);',
+      raises: 'requester_is_caller closure(s) not in their pinned shape' }] },
+  { label: 'updated_by update closure probe', sql: UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL,
+    claim: `${UPDATED_BY_ON_UPDATE_CLOSURES.length} updated_by UPDATE closures in their exact text on their pinned tables`,
+    selfTests: [{ drift: 'alter policy content_items_updated_by_on_update_is_caller on app.content_items with check (true);',
+      raises: 'updated_by_on_update_is_caller closure(s) not in their pinned shape' }] },
+  { label: 'decider closure probe', sql: DECIDER_CLOSURE_PROBE_SQL,
+    claim: `${DECIDER_CLOSURES.length} decided_by UPDATE closure in its exact text on its pinned table`,
+    selfTests: [{ drift: 'alter policy approval_requests_decided_by_on_update_is_caller on app.approval_requests with check (true);',
+      raises: 'decided_by_on_update_is_caller closure(s) not in their pinned shape' }] },
+  { label: 'closure coverage probe', sql: CLOSURE_COVERAGE_PROBE_SQL,
+    claim: `every table granting authenticated UPDATE on updated_by is among the ${UPDATED_BY_ON_UPDATE_CLOSURES.length} with a pinned closure`,
+    selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
+      raises: 'updated_by is client-updatable on table(s) with no pinned UPDATE closure' }] },
+  { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
+    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text`,
+    selfTests: [{ drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
+      raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text' }] },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
     claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC`,
-    drift: 'alter function private.set_updated_at() reset search_path;',
-    raises: 'SECURITY DEFINER function(s) not in their pinned shape' },
+    selfTests: [
+      { drift: 'alter function private.set_updated_at() reset search_path;',
+        raises: 'SECURITY DEFINER function(s) not in their pinned shape' },
+      // No longer a definer, so the first rule does not see it and only the second can.
+      { drift: 'alter function private.set_updated_at() security invoker;',
+        raises: 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER' },
+    ] },
   { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
     claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, and the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children`,
-    drift: 'alter table app.security_events disable trigger refuse_mutation;',
-    raises: 'trigger(s) not enabled' },
+    // Each drift leaves the rules before its own intact, since the first raise ends the block.
+    selfTests: [
+      { drift: 'alter table app.security_events disable trigger refuse_mutation;',
+        raises: 'trigger(s) not enabled' },
+      { drift: 'drop trigger refuse_truncate on app.audit_logs;',
+        raises: 'the private.refuse_mutation triggers are not exactly the four pinned definitions' },
+      { drift: "alter role authenticated set session_replication_role = 'replica';",
+        raises: 'session_replication_role is set as a default for' },
+      { drift: 'create table app.probe_child_of_security_events () inherits (app.security_events);',
+        raises: 'append-only table(s) partitioned, inherited from or inheriting' },
+    ] },
 ];
 
 export function catalogProbeJobs(probes) {
   const jobs = [];
   for (const probe of probes) {
     jobs.push({ label: probe.label, kind: 'as built', sql: probe.sql });
-    jobs.push({ label: probe.label, kind: 'after its drift', sql: `${probe.drift}\n${probe.sql}` });
+    (probe.selfTests ?? []).forEach(({ drift, raises }, i) => {
+      jobs.push({ label: probe.label, kind: `after drift ${i + 1}`, sql: `${drift}\n${probe.sql}`, raises });
+    });
   }
   return jobs;
 }
@@ -353,6 +440,9 @@ export function catalogProbeJobs(probes) {
 // counts only if it ran exactly the script the job names.
 export function decideCatalogProbes(probes, outcomes) {
   const failures = [];
+  for (const probe of probes) {
+    if (!probe.selfTests?.length) failures.push(`${probe.label}: carries no self-test drift; a probe that cannot be shown to fail asserts nothing`);
+  }
   const expected = catalogProbeJobs(probes);
   if (outcomes.length !== expected.length) failures.push(`${expected.length} probe run(s) were due and ${outcomes.length} came back`);
   for (const job of expected) {
@@ -361,14 +451,11 @@ export function decideCatalogProbes(probes, outcomes) {
     const error = got.result.error;
     if (job.kind === 'as built') {
       if (error) failures.push(`${job.label}: ${error.message} (${error.code ?? 'no code'})`);
-    } else {
-      const probe = probes.find((p) => p.label === job.label);
-      if (!error || error.code !== 'P0001' || !String(error.message).startsWith(probe.raises)) {
-        failures.push(`${job.label}: its self-test drift ${error ? `failed with ${error.code ?? 'no code'}: ${error.message}` : 'passed'} -- the probe must refuse it with P0001 beginning "${probe.raises}"; a probe that cannot fail asserts nothing`);
-      }
+    } else if (!error || error.code !== 'P0001' || !String(error.message).startsWith(job.raises)) {
+      failures.push(`${job.label}: its self-test ${job.kind} ${error ? `failed with ${error.code ?? 'no code'}: ${error.message}` : 'passed'} -- the probe must refuse it with P0001 beginning "${job.raises}"; a rule that cannot fail asserts nothing`);
     }
   }
-  return { ok: failures.length === 0, failures, claims: probes.map((p) => `${p.label}: ${p.claim} (self-test: refused its drift)`) };
+  return { ok: failures.length === 0, failures, claims: probes.map((p) => `${p.label}: ${p.claim} (self-test: refused ${p.selfTests?.length === 1 ? 'its drift' : `each of its ${p.selfTests?.length ?? 0} drifts`})`) };
 }
 
 // THE POST-MIGRATE ASSERTION PASS. Most batches end with a `do $$` block asserting what they built

@@ -35,7 +35,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.publish_intents'::regclass and not pol.polpermissive)
      is distinct from array['publish_intents_requester_is_caller', 'publish_intents_scope_narrowing', 'publish_intents_service_path_closed', 'publish_intents_updated_by_is_caller', 'publish_intents_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.publish_intents restrictive policies are not exactly batch 120''s narrowing and the ones 122 added';
+    raise exception 'app.publish_intents restrictive policies are not exactly batch 120''s narrowing and the ones 122, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.publish_jobs'::regclass and not pol.polpermissive)

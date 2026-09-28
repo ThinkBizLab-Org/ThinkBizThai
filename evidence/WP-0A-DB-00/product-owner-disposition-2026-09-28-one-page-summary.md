@@ -21,7 +21,7 @@ The Owner answered:
 |---|---|---|
 | 1. Merge PR #161 | merge as is | **done**: merged `e276c9a` by A0, on these words, head `5dd2595` pinned, CI green |
 | 2. The seventeen-table extension | do it | **batch 123** (renumbered from a draft 106, which could not sort before 120's tables) |
-| 3. decided_by at cancellation | MEDIUM; a restrictive closure that a cancellation names no decider | **batch 123**, with the remedy A1 named ("split the constraint per column") rather than a policy, as a CHECK: `approval_requests_decider_is_a_pair`. This refuses the forgery at the database for every writer and path. A0 is recording the change of mechanism here, not hiding it |
+| 3. decided_by at cancellation | MEDIUM; a restrictive closure that a cancellation names no decider | **batch 123**, as a CHECK, `approval_requests_decider_is_a_pair`, rather than the restrictive policy the summary line named. A1's remedy 1 reads, verbatim, "Split the CHECK so that each column is tied to the status on its own". A0's CHECK, together with 090's equivalence, is logically the same (C0 confirmed it on 5856f0b) and is **stronger than what the Owner saw**, because it binds every writer and path, not only the cancel policy. A0 is recording the change of mechanism here, not hiding it |
 | 4. Merge authority | amend RFC-2026-002 | **RFC-2026-025 written as Proposed.** Approving a governance rule is the Owner's own act, and the Owner has not seen its text |
 | 5. Batch 091 | A0 writes, A5 reviews | taken; A0 will plan it after 123 |
 | §2 product decisions | no recommendation on most | **not decided by these words.** A0 is drafting options with recommendations so the Owner can answer them in one pass |

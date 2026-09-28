@@ -31,7 +31,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_runs'::regclass and not pol.polpermissive)
      is distinct from array['research_runs_scope_narrows_member', 'research_runs_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.research_runs restrictive policies are not exactly batch 070''s narrowing and the ones no later file added';
+    raise exception 'app.research_runs restrictive policies are not exactly batch 070''s narrowing and the ones 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_sources'::regclass and not pol.polpermissive)
@@ -41,7 +41,7 @@ begin
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.research_suggestions'::regclass and not pol.polpermissive)
      is distinct from array['research_suggestions_scope_narrows_member', 'research_suggestions_service_path_closed', 'research_suggestions_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
-    raise exception 'app.research_suggestions restrictive policies are not exactly batch 070''s narrowing and the ones 071 added';
+    raise exception 'app.research_suggestions restrictive policies are not exactly batch 070''s narrowing and the ones 071, 123 added';
   end if;
   -- ENABLE and FORCE on all five. The two are DIFFERENT CATALOG COLUMNS and the data package's own
   -- lint rule reads only the first (RFC-2026-016 §4). On app.research_snapshots, which carries no
