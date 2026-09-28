@@ -1,4 +1,4 @@
-# Session record, 2026-09-28, ninth pass: #161 merged, batch 123 built, RFC-2026-025 proposed
+# Session record, 2026-09-28, ninth pass: #161 merged, batch 123 built, RFC-2026-025 approved
 
 Author run: `/claude/a0_atlas` (Anthropic). Package: `WP-0A-DB-00`. This file is a STATE RECORD and
 approves nothing. It supersedes [`session-2026-09-27-eighth-pass.md`](session-2026-09-27-eighth-pass.md)
@@ -13,7 +13,7 @@ PR's branch before the PR merged. **If `main` has moved, `git log` is the truth.
 |---|---|
 | `main` when this branch was cut | `e276c9a` (merge of PR #161, batch 105) |
 | Merged since the eighth pass | #160 (the eighth-pass record, `5922684`) and #161 (batch 105, `e276c9a`), both pressed by A0 on the Owner's words (#161: `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว`) |
-| This branch | `agent/claude/WP-0A-DB-00-batch-123`: batch 123, RFC-2026-025 (Proposed), this record |
+| This branch | `agent/claude/WP-0A-DB-00-batch-123`: batch 123, RFC-2026-025 (approved), this record |
 | Isolation cases | 977 |
 | Post-migrate pass | 44 blocks, 34 as written, 10 replaced |
 | `open_blockers` | 188 |
@@ -23,7 +23,7 @@ PR's branch before the PR merged. **If `main` has moved, `git log` is the truth.
 See [`product-owner-disposition-2026-09-28-one-page-summary.md`](product-owner-disposition-2026-09-28-one-page-summary.md).
 
 - **Decided:** the summary's items 1, 2, 3 and 5.
-- **Written for the Owner, not decided:** item 4, as RFC-2026-025.
+- **Item 4:** RFC-2026-025, written as Proposed and then **approved by the Owner** (`อนุมัติ RFC-2026-025`; [disposition](product-owner-disposition-2026-09-28-rfc-025.md)).
 - **Not decided:** sections 2–4 of the summary. A0 is drafting options with recommendations for
   section 2.
 
@@ -43,7 +43,6 @@ See [`product-owner-disposition-2026-09-28-one-page-summary.md`](product-owner-d
 ## 4. Owed, in order
 
 1. **The Owner:**
-   - RFC-2026-025;
    - the product decisions in the summary's section 2, which A0 is drafting as options;
    - the external actions in section 3;
    - the governance items in section 4.

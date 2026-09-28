@@ -33,7 +33,7 @@
     "architecture/decisions/RFC-2026-022-service-policy-shape.md": "b37643b2edd1ac869f00ed108992d57e4593d9d34a2f3bbc62e6445cc71e7d83",
     "architecture/decisions/RFC-2026-023-acting-user-narrowing.md": "537689c28ce4df851df2b6bafc8417d44ba6bcbae3c116788787e84afacff5cd",
     "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md": "7b64864cab111a5ddbf6d9c34b4cb71c6241a6e2a6ecb39054455979ac5cb0f6",
-    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "6f15c351198a8d3e141901e033cbc534cfa4003a5365b61c68dd89097f323c00",
+    "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "6c463630821ef7940fc8f8c2b3b4015a6c687005bacdfb9368cc6a0cb3235a88",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
     "docs/sprint-0a/sprint-0a-decision-register-contract-catalog-th.md": "0a7656abb31f25ba5107cf304951b6fbaefca67bb607415250ea3a4d400056c4",

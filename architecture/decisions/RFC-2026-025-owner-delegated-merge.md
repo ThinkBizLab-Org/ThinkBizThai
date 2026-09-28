@@ -1,9 +1,6 @@
 # RFC-2026-025: the Owner may delegate the merge button to the Author, and record-only PRs need no role runs
 
-Status: **Proposed.** It awaits the Product Owner's disposition. A0 wrote it on the Owner's instruction of
-2026-09-28 (`คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว`), which took A0's recommendation to
-"amend RFC-2026-002 so it is clear". **The Owner has not seen this text.** An approval of a governance rule is
-the Owner's own act and is not inferred from an instruction that preceded the text.
+Status: **Approved 2026-09-28 by the Product Owner.** The answer was `อนุมัติ RFC-2026-025` (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-rfc-025.md`). It was given after A0 summarised this RFC in session as "the merge button may be delegated to A0 under conditions, and a PR that only changes records needs no role runs". The approved text is this file as committed at `5856f0b`. A0 wrote it on the Owner's instruction of the same day (`คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว`). A change that NARROWS the delegation (a tightening a role run recommends) may be applied and reported to the Owner. A change that widens it needs the Owner again.
 Date: 2026-09-28
 Author: `/claude/a0_atlas` (A0 Integration / DB-00)
 Amends: `RFC-2026-002` (temporary manual merge control), clause "the Product Owner may perform the final manual merge"
@@ -58,8 +55,8 @@ included three role runs of about 200k tokens each. None of them changed schema,
 - The Integration Owner's ownership of `.github/workflows/ci.yml`.
 - The requirement that a stop-the-line finding halts a merge.
 
-## 4. For the Owner
+## 4. In effect
 
-Approve, amend or refuse. If approved, the state-record caveat stops, and records say "merged by
-delegation under RFC-2026-025". If refused, the Owner presses merges, and A0 prepares each PR up to the
-button.
+From its approval, state records stop saying that RFC-2026-002's literal sentence is "not satisfied" for a
+delegated merge that meets §2. They say "merged by delegation under RFC-2026-025" and quote the delegation.
+Merges before the approval keep the caveat their own records gave them.
