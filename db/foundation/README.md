@@ -333,9 +333,11 @@ it silently:
    pinned string, on the pinned tables. So is every `*_updated_by_on_update_is_caller` policy
    (batches 105 and 123: restrictive, UPDATE, TO authenticated, no USING), on all seventeen tables
    that grant `authenticated` UPDATE on `updated_by`. A batch that adds a closure adds its table to
-   `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. **A table that
+   `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. **An `app` table that
    grants UPDATE on `updated_by` without the closure fails twice:** once in the probe, which reads
-   the grant live, and once in batch 123's block, which requires the exact closure.
+   the grant live, and once in batch 123's block, which requires the exact closure. Both read schema `app`
+   and role `authenticated` only: a table in `public`, or a policy for another role, is seen by neither
+   (A1's review of batch 123, F6; recorded as owed).
 
    105's first general rule only checked that some policy *contained* the binding, so a looser
    permissive sibling could reopen the forgery. 123 closed that: a restrictive policy ANDs with
@@ -359,7 +361,9 @@ it silently:
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
    another table.
 
-**Every rule is shown able to fail on every run.** Each probe carries one self-test drift per rule
+**Every catalog-rule probe's rules are shown able to fail on every run.** (The FK-support probe that
+runs before them has no self-test yet; C0's re-verification of batch 123, F6, recorded as owed.) Each
+probe carries one self-test drift per rule
 (`selfTests` in `CATALOG_RULE_PROBES`). The probe must pass on the database as built, and after each
 drift it must fail with that rule's own raise, in a transaction that is rolled back. A static test
 holds the number of drifts equal to the number of raises, so a rule added without its drift fails

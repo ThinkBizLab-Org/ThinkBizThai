@@ -85,3 +85,48 @@ The counts after the corrections:
   independent run.
 - The static suite ran on the branch name, so the handoff guard ran. CI has not been observed on
   this head.
+
+## 5. The re-verification round, 2026-09-28 (RFC-2026-025 §5 item 2)
+
+C0, A1 and Q0 re-verified the corrections at `f2c1a54`. Their files were cherry-picked with `-x`:
+`a00fed2` (C0), `7646324` (A1) and `741001f` (Q0). All three say that **nothing should block the
+Owner's merge**, and none found a stop-the-line. Each reproduced §2's negative controls
+independently. CI run `36387036665` on #162 at `f2c1a54` is green.
+
+What they found is recorded, not fixed, in this PR. **None of it is live on the clean set. Each item
+needs a later edit to become a forgery.**
+
+- **Recorded on blocker 186, with each reviewer's grade:**
+  - A settled decision can be taken over (A1 N1, LOW; C0 F2, LOW). The Owner may read this as
+    MEDIUM, because it is the approval gate.
+  - The probe executor is pinned by nothing but a regex (Q0 F1, LOW).
+  - The drifts-equal-raises guard reads only one spelling of a raise (Q0 F2, LOW; C0 F5, INFO).
+  - A drift can commit itself (Q0 F3, LOW; A1 N5, NOTE).
+  - The `content_items` forging case runs as the editor, not the owner (Q0 F4, LOW).
+  - `violates` is not wired through `runOne` in any test (Q0 F5, LOW).
+  - The FK-support probe has no self-test (C0 F6, INFO).
+  - Two NOTEs from A1: the `*_by` coverage (N3), and the command-path binding (N2).
+- **Two new blockers:**
+  - No Integration Owner evidence exists for this package (C0 F4). Until this entry, nothing recorded
+    that gap except RFC §5 item 3's own sentence.
+  - What RFC-2026-025 §5 leaves open, for the Owner (C0 F1 MEDIUM, C0 F3 LOW, A1 N6 LOW). Any change
+    to the RFC's text needs the Owner.
+- **Done here, because it is prose A0 owns:**
+  - The README now says the closure rules cover only `app` tables and role `authenticated` (A1 F6's
+    wording, which C0 listed as not adopted).
+  - It also says the FK-support probe has no self-test.
+- **C0 F8 (INFO).** The corrections commit's message does not mention the one pre-existing case it
+  changed. That case is disclosed in §2 of this record, and C0 found the change honest.
+
+**A0's recommendation.** Merge #162 as it stands, then write one small forward fix at once:
+
+- the settled-decision closure `using (status = 'pending') with check (true)`, which C0 measured
+  passing all 986 cases, together with an owner-run redecide case;
+- the probe-executor pins (Q0 F1–F3);
+- an owner-actor forging case on `content_items` (Q0 F4);
+- a `runOne` test for `violates` (Q0 F5);
+- a self-test for the FK-support probe (C0 F6).
+
+Fixing these inside #162 would start another re-verification round on a PR whose live forgeries are
+already closed. Until the Owner decides the RFC-2026-025 points on the new blocker, A0 treats no merge
+as delegated and asks the Owner to press each one.
