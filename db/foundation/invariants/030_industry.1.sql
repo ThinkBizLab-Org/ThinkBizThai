@@ -103,10 +103,11 @@ begin
   -- scope admits OR their membership admits, which is what the SELECT policy already does — and
   -- §12.6/2 would silently stop being implemented on this table. polpermissive is the one catalog
   -- column that tells the two apart.
-  -- SUPERSEDED BY 031 AND 102. Batch 030 wrote one restrictive policy here; 031 added
-  -- `industry_assignments_service_path_closed` and 102 added `industry_assignments_updated_by_is_caller`,
-  -- both restrictive and both asserted by their own batches' blocks, which this pass also re-runs.
-  -- The final-state form pins the whole set by name, so a fourth restrictive policy still fails here
+  -- SUPERSEDED BY 031, 102 AND 105. Batch 030 wrote one restrictive policy here; 031 added
+  -- `industry_assignments_service_path_closed`, 102 added `industry_assignments_updated_by_is_caller`
+  -- and 105 added `industry_assignments_updated_by_on_update_is_caller`,
+  -- all three restrictive and each asserted by its own batch's block, which this pass also re-runs.
+  -- The final-state form pins the whole set by name, so a fifth restrictive policy still fails here
   -- exactly as a second one failed 030's original, and 030's own policy is still counted as one.
   if (select array_agg(pol.polname::text order by pol.polname)
         from pg_catalog.pg_policy pol
@@ -115,8 +116,9 @@ begin
        where n.nspname = 'app' and c.relname = 'industry_assignments' and not pol.polpermissive)
      is distinct from array['industry_assignments_scope_narrows_member',
                             'industry_assignments_service_path_closed',
-                            'industry_assignments_updated_by_is_caller'] then
-    raise exception 'app.industry_assignments restrictive policies are not exactly 030''s narrowing, 031''s closure and 102''s updated_by closure';
+                            'industry_assignments_updated_by_is_caller',
+                            'industry_assignments_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 105: its UPDATE closure
+    raise exception 'app.industry_assignments restrictive policies are not exactly 030''s narrowing, 031''s closure and 102''s and 105''s updated_by closures';
   end if;
   select count(*) into count_of
     from pg_catalog.pg_policy pol
@@ -125,7 +127,8 @@ begin
    where n.nspname = 'app'
      and c.relname = 'industry_assignments'
      and not pol.polpermissive
-     and pol.polname not in ('industry_assignments_service_path_closed', 'industry_assignments_updated_by_is_caller');
+     and pol.polname not in ('industry_assignments_service_path_closed', 'industry_assignments_updated_by_is_caller',
+                             'industry_assignments_updated_by_on_update_is_caller');  -- SUPERSEDED BY 105: its UPDATE closure
   if count_of <> 1 then
     raise exception 'app.industry_assignments carries % restrictive policies and batch 030 writes exactly one', count_of
       using hint = 'The member-scope narrowing is the only thing on this table that must AND rather '

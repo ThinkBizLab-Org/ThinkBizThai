@@ -2592,9 +2592,15 @@ export function buildCases(id) {
     params: [workspace, business, item, createdBy],
   });
 
-  const renameKnowledge = (item, to) => ({
-    sql: 'update app.knowledge_items set name = $2 where id = $1 returning id',
-    params: [item, to],
+  // BATCH 105: a rename names its caller as updated_by. The restrictive UPDATE closure refuses any
+  // other value, NULL included, so a rename that left the column alone is refused wherever the row's
+  // last updater was somebody else -- which is the forgery 105 closes, seen from the honest side.
+  // An identity with no JWT subject (the service) passes one explicitly. The service HOLDS UPDATE on
+  // the column and is filtered by row level security, as its case's `why` says; the value named is
+  // never the thing that decides its case (C0's review of 105, F2).
+  const renameKnowledge = (item, to, updatedBy = '__SELF__') => ({
+    sql: 'update app.knowledge_items set name = $2, updated_by = $3 where id = $1 returning id',
+    params: [item, to, updatedBy],
   });
 
   // Archiving is an UPDATE of the typed lifecycle field §8.2 names in the operation itself
@@ -4606,8 +4612,9 @@ export function buildCases(id) {
       id: 'editor-a-can-update-business-a1-in-scope',
       covers: ['§8.1/editor-P', '§8.6/1'],
       as: editorA,
-      sql: 'update app.business_profiles set name = $2 where id = $1 returning id',
-      params: [BUSINESS_A1, 'renamed by the editor scoped to it'],
+      // BATCH 105: every client UPDATE names its caller as updated_by, as ten tables already required.
+      sql: 'update app.business_profiles set name = $2, updated_by = $3 where id = $1 returning id',
+      params: [BUSINESS_A1, 'renamed by the editor scoped to it', '__SELF__'],
       expect: 'rows',
       why: 'THE CELL. §8.1 marks "Business/Page INSERT/UPDATE/archive" `P` for editor; batch 020 '
          + 'refused it because the table carrying the condition did not exist, and said so in its own '
@@ -4679,8 +4686,9 @@ export function buildCases(id) {
       id: 'page-editor-a-can-update-page-a1-in-scope',
       covers: ['§8.1/editor-P', '§8.6/1'],
       as: pageEditorA,
-      sql: 'update app.page_context_profiles set name = $2 where id = $1 returning id',
-      params: [PAGE_A1, 'renamed by the editor scoped to this page'],
+      // BATCH 105: every client UPDATE names its caller as updated_by.
+      sql: 'update app.page_context_profiles set name = $2, updated_by = $3 where id = $1 returning id',
+      params: [PAGE_A1, 'renamed by the editor scoped to this page', '__SELF__'],
       expect: 'rows',
       why: 'The editor `P` at Page granularity: this identity\'s capability is one Page and it reaches '
          + 'exactly that Page\'s write path.',
@@ -5773,7 +5781,7 @@ export function buildCases(id) {
       id: 'service-cannot-update-a-knowledge-item',
       covers: ['§12.6/8', 'RFC-2026-017§7'],
       as: service,
-      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the service'),
+      ...renameKnowledge(KNOWLEDGE_A1_BUSINESS, 'renamed by the service', id('user_owner_a')),
       expect: 'no-effect',
       witness: knowledgeNameUnchanged(ownerA, KNOWLEDGE_A1_BUSINESS, KNOWLEDGE_A1_BUSINESS_NAME),
       why: 'The service HOLDS the UPDATE grant, so this reaches row level security and is filtered there '
@@ -16448,6 +16456,154 @@ export function buildCases(id) {
       deniedOn: { kind: 'table', name: 'performance_snapshots' },
       why: 'Permanent for the same reason. §11.4 step 7 purges tenant content at closure and batch '
          + '160 owns it through app_maintenance, which this batch grants nothing.',
+    },
+
+    // -- BATCH 105: updated_by, written at UPDATE, is the caller -------------------------------------
+    //
+    // A1's security review of the catalog-rule probes measured an owner getting `UPDATE 1` naming
+    // ANOTHER member as updated_by on each of these seven tables on the clean set (blocker 189). The
+    // owner is the strongest client identity in the workspace, so if the owner is refused, every
+    // weaker role is too. Each case forges ONLY updated_by, so the permissive UPDATE policy admits the
+    // row and the only thing that can refuse it is 105's restrictive closure. The honest side of the
+    // same rule is the four editor positives above, which now name their caller.
+    {
+      id: 'owner-a-cannot-update-workspace-a-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set updated_by = $2 where id = $1 returning id',
+      params: [A, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 105: workspaces granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-settings-of-workspace-a-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_settings set updated_by = $2 where workspace_id = $1 returning workspace_id',
+      params: [A, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_settings' },
+      why: 'BATCH 105: workspace_settings granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-invitations-of-workspace-a-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_invitations set updated_by = $2 where workspace_id = $1 returning id',
+      params: [A, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_invitations' },
+      why: 'BATCH 105: workspace_invitations granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-business-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.business_profiles set updated_by = $2 where id = $1 returning id',
+      params: [BUSINESS_A1, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'business_profiles' },
+      why: 'BATCH 105: business_profiles granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-page-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.page_context_profiles set updated_by = $2 where id = $1 returning id',
+      params: [PAGE_A1, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'page_context_profiles' },
+      why: 'BATCH 105: page_context_profiles granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-industry-assignment-of-business-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: `update app.industry_assignments set updated_by = $3 where ${ASSIGNMENT_OF} returning id`,
+      params: [A, BUSINESS_A1, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'industry_assignments' },
+      why: 'BATCH 105: industry_assignments granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-knowledge-item-of-business-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.knowledge_items set updated_by = $2 where id = $1 returning id',
+      params: [KNOWLEDGE_A1_BUSINESS, id('user_editor_a')],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'knowledge_items' },
+      why: 'BATCH 105: knowledge_items granted authenticated UPDATE on updated_by and no UPDATE policy bound it, so an '
+         + 'owner could record another member as the row\'s last updater. 105\'s restrictive UPDATE closure '
+         + 'refuses any value but the caller.',
+    },
+    {
+      id: 'owner-a-cannot-update-workspace-a-clearing-its-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set updated_by = null where id = $1 returning id',
+      params: [A],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 105, the NULL half (Q0\'s test of 105, F4): 102 admits a NULL updated_by at INSERT because a '
+         + 'row may be created unattributed, but an UPDATE is always somebody\'s, so 105 uses equality and a '
+         + 'NULL is refused like any other name that is not the caller.',
+    },
+    // The honest side on the three workspace-family tables, which no other positive exercised after 105
+    // (C0's review of 105, F4): the same owner, the same rows, naming itself, is admitted.
+    {
+      id: 'owner-a-can-update-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set updated_by = $2 where id = $1 returning id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspaces. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
+    },
+    {
+      id: 'owner-a-can-update-the-settings-of-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_settings set updated_by = $2 where workspace_id = $1 returning workspace_id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspace_settings. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
+    },
+    {
+      id: 'owner-a-can-update-the-invitations-of-workspace-a-naming-itself',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspace_invitations set updated_by = $2 where workspace_id = $1 returning id',
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 105: the positive beside the forging case on workspace_invitations. 105\'s restrictive closure admits the '
+         + 'caller as updated_by, so an honest UPDATE still lands; without this, the forging case could pass '
+         + 'because every UPDATE on the table was refused.',
     },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }

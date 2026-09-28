@@ -341,6 +341,9 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
   '102_updated_by_is_caller.sql', '103_asset_original_filename_withheld.sql', '104_fk_supporting_indexes.sql',
+  // Batch 105 creates seven restrictive UPDATE policies on tables batches 010-040 made, and an apply-time
+  // block. INSERTED after 104, its numeric place, so the declaration stays a TAIL of the ordered set.
+  '105_updated_by_on_update_is_caller.sql',
   '110_meta_connector.sql',
   '111_social_fk.sql',
   // Batch 120 creates five tables and alters one batch 081 created, and every one of its foreign
@@ -2151,6 +2154,27 @@ test('the forward fixes 094 and 111 keep their statements and their apply-time b
   }
 });
 
+// BATCH 105 (blocker 189; the Owner's remedy (a), 2026-09-27): seven RESTRICTIVE UPDATE policies binding
+// updated_by to the caller where the column was client-updatable and bound nowhere. Pinned here so an
+// emptied file fails before a database, as Q0-111 F1 showed a forward fix otherwise can.
+test('the forward fix 105 keeps its seven UPDATE closures and its apply-time block', async () => {
+  const code = (await readFile('db/foundation/migrations/105_updated_by_on_update_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
+  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 7);
+  for (const t of UPDATED_BY_ON_UPDATE_CLOSURES) {
+    assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
+      `105: ${t} carries a RESTRICTIVE UPDATE policy binding updated_by to the caller, with no USING`);
+  }
+  assert.equal([...code.matchAll(/create policy/g)].length, 7, '105 creates exactly seven policies');
+  assert.match(code, /of its seven updated_by UPDATE closures in their required shape/, '105 asserts its seven at apply time');
+  assert.match(code, /updated_by is client-updatable and no UPDATE policy for authenticated even names updated_by = auth\.uid\(\), or row level security is not enabled and forced/, '105 asserts the general rule at apply time');
+  // The rule's SQL, not only its message (C0's review of 105, F7): every client-updatable updated_by, every UPDATE or ALL policy.
+  assert.match(code, /has_column_privilege\('authenticated', c\.oid, a\.attnum, 'UPDATE'\)/);
+  assert.match(code, /pol\.polcmd in \('w', '\*'\)/);
+  assert.match(code, /c\.relkind in \('r', 'p'\)/, 'partitioned tables too (Q0 F2)');
+  assert.match(code, /not \(c\.relrowsecurity and c\.relforcerowsecurity\)/, 'a policy binds nothing with RLS off (Q0 F2)');
+});
+
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
   const dir = 'db/foundation/migrations';
   const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
@@ -2251,7 +2275,8 @@ test('the four catalog-rule probes run in migrate-clean after the FK-support pro
     createHash('sha256').update(`${p.sql}\u0000${p.drift}\u0000${p.raises}`).digest('hex').slice(0, 16)]));
   assert.deepEqual(digests, {
     'fk action probe': 'd5454eaec7997fd7',
-    'closure text probe': '0b4597c5c092ed35',
+    // Batch 105 added its seven UPDATE closures to the pinned sets: 0b4597c5c092ed35 to 76a9037be80cf0bf.
+    'closure text probe': '76a9037be80cf0bf',
     'security definer probe': '11591f0ab317753e',
     'trigger probe': 'd32161f00a2a325f',
   }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');

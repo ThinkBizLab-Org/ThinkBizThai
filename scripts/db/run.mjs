@@ -160,9 +160,13 @@ export const UPDATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'a
   'business_profiles', 'content_ideas', 'content_items', 'content_targets', 'industry_assignments',
   'knowledge_items', 'page_context_profiles', 'publish_intents', 'workspace_invitations', 'workspace_member_scopes'];
 export const REQUESTER_CLOSURES = ['approval_requests', 'publish_intents'];
+// Batch 105's UPDATE closures: the seven tables where updated_by was client-updatable and bound nowhere.
+export const UPDATED_BY_ON_UPDATE_CLOSURES = ['business_profiles', 'industry_assignments', 'knowledge_items',
+  'page_context_profiles', 'workspace_invitations', 'workspace_settings', 'workspaces'];
+export const UPDATED_BY_ON_UPDATE_CHECK_TEXT = '(updated_by = ( SELECT auth.uid() AS uid))';
 export const UPDATED_BY_CHECK_TEXT = '((updated_by IS NULL) OR (updated_by = ( SELECT auth.uid() AS uid)))';
 export const REQUESTER_CHECK_TEXT = '(requested_by = ( SELECT auth.uid() AS uid))';
-const closureRule = (suffix, tables, text) => `
+const closureRule = (suffix, tables, text, cmd = 'a') => `
   select string_agg(x, ', ' order by x) into offending from (
     select format('%s.%s', c.relname, pol.polname) as x
       from pg_catalog.pg_policy pol
@@ -172,7 +176,7 @@ const closureRule = (suffix, tables, text) => `
        and not (n.nspname = 'app'
                 and c.relname = any (array[${tables.map((t) => `'${t}'`).join(', ')}])
                 and pol.polname = c.relname || '_${suffix}'
-                and not pol.polpermissive and pol.polcmd = 'a'
+                and not pol.polpermissive and pol.polcmd = '${cmd}'
                 and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
                 and pol.polqual is null
                 and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = '${text}')
@@ -182,12 +186,12 @@ const closureRule = (suffix, tables, text) => `
                         where pol.polrelid = to_regclass('app.' || t) and pol.polname = t || '_${suffix}')
   ) found;
   if offending is not null then
-    raise exception '${suffix} closure(s) not in their pinned shape (restrictive, INSERT, TO authenticated, no USING, WITH CHECK exactly ${text.replace(/'/g, "''")}) on their pinned tables: %', offending;
+    raise exception '${suffix} closure(s) not in their pinned shape (restrictive, ${cmd === 'a' ? 'INSERT' : 'UPDATE'}, TO authenticated, no USING, WITH CHECK exactly ${text.replace(/'/g, "''")}) on their pinned tables: %', offending;
   end if;`;
 export const CLOSURE_TEXT_PROBE_SQL = `do \$\$
 declare
   offending text;
-begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT)}${closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT)}
+begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT)}${closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT)}${closureRule('updated_by_on_update_is_caller', UPDATED_BY_ON_UPDATE_CLOSURES, UPDATED_BY_ON_UPDATE_CHECK_TEXT, 'w')}
 end \$\$;
 `;
 
@@ -307,7 +311,7 @@ export const CATALOG_RULE_PROBES = [
     drift: 'alter table app.content_targets drop constraint content_targets_social_scope_fk; alter table app.content_targets add constraint content_targets_social_scope_fk foreign key (workspace_id, social_account_id) references app.social_accounts (workspace_id, id) on update cascade;',
     raises: 'foreign key(s) with an action, deferrable or NOT VALID' },
   { label: 'closure text probe', sql: CLOSURE_TEXT_PROBE_SQL,
-    claim: `${UPDATED_BY_CLOSURES.length} updated_by and ${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
+    claim: `${UPDATED_BY_CLOSURES.length} updated_by INSERT, ${UPDATED_BY_ON_UPDATE_CLOSURES.length} updated_by UPDATE and ${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
     drift: 'alter policy knowledge_items_updated_by_is_caller on app.knowledge_items with check (true);',
     raises: 'updated_by_is_caller closure(s) not in their pinned shape' },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
