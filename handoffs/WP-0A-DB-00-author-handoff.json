@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "e276c9addc4be0c6acde2d3b6509cf555b265028",
-  "head_revision_or_patch_checksum": "741001f5c39924b64608bef10a39bd76c008e121",
+  "head_revision_or_patch_checksum": "5a4c4127e2dc2a8814d4e1c9ede69ed88e125bf1",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md",
