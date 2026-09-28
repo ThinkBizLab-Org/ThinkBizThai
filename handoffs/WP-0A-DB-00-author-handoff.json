@@ -4,95 +4,62 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5922684c7d51dbf09537fa4e3ee03f0a4b06f3d0",
-  "head_revision_or_patch_checksum": "f82a70dd98be15dd3372445b7ea401c691371bda",
+  "base_revision": "e276c9addc4be0c6acde2d3b6509cf555b265028",
+  "head_revision_or_patch_checksum": "e276c9addc4be0c6acde2d3b6509cf555b265028",
   "task_ids": [],
-  "files_added": [
-    "db/foundation/migrations/105_updated_by_on_update_is_caller.sql",
-    "evidence/WP-0A-DB-00/a0-batch-105-integration-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a0-batch-105-plan-2026-09-27.md",
-    "evidence/WP-0A-DB-00/a1-batch-105-security-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/c0-batch-105-contract-review-2026-09-27.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-27-batch-105.md",
-    "evidence/WP-0A-DB-00/q0-batch-105-test-review-2026-09-27.md"
-  ],
-  "files_modified": [
-    "db/foundation/README.md",
-    "db/foundation/invariants/030_industry.1.sql",
-    "db/foundation/invariants/040_knowledge.1.sql",
-    "db/foundation/invariants/superseded.json",
-    "db/foundation/lint/catalog-snapshot.json",
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "tests/db/identity/isolation-cases.mjs",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 105: blocker 189 (A1 F1 of the catalog-rule probes review) closed by remedy (a), which the Owner chose (`ก`) after A0 recommended it; the grade MEDIUM was A0's recommendation in the message the Owner answered, and the disposition says it was not stated separately.",
-    "Measured before writing: 17 tables grant authenticated UPDATE on updated_by, 10 bind it, 7 do not (matching A1). Without 105, exactly the seven new forging cases fail; with it, all 972 cases pass."
+    "THIS INCREMENT IS BATCH 123 plus RFC-2026-025 (Proposed) and the ninth-pass record, on the Owner's `คุณลุยงานทั้งหมด ตามที่คุณแนะนำ เลยได้ไหม ตอนนี้ delay แล้ว` taking the one-page summary's items 1, 2, 3 and 5 as recommended (disposition 2026-09-28).",
+    "The decided_by remedy is a CHECK pair rather than the restrictive policy A0's summary line named; the disposition records that change of mechanism (A1's own suggested remedy)."
   ],
   "acceptance_results": [
     {
-      "criterion": "The seven tables refuse a forged updated_by at UPDATE",
+      "criterion": "All seventeen updated_by tables carry the exact restrictive UPDATE closure",
       "result": "met",
-      "evidence": "seven owner-a-cannot-update-...-naming-another-updater cases, denied by policy; negative control without 105: exactly those seven fail"
+      "evidence": "123's block (exact rule) and the closure-text probe (pinned list + live coverage); a looser permissive UPDATE policy on content_items forges without 123 and is refused by 123's policy with it (measured)"
     },
     {
-      "criterion": "The class cannot reopen",
+      "criterion": "decided_by cannot be stamped on a cancellation",
       "result": "met",
-      "evidence": "105's apply-time general rule, re-run after the whole set by the post-migrate pass; the closure-text probe pins the seven by exact text"
-    },
-    {
-      "criterion": "Honest updates still work",
-      "result": "met",
-      "evidence": "the four editor positives name their caller and pass"
-    },
-    {
-      "criterion": "Three role runs, findings disposed",
-      "result": "met",
-      "evidence": "c0-/a1-/q0-batch-105-*-2026-09-27.md cherry-picked with -x; none stop-the-line; a0-batch-105-integration-2026-09-27.md"
+      "evidence": "approval_requests_decider_is_a_pair; case editor-a-cannot-cancel-an-approval-request-naming-a-decider (23514) fails without the constraint and passes with it; migrate-clean names 123's block when the constraint is dropped"
     }
   ],
   "tests": [
     {
       "command": "npm run verify (on the branch name)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 670, pass 670, fail 0, skipped 0, todo 0"
+      "result": "see the commit"
     },
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "43 blocks, 33 as written, 10 replaced; four probes with self-tests; rls-smoke 976 cases ok"
+      "result": "44 blocks, 34 as written, 10 replaced; rls-smoke 977 cases ok"
     }
   ],
-  "security_privacy_cost_impact": "CLOSES A LIVE ATTRIBUTION FORGERY: an owner could write another member as updated_by through UPDATE on seven tables; now refused by a restrictive policy on each. No grant changes; no tenant-boundary change; every client UPDATE on the seventeen updated_by tables now names its caller.",
-  "migration_and_data_impact": "ONE MIGRATION, 105_updated_by_on_update_is_caller.sql, creating seven policies and nothing else. Forward-only; a later change is a new batch. It sorts after 104 (the 102-104 precedent) and is declared in the snapshot's not-applied tail.",
-  "compatibility_impact": "A client UPDATE on the seven tables that does not set updated_by to its caller is now refused, as it already was on the other ten; four cases changed accordingly. Cases 965 -> 976; foundation-contract 69 -> 70 tests.",
+  "security_privacy_cost_impact": "CLOSES the decided_by forgery at cancellation (A1 F2 / Q0 F1 on 105, MEDIUM) at the database for every path, and removes the looser-permissive-sibling route to updated_by forgery on ten tables (C0 F1 / A1 F1 / Q0 F2 on 105). No grant changes; nothing that works today is refused.",
+  "migration_and_data_impact": "ONE MIGRATION, 123_attribution_closures_everywhere.sql: ten policies and one CHECK on approval_requests. Numbered after 122 because it touches 120's publish_intents; declared in the snapshot's not-applied tail.",
+  "compatibility_impact": "None for correct clients: the ten tables already required updated_by = caller; a request that is cancelled, pending or expired never carried a decider by 090's own intent. Cases 976 -> 977.",
   "known_limitations": [
-    "Remedy (b) -- the database maintaining updated_by on all seventeen tables -- is recorded as a possible later change, not done.",
-    "The eleven INSERT forging cases (survey item 3) remain owed."
+    "created_by at INSERT is still bound only inside permissive policies on seventeen tables (recorded on the survey blocker).",
+    "RFC-2026-025 is Proposed, not approved."
   ],
   "open_risks_or_blockers": [
-    "CLOSED: the updated_by UPDATE forgery (old 189). OPENED: 189 -- approval_requests.decided_by forgeable at cancellation (A1 F2, Q0 F1, MEDIUM, pre-existing). Count 189.",
-    "FOR THE OWNER: extending 105's restrictive closure to all seventeen updated_by tables (A0 recommends; the general rule is text-presence only on the ten); the new 189's grade and remedy."
+    "CLOSED: the decided_by blocker. Count 188.",
+    "FOR THE OWNER: RFC-2026-025; the summary's sections 2-4."
   ],
-  "rollback_or_forward_fix": "A reviewed revert PR would reopen the forgery; the forward fix is the default. NEVER a force-push.",
+  "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "105's closure on all seventeen updated_by tables, pinned, with the general rule requiring it (A0 recommends; C0/A1/Q0 finding).",
-    "Blocker 189: decided_by at cancellation.",
-    "The INSERT and remaining UPDATE forging cases (survey item 3; Q0's five bound tables)."
+    "Batch 091 (A0 writes, A5 reviews), planned first.",
+    "created_by at INSERT in 102's shape.",
+    "The forging cases of survey item 3."
   ],
   "reviewer_instructions": [
-    "Read 105 and its block; run the negative control (remove 105, expect exactly the seven forging cases to fail).",
+    "Read 123 and its block; reproduce the two negative controls (drop 123's closure beside a looser permissive policy on content_items; drop the pair constraint).",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null

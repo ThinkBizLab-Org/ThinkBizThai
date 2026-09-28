@@ -331,12 +331,16 @@ it silently:
 2. **Every `*_updated_by_is_caller` and `*_requester_is_caller` policy matches its exact pinned
    text:** restrictive, INSERT, TO authenticated, no USING, and a WITH CHECK that deparses to the
    pinned string, on the pinned tables. So is every `*_updated_by_on_update_is_caller` policy
-   (batch 105: restrictive, UPDATE, TO authenticated, no USING). A batch that adds a closure adds its
-   table to `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. Batch
-   105's own block also refuses any table that lets authenticated UPDATE `updated_by` with no UPDATE
-   policy whose WITH CHECK even names `updated_by = auth.uid()`. It checks that the text is present,
-   not that the policy binds the column: a looser permissive policy added beside it would still pass.
-   Only the seven restrictive closures are held by exact text.
+   (batches 105 and 123: restrictive, UPDATE, TO authenticated, no USING), on all seventeen tables
+   that grant `authenticated` UPDATE on `updated_by`. A batch that adds a closure adds its table to
+   `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. **A table that
+   grants UPDATE on `updated_by` without the closure fails twice:** once in the probe, which reads
+   the grant live, and once in batch 123's block, which requires the exact closure.
+
+   105's first general rule only checked that some policy *contained* the binding, so a looser
+   permissive sibling could reopen the forgery. 123 closed that: a restrictive policy ANDs with
+   whatever admits the row. `created_by` at INSERT is still bound only inside permissive policies;
+   that gap is recorded as a blocker.
 3. **SECURITY DEFINER functions, in every schema except the system ones, are exactly the pinned
    list in `SECURITY_DEFINER_FUNCTIONS`.** Each one has its pinned owner and body digest,
    `search_path=""` and nothing else in `proconfig`, and no EXECUTE for PUBLIC. A batch that adds

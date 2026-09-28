@@ -160,9 +160,13 @@ export const UPDATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'a
   'business_profiles', 'content_ideas', 'content_items', 'content_targets', 'industry_assignments',
   'knowledge_items', 'page_context_profiles', 'publish_intents', 'workspace_invitations', 'workspace_member_scopes'];
 export const REQUESTER_CLOSURES = ['approval_requests', 'publish_intents'];
-// Batch 105's UPDATE closures: the seven tables where updated_by was client-updatable and bound nowhere.
-export const UPDATED_BY_ON_UPDATE_CLOSURES = ['business_profiles', 'industry_assignments', 'knowledge_items',
-  'page_context_profiles', 'workspace_invitations', 'workspace_settings', 'workspaces'];
+// The updated_by UPDATE closures: batch 105's seven (updated_by client-updatable and bound nowhere) and
+// batch 123's ten (bound only inside a permissive policy, which a looser sibling could widen). Every
+// table that grants authenticated UPDATE on updated_by is here; the probe refuses one that is not.
+export const UPDATED_BY_ON_UPDATE_CLOSURES = ['approval_policies', 'approval_requests', 'asset_rights', 'assets',
+  'business_profiles', 'content_ideas', 'content_items', 'content_targets', 'industry_assignments', 'knowledge_items',
+  'page_context_profiles', 'publish_intents', 'research_runs', 'research_suggestions', 'workspace_invitations',
+  'workspace_settings', 'workspaces'];
 export const UPDATED_BY_ON_UPDATE_CHECK_TEXT = '(updated_by = ( SELECT auth.uid() AS uid))';
 export const UPDATED_BY_CHECK_TEXT = '((updated_by IS NULL) OR (updated_by = ( SELECT auth.uid() AS uid)))';
 export const REQUESTER_CHECK_TEXT = '(requested_by = ( SELECT auth.uid() AS uid))';
@@ -192,6 +196,18 @@ export const CLOSURE_TEXT_PROBE_SQL = `do \$\$
 declare
   offending text;
 begin${closureRule('updated_by_is_caller', UPDATED_BY_CLOSURES, UPDATED_BY_CHECK_TEXT)}${closureRule('requester_is_caller', REQUESTER_CLOSURES, REQUESTER_CHECK_TEXT)}${closureRule('updated_by_on_update_is_caller', UPDATED_BY_ON_UPDATE_CLOSURES, UPDATED_BY_ON_UPDATE_CHECK_TEXT, 'w')}
+  -- COVERAGE, live (Q0's test of 105, F3: nothing proved the general rule could fire). A table that
+  -- grants authenticated UPDATE on updated_by and is not in the pinned list fails here by name.
+  select string_agg(format('app.%s', c.relname), ', ' order by c.relname) into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attname = 'updated_by' and not a.attisdropped
+   where n.nspname = 'app' and c.relkind in ('r', 'p')
+     and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'UPDATE')
+     and not (c.relname = any (array[${UPDATED_BY_ON_UPDATE_CLOSURES.map((t) => `'${t}'`).join(', ')}]));
+  if offending is not null then
+    raise exception 'updated_by is client-updatable on table(s) with no pinned UPDATE closure: %', offending;
+  end if;
 end \$\$;
 `;
 

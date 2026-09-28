@@ -356,6 +356,9 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // 120 and 122, which is both its numeric place and the place that keeps the declaration a TAIL of
   // the ordered set rather than a set with a hole in it.
   '120_publisher.sql', '121_publisher_metrics.sql', '122_publisher_service_path_closed.sql',
+  // Batch 123: ten restrictive UPDATE policies on tables batches 070-120 made and one CHECK on 090's
+  // approval_requests; INSERTED after 122, its numeric place, so the declaration stays a TAIL.
+  '123_attribution_closures_everywhere.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -2159,9 +2162,10 @@ test('the forward fixes 094 and 111 keep their statements and their apply-time b
 // emptied file fails before a database, as Q0-111 F1 showed a forward fix otherwise can.
 test('the forward fix 105 keeps its seven UPDATE closures and its apply-time block', async () => {
   const code = (await readFile('db/foundation/migrations/105_updated_by_on_update_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
-  const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
-  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 7);
-  for (const t of UPDATED_BY_ON_UPDATE_CLOSURES) {
+  // 105's own seven; batch 123 added the other ten to the probe's list (its own test is below).
+  const SEVEN = ['business_profiles', 'industry_assignments', 'knowledge_items', 'page_context_profiles',
+    'workspace_invitations', 'workspace_settings', 'workspaces'];
+  for (const t of SEVEN) {
     assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
       `105: ${t} carries a RESTRICTIVE UPDATE policy binding updated_by to the caller, with no USING`);
   }
@@ -2173,6 +2177,29 @@ test('the forward fix 105 keeps its seven UPDATE closures and its apply-time blo
   assert.match(code, /pol\.polcmd in \('w', '\*'\)/);
   assert.match(code, /c\.relkind in \('r', 'p'\)/, 'partitioned tables too (Q0 F2)');
   assert.match(code, /not \(c\.relrowsecurity and c\.relforcerowsecurity\)/, 'a policy binds nothing with RLS off (Q0 F2)');
+});
+
+// BATCH 123 (the Owner's one-page summary items 2 and 3, 2026-09-28): batch 105's restrictive UPDATE closure
+// on the ten remaining updated_by tables, the general rule made EXACT, and decided_by as a pair with
+// decided_at. Pinned here so an emptied file fails before a database.
+test('the forward fix 123 keeps its ten UPDATE closures, its decider pair and its exact general rule', async () => {
+  const code = (await readFile('db/foundation/migrations/123_attribution_closures_everywhere.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
+  const TEN = ['approval_policies', 'approval_requests', 'asset_rights', 'assets', 'content_ideas', 'content_items',
+    'content_targets', 'publish_intents', 'research_runs', 'research_suggestions'];
+  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 17, "105's seven and 123's ten");
+  for (const t of TEN) {
+    assert.ok(UPDATED_BY_ON_UPDATE_CLOSURES.includes(t), `the probe pins ${t}`);
+    assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
+      `123: ${t} carries 105's restrictive UPDATE closure`);
+  }
+  assert.equal([...code.matchAll(/create policy/g)].length, 10, '123 creates exactly ten policies');
+  assert.match(code, /add constraint approval_requests_decider_is_a_pair\s+check \(\(decided_at is null\) = \(decided_by is null\)\);/, '123: decided_at and decided_by are a pair');
+  // The general rule requires the CLOSURE itself, by name and exact text -- not text presence (105's weakness).
+  assert.match(code, /pol\.polname = c\.relname \|\| '_updated_by_on_update_is_caller'/);
+  assert.match(code, /pg_catalog\.pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '\(updated_by = \( SELECT auth\.uid\(\) AS uid\)\)'/);
+  assert.match(code, /updated_by is client-updatable without batch 105''s exact restrictive UPDATE closure/);
+  assert.match(code, /CHECK \(\(\(decided_at IS NULL\) = \(decided_by IS NULL\)\)\)/, '123 asserts the pair by definition text');
 });
 
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
@@ -2276,7 +2303,8 @@ test('the four catalog-rule probes run in migrate-clean after the FK-support pro
   assert.deepEqual(digests, {
     'fk action probe': 'd5454eaec7997fd7',
     // Batch 105 added its seven UPDATE closures to the pinned sets: 0b4597c5c092ed35 to 76a9037be80cf0bf.
-    'closure text probe': '76a9037be80cf0bf',
+    // Batch 123: its ten closures, and the live coverage rule: 76a9037be80cf0bf to caec5674e583d3cc.
+    'closure text probe': 'caec5674e583d3cc',
     'security definer probe': '11591f0ab317753e',
     'trigger probe': 'd32161f00a2a325f',
   }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');

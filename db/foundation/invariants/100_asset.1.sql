@@ -22,6 +22,7 @@ declare
   asset_tables constant text[] :=
     array['assets', 'asset_versions', 'asset_rights', 'content_asset_links'];
 begin
+  -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to assets, asset_rights.
   -- SUPERSEDED BY 101, 102. Batch 100 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: asset_rights_service_path_closed (101), asset_rights_updated_by_is_caller (102), asset_versions_service_path_closed (101), assets_service_path_closed (101), assets_updated_by_is_caller (102), content_asset_links_service_path_closed (101).
   -- Each of those is asserted by its own batch's block, which this pass also re-runs. The final-state
@@ -29,7 +30,7 @@ begin
   -- restrictive predicates of 100's original assertions, which are otherwise kept word for word.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.asset_rights'::regclass and not pol.polpermissive)
-     is distinct from array['asset_rights_scope_narrows_member', 'asset_rights_service_path_closed', 'asset_rights_updated_by_is_caller'] then
+     is distinct from array['asset_rights_scope_narrows_member', 'asset_rights_service_path_closed', 'asset_rights_updated_by_is_caller', 'asset_rights_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
     raise exception 'app.asset_rights restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
@@ -39,7 +40,7 @@ begin
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.assets'::regclass and not pol.polpermissive)
-     is distinct from array['assets_scope_narrows_member', 'assets_service_path_closed', 'assets_updated_by_is_caller'] then
+     is distinct from array['assets_scope_narrows_member', 'assets_service_path_closed', 'assets_updated_by_is_caller', 'assets_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
     raise exception 'app.assets restrictive policies are not exactly batch 100''s narrowing and the ones 101, 102 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
@@ -363,7 +364,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (asset_tables)
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'));  -- SUPERSEDED BY 101, 102: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'), ('assets', 'assets_updated_by_on_update_is_caller'), ('asset_rights', 'asset_rights_updated_by_on_update_is_caller'));  -- SUPERSEDED BY 101, 102, 123: names another file wrote, see the header
   if count_of <> 4 then
     raise exception 'batch 100 wrote % restrictive policies and it creates four tables to narrow', count_of
       using hint = 'A child table with no narrowing is a table where every active member reaches every row their membership admits, which would leave a page-restricted asset''s versions and rights readable to a member the asset.';
@@ -387,7 +388,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (asset_tables)
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'))  -- SUPERSEDED BY 101, 102: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('asset_rights', 'asset_rights_service_path_closed'), ('asset_rights', 'asset_rights_updated_by_is_caller'), ('asset_versions', 'asset_versions_service_path_closed'), ('assets', 'assets_service_path_closed'), ('assets', 'assets_updated_by_is_caller'), ('content_asset_links', 'content_asset_links_service_path_closed'), ('assets', 'assets_updated_by_on_update_is_caller'), ('asset_rights', 'asset_rights_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 101, 102, 123: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

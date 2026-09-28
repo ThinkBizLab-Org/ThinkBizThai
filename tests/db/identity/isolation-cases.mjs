@@ -13545,6 +13545,21 @@ export function buildCases(id) {
          + 'writes it.',
     },
     {
+      id: 'editor-a-cannot-cancel-an-approval-request-naming-a-decider',
+      covers: ['§8.3', '§8.5'],
+      as: editorA,
+      sql: "update app.approval_requests set status = 'cancelled', updated_by = $2::uuid, decided_by = $3::uuid "
+         + 'where id = $1::uuid returning id',
+      params: [id('approval_request_a1'), '__SELF__', id('user_approver_a')],
+      expect: 'rejected',
+      sqlstate: '23514',
+      why: 'BATCH 123 (A1\'s review of 105, F2; Q0\'s, F1): the cancel policy admits this row -- the editor is a '
+         + 'writer, the request is pending, updated_by is the caller -- and 090\'s equivalence let decided_by '
+         + 'through ALONE, so a cancellation could name the approver as its decider. '
+         + 'approval_requests_decider_is_a_pair makes decided_at and decided_by a pair, and the database '
+         + 'refuses it whichever policy admitted the row. The positive above is the same cancel without the stamp.',
+    },
+    {
       id: 'owner-a-can-cancel-an-approval-request',
       covers: ['§8.3', '§8.6/1'],
       as: ownerA,
