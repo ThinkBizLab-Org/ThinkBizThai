@@ -105,7 +105,7 @@ begin
   -- Every exemption names a key that exists; a stale exemption is a lie about the catalog. Asked
   -- here and not in 104's own block because three of the four are 130's and 131's keys, which sort
   -- after 104.
-  select string_agg(e, ', ') into offending from unnest(exempt) e
+  select string_agg(e, ', ' order by e) into offending from unnest(exempt) e
    where not exists (select 1 from pg_catalog.pg_constraint c where c.conname = e and c.contype = 'f');
   if offending is not null then
     raise exception 'exempted foreign key(s) do not exist: %', offending;
@@ -208,23 +208,31 @@ export const DECIDER_CLOSURES = ['approval_requests'];
 export const DECIDER_CHECK_TEXT = '((decided_by IS NULL) OR (decided_by = ( SELECT auth.uid() AS uid)))';
 export const DECIDER_CLOSURE_PROBE_SQL = closureProbe(closureRule('decided_by_on_update_is_caller', DECIDER_CLOSURES, DECIDER_CHECK_TEXT, 'w'));
 
-// 2b. COVERAGE of the updated_by UPDATE closures, as its own probe so it has its own self-test drift
+// 2b. COVERAGE of the attribution UPDATE closures, as its own probe so it has its own self-test drift
 // (Q0's test of 105, F3; C0's review of 123, F5: folded into the closure probe, it could be silenced
-// with `and false` while the closure probe's drift still passed). A table that grants authenticated
-// UPDATE on updated_by and is not in UPDATED_BY_ON_UPDATE_CLOSURES fails by name.
+// with `and false` while the closure probe's drift still passed). EVERY client-updatable column named
+// `*_by` records who did something, so each must be in a pinned closure list for its column: updated_by
+// in UPDATED_BY_ON_UPDATE_CLOSURES, decided_by in DECIDER_CLOSURES. The first version read updated_by
+// alone, so a later table with a client-writable decided_by and no closure would pass (A1's
+// re-verification of 123, N3). A (table, column) that is not pinned fails by name.
+export const ATTRIBUTION_UPDATE_CLOSURES = {
+  updated_by: UPDATED_BY_ON_UPDATE_CLOSURES,
+  decided_by: DECIDER_CLOSURES,
+};
 export const CLOSURE_COVERAGE_PROBE_SQL = `do \$\$
 declare
   offending text;
 begin
-  select string_agg(format('app.%s', c.relname), ', ' order by c.relname) into offending
+  select string_agg(format('app.%s.%s', c.relname, a.attname), ', ' order by c.relname, a.attname) into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attname = 'updated_by' and not a.attisdropped
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
    where n.nspname = 'app' and c.relkind in ('r', 'p')
+     and a.attname like '%\\_by'
      and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'UPDATE')
-     and not (c.relname = any (array[${UPDATED_BY_ON_UPDATE_CLOSURES.map((t) => `'${t}'`).join(', ')}]));
+     and not (format('%s.%s', c.relname, a.attname) = any (array[${Object.entries(ATTRIBUTION_UPDATE_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ')}]));
   if offending is not null then
-    raise exception 'updated_by is client-updatable on table(s) with no pinned UPDATE closure: %', offending;
+    raise exception 'client-updatable attribution column(s) with no pinned UPDATE closure: %', offending;
   end if;
 end \$\$;
 `;
@@ -250,6 +258,32 @@ begin
         and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
   if offending is not null then
     raise exception 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2d. Restrictive policies with a USING half, pinned by their exact deparse (batch 125). closureRule
+// requires no USING, so a closure that narrows WHICH ROWS a client may touch needs its own pin:
+// approval_requests_settled_is_immutable is the one that makes approval history immutable (§4
+// invariant 8; A1 N1 and C0 F2 on batch 123's corrections).
+export const PINNED_POLICIES = {
+  'approval_requests.approval_requests_settled_is_immutable': { cmd: 'w', using: "(status = 'pending'::text)", check: 'true' },
+};
+export const PINNED_POLICY_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(pin.k, ', ' order by pin.k) into offending
+    from (values ${Object.entries(PINNED_POLICIES).map(([k, { cmd, using, check }]) => `('${k}', '${cmd}', '${using.replace(/'/g, "''")}', '${check.replace(/'/g, "''")}')`).join(', ')}) as pin(k, cmd, using_text, check_text)
+   where not exists (
+     select 1 from pg_catalog.pg_policy pol
+      where pol.polrelid = to_regclass('app.' || split_part(pin.k, '.', 1)) and pol.polname = split_part(pin.k, '.', 2)
+        and not pol.polpermissive and pol.polcmd = pin.cmd
+        and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
+        and pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) = pin.using_text
+        and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = pin.check_text);
+  if offending is not null then
+    raise exception 'pinned restrictive policy(ies) missing or not in their pinned text: %', offending;
   end if;
 end \$\$;
 `;
@@ -367,6 +401,16 @@ end \$\$;
 // post-migrate pass), and Q0's test of 123 found rules that ran live beside a drift that never reached
 // them (F3), which is why a probe now has exactly as many drifts as raises.
 export const CATALOG_RULE_PROBES = [
+  // The FK-support probe (batch 104) ran once before this list with no self-test and no digest pin, so
+  // silenced it still printed its claim over a live unindexed key (C0's re-verification of 123, F6).
+  { label: 'fk support probe', sql: FK_SUPPORT_PROBE_SQL,
+    claim: `every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name`,
+    selfTests: [
+      { drift: 'drop index app.content_targets_social_scope_idx;',
+        raises: 'foreign key(s) with no supporting index and no named exemption' },
+      { drift: 'alter table app.billing_invoices drop constraint billing_invoices_subscription_scope_fk;',
+        raises: 'exempted foreign key(s) do not exist' },
+    ] },
   { label: 'fk action probe', sql: FK_ACTION_PROBE_SQL,
     claim: `every foreign key is NO ACTION on delete and update, not deferrable and validated, ${Object.keys(FK_ACTION_EXEMPTIONS).length} exempt by name`,
     selfTests: [
@@ -394,13 +438,17 @@ export const CATALOG_RULE_PROBES = [
     selfTests: [{ drift: 'alter policy approval_requests_decided_by_on_update_is_caller on app.approval_requests with check (true);',
       raises: 'decided_by_on_update_is_caller closure(s) not in their pinned shape' }] },
   { label: 'closure coverage probe', sql: CLOSURE_COVERAGE_PROBE_SQL,
-    claim: `every table granting authenticated UPDATE on updated_by is among the ${UPDATED_BY_ON_UPDATE_CLOSURES.length} with a pinned closure`,
+    claim: `every client-updatable *_by column is among the ${Object.values(ATTRIBUTION_UPDATE_CLOSURES).flat().length} with a pinned closure (${Object.keys(ATTRIBUTION_UPDATE_CLOSURES).join(', ')})`,
     selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
-      raises: 'updated_by is client-updatable on table(s) with no pinned UPDATE closure' }] },
+      raises: 'client-updatable attribution column(s) with no pinned UPDATE closure' }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text`,
     selfTests: [{ drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
       raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text' }] },
+  { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
+    claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policy(ies) that bound which rows a client may update, in their pinned text`,
+    selfTests: [{ drift: 'alter policy approval_requests_settled_is_immutable on app.approval_requests using (true);',
+      raises: 'pinned restrictive policy(ies) missing or not in their pinned text' }] },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
     claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC`,
     selfTests: [
@@ -425,6 +473,12 @@ export const CATALOG_RULE_PROBES = [
     ] },
 ];
 
+// A drift runs inside the executor's `begin; ... rollback;`, so a drift that ends that transaction
+// makes itself permanent -- the role-default drift then persists cluster-wide -- and the run reported
+// green (Q0's re-test of 123's corrections, F3; A1's, N5). Two defences: a drift may not contain
+// transaction control, and after every drift has run each probe runs AS BUILT AGAIN, which fails on
+// any residue a drift left behind.
+export const TRANSACTION_CONTROL = /\b(begin|commit|rollback|end|abort|savepoint|release|start\s+transaction|prepare\s+transaction)\b/i;
 export function catalogProbeJobs(probes) {
   const jobs = [];
   for (const probe of probes) {
@@ -433,29 +487,37 @@ export function catalogProbeJobs(probes) {
       jobs.push({ label: probe.label, kind: `after drift ${i + 1}`, sql: `${drift}\n${probe.sql}`, raises });
     });
   }
+  for (const probe of probes) jobs.push({ label: probe.label, kind: 'as built, after every drift', sql: probe.sql });
   return jobs;
 }
-
-// What the outcomes MEAN, pure and exported, driven by synthetic outcomes in the tests. An outcome
-// counts only if it ran exactly the script the job names.
 export function decideCatalogProbes(probes, outcomes) {
   const failures = [];
   for (const probe of probes) {
     if (!probe.selfTests?.length) failures.push(`${probe.label}: carries no self-test drift; a probe that cannot be shown to fail asserts nothing`);
+    for (const [i, { drift }] of (probe.selfTests ?? []).entries()) {
+      if (TRANSACTION_CONTROL.test(drift)) failures.push(`${probe.label}: drift ${i + 1} contains transaction control, so it could outlive the rollback that contains it`);
+    }
   }
   const expected = catalogProbeJobs(probes);
   if (outcomes.length !== expected.length) failures.push(`${expected.length} probe run(s) were due and ${outcomes.length} came back`);
+  const refused = new Map();
   for (const job of expected) {
     const got = outcomes.find((o) => o.label === job.label && o.kind === job.kind && o.sql === job.sql);
     if (!got || !got.result) { failures.push(`${job.label}: not run ${job.kind}`); continue; }
     const error = got.result.error;
-    if (job.kind === 'as built') {
-      if (error) failures.push(`${job.label}: ${error.message} (${error.code ?? 'no code'})`);
+    if (job.kind.startsWith('as built')) {
+      if (error) failures.push(`${job.label}: ${job.kind}: ${error.message} (${error.code ?? 'no code'})`);
     } else if (!error || error.code !== 'P0001' || !String(error.message).startsWith(job.raises)) {
       failures.push(`${job.label}: its self-test ${job.kind} ${error ? `failed with ${error.code ?? 'no code'}: ${error.message}` : 'passed'} -- the probe must refuse it with P0001 beginning "${job.raises}"; a rule that cannot fail asserts nothing`);
+    } else {
+      refused.set(job.label, (refused.get(job.label) ?? 0) + 1);
     }
   }
-  return { ok: failures.length === 0, failures, claims: probes.map((p) => `${p.label}: ${p.claim} (self-test: refused ${p.selfTests?.length === 1 ? 'its drift' : `each of its ${p.selfTests?.length ?? 0} drifts`})`) };
+  // Each claim counts the drifts that were REFUSED, not the drifts declared (Q0's re-test, F1).
+  return { ok: failures.length === 0, failures, claims: probes.map((p) => {
+    const n = refused.get(p.label) ?? 0;
+    return `${p.label}: ${p.claim} (self-test: refused ${n === 1 ? 'its drift' : `each of its ${n} drifts`}; clean again after every drift)`;
+  }) };
 }
 
 // THE POST-MIGRATE ASSERTION PASS. Most batches end with a `do $$` block asserting what they built
@@ -1703,11 +1765,8 @@ async function runLive(target) {
     const probe = await script(CEILING_PROBE_SQL);
     if (probe.error) { stderr.write(`  ceiling probe: ${probe.error.message} (${probe.error.code ?? 'no code'})\n`); return 1; }
     stdout.write(`  ceiling probe: a ${Buffer.byteLength(CEILING_PROBE_SQL)}-byte script applied through stdin\n`);
-    // THE FOREIGN-KEY SUPPORT PROBE (batch 104). Reads pg_index on the database just built; a key
-    // with no supporting index and no named exemption fails the target here, by name.
-    const fkProbe = await script(FK_SUPPORT_PROBE_SQL);
-    if (fkProbe.error) { stderr.write(`  fk support probe: ${fkProbe.error.message} (${fkProbe.error.code ?? 'no code'})\n`); return 1; }
-    stdout.write(`  fk support probe: every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name\n`);
+    // THE FOREIGN-KEY SUPPORT PROBE (batch 104) is the first of the catalog-rule probes below, so it
+    // is self-tested like the rest (C0's re-verification of 123, F6).
     // THE CATALOG-RULE PROBES: each as built and after its own drift, rolled back; the verdict is pure.
     const { feed } = await import('./psql-driver.mjs');
     const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);

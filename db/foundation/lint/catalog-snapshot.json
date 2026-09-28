@@ -43,6 +43,7 @@
       "121_publisher_metrics.sql",
       "122_publisher_service_path_closed.sql",
       "123_attribution_closures_everywhere.sql",
+      "125_approval_settled_is_immutable.sql",
       "130_billing.sql",
       "131_billing_projection.sql",
       "132_entitlement_resolution.sql",

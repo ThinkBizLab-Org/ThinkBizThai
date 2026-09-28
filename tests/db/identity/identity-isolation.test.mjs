@@ -697,6 +697,29 @@ test('a driver that forgets the transaction fails at assume-identity, not at the
   assert.deepEqual(held.failed, []);
 });
 
+// Q0's re-test of batch 123's corrections, F5: the named-constraint check was exercised only on
+// assertRejectedWith directly, so runOne could stop passing `violates` with every layer green. Driven
+// through runCases with a fake database that refuses by the WRONG constraint.
+test('runCases holds a rejected case to the constraint it names, not only to the SQLSTATE', async () => {
+  const { runCases, VERIFY_IDENTITY_SQL } = await import('./run-isolation.mjs');
+  const refusingBy = (constraint) => ({
+    async begin() {}, async rollback() {},
+    async exec(sql) {
+      if (sql === VERIFY_IDENTITY_SQL) return { rows: [{ role: ROLE_FOR_HELPER.as_user }] };
+      if (/private\.as_/.test(sql)) return { rows: [{}] };
+      return { error: { code: '23514', message: `new row for relation "t" violates check constraint "${constraint}"` } };
+    },
+  });
+  const one = [{
+    id: 'names-its-constraint', covers: [], as: { helper: 'as_user', subject: '00000000-0000-5000-8000-000000000000' },
+    sql: 'update app.t set x = 1 returning id', params: [], expect: 'rejected', sqlstate: '23514', violates: 'the_pair',
+  }];
+  assert.deepEqual((await runCases(one, refusingBy('the_pair'))).failed, [], 'refused by the constraint it names: passes');
+  const wrong = await runCases(one, refusingBy('another_check'));
+  assert.equal(wrong.failed.length, 1, 'refused with the right code by another constraint: fails');
+  assert.match(wrong.failed[0].detail, /but not by the_pair/);
+});
+
 test('every identity helper the cases use has a role the runner can check', async () => {
   const { ROLE_FOR_HELPER, assumeIdentity } = await import('./run-isolation.mjs');
   const helpers = new Set();

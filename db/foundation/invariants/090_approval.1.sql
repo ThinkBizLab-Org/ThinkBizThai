@@ -12,7 +12,7 @@ declare
   -- in every column including Service, and the only one outside §8.2.
   append_only_tables constant text[] := array['approval_events'];
 begin
-  -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to approval_policies, approval_requests, and approval_requests_decided_by_on_update_is_caller.
+  -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to approval_policies, approval_requests, and approval_requests_decided_by_on_update_is_caller; and 125 added approval_requests_settled_is_immutable.
   -- SUPERSEDED BY 092, 094, 102. Batch 090 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: approval_events_service_path_closed (092), approval_policies_service_path_closed (092), approval_policies_updated_by_is_caller (102), approval_requests_requester_is_caller (094), approval_requests_service_path_closed (092), approval_requests_updated_by_is_caller (102).
   -- Each of those is asserted by its own batch's block, which this pass also re-runs. The final-state
@@ -30,8 +30,8 @@ begin
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.approval_requests'::regclass and not pol.polpermissive)
-     is distinct from array['approval_requests_decided_by_on_update_is_caller', 'approval_requests_requester_is_caller', 'approval_requests_scope_narrowing', 'approval_requests_service_path_closed', 'approval_requests_updated_by_is_caller', 'approval_requests_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its two UPDATE closures
-    raise exception 'app.approval_requests restrictive policies are not exactly batch 090''s narrowing and the ones 092, 094, 102, 123 added';
+     is distinct from array['approval_requests_decided_by_on_update_is_caller', 'approval_requests_requester_is_caller', 'approval_requests_scope_narrowing', 'approval_requests_service_path_closed', 'approval_requests_settled_is_immutable', 'approval_requests_updated_by_is_caller', 'approval_requests_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its two UPDATE closures; and 125: the settled-row closure
+    raise exception 'app.approval_requests restrictive policies are not exactly batch 090''s narrowing and the ones 092, 094, 102, 123, 125 added';
   end if;
   -- ENABLE AND FORCE ON ALL THREE. They are DIFFERENT CATALOG COLUMNS and the data package's own
   -- lint rule reads only the first (RFC-2026-016 §4). Without FORCE the table owner is exempt from
@@ -326,7 +326,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (approval_tables)
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'), ('approval_policies', 'approval_policies_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_decided_by_on_update_is_caller'));  -- SUPERSEDED BY 092, 094, 102, 123: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'), ('approval_policies', 'approval_policies_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_decided_by_on_update_is_caller'), ('approval_requests', 'approval_requests_settled_is_immutable'));  -- SUPERSEDED BY 092, 094, 102, 123, 125: names another file wrote, see the header
   if count_of <> 3 then
     raise exception 'batch 090 wrote % restrictive policies and it creates three tables to narrow', count_of;
   end if;
@@ -353,7 +353,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (approval_tables)
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'), ('approval_policies', 'approval_policies_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_decided_by_on_update_is_caller'))  -- SUPERSEDED BY 092, 094, 102, 123: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('approval_events', 'approval_events_service_path_closed'), ('approval_policies', 'approval_policies_service_path_closed'), ('approval_policies', 'approval_policies_updated_by_is_caller'), ('approval_requests', 'approval_requests_requester_is_caller'), ('approval_requests', 'approval_requests_service_path_closed'), ('approval_requests', 'approval_requests_updated_by_is_caller'), ('approval_policies', 'approval_policies_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_updated_by_on_update_is_caller'), ('approval_requests', 'approval_requests_decided_by_on_update_is_caller'), ('approval_requests', 'approval_requests_settled_is_immutable'))  -- SUPERSEDED BY 092, 094, 102, 123, 125: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

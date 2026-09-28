@@ -13559,13 +13559,14 @@ export function buildCases(id) {
       params: [id('approval_request_a1'), '__SELF__'],
       expect: 'rejected',
       sqlstate: '23514',
-      violates: 'approval_requests_decider_is_a_pair',
+      violates: 'approval_requests_decision_has_a_decider',
       why: 'BATCH 123 (A1\'s review of 105, F2; Q0\'s, F1): the cancel policy admits this row -- the editor is a '
          + 'writer, the request is pending, updated_by is the caller -- and 090\'s equivalence let decided_by '
-         + 'through ALONE, so a cancellation could record a decider. approval_requests_decider_is_a_pair '
-         + 'makes decided_at and decided_by a pair, and the database refuses it whichever policy admitted the '
-         + 'row. The decider is the caller so that the decider closure admits it (the next case names another). '
-         + 'The positive above is the same cancel without the stamp.',
+         + 'through ALONE, so a cancellation could record a decider. 123 made decided_at and decided_by a pair. '
+         + 'SINCE BATCH 125 the database fills decided_at the moment decided_by is set, so the pair is '
+         + 'satisfied and what refuses this cancellation is 090\'s equivalence: a cancelled request with a '
+         + 'decision. The decider is the caller so that the decider closure admits it (the next case names '
+         + 'another). The positive above is the same cancel without the stamp.',
     },
     {
       id: 'editor-a-cannot-cancel-an-approval-request-naming-another-decider',
@@ -13608,6 +13609,28 @@ export function buildCases(id) {
       why: 'BATCH 123 (Q0\'s test of 123, F1): both columns set on a cancellation satisfy the pair, so what refuses '
          + 'it is 090\'s equivalence -- the half of the rule 123 completes and now asserts by text. Q0 dropped '
          + 'that constraint in a later file and a cancellation carried a whole decision with every layer green.',
+    },
+    {
+      id: 'approver-a-cannot-backdate-a-decision',
+      covers: ['§8.3', '§8.5'],
+      as: approverA,
+      sql: APPROVAL_DECISION_TIME_IS_THE_DATABASES,
+      params: [id('approval_request_a1'), '__SELF__', '2001-01-01 00:00:00+00'],
+      expect: 'rows',
+      why: 'BATCH 125 (A1 F4 and Q0 F7 on batch 123, the Owner\'s decision of 2026-09-28): the approver\'s '
+         + 'decision sends decided_at in 2001, and set_decided_at records the transaction\'s time instead. '
+         + 'The row comes back only if decided_at = now(), so a database that kept the decider\'s value '
+         + 'returns nothing and the case fails.',
+    },
+    {
+      id: 'approver-a-cannot-postdate-a-decision',
+      covers: ['§8.3', '§8.5'],
+      as: approverA,
+      sql: APPROVAL_DECISION_TIME_IS_THE_DATABASES,
+      params: [id('approval_request_a1'), '__SELF__', '2999-01-01 00:00:00+00'],
+      expect: 'rows',
+      why: 'BATCH 125: the other direction A1 measured, a decision dated 2999, which batch 160\'s retention '
+         + 'sweep would never reach. Recorded as the transaction\'s time.',
     },
     {
       id: 'approver-a-cannot-decide-an-approval-request-naming-another-decider',
@@ -13757,6 +13780,19 @@ export function buildCases(id) {
          + 'outcome is `no-effect` because the USING half FILTERS — the row is not refused, it is '
          + 'never seen — and the witness is what tells that apart from a write that landed and '
          + 'changed nothing.',
+    },
+    {
+      id: 'owner-a-cannot-redecide-a-settled-approval-request',
+      covers: ['§8.3', '§4/8'],
+      as: ownerA,
+      ...approvalDecideRequest(id('approval_request_a1_decided'), '__SELF__'),
+      expect: 'no-effect',
+      witness: approvalRequestStillInState(ownerA, id('approval_request_a1_decided'), 'approved'),
+      why: 'BATCH 125 (A1 N1 and C0 F2 on batch 123\'s corrections): the same clause as the approver\'s case '
+         + 'above, from the identity a plausible later edit would widen it for -- "the owner may correct a '
+         + 'decision". A1 measured that edit passing every layer and the owner then taking the approver\'s '
+         + 'approval as its own. approval_requests_settled_is_immutable ANDs `status = \'pending\'` with '
+         + 'whatever admits the row, so the owner\'s write is filtered and the witness still reads `approved`.',
     },
     {
       id: 'editor-a-cannot-cancel-a-settled-approval-request',
@@ -16705,6 +16741,19 @@ export function buildCases(id) {
          + 'UPDATE policy and 123\'s restrictive closure both refuse it; the case is what fails if both go.',
     },
     {
+      id: 'owner-a-cannot-rename-the-content-item-of-a1-naming-another-updater',
+      covers: ['§8.6/8', '§8.5'],
+      as: ownerA,
+      ...contentRenameItem(id('content_item_a1'), id('user_editor_a')),
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_items' },
+      why: 'BATCH 125 (Q0\'s re-test of 123\'s corrections, F4): the editor\'s forging case above cannot see a '
+         + 'looser sibling that admits only owner and admin (Q0\'s E02c, the drift that motivated it), because '
+         + 'the sibling does not admit the editor. The owner is in content_items_update_writer\'s roles, so '
+         + 'this is refused only by the permissive WITH CHECK and 123\'s restrictive closure.',
+    },
+    {
       id: 'owner-a-cannot-toggle-an-approval-policy-naming-another-updater',
       covers: ['§8.6/8', '§8.5'],
       as: ownerA,
@@ -17220,6 +17269,12 @@ export const CONTENT_VERSION_OF_ITEM =
   'select id from app.content_versions where content_item_id = $1::uuid and version_no = 1';
 export const CONTENT_VARIANT_BY_VERSION =
   'select id from app.content_variants where content_version_id = $1::uuid and platform = $2';
+// Batch 125's proof, the same shape: the decider sends a decision time and the database records its
+// own. The row is returned only when decided_at is the transaction's time, now().
+export const APPROVAL_DECISION_TIME_IS_THE_DATABASES =
+  "with decided as (update app.approval_requests set status = 'approved', decided_at = $3::timestamptz, "
+  + 'decided_by = $2::uuid, updated_by = $2::uuid where id = $1::uuid returning decided_at) '
+  + 'select 1 as recorded_by_the_database from decided where decided_at = now()';
 // Batch 093's proof: a client write of updated_at in the past is overwritten by the trigger. A CTE
 // so that the case is a single statement with one result set; it is a write, rolled back with the
 // case, and it is asserted with `rows` because the row it returns is the evidence.
