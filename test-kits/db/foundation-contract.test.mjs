@@ -336,7 +336,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // about which FILES the instance has run, not which objects they make — and INSERTED between 081 and
   // 110 so the tail stays contiguous.
   '082_content_service_path_closed.sql', '083_content_targets_service_path_closed.sql',
-  '090_approval.sql', '092_approval_service_path_closed.sql',
+  // Batch 091 (calendar) is INSERTED between 090 and 092, its numeric place, so the declaration stays a TAIL.
+  '090_approval.sql', '091_calendar.sql', '092_approval_service_path_closed.sql',
   '093_updated_at_triggers.sql',
   '094_approval_requested_by.sql', '100_asset.sql',
   '101_asset_service_path_closed.sql',
@@ -359,6 +360,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // Batch 123: ten restrictive UPDATE policies on tables batches 070-120 made and one CHECK on 090's
   // approval_requests; INSERTED after 122, its numeric place, so the declaration stays a TAIL.
   '123_attribution_closures_everywhere.sql',
+  // Batch 124: the key 091 deferred, after 120's publish_intents.
+  '124_calendar_publish_intent_fk.sql',
   // Batch 125: one restrictive policy on 090's approval_requests, after 123's closures beside it.
   '125_approval_settled_is_immutable.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
@@ -912,6 +915,14 @@ const ADDED_SYMBOLS = [
   'published_post_a1_fb',
   'published_post_a2',
   'published_post_b1',
+  // BATCH 091's six: three calendar placements and three schedules, each addressed by id in a case (the
+  // uniqueness, narrowing, edit, cancel and cross-tenant cases) and each fixed in 091's own fixture.
+  'calendar_item_a1',
+  'calendar_item_a2',
+  'calendar_item_b1',
+  'content_schedule_a1_fb',
+  'content_schedule_a1_ig',
+  'content_schedule_b1',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -2189,7 +2200,7 @@ test('the forward fix 123 keeps its ten UPDATE closures, its decider closure and
   const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
   const TEN = ['approval_policies', 'approval_requests', 'asset_rights', 'assets', 'content_ideas', 'content_items',
     'content_targets', 'publish_intents', 'research_runs', 'research_suggestions'];
-  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 17, "105's seven and 123's ten");
+  assert.equal(UPDATED_BY_ON_UPDATE_CLOSURES.length, 19, "105's seven, 123's ten and 091's two, carried from birth");
   for (const t of TEN) {
     assert.ok(UPDATED_BY_ON_UPDATE_CLOSURES.includes(t), `the probe pins ${t}`);
     assert.match(code, new RegExp(`create policy ${t}_updated_by_on_update_is_caller on app\\.${t}\\s+as restrictive for update to authenticated\\s+with check \\(updated_by = \\(select auth\\.uid\\(\\)\\)\\);`),
@@ -2402,9 +2413,12 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     // then split what was left into one probe per rule (Q0 on 123, F3), so the three below replace it.
     'updated_by insert closure probe': '5fd640a3e261fa4c',
     'requester closure probe': '85ca653329a540a6',
-    'updated_by update closure probe': 'a0ec08b58ae6db06',
+    // Batch 091 added calendar_items and content_schedules to the pinned UPDATE closures:
+    // a0ec08b58ae6db06 to e62e90908b0348b6.
+    'updated_by update closure probe': 'e62e90908b0348b6',
     'decider closure probe': 'e93e1cc95122a8ea',
-    'closure coverage probe': '15309262269afd58',
+    // Batch 091's two tables join the coverage list: 15309262269afd58 to 70785bd2b648f6c5.
+    'closure coverage probe': '70785bd2b648f6c5',
     'pinned check probe': 'e42a2631d4abb36e',
     'pinned policy probe': '8d0a6ed657dc1038',
     'security definer probe': '46a6b919f897b53f',

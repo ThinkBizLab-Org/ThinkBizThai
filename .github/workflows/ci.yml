@@ -778,6 +778,16 @@ jobs:
           control app.approval_policies       '[a-z0-9-]*approval-policy'     090
           control app.approval_requests       '[a-z0-9-]*approval-request'    090
           control app.approval_events         '[a-z0-9-]*approval-event'      090
+          # BATCH 091's TWO TABLES (calendar.core, A5's module, written by A0 on the Owner's decision of
+          # 2026-09-28). Measured on a private PostgreSQL 17.11 before the push: with row level security
+          # off on app.calendar_items, seven cases fail and every one is a calendar placement -- the
+          # cross-tenant read, the page-scoped narrowing, the editor's and viewer's refused placements,
+          # a placement of tenant B's item, and two refused moves; with it off on app.content_schedules,
+          # seven fail and every one is a schedule -- the cross-tenant read, the editor's and approver's
+          # refused schedules, arming, dispatching, the editor's refused cancel and the forged updater.
+          # No other case id in the suite contains `calendar` or `schedule`.
+          control app.calendar_items          '[a-z0-9-]*calendar'            091
+          control app.content_schedules       '[a-z0-9-]*schedule'            091
           # BATCH 100's FOUR TABLES, AND THE FIRST ENTRY IN THIS LIST WHOSE BASIS INCLUDES A SERVICE
           # CASE THAT IS A WRITE. §8.2 marks "Asset SELECT/use" `Y` for all five client roles, so
           # every one of these families has client READS for row level security to decide -- which

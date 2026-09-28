@@ -467,6 +467,30 @@
     "published_post_b1": {
       "uuid": "cd8df3a5-9a3a-57ed-bb37-5d57dfba1265",
       "role": "workspace_b's own post, with a metric snapshot beneath it. §8.6 case 5 for app.performance_snapshots: every A-side identity holds its exact id and reaches neither the post nor the metric, and `owner-b-...` proves the rows are there to be reached."
+    },
+    "calendar_item_a1": {
+      "uuid": "462b7fa7-98ff-575b-85bb-a64a704e4fa9",
+      "role": "Batch 091: the calendar placement of content_item_a1 (business_a1), inside user_editor_a's scope; the uniqueness case collides on it."
+    },
+    "calendar_item_a2": {
+      "uuid": "e85d3696-ee89-5598-89c5-6b181cb86800",
+      "role": "Batch 091: the placement of content_item_a2 (business_a2), outside user_editor_a's scope -- §8.6 case 3 for the calendar."
+    },
+    "calendar_item_b1": {
+      "uuid": "89052307-19b9-57f0-9aa4-2aa8e31cdc6f",
+      "role": "Batch 091: tenant B's placement, the cross-tenant witness."
+    },
+    "content_schedule_a1_fb": {
+      "uuid": "cd9ccadc-9021-5797-8683-d91786a6c44c",
+      "role": "Batch 091: a DRAFT schedule of content_target_a1_fb; the edit, cancel, arm-refusal and uniqueness cases act on it."
+    },
+    "content_schedule_a1_ig": {
+      "uuid": "a7450cca-4283-5e1c-91e9-2fcb8a0ba1b7",
+      "role": "Batch 091: an ARMED schedule of content_target_a1_ig, which no client can produce; the fixture writes it so cancelling an armed schedule is exercised."
+    },
+    "content_schedule_b1": {
+      "uuid": "96ca8d53-c415-5ccb-9b62-307befbfcb93",
+      "role": "Batch 091: tenant B's draft schedule, the cross-tenant witness."
     }
   },
   "_why_a_knowledge_item_needs_a_symbol_when_a_version_does_not": "Batch 040 adds FIVE symbols and no earlier batch added more than four, which is worth explaining rather than leaving as a number. A version row is addressed by its parent and its ordinal, a member scope by its member and its target, an industry assignment by the Business it belongs to -- every one of those is a natural key some document fixes. A KNOWLEDGE ITEM HAS NONE. Nothing in §4, §5 or §8 says a Business holds one voice profile, and inventing a `unique (business_profile_id, kind)` so that the fixture could address a row without a symbol would be encoding a product decision into a constraint in order to save five constants. So the items are named here and their versions are not: app.knowledge_item_versions makes (knowledge_item_id, version_number) unique, and every case that addresses a version addresses it through an item id this file fixes.",

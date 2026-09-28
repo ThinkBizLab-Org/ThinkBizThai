@@ -132,6 +132,9 @@ export const FIXTURE_SQL_FILES = [
   // and must move above it; until then it has none, and the absence is the deferral rather than an
   // oversight.
   'tests/db/identity/fixtures/081-content-targets-fixture.sql',
+  // Batch 091's placements hang off 080's items and its schedules off 081's targets, so it follows 081
+  // directly: a POSITION that is a dependency, said here rather than left to be inferred.
+  'tests/db/identity/fixtures/091-calendar-fixture.sql',
   // Batch 090's POSITION IS A DEPENDENCY ON THE ENTRY DIRECTLY ABOVE IT, which no entry in this
   // list has been before. 070's fixture was the first to depend on another batch's rows and 080's
   // was the first to name them; this one pins CONTENT VERSIONS -- every request carries a

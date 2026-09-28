@@ -161,10 +161,12 @@ export const UPDATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'a
   'knowledge_items', 'page_context_profiles', 'publish_intents', 'workspace_invitations', 'workspace_member_scopes'];
 export const REQUESTER_CLOSURES = ['approval_requests', 'publish_intents'];
 // The updated_by UPDATE closures: batch 105's seven (updated_by client-updatable and bound nowhere) and
-// batch 123's ten (bound only inside a permissive policy, which a looser sibling could widen). Every
+// batch 123's ten (bound only inside a permissive policy, which a looser sibling could widen), and batch
+// 091's two, carried from birth. Every
 // table that grants authenticated UPDATE on updated_by is here; the probe refuses one that is not.
 export const UPDATED_BY_ON_UPDATE_CLOSURES = ['approval_policies', 'approval_requests', 'asset_rights', 'assets',
-  'business_profiles', 'content_ideas', 'content_items', 'content_targets', 'industry_assignments', 'knowledge_items',
+  'business_profiles', 'calendar_items', 'content_ideas', 'content_items', 'content_schedules', 'content_targets',
+  'industry_assignments', 'knowledge_items',
   'page_context_profiles', 'publish_intents', 'research_runs', 'research_suggestions', 'workspace_invitations',
   'workspace_settings', 'workspaces'];
 export const UPDATED_BY_ON_UPDATE_CHECK_TEXT = '(updated_by = ( SELECT auth.uid() AS uid))';
