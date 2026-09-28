@@ -45,8 +45,9 @@ what the merge record shows once it exists.
 1. **Batch 125 comes next, then 091.** 125's branch is `agent/claude/WP-0A-DB-00-batch-125`.
 2. **The database sets `decided_at`.** In migration 125, the invoker trigger
    `private.set_decided_at()` records the transaction's time when `decided_by` goes from NULL to a
-   value, whatever the client sent. Once a decision is recorded, its decider and time cannot change,
-   for any writer. Measured on a private cluster:
+   value, whatever the client sent. Once a decision is recorded, its decider and time cannot change
+   for any writer that fires triggers. The request's outcome (`status`) is frozen for clients only, by
+   the settled-row closure (A1's review of batch 125, V1). Measured on a private cluster:
    - a decider's 2001 and 2999 values are recorded as `now()`;
    - a superuser's attempt to backdate or revert a recorded decision is refused;
    - a non-decision update of a settled row still works.
@@ -78,9 +79,10 @@ what the merge record shows once it exists.
 changes governance is merged by the Owner personally, never by delegation. **Its literal sentence
 was not satisfied for #162.** The Owner's instruction overrode the Owner's own rule for this PR, and
 the RFC's text is unchanged. The same holds for RFC-2026-002's literal sentence, as in every earlier
-record of an Owner-directed merge (2026-09-16 onward). Its clauses 2 and 4 are already recorded on
-the open blockers: the clause-by-clause compliance entry, and the missing Integration Owner
-evidence. The commit's author field is not the evidence
+record of an Owner-directed merge (2026-09-16 onward). Clause 2's Integration Owner requirement is
+on the blocker for the missing r0 evidence. Clause 4's "no unresolved security finding" depends on a
+term RFC-2026-025 leaves undefined, which the RFC-2026-025 blocker records as its item (d) (C0's
+re-check of 125's text, W2). The commit's author field is not the evidence
 of who decided; this paragraph is.
 
 For the next merges, 125's and 091's, A0 will again ask the Owner to press. If the Owner again

@@ -5,13 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "7f6cefbc375facea143f9df63650266b7d6e63a9",
-  "head_revision_or_patch_checksum": "155d90678afb17b60a0b0ec4d60d171b3c840def",
+  "head_revision_or_patch_checksum": "c3f2f22650b2ba329b03cfd9b957ffdcb744a3f8",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/125_approval_settled_is_immutable.sql",
     "evidence/WP-0A-DB-00/a0-batch-125-record-2026-09-28.md",
     "evidence/WP-0A-DB-00/a1-batch-125-security-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/a1-batch-125-wording-reverify-2026-09-28.md",
     "evidence/WP-0A-DB-00/c0-batch-125-contract-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-125-wording-reverify-2026-09-28.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-after-162.md",
     "evidence/WP-0A-DB-00/q0-batch-125-test-review-2026-09-28.md"
   ],
@@ -39,7 +41,8 @@
     "THIS INCREMENT IS BATCH 125, on the Owner's `เอาตามแนะนำทุกข้อ` (2026-09-28) taking A0's three recommendations after #162: this forward fix first, then batch 091; the database sets decided_at; RFC-2026-025's open points deferred, with the Owner pressing every merge (product-owner-disposition-2026-09-28-after-162.md).",
     "Its content is the re-verification round's items (1)-(8) on blocker 186 plus decided_at (A1 F4, Q0 F7 on batch 123); a0-batch-125-record-2026-09-28.md maps each finding to its change and measurement.",
     "decided_at stays in the client UPDATE grant so no client statement changes shape; the value a decider sends is ignored at a decision and refused by 123's pair elsewhere.",
-    "C0, A1 and Q0 reviewed d85a643 (e8773d4, abc27d0, 56b10e0): no stop-the-line, nothing blocking the Owner's merge, every negative control reproduced. Where A0's own text overclaimed (the trigger freezes the outcome for clients only; item 8 closed for UPDATE only; item 4's meta-command half open; the RFC blocker's stale opening; README counts and wording; the disposition's reading of the Owner's words), the following commit corrects the text and nothing else."
+    "C0, A1 and Q0 reviewed d85a643 (e8773d4, abc27d0, 56b10e0): no stop-the-line, nothing blocking the Owner's merge, every negative control reproduced. Where A0's own text overclaimed (the trigger freezes the outcome for clients only; item 8 closed for UPDATE only; item 4's meta-command half open; the RFC blocker's stale opening; README counts and wording; the disposition's reading of the Owner's words), the following commit corrects the text and nothing else.",
+    "C0 and A1 re-checked the text-only correction 155d906 (0d72e3a, c3f2f22): text only, no stop-the-line, nothing blocking; their remaining wording findings (C0 W1-W4, A1 W1-W4) are corrected in the following text-only commit, which neither re-checked."
   ],
   "acceptance_results": [
     {
@@ -93,7 +96,7 @@
   "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
   "recommended_next_work_packages": [
     "Batch 091 (A0 writes; C0, Q0 and A1 review; the A5 review of the schedule states recorded as owed), drafted and rebased on d85a643, waiting on 125.",
-    "One hardening batch after 091 for blocker 186 items 11-19 (the verdict and residue, a second trigger, the parameter ACL, non-client writers and INSERT, statement_timestamp, FK exemption keys, the coverage predicate).",
+    "One hardening batch after 091 for blocker 186 items 11-15 and 17-19 (the verdict and residue, a second trigger, the parameter ACL, non-client writers and INSERT, statement_timestamp, FK exemption keys, the coverage predicate); item 16 goes with batch 160 planning.",
     "created_by at INSERT in 102's shape, with the coverage probe's INSERT half."
   ],
   "reviewer_instructions": [
