@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b5f53c3c3a45f199afb35d0fecb2e7542bca2641",
-  "head_revision_or_patch_checksum": "00505b1aa65c64e56ac399898b1cc84540edf8f7",
+  "head_revision_or_patch_checksum": "7717c81f8a03d8e3cd11888ea25e23ed62ac7cc5",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/index-coverage.json",
@@ -13,12 +13,17 @@
     "db/foundation/lint/policy-set.json",
     "db/foundation/lint/vocabulary-checks.json",
     "evidence/WP-0A-DB-00/a0-batch-150-prereq-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-150-prereq-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-150-prereq-contract-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150-prereq.md",
+    "evidence/WP-0A-DB-00/q0-batch-150-prereq-test-review-2026-10-03.md",
     "scripts/db/explain-harness.mjs",
     "test-kits/db/ws905-fixture.mjs"
   ],
   "files_modified": [
     "db/foundation/README.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/psql-driver.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
@@ -28,7 +33,7 @@
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "None decided. Q150-a, Q150-b, Q150-c and Q150-d are read as OPEN and left open; the pinned shapes, vocabulary checks, policy set and index coverage files record what exists today, measured, and change no migration, policy, index or grant."
+    "None decided. Q150-a, Q150-b, Q150-c, Q150-d and (since the review round, C0-3) Q150-e are read as OPEN and left open; the pinned shapes, vocabulary checks, policy set and index coverage files record what exists today, measured, and change no migration, policy, index or grant."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
@@ -37,13 +42,14 @@
     "The Owner's words (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ` (the hardening chain ends at 129; move to the planned batches) and the goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. A0 reads them as: do now what needs no pending decision, and put each decision to its owner without taking it. The reading is A0's.",
     "The merge of #171 (batch 170 assertions) at its reviewed head e182b0f, merge commit b5f53c3 at 2026-10-03T21:52:26Z, required check green on e182b0f, was A0 executing the standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, not A0 deciding a merge. The RFC-2026-025 §5 points stay open.",
     "The four lint files were measured by the draft at 1319042; the migrations are byte-identical between 1319042 and b5f53c3, and migrate-clean on this branch reproduces every count (32 constraints, 18 indexes, 4 policies; 60 vocabulary CHECKs; 209 policies, 44 rows; 4 exemptions, 28 lookups).",
-    "Floors are re-derived on this branch, not copied from the draft: foundation-contract's assertion floor 793 -> 878 (the guard's own count; the draft's 590 -> 675 was its base's). No test is added or renamed, so the suite stays 684 and evidence/VERIFICATION.md is not amended; amends_without_owning.paths is unchanged, so no WP line citation moves."
+    "Floors are re-derived on this branch, not copied from the draft: foundation-contract's assertion floor 793 -> 878 at 9d57cda and 878 -> 898 at the review round's 7717c81 (the guard's own count each time; the draft's 590 -> 675 was its base's). No test is added or renamed, so the suite stays 684 and evidence/VERIFICATION.md is not amended; amends_without_owning.paths is unchanged, so no WP line citation moves.",
+    "REVIEW ROUND: C0 (4a224c2), A1 (f975f86) and Q0 (c3b61e4) on 782df87 are cherry-picked with -x as 9aec4f8, 0805728 and af4bb79; 7717c81 acts on every finding (plan §10: finding -> change -> measured). Fixed in this batch: C0-1/Q0 Q-1 and Q-2, Q-3 (probe tightening and drifts), A1 S1/Q0 Q-4/C0-9 (one parsed host guard, testHostRefusal in scripts/db/psql-driver.mjs, also for db-reset-test), S3/C0-4/Q-6 (the harness refuses a non-empty database before writing), S4/C0-8 (triggers pinned), S6 (query parameters redacted), and the text findings S2/Q-5, S5, C0-2/Q-7, C0-3, C0-5, C0-6/S7/Q-8. Owed by name on open_blockers[194]: the free-space guard (12), the lint generators (8), columns in the shapes (4), and the reset-test guard change for the Integration Owner to accept (13)."
   ],
   "acceptance_results": [
     {
       "criterion": "Survey §6 item 5: 121's unique keys, indexes, CHECKs and policy pinned by pg_get_constraintdef / pg_get_indexdef / pg_get_expr, plus relforcerowsecurity (phase plan 150, Can do now)",
       "result": "met",
-      "evidence": "db/foundation/lint/pinned-shapes.json (app.performance_snapshots, app.published_posts, app.usage_events: RLS enabled and forced, 32 constraints, 18 indexes, 4 policies); the pinned shape probe in scripts/db/run.mjs, 4 rules, 4 self-test drifts; drifts D1 (no force) and D4 (an index rebuilt narrower) fail migrate-clean 2 by name on this branch (plan §0.2). No column is pinned (F7, open_blockers[194] (4))"
+      "evidence": "db/foundation/lint/pinned-shapes.json (app.performance_snapshots, app.published_posts, app.usage_events: RLS enabled and forced, 32 constraints, 18 indexes, 4 policies, and since the review round 0 non-internal triggers); the pinned shape probe in scripts/db/run.mjs, 5 rules, 5 self-test drifts; drifts D1 (no force) and D4 (an index rebuilt narrower) fail migrate-clean 2 by name (plan §0.2), and the review round's dT2 (a BEFORE INSERT trigger, A1 S4) fails migrate-clean 2 by rule 5 (plan §10.4). No column is pinned (F7, open_blockers[194] (4))"
     },
     {
       "criterion": "Survey §6 item 6: the vocabulary CHECK text across the schema",
@@ -58,17 +64,22 @@
     {
       "criterion": "An index-coverage probe for RLS-predicate and keyset cursor columns, measured first, gaps recorded as exemptions or findings",
       "result": "met",
-      "evidence": "db/foundation/lint/index-coverage.json (4 exemptions keyed schema.table.column with reasons, 28 declared lookups, findings IC-1..IC-3); the index coverage probe, 3 rules, 3 self-test drifts; drift D9 (the worker claim and library keyset indexes dropped) fails migrate-clean 2 by name. IC-1 (no index for the content first page) is a finding, not a lookup, because the index is a migration (Q150-b)"
+      "evidence": "db/foundation/lint/index-coverage.json (4 exemptions keyed schema.table.column with reasons, 28 declared lookups, findings IC-1..IC-3); the index coverage probe, 3 rules, 3 self-test drifts, reading btree indexes only and (rule 2) the NULLS order since the review round (C0-1, Q0 Q-1); drift D9 fails migrate-clean 2 by name, and so do the review round's dA (HASH worker claim, NULLS LAST audit keyset), dB (BRIN workspace switch) and dL4 (NULLS LAST library keyset), each 0/0/0 before (plan §10.4). IC-1 (no index for the content first page) is a finding, not a lookup, because the index is a migration (Q150-b)"
     },
     {
-      "criterion": "A WS:905 fixture generator and an EXPLAIN harness: plans only, no p95, DB_TEST_URL only, not in CI",
+      "criterion": "A WS:911 fixture generator and an EXPLAIN harness: plans only, no p95, DB_TEST_URL only, not in CI",
       "result": "met",
-      "evidence": "test-kits/db/ws905-fixture.mjs (scale a parameter, small by default) and scripts/db/explain-harness.mjs (one transaction, rolled back; refuses without DB_TEST_URL or off the allowlist, exit 2). On this branch: --scale small exit 0, --scale 0.2 exit 0 (10 s), --scale 0.2 --fail-on-seq-scan exit 3 on the workspace list (F2). Not a make target, not in CI: adding it is the Integration Owner's (open_blockers[194] (9)). The full scale is not measured (plan §6.2)"
+      "evidence": "test-kits/db/ws905-fixture.mjs (scale a parameter, small by default) and scripts/db/explain-harness.mjs (one transaction, rolled back; refuses with exit 2 without DB_TEST_URL, on a URL the shared parsed host guard refuses, and before its first write on a database whose fixture tables hold rows). At 782df87: --scale small 0, --scale 0.2 0 (10 s), --scale 0.2 --fail-on-seq-scan 3 on the workspace list (F2). At the review round: --scale 0.05 0 on a fresh migrate-clean; after rls-smoke 2 (\"refuses a database that is not empty\", nothing written). Not a make target, not in CI: adding it is the Integration Owner's (open_blockers[194] (9)). The full scale is not measured (plan §6.2)"
     },
     {
       "criterion": "Every finding owed by name, no blocker text duplicated",
       "result": "met",
       "evidence": "open_blockers[179] and [185] extended; [194] new, appended at the end, each finding with its owner; F4 cross-referenced to [113]; plan §6.1 maps every F-id"
+    },
+    {
+      "criterion": "Every review-round finding (C0, A1, Q0 on 782df87) acted on or owed by name, with no rule weakened",
+      "result": "met",
+      "evidence": "plan §10.2 maps each of C0-1..C0-9, S1..S7 and Q-1..Q-8 to a change and a measurement or to a named owed item on open_blockers[194] (4), (8), (12), (13); every changed rule is a tightening (btree only, NULLS order, a fifth rule, a parsed host guard, an emptiness refusal); the clean set passes unchanged (migrate-clean 0, rls-smoke 0 twice)"
     }
   ],
   "tests": [
@@ -138,40 +149,86 @@
       "result": "each named by the new probe(s): pinned shape (D1, D4, D6), policy set (D6), index coverage (D9); rls-smoke 0 for each; 140_audit.sql restored byte for byte (sha256 2ac596bb950e8dfb...) after each"
     },
     {
+      "command": "review round: node --test test-kits/db/foundation-contract.test.mjs (Node v24.20.0)",
+      "exit_code": 0,
+      "result": "tests 80, pass 80"
+    },
+    {
+      "command": "review round: npm run check (before committing 7717c81)",
+      "exit_code": 0,
+      "result": "tests 684, pass 684"
+    },
+    {
+      "command": "review round: node scripts/verify-branch-scope.mjs b5f53c3 WP-0A-DB-00 (branch name)",
+      "exit_code": 0,
+      "result": "all 19 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "review round: node scripts/commit-when-clean.mjs (for 7717c81)",
+      "exit_code": 0,
+      "result": "clean: exit 0 -- tests 684, pass 684, fail 0"
+    },
+    {
+      "command": "review round r2 (fresh initdb, 127.0.0.1:5507, shim first): make db-schema-lint; make db-migrate-clean; make db-rls-smoke; make db-rls-smoke (same database)",
+      "exit_code": 0,
+      "result": "all four 0; the four probes refused each of their 5 / 2 / 2 / 3 drifts; post-migrate 49 / 37 / 12; 1079 isolation cases and 6 claims, twice"
+    },
+    {
+      "command": "review round r3: make db-migrate-clean; node scripts/db/explain-harness.mjs --scale 0.05",
+      "exit_code": 0,
+      "result": "plan shapes as plan §5; workspace list SEQ SCAN on workspaces (F2)"
+    },
+    {
+      "command": "review round r3: make db-rls-smoke; then node scripts/db/explain-harness.mjs --scale 0.05",
+      "exit_code": 2,
+      "result": "ws905 harness refuses a database that is not empty; usage_events_id_seq and database size unchanged (nothing written)"
+    },
+    {
+      "command": "review round r3: explain-harness / db-reset-test with DB_TEST_URL '...?host=/nonexistent-a0-dir'; db-reset-test with a host list",
+      "exit_code": 2,
+      "result": "harness 2, reset-test 1 and 1: each 'refuses this host' before connecting; app and private still present"
+    },
+    {
+      "command": "review round drifts dA (HASH worker claim + DESC NULLS LAST audit keyset), dB (BRIN workspace switch), dL4 (DESC NULLS LAST library keyset), dT2 (BEFORE INSERT trigger on performance_snapshots), each appended to 140_audit.sql on a fresh initdb: make db-schema-lint / db-migrate-clean / db-rls-smoke",
+      "exit_code": 2,
+      "result": "each 0 / 2 / 0, named by index coverage (dA, dB, dL4) or pinned shape rule 5 (dT2); each was 0 / 0 / 0 at 782df87 (C0, A1, Q0); 140_audit.sql restored byte for byte (sha256 2ac596bb950e8dfb...) after each"
+    },
+    {
       "command": "npm run check; npm run check:handoff; npm run verify (after this commit, on the branch name)",
       "exit_code": null,
       "result": "PENDING when this file was written: they can run only after this commit; the observed exits are in the PR body, not here"
     }
   ],
-  "security_privacy_cost_impact": "None at run time. No migration, policy, index, grant or role changes; nothing reachable by any role changes. The batch adds four lint files, four probes run by make db-migrate-clean (CI already runs it), static tests, a synthetic fixture generator and an EXPLAIN harness that runs only where DB_TEST_URL names an allowlisted host, in one transaction that is rolled back. The fixture is synthetic by construction (derived ids, no address, no customer data). Cost: four more probes per migrate-clean (5.2 s measured on this branch); the harness at full WS:905 scale needs about 2 GB of free disk while its transaction is open, and the draft's full-scale run filled the volume once (plan §6.2); it was run here at small and 0.2 scale only.",
+  "security_privacy_cost_impact": "None at run time. No migration, policy, index, grant or role changes; nothing reachable by any role changes. The batch adds four lint files, four probes run by make db-migrate-clean (CI already runs it), static tests, a synthetic fixture generator and an EXPLAIN harness. Since the review round the harness and db-reset-test share one parsed test-instance guard (testHostRefusal: exact host localhost, 127.0.0.1, [::1] or postgres; one @, no host list; no host, hostaddr, service or servicefile parameter), psql no longer inherits PGHOST, PGHOSTADDR, PGSERVICE or PGSERVICEFILE, and query parameter values are redacted (A1 S1, S6). The harness runs in one transaction that is rolled back, after refusing any database whose fixture tables hold rows; rolled back is not left as it was: sequences advance, reltuples stay, and dead tuples and WAL hold disk until VACUUM or the cluster is removed (A1 measured 14 -> 592 MB and 1.6 GB of disk over three runs). The fixture is synthetic by construction (derived ids, no address, no customer data). Cost: four more probes per migrate-clean (about 5.3 s measured); the harness at full WS:911 scale needs about 2 GB of free disk and has no free-space guard (open_blockers[194] (12)); the draft's full-scale run filled the volume once (plan §6.2); it was run here at small, 0.2 and 0.05 scale only.",
   "migration_and_data_impact": "NONE. Batch 150's prerequisites add no migration and need no migration number.",
-  "compatibility_impact": "Additive. Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 793 -> 878, the guard's own count; test floors and name digests unchanged; no existing probe digest moves. evidence/VERIFICATION.md is not amended and amends_without_owning.paths is unchanged, so no WP line citation moves. A later batch that rebuilds performance_snapshots, published_posts or usage_events, adds or changes a vocabulary CHECK, adds a policy anywhere, or adds an RLS predicate column without an index must update the matching lint file in the same diff, or migrate-clean names it.",
+  "compatibility_impact": "Additive. Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 793 -> 878 -> 898, the guard's own count; test floors and name digests unchanged; the four new probe digests are pinned and, at the review round, three of them move (pinned shape b54ae8e9c8c7f6ce, policy set 3c643bfe1fcfb040, index coverage ae187b635c0ae0f4); no older digest moves. evidence/VERIFICATION.md is not amended and amends_without_owning.paths is unchanged, so no WP line citation moves. db-reset-test now refuses URLs the text match admitted (a ?host= parameter, a host list, a service); CI's postgresql://postgres@localhost:5432/thinkbizthai_test is admitted (static test). A later batch that rebuilds performance_snapshots, published_posts or usage_events (triggers included), adds or changes a vocabulary CHECK, adds a policy anywhere, or adds an RLS predicate column or lookup without a btree index of the right order must update the matching lint file in the same diff, or migrate-clean names it.",
   "known_limitations": [
     "The pinned shapes pin no column (type, NOT NULL, default, identity) -- F7, owed to A0 with Q150-a (open_blockers[194] (4)).",
-    "Index-coverage rule 1 reads only the USING columns of a policy's own table; a helper's internal lookup and the parent lookups inside a narrowing's EXISTS are not computed -- F5, IC-2 and IC-3 (open_blockers[194] (5)).",
+    "Index-coverage rule 1 reads only the USING columns of a policy's own table; a helper's internal lookup and the parent lookups inside a narrowing's EXISTS are not computed -- F5, IC-2 and IC-3 (open_blockers[194] (5)). A green lookup says an index of that shape exists, not that the query plans through it (F2, A1 S5).",
     "The vocabulary selector reads ARRAY[' and the single-column text equality; OR, regex and domain vocabularies and the other 209 CHECKs are outside it -- F6 (open_blockers[194] (6)).",
     "The policy set reads policies, not RLS flags; enabled and forced RLS beyond the three shape tables is held by the static lint and rls-smoke -- F8.",
     "The scripts that generated the four lint files are not in the repository -- F10.",
-    "The harness is not in CI or the Makefile, the full WS:905 scale is not measured, and the fixture is uniform -- F13, F1, F14.",
-    "The probes compare PostgreSQL 17.11 deparse text; CI's postgres:17 rendering identically is inferred -- F9."
+    "The harness is not in CI or the Makefile, the full WS:911 scale is not measured, it has no free-space guard, and the fixture is uniform -- F13, F1, F14 (open_blockers[194] (9), (12), (11)). It needs a fresh migrate-clean database (it refuses one rls-smoke has used) and should run once per cluster.",
+    "The probes compare PostgreSQL 17.11 deparse text; CI's postgres:17 rendering identically is inferred -- F9.",
+    "Q0 mutant C10 (rule 2 counting invalid indexes) cannot be driven by a transactional migration, so it is held by a static regex only."
   ],
   "open_risks_or_blockers": [
-    "Q150-a (Owner), Q150-b (Owner), Q150-c (Owner/A0) and Q150-d (Product/Ops) are UNANSWERED; the disposition lists each with A0's recommendation (yes, the key change as a small forward migration; yes, defer partitioning and production index work; A0 authors, A1 reviews, number 150; draft SLO values from the first fixture run for the Owner to ratify).",
-    "F2: the workspace list seq-scans app.workspaces at the 0.2 scale, against WS:907 (open_blockers[194] (1), batch 150's author under Q150-d). F3/IC-1: no index serves the content first page (open_blockers[194] (2), under Q150-b). F4: no worker identity, so the worker plans run as the owner (open_blockers[113]).",
-    "Integration Owner evidence is still owed for this package (RFC-2026-025 §5); this batch's role runs (C0, Q0, A1) are still to come."
+    "Q150-a (Owner), Q150-b (Owner), Q150-c (Owner/A0), Q150-d (Product/Ops) and Q150-e (Owner; F2, put at the review round) are UNANSWERED; the disposition §5 lists each with A0's recommendation, its other options and the consequence of no.",
+    "F2: the workspace list seq-scans app.workspaces at the 0.05 and 0.2 scales, against WS:913 (open_blockers[194] (1), Q150-e). F3/IC-1: no index serves the content first page (open_blockers[194] (2), under Q150-b). F4: no worker identity, so the worker plans run as the owner (open_blockers[113]).",
+    "Integration Owner evidence is still owed for this package (RFC-2026-025 §5), and the shared host guard's change to db-reset-test is the Integration Owner's to accept (open_blockers[194] (13)). The review round's fixes have not been re-checked by C0, A1 or Q0."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. No migration, policy, index or grant is added, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 review and test of batch 150's prerequisites (plan §0-§6.1), then its merge under the standing delegation if the bar of 127 §6 is met.",
-    "Put Q150-a, Q150-b, Q150-c and Q150-d to their owners; Q150-a first, since the key change is the one pre-G0 migration the phase plan recommends while the table is empty.",
-    "The Integration Owner decides whether the EXPLAIN harness runs in CI (open_blockers[194] (9))."
+    "C0, A1 and Q0 re-check of the review round (plan §10, commit 7717c81), then the merge under the standing delegation if the bar of 127 §6 is met.",
+    "Put Q150-a..e to their owners; Q150-a first, since the key change is the one pre-G0 migration the phase plan recommends while the table is empty.",
+    "The Integration Owner decides whether the EXPLAIN harness runs in CI (open_blockers[194] (9)), between migrate-clean and rls-smoke or on its own database."
   ],
   "reviewer_instructions": [
-    "Read the plan's sections 0, 0.1, 0.2, 1, 4 and 6.1 with db/foundation/lint/pinned-shapes.json, vocabulary-checks.json, policy-set.json and index-coverage.json, the four probes in scripts/db/run.mjs (constants from :1491, jobs from :2109) and the batch 150 blocks in test-kits/db/foundation-contract.test.mjs (from :3131; the harness refusal test at :107).",
-    "Re-run migrate-clean on a fresh cluster and check the four probes' counts; append the plan's drifts (D1, D4, D6, D9 re-run here; D5 and D7 from the draft) to 140_audit.sql and check each fails migrate-clean by the new probe's name.",
-    "Run the harness only at small or 0.2 scale (DB_TEST_URL=... node scripts/db/explain-harness.mjs --scale 0.2); the full scale needs about 2 GB free and filled the disk once (plan §6.2).",
-    "Check that the extensions to open_blockers[179] and [185] and the new open_blockers[194] own every finding of the plan's §6 by name and duplicate no other blocker's text.",
-    "Do not take Q150-a..d: they are the Owner's, A0's and Product/Ops', as the disposition says."
+    "Read the plan's §10 (cherry-pick map; finding -> change -> measured; owed) with the diff 782df87..7717c81: scripts/db/run.mjs 6d (rule 5, from :1494), 6f (:1615) and 6g (:1671; btree at :1694 and :1717), the probe jobs from :2129; scripts/db/psql-driver.mjs testHostRefusal (:37) and scrubbedEnv (:52); scripts/db/explain-harness.mjs (the emptiness refusal and the guard at :174); test-kits/db/foundation-contract.test.mjs (the refusal additions :114-153, the static blocks from :3176).",
+    "Re-run migrate-clean on a fresh cluster and check the four probes refuse 5 / 2 / 2 / 3 drifts; append dA, dB, dL4 and dT2 (plan §10.4) to 140_audit.sql and check each fails migrate-clean by name; re-run the C8, C9, C2 and C6 mutants against the new drifts.",
+    "Run the harness only at small, 0.05 or 0.2 scale, on a fresh migrate-clean, once per cluster; check it refuses with exit 2 after rls-smoke and on ?host=, host-list, service and hostaddr URLs.",
+    "Check that open_blockers[194] owns every finding not fixed here by name and duplicates no other blocker's text.",
+    "Do not take Q150-a..e: they are the Owner's, A0's and Product/Ops', as the disposition says."
   ],
   "superseded_by": null
 }
