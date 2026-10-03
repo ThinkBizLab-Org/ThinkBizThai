@@ -363,3 +363,28 @@ Cluster: 127.0.0.1:5507 only, TCP only, `initdb --locale=C -A trust -U postgres`
 
 `npm run check`, `npm run check:handoff` and `npm run verify` after the handoff refresh are recorded in the
 PR body, not here. Port 5507's cluster was stopped and its data directory removed after every round.
+
+## 10. Re-checks of the review round (2026-10-04)
+
+C0, A1 and Q0 re-checked `77b6249`, whose code commit is `8f5424c`. Their files are cherry-picked with `-x`:
+
+| Reviewer | Original | Cherry-picked |
+|---|---|---|
+| C0 | `09689ef` | `bae82ad` |
+| A1 | `0623bdb` | `8e7a95b` |
+| Q0 | `cca9448` | `e37cde2` |
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI
+is green on `77b6249` (run 37153858421). A1 measured R1 and R2 closed (membership, superuser set, and
+views/matviews/foreign tables). Q0 measured Q-1, Q-2, Q-4, Q-5, Q-6 and Q-8 closed.
+
+A0 changes no code in this round. What stays owed, on open_blockers[193] or [185]:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| Ownership of the app and private schemas is read by no layer. n06 (`alter schema private owner to app_command`) passes every layer, and app_command can then drop objects (A1 S1) | LOW | A0: pin the schema owners |
+| Non-client roles' attributes other than rolsuper are read nowhere. app_worker BYPASSRLS is caught only by rls-smoke (84 of 1079 cases). CREATEROLE, INHERIT, schema CREATE and default privileges are not read (Q0 R-2, A1 S3) | LOW | A0: extend the role-attribute pin to every non-superuser role |
+| Schema public stays in Q-3's class. A CTAS from a private table into public, granted to app_worker, passes every layer (Q0 R-3, Q-3) | LOW | [185] (already recorded) |
+| The static view regex misses `create recursive view` and temp views. Rule 1 catches them in app/private at migrate-clean (A1 S2, Q0 R-5). Rule 4's static anchor has a `[\s\S]*?` gap, and the membership self-test has no app_worker-member case (Q0 R-1) | LOW | A0: static pins |
+| The pinned grant probe's claim and the handoff say "no other relation", which is wider than the rule (C0 R-1) | LOW | wording at the next refresh |
+| Rules 2–4 assume the migration owner is superuser and that roles have no memberships. On a provisioned Supabase instance they fail by design, so they need a platform-measured set (C0 INFO-2, A1 S4, Q0 R-4) | INFO | Q170-c |
