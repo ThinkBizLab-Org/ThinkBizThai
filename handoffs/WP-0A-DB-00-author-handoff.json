@@ -4,186 +4,174 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "c7fe26448b014e35358e85b1344a9f46a609d17a",
-  "head_revision_or_patch_checksum": "73da3c639c839a681fddff6698294370a0e88aca",
+  "base_revision": "2f6ab9e0222085f4650443bcfd06585c43dc040e",
+  "head_revision_or_patch_checksum": "13cc63599130a029c6855090877b25cbc29ea9a7",
   "task_ids": [],
   "files_added": [
-    "db/foundation/lint/purge-order.json",
-    "db/foundation/lint/retention-map.json",
-    "evidence/WP-0A-DB-00/a0-batch-160-prep-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-160-prep-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-160-prep-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-160-prep-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-160-prep-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-160-prep.md",
-    "evidence/WP-0A-DB-00/q0-batch-160-prep-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-160-prep-test-review-2026-10-03.md",
-    "test-kits/db/export-manifest.fixture.json"
+    "db/foundation/lint/data-classification.json",
+    "db/foundation/lint/pinned-grants.json",
+    "db/foundation/lint/read-allowlist-known-exceptions.json",
+    "db/foundation/lint/read-allowlist.json",
+    "evidence/WP-0A-DB-00/a0-batch-170-assert-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170-assert.md",
+    "scripts/db/generate-pinned-grants.mjs"
   ],
   "files_modified": [
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "db/foundation/README.md",
+    "db/foundation/lint/audit-coverage-map.json",
+    "db/foundation/lint/retention-map.json",
+    "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/fixtures/ctr-aud-001/store-conformance.json",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
+    "tests/db/identity/identity-isolation.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "None decided. Q160-a, Q160-b, Q160-c, Q160-d and DATA-DEC-03..10 are read as OPEN and left open; the retention map carries their ids, and no row carries a number."
+    "None decided. Q170-a, Q170-b, Q170-c and the new Q170-d (draft F1) are read as OPEN and left open; the pinned grant list, the known exceptions and the classification registry record what exists today, measured, and change no grant."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 160's PREPARATION: the part of batch 160 (A1, retention, export and anonymisation) that needs no pending decision, from the phase plan a0-phase-plan-141-170-2026-10-03.md, 'Batch 160 -- 3. Can do now'. Plan a0-batch-160-prep-plan-2026-10-03.md (the local draft's record, draft/wp-db00-160-prep 1eb29fc, moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-160-prep.md. The draft's two commits (9dd168e, 1eb29fc, cut at 75c9274) are cherry-picked as 60105df and 8f935a5, with the floor, verification-record, integrity-manifest and test-file conflicts resolved against main c7fe264.",
+    "THIS INCREMENT IS BATCH 170's ASSERTION-ONLY PART: the part of batch 170 (A1, grants, RLS and exposed-surface hardening) that needs no pending decision, from the phase plan a0-phase-plan-141-170-2026-10-03.md, 'Batch 170 -- 4. Can do now', items (a), (b) and (c). Plan a0-batch-170-assert-plan-2026-10-03.md (the local draft's record, draft/wp-db00-170-assert 1319042, moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-170-assert.md. The draft's two commits (3b04a7b, 1319042, cut at 999456d) are cherry-picked as 4d9c9ac and e3f1db7, with the floor and integrity-manifest conflicts resolved against main 2f6ab9e; dee6561 packages it, 13cc635 records it.",
     "The Owner's words (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ` (the hardening chain ends at 129; move to the planned batches) and the goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. A0 reads them as: do now what needs no pending decision, and put each decision to its owner without taking it. The reading is A0's.",
-    "The merge of #169 (batch 141 prep) at its reviewed head 4d1f10c, merge commit c7fe264 at 2026-10-03T17:51:16Z, required check run 37141584373 green, was A0 executing the Owner's standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), not A0 deciding it.",
-    "No migration, no policy, no grant and no retention number: each would take Q160-a (§10's numbers), Q160-b (the anonymisation route), Q160-d (the deletion-manifest owner) or one of DATA-DEC-03..10. So no migration number is asked of the Owner.",
-    "An undefined or mismatched class is never given a §10 row number: it is a finding row with no class, no row number and no behaviour, and its finding names §5's cell as written.",
-    "The three static tests read the migration TEXT, which the draft measured equal to a live catalog at 75c9274 (66 tables, 90 foreign keys over 87 edges, 216 role:column UPDATE pairs, 269 indexes). No migration changed between 75c9274 and c7fe264, so that equality carries to this base.",
-    "REVIEW ROUND (2026-10-04): C0 89d0994, A1 ddd9879 and Q0 b10e5f8 cherry-picked with -x (1c8b0e4, 886b1a4, 6e41fc8); their findings fixed in b06b4e0 inside the three existing tests, the three data files, the blockers and the records (plan §8). No test added or renamed; no migration, policy, grant or retention number; no Q-id decided."
+    "The merge of #170 (batch 160 prep) at its reviewed head 1b79315, merge commit 2f6ab9e at 2026-10-03T19:56:36Z, required check run 37149325739 green, was A0 executing the standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, not A0 deciding a merge. The RFC-2026-025 §5 points stay open.",
+    "Rule 17 (no client privilege on a SECRET-4, PROVIDER-3 or INTERNAL-3 table) is kept as drafted ONLY because it passes on main and no table the ERD leaves ambiguous is classified PROVIDER-3 (measured, plan §0.1). Its strictness against ERD §9.1's 'safe projection only' is draft F1, put as Q170-d, not decided.",
+    "The pinned grant list and the known exceptions are generated from a live catalog read on the clean set and committed as reviewed data; scripts/db/generate-pinned-grants.mjs reproduces both byte for byte on this branch (--check exit 0) and the classification registry is hand-written from ERD §5, §6 and §9.1/§9.2.",
+    "No test is added, so the suite stays 684 and evidence/VERIFICATION.md is not amended; dropping it from amends_without_owning moved every manifest line below it up one, and the WP line citations in retention-map.json, audit-coverage-map.json and the CTR-AUD-001 store-conformance fixture moved -1 with it, each still checked against its blocker. No blocker index moves."
   ],
   "acceptance_results": [
     {
-      "criterion": "A retention map as data, one row per table in app and private, with the §5 class and whether §10 defines it, the sweep column and whether it is indexed, §10's final behaviour, the control that blocks it today and the open decision it needs; undefined classes listed as findings, never given a number",
+      "criterion": "Pinned grants on every table in app and private and every non-superuser role, table and column level, with grant option, as a closed list (phase plan 170 (a))",
       "result": "met",
-      "evidence": "db/foundation/lint/retention-map.json (66 rows, 16 findings); foundation-contract.test.mjs:3791; the draft's 27 mutations each turned the run red (plan §1); review round: the window guard reads Thai, hyphenated and numeric windows and tests itself (C0 G1, A1 S1, Q0-F1); F160-17 recorded (C0 G2); partial covering predicates held (G6); set_decided_at held both ways (A1 S2); the WP citations checked (G9); 17 findings"
+      "evidence": "db/foundation/lint/pinned-grants.json (66 tables, 43 table-level and 1328 column-level grants, none with grant option); the pinned grant probe in scripts/db/run.mjs, 4 rules, the first closing the table list both ways, 4 self-test drifts; the draft's A1-A3 drifts passed migrate-clean before and fail it by name now (plan §4); on this branch the A1 drift made migrate-clean exit 2 and the generator --check exit 1 (plan §0.1)"
     },
     {
-      "criterion": "A §11.1 export manifest fixture (schema version, counts, omitted classes with reasons, checksums) and a static test that SECRET-4, raw webhook, internal job, SECURITY detail and research snapshot never appear",
-      "result": "met",
-      "evidence": "test-kits/db/export-manifest.fixture.json; foundation-contract.test.mjs:3918, finding each exclusion by a property of the map, not by the fixture's own lists. Review round: that property is a per-row pick, so a class §5 gives and the row does not pick now carries a reason, and an exported table with one needs export_allowed (A1 S4, Q0-F3); four tables moved out of outside-minimum-domains (C0 G3); user_profiles has its own judgement (G4)"
+      "criterion": "read-allowlist.json as [] (RFC-2026-021 §8.1), the §8.2 two-way rule, and the §8.5 known-exceptions block listing exactly today's inherited grants (phase plan 170 (b))",
+      "result": "met for client SELECT",
+      "evidence": "db/foundation/lint/read-allowlist.json, db/foundation/lint/read-allowlist-known-exceptions.json (41 rows); the read allowlist probe, 2 rules and 2 self-test drifts; identity-isolation.test.mjs:8040 asserts presence and emptiness. §8.2's migration-text half and §8.3's exposed_views stay owed (open_blockers[115])"
     },
     {
-      "criterion": "The §11.4 purge order as data derived from the foreign keys, with a test that the order matches the graph",
-      "result": "met",
-      "evidence": "db/foundation/lint/purge-order.json; foundation-contract.test.mjs:3970 (edges as a multiset equal the migration text's, children first, the one cycle break and the self-references declared, the 12 retention conflicts recomputed); review round: key names compared as fk|child|parent, conflicts' fields held, phases follow the class (audit_logs in step 8), the four phase inversions declared, the tables no workspace owns marked outside_workspace_purge (C0 G7, G8, A1 S3, Q0-F4)"
+      "criterion": "A classification registry (table -> §9.1 class) with a rule: no client privilege on SECRET-4, PROVIDER-3 or INTERNAL-3; unclassifiable tables are findings (phase plan 170 (c))",
+      "result": "met at table level",
+      "evidence": "db/foundation/lint/data-classification.json (66 tables, 8 refused, 12 findings with no class); the data classification probe, 2 rules and 2 self-test drifts, the plan's own drift among them. The ERD classes no column, so the column half asserts nothing yet (F3, open_blockers[193])"
     },
     {
-      "criterion": "A design note on the anonymisation route: a sentinel versus a mapping table",
+      "criterion": "The generator behind the committed grant data is in the repository (draft F14)",
       "result": "met",
-      "evidence": "plan §6; recommendation B for Q160-b, not taken; recorded on open_blockers[148]; review round: balanced (the executor booked to both routes, a Benefit list for Route A, the investigation trade-off; C0 G5); the recommendation stands"
+      "evidence": "scripts/db/generate-pinned-grants.mjs; --check exit 0 on the clean set (rounds r1, r2), exit 1 with the A1 drift (round d1)"
     },
     {
-      "criterion": "Every finding the draft recorded owed with a named owner or cross-referenced to the blocker that already holds it, without duplicating a blocker's text",
+      "criterion": "Every finding the draft recorded is owed with a named owner or cross-referenced to an existing blocker, without duplicating its text",
       "result": "met",
-      "evidence": "open_blockers[4], [77], [91], [105], [148], [150], [190] extended; open_blockers[192] new, appended at the end; plan §4's owner column; each map finding's source names its blocker"
+      "evidence": "open_blockers[18], [93], [115], [185] extended; open_blockers[193] new, appended at the end; plan §5.1 maps each finding to its owner and blocker"
     }
   ],
   "tests": [
     {
-      "command": "node --test test-kits/db/foundation-contract.test.mjs (Node v24.20.0, the resolved cherry-pick)",
+      "command": "npm run check (Node v24.20.0, after the cherry-picks)",
       "exit_code": 0,
-      "result": "tests 80, pass 80"
+      "result": "tests 684, pass 684"
     },
     {
-      "command": "npm run record:verification",
-      "exit_code": 0,
-      "result": "recorded 684 passing, 0 skipped, 0 todo"
+      "command": "node scripts/verify-branch-scope.mjs 2f6ab9e WP-0A-DB-00 (after the cherry-picks, manifest still 160 prep's)",
+      "exit_code": 74,
+      "result": "declares evidence/VERIFICATION.md and test-kits/branch-identity.test.mjs, which explain nothing yet; cleared by dee6561"
     },
     {
-      "command": "npm run check (Node v24.20.0, at 159d43b's tree, before the handoff refresh)",
+      "command": "round r1, fresh initdb on 127.0.0.1:5507 with the shim: make db-migrate-clean (the packaging tree)",
+      "exit_code": 0,
+      "result": "pinned grant 66 tables / 43 / 1328; read allowlist 0 entries / 41 exceptions; data classification 66 tables / 8 refused; each refused its drifts; post-migrate pass 49 / 37 / 12"
+    },
+    {
+      "command": "round r1: make db-rls-smoke, twice on one database",
+      "exit_code": 0,
+      "result": "1079 isolation cases each run; 6 authz claims"
+    },
+    {
+      "command": "round r1: node scripts/db/generate-pinned-grants.mjs --check",
+      "exit_code": 0,
+      "result": "both files match the catalog; 66 tables"
+    },
+    {
+      "command": "round d1: 'grant select (input_ref) on app.jobs to app_command;' appended to 140_audit.sql; make db-migrate-clean / make db-rls-smoke x2 / generator --check",
+      "exit_code": 2,
+      "result": "migrate-clean 2 (unlisted: app_command SELECT (input_ref) on app.jobs), rls-smoke 0 and 0, generator --check 1 (pinned-grants.json DIFFERS); 140_audit.sql restored byte for byte (sha256 2ac596bb...49)"
+    },
+    {
+      "command": "npm run check (Node v24.20.0, the packaging tree, before the handoff refresh)",
       "exit_code": 1,
-      "result": "tests 684, pass 682, fail 2; both failures are the handoff guard (the handoff cited 68855a6), the expected red until this commit"
+      "result": "tests 684, pass 682, fail 2; both failures are the handoff guard (the handoff cited 73da3c6), the expected red until this commit"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (packaging 159d43b; plan and disposition f9d9a79)",
+      "command": "node scripts/commit-when-clean.mjs (packaging dee6561; plan and disposition 13cc635)",
       "exit_code": 1,
-      "result": "refused, NOT clean: tests 684, pass 682, fail 2, the same two handoff tests; both commits were therefore plain commits, the sole red being the not-yet-refreshed handoff guard"
+      "result": "refused, the same two handoff failures and nothing else; both committed plainly, as the protocol allows when the sole red is the not-yet-refreshed handoff guard"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs c7fe264 WP-0A-DB-00 (at 159d43b)",
+      "command": "node scripts/verify-branch-scope.mjs 2f6ab9e WP-0A-DB-00 (at dee6561)",
       "exit_code": 0,
-      "result": "all 10 changed path(s) are declared, and every amendment explains one; exit 74 before the branch-identity edit was committed, the guard working"
+      "result": "all 17 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "make db-schema-lint",
+      "command": "round r2, fresh initdb on 127.0.0.1:5507 with the shim: make db-migrate-clean (at dee6561)",
       "exit_code": 0,
-      "result": "db-schema-lint: ok"
+      "result": "as r1; 4640 ms"
     },
     {
-      "command": "make db-contract-check",
+      "command": "round r2: make db-rls-smoke, twice on one database",
       "exit_code": 0,
-      "result": "db-contract-check: ok"
+      "result": "1079 isolation cases each run"
     },
     {
-      "command": "make db-migrate-clean; make db-rls-smoke twice (the draft's round 2, fresh initdb on 5511, export of 9dd168e)",
+      "command": "round r2: node scripts/db/generate-pinned-grants.mjs --check",
       "exit_code": 0,
-      "result": "migrate-clean ok; rls-smoke 1079 isolation cases passed both times. Not re-run on this branch: no input any database layer reads changed (no migration, invariant, fixture SQL, isolation case or CI file; scripts/db/run.mjs reads none of the three new files). No cluster was started on 5507."
+      "result": "both files match the catalog"
     },
     {
-      "command": "review round: node --test test-kits/db/foundation-contract.test.mjs (Node v24.20.0)",
+      "command": "npm run refresh:handoff",
       "exit_code": 0,
-      "result": "tests 80, pass 80"
-    },
-    {
-      "command": "review round: a0-160-prepr2/mutate.mjs, 39 one-file mutations (every surviving probe of C0, A1 and Q0, plus new ones), each restored and its sha256 compared",
-      "exit_code": 0,
-      "result": "37 red; 2 green: P8 (exporting user_profiles, undecided by design) and the control (an adjacent swap with no key between); baseline green before and after"
-    },
-    {
-      "command": "review round: the guard's own count (stripNonCode, countDeclaredTests, the name digest)",
-      "exit_code": 0,
-      "result": "80 tests, 747 assertions (720 -> 747), digest 8c35e631c28c0574 unchanged"
-    },
-    {
-      "command": "review round: npm run check (before the commit); make db-schema-lint; make db-contract-check",
-      "exit_code": 0,
-      "result": "tests 684, pass 684; ok; ok"
-    },
-    {
-      "command": "review round: node scripts/commit-when-clean.mjs (b06b4e0)",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 684, pass 684, fail 0, skipped 0, todo 0"
-    },
-    {
-      "command": "review round: node scripts/verify-branch-scope.mjs c7fe264 WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 15 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "review round: make db-migrate-clean / make db-rls-smoke",
-      "exit_code": null,
-      "result": "not run: no input a database layer reads changed (no migration; only foundation-contract.test.mjs names the three data files). No cluster was started on 5507."
+      "result": "cites 2f6ab9e..13cc635, 7 added, 11 modified, 0 deleted; base moved from c7fe264 to the branch point"
     },
     {
       "command": "npm run check; npm run check:handoff; npm run verify (after this commit, on the branch name)",
       "exit_code": null,
-      "result": "PENDING when this file was written (Q0-F5): they can run only after this commit; the observed exits are in the PR body, not here"
+      "result": "PENDING when this file was written: they can run only after this commit; the observed exits are in the PR body, not here"
     }
   ],
-  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, a synthetic fixture and static tests that refuse later drift: a table added without a retention row, a §10 class given to a row §5 does not reach, a retention number written into the map (in English or Thai, with or without a hyphen, or as a numeric field, since the review round; as first committed the guard read English only), a DELETE grant or a policy for a service role appearing in a later migration while the map says none exists, a foreign key the purge order does not know, and an export manifest that carries a credential, security-event, raw-webhook, internal-job or research-snapshot table. The fixture's ids are the fixture catalog's uuid5 ids and its checksums come from a stated synthetic recipe: no PII, no secret. make db-migrate-clean and make db-rls-smoke were not re-run on this branch because no live-layer input changed; the draft's round 2 on 9dd168e was green.",
-  "migration_and_data_impact": "NONE. Batch 160's preparation adds no migration and needs no migration number.",
-  "compatibility_impact": "Additive. Tests 681 -> 684 (three in foundation-contract); foundation-contract's test floor 77 -> 80, its name digest a91ced9f62276ebe -> 8c35e631c28c0574, and its assertion floor 633 -> 720, the guard's own count. The ownership path list is unchanged, so no line above open_blockers moves and 141 prep's pinned blocker lines hold (open_blockers[i] on line 254+i); blocker 192 is appended at the end. If a migration adds a table, a foreign key, an index on a sweep key, a DELETE grant or a refusal trigger, one of the three tests fails by name and the map or the purge order must move in the same reviewed diff.",
+  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, two probes, a fourth-rule extension of the pinned grant probe, a generator and static tests that refuse later drift: any grant or revoke for any non-superuser role on any app or private table, a table added without a pinned entry or a classification, a client SELECT on no allowlist or exception list (and a list row with no grant), and any client privilege on a SECRET-4, PROVIDER-3 or INTERNAL-3 table. Two drifts the draft measured passed every layer before (a table-wide client SELECT on app.workspaces; a client SELECT on app.jobs.input_ref, INTERNAL-3) and now fail migrate-clean by name. Cost: the pinned grant probe is about 94 KB of SQL run six times per migrate-clean; measured 4.6-4.7 s per migrate-clean on this machine (F15).",
+  "migration_and_data_impact": "NONE. Batch 170's assertion-only part adds no migration and needs no migration number.",
+  "compatibility_impact": "Additive. Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 747 -> 788 and identity-isolation's 2166 -> 2167, the guard's own count; test floors and name digests unchanged. evidence/VERIFICATION.md leaves amends_without_owning, which moves every manifest line below it up one: the 55 WP line citations in retention-map.json, audit-coverage-map.json and the CTR-AUD-001 store-conformance fixture moved -1 and are checked; no blocker index moves (open_blockers[193] is appended at the end). Any later migration that grants, revokes or adds a table must change pinned-grants.json (regenerate with scripts/db/generate-pinned-grants.mjs and review the diff), data-classification.json and, for a client SELECT, an allowlist or exception row, in the same diff.",
   "known_limitations": [
-    "Seventeen findings are recorded as data and none is resolved (plan §4): F160-01 CONNECTION-HISTORY [4], F160-02 CATALOG [77], F160-03 PUSH-SECRET's assignment [91], F160-08 billing_webhook_receipts [105] and F160-11 the schedule's final-state time [190], cross-referenced; F160-04..07, -09, -10, -12..17 held in open_blockers[192], each with its owner.",
-    "Q160-c as the phase plan words it reaches only F160-01..03; F160-04..08, F160-16 and F160-17 carry no decision id until A1 Data widens it or names a new id (A0 recommends widening).",
-    "The tenant root cannot be hard-deleted while FINANCE-HISTORY or AUTH-HISTORY rows exist (F160-14; twelve is a lower bound); the assets/asset_versions cycle can be broken only by an app_worker update no policy admits (F160-15); 13 sweep keys have no covering index and two more only a partial one that excludes the swept rows (F160-13, fifteen).",
-    "The export fixture makes labelled judgements (plan P4, as corrected): workspace_invitations omitted as token material; user_profiles omitted as user-scoped (its member projection undecided); security_events omitted whole; audit_logs exported as the tenant-visible audit trail (export_allowed); four tables in the minimum domains omitted with projection undecided; five tables outside the minimum domains, NOT decided.",
-    "verify-branch-scope checks that an amended path is listed, not that the rationale names this branch (P3); owed to A0 on open_blockers[192] (12).",
-    "The anonymisation design note is a recommendation (Route B) for Q160-b and nothing more."
+    "Rule 17 refuses every client privilege on a PROVIDER-3 or INTERNAL-3 table, stricter than ERD §9.1; it passes only because the twelve ERD-ambiguous tables (published_posts and performance_snapshots among them, which 120/121 record as PROVIDER-3 and expose to clients by design) are unclassified (F1, F2; Q170-d; open_blockers[193]).",
+    "The ERD classes no column, so rule 17's column half asserts nothing until it does (F3).",
+    "The read allowlist probe reads SELECT only; client INSERT, UPDATE and DELETE are held by the pinned grant probe and the permissive policy probe. RFC-2026-021 §8.2's migration-text half (create view <-> entry), the industry-catalog test's replacement and §8.3's exposed_views are not done (F7, F8; open_blockers[115]).",
+    "Rule 7 reads a column privilege a table-level one implies at table level, so a redundant column GRANT beside a table grant is named only after the table grant is revoked (F10).",
+    "Every non-superuser role is read, so on a provisioned Supabase instance the platform's own roles and default grants would read as unlisted; CI and this run use the shim's roles only (F13; Q170-c).",
+    "identity-isolation.test.mjs keeps a test name that says the registry is not in the tree; renaming it moves the name digest, the Integration Owner's to accept (F9)."
   ],
   "open_risks_or_blockers": [
-    "Q160-a (Product/Security/Legal), Q160-b (A1 + Owner), Q160-c (A1 Data) and Q160-d (A4 + A1) are UNANSWERED; the disposition lists each with A0's recommendation (Pilot defaults behind a policy-version gate, DATA-DEC-05/06/10 open until Paid Beta; Route B; A1 amends ERD §5/§10 and widens Q160-c; A4 in 100-109 with 160 consuming).",
-    "DATA-DEC-03..10 stay open with their own owners; no executor exists (DATA-DEC-03), so every row names no-executor.",
-    "C0, A1 and Q0 have reported on 1706111 (no stop-the-line) and their findings are fixed in b06b4e0 (plan §8); re-checks of this review round have not run. The PR stays a Draft until they report.",
-    "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #169 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
+    "Q170-a (Owner + A1), Q170-b (Owner), Q170-c (A0) and Q170-d (A1 + Owner, new from F1) are UNANSWERED; the disposition lists each with A0's recommendation (yes, an RFC amending RFC-020; closed list now, conversion per family later; A0 measures the provisioned instance read-only before G1; a pinned safe projection per PROVIDER-3/INTERNAL-3 table).",
+    "The ERD owner (A1 Data) owes classes for the twelve ambiguous tables, column classes, and the family rows for billing_webhook_receipts, plan_entitlements and publish_target_assets (F2-F5, open_blockers[193]).",
+    "C0, A1 and Q0 have not reviewed this branch; nothing here is reviewed, independently tested or approved."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. No migration, policy or grant is added, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 re-checks of batch 160 prep's review round (plan §8), then its merge under the standing delegation if the bar of 127 §6 is met.",
-    "Put Q160-a, Q160-b, Q160-c (widened) and Q160-d to their owners.",
-    "The planned batches 150 and 170: their no-decision parts, per a0-phase-plan-141-170-2026-10-03.md.",
-    "A5's review of 091's schedule states, now also F160-11, when an A5 run exists."
+    "C0, A1 and Q0 review of batch 170's assertion-only part, then its merge under the standing delegation if the bar of 127 §6 is met.",
+    "Put Q170-a, Q170-b, Q170-c and Q170-d to their owners; Q170-d before the ERD owner classifies published_posts or performance_snapshots.",
+    "The planned batch 150: its no-decision part, per a0-phase-plan-141-170-2026-10-03.md.",
+    "RFC-2026-021 §8.2's migration-text half and §8.3's exposed_views (open_blockers[115]), A0."
   ],
   "reviewer_instructions": [
-    "Read the plan's sections 0, 1, 3.2 and 4 with db/foundation/lint/retention-map.json, db/foundation/lint/purge-order.json, test-kits/db/export-manifest.fixture.json and the three batch 160 prep tests in test-kits/db/foundation-contract.test.mjs (3791, 3918, 3970).",
-    "Check that no row of the map carries a §10 class §5's cell does not reach, and no row carries a number; check each finding's source line against the ERD and the migrations.",
-    "Check that the extensions to open_blockers[4], [77], [91], [105], [148], [150], [190] and the new open_blockers[192] own every finding by name and duplicate no other blocker's text.",
-    "Reproduce a sample of the draft's 27 mutations (plan §1): each one-file mutation must fail one of the three tests, restored byte for byte.",
-    "Confirm no migration, policy or grant is added (no path under db/foundation/migrations changes against c7fe264) and that 633 -> 720 is the guard's own count (main 633, plus 87).",
-    "Review round: read plan §8 (finding -> change -> measured) and re-run the reviewers' own surviving probes against b06b4e0; P8 (exporting user_profiles) stays green by design and is recorded as such. 720 -> 747 is the guard's own count."
+    "Read the plan's sections 0, 0.1, 1, 4 and 5.1 with db/foundation/lint/pinned-grants.json, read-allowlist.json, read-allowlist-known-exceptions.json and data-classification.json, the three probes in scripts/db/run.mjs (the pinned grant probe from :1232, the read allowlist from :1323, the data classification from :1378) and the batch 170 blocks in test-kits/db/foundation-contract.test.mjs (from :2985).",
+    "Re-run the generator on a fresh clean set (DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs --check) and check it reports both files as matching; then append a grant drift to 140_audit.sql and check it exits 1.",
+    "Check F1's condition: no table whose §5 row mixes a refused class and another carries a class in data-classification.json, and app.billing_webhook_receipts' PROVIDER-3 (F4) only adds a refusal.",
+    "Check that the extensions to open_blockers[18], [93], [115], [185] and the new open_blockers[193] own every finding of the plan's §5 by name and duplicate no other blocker's text.",
+    "Check that the 55 moved WP line citations still name the blocker they cite (the foundation-contract tests read them).",
+    "Do not take Q170-a..d: they are the Owner's, A1's and A0's, as the disposition says."
   ],
   "superseded_by": null
 }
