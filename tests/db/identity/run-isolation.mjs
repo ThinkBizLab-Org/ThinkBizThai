@@ -133,7 +133,10 @@ export const FIXTURE_SQL_FILES = [
   // oversight.
   'tests/db/identity/fixtures/081-content-targets-fixture.sql',
   // Batch 091's placements hang off 080's items and its schedules off 081's targets, so it follows 081
-  // directly: a POSITION that is a dependency, said here rather than left to be inferred.
+  // directly: a POSITION that is a dependency, said here rather than left to be inferred. It is
+  // INSERTED here rather than appended, which breaks this list's append convention on purpose, and it
+  // moves 090's entry one further from the 081 entry 090's comment below calls "directly above it";
+  // 090 depends on 080's versions, not on 091, so the order it needs still holds (C0 F13 on 091).
   'tests/db/identity/fixtures/091-calendar-fixture.sql',
   // Batch 090's POSITION IS A DEPENDENCY ON THE ENTRY DIRECTLY ABOVE IT, which no entry in this
   // list has been before. 070's fixture was the first to depend on another batch's rows and 080's

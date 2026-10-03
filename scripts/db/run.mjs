@@ -270,6 +270,12 @@ end \$\$;
 // invariant 8; A1 N1 and C0 F2 on batch 123's corrections).
 export const PINNED_POLICIES = {
   'approval_requests.approval_requests_settled_is_immutable': { cmd: 'w', using: "(status = 'pending'::text)", check: 'true' },
+  // Batch 091: which rows a client may update, and the member-scope narrowings, both halves (C0 F1/F2 and
+  // A1 F1/F2 on 091's first head: each could be gutted in a later file with every layer green).
+  "calendar_items.calendar_items_deleted_is_final": { cmd: "w", using: "(deleted_at IS NULL)", check: "true" },
+  "calendar_items.calendar_items_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = calendar_items.workspace_id) AND (i.business_profile_id = calendar_items.business_profile_id) AND (i.id = calendar_items.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = calendar_items.workspace_id) AND (i.business_profile_id = calendar_items.business_profile_id) AND (i.id = calendar_items.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "content_schedules.content_schedules_client_transition_is_bounded": { cmd: "w", using: "(status = ANY (ARRAY['draft'::text, 'armed'::text]))", check: "(status = ANY (ARRAY['draft'::text, 'cancelled'::text]))" },
+  "content_schedules.content_schedules_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.content_targets t\n     JOIN app.content_items i ON (((i.workspace_id = t.workspace_id) AND (i.business_profile_id = t.business_profile_id) AND (i.id = t.content_item_id))))\n  WHERE ((t.workspace_id = content_schedules.workspace_id) AND (t.business_profile_id = content_schedules.business_profile_id) AND (t.id = content_schedules.content_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.content_targets t\n     JOIN app.content_items i ON (((i.workspace_id = t.workspace_id) AND (i.business_profile_id = t.business_profile_id) AND (i.id = t.content_item_id))))\n  WHERE ((t.workspace_id = content_schedules.workspace_id) AND (t.business_profile_id = content_schedules.business_profile_id) AND (t.id = content_schedules.content_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
 };
 export const PINNED_POLICY_PROBE_SQL = `do \$\$
 declare
@@ -448,7 +454,7 @@ export const CATALOG_RULE_PROBES = [
     selfTests: [{ drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
       raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text' }] },
   { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policy(ies) that bound which rows a client may update, in their pinned text`,
+    claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policies that bound which rows a client may update or see, in their pinned text`,
     selfTests: [{ drift: 'alter policy approval_requests_settled_is_immutable on app.approval_requests using (true);',
       raises: 'pinned restrictive policy(ies) missing or not in their pinned text' }] },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,

@@ -923,6 +923,15 @@ const ADDED_SYMBOLS = [
   'content_schedule_a1_fb',
   'content_schedule_a1_ig',
   'content_schedule_b1',
+  // BATCH 091's CORRECTIONS: the rows outside a scope and the settled rows its first head lacked (C0 F1/F2,
+  // A1 F1/F2), and the deleted placement (A1 F9).
+  'calendar_item_a1_sibling_page',
+  'calendar_item_a1_deleted',
+  'content_schedule_a2',
+  'content_schedule_a1_sibling_page',
+  'content_schedule_a1_page_cancelled',
+  'content_schedule_a1_page_completed',
+  'content_schedule_a1_page_failed',
 ];
 const REQUIRED_SYMBOLS = [...SPEC_SYMBOLS, ...ADDED_SYMBOLS];
 
@@ -2420,7 +2429,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     // Batch 091's two tables join the coverage list: 15309262269afd58 to 70785bd2b648f6c5.
     'closure coverage probe': '70785bd2b648f6c5',
     'pinned check probe': 'e42a2631d4abb36e',
-    'pinned policy probe': '8d0a6ed657dc1038',
+    // Batch 091's corrections pin its two narrowings and its two row-bounding closures: 8d0a6ed657dc1038
+    // to ac16fa955db04fc1.
+    'pinned policy probe': 'ac16fa955db04fc1',
     'security definer probe': '46a6b919f897b53f',
     'trigger probe': 'f182e8b44bddb963',
   }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');

@@ -26,7 +26,16 @@
 -- needs the approval, asset/rights and quality gates, which the database cannot check. The other
 -- three are the dispatcher's. So those transitions belong to a command or service path that does not
 -- exist yet -- the "no writer" class, recorded as a blocker. Disarming (armed -> draft) is admitted
--- because RLS cannot see the old value and disarming is the safe direction; A5 may narrow it.
+-- as the safe direction. A USING bound on the old row could confine it further (a schedule with no
+-- intent link, or outside a lead window); that is A5's to decide (A1 F6 on 091's first head, which
+-- found the first draft's "row level security cannot see the old value" an understatement).
+--
+-- THE CORRECTIONS AFTER C0 AND A1 REVIEWED THE FIRST HEAD (two MEDIUM findings, the same in both):
+-- which rows a client may update is now a RESTRICTIVE closure on each table, as batch 125 made it for
+-- approval requests, and both member-scope narrowings are pinned by exact text in the catalog-rule
+-- probe; each was measured gutted in a later file with every layer green. Also: `dispatched` is live
+-- in the one-schedule-per-target index, zones must be ones PostgreSQL recognises, display_status is
+-- bounded, and deleted_at is the database's. A0's record: evidence/WP-0A-DB-00/.
 --
 -- THE ORDERING, and why one column has no foreign key. content_schedules.publish_intent_id names
 -- batch 120's app.publish_intents, and this file sorts before 120. So the column is created here and
@@ -51,8 +60,13 @@ create table if not exists app.calendar_items (
   -- A LOCAL date, deliberately not a timestamp: a planning placement is "on the 3rd" in the business's
   -- calendar, and the timestamp belongs to the schedule.
   scheduled_local_date  date        not null,
-  -- The IANA zone the date is read in. Asia/Bangkok is the product default (DEC-UX-06, fixed in
-  -- CTR-TEN-001 and 010's workspace_settings); a non-blank shape is all the database can check.
+  -- The zone the date is read in. Asia/Bangkok is the product default (DEC-UX-06, fixed in CTR-TEN-001
+  -- and 010's workspace_settings). The CHECK below refuses a zone PostgreSQL does not recognise:
+  -- timezone(text, timestamp) is IMMUTABLE and raises 22023 on an unknown name (a timestamp WITHOUT a zone,
+  -- so the constraint's deparsed text does not depend on the session's TimeZone). It admits every zone
+  -- PostgreSQL knows, POSIX spellings such as 'UTC+7' included; IANA-only would need pg_timezone_names,
+  -- which is not immutable (C0 F8, A1 F8 on 091's first head; the first draft said "a non-blank shape
+  -- is all the database can check", which was untrue).
   timezone              text        not null default 'Asia/Bangkok',
   -- No vocabulary: §4.7 names display_status and enumerates nothing. Batch 080 left approval_state
   -- the same way. A blank value is refused; which values are legal is a blocker for A5.
@@ -65,8 +79,12 @@ create table if not exists app.calendar_items (
   -- on it.
   deleted_at            timestamptz,
   constraint calendar_items_timezone_not_blank check (length(btrim(timezone)) > 0),
+  constraint calendar_items_timezone_known
+    check (length(timezone) <= 64 and pg_catalog.timezone(timezone, timestamp '2000-01-01 00:00:00') is not null),
   constraint calendar_items_display_status_not_blank
     check (display_status is null or length(btrim(display_status)) > 0),
+  constraint calendar_items_display_status_bounded
+    check (display_status is null or length(display_status) <= 64),
   constraint calendar_items_item_scope_fk
     foreign key (workspace_id, business_profile_id, content_item_id)
     references app.content_items (workspace_id, business_profile_id, id),
@@ -109,6 +127,9 @@ create table if not exists app.content_schedules (
   constraint content_schedules_status_known
     check (status in ('draft', 'armed', 'dispatched', 'cancelled', 'completed', 'failed')),
   constraint content_schedules_timezone_not_blank check (length(btrim(timezone_snapshot)) > 0),
+  constraint content_schedules_timezone_known
+    check (length(timezone_snapshot) <= 64
+           and pg_catalog.timezone(timezone_snapshot, timestamp '2000-01-01 00:00:00') is not null),
   constraint content_schedules_version_positive check (version >= 1),
   constraint content_schedules_target_scope_fk
     foreign key (workspace_id, business_profile_id, content_target_id)
@@ -117,9 +138,12 @@ create table if not exists app.content_schedules (
 );
 
 -- One live schedule per target. A cancelled, completed or failed schedule is history and does not
--- block a new one; a draft or an armed one does, so a target cannot be timed twice.
+-- block a new one; a draft, an armed or a DISPATCHED one does, so a target cannot be timed twice or
+-- timed again while a send is in flight (A1 F5 on 091's first head: the first draft left `dispatched`
+-- out, which is the duplicate-publish class). Whether a COMPLETED target may be scheduled again is
+-- A5's to decide; today it may, and a narrower rule can be added before any row is completed.
 create unique index if not exists content_schedules_one_live_per_target
-  on app.content_schedules (content_target_id) where status in ('draft', 'armed');
+  on app.content_schedules (content_target_id) where status in ('draft', 'armed', 'dispatched');
 create index if not exists content_schedules_target_scope_idx
   on app.content_schedules (workspace_id, business_profile_id, content_target_id);
 create index if not exists content_schedules_due_idx
@@ -132,6 +156,31 @@ comment on table app.content_schedules is
   'armed schedule; arming and dispatch belong to a command or service path that does not exist yet. '
   'publish_intent_id''s foreign key is added by batch 124. Data class CONTENT-2; retention '
   'SCHEDULE-HISTORY (§10), enforced by batch 160.';
+
+-- The database keeps deleted_at as it keeps decided_at since batch 125 (A1 F9 on 091's first head: a
+-- client backdated a deletion to 2001, and batch 160's SCHEDULE-HISTORY sweep will read the value).
+-- When deleted_at goes from NULL to a value, the transaction's time is recorded, whatever was sent.
+-- Nothing else is refused here: a client cannot reach a deleted placement at all (the restrictive
+-- calendar_items_deleted_is_final below), and an undelete by a future command path stays possible.
+create function private.set_deleted_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if old.deleted_at is null and new.deleted_at is not null then
+    new.deleted_at := pg_catalog.now();
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.set_deleted_at() from public;
+comment on function private.set_deleted_at() is
+  'Batch 091: a soft delete is timed by the database (deleted_at NULL to a value records now(), whatever '
+  'was sent). A1 F9 on 091''s first head measured a client-chosen deletion time.';
+create trigger set_deleted_at before update on app.calendar_items
+  for each row execute function private.set_deleted_at();
 
 -- The database keeps updated_at (093's rule, which runs after this file and reads every table).
 create trigger set_updated_at before update on app.calendar_items
@@ -258,6 +307,22 @@ create policy calendar_items_updated_by_on_update_is_caller on app.calendar_item
 create policy content_schedules_updated_by_on_update_is_caller on app.content_schedules
   as restrictive for update to authenticated
   with check (updated_by = (select auth.uid()));
+-- THE ROWS A CLIENT MAY UPDATE AT ALL, as batch 125 closed it for approval requests (C0 F2 and A1 F1 on
+-- 091's first head, both MEDIUM: the state machine rested on one permissive policy, and a later
+-- "the owner may reopen" sibling let a client move a schedule cancelled -> draft, completed -> draft and
+-- dispatched -> cancelled with every layer green). RESTRICTIVE, so they AND with whatever admits the
+-- row. A schedule is touched only while draft or armed and only ever becomes a draft or cancelled; a
+-- deleted placement is not touched at all. They refuse nothing that works today: the permissive
+-- policies already say the same.
+create policy content_schedules_client_transition_is_bounded on app.content_schedules
+  as restrictive for update to authenticated
+  using (status in ('draft', 'armed'))
+  with check (status in ('draft', 'cancelled'));
+create policy calendar_items_deleted_is_final on app.calendar_items
+  as restrictive for update to authenticated
+  using (deleted_at is null)
+  with check (true);
+
 create policy calendar_items_service_path_closed on app.calendar_items
   as restrictive for all to public
   using (current_user = 'authenticated') with check (current_user = 'authenticated');
@@ -286,15 +351,15 @@ begin
   -- 2. The restrictive set on each table, exactly, by name.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.calendar_items'::regclass and not pol.polpermissive)
-     is distinct from array['calendar_items_scope_narrowing', 'calendar_items_service_path_closed',
-                            'calendar_items_updated_by_on_update_is_caller'] then
-    raise exception 'app.calendar_items restrictive policies are not exactly batch 091''s three';
+     is distinct from array['calendar_items_deleted_is_final', 'calendar_items_scope_narrowing',
+                            'calendar_items_service_path_closed', 'calendar_items_updated_by_on_update_is_caller'] then
+    raise exception 'app.calendar_items restrictive policies are not exactly batch 091''s four';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_schedules'::regclass and not pol.polpermissive)
-     is distinct from array['content_schedules_scope_narrowing', 'content_schedules_service_path_closed',
-                            'content_schedules_updated_by_on_update_is_caller'] then
-    raise exception 'app.content_schedules restrictive policies are not exactly batch 091''s three';
+     is distinct from array['content_schedules_client_transition_is_bounded', 'content_schedules_scope_narrowing',
+                            'content_schedules_service_path_closed', 'content_schedules_updated_by_on_update_is_caller'] then
+    raise exception 'app.content_schedules restrictive policies are not exactly batch 091''s four';
   end if;
 
   -- 3. Every PERMISSIVE policy is TO authenticated alone. No service, anon or PUBLIC permissive policy.
@@ -311,24 +376,42 @@ begin
   select string_agg(pol.polname, ', ' order by pol.polname) into offending
     from pg_catalog.pg_policy pol join pg_catalog.pg_class c on c.oid = pol.polrelid
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'app' and c.relname = any (cal_tables) and pol.polpermissive and pol.polcmd in ('a', 'w')
+   where n.nspname = 'app' and c.relname = any (cal_tables) and pol.polpermissive and pol.polcmd in ('a', 'w', '*')
      and position('ARRAY[''owner''::text, ''admin''::text]' in pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid)) = 0;
   if offending is not null then
     raise exception 'a batch 091 write policy does not name exactly owner and admin: %', offending
       using hint = '§8.3 Schedule/unschedule is Y for owner and admin, P for editor (undefined, refused), N for approver and viewer.';
   end if;
 
-  -- 5. No policy writes a status a client may not: the INSERT policy says draft; the UPDATE policy's
-  --    WITH CHECK admits draft and cancelled and nothing else.
-  if (select pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) from pg_catalog.pg_policy pol
-       where pol.polrelid = 'app.content_schedules'::regclass and pol.polname = 'content_schedules_update_scheduler')
-     !~ 'status = ANY \(ARRAY\[''draft''::text, ''cancelled''::text\]\)' then
-    raise exception 'content_schedules_update_scheduler no longer confines a client''s status to draft or cancelled';
+  -- 5. THE FOUR PERMISSIVE WRITE POLICIES, BY EXACT TEXT, BOTH HALVES (C0 F1/F2 and A1 F1/F2 on 091's
+  --    first head: a regex over one half let a widened USING through). The INSERT policies admit a draft,
+  --    unlinked, at version 1; the UPDATE policies touch only owner/admin rows, and a schedule only while
+  --    draft or armed, writing only draft or cancelled.
+  select string_agg(pin.name, ', ' order by pin.name) into offending
+    from (values
+      ('calendar_items_insert_scheduler', 'a', null,
+       '((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])))'),
+      ('calendar_items_update_scheduler', 'w',
+       '(app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text]))',
+       '((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])))'),
+      ('content_schedules_insert_scheduler', 'a', null,
+       '((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])) AND (status = ''draft''::text) AND (publish_intent_id IS NULL) AND (version = 1))'),
+      ('content_schedules_update_scheduler', 'w',
+       '((app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])) AND (status = ANY (ARRAY[''draft''::text, ''armed''::text])))',
+       '((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])) AND (status = ANY (ARRAY[''draft''::text, ''cancelled''::text])))')
+    ) as pin(name, cmd, using_text, check_text)
+   where not exists (
+     select 1 from pg_catalog.pg_policy pol
+      where pol.polname = pin.name and pol.polpermissive and pol.polcmd = pin.cmd
+        and pol.polrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass)
+        and pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) is not distinct from pin.using_text
+        and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = pin.check_text);
+  if offending is not null then
+    raise exception 'batch 091 write policy(ies) not in their exact text: %', offending;
   end if;
-  if (select pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) from pg_catalog.pg_policy pol
-       where pol.polrelid = 'app.content_schedules'::regclass and pol.polname = 'content_schedules_insert_scheduler')
-     !~ 'status = ''draft''::text' then
-    raise exception 'content_schedules_insert_scheduler no longer confines a new schedule to draft';
+  if (select count(*) from pg_catalog.pg_policy pol
+       where pol.polrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass) and pol.polpermissive) <> 6 then
+    raise exception 'batch 091 has other permissive policies than its two reads and four writes';
   end if;
 
   -- 6. The client grants: status, publish_intent_id and version are not insertable; publish_intent_id
@@ -355,11 +438,29 @@ begin
     raise exception 'authenticated may DELETE from %; §8.5 gives no broad user delete', offending;
   end if;
 
-  -- 7. The status vocabulary, by definition text; the deferred key is absent.
+  -- 7. The status vocabulary, the value bounds and the two scope keys, by definition text. The deferred
+  --    intent key is 124's to assert (C0 F4 on 091's first head: this comment used to claim the key's
+  --    absence was checked, and it was not).
   if (select pg_catalog.pg_get_constraintdef(con.oid) from pg_catalog.pg_constraint con
        where con.conrelid = 'app.content_schedules'::regclass and con.conname = 'content_schedules_status_known')
      is distinct from 'CHECK ((status = ANY (ARRAY[''draft''::text, ''armed''::text, ''dispatched''::text, ''cancelled''::text, ''completed''::text, ''failed''::text])))' then
     raise exception 'content_schedules_status_known is missing or not §4.7''s six values';
+  end if;
+  select string_agg(pin.name, ', ' order by pin.name) into offending
+    from (values
+      ('calendar_items_item_scope_fk', 'FOREIGN KEY (workspace_id, business_profile_id, content_item_id) REFERENCES app.content_items(workspace_id, business_profile_id, id)'),
+      ('content_schedules_target_scope_fk', 'FOREIGN KEY (workspace_id, business_profile_id, content_target_id) REFERENCES app.content_targets(workspace_id, business_profile_id, id)'),
+      ('calendar_items_timezone_known', 'CHECK (((length(timezone) <= 64) AND (timezone(timezone, ''2000-01-01 00:00:00''::timestamp without time zone) IS NOT NULL)))'),
+      ('content_schedules_timezone_known', 'CHECK (((length(timezone_snapshot) <= 64) AND (timezone(timezone_snapshot, ''2000-01-01 00:00:00''::timestamp without time zone) IS NOT NULL)))'),
+      ('calendar_items_display_status_bounded', 'CHECK (((display_status IS NULL) OR (length(display_status) <= 64)))')
+    ) as pin(name, def)
+   where not exists (
+     select 1 from pg_catalog.pg_constraint con
+      where con.conname = pin.name and con.convalidated
+        and con.conrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass)
+        and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
+  if offending is not null then
+    raise exception 'batch 091 constraint(s) missing, unvalidated or not in their required text: %', offending;
   end if;
 
   -- 8. The two unique-active rules, by definition text.
@@ -368,7 +469,7 @@ begin
      and ((indexname = 'calendar_items_one_active_per_item'
            and indexdef = 'CREATE UNIQUE INDEX calendar_items_one_active_per_item ON app.calendar_items USING btree (content_item_id) WHERE (deleted_at IS NULL)')
        or (indexname = 'content_schedules_one_live_per_target'
-           and indexdef = 'CREATE UNIQUE INDEX content_schedules_one_live_per_target ON app.content_schedules USING btree (content_target_id) WHERE (status = ANY (ARRAY[''draft''::text, ''armed''::text]))'));
+           and indexdef = 'CREATE UNIQUE INDEX content_schedules_one_live_per_target ON app.content_schedules USING btree (content_target_id) WHERE (status = ANY (ARRAY[''draft''::text, ''armed''::text, ''dispatched''::text]))'));
   if count_of <> 2 then
     raise exception 'batch 091 finds % of its two unique-active indexes in their required shape', count_of;
   end if;
@@ -379,5 +480,37 @@ begin
      and not t.tgisinternal and t.tgname = 'set_updated_at' and p.proname = 'set_updated_at';
   if count_of <> 2 then
     raise exception 'batch 091 finds % set_updated_at trigger(s) on its two tables', count_of;
+  end if;
+
+  -- 10. THE ROWS A CLIENT MAY UPDATE, and the database-owned deletion time, by exact text. The two
+  --     restrictive closures are pinned by the catalog-rule probe as well (PINNED_POLICIES).
+  if not exists (
+       select 1 from pg_catalog.pg_policy pol
+        where pol.polrelid = 'app.content_schedules'::regclass and pol.polname = 'content_schedules_client_transition_is_bounded'
+          and not pol.polpermissive and pol.polcmd = 'w'
+          and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
+          and pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) = '(status = ANY (ARRAY[''draft''::text, ''armed''::text]))'
+          and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = '(status = ANY (ARRAY[''draft''::text, ''cancelled''::text]))') then
+    raise exception 'content_schedules_client_transition_is_bounded is missing or not in its required shape';
+  end if;
+  if not exists (
+       select 1 from pg_catalog.pg_policy pol
+        where pol.polrelid = 'app.calendar_items'::regclass and pol.polname = 'calendar_items_deleted_is_final'
+          and not pol.polpermissive and pol.polcmd = 'w'
+          and pol.polroles = array[(select oid from pg_catalog.pg_roles where rolname = 'authenticated')]::oid[]
+          and pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) = '(deleted_at IS NULL)'
+          and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = 'true') then
+    raise exception 'calendar_items_deleted_is_final is missing or not in its required shape';
+  end if;
+  if not exists (
+       select 1 from pg_catalog.pg_trigger t
+        where t.tgrelid = 'app.calendar_items'::regclass and t.tgname = 'set_deleted_at' and not t.tgisinternal and t.tgenabled = 'O'
+          and pg_catalog.pg_get_triggerdef(t.oid) = 'CREATE TRIGGER set_deleted_at BEFORE UPDATE ON app.calendar_items FOR EACH ROW EXECUTE FUNCTION private.set_deleted_at()')
+     or not exists (
+       select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'private' and p.proname = 'set_deleted_at' and not p.prosecdef
+          and p.proconfig = array['search_path=""'] and md5(p.prosrc) = '3b153bd25169c0cee4476163fa2db757'
+          and not pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')) then
+    raise exception 'batch 091''s set_deleted_at trigger or function is missing, disabled, rewritten, or not SECURITY INVOKER with an empty search_path and no EXECUTE for PUBLIC';
   end if;
 end $$;

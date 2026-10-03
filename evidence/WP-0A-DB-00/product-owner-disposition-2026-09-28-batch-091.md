@@ -12,7 +12,7 @@ The one-page summary of 2026-09-28 put the question as item 5. Recorded in
 
 | Item | Recommendation | Outcome |
 |---|---|---|
-| 5. Batch 091 | A0 writes, A5 reviews | taken; A0 plans it after 123 |
+| 5. Batch 091 | A0 writes, A5 reviews | taken; A0 will plan it after 123 |
 
 ## 2. Who reviews it, since A5 cannot
 
@@ -43,13 +43,15 @@ Owner wrote `merge #163 แล้ว ทำต่อได้เลย`, the sam
 GitHub, #163 was `OPEN`, with merge state `CLEAN`, and its one required check, `bootstrap`, was
 green on head `ab430fb`.
 
-**How A0 read them.** For #162 the same words had meant "merge it, then carry on", and the #162
-disposition's §4 says what A0 would do if the Owner again directed a merge. A0 read these words the
-same way. It did not ask a third time.
+**How A0 read them.** For #162, A0 had read the same words as "merge it, then carry on". That is
+A0's reading, not something the Owner confirmed. The #162 disposition's §4 says what A0 would do if
+the Owner again directed a merge. A0 read these words the same way and did not ask again before
+pressing. For #162, A0 had asked twice.
 
 **What A0 did.** A0 ran `gh pr merge 163 --merge --match-head-commit ab430fb…`, which produced merge
 commit `86f55d2` at 2026-09-28T10:22:07Z, through the account both the Owner and A0's `gh` use.
-Every review run on #163 had found nothing blocking the merge.
+Every review run on #163 had found nothing blocking the merge. The last commit before the handoff,
+`b2b032e`, corrected only the re-checks' own wording points, and no role run re-checked it.
 
 **A0 EXECUTED the Owner's decision; A0 did not make it.** Until the RFC-2026-025 points are decided,
 the Owner's disposition says the Owner presses every merge, and that was not what happened here. Nor
@@ -58,3 +60,12 @@ was RFC-2026-002's literal sentence satisfied.
 **For the next merge.** If the Owner prefers to press merges personally, A0 will wait for GitHub to
 show the merge. If the Owner prefers A0 to press them, one sentence from the Owner saying so would
 settle it. The RFC-2026-025 blocker records the question.
+
+## 4. Corrections
+
+After C0's review of batch 091 (F14), the four wording points above were corrected:
+
+- the one-page summary is now quoted exactly;
+- "had meant" is now A0's reading, stated as A0's reading;
+- the number of times A0 asked is now stated;
+- the unchecked last commit of #163 is now disclosed.
