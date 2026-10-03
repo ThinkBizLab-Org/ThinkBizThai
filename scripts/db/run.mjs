@@ -432,11 +432,23 @@ end \$\$;
 // holds no relation; no client role holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in the
 // three schemas, or any privilege on a table in private. Both allowlists are empty. Sequences are not
 // read: no client role holds any privilege on one (measured), and a sequence carries no tenant row.
+//
+// EVERY SCHEMA BUT THE SYSTEM ONES, NOT THREE BY NAME (batch 128; A1 N1, C0 N1, Q0 N1 on 127's re-check).
+// The first version read app, private and public by name, and each re-check created a fourth schema,
+// granted a client USAGE on it and put a definer-rights view or a table with no RLS there: every layer
+// stayed green, and through the view a user read every workspace's ideas and wrote a row with a forged
+// created_by into another workspace (A1 V11, C0 G1, Q0 F1-sf). So all three rules now read every schema
+// that is not pg_catalog, information_schema or a pg_* schema (a user schema cannot be named pg_*), and
+// rule 3 reads every schema but app. Measured on the clean set at batch 128: no relation exists outside
+// app and private, and no client role holds any privilege on a relation outside app, so nothing that
+// passed before is refused now. Which schemas a client may USE or CREATE in is the client schema probe's,
+// below, and what a client role may BECOME is the client membership probe's.
 export const CLIENT_ROLES = ['anon', 'authenticated', 'public'];
 export const CLIENT_VIEWS = {};
 export const CLIENT_NON_APP_TABLES = {};
 const clientRoles = `unnest(array[${CLIENT_ROLES.map((r) => `'${r}'`).join(', ')}]) as cr(r)`;
 const pinnedArray = (o) => `array[${Object.keys(o).map((k) => `'${k}'`).join(', ')}]::text[]`;
+export const NON_SYSTEM_SCHEMA = "n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_'";
 export const CLIENT_PRIVILEGE_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -444,7 +456,7 @@ begin
   with rels as (
     select c.oid, format('%s.%s', n.nspname, c.relname) as t
       from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-     where n.nspname in ('app', 'private', 'public') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     where ${NON_SYSTEM_SCHEMA} and c.relkind in ('r', 'p', 'v', 'm', 'f')
   ), privs as (
     select unnest(array['TRUNCATE', 'TRIGGER', 'REFERENCES']
                   || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
@@ -458,7 +470,7 @@ begin
   end if;
   select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
     from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
-   where n.nspname in ('app', 'private', 'public') and c.relkind in ('v', 'm', 'f')
+   where ${NON_SYSTEM_SCHEMA} and c.relkind in ('v', 'm', 'f')
      and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
           or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
      and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_VIEWS)}) and c.relkind = 'v'
@@ -469,12 +481,86 @@ begin
   end if;
   select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
     from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
-   where n.nspname in ('private', 'public') and c.relkind in ('r', 'p')
+   where n.nspname <> 'app' and ${NON_SYSTEM_SCHEMA} and c.relkind in ('r', 'p')
      and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
           or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
      and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_NON_APP_TABLES)}));
   if offending is not null then
-    raise exception 'table(s) in private or public a client role can read or write, which no probe reads: %', offending;
+    raise exception 'table(s) outside schema app a client role can read or write, which no probe reads: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2b''''. WHICH SCHEMAS A CLIENT MAY USE OR CREATE IN, EXACTLY (batch 128; A1 N1 and N5, C0 N1, Q0 N1 on 127's
+// re-check). The client privilege probe now reads every schema, and this pins the other half: the
+// (role, privilege, schema) triples for anon, authenticated and PUBLIC, USAGE and CREATE, each also read
+// WITH GRANT OPTION (never pinned), must be exactly this list, both ways. A new schema a client can USE,
+// CREATE granted on any schema (A1 V16: nothing reads it today), or a grant option, is named; so is a pinned
+// triple that went missing. Read with has_schema_privilege, so what PUBLIC holds is counted for anon and
+// authenticated too, as a client meets it. Measured on the clean set at batch 128 (the shim, then every
+// migration): exactly the four below. On the platform the managed schemas (auth, storage, graphql_public,
+// extensions) grant clients USAGE as well; the probe runs on the shim, which grants none (stated, not
+// modelled).
+export const CLIENT_SCHEMA_PRIVILEGES = {
+  app: { authenticated: ['USAGE'] },
+  public: { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] },
+};
+const clientSchemaRows = Object.entries(CLIENT_SCHEMA_PRIVILEGES).flatMap(([schema, roles]) =>
+  Object.entries(roles).flatMap(([role, privs]) => privs.map((p) => `${role} ${p} on schema ${schema}`)));
+export const CLIENT_SCHEMA_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with found as (
+    select format('%s %s%s on schema %s', cr.r, p.p, go.opt, n.nspname) as g
+      from pg_catalog.pg_namespace n, ${clientRoles}, unnest(array['USAGE', 'CREATE']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where ${NON_SYSTEM_SCHEMA}
+       and pg_catalog.has_schema_privilege(cr.r, n.oid, p.p || go.opt)
+  ), pinned as (
+    select unnest(array[${clientSchemaRows.map((r) => `'${r}'`).join(', ')}]::text[]) as g
+  )
+  select string_agg(x, ', ' order by x) into offending from (
+    select 'unlisted: ' || f.g as x from found f where not exists (select 1 from pinned p where p.g = f.g)
+    union all
+    select 'missing: ' || p.g from pinned p where not exists (select 1 from found f where f.g = p.g)
+  ) d;
+  if offending is not null then
+    raise exception 'client schema privilege(s) not exactly the pinned list: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2b'''''. WHAT A CLIENT ROLE MAY BECOME (batch 128; Q0 N2 MEDIUM, A1 N3 on 127's re-check). Every rule above
+// reads has_*_privilege, which follows only INHERITED privileges, and anon and authenticated are NOINHERIT:
+// a plain `grant r to authenticated` gives SET ROLE without inheritance, and no layer read it. Q0 R0 and
+// A1 V14d granted postgres to authenticated, and a client session ran `set role postgres` and became
+// superuser with every layer green; Q0 R1r emptied every workspace's ideas through a role holding TRUNCATE.
+// So anon and authenticated must be members of exactly the pinned roles, read from pg_auth_members
+// RECURSIVELY (a membership of a role that is itself a member of another reaches both), whatever the
+// grant's INHERIT, SET or ADMIN option. PUBLIC is not read: it cannot be granted a role (GRANT ... TO
+// PUBLIC is refused for a role), and every role is already in it. Measured on the clean set at batch 128:
+// no role grants membership to anon or authenticated, so the list is empty, and a pin is an RFC-sized
+// decision in the same diff as its reason. (What may become a client role, authenticator on the
+// platform, is the other direction and authzLint's.)
+export const CLIENT_ROLE_MEMBERSHIPS = [];
+export const CLIENT_MEMBERSHIP_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with recursive reach(client, roleid) as (
+    select r.rolname::text, m.roleid
+      from pg_catalog.pg_roles r join pg_catalog.pg_auth_members m on m.member = r.oid
+     where r.rolname in ('anon', 'authenticated')
+    union
+    select reach.client, m.roleid
+      from reach join pg_catalog.pg_auth_members m on m.member = reach.roleid
+  )
+  select string_agg(x, ', ' order by x) into offending from (
+    select distinct format('%s -> %s', reach.client, pg_catalog.pg_get_userbyid(reach.roleid)) as x from reach
+  ) f
+   where not (x = any (array[${CLIENT_ROLE_MEMBERSHIPS.map((m) => `'${m}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'client role(s) members of a role not pinned, which SET ROLE reaches past every privilege rule: %', offending;
   end if;
 end \$\$;
 `;
@@ -603,6 +689,13 @@ export const SECURITY_DEFINER_FUNCTIONS = [
   ['private.refuse_mutation()', 'migration owner', '6db127bec23ecfaaf041b7dc5c031615'],
   ['private.set_updated_at()', 'migration owner', '1c4318bee4240d4113d86fad7eb15623'],
 ];
+// The first rule skips EXTENSION MEMBERS (pg_depend deptype 'e'), since an extension's own functions are
+// not this repository's to pin by body. A1 V06b (127's re-check, N2) made a SECURITY DEFINER function that
+// read every tenant's ideas a member of pgcrypto with one ALTER EXTENSION ... ADD, and every layer stayed
+// green. So the third rule (batch 128) reads exactly those members, in every schema the first reads: each
+// SECURITY DEFINER extension member must be pinned here as 'schema.name(args) (extension name)'. Measured
+// on the clean set at batch 128 (pgcrypto in extensions, plpgsql): none, so the list is empty.
+export const EXTENSION_DEFINER_FUNCTIONS = [];
 export const SECURITY_DEFINER_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -632,6 +725,17 @@ begin
                       where p.prosecdef and format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) = pin.fn);
   if offending is not null then
     raise exception 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s.%s(%s) (extension %s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid), e.extname) as x
+      from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+      join pg_catalog.pg_depend d on d.classid = 'pg_catalog.pg_proc'::pg_catalog.regclass and d.objid = p.oid and d.deptype = 'e'
+      join pg_catalog.pg_extension e on d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass and e.oid = d.refobjid
+     where p.prosecdef and n.nspname not in ('pg_catalog', 'information_schema')
+  ) f
+   where not (x = any (array[${EXTENSION_DEFINER_FUNCTIONS.map((f) => `'${f}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'SECURITY DEFINER extension member(s) not pinned, which the first rule does not read: %', offending;
   end if;
 end \$\$;
 `;
@@ -1082,21 +1186,42 @@ export const CATALOG_RULE_PROBES = [
   // Batch 127's review round: what reaches past every policy (C0 F1; A1 F1 and F2; Q0 F1). Each drift
   // leaves the rules before its own intact, since the first raise ends the block.
   { label: 'client privilege probe', sql: CLIENT_PRIVILEGE_PROBE_SQL,
-    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in app, private or public; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table in private or public (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
+    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in any schema but the system ones; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table outside app (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
     selfTests: [
-      // C0 X6: TRUNCATE skips row level security. And the other three, each on its own table.
-      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public;',
+      // C0 X6: TRUNCATE skips row level security. And the other three, each on its own table: MAINTAIN since
+      // batch 128 (Q0 N6 on 127's re-check: a probe that stopped reading MAINTAIN still passed this drift).
+      // MAINTAIN is PostgreSQL 17's (CI's image and the local server); the rule reads it on 17 and later.
+      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public; grant maintain on app.workspace_settings to authenticated;',
         raises: 'client role(s) hold TRUNCATE, TRIGGER, REFERENCES or MAINTAIN',
-        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items'] },
-      // A1 R5b (invoker switched off by ALTER VIEW), Q0's plain view, and a materialized view in private.
-      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public;',
+        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items', 'authenticated MAINTAIN on app.workspace_settings'] },
+      // A1 R5b (invoker switched off by ALTER VIEW), Q0's plain view, and a materialized view in private; and
+      // since batch 128 a definer-rights view in a NEW schema a client may use (A1 V11, C0 G1, Q0 F1-sf).
+      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public; create schema probe_view_api; grant usage on schema probe_view_api to authenticated; create view probe_view_api.probe_ideas_v as select id, workspace_id, created_by from app.content_ideas; grant select, insert on probe_view_api.probe_ideas_v to authenticated;',
         raises: 'view(s), materialized view(s) or foreign table(s) a client role can use',
-        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v'] },
-      // A1 R6: an allow-everything table in public; and a grant on a private table.
-      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated;',
-        raises: 'table(s) in private or public a client role can read or write',
-        names: ['private.ai_credential_references', 'public.probe_pub'] },
+        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v', 'probe_view_api.probe_ideas_v'] },
+      // A1 R6: an allow-everything table in public; a grant on a private table; and since batch 128 a table
+      // with no RLS in a new schema (A1 V13, C0 G2, Q0 R3s).
+      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated; create schema probe_table_api; create table probe_table_api.probe_notes (id uuid, workspace_id uuid); grant select, insert, update, delete on probe_table_api.probe_notes to authenticated;',
+        raises: 'table(s) outside schema app a client role can read or write',
+        names: ['private.ai_credential_references', 'public.probe_pub', 'probe_table_api.probe_notes'] },
     ] },
+  // Batch 128 (A1 N1 and N5, C0 N1, Q0 N1 on 127's re-check): which schemas a client may use or create in.
+  { label: 'client schema probe', sql: CLIENT_SCHEMA_PROBE_SQL,
+    claim: `the USAGE and CREATE ${CLIENT_ROLES.join(', ')} hold on every schema but the system ones are exactly the ${clientSchemaRows.length} pinned, none with grant option`,
+    // A new schema a client may use (the re-checks' first step), CREATE on app (A1 V16), a grant option,
+    // and a pinned triple revoked: unlisted and missing are each named.
+    selfTests: [{ drift: 'create schema probe_client_api; grant usage on schema probe_client_api to authenticated; grant create on schema app to anon; grant usage on schema public to authenticated with grant option; revoke usage on schema app from authenticated;',
+      raises: 'client schema privilege(s) not exactly the pinned list',
+      names: ['unlisted: authenticated USAGE on schema probe_client_api', 'unlisted: anon CREATE on schema app', 'unlisted: authenticated USAGE WITH GRANT OPTION on schema public', 'missing: authenticated USAGE on schema app'] }] },
+  // Batch 128 (Q0 N2, A1 N3 on 127's re-check): what a client role may become.
+  { label: 'client membership probe', sql: CLIENT_MEMBERSHIP_PROBE_SQL,
+    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s)`,
+    // Q0 R0 and A1 V14d (superuser by SET ROLE), and a membership two roles deep, with no INHERIT. The
+    // superuser is a role of the drift's own, not `postgres`: the driver redacts the connection's user
+    // name from stderr, so a refusal naming `postgres` could not be tied to its object (measured).
+    selfTests: [{ drift: 'create role probe_member_super superuser nologin; grant probe_member_super to authenticated; create role probe_member_mid nologin; create role probe_member_top nologin; grant probe_member_top to probe_member_mid; grant probe_member_mid to anon with inherit false;',
+      raises: 'client role(s) members of a role not pinned',
+      names: ['authenticated -> probe_member_super', 'anon -> probe_member_mid', 'anon -> probe_member_top'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
@@ -1111,22 +1236,32 @@ export const CATALOG_RULE_PROBES = [
     selfTests: [{ drift: 'alter policy approval_requests_settled_is_immutable on app.approval_requests using (true);',
       raises: 'pinned restrictive policy(ies) missing or not in their pinned text', names: ['approval_requests.approval_requests_settled_is_immutable'] }] },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
-    claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC`,
+    claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC, and the SECURITY DEFINER extension members exactly the ${EXTENSION_DEFINER_FUNCTIONS.length} pinned`,
     selfTests: [
       { drift: 'alter function private.set_updated_at() reset search_path;',
         raises: 'SECURITY DEFINER function(s) not in their pinned shape', names: ['private.set_updated_at() [proconfig is not exactly search_path=""]'] },
       // No longer a definer, so the first rule does not see it and only the second can.
       { drift: 'alter function private.set_updated_at() security invoker;',
         raises: 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER', names: ['private.set_updated_at()'] },
+      // Batch 128 (A1 V06b, N2 on 127's re-check): a definer function hidden in an extension. It passes the
+      // first two rules (pinned, unchanged) and only the third can see it.
+      { drift: "create function app.probe_ext_definer() returns integer language sql stable security definer set search_path = '' as $f$ select 1 $f$; alter extension pgcrypto add function app.probe_ext_definer();",
+        raises: 'SECURITY DEFINER extension member(s) not pinned', names: ['app.probe_ext_definer() (extension pgcrypto)'] },
     ] },
   // Batch 127's review round (C0 F4).
   { label: 'policy helper probe', sql: POLICY_HELPER_PROBE_SQL,
     claim: `the ${POLICY_HELPER_FUNCTIONS.length} invoker helpers the policies call match their pinned owner, body and empty search_path, and every function a policy calls is one of them, a pinned SECURITY DEFINER function or ${POLICY_PLATFORM_FUNCTIONS.join(', ')}`,
     selfTests: [
-      // C0 X1: the body replaced by `select true`, the deparse of every policy unchanged.
-      { drift: "create or replace function app.member_scope_covers_business(workspace uuid, business uuid) returns boolean language sql stable security invoker set search_path = '' as $f$ select true $f$;",
+      // C0 X1: the body replaced by `select true`, the deparse of every policy unchanged. And since batch 128
+      // (C0 N4 on 127's re-check) the rule's other four conditions, one helper each: SECURITY DEFINER, its
+      // search_path reset, its owner changed, and one renamed away (missing).
+      { drift: "create or replace function app.member_scope_covers_business(workspace uuid, business uuid) returns boolean language sql stable security invoker set search_path = '' as $f$ select true $f$; alter function app.member_scope_admits_business(uuid, uuid) security definer; alter function app.member_scope_admits_page(uuid, uuid, uuid) reset search_path; alter function app.member_scope_covers_page(uuid, uuid, uuid) owner to app_worker; alter function app.member_scope_is_narrowed(uuid) rename to probe_was_narrowed;",
         raises: 'policy helper function(s) not in their pinned shape',
-        names: ['app.member_scope_covers_business(workspace uuid, business uuid) [body differs from the pinned digest]'] },
+        names: ['app.member_scope_covers_business(workspace uuid, business uuid) [body differs from the pinned digest]',
+          'app.member_scope_admits_business(workspace uuid, business uuid) [SECURITY DEFINER]',
+          'app.member_scope_admits_page(workspace uuid, business uuid, page_context uuid) [proconfig is not exactly search_path=""]',
+          'app.member_scope_covers_page(workspace uuid, business uuid, page_context uuid) [owner is not the pinned owner]',
+          'app.member_scope_is_narrowed(workspace uuid) [missing]'] },
       { drift: "create function app.probe_helper(workspace uuid) returns boolean language sql stable as $f$ select true $f$; create policy probe_helper_narrowing on app.content_versions as restrictive for select to authenticated using (app.probe_helper(workspace_id));",
         raises: 'function(s) a policy calls that are not pinned by body',
         names: ['app.probe_helper(workspace uuid)'] },
