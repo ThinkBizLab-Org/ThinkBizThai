@@ -320,7 +320,7 @@ name** still misses a change to what the constraint **says**.
 ## The catalog-rule probes, and what a new batch must keep true
 
 After the ceiling probe, `make db-migrate-clean` asserts eleven families of rules over all of `app` and
-`private`, in sixteen probes. The first is the FK-support probe (batch 104): every foreign key has a
+`private`, in nineteen probes (sixteen before batch 127). The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
 exempt (batch 126; Q0 F6 on batch 125). The other ten are
@@ -353,6 +353,16 @@ break it silently:
    `*_by` column that is not in the closure list for its column (`created_by`, `updated_by`,
    `requested_by`), and 127's own block requires the exact closure on every table that grants
    `created_by`. One rls-smoke case per table forges `created_by` alone (A1 F5 on batch 123).
+
+   **And the permissive set itself is pinned (batch 127).** A restrictive closure holds one column; a
+   looser permissive sibling under a new name still widens who may write at all and which rows a
+   client reaches. The permissive policy probe reads every `app` table that `anon` or `authenticated`
+   may INSERT or UPDATE (on any column) or DELETE, and requires its permissive policies to be exactly
+   `PERMISSIVE_POLICIES`: by (table, name), command, roles and the exact deparse of USING and WITH
+   CHECK. At 127 that is 74 policies on 25 tables. **A batch that adds, drops or rewrites a permissive
+   policy on a client-writable table updates `PERMISSIVE_POLICIES` in the same change**, which puts
+   every widening in front of a reviewer. Before 127, only 081's and 091's replacements pinned a
+   permissive count, on two tables. Schema `app` only, as every probe here.
 
    **Who decided an approval request is held the same way.** `approval_requests_decided_by_on_update_is_caller`
    (batch 123) is restrictive, UPDATE, TO authenticated: `decided_by` is NULL or the caller, and its text

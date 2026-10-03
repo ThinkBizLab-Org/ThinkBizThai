@@ -286,6 +286,135 @@ begin
   end if;
 end \$\$;
 `;
+// 2b''. EVERY CLIENT-WRITABLE TABLE'S PERMISSIVE POLICIES, EXACTLY (batch 127; the Owner's answer of
+// 2026-10-03 to A0's recommendation (3)). A restrictive closure holds one column against any permissive
+// policy, but a looser permissive sibling under a NEW name still widens everything else the permissive
+// set decides -- who may insert at all, which rows an UPDATE reaches, which rows a SELECT shows -- and
+// before this probe only 081's and 091's replacements pinned a permissive COUNT, on two tables: batch
+// 127's draft measured a looser INSERT sibling beside each of the 24 permissive INSERT policies passing
+// migrate-clean on the other seventeen created_by tables (its D1). Here every app table a client can
+// write -- INSERT or UPDATE on any column, or DELETE, held by anon or authenticated -- has its permissive
+// policies read and compared with this list by (table, name), command, roles and the EXACT deparse of
+// both halves (search_path pinned to pg_catalog, as every probe job runs). Anything unlisted, missing or
+// changed is named. Measured on the clean set through 127: 74 permissive policies on 25 tables, all
+// TO authenticated, none FOR ALL or DELETE. A batch that adds, drops or rewrites a permissive policy on
+// a client-writable table changes this list in the same diff, which puts every widening in front of a
+// reviewer. Read from schema app only, as every probe here (A1 F6 on batch 123 is still open).
+export const PERMISSIVE_POLICIES = {
+  'approval_policies.approval_policies_insert_manager': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'approval_policies.approval_policies_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'approval_policies.approval_policies_update_manager': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'approval_requests.approval_requests_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'approval_requests.approval_requests_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'approval_requests.approval_requests_update_cancel_writer': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (status = 'pending'::text))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (status = 'cancelled'::text))" },
+  'approval_requests.approval_requests_update_decide_approver': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'approver'::text])) AND (status = 'pending'::text))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (decided_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'approver'::text])) AND (status = ANY (ARRAY['approved'::text, 'changes_requested'::text])))" },
+  'asset_rights.asset_rights_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'asset_rights.asset_rights_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'asset_rights.asset_rights_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'assets.assets_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'assets.assets_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'assets.assets_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'business_profile_versions.business_profile_versions_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'business_profile_versions.business_profile_versions_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))" },
+  'business_profile_versions.business_profile_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'business_profiles.business_profiles_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'business_profiles.business_profiles_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))" },
+  'business_profiles.business_profiles_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'business_profiles.business_profiles_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'business_profiles.business_profiles_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))" },
+  'calendar_items.calendar_items_insert_scheduler': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'calendar_items.calendar_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'calendar_items.calendar_items_update_scheduler': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'content_ideas.content_ideas_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_ideas.content_ideas_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_ideas.content_ideas_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_items.content_items_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_items.content_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_items.content_items_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_schedules.content_schedules_insert_scheduler': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = 'draft'::text) AND (publish_intent_id IS NULL) AND (version = 1))" },
+  'content_schedules.content_schedules_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_schedules.content_schedules_update_scheduler': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = ANY (ARRAY['draft'::text, 'armed'::text])))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = ANY (ARRAY['draft'::text, 'cancelled'::text])))" },
+  'content_targets.content_targets_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_targets.content_targets_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_targets.content_targets_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'industry_assignments.industry_assignments_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = industry_assignments.workspace_id) AND (b.id = industry_assignments.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'industry_assignments.industry_assignments_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = industry_assignments.workspace_id) AND (b.id = industry_assignments.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'industry_assignments.industry_assignments_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'industry_assignments.industry_assignments_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'industry_assignments.industry_assignments_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))" },
+  'knowledge_item_versions.knowledge_item_versions_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'knowledge_item_versions.knowledge_item_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'knowledge_items.knowledge_items_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = knowledge_items.workspace_id) AND (b.id = knowledge_items.business_profile_id) AND (b.archived_at IS NULL)))) AND ((page_context_profile_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM app.page_context_profiles p\n  WHERE ((p.workspace_id = knowledge_items.workspace_id) AND (p.business_profile_id = knowledge_items.business_profile_id) AND (p.id = knowledge_items.page_context_profile_id) AND (p.archived_at IS NULL))))))" },
+  'knowledge_items.knowledge_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'knowledge_items.knowledge_items_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))" },
+  'notifications.notifications_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
+  'notifications.notifications_update_own_read_state': { cmd: 'w', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))" },
+  'page_context_profile_versions.page_context_profile_versions_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'page_context_profile_versions.page_context_profile_versions_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, page_context_profile_id))" },
+  'page_context_profile_versions.page_context_profile_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'page_context_profiles.page_context_profiles_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = page_context_profiles.workspace_id) AND (b.id = page_context_profiles.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'page_context_profiles.page_context_profiles_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = page_context_profiles.workspace_id) AND (b.id = page_context_profiles.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'page_context_profiles.page_context_profiles_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'page_context_profiles.page_context_profiles_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'page_context_profiles.page_context_profiles_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id))" },
+  'publish_intents.publish_intents_insert_owner_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'publish_intents.publish_intents_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'publish_intents.publish_intents_update_owner_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'research_runs.research_runs_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'research_runs.research_runs_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'research_suggestions.research_suggestions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'research_suggestions.research_suggestions_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'user_profiles.user_profiles_select_own': { cmd: 'r', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: null },
+  'user_profiles.user_profiles_update_own': { cmd: 'w', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: "(user_id = ( SELECT auth.uid() AS uid))" },
+  'workspace_invitations.workspace_invitations_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))" },
+  'workspace_invitations.workspace_invitations_select_owner': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: null },
+  'workspace_invitations.workspace_invitations_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspace_member_scopes.workspace_member_scopes_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'owner'::text))" },
+  'workspace_member_scopes.workspace_member_scopes_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
+  'workspace_settings.workspace_settings_select_active_member': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))", check: null },
+  'workspace_settings.workspace_settings_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspaces.workspaces_select_active_member': { cmd: 'r', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text)))))", check: null },
+  'workspaces.workspaces_update_owner': { cmd: 'w', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+};
+export const PERMISSIVE_POLICY_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with writable as (
+    select c.oid, c.relname
+      from pg_catalog.pg_class c
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'app' and c.relkind in ('r', 'p')
+       and exists (select 1 from unnest(array['anon', 'authenticated']) as cr(r)
+                    where pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
+                       or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE')
+                       or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
+  ), found as (
+    select format('%s.%s', w.relname, pol.polname) as k, pol.polcmd::text as cmd,
+           (select string_agg(rn, ',' order by rn) from (
+              select case when ro.oid = 0 then 'public' else pg_catalog.pg_get_userbyid(ro.oid)::text end as rn
+                from unnest(pol.polroles) as ro(oid)) rs) as roles,
+           pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) as using_text,
+           pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) as check_text
+      from writable w join pg_catalog.pg_policy pol on pol.polrelid = w.oid
+     where pol.polpermissive
+  ), pinned as (
+    select * from (values ${Object.entries(PERMISSIVE_POLICIES).map(([k, p]) => `('${k}', '${p.cmd}', '${p.roles}', ${p.using === null ? 'null' : `'${p.using.replace(/'/g, "''")}'`}, ${p.check === null ? 'null' : `'${p.check.replace(/'/g, "''")}'`})`).join(',\n      ')}) as pin(k, cmd, roles, using_text, check_text)
+  )
+  select string_agg(x, '; ' order by x) into offending from (
+    select 'unlisted or changed: app.' || f.k as x from found f
+     where not exists (select 1 from pinned p where p.k = f.k and p.cmd = f.cmd and p.roles = f.roles
+                          and p.using_text is not distinct from f.using_text and p.check_text is not distinct from f.check_text)
+    union all
+    select 'missing or changed: app.' || p.k from pinned p
+     where not exists (select 1 from found f where f.k = p.k and f.cmd = p.cmd and f.roles = p.roles
+                          and f.using_text is not distinct from p.using_text and f.check_text is not distinct from p.check_text)
+  ) d;
+  if offending is not null then
+    raise exception 'permissive policy set of a client-writable app table not exactly its pinned list: %', offending;
+  end if;
+end \$\$;
+`;
 
 // 2c. The CHECK constraints the attribution closures lean on, by EXACT definition text: 090's
 // equivalence and 123's pair together are what make a cancelled, pending or expired request name no
@@ -795,6 +924,14 @@ export const CATALOG_RULE_PROBES = [
     claim: `every client-insertable *_by column is among the ${Object.values(ATTRIBUTION_INSERT_CLOSURES).flat().length} with a pinned INSERT closure (${Object.keys(ATTRIBUTION_INSERT_CLOSURES).join(', ')})`,
     selfTests: [{ drift: 'grant insert (created_by) on app.content_versions to authenticated;',
       raises: 'client-insertable attribution column(s) with no pinned INSERT closure', names: ['app.content_versions.created_by'] }] },
+  // Batch 127, item (3) of A0's message the Owner answered on 2026-10-03: a looser permissive sibling
+  // under a new name, and a permissive policy widened in place, each fail by name. One rule, one drift
+  // with both inputs (the fk support probe's shape).
+  { label: 'permissive policy probe', sql: PERMISSIVE_POLICY_PROBE_SQL,
+    claim: `the ${Object.keys(PERMISSIVE_POLICIES).length} permissive policies on the ${new Set(Object.keys(PERMISSIVE_POLICIES).map((k) => k.split('.')[0])).size} client-writable app tables, exactly, by name, command, roles and deparse`,
+    selfTests: [{ drift: 'create policy content_ideas_insert_looser on app.content_ideas for insert to authenticated with check (true); alter policy content_items_select_active_member on app.content_items using (true);',
+      raises: 'permissive policy set of a client-writable app table not exactly its pinned list',
+      names: ['app.content_ideas.content_ideas_insert_looser', 'app.content_items.content_items_select_active_member'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [

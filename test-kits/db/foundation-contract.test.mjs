@@ -2472,10 +2472,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL,
-      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
+      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
       m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all eighteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123)');
+    'all nineteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2580,6 +2580,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // body digest, the owner pinned, Q0 F2 and F8); pinned grant d7e4ecebf95f0fae to 2e3ef3743a2ca6ad (the
   // owner rule and the grant option, C0 F3 and F5, A1 F3, Q0 F7); rewrite rule and pg_catalog guard are new
   // (Q0 F5, F3).
+  // Batch 127: the created_by INSERT closure, INSERT coverage and permissive policy probes are new; the
+  // last carries the 74 pinned permissive policies, so any change to one of them moves its digest.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2590,6 +2592,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'closure coverage probe': '1a626907571ffb7e',
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
+    'permissive policy probe': '2fd449e14cd8900f',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': '8d249faed4de9d73',
     'security definer probe': '890866dd704c458b',
@@ -2646,6 +2649,37 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.equal(m.CREATED_BY_CHECK_TEXT, '(created_by = ( SELECT auth.uid() AS uid))', 'created_by at INSERT is exactly the caller, as 105\'s updated_by at UPDATE');
   assert.equal(m.CREATED_BY_CLOSURES.length, 19, 'nineteen tables grant authenticated INSERT on created_by, measured from the catalog at batch 127');
   assert.deepEqual([...m.CREATED_BY_CLOSURES].sort(), m.CREATED_BY_CLOSURES, 'sorted, so a diff to the list reads as one line');
+  // EVERY CLIENT-WRITABLE TABLE'S PERMISSIVE SET, EXACTLY (batch 127, recommendation (3)). The probe reads
+  // every app table anon or authenticated may INSERT, UPDATE or DELETE, compares each permissive policy by
+  // (table, name), command, roles and both halves' deparse, and names what is unlisted, missing or changed.
+  // Its reading predicates are pinned here, so one dropped or narrowed fails before a database.
+  const permissive = m.PERMISSIVE_POLICY_PROBE_SQL;
+  assert.match(permissive, /where n\.nspname = 'app' and c\.relkind in \('r', 'p'\)\n\s+and exists \(select 1 from unnest\(array\['anon', 'authenticated'\]\) as cr\(r\)\n\s+where pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\)\n\s+or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n/,
+    'client-writable means INSERT or UPDATE on any column, or DELETE, for anon or authenticated');
+  assert.match(permissive, /from writable w join pg_catalog\.pg_policy pol on pol\.polrelid = w\.oid\n\s+where pol\.polpermissive\n/, 'every permissive policy on those tables, of every command');
+  assert.match(permissive, /where not exists \(select 1 from pinned p where p\.k = f\.k and p\.cmd = f\.cmd and p\.roles = f\.roles\n\s+and p\.using_text is not distinct from f\.using_text and p\.check_text is not distinct from f\.check_text\)/,
+    'a found policy is listed only by its name, command, roles and both texts');
+  assert.match(permissive, /where not exists \(select 1 from found f where f\.k = p\.k and f\.cmd = p\.cmd and f\.roles = p\.roles\n\s+and f\.using_text is not distinct from p\.using_text and f\.check_text is not distinct from p\.check_text\)/,
+    'and a pinned policy is found only the same way');
+  assert.match(permissive, /select 'unlisted or changed: app\.' \|\| f\.k as x from found f[\s\S]*union all\n\s+select 'missing or changed: app\.' \|\| p\.k from pinned p/, 'both directions named');
+  assert.equal((permissive.match(/\bselect\b/g) ?? []).length, 11, 'eleven selects, counted at batch 127: no reading clause added unseen');
+  const pkeys = Object.keys(m.PERMISSIVE_POLICIES);
+  assert.deepEqual([...pkeys].sort(), pkeys, 'sorted, so a diff to the list reads as one line per policy');
+  assert.equal(pkeys.length, 74, 'seventy-four permissive policies on the client-writable tables, measured from the catalog at batch 127');
+  const ptables = new Set(pkeys.map((k) => k.split('.')[0]));
+  assert.equal(ptables.size, 25, 'on twenty-five client-writable app tables');
+  for (const t of m.CREATED_BY_CLOSURES) assert.ok(ptables.has(t), `${t}: a created_by table has its permissive set pinned (D1 fails by name on all nineteen)`);
+  for (const [k, p] of Object.entries(m.PERMISSIVE_POLICIES)) {
+    assert.match(k, /^[a-z_]+\.[a-z_]+$/, `${k}: table.policy`);
+    assert.ok(['r', 'a', 'w', 'd', '*'].includes(p.cmd), `${k}: a policy command`);
+    assert.equal(p.roles, 'authenticated', `${k}: every permissive policy here is TO authenticated`);
+    assert.ok(p.cmd === 'a' ? p.using === null : p.using !== null, `${k}: USING exactly when the command has one`);
+    assert.ok(p.cmd === 'r' ? p.check === null : p.check !== null, `${k}: WITH CHECK exactly when the command has one`);
+  }
+  // A1 F5 on batch 123 counted 22 permissive INSERT policies on 17 tables; with 091's two tables, 24 on 19.
+  assert.equal(Object.values(m.PERMISSIVE_POLICIES).filter((p) => p.cmd === 'a').length, 24, 'the twenty-four permissive INSERT policies batch 127 measured');
+  assert.deepEqual([...new Set(Object.entries(m.PERMISSIVE_POLICIES).filter(([, p]) => p.cmd === 'a' && p.check.startsWith('((created_by = ( SELECT auth.uid() AS uid))')).map(([k]) => k.split('.')[0]))].sort(),
+    m.CREATED_BY_CLOSURES, 'the nineteen created_by tables are exactly the tables whose permissive INSERT policies bind created_by');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
     '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');
