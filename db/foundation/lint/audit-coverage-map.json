@@ -29,7 +29,7 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Invite/change scope", "Transfer/remove owner"],
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" }
       ]
     },
     {
@@ -42,8 +42,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Connect/disconnect/re-auth Meta", "BYOK credential manage"],
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" },
-        { "index": 6, "line": 259, "quote": "BATCH 110 IMPLEMENTS NONE" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 6, "line": 260, "quote": "BATCH 110 IMPLEMENTS NONE" }
       ]
     },
     {
@@ -56,8 +56,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Publish now/cancel pending", "Publish delivery/post/metric INSERT"],
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" },
-        { "index": 167, "line": 420, "quote": "\"CANCEL PENDING\" IS NOT A DATABASE RULE" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 167, "line": 421, "quote": "\"CANCEL PENDING\" IS NOT A DATABASE RULE" }
       ]
     },
     {
@@ -71,7 +71,7 @@
       "section8_cell": null,
       "section8_note": "§8 has no row for deleting a workspace. The nearest, §8.1 \"Workspace UPDATE\", governs settings and is not the lifecycle; §11.4's ten steps are the source, and which §8 cell a lifecycle transition is would be a reading this map does not make.",
       "blockers": [
-        { "index": 21, "line": 274, "quote": "§11.4 step 1" }
+        { "index": 21, "line": 275, "quote": "§11.4 step 1" }
       ]
     },
     {
@@ -84,8 +84,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Asset hard purge"],
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" },
-        { "index": 150, "line": 403, "quote": "HAS NO HOME IN THIS REPOSITORY" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 150, "line": 404, "quote": "HAS NO HOME IN THIS REPOSITORY" }
       ]
     },
     {
@@ -98,8 +98,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Plan/payment action"],
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" },
-        { "index": 80, "line": 333, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 80, "line": 334, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" }
       ]
     },
     {
@@ -108,19 +108,20 @@
       "source": "SEC-009 (support)",
       "category": "support",
       "tables": [],
-      "tables_note": "No table records a support or break-glass grant, so there is no table this action changes. SEC-016 is an undelivered Phase 1E task and CTR-AUD-001 carries it as an ACCEPTED GAP (examples/accepted-gap-break-glass-without-time-bound.json). FINDING: no open blocker in WP-0A-DB-00 names support or break-glass access; the row cites the general no-writer blocker only.",
+      "tables_note": "No table records a support or break-glass grant, so there is no table this action changes. SEC-016 is an undelivered Phase 1E task and CTR-AUD-001 carries it as an ACCEPTED GAP (examples/accepted-gap-break-glass-without-time-bound.json). FINDING: before batch 141 prep no open blocker in WP-0A-DB-00 named support or break-glass access; open_blockers[191] (1) now records it as owed to A1 (SEC-016) and to batch 141 under Q141-a, beside the general no-writer blocker.",
       "producer_path": "UNDECIDED",
       "producer_decision": "Q141-a",
       "section8_cell": null,
       "section8_note": "§8's four matrices have no support or break-glass row.",
       "blockers": [
-        { "index": 21, "line": 274, "quote": "nothing can write an audit row today" }
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "SUPPORT OR BREAK-GLASS ACCESS HAS NO TABLE" }
       ]
     },
     {
       "id": "owed.asset_rights_change",
       "action": "Change an asset's rights or sharing (asset design §6.2: \"Change rights/share | ... | Audit ทุกครั้ง\")",
-      "source": "WP-0A-DB-00 open_blockers[156] (line 409)",
+      "source": "WP-0A-DB-00 open_blockers[156] (line 410)",
       "category": null,
       "category_note": "FINDING: none of SEC-009's six categories is a rights change, and CTR-AUD-001's action.category enum and 140's audit_logs_action_category_known CHECK admit only those six, so a rights-change record cannot be stored until someone maps it to a category or widens the enum. Which is the contract owners' (A0+A6) to say, beside Q141-b; this map does not choose.",
       "tables": ["app.asset_rights"],
@@ -128,13 +129,13 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Asset rights/share"],
       "blockers": [
-        { "index": 156, "line": 409, "quote": "Owed to the command surface, to A1 Security/Audit and to batch 141" }
+        { "index": 156, "line": 410, "quote": "Owed to the command surface, to A1 Security/Audit and to batch 141" }
       ]
     },
     {
       "id": "owed.schedule_transition_history",
       "action": "A schedule's status transitions (arm, disarm, dispatch, complete, fail) and placement deletes, kept as history: today updated_by is overwritten, so who disarmed a schedule is lost at the next edit",
-      "source": "WP-0A-DB-00 open_blockers[190] (line 443), item (f)",
+      "source": "WP-0A-DB-00 open_blockers[190] (line 444), item (f)",
       "category": null,
       "category_note": "FINDING: a schedule transition is not one of SEC-009's six categories -- \"publish\" is the nearest and is not the same act (disarming publishes nothing). Same consequence as the rights row: CTR-AUD-001 and 140's CHECK cannot store it until it is mapped or the enum widens. Not chosen here.",
       "tables": ["app.content_schedules", "app.calendar_items"],
@@ -142,7 +143,7 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Schedule/unschedule"],
       "blockers": [
-        { "index": 190, "line": 443, "quote": "owed with batch 141's audit coverage" }
+        { "index": 190, "line": 444, "quote": "owed with batch 141's audit coverage" }
       ]
     }
   ]

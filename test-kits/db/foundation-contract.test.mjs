@@ -3457,7 +3457,7 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
     assert.ok(leaves.has(path), `the pinned unmapped path ${path} is no longer in CTR-AUD-001`);
   }
 
-  // THE DIVERGENCES ARE A CLOSED LIST: the four 140 declares (open_blockers[33], line 286), and the
+  // THE DIVERGENCES ARE A CLOSED LIST: the four 140 declares (open_blockers[33], line 287), and the
   // ones this reading found that 140 does not declare. Adding one is a diff a reviewer reads.
   const divergences = conformance.divergences;
   assert.deepEqual(Object.keys(divergences).filter((k) => divergences[k].declared).sort(),

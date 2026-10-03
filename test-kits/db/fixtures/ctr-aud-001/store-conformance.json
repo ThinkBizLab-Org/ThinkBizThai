@@ -45,7 +45,7 @@
     "page_context_profile_id": "scope_ids_are_uuid"
   },
   "divergences": {
-    "no_details_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (first); WP-0A-DB-00 open_blockers[33] (line 286)" },
+    "no_details_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (first); WP-0A-DB-00 open_blockers[33] (line 287)" },
     "no_locale_no_timezone": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (second); open_blockers[33]" },
     "error_is_one_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (third); open_blockers[33]" },
     "tenant_context_flattened": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (fourth); open_blockers[33]" },
