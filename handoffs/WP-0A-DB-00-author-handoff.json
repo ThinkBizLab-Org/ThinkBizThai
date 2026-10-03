@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2f6ab9e0222085f4650443bcfd06585c43dc040e",
-  "head_revision_or_patch_checksum": "8f5424c6eb966c4df7ae9ca4cde3b6161f44ccc7",
+  "head_revision_or_patch_checksum": "e4b3755f1e9de6d9ab148669e5fdf4364d7ed0a6",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/data-classification.json",
@@ -13,9 +13,12 @@
     "db/foundation/lint/read-allowlist-known-exceptions.json",
     "db/foundation/lint/read-allowlist.json",
     "evidence/WP-0A-DB-00/a0-batch-170-assert-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-170-assert-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-170-assert-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-170-assert-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-170-assert-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170-assert.md",
+    "evidence/WP-0A-DB-00/q0-batch-170-assert-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-170-assert-test-review-2026-10-03.md",
     "scripts/db/generate-pinned-grants.mjs"
   ],
