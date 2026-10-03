@@ -841,7 +841,7 @@ export const CATALOG_RULE_PROBES = [
 // green (Q0's re-test of 123's corrections, F3; A1's, N5). Three defences, the first two checked BEFORE
 // ANY JOB IS FED (blocker 186 item 12; C0 F4 on batch 125: the keyword rule ran in the verdict, after the
 // drifts had run):
-//   * no drift and no probe carries a psql meta-command anywhere psql would execute one (psqlLex):
+//   * no drift and no probe carries a psql meta-command, or a shape on which psql could lex it otherwise (psqlLex):
 //     `\gexec`, `\c`, `\set` and `\i` each ended the transaction past the keyword rule (Q0 TG1, TG2;
 //     A1 M2 committed a parameter grant with the verdict green);
 //   * no drift has a TOP-LEVEL STATEMENT that begins with transaction control. Statement position, not
@@ -1118,7 +1118,7 @@ export function decidePostMigrate(plan, outcomes) {
 // pure function over (name, sql) pairs, so a test can drive it without a database.
 export function metaCommandFindings(sources) {
   return sources.flatMap(({ name, sql }) => psqlLex(sql).metaCommands
-    .map((m) => `${name} line ${m.line}: a psql meta-command (${m.text.slice(0, 20)}) outside any literal, body or comment, which psql would execute`));
+    .map((m) => `${name} line ${m.line}: a psql meta-command psql would execute, or a shape on which psql could read the text otherwise (${m.text.slice(0, 60)})`));
 }
 
 export async function migrateCleanSteps() {

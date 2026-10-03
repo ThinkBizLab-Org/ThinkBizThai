@@ -319,11 +319,11 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts eight families of rules over all of `app` and
-`private`, in fourteen probes. The first is the FK-support probe (batch 104): every foreign key has a
+After the ceiling probe, `make db-migrate-clean` asserts eleven families of rules over all of `app` and
+`private`, in sixteen probes. The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
-exempt (batch 126; Q0 F6 on batch 125). The other seven are
+exempt (batch 126; Q0 F6 on batch 125). The other ten are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -364,11 +364,14 @@ break it silently:
    set, whatever the client sent (`statement_timestamp()` since batch 126; 125 used `now()`, the
    transaction's start). Since batch 126 it is BEFORE INSERT OR UPDATE: an INSERT that names a
    decider is timed the same way, and once a request is not `pending` its `status`, `decided_by` and
-   `decided_at` are refused any change by every writer that fires triggers (A1's review of batch 125,
-   V1). `approval_requests_decided_after_created` (CHECK `decided_at >= created_at`) is pinned in
+   `decided_at` -- and, since batch 126's review round, every other column but `updated_at` and
+   `updated_by` -- are refused any change by every UPDATE, upsert or MERGE of a writer that fires
+   triggers (A1's review of batch 125, V1; Q0 F2 on batch 126). `approval_requests_decided_after_created` (CHECK `decided_at >= created_at`) is pinned in
    `PINNED_CHECKS`. The 090 fixture's loader, a non-client writer, is shown refused on every
    rls-smoke run. Still owed: the settled-row closure for an RFC-2026-023 command role, once that RFC
-   says which role it is. 126's own block, and 125's replacement, pin the trigger's definition and
+   says which role it is; and DELETE: a writer holding DELETE (today only the owner and a superuser)
+   can delete a settled request and insert it again as anything (C0 F2, A1 F2 on batch 126), which is
+   owed with that role, by giving it no DELETE or by a BEFORE DELETE refusal then. 126's own block, and 125's replacement, pin the trigger's definition and
    the md5 of the function body; the pinned trigger probe (rule 6) pins both again.
 3. **Every client-updatable `*_by` column has a pinned closure for its column:** `updated_by` in
    `UPDATED_BY_ON_UPDATE_CLOSURES`, `decided_by` in `DECIDER_CLOSURES`. A new attribution column that
@@ -387,8 +390,10 @@ break it silently:
    (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125).
 6. **Every trigger on `app.approval_requests` is exactly its pinned `pg_get_triggerdef` text, and every
    function those triggers run matches its pinned body digest, security and empty `search_path`**
-   (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125). A second
-   BEFORE UPDATE trigger sorting after `set_decided_at`, or a rewritten body, fails by name.
+   (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125), and its
+   pinned owner (Q0 F8 on batch 126). A second BEFORE UPDATE trigger sorting after `set_decided_at`, a
+   rewritten body or a changed owner fails by name. The pinned check probe also holds
+   `approval_requests.created_at` NOT NULL (`PINNED_NOT_NULL`), since a CHECK reading a NULL passes.
 7. **The privileges every non-superuser role holds on `app.calendar_items` and `app.content_schedules`
    are exactly an allowlist** (`PINNED_GRANTS`; batch 126, C0 H1 and A1 R1, R3 on batch 091's third
    round). Every role that is neither a superuser nor a predefined `pg_*` role is read for its
@@ -396,9 +401,18 @@ break it silently:
    and the set must equal the pinned one, both ways: an unlisted grant and a missing one are each named.
    091's block lists privileges a role must NOT hold, so a grant it did not name, such as INSERT on
    `deleted_at`, passed every layer. A batch that changes these grants changes `PINNED_GRANTS` in the same
-   change; the static test holds the list to 091's grant statements.
+   change; the static test holds the list to 091's grant statements. Each privilege is read WITH GRANT
+   OPTION too, which the allowlist never lists, and the probe's first rule requires each pinned table's
+   owner to be a superuser, since the role set leaves superusers out (batch 126's review round: C0 F3,
+   F5, A1 F3, Q0 F7).
 8. **Column defaults a decision fixes are pinned by deparse text** (`PINNED_DEFAULTS`): today only
    `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
+9. **No relation in `app` or `private` carries a rewrite rule** but a view's `_RETURN` (batch 126's
+   review round; Q0 F5: a later file's INSERT rule let an editor approve their own request).
+10. **Nothing is created in `pg_catalog`** after initdb: no function, operator or cast at or above OID
+   16384. The probes run with `search_path` pinned to `pg_catalog`, so an overload there could answer a
+   probe's call; Q0 F3 on batch 126 forged a refusal that way. This guard runs as its own probe and
+   inside every probe job, after the drift and before the probe.
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule
@@ -412,7 +426,11 @@ After every drift has run, each probe runs **as built again**, so a drift that o
 fails the target. Before any job is fed, no drift may hold a top-level statement that begins with
 transaction control (`begin`, `commit`, `rollback`, `end`, `savepoint`, `release`, `abort`,
 `start transaction`, `prepare transaction`), and no drift or probe may hold a psql meta-command
-anywhere psql would execute one. Statement position, not any word: a DO block or a function body is
+outside a literal, a dollar-quoted body, a quoted identifier or a comment, nor any of the shapes on
+which psql could read the text otherwise: a bare carriage return, any mention of
+`standard_conforming_strings`, or a quote after an odd run of backslashes in a plain literal. That
+is a claim about the shapes measured and that list, not about every way psql could lex a file
+(batch 126's review round: A1 F1, Q0 F1). Statement position, not any word: a DO block or a function body is
 admitted (batch 126; A1 V4, Q0 F1-F2 on batch 125). Each drift also NAMES the objects its refusal
 must name, and each job prints a marker with the transaction id before its drift and a per-job nonce
 with the same id after it: a refusal counts only if it is P0001, carries the rule's prefix and every

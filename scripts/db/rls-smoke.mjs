@@ -190,7 +190,7 @@ async function main() {
   for (const path of FIXTURE_SQL_FILES) fed.push([path, await readFile(path, 'utf8')]);
   const meta = fed.flatMap(([path, sql]) => psqlLex(sql).metaCommands.map((m) => `${path} line ${m.line}`));
   if (meta.length) {
-    stderr.write(`db-rls-smoke: a psql meta-command outside any literal, body or comment, which psql would execute: ${meta.join(', ')}\n`);
+    stderr.write(`db-rls-smoke: a psql meta-command outside any literal, body or comment, which psql would execute, or a shape on which psql could read the text otherwise: ${meta.join(', ')}\n`);
     return 1;
   }
   const installed = await feed(helpers);
