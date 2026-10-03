@@ -278,9 +278,9 @@ for Q170-d.
 | Q-id | Owner | Question | A0's recommendation |
 |---|---|---|---|
 | Q170-a | Owner + A1 | Close the `access_blocked` gap with an RFC amending RFC-020, so that `app_authz` can read `workspaces.lifecycle_state`? | **Yes.** One helper change fixes every family at once; without it PII-2 rows stay readable after access is blocked. Nothing here touches `app_authz`'s grants, which rule 7 now pins as measured (`app_authz` SELECT on 4 columns of `workspace_members`), so the RFC's grant change will show as a one-line diff in `pinned-grants.json`. |
-| Q170-b | Owner | Keep the inherited base-table grants as a closed exceptions list for Pilot, or convert them to views before Pilot? | **Closed list now, conversion per family later.** No client contract changes before the BFF exists. The list is closed as measured (41 rows) and nothing is converted. |
+| Q170-b | Owner | Keep the inherited base-table grants as a closed exceptions list for Pilot, or convert them to views before Pilot? | **Closed list now, conversion per family later.** No client contract changes before the BFF exists. The list is closed as measured (41 rows) and nothing is converted. *Review round (C0 F1, A1 R4):* "inherited" is a reading. RFC-021 §8.5 names the grants of `010`, `020` and `021`; only 10 of the 41 rows come from them (010 ×5, 020 ×4, 021 ×1), and the other 31 come from 13 later migrations (030, 040, 051, 061, 070, 080, 081, 090, 091, 100, 120, 121, 130). **Closing at 41 accepts those 31 as §8.5 exceptions.** So the question also asks A1 (RFC-021's owner) and the Owner which grants count as inherited. |
 | Q170-c | A0 | Who measures the provisioned instance's Data API, Realtime and default ACLs, and when? | **A0 runs a read-only catalog measurement before G1.** It is also what F13 needs before rule 7 can be read on that instance. |
-| Q170-d (new, from F1) | A1 + Owner | For PROVIDER-3 and INTERNAL-3 tables, does rule 17 read "no client privilege", as drafted, or "only a pinned safe projection", as ERD §9.1 says ("safe projection only", "redacted status only", `docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:448`, `:453`)? | **A pinned safe projection:** for each such table, an allowlist of the exact columns a client may read, and every other client privilege refused. It matches §9.1, keeps what 120 and 121 expose on purpose reviewable column by column, and lets the ERD owner classify `published_posts` and `performance_snapshots` without rule 17 failing. Until it is answered, rule 17 stays as drafted, which passes only because those tables are unclassified (F2). |
+| Q170-d (new, from F1) | A1 + Owner | For PROVIDER-3 and INTERNAL-3 tables, does rule 17 read "no client privilege", as drafted, or "only a pinned safe projection", as ERD §9.1 says ("safe projection only", "redacted status only", `docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:448`, `:453`)? | **A pinned safe projection:** for each such table, an allowlist of the exact columns a client may read, and every other client privilege refused. It matches §9.1, keeps what 120 and 121 expose on purpose reviewable column by column, and lets the ERD owner classify `published_posts` and `performance_snapshots` without rule 17 failing. Until it is answered, rule 17 stays as drafted, which passes only because those tables are unclassified (F2). *Review round (C0 F2): the two answers above are not the only ones.* (c) **Column classification as the vehicle:** the ERD owner classes the 120/121 tables CONTENT-2 and their provider columns PROVIDER-3, and rule 17's column half does the work with its wording unchanged. (d) **Separate answers per class:** §9.1 gives INTERNAL-3 "redacted status only" and PROVIDER-3 "safe projection only", so the two need not share one answer. **Coupled with Q170-b and RFC-021 §3:** in RFC-021's vocabulary a client projection is an allowlist ENTRY (a `security_invoker` view, column grants, a policy, a row carrying `sensitivity`), so a "pinned safe projection" on the base table may contradict a Q170-b answer of "convert to views". **What exists already:** `pinned-grants.json` pins every table's exact client columns, so the recommendation's real change is a class-aware rule, not a new list. The recommendation stands. |
 
 ## 8. Cleanup
 
@@ -288,3 +288,78 @@ The draft's cluster was stopped and removed at the end of the draft run. This br
 127.0.0.1:5507 was created afresh for each round (r1, d1, r2), stopped and its data directory removed
 after each; port 5507 is free at the end. No other port was touched. `140_audit.sql` is byte-identical
 to its saved copy (sha256 `2ac596bb950e8dfb11d9e45172f24305698ecddb4d3e8380114e2bfc1ad37149`).
+
+## 9. Review round (2026-10-04)
+
+A subagent of `/claude/a0_atlas` wrote this section on the branch name, starting from head `db995b6`. It
+fixes and records. It approves nothing and decides none of Q170-a..d. It adds no migration, no policy, no
+grant and no role. Every change makes a rule stricter or corrects text, and no rule is weakened. One check
+in the generator was relaxed, as C0 F7(b) asked: a migration-text grant that the catalog no longer holds is
+now reported instead of refused. The generator is a reviewer's tool, not a gate, and both probes still read
+the catalog against the committed files.
+
+### 9.1 Cherry-pick map
+
+| review | source commit (branch) | here |
+|---|---|---|
+| C0 contract review | `5a97b45` (`review/c0-batch-170-assert`) | `6012674` (`-x`) |
+| A1 security review | `401c0d3` (`review/a1-batch-170-assert`) | `a4e798d` (`-x`) |
+| Q0 independent test | `75d2e3a` (`review/q0-batch-170-assert`) | `ede313c` (`-x`) |
+
+Each pick added one new file and applied cleanly. The branch name was checked out in the Author's other
+worktree (`wf_92f29736-8c0-1`). Before this worktree took the name with `--ignore-other-worktrees`, that
+worktree's files were compared with `db995b6` using `diff -rq`. There was no difference, so it held nothing
+uncommitted or untracked.
+
+### 9.2 Finding → change → measured
+
+"Round" means a fresh-cluster round from §9.3. In each one the drift is appended to `140_audit.sql` and then
+restored.
+
+| finding | change | measured |
+|---|---|---|
+| A1 R1, Q0 Q-1 (MEDIUM): a non-client role's SET ROLE reach was read by no layer (d03, d02b, G17); blocker 185 said that reach "is now pinned" | Rule 4 of the pinned grant probe (`scripts/db/run.mjs`, `PINNED_ROLE_MEMBERSHIPS = []`) now reads every non-superuser, non-`pg_*` role's memberships from `pg_auth_members`. It reads them recursively and whatever the INHERIT, SET or ADMIN option, as `<member> -> <role>`, with a self-test drift: a role granted to a NOINHERIT role, a membership two roles deep, and `pg_monitor` granted to `service_role`. Static: the recursive CTE, and the empty pin. Blocker 185's claim is narrowed to "table and column grants" | d03 and d04b: migrate-clean **2**, "role membership(s) of a non-superuser role not pinned … app_command -> app_worker" (d04b: "app_command -> pg_monitor", and the three roles it reaches). On the clean set none is pinned and none exists (r1, r2: mc 0) |
+| A1 R1 (d01, d02b), Q0 Q-5 (G18): a new superuser, or a role made one, read as nothing | Rule 3: the superuser set is `session_user` (the migration owner) alone, with a drift for a new superuser and for `alter role app_command superuser`. Static regex | d01, d02b, G18: mc **2**, "superuser role(s) other than the migration owner …: probe_su" (`probe_su2`, `app_command`) |
+| A1 R2, Q0 Q-2 (MEDIUM): a definer view (d05b, `alter view … reset (security_invoker)`) and a matview (d06, T07) over SECRET-4 passed every layer | Rule 1 also names `not a table: <rel> (relkind v\|m\|f)` for anything in `app`/`private`. Its drift adds a matview in `app` over `private.meta_credential_references` and a view in `private`, each granted to a non-client role. The static "no migration creates a view" regex in `identity-isolation.test.mjs` now reads `(?:materialized\s+)?view`. The batch that writes RFC-021's first allowlist view must admit it in this rule (owed on `[115]`) | d05b: mc **2**, "not a table: app.probe_v2 (relkind v)". d06: mc **2**, "not a table: app.probe_mv (relkind m)" |
+| A1 R3 (LOW): a grant to a predefined `pg_*` role is not read; the handoff said "any non-superuser role" | The handoff says "non-superuser, non-`pg_*`". The d04b path is now named where a role BECOMES `pg_monitor` (rule 4). A grant TO a `pg_*` role on an app/private relation is still not read, and is owed on `[185]`. README rule 7 states this | d04b: mc **2** by rule 4, as above |
+| A1 R4, C0 F1 (LOW): "inherited" in §8.5 is 10 rows from 010/020/021 plus 31 from 13 later migrations | The 10/31 split, and the fact that closing at 41 accepts the 31, are now stated in: the exceptions file's `_what` (and the generator's copy, so `--check` still matches); §7 Q170-b; the disposition's Q170-b row; `[18]` (which no longer says "as §8.5 asks" as a fact); `[93]`; and README rule 16. Which grants count as inherited is put to A1 and the Owner. No data changed | Split counted from `granted_by`: 010 ×5, 020 ×4, 021 ×1; 31 rows from 030 … 130. Generator `--check` 0 (r1) |
+| C0 F2 (LOW): Q170-d offered two answers | §7 Q170-d and the disposition row add: column classification as the vehicle; separate answers for INTERNAL-3 and PROVIDER-3; the coupling with Q170-b and RFC-021 §3; and the fact that `pinned-grants.json` already pins client columns. The recommendation stands | text |
+| C0 F3 (LOW): the entry side of rule 2 checks two of §3's five objects | Recorded on `[115]` and in README rule 16, owed before the first entry lands. Inert while `[]` | text |
+| C0 F5 (LOW): `performance_snapshots.payload`; `_rule` missed the single-table resolution | `_columns` now names `metrics` ("the column 121 calls 'the payload'", `121_publisher_metrics.sql:297-298`). `_rule` adds the case of a table named by no §5 row that is resolved INTO a refused class by §9.1's own example (`billing_webhook_receipts`) | `metrics jsonb not null` at `121_publisher_metrics.sql:161` |
+| C0 F6, A1 R7 (LOW/INFO): `4d9c9ac`'s message says floors 525 → 590 | None: pushed history is not rewritten. Plan §0 already discloses this | — |
+| C0 F7, Q0 Q-6 (LOW): the generator is narrow and unexercised | `generate-pinned-grants.mjs` now reads `anon` as well as `authenticated` (a PUBLIC grant reads as both). A migration-text grant the catalog no longer holds (a later REVOKE) is reported on stderr instead of refused. MAINTAIN is read only on 17+. A refusal exits **3** with no stack trace, where `--check` differences exit 1. The header and README rule 7 say it is a reviewer's tool, not a gate; `[193]` (11) records that a contract test running `--check` needs a database and is owed if the Integration Owner wants one | clean r1: `--check` **0**. G11 (table-wide SELECT): exit **3**, "REFUSED, nothing written: a table-wide client SELECT for authenticated on app.user_profiles". G13 (anon column SELECT): exit **1**, both files "DIFFERS" (the anon row is now rendered; before, the exceptions file "matched") |
+| A1 R5 (LOW): README rule 17's heading claimed "or column" | The heading now reads "a TABLE …; the column half is empty until the ERD classes columns". `[193]` (13) records A1's projection remedy as tied to Q170-d | text |
+| Q0 Q-3 (LOW): a new non-client schema escapes | Recorded on `[185]` as STILL OWED (a closed list of non-system schemas). It is not done here: doing it means deciding what the platform's schemas are, which is Q170-c's measurement | T02: mc **0**, rs 0, gen 0. **Still passes every layer, as recorded** |
+| Q0 Q-4 (LOW): the comment's counts | `run.mjs` now says `app_worker` holds privileges on 51 tables, `authenticated` on 41 and `app_authz` on 1 | counted from `pinned-grants.json` |
+| Q0 Q-5 (LOW): weakenings invisible once the digest is refreshed | The role CTE assertion is now anchored to the end of the line and counted (2). A new assertion requires the classification SQL to hold the exact refused-table array. An `anon` column grant is added to the pinned grant column drift. `rolsuper` is held by rule 3 | W1b (`and rolname <> 'anon'` on one role CTE) makes the count 1: red. W2b (`billing_webhook_receipts` dropped from the SQL) makes the array check false: red. Both were measured in memory against the module |
+| C0 INFO-1 | None needed: commit titles overstate, but README rule 17 is exact. Not rewritten | — |
+| Small items (C0 §4 end, Q0 Q-8) | The handoff's reviewer citation is now `run.mjs:1221` (the section) and `:1287` (the SQL). `e3f1db7`'s "ten drifts" is nine drifts plus the clean row. It is recorded here and not rewritten | — |
+
+**Owed from this round (nothing else).** On `[185]`: a grant TO a `pg_*` role (A1 R3), and relations
+outside `app`/`private` (Q0 Q-3, A1 d13). On `[115]`: C0 F3, and admitting the first allowlist view in rule
+1. On `[193]`: (11) a `--check` contract test if wanted, (12) Q170-d widened, and (13) A1 R5's projection,
+which waits for Q170-d. Each needs either a decision or the provisioned-instance measurement, so none is a
+bounded change here.
+
+### 9.3 Measured (Node `v24.20.0`, checked before each run; on the branch name)
+
+Cluster: 127.0.0.1:5507 only, TCP only, `initdb --locale=C -A trust -U postgres` afresh every round,
+`LC_ALL=C`, and the shim first. Scripts are in `a0-170-assertr2/` (`round.sh`, `drive.sh`,
+`drifts/*.sql`). `140_audit.sql`'s sha256 began `2ac596bb950e8dfb` after every round.
+
+| command | exit | result |
+|---|---|---|
+| `node --test test-kits/db/foundation-contract.test.mjs tests/db/identity/identity-isolation.test.mjs` | 0 | 385 / 385 |
+| the guard's own count (`a0-170-assertr2/count.mjs`) | n/a | foundation-contract **793** (788 → 793), 80 tests; identity-isolation 2167, 305 tests. Name digests unchanged |
+| pinned grant probe digest | n/a | `7a8fe3e222e6827f` → `baa6379790cb8733`; read allowlist and data classification digests unchanged |
+| `npm run regenerate:manifest` | 0 | 88 digests |
+| `npm run check` (before the commit) | 0 | tests 684, pass 684 |
+| `node scripts/verify-branch-scope.mjs 2f6ab9e WP-0A-DB-00` | 0 | "all 22 changed path(s) are declared" |
+| r1 (clean): shim / `make db-migrate-clean` / `make db-rls-smoke` ×2 / generator `--check` | 0 / **0** / **0**, **0** / **0** | pinned grant: "… no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the 0 pinned role(s) … 43 table-level and 1328 column-level … (self-test: refused each of its 6 drifts)"; read allowlist 0 + 41; classification 66 / 8 / 0; post-migrate 49 / 37 / 12; 1079 isolation cases each run; 6 authz claims |
+| drift rounds d01, d02b, d03, d04b, d05b, d06, G18 (mc / rs) | **2** / 0 each | named as in §9.2 |
+| T02 (mc / rs / gen) | 0 / 0 / 0 | still passes, owed on `[185]` |
+| G11, G13 (mc / gen) | **2** / **3**; **2** / **1** | as in §9.2 |
+| r2 (clean, on the committed tree) | see the PR body | recorded after the commit |
+
+`npm run check`, `npm run check:handoff` and `npm run verify` after the handoff refresh are recorded in the
+PR body, not here. Port 5507's cluster was stopped and its data directory removed after every round.

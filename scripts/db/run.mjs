@@ -1237,9 +1237,10 @@ end \$\$;
 // one entry per table, one line per role. Its first rule makes the TABLE list closed too: every table in
 // app and private is an entry (one no role holds anything on is an empty one), and every entry is a
 // table, so a new table is named even when it is granted nothing. Measured on the clean set at the
-// draft: 66 tables, 43 table-level and 1328 column-level privileges, held by app_worker (on 41 tables),
-// authenticated (44) and app_authz (1); service_role, app_command, app_maintenance and anon hold none, and
-// no privilege is held WITH GRANT OPTION. A column privilege a table-level privilege already implies is
+// draft: 66 tables, 43 table-level and 1328 column-level privileges, held by app_worker (on 51 tables),
+// authenticated (41) and app_authz (1) (corrected in batch 170's review round, Q0 Q-4: the draft said 41
+// and 44); service_role, app_command, app_maintenance and anon hold none, and no privilege is held WITH
+// GRANT OPTION. A column privilege a table-level privilege already implies is
 // not read at the column level (the table-level row carries it), so a role's table-wide SELECT is one
 // row, not one per column. A batch that grants, revokes or adds a table changes the file in the same
 // diff. 091's apply-time block is integrated and is not rewritten: this is the forward assertion beside it.
@@ -1264,6 +1265,25 @@ const pinnedGrantTables = `array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'
 // premise -- on a cluster where the owner is not one, the owner's implicit privileges would read as
 // unlisted, and the rule says why first. And each privilege is read WITH GRANT OPTION as well, a row
 // the allowlist never lists (C0 F3, A1 F3, Q0 F7: `... with grant option` passed every layer).
+//
+// Batch 170's review round (A1 R1, R2; Q0 Q-1, Q-2, Q-5). Three premises of the reading below were not
+// rules. (a) The relation list read tables only: a definer-rights view (A1 d05b, `alter view ... reset
+// (security_invoker)`) or a materialized view (A1 d06, Q0 T07) in app over private.meta_credential_references
+// (SECRET-4), granted to app_command or app_worker, passed every layer, and app_command read two rows. So
+// the first rule also names any view, materialized view or foreign table in app or private: none exists
+// (measured), and the batch that writes RFC-2026-021's first allowlist view admits it here in the same
+// diff (owed on open_blockers[115]). (b) The role set leaves superusers out, so a new superuser, or a role
+// made one (A1 d01, Q0 G18), read as nothing: the third rule holds the superuser set to the migration
+// owner, session_user, alone. (c) has_*_privilege follows INHERITED privileges only, and every
+// non-superuser role here is NOINHERIT, so `grant app_worker to app_command` (A1 d03, Q0 G17) gave
+// app_command app_worker's reach by SET ROLE with every layer green, and `grant pg_monitor to app_command`
+// (A1 d04b) reached a grant to a predefined role no rule reads. The fourth rule reads every non-superuser,
+// non-pg_* role's memberships from pg_auth_members RECURSIVELY, whatever the grant's INHERIT, SET or ADMIN
+// option, as `<member> -> <role>`, against PINNED_ROLE_MEMBERSHIPS: none, measured on the clean set in
+// this round (the only memberships are the migration owner's in each app_* role it created, and
+// pg_monitor's own, both outside the role set). The client membership probe holds anon and authenticated
+// the same way; this one holds every other role.
+export const PINNED_ROLE_MEMBERSHIPS = [];
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1277,6 +1297,10 @@ begin
     select 'pinned but absent: ' || tabs.t from unnest(${pinnedGrantTables}) as tabs(t)
      where not exists (select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
                         where format('%s.%s', n.nspname, c.relname) = tabs.t and c.relkind in ('r', 'p'))
+    union all
+    select 'not a table: ' || format('%s.%s (relkind %s)', n.nspname, c.relname, c.relkind)
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname in ('app', 'private') and c.relkind in ('v', 'm', 'f')
   ) d;
   if offending is not null then
     raise exception 'app or private table(s) not exactly the pinned grant table list: %', offending;
@@ -1287,6 +1311,27 @@ begin
    where not exists (select 1 from pg_catalog.pg_roles o where o.oid = c.relowner and o.rolsuper);
   if offending is not null then
     raise exception 'pinned table(s) owned by a role that is not a superuser, whose implicit privileges the allowlist would misread: %', offending;
+  end if;
+  select string_agg(r.rolname::text, ', ' order by r.rolname) into offending
+    from pg_catalog.pg_roles r
+   where r.rolsuper and r.rolname <> session_user;
+  if offending is not null then
+    raise exception 'superuser role(s) other than the migration owner, whose reach the role set below leaves out: %', offending;
+  end if;
+  with recursive reach(member, roleid) as (
+    select r.rolname::text, m.roleid
+      from pg_catalog.pg_roles r join pg_catalog.pg_auth_members m on m.member = r.oid
+     where not r.rolsuper and r.rolname !~ '^pg_'
+    union
+    select reach.member, m.roleid
+      from reach join pg_catalog.pg_auth_members m on m.member = reach.roleid
+  )
+  select string_agg(x, ', ' order by x) into offending from (
+    select distinct format('%s -> %s', reach.member, pg_catalog.pg_get_userbyid(reach.roleid)) as x from reach
+  ) f
+   where not (x = any (array[${PINNED_ROLE_MEMBERSHIPS.map((m) => `'${m}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'role membership(s) of a non-superuser role not pinned, which SET ROLE reaches past every privilege rule: %', offending;
   end if;
   with roles as (
     select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
@@ -1758,17 +1803,29 @@ export const CATALOG_RULE_PROBES = [
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
   // batch 170 draft, with the table-list rule first.
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list, each owned by a superuser, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option`,
+    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s), and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option`,
     selfTests: [
-      // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away.
-      { drift: 'create table app.probe_unpinned (id uuid); create table private.probe_unpinned_private (id uuid); alter table app.audit_logs rename to probe_audit_renamed;',
+      // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away. Since
+      // its review round (A1 R2, Q0 Q-2), a materialized view in app over a SECRET-4 table and a definer
+      // view in private, each granted to a non-client role.
+      { drift: 'create table app.probe_unpinned (id uuid); create table private.probe_unpinned_private (id uuid); alter table app.audit_logs rename to probe_audit_renamed; create materialized view app.probe_unpinned_mv as select id from private.meta_credential_references with no data; grant select on app.probe_unpinned_mv to app_worker; create view private.probe_unpinned_v as select id from app.jobs; grant select on private.probe_unpinned_v to app_command;',
         raises: 'app or private table(s) not exactly the pinned grant table list',
-        names: ['unpinned: app.probe_unpinned', 'unpinned: private.probe_unpinned_private', 'unpinned: app.probe_audit_renamed', 'pinned but absent: app.audit_logs'] },
+        names: ['unpinned: app.probe_unpinned', 'unpinned: private.probe_unpinned_private', 'unpinned: app.probe_audit_renamed', 'pinned but absent: app.audit_logs',
+          'not a table: app.probe_unpinned_mv (relkind m)', 'not a table: private.probe_unpinned_v (relkind v)'] },
       // A1's R1: a table-level privilege no item of 091's block names.
       // C0 F5 on batch 126: the owner the role set leaves out must be a superuser.
       { drift: 'create role probe_table_owner nologin; alter table app.calendar_items owner to probe_table_owner;',
         raises: 'pinned table(s) owned by a role that is not a superuser',
         names: ['app.calendar_items (owner probe_table_owner)'] },
+      // Batch 170's review round (A1 R1 d01, Q0 G18 and Q-5): a new superuser, and a role made one.
+      { drift: 'create role probe_pinned_super superuser nologin; alter role app_command superuser;',
+        raises: 'superuser role(s) other than the migration owner',
+        names: ['probe_pinned_super', 'app_command'] },
+      // Batch 170's review round (A1 R1 d03, d04b; Q0 G17 and Q-1): a role granted to a NOINHERIT role,
+      // a membership two roles deep, and a predefined role granted to a service role.
+      { drift: 'grant app_worker to app_command; create role probe_pinned_mid nologin noinherit; grant probe_pinned_mid to app_maintenance; grant app_authz to probe_pinned_mid; grant pg_monitor to service_role;',
+        raises: 'role membership(s) of a non-superuser role not pinned',
+        names: ['app_command -> app_worker', 'app_maintenance -> probe_pinned_mid', 'app_maintenance -> app_authz', 'probe_pinned_mid -> app_authz', 'service_role -> pg_monitor'] },
       // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126). Since the batch 170 draft, a
       // privilege for a role no rule read (app_maintenance) on a table outside 091's two, and one revoked.
       { drift: 'grant truncate on app.content_schedules to authenticated with grant option; grant delete on app.audit_logs to app_maintenance; revoke select on app.ai_models from app_worker;',
@@ -1778,11 +1835,12 @@ export const CATALOG_RULE_PROBES = [
       // C0's d3 and d11: a placement born deleted, and a creation time the client chooses; and a column
       // for a service role, which a role list naming authenticated alone would miss (A1 R4). Since the
       // batch 170 draft, a column for a command role on a kernel table, and a worker's column revoked.
-      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option; grant select (input_ref) on app.jobs to app_command; revoke update (lease_owner) on app.jobs from app_worker;',
+      // Batch 170's review round (Q0 Q-5): a column for anon, so dropping anon from the role set fails here.
+      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option; grant select (input_ref) on app.jobs to app_command; revoke update (lease_owner) on app.jobs from app_worker; grant select (id) on app.workspaces to anon;',
         raises: 'column privilege(s) on a pinned table not exactly its allowlist',
         names: ['unlisted: authenticated INSERT (deleted_at) on app.calendar_items', 'unlisted: authenticated INSERT (created_at) on app.content_schedules',
           'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items',
-          'unlisted: app_command SELECT (input_ref) on app.jobs', 'missing: app_worker UPDATE (lease_owner) on app.jobs'] },
+          'unlisted: app_command SELECT (input_ref) on app.jobs', 'missing: app_worker UPDATE (lease_owner) on app.jobs', 'unlisted: anon SELECT (id) on app.workspaces'] },
     ] },
   // The batch 170 draft (RFC-2026-021 §8.2, §8.5): the read allowlist, both ways.
   { label: 'read allowlist probe', sql: READ_ALLOWLIST_PROBE_SQL,

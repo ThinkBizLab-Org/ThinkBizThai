@@ -14,10 +14,18 @@
 // applies). The output is deterministic: tables, roles and privileges sorted, columns in attnum order. The
 // files are reviewed data; this script only says what the catalog holds, and a reviewer reads the diff.
 //
-// The known exceptions' granted_by is read from the migration text (a GRANT naming SELECT and authenticated
-// on an app table) and is documentation; the probe reads role, relation and level. The script refuses a
-// table-wide client SELECT and a measured client SELECT no migration grants, either direction, rather than
-// writing them into a closed list.
+// The known exceptions' granted_by is read from the migration text (a GRANT naming SELECT and the client role,
+// or PUBLIC, on an app table) and is documentation; the probe reads role, relation and level. Every client
+// role is read, anon as well as authenticated (a PUBLIC grant reads as both). The script REFUSES, exit 3 and
+// no file written, a table-wide client SELECT and a measured client SELECT no migration grants, rather than
+// writing either into a closed list. A migration that grants a client SELECT the catalog no longer holds (a
+// later REVOKE, which a closed list exists to permit) is reported on stderr and left out, not refused.
+//
+// Exit codes: 0 written, or (--check) both files match; 1 (--check) a file differs; 2 no DB_TEST_URL, or psql
+// failed; 3 refused. It is a REVIEWER'S TOOL, not a gate: no make target, npm script, test or CI step runs it.
+// The gate is the pinned grant and read allowlist probes in migrate-clean, which read the catalog against the
+// committed files on every run; this script only says what the catalog holds (batch 170's review round: C0
+// F7, Q0 Q-6).
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { argv, env, exit, stderr, stdout } from 'node:process';
@@ -28,7 +36,8 @@ const MIGRATIONS = 'db/foundation/migrations';
 
 const MEASURE_SQL = `with roles as (select rolname::text as r from pg_roles where not rolsuper and rolname !~ '^pg_'),
 tabs as (select c.oid, format('%s.%s', n.nspname, c.relname) as t from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname in ('app', 'private') and c.relkind in ('r', 'p')),
-tp as (select unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']) p),
+tp as (select unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
+                     || case when current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) p),
 go as (select * from (values (''), (' WITH GRANT OPTION')) v(opt)),
 tl as (select tabs.t, roles.r, tp.p || go.opt as p from tabs, roles, tp, go where has_table_privilege(roles.r, tabs.oid, tp.p || go.opt)),
 cols as (select tabs.oid, tabs.t, a.attnum, a.attname::text from tabs join pg_attribute a on a.attrelid = tabs.oid and a.attnum > 0 and not a.attisdropped),
@@ -50,7 +59,7 @@ const GRANTS_DOC = {
   _shape: 'tables: { "<schema>.<table>": { "<role>": { "table": [table-level privileges], "SELECT" | "INSERT" | "UPDATE" | "REFERENCES": [columns, in attnum order] } } }. A table no role holds anything on is an empty object, so the TABLE list is closed too. A batch that grants, revokes or adds a table changes this file in the same diff.',
 };
 const EXCEPTIONS_DOC = {
-  _what: 'RFC-2026-021 §8.5: the inherited client base-table SELECT grants, named in one place as exceptions rather than as silence. CLOSED: it lists exactly the grants that exist today, measured, and any new one fails the read allowlist probe (scripts/db/run.mjs) unless it is a read-allowlist.json entry. Closing the list (converting these to allowlist views, or keeping them for Pilot) is owed to batch 170 and is Q170-b, undecided.',
+  _what: 'RFC-2026-021 §8.5: the inherited client base-table SELECT grants, named in one place as exceptions rather than as silence. CLOSED: it lists exactly the grants that exist today, measured, and any new one fails the read allowlist probe (scripts/db/run.mjs) unless it is a read-allowlist.json entry. Closing the list (converting these to allowlist views, or keeping them for Pilot) is owed to batch 170 and is Q170-b, undecided. "Inherited" is READ, not given: §8.5 names the inherited grants as those of 010, 020 and 021, and only 10 of the 41 rows come from them (010 x5, 020 x4, 021 x1); the other 31 come from 13 later migrations (030, 040, 051, 061, 070, 080, 081, 090, 091, 100, 120, 121, 130). Closing the list at 41 reads §8.5\'s "the grants that exist today" as batch 170\'s day, and so ACCEPTS those 31 as §8.5 exceptions; whether they count as inherited is for A1 (RFC-2026-021\'s owner) and the Owner, with Q170-b (review round: C0 F1, A1 R4).',
   _how_measured: 'Generated from a live catalog read on the clean set (the shim, then every migration through 140, PostgreSQL 17.11): every (client role, base table) where has_any_column_privilege(role, table, \'SELECT\'). Measured: authenticated only, by column grants only (no table-wide SELECT anywhere); anon and PUBLIC hold none. granted_by is read from the migration text and is documentation; the probe reads role, relation and level.',
   _shape: '{ "role": "anon | authenticated | public", "relation": "<schema>.<table>", "level": "columns (SELECT by column grants only) | table (a table-wide SELECT)", "granted_by": ["the migration(s) whose GRANT SELECT names it"] }',
 };
@@ -79,25 +88,39 @@ function renderGrants(m) {
   return { text: out, grants: g, tables: tnames };
 }
 
+class Refusal extends Error {}
+// Every client role. PUBLIC has no pg_roles row: a PUBLIC grant reads as each of these holding it.
+const CLIENT_ROLES = ['anon', 'authenticated'];
+
 function renderExceptions(g, tables, migrationsDir = MIGRATIONS) {
   const src = {};
   for (const f of readdirSync(migrationsDir).filter((n) => n.endsWith('.sql')).sort()) {
     const s = readFileSync(`${migrationsDir}/${f}`, 'utf8').replace(/--[^\n]*/g, '');
     for (const x of s.matchAll(/grant\s+([^;]*?)\s+on\s+(?:table\s+)?(app\.\w+)\s+to\s+([^;]*);/gi)) {
-      if (!/select/i.test(x[1]) || !/authenticated/.test(x[3])) continue;
-      (src[x[2]] ??= new Set()).add(f);
+      if (!/select/i.test(x[1])) continue;
+      for (const role of CLIENT_ROLES) {
+        if (new RegExp(`\\b(?:${role}|public)\\b`, 'i').test(x[3])) ((src[role] ??= {})[x[2]] ??= new Set()).add(f);
+      }
     }
   }
   const exc = [];
   for (const t of tables) {
-    const a = g[t].authenticated;
-    if (!a) continue;
-    if (a.table?.includes('SELECT')) throw new Error(`a table-wide client SELECT on ${t}: not written into a closed list`);
-    if (!a.SELECT) continue;
-    if (!src[t]) throw new Error(`authenticated SELECTs ${t} and no migration grants it`);
-    exc.push({ role: 'authenticated', relation: t, level: 'columns', granted_by: [...src[t]] });
+    for (const role of CLIENT_ROLES) {
+      const a = g[t][role];
+      if (!a) continue;
+      if (a.table?.includes('SELECT')) throw new Refusal(`a table-wide client SELECT for ${role} on ${t}: not written into a closed list`);
+      if (!a.SELECT) continue;
+      if (!src[role]?.[t]) throw new Refusal(`${role} SELECTs ${t} and no migration grants it`);
+      exc.push({ role, relation: t, level: 'columns', granted_by: [...src[role][t]] });
+    }
   }
-  for (const t of Object.keys(src)) if (!exc.some((e) => e.relation === t)) throw new Error(`a migration grants SELECT on ${t} to authenticated and none is measured`);
+  for (const role of CLIENT_ROLES) {
+    for (const t of Object.keys(src[role] ?? {})) {
+      if (!exc.some((e) => e.role === role && e.relation === t)) {
+        stderr.write(`generate-pinned-grants: a migration grants SELECT on ${t} to ${role} and the catalog holds none (a later revoke?); not written\n`);
+      }
+    }
+  }
   let out = '{\n';
   for (const [k, v] of Object.entries(EXCEPTIONS_DOC)) out += `  ${q(k)}: ${q(v)},\n`;
   out += '  "exceptions": [\n';
@@ -115,7 +138,12 @@ function main() {
   if (r.status !== 0) { stderr.write(`generate-pinned-grants: psql exited ${r.status}: ${r.stderr}`); exit(2); }
   const measured = JSON.parse(r.stdout.trim());
   const grants = renderGrants(measured);
-  const exceptions = renderExceptions(grants.grants, grants.tables);
+  let exceptions;
+  try { exceptions = renderExceptions(grants.grants, grants.tables); } catch (e) {
+    if (!(e instanceof Refusal)) throw e;
+    stderr.write(`generate-pinned-grants: REFUSED, nothing written: ${e.message}\n`);
+    exit(3);
+  }
   let differs = 0;
   for (const [path, text] of [[GRANTS, grants.text], [EXCEPTIONS, exceptions]]) {
     let current = null;

@@ -199,7 +199,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // table and role, the read allowlist and its known exceptions, the classification registry, and the two new
 // probes' reading predicates; no test is added and none renamed, so the test floor and the name digest stay;
 // the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 788,
+// 788 to 793 with batch 170's review round (2026-10-04, no migration): the pinned grant probe's three new
+// premises (no view, matview or foreign table in app and private; no superuser but the migration owner;
+// no membership among non-superuser roles, none pinned) and the classification SQL's refused tables; the
+// role CTEs anchored in place of one assertion; no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 793,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

@@ -454,7 +454,20 @@ break it silently:
    the same change; the static test holds 091's two tables to 091's grant statements. Each privilege is
    read WITH GRANT OPTION too, which the allowlist never lists, and the probe's second rule requires each
    pinned table's owner to be a superuser, since the role set leaves superusers out (batch 126's review
-   round: C0 F3, F5, A1 F3, Q0 F7).
+   round: C0 F3, F5, A1 F3, Q0 F7). Since batch 170's review round (A1 R1, R2; Q0 Q-1, Q-2, Q-5) the
+   reading's three premises are rules too: the first rule also names any view, materialized view or foreign
+   table in `app` or `private` (none exists; a definer view or a matview over a SECRET-4 table, granted to
+   a non-client role, passed every layer before); the third holds the superuser set to the migration owner
+   alone; and the fourth reads every non-superuser, non-`pg_*` role's memberships from `pg_auth_members`
+   recursively, whatever the option, against `PINNED_ROLE_MEMBERSHIPS` (none), because `has_*_privilege`
+   follows inherited privileges only and every such role is NOINHERIT, so a membership gave its whole reach
+   by SET ROLE unread. What this rule still does not read: a grant to a predefined `pg_*` role on an `app`
+   or `private` table (only a role BECOMING one is named, by the fourth rule), a relation in a schema
+   other than `app` and `private` that a non-client role can read, and sequences and functions (owed on
+   blocker 185). `scripts/db/generate-pinned-grants.mjs` regenerates the file and the known exceptions
+   from a live catalog (`--check` compares; exit 1 differs, 2 no database, 3 refused). It is a reviewer's
+   tool, not a gate: nothing in `make`, npm, the tests or CI runs it, and this rule is what holds the files
+   to the catalog on every run.
 8. **Column defaults a decision fixes are pinned by deparse text** (`PINNED_DEFAULTS`): today only
    `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
 9. **No relation in `app` or `private` carries a rewrite rule** but a view's `_RETURN` (batch 126's
@@ -577,9 +590,19 @@ break it silently:
    grant, which is how a list becomes documentation. An allowlist entry contributes its view and column
    SELECT on each base table behind it. Which columns are granted is rule 7's; this rule reads the
    boundary by relation. Whether the exceptions are kept for Pilot or converted to views is Q170-b,
-   undecided; the read side of client INSERT, UPDATE and DELETE is not this rule's.
-17. **No client privilege on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3** (the batch 170
-   draft; ERD §9.1). `db/foundation/lint/data-classification.json` gives every table in `app` and
+   undecided; the read side of client INSERT, UPDATE and DELETE is not this rule's. "Inherited" is a
+   READING (batch 170's review round, C0 F1, A1 R4): RFC-021 §8.5 names the inherited grants as those of
+   `010`, `020` and `021`, and only 10 of the 41 rows come from them; the other 31 come from 13 later
+   migrations. Closing the list at 41 reads §8.5's "the grants that exist today" as batch 170's day and so
+   accepts those 31 as exceptions; which grants count as inherited is for A1 and the Owner, with Q170-b.
+   The entry side of rule 2 checks a view's SELECT and column SELECT on its base tables, two of RFC-021
+   §3's five objects: not the base table's SELECT policy, schema USAGE, or that the granted columns equal
+   the entry's `columns` (C0 F3; inert while the allowlist is empty, owed on blocker 115 before the first
+   entry lands).
+17. **No client privilege on a TABLE classed SECRET-4, PROVIDER-3 or INTERNAL-3; the column half is empty
+   until the ERD classes columns** (the batch 170 draft; ERD §9.1; heading narrowed in its review round,
+   A1 R5: the registry's `columns` map is `{}`, so a new client column on one of the twelve open tables,
+   six of which pair SECRET-4 with another class, is named by rule 7 alone). `db/foundation/lint/data-classification.json` gives every table in `app` and
    `private` its ERD §5 family and that row's §9.1 classes, verbatim, and a class only where §5 gives one
    or where §9.1/§9.2 names the table's own content as an example of a refused class (a push token, an API
    key, an OAuth token, a webhook). A table left between a refused class and another is a FINDING in the

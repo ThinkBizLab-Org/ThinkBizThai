@@ -2644,6 +2644,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // db/foundation/lint/pinned-grants.json; the table-list rule and its drift first; a column privilege a
   // table-level one implies is read at the table level; non-client roles granted and revoked in drifts 3
   // and 4); the read allowlist and data classification probes are new (RFC-2026-021 §8.2 and §8.5; ERD §9.1).
+  // Batch 170's review round: pinned grant 7a8fe3e222e6827f to baa6379790cb8733 (the first rule also names a
+  // view, materialized view or foreign table in app or private, and its drift adds two, A1 R2, Q0 Q-2; the
+  // superuser set and every non-superuser role's memberships are rules 3 and 4 with a drift each, A1 R1,
+  // Q0 Q-1, Q-5; a column for anon in the column drift, Q0 Q-5).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2665,7 +2669,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '7ebb13f1c66bd33a',
     'pinned trigger probe': 'f136765c6beb5dbf',
-    'pinned grant probe': '7a8fe3e222e6827f',
+    'pinned grant probe': 'baa6379790cb8733',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': '42c77e0015f12eaf',
     'pinned default probe': '570796093410bc0a',
@@ -2975,7 +2979,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // The grant probe is an ALLOWLIST read from the catalog (C0 H1, A1 R3 on 091's third round): every
   // non-superuser role, every table privilege MAINTAIN included on 17+, every column privilege, each
   // compared both ways against the pinned set.
-  assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_roles where not rolsuper and rolname !~ '\^pg_'/, 'every role but superusers and predefined roles, not a named list');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/^    select rolname as r from pg_catalog\.pg_roles where not rolsuper and rolname !~ '\^pg_'\n  \), /gm) ?? []).length, 2,
+    'every role but superusers and predefined roles, not a named list, at table and at column level, each role CTE anchored to its end of line so no condition can be appended to it (Q0 Q-5 on the batch 170 draft: a condition dropping anon passed a prefix match)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'\][\s\S]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+ (A1 R1)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /unnest\(array\['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\]\) as p\(p\), \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)/,
     'every column, by the effective privilege, all four column privileges, each with and without grant option (Q0 F7, C0 F3, A1 F3 on 126)');
@@ -2990,6 +2995,14 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_GRANT_PROBE_SQL, /where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)\n\s+and not pg_catalog\.has_table_privilege\(roles\.r, cols\.rel, p\.p \|\| go\.opt\)\n\s+\), pinned as/,
     'a column privilege is read unless a table-level privilege, with the same grant option, already implies it (the table-level rule reads that one)');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 2, 'an unlisted grant named at both levels');
+  // Batch 170's review round (A1 R1, R2; Q0 Q-1, Q-2, Q-5): the three premises of the reading are rules.
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /union all\n    select 'not a table: ' \|\| format\('%s\.%s \(relkind %s\)', n\.nspname, c\.relname, c\.relkind\)\n\s+from pg_catalog\.pg_class c join pg_catalog\.pg_namespace n on n\.oid = c\.relnamespace\n\s+where n\.nspname in \('app', 'private'\) and c\.relkind in \('v', 'm', 'f'\)\n  \) d;\n  if offending is not null then\n    raise exception 'app or private table\(s\) not exactly the pinned grant table list: %'/,
+    'the first rule also names every view, materialized view and foreign table in app and private (A1 R2 d05b, d06; Q0 Q-2 T07)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /select string_agg\(r\.rolname::text, ', ' order by r\.rolname\) into offending\n\s+from pg_catalog\.pg_roles r\n\s+where r\.rolsuper and r\.rolname <> session_user;\n  if offending is not null then\n    raise exception 'superuser role\(s\) other than the migration owner/,
+    'no superuser but the migration owner, whom the role set leaves out (A1 R1 d01; Q0 G18, Q-5)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /with recursive reach\(member, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+union\n\s+select reach\.member, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)[\s\S]*?where not \(x = any \(array\[\]::text\[\]\)\);\n  if offending is not null then\n    raise exception 'role membership\(s\) of a non-superuser role not pinned/,
+    'every non-superuser, non-pg_* role\'s memberships, recursively and whatever the option, none pinned (A1 R1 d03, d04b; Q0 G17, Q-1)');
+  assert.deepEqual(m.PINNED_ROLE_MEMBERSHIPS, [], 'no non-superuser role is a member of another, measured in batch 170\'s review round');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 2, 'and a missing one');
   // EVERY TABLE AND EVERY ROLE, AS DATA (the batch 170 draft; plan (a)). The pinned list is the lint file,
   // one entry per table, and its tables are exactly the tables the migrations create in app and private.
@@ -3092,6 +3105,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       'any privilege, by any column or table-wide');
     assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'REFERENCES', 'DELETE', 'TRUNCATE', 'TRIGGER'\]\n\s+\|\| case when [^\n]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+');
     assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 2, 'the three client roles, at table and at column level');
+    assert.ok(m.DATA_CLASSIFICATION_PROBE_SQL.includes(`from unnest(array[${m.REFUSED_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `),
+      'the SQL refuses every one of the eight tables, as the registry gives them (Q0 Q-5 on the batch 170 draft: one dropped from the SQL passed with the digest refreshed)');
   }
   assert.deepEqual(m.PINNED_DEFAULTS, { 'app.calendar_items.timezone': "'Asia/Bangkok'::text" }, 'DEC-UX-06 (C0 H3 on 091\'s third round)');
   assert.match(m.PINNED_DEFAULT_PROBE_SQL, /pg_catalog\.pg_get_expr\(d\.adbin, d\.adrelid\) = pin\.def/, 'defaults compared by TEXT');

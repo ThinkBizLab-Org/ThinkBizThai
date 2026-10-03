@@ -8027,7 +8027,7 @@ test('batch 132 adds no negative-control entry, and its cases say what holds the
 });
 
 test('the effective-limit projection is named as an allowlist candidate and not added, and the registry RFC-2026-021 asks for is not in the tree', async () => {
-  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?view\b/i,
+  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i,
     'no migration creates a view. RFC-2026-021 §7/3 keeps the client read allowlist empty and the batch '
     + 'that would create a first entry is NOT YET ASSIGNED; batch 132 does not become it by writing a '
     + 'projection for a caller that does not exist.');
