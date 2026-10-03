@@ -440,7 +440,8 @@ export function psqlLex(sql) {
     // view a client could read every tenant through. The catalog rules read such an object by its OID
     // now and the pg_catalog guard refuses it; this names the switch itself. Any mention, as with
     // client_encoding; an escape spelling of it is refused below; a name computed at run time is not read
-    // here and is left to those two.
+    // here and is left to those two for what it MAKES, and to the system object fingerprint probe for what
+    // initdb made and it REDEFINES in place (batch 129; C0 G1 on 128's re-check: OID readings miss that).
     for (const found of text.matchAll(/allow_system_table_mods/gi)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
     }

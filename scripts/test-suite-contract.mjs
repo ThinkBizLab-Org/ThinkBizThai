@@ -169,7 +169,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // userObject), no rule by schema name alone, the database privileges and their pin, and no schema left out
 // of the client schema probe; no test is added and none renamed, so the test floor and the name digest
 // stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 500,
+// 500 to 525 with batch 129 (2026-10-03): the system object fingerprint (what it reads, how it is taken,
+// sealed and compared), the client roles' attributes, pg_default_acl, every other database, and a pg_toast
+// object in each client privilege drift; no test is added and none renamed, so the test floor and the name
+// digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 525,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

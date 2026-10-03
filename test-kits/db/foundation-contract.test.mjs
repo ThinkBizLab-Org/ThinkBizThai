@@ -2215,8 +2215,10 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   assert.match(metaCommandFindings([{ name: '999_x.sql', sql: 'select 1; \\! touch f' }]).join(''), /999_x\.sql line 1: a psql meta-command/,
     'migrate-clean refuses it live, before the first script is applied');
   assert.deepEqual(metaCommandFindings([{ name: '999_x.sql', sql: "select '\\!';" }]), []);
-  assert.match(runner, /const meta = metaCommandFindings\(steps\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n\s*for \(const \{ name, sql \} of steps\) \{/,
-    'and the scan runs before the loop that applies them');
+  // Since batch 129 the system object fingerprint is scanned with them and taken first (C0 G1, Q0 F1 on 128's
+  // re-check), then the loop.
+  assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
+    'and the scan runs before the fingerprint and the loop that applies them');
 });
 
 // updated_at IS THE DATABASE'S TO WRITE, ON EVERY TABLE THAT HANDS THE COLUMN TO A CLIENT.
@@ -2500,10 +2502,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL,
       m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL,
-      m.CLIENT_SCHEMA_PROBE_SQL, m.CLIENT_MEMBERSHIP_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
+      m.CLIENT_SCHEMA_PROBE_SQL, m.CLIENT_MEMBERSHIP_PROBE_SQL, m.SYSTEM_FINGERPRINT_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.POLICY_HELPER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
       m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all twenty-three, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check)');
+    'all twenty-four, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check); the system object fingerprint probe is batch 129 (C0 G1, Q0 F1 on 128\'s re-check)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2628,6 +2630,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // to 42d056bde20ea854 and policy helper 3fcabdc5eecec27c to 79f1d9721698eb44 (a function made after initdb
   // in a system schema is read); pg_catalog guard dde779af70d95fcf to 75f034a2f40a686e (every schema initdb
   // made but public, relations too, and its drift puts a view and a definer function in information_schema).
+  // Batch 129 (128's re-checks): the system object fingerprint probe is new (C0 G1, Q0 F1); client privilege
+  // a620d5629d5192d7 to 86e1f9ff6b3eda34 (a pg_toast object in each of its three drifts, Q0 F2; rule 4 and its
+  // drift, pg_default_acl, A1 R1); client schema 13ad35c1af22ba18 to 6c400e229948cda6 (every other database, Q0
+  // F3); client membership 9dc722ac7efd2c45 to 930e93b4411edcf5 (the roles' own attributes and a drift, A1
+  // R2, C0 F3).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2639,9 +2646,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
     'permissive policy probe': '2fd449e14cd8900f',
-    'client privilege probe': 'a620d5629d5192d7',
-    'client schema probe': '13ad35c1af22ba18',
-    'client membership probe': '9dc722ac7efd2c45',
+    'client privilege probe': '86e1f9ff6b3eda34',
+    'client schema probe': '6c400e229948cda6',
+    'client membership probe': '930e93b4411edcf5',
+    'system object fingerprint probe': '35887b50de64acf6',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '42d056bde20ea854',
@@ -2755,7 +2763,20 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'rule 2: any client privilege on a view, materialized view or foreign table, unless pinned AND security_invoker (A1 F1, Q0 F1)');
   assert.match(clientPriv, /where n\.nspname <> 'app' and \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\) and c\.relkind in \('r', 'p'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\)\);/,
     'rule 3: any client privilege on a table outside app, unless pinned (A1 F2; A1 F6 on 123; A1 V13 on 127\'s re-check)');
-  assert.equal((clientPriv.match(/\bselect\b/g) ?? []).length, 6, 'six selects, counted at batch 127\'s review round: no reading clause added unseen');
+  // RULE 4, WHAT EVERY LATER OBJECT WILL CARRY (batch 129; A1 R1 on 128's re-check): every pg_default_acl
+  // entry, every schema and none, every object type, any grantee that is PUBLIC, anon or authenticated.
+  assert.match(clientPriv, /from pg_catalog\.pg_default_acl d cross join lateral pg_catalog\.aclexplode\(d\.defaclacl\) a\n\s+where a\.grantee = 0::pg_catalog\.oid or a\.grantee in \(select r\.oid from pg_catalog\.pg_roles r where r\.rolname in \('anon', 'authenticated'\)\)\n\s+\) f;/,
+    'rule 4: every default privilege whose grantee is PUBLIC, anon or authenticated, with no filter on schema or object type');
+  assert.equal((clientPriv.match(/\bselect\b/g) ?? []).length, 9, 'nine selects, counted at batch 129 (six at 127\'s review round, and rule 4\'s three): no reading clause added unseen');
+  // AND NOT ONLY THROUGH pg_temp (batch 129; Q0 F2 on 128's re-check: a mutation reading the schema's OID, or
+  // keeping the arm for pg_temp alone, passed the three drifts). Each of the three puts an object in pg_toast,
+  // an initdb schema with a pg_* name, which only the object's own OID reads; and names it.
+  const privDrifts = m.CATALOG_RULE_PROBES.find((p) => p.label === 'client privilege probe').selfTests;
+  privDrifts.slice(0, 3).forEach(({ drift, names }, i) => {
+    assert.match(drift, /set_config\('allow_system_' \|\| 'table_mods', 'on', true\)/, `drift ${i + 1}: the switch, for its own transaction only`);
+    assert.match(drift, /create (table|view) pg_toast\.probe_toast_/, `drift ${i + 1}: an object in pg_toast`);
+    assert.ok(names.some((n) => n.includes('pg_toast.probe_toast_')), `drift ${i + 1}: and its refusal names it`);
+  });
   // WHICH SCHEMAS A CLIENT MAY USE OR CREATE IN, AND WHAT A CLIENT ROLE MAY BECOME (batch 128; A1 N1, N3,
   // N5, C0 N1, Q0 N1, N2 on 127's re-check). Both read the catalog whole, and both lists are what the clean
   // set measured.
@@ -2775,11 +2796,55 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'and CREATE and TEMPORARY on the current database, each with and without grant option');
   assert.doesNotMatch(m.CLIENT_SCHEMA_PROBE_SQL, /nspname\s*(not\b|in\b|!?~|<>|!=|=|like\b)|\.oid\s*[<>]/i, 'no schema is left out, by name or by OID');
   assert.match(m.CLIENT_SCHEMA_PROBE_SQL, /select 'unlisted: ' \|\| f\.g as x from found f[\s\S]*union all\n\s+select 'missing: ' \|\| p\.g from pinned p/, 'both directions named');
-  assert.equal((m.CLIENT_SCHEMA_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 8, 'eight selects, counted at 128\'s review round (seven at 128, and the database): no reading clause added unseen');
+  // AND EVERY OTHER DATABASE (batch 129; Q0 F3 on 128's re-check: CREATE on template1 passed every layer).
+  assert.match(m.CLIENT_SCHEMA_PROBE_SQL, /from pg_catalog\.pg_database d, unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\), unnest\(array\['CREATE', 'TEMPORARY'\]\) as p\(p\), \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where d\.datname <> pg_catalog\.current_database\(\) and \(p\.p = 'CREATE' or go\.opt <> ''\)\n\s+and pg_catalog\.has_database_privilege\(cr\.r, d\.oid, p\.p \|\| go\.opt\)\n/,
+    'every other database: CREATE, and any grant option, for every client role, each named with its database');
+  assert.equal((m.CLIENT_SCHEMA_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 9, 'nine selects, counted at batch 129 (eight at 128\'s review round, and every other database): no reading clause added unseen');
   assert.deepEqual(m.CLIENT_ROLE_MEMBERSHIPS, [], 'anon and authenticated are members of no role, measured at batch 128: a pin is an RFC-sized decision');
   assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /with recursive reach\(client, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where r\.rolname in \('anon', 'authenticated'\)\n\s+union\n\s+select reach\.client, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)/,
     'pg_auth_members read recursively from both client roles, with no filter on INHERIT, SET or ADMIN');
-  assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 4, 'four selects, counted at batch 128');
+  // AND WHAT A CLIENT ROLE IS (batch 129; A1 R2, C0 F3 and X6 on 128's re-check: bypassrls was held by
+  // rls-smoke alone). Seven attributes, each false for both roles as the shim makes them, read from pg_roles.
+  assert.deepEqual(m.CLIENT_ROLE_FALSE_ATTRIBUTES, ['rolbypassrls', 'rolcanlogin', 'rolcreatedb', 'rolcreaterole', 'rolinherit', 'rolreplication', 'rolsuper'],
+    'superuser, bypassrls, createrole, createdb, inherit, login and replication, each pinned false, measured at batch 129');
+  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /from pg_catalog\.pg_roles r cross join lateral \(values \('rolbypassrls', r\.rolbypassrls\), \('rolcanlogin', r\.rolcanlogin\), \('rolcreatedb', r\.rolcreatedb\), \('rolcreaterole', r\.rolcreaterole\), \('rolinherit', r\.rolinherit\), \('rolreplication', r\.rolreplication\), \('rolsuper', r\.rolsuper\)\) as a\(k, v\)\n\s+where r\.rolname in \('anon', 'authenticated'\) and a\.v is distinct from false\n/,
+    'each attribute of both client roles, any value but false named');
+  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /where not exists \(select 1 from pg_catalog\.pg_roles r where r\.rolname = c\.r\)/, 'and a client role that does not exist');
+  assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 8, 'eight selects, counted at batch 129 (four at 128, and the attribute rule\'s four)');
+  // WHAT initdb MADE, AS initdb MADE IT (batch 129; C0 G1, Q0 F1 on 128's re-check: a view, a function and a
+  // grant initdb made, redefined or re-granted in place, kept OIDs below 16384 and passed every layer). The
+  // fingerprint is COMPUTED on the database itself before the migrations, not pinned here; what it reads is.
+  const fp = m.SYSTEM_FINGERPRINT_ROWS;
+  assert.match(fp, /row\(p\.proowner, p\.prolang, p\.prokind, p\.prosecdef, p\.proleakproof, p\.proisstrict, p\.provolatile, p\.proparallel,\n\s+p\.procost, p\.prorows, p\.prosupport, p\.prorettype, p\.proargdefaults::text, p\.prosrc, p\.probin, p\.proconfig, p\.proacl\)::text as fp\n\s+from pg_catalog\.pg_proc p join pg_catalog\.pg_namespace n on n\.oid = p\.pronamespace\n\s+where p\.oid < 16384::pg_catalog\.oid\n/,
+    'every function initdb made: owner, language, security, settings, body, binary and ACL among the rest');
+  assert.match(fp, /row\(c\.relowner, c\.relkind, c\.relacl, c\.relrowsecurity, c\.relforcerowsecurity, c\.relhasrules, c\.relhastriggers, c\.reloptions,\n\s+case when c\.relkind in \('v', 'm'\) then pg_catalog\.pg_get_viewdef\(c\.oid\) end,/,
+    'every relation initdb made: owner, ACL, row level security, rules, triggers, options and a view\'s definition');
+  assert.match(fp, /row\(a\.attnum, a\.attname, a\.atttypid, a\.attacl\)::text order by a\.attnum\) from pg_catalog\.pg_attribute a where a\.attrelid = c\.oid and a\.attnum > 0\)/, 'and every column, its ACL included');
+  assert.match(fp, /from pg_catalog\.pg_rewrite r where r\.ev_class = c\.oid[\s\S]*from pg_catalog\.pg_trigger t where t\.tgrelid = c\.oid[\s\S]*from pg_catalog\.pg_policy pol where pol\.polrelid = c\.oid/, 'and the names of its rules, triggers and policies');
+  assert.match(fp, /select 'schema', n\.oid, n\.nspname::text, row\(n\.nspowner, n\.nspacl\)::text\n\s+from pg_catalog\.pg_namespace n\n\s+where n\.oid < 16384::pg_catalog\.oid\n/, 'every schema initdb made, owner and ACL');
+  assert.match(fp, /row\(l\.lanowner, l\.lanpltrusted, l\.lanplcallfoid, l\.laninline, l\.lanvalidator, l\.lanacl\)::text\n\s+from pg_catalog\.pg_language l\n\s+where l\.oid < 16384::pg_catalog\.oid$/, 'every language initdb made');
+  assert.equal((fp.match(/ < 16384::pg_catalog\.oid/g) ?? []).length, 4, 'four kinds, each read whole below FirstNormalObjectId and nowhere filtered by schema');
+  assert.doesNotMatch(fp, /nspname\s*(not\b|in\b|!?~|<>|!=|=|like\b)/i, 'no schema is left out by name');
+  assert.ok(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL.includes(fp) && m.SYSTEM_FINGERPRINT_PROBE_SQL.includes(fp), 'the reference is taken and compared by the same text');
+  assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /from now n full join catalog_baseline\.system_fingerprint b on b\.kind = n\.kind and b\.objoid = n\.objoid\n\s+where n\.fp is distinct from b\.fp\n/,
+    'compared both ways by kind and OID: a changed, gone or new row is counted');
+  assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /if differing > 0 then\n\s+raise exception/, 'and any one of them refuses');
+  assert.match(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL, /^set local search_path = pg_catalog;\n/, 'taken under the search_path the probe runs with, so the texts compare');
+  assert.match(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL, /if exists \(select 1 from catalog_baseline\.system_fingerprint\) then\n\s+return;\n\s+end if;\n\s+if exists \(select 1 from pg_catalog\.pg_namespace where nspname = 'app'\) then\n\s+raise exception/,
+    'the first fingerprint is kept, and none is taken on a database the migrations already built');
+  // The executor takes it before the prerequisite, seals it, and refuses a run whose seal moved by the end.
+  const exec = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
+  const at = (t) => { const i = exec.indexOf(t); assert.ok(i > 0, `the executor holds: ${t}`); return i; };
+  const takenAt = at('const taken = await script(SYSTEM_FINGERPRINT_SNAPSHOT_SQL);');
+  const sealedAt = at('const sealed = await query(SYSTEM_FINGERPRINT_SEAL_SQL);');
+  const stepsAt = at('for (const { name, sql } of steps) {');
+  const resealedAt = at('const resealed = await query(SYSTEM_FINGERPRINT_SEAL_SQL);');
+  const movedAt = at("if (resealed.rows?.length !== 1 || resealed.rows[0].seal !== seal) {");
+  const ceilingAt = at('const probe = await script(CEILING_PROBE_SQL);');
+  assert.ok(takenAt < sealedAt && sealedAt < stepsAt && stepsAt < resealedAt && resealedAt < movedAt && movedAt < ceilingAt,
+    'fingerprint, seal, every step, the seal again and its comparison, then the probes');
+  assert.match(exec.slice(takenAt, stepsAt), /if \(taken\.error\) \{[^\n]*return 1; \}\n[\s\S]*if \(!seal \|\| !\/\^\[1-9\]\\d\*:\[0-9a-f\]\{32\}\$\/\.test\(seal\)\) \{[^\n]*return 1; \}/, 'no fingerprint, or an empty one, fails the target');
+  assert.match(exec.slice(movedAt, ceilingAt), /^[^\n]*\n\s+stderr\.write\([^\n]*\);\n\s+return 1;\n\s+\}/, 'and a moved seal fails it');
   // AND THE DEFINER PROBE READS EXTENSION MEMBERS (batch 128; A1 N2 on 127's re-check).
   assert.deepEqual(m.EXTENSION_DEFINER_FUNCTIONS, [], 'no SECURITY DEFINER extension member, measured at batch 128');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /join pg_catalog\.pg_depend d on d\.classid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass and d\.objid = p\.oid and d\.deptype = 'e'\n\s+join pg_catalog\.pg_extension e on d\.refclassid = 'pg_catalog\.pg_extension'::pg_catalog\.regclass and e\.oid = d\.refobjid\n\s+where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n/,
