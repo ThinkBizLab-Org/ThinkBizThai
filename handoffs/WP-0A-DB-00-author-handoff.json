@@ -4,24 +4,31 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "75c927455acd8fa8160aeb49abbc3545ce671fbb",
-  "head_revision_or_patch_checksum": "6ea446c9b54440ed0c9cf7345c7d17956e1492c6",
+  "base_revision": "c5a648eab0ab195ec2044622ced04a0a68aaf333",
+  "head_revision_or_patch_checksum": "f3814e8e68b2e5f398a4d631bb84e2438289230a",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-batch-129-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-129-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-129-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-129-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-129-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-129.md",
-    "evidence/WP-0A-DB-00/q0-batch-129-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-129-test-review-2026-10-03.md"
+    "db/foundation/lint/audit-coverage-map.json",
+    "evidence/WP-0A-DB-00/a0-batch-141-prep-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a0-phase-plan-141-170-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-141-prep.md",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-category-rights.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-category-schedule.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-delete-without-before-ref.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-details-not-empty.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-failed-without-error.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-pii-not-redacted.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-succeeded-with-error.json",
+    "test-kits/db/fixtures/ctr-aud-001/invalid-tenant-locale-not-thai.json",
+    "test-kits/db/fixtures/ctr-aud-001/store-conformance.json",
+    "test-kits/db/fixtures/ctr-aud-001/valid-asset-hard-purged.json",
+    "test-kits/db/fixtures/ctr-aud-001/valid-billing-payment-failed.json",
+    "test-kits/db/fixtures/ctr-aud-001/valid-publish-denied-on-page.json",
+    "test-kits/db/fixtures/ctr-aud-001/valid-role-member-scope-changed.json"
   ],
   "files_modified": [
-    "db/foundation/README.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/psql-driver.mjs",
-    "scripts/db/run.mjs",
+    "db/foundation/lint/service-policy-map.json",
+    "evidence/VERIFICATION.md",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
@@ -29,176 +36,117 @@
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
-  "decisions_consumed": [],
-  "contracts_consumed": [],
+  "decisions_consumed": [
+    "RFC-2026-022 §3 (approved 2026-09-08): §8.4 Audit/security INSERT is CARRIED"
+  ],
+  "contracts_consumed": [
+    "CTR-AUD-001",
+    "CTR-TEN-001"
+  ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 129, THE LAST BATCH OF THE ASSERTION-HARDENING CHAIN: what batch 128's re-checks (C0 465e6af, A1 39997cd, Q0 a18ac68 on 0646f32; 128 plan §8) left owed on blocker 186 -- an initdb object redefined or re-granted in place (C0 G1, Q0 F1, MEDIUM), the OID arm's self-tests on pg_temp objects only (Q0 F2), client role attributes (A1 R2, C0 F3), pg_default_acl (A1 R1), database privileges on the current database only (Q0 F3). Plan a0-batch-129-plan-2026-10-03.md (the local draft's record moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-129.md.",
-    "The Owner's words since 128 (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ`, accepting A0's recommendation to END the hardening chain after 129 and move to the planned batches 141, 150, 160 (needs decisions) and 170; and the session goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. So what 129's reviews leave owed goes to blocker 186 as owed, not to a 130-series follow-up, unless it is stop-the-line.",
-    "Assertion and tooling only: NO MIGRATION, so batch 129 needs no migration number. Written under the standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #167 (75c9274, at the reviewed head 1e85499, run 37127744567 green, 2026-10-03T14:17:50Z); A0 executed that delegation and did not decide the merge.",
-    "The local draft (51ee63e, cca5b03 on draft/wp-db00-129, stacked on 1e85499, whose tree equals main's) was cherry-picked unchanged as f3d8ef9 and 1c99a60; 36796dd packages the batch (branch slot, rationale, blocker 186, integrity manifest); 27e8817 is the plan and disposition.",
-    "129's REVIEW ROUND: C0 24c0bb8, A1 3f40326 and Q0 f9b2d31 on 0f08d92 were cherry-picked with -x as d2f5ccc, f8e16f4 and bd7f5a0; none found stop-the-line or a merge blocker. a9f7508 is the fixes (C0 F1, F2; A1 R1, R2, R3; Q0 F1), 70ad049 the record (plan section 9, README, blocker 186), and this refresh is last and alone. Written by a subagent of /claude/a0_atlas; it approves nothing."
+    "THIS INCREMENT IS BATCH 141's PREPARATION: the part of batch 141 (A0, audit consumers and hooks) that needs no pending decision, from the phase plan a0-phase-plan-141-170-2026-10-03.md, 'Batch 141 -- 3. Can do now'. Plan a0-batch-141-prep-plan-2026-10-03.md (the local draft's record, draft/wp-db00-141-prep c65bca7, moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-141-prep.md. The draft's two commits (e99757a, c65bca7, cut at 75c9274) are cherry-picked as 3d9ede0 and b6c0206, with the floor and integrity-manifest conflicts resolved against main c5a648e.",
+    "The Owner's words (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ` (the hardening chain ends at 129; move to the planned batches) and the goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. A0 reads them as: do now what needs no pending decision, and put each decision to its owner without taking it. The reading is A0's.",
+    "The merge of #168 (batch 129) at its reviewed head 999456d, merge commit c5a648e at 2026-10-03T15:55:36Z, required check run 37134594625 green, was A0 executing the Owner's standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), not A0 deciding it.",
+    "No migration, no policy, no grant: each would take Q141-a (the producer path) or Q141-b (CTR-AUD-001's freeze). So no migration number is asked of the Owner.",
+    "The §8.4 rows are written in the register's closed shape (scripts/db/run.mjs CELL_FIELDS), not RFC-2026-022 §7.2's sketch fields; that mismatch is owed (open_blockers[191] (2))."
   ],
   "acceptance_results": [
     {
-      "criterion": "An initdb object redefined or re-granted in place is refused by name (C0 G1, Q0 F1)",
+      "criterion": "§8.4 Audit/security INSERT classified CARRIED on app.audit_logs and app.security_events, with no policy written",
       "result": "met",
-      "evidence": "plan §3, §5: the system object fingerprint (3753 objects below OID 16384, taken before the first migration, sealed by count and md5) and its probe; X7, X8, X9, Q-IPF, Q-IPVx, Q-GS and FGRANT, each green on every layer at 0646f32, fail migrate-clean by name; X10 is named as built; SEAL (a fingerprint row deleted) fails on the seal; MFP and MFV fail the probe's self-test"
+      "evidence": "db/foundation/lint/service-policy-map.json; foundation-contract.test.mjs:3314; make db-schema-lint exit 0; probes P01, P02, P25 bite"
     },
     {
-      "criterion": "The OID arm is self-tested on an object in a system schema other than pg_temp (Q0 F2)",
+      "criterion": "An audit coverage map: one row per SEC-009/OB-005 action class plus the two owed actions, each naming real tables, a real §8 row, live blockers and no producer",
       "result": "met",
-      "evidence": "plan §1, §4: a pg_toast object in each of the client privilege probe's three drifts; U1 (the schema's OID) and U2 (the arm for pg_temp only), which passed migrate-clean before, fail it by naming the three pg_toast objects"
+      "evidence": "db/foundation/lint/audit-coverage-map.json; foundation-contract.test.mjs:3340; probes P03-P10, P26, P27 bite"
     },
     {
-      "criterion": "The client roles' attributes are pinned false (A1 R2, C0 F3)",
+      "criterion": "Static conformance between app.audit_logs and CTR-AUD-001 both ways, every divergence pinned as a closed list",
       "result": "met",
-      "evidence": "plan §3-§4: X6 (bypassrls) now fails migrate-clean by name as well as rls-smoke (347 of 1079); ATTR (createrole, createdb), invisible to rls-smoke, fails migrate-clean by name; MATT fails the self-test"
+      "evidence": "test-kits/db/fixtures/ctr-aud-001/store-conformance.json; foundation-contract.test.mjs:3437; probes P11-P20, P28 bite"
     },
     {
-      "criterion": "No pg_default_acl entry grants a client (A1 R1)",
+      "criterion": "CTR-AUD-001 fixtures: valid ones storable, invalid ones failing for exactly one reason",
       "result": "met",
-      "evidence": "plan §3-§4: DACL (per schema) and DACLg (global) each fail migrate-clean by name; MDACL fails the self-test"
+      "evidence": "test-kits/db/fixtures/ctr-aud-001/ (4 valid, 8 invalid); foundation-contract.test.mjs:3515; probes P21-P24 bite"
     },
     {
-      "criterion": "No client CREATE or grant option on any other database (Q0 F3)",
+      "criterion": "Every finding the draft recorded is owed with a named owner or cross-referenced to an existing blocker",
       "result": "met",
-      "evidence": "plan §3-§4: Q-T1 (CREATE on template1) fails migrate-clean by name; MDB fails the self-test"
+      "evidence": "plan §5: F1-F6 on open_blockers[33] (Q141-b, A0+A6); F7, F8, F9, F13 on the new open_blockers[191] (A1; A0); F10, F11 closed by this packaging; F12 closed by the draft"
     },
     {
-      "criterion": "Nothing integrated is over-refused",
+      "criterion": "The branch slot and the increment rationale name every file amended outside ownership",
       "result": "met",
-      "evidence": "plan §2-§3: migrate-clean 0 and rls-smoke 0 twice (1079 of 1079) on fresh clusters; the control (a new schema and table with no client grant) passes every layer; the fingerprint's md5 was the same after the shim, on template1 and after every migration"
-    },
-    {
-      "criterion": "Branch scope and the suite are green on the branch name",
-      "result": "met",
-      "evidence": "verify-branch-scope 75c9274 WP-0A-DB-00 exit 0 (the draft's 74 cleared, plan §2); npm run check exit 0, 677 of 677"
-    },
-    {
-      "criterion": "The fingerprint's reference is out of a migration's reach (C0 F1)",
-      "result": "met",
-      "evidence": "plan section 9.2-9.3: migrate-clean reads the rows into memory before the first migration and compares them in JavaScript with the rows read after the last, and reads the table's identity from pg_class before and after; C0 FV3, FV3n and the swap alone, green on every layer before, fail migrate-clean ('its table was replaced'); with the identity check removed in code (M-ID) the in-memory comparison alone names _pg_interval_type and pg_statistic"
-    },
-    {
-      "criterion": "SQL-standard bodies and names are read (A1 R1; C0 F2, Q0 F1)",
-      "result": "met",
-      "evidence": "plan section 9.2-9.3: R1 (an SQL-standard body replaced, every layer 0 at 0f08d92) and C0 RN3 (two renames, every layer 0 before) each fail migrate-clean by name; M-SQLBODY and M-IDENT each fail the fingerprint's self-test and the static suite"
-    },
-    {
-      "criterion": "Client role setting defaults and event triggers are pinned (A1 R2, R3)",
-      "result": "met",
-      "evidence": "plan section 9.2: R2 (an anon request.jwt.claims default, a statement_timeout for every role) and R3 (an event trigger), every layer 0 at 0f08d92, each fail migrate-clean by name"
+      "evidence": "work-packages/WP-0A-DB-00.json ownership; node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00 exit 0 (23 paths)"
     }
   ],
   "tests": [
     {
-      "command": "make db-migrate-clean (round w, in this worktree at 1c99a60's tree; fresh private PostgreSQL 17.11 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked)",
-      "exit_code": 0,
-      "result": "system object fingerprint: 3753 objects initdb made, taken before the migrations and sealed; ceiling probe plus 24 catalog probes, each refused every drift and was clean again; 49 apply-time blocks, 37 as written, 12 replaced"
-    },
-    {
-      "command": "make db-rls-smoke, twice on round w's database",
-      "exit_code": 0,
-      "result": "1079 of 1079 both times; authz proofs 6 of 6"
-    },
-    {
-      "command": "round clean (fresh cluster, the tree exported to the private directory): static, schema-lint, migrate-clean, rls-smoke",
-      "exit_code": 0,
-      "result": "0, 0, 0, 0"
-    },
-    {
-      "command": "drifts X7, X8, X9, X10, Q-IPF, Q-IPVx, Q-GS, FGRANT, SEAL, X6, ATTR, DACL, DACLg, Q-T1, Q-PTn, control, R0, LU1 appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan §3)",
-      "exit_code": 2,
-      "result": "migrate-clean exit 2 on every one but the control (0), each by name; static exit 1 on DACLg and Q-PTn (an unrelated text rule on 140) and LU1; rls-smoke exit 2 on X6 (347 of 1079) and LU1 (nothing applied); every exit code and name matched the draft's"
-    },
-    {
-      "command": "mutations U1, U2, MFP, MFV, MATT, MDACL, MDB of scripts/db/run.mjs, each with its drift on a fresh cluster (plan §4)",
-      "exit_code": 2,
-      "result": "static exit 1 (digest and reading pins); migrate-clean exit 2 by each probe's self-test, naming what the weakened rule missed; rls-smoke 0; matched the draft"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (committing 36796dd and 27e8817)",
+      "command": "npm run check (Node v24.20.0, at b99218e and f3814e8, before the handoff refresh)",
       "exit_code": 1,
-      "result": "677 tests, 675 pass, 2 fail: the sole red was the handoff guard (the handoff for this branch describes this branch, and the ratchet running it on a copy), since the handoff still described batch 128; both were plain commits, and this refresh clears it"
+      "result": "tests 681, pass 679, fail 2; both failures are the handoff guard (the handoff cited 6ea446c), the expected red until this commit"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 75c9274 WP-0A-DB-00 (on 36796dd, branch name)",
+      "command": "node scripts/commit-when-clean.mjs (packaging b99218e; plan and disposition f3814e8)",
+      "exit_code": 1,
+      "result": "refused, NOT clean: tests 681, pass 679, fail 2, the same two handoff tests; both commits were therefore plain commits, the sole red being the not-yet-refreshed handoff guard"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 9 changed path(s) are declared, and every amendment explains one"
+      "result": "all 23 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "npm run check (branch name, at 27e8817 after npm run refresh:handoff, before this commit)",
+      "command": "make db-schema-lint",
       "exit_code": 0,
-      "result": "677 of 677"
+      "result": "db-schema-lint: ok (the only target that reads the service-policy map)"
     },
     {
-      "command": "review round: make db-migrate-clean (fresh PostgreSQL 17.11 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked) at a9f7508's tree",
+      "command": "make db-contract-check",
       "exit_code": 0,
-      "result": "3753 objects fingerprinted and sealed; read again after the last migration and compared in memory, unchanged; 24 catalog probes each refused every drift (client membership 3, trigger 6) and was clean again; 49 apply-time blocks, 37 as written, 12 replaced"
+      "result": "ok"
     },
     {
-      "command": "review round: make db-rls-smoke, twice on that database",
+      "command": "reversal probes (private scratchpad a0-141-prepr/probes.mjs: the draft's 25 plus 3), each a one-file mutation restored byte for byte",
       "exit_code": 0,
-      "result": "1079 of 1079 both times; authz proofs 6 of 6"
+      "result": "28 of 28 bite; git status empty afterwards"
     },
     {
-      "command": "review round: drifts FV3, FV3n, SWAP, FVc, RN3, R1, R2, R3 and, again, X7, SEAL, X6, Q-T1, DACLg appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan section 9.2, 9.4)",
-      "exit_code": 2,
-      "result": "migrate-clean exit 2 on every one, each by name; static 0 on all but DACLg (1, the unrelated text rule, as before); rls-smoke 2 on X6 only. Before, at 0f08d92: R1, R2 and R3 measured 0 on every layer here; FV3 and RN3 0 on every layer per C0"
-    },
-    {
-      "command": "review round: mutations M-ID, M-MEM (twice), M-SQLBODY, M-IDENT (twice) of scripts/db/run.mjs, each with its drift on a fresh cluster, run.mjs restored after each (plan section 9.3)",
-      "exit_code": 2,
-      "result": "static exit 1 on every one; migrate-clean exit 2 on every one, held by the other reading or by the fingerprint self-test (M-IDENT with RN3 only incidentally; M-IDENT with no drift is the measurement)"
-    },
-    {
-      "command": "review round: node scripts/commit-when-clean.mjs for a9f7508 and for 70ad049; npm run check (branch name, a9f7508)",
+      "command": "npm run check, npm run check:handoff, npm run verify (after this commit, on the branch name)",
       "exit_code": 0,
-      "result": "677 of 677 each time"
-    },
-    {
-      "command": "review round: node scripts/verify-branch-scope.mjs 75c9274 WP-0A-DB-00 (branch name)",
-      "exit_code": 0,
-      "result": "all 14 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "npm run check:handoff and npm run verify (branch name, after the handoff commit)",
-      "exit_code": 0,
-      "result": "recorded in the PR body after this commit, which must be last and alone"
+      "result": "recorded in the PR body, because a handoff cannot cite the commit that contains it"
     }
   ],
-  "security_privacy_cost_impact": "Tightens only, and only against later drift: nothing reachable on the clean set changes. Within what plan section 5 states the fingerprint reads, and subject to its stated exclusions (types, operators, casts and the rest; the catalog functions the reading itself calls, which a perfect superuser forgery could replace): a later file that redefines, renames, moves, re-grants or re-owns any function (its prosrc or SQL-standard body included), relation, schema or language initdb made (OID below 16384, in any schema), or that replaces the fingerprint's own table, makes a client role superuser, bypassrls, createrole, createdb, inherit, login or replication, sets a default setting for a client role or for every role, makes an event trigger, adds a default privilege for PUBLIC, anon or authenticated, or grants a client CREATE or a grant option on any other database now fails migrate-clean by name. As first written (0f08d92) this sentence was broader than the batch read: C0 F1 (a view swapped in for the reference) and C0 F2 (a rename) passed every layer, and A1 R1 (an SQL-standard body) was unread; 129's review round closed all three (plan section 9). migrate-clean creates schema catalog_baseline and table catalog_baseline.system_fingerprint (revoked from PUBLIC) in the test database before the first migration; it holds catalog text only. No data, secret or cost impact; migrate-clean takes about 5 s.",
-  "migration_and_data_impact": "NONE. Batch 129 adds no migration and needs no migration number; it changes catalog probes and the migrate-clean executor, a driver comment, static tests and the README. The test database gains catalog_baseline.system_fingerprint, written by migrate-clean only; no migration creates it.",
-  "compatibility_impact": "Additive. Tests stay 677 and cases 1079; foundation-contract's assertion floor 500 -> 525 (no test added or renamed); catalog probes 23 -> 24. A later batch that must change or rename an initdb object, a client role attribute, a role default for a client or for every role, an event trigger, a default privilege for a client or a client's privilege on another database fails migrate-clean and must change the rule with its reason. A database first migrated before 129 and reset with reset-test keeps a fingerprint taken after those migrations; CI uses a fresh cluster.",
+  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, fixtures and static tests that refuse later drift: a service-policy row for the audit INSERT cell flipped or removed, a policy written on an audit table while RFC-2026-022 is not in effect and Q141-a is open, CTR-AUD-001 or app.audit_logs moving without the conformance file moving with it, and a coverage-map row naming a producer before Q141-a is answered. Fixtures are synthetic (no PII, no secret). make db-migrate-clean and make db-rls-smoke were NOT run: no input of the live layers changed (no migration, invariant, fixture SQL, isolation case or CI file), and no cluster was started.",
+  "migration_and_data_impact": "NONE. Batch 141's preparation adds no migration and needs no migration number.",
+  "compatibility_impact": "Additive. Tests 677 -> 681 (four in foundation-contract); foundation-contract's test floor 73 -> 77, its name digest, and its assertion floor 525 -> 613 (549 on main after batch 129's review round, plus 64). Declaring evidence/VERIFICATION.md in the manifest moved every open_blockers entry down one line (open_blockers[i] is on line 254+i); the coverage map's pinned lines moved with it. A later change to the ownership block moves them again and the coverage-map test fails by name, which is the pin working. If CTR-AUD-001 or app.audit_logs moves, the conformance test fails and its file must move in the same reviewed diff.",
   "known_limitations": [
-    "The system object fingerprint does not read (plan §5): types, domains, operators (ALTER OPERATOR ... SET (RESTRICT = ...) on an initdb operator), casts, operator classes and families, collations, conversions, text-search objects, aggregates' pg_aggregate rows, a type ACL; pg_database, pg_authid and tablespace rows; parameter ACLs but session_replication_role's; an object a migration makes and drops again; a hostile superuser migration that perfectly rewrites the output functions or operators the readings call (the in-memory comparison of 129's review round takes the reference relation out of reach, not those functions); the platform's managed schemas. Cross-minor-version stability is stated, measured on 17.11 only. The fingerprint is not placed in every probe job; a drift aimed at blinding one probe is held by that probe's self-test. Owed, as owed: the Owner ended the hardening chain at 129.",
-    "C0 F2 (C0 N3 on 127's re-check): a looser permissive SELECT sibling on a client-readable, non-writable table is held by rls-smoke alone; the permissive policy probe reads client-writable tables only.",
-    "A client-encoding change whose name or SET words are computed at run time (concatenation, chr(), format(), convert_from(); EXECUTE of a SET built in a DO body) is outside psqlLex's list; the static spellings (U&, E'') are refused since batch 128. Owed.",
-    "A function reached through an operator is not read by the policy helper probe's called-function rule (Q0 N5, INFO); the deparse pins hold it on client-writable tables.",
-    "The other roles' reach (app_worker, service_role, RFC-2026-023 command roles) is read by no rule here, for RFC-2026-023's disposition; with it blocker 186's (15) command-role half, (16) (the anonymisation route batch 160 needs) and (20) stay owed.",
-    "A constant-true narrowing spelled without OR, TRUE or NOT (1 = 1) is not read statically; the three owner-UPDATE permissive policies (workspaces, workspace_settings, workspace_invitations) have no bare-UPDATE case of their own.",
-    "The client schema and membership probes model the CI shim; on the platform the managed schemas grant clients USAGE and authenticator is a member of the client roles, and the probes do not run there.",
-    "Remedy (b), created_by out of the client INSERT grant, is not taken, by the Owner's answer of 2026-10-03. 122's service-path closures are pinned by exact deparse in no probe.",
-    "allow_system_table_mods set by a name computed at run time passes the lexer by design; what it enables is read by OID (X2c, X2bc). The pg_catalog guard reads relations, functions, operators and casts, not other object kinds, in an initdb schema.",
-    "129's review round (plan section 9.6): the table's identity is not re-checked inside the probe job (C0 F1 remedy (b), second half; the verdict on the migrations no longer reads the table), and CLIENT_ROLE_SETTINGS and PINNED_EVENT_TRIGGERS are pinned empty as the CI shim measures, so a platform that sets a client role default or carries event triggers would be refused by name until pinned with its reason. Owed, as owed."
+    "Four undeclared divergences between app.audit_logs and CTR-AUD-001 (F1 audit_id string vs id uuid; F2 scope ids string vs uuid; F3 actor, correlation_id, causation_id carried twice in the contract and once in the store; F4 created_at absent from the contract) are pinned, not resolved: owed to Q141-b (A0+A6) on open_blockers[33].",
+    "app.security_events is governed by no contract (F5), so the conformance covers app.audit_logs only; a rights change and a schedule transition fit no SEC-009 category (F6). Both owed to A0+A6 on open_blockers[33].",
+    "Support/break-glass has no table (F7, open_blockers[191] (1), A1); §8.4 Security event details SELECT is not classified (F13, [191] (3), A1); RFC-2026-022 §7.2's sketch does not fit the register (F9, [191] (2), A1 with A0); the catalog snapshot cannot check the coverage map until 140 is applied (F8, [191] (4), A0).",
+    "No producer exists: nothing can write an audit row today (open_blockers[21]); the coverage map records UNDECIDED on every row until Q141-a is answered.",
+    "The producer-architecture RFC is not written: it needs a writable-path amendment (only RFC-2026-021 to 025 are writable)."
   ],
   "open_risks_or_blockers": [
-    "Batch 129 has had its C0, A1 and Q0 role runs (on 0f08d92) and its review round (a9f7508, 70ad049); none found stop-the-line. The fixes have not been re-checked by an independent role, and the PR stays a Draft. It is the last batch of the hardening chain: what the round leaves owed is on blocker 186 as owed.",
-    "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #167 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
+    "Q141-a (Owner + A1), Q141-b (A0+A6) and Q141-c (A1) are UNANSWERED; the disposition lists each with A0's recommendation (B for G1 with an RFC now; countersign 140's reading, F1-F4 included by name; resistance only until G1 as an accepted risk).",
+    "Batch 141's preparation has had no role run yet (C0, Q0, A1); the PR stays a Draft until they report.",
+    "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #168 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. 129 has no migration: it changes probes, the migrate-clean executor, static tests and the README, so a revert diverges no database (catalog_baseline exists only in test databases migrate-clean built). NEVER a force-push.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. No migration, policy or grant is added, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Re-checks of 129's review round by C0, A1 and Q0 (plan section 9), then its merge under the standing delegation if the bar of 127 §6 is met.",
-    "The planned batches 141, 150, 160 (Owner decisions needed first) and 170; the hardening chain is ended by the Owner's words of 2026-10-03.",
+    "C0, Q0 and A1 role runs on batch 141's preparation, then its merge under the standing delegation if the bar of 127 §6 is met.",
+    "Put Q141-a, Q141-b and Q141-c to their owners; the producer-architecture RFC after a writable-path amendment.",
+    "The planned batches 150, 160 (Owner decisions needed first) and 170: their no-decision parts, per a0-phase-plan-141-170-2026-10-03.md.",
     "A5's review of 091's schedule states and (h), when an A5 run exists."
   ],
   "reviewer_instructions": [
-    "Read SYSTEM_FINGERPRINT_ROWS, SYSTEM_FINGERPRINT_SNAPSHOT_SQL, the seal, SYSTEM_FINGERPRINT_READ_SQL, SYSTEM_FINGERPRINT_RELATION_SQL, diffSystemFingerprint and the executor's reading before and after the migrations, and the system object fingerprint probe in scripts/db/run.mjs; the client privilege probe's rule 4 and pg_toast drifts; the client membership probe's rules 2 and 3; the trigger probe's event-trigger rule; and the client schema probe's other-database arm, with the plan's sections 1, 5 and 9.",
-    "Reproduce X7, X8, X9, X10, Q-IPF, Q-IPVx, Q-GS, FGRANT, SEAL, ATTR, DACL, DACLg and Q-T1 (plan section 3) as later files appended to 140_audit.sql on a fresh cluster, each must fail migrate-clean by name, and the control, which must pass.",
-    "Reproduce U1 and U2 with Q-PTn, and MFP, MFV, MATT, MDACL and MDB (plan section 4): each must fail migrate-clean through its probe's self-test.",
-    "Try what plan §7.6 names: a fingerprint row forged with the seal re-forged (since the review round the verdict is taken in memory, so the forgery must also defeat the catalog reading itself), ALTER OPERATOR ... SET (RESTRICT = ...) on an initdb operator, a type ACL. Re-run C0 FV3 and RN3 and A1 R1-R3's shapes (plan section 9.2). Batch 129 is the last hardening batch: what is not closed goes to blocker 186 as owed unless it is stop-the-line.",
-    "Evidence: evidence/WP-0A-DB-00/a0-batch-129-plan-2026-10-03.md and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-129.md (the Owner's words verbatim; the merge of #167 as A0 executing the standing delegation)."
+    "Read the plan's sections 2, 3 and 5 with db/foundation/lint/service-policy-map.json (the two audit rows and the note at line 153), db/foundation/lint/audit-coverage-map.json, test-kits/db/fixtures/ctr-aud-001/store-conformance.json and the four batch 141 prep tests in test-kits/db/foundation-contract.test.mjs (3314, 3340, 3437, 3515).",
+    "Check F1-F4 against contract-catalog/shared-kernel/ctr-aud-001/schema.json, ctr-ten-001/schema.json and db/foundation/migrations/140_audit.sql:418-448; check that open_blockers[33]'s addition and the new open_blockers[191] own every finding by name and duplicate no other blocker's text.",
+    "Reproduce the reversal probes (plan section 4): each one-file mutation must fail at least one of the four tests, restored byte for byte.",
+    "Confirm no migration, policy or grant is added (no path under db/foundation/migrations changes against c5a648e) and that the 525 -> 613 assertion floor is the guard's own count (549 on main plus 64)."
   ],
   "superseded_by": null
 }
