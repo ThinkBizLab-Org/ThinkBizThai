@@ -5,13 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "c5a648eab0ab195ec2044622ced04a0a68aaf333",
-  "head_revision_or_patch_checksum": "f3814e8e68b2e5f398a4d631bb84e2438289230a",
+  "head_revision_or_patch_checksum": "f8f13207eda5c8d83636734e7ec15e4147c8954c",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/audit-coverage-map.json",
     "evidence/WP-0A-DB-00/a0-batch-141-prep-plan-2026-10-03.md",
     "evidence/WP-0A-DB-00/a0-phase-plan-141-170-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-141-prep-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-141-prep-contract-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-141-prep.md",
+    "evidence/WP-0A-DB-00/q0-batch-141-prep-test-review-2026-10-03.md",
     "test-kits/db/fixtures/ctr-aud-001/invalid-category-rights.json",
     "test-kits/db/fixtures/ctr-aud-001/invalid-category-schedule.json",
     "test-kits/db/fixtures/ctr-aud-001/invalid-delete-without-before-ref.json",
@@ -29,6 +32,7 @@
   "files_modified": [
     "db/foundation/lint/service-policy-map.json",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
@@ -49,38 +53,44 @@
     "The Owner's words (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ` (the hardening chain ends at 129; move to the planned batches) and the goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. A0 reads them as: do now what needs no pending decision, and put each decision to its owner without taking it. The reading is A0's.",
     "The merge of #168 (batch 129) at its reviewed head 999456d, merge commit c5a648e at 2026-10-03T15:55:36Z, required check run 37134594625 green, was A0 executing the Owner's standing delegation (product-owner-disposition-2026-10-03-batch-127.md §6), not A0 deciding it.",
     "No migration, no policy, no grant: each would take Q141-a (the producer path) or Q141-b (CTR-AUD-001's freeze). So no migration number is asked of the Owner.",
-    "The §8.4 rows are written in the register's closed shape (scripts/db/run.mjs CELL_FIELDS), not RFC-2026-022 §7.2's sketch fields; that mismatch is owed (open_blockers[191] (2))."
+    "The §8.4 rows are written in the register's closed shape (scripts/db/run.mjs CELL_FIELDS), not RFC-2026-022 §7.2's sketch fields; that mismatch is owed (open_blockers[191] (2)).",
+    "THE REVIEW ROUND (2026-10-03): C0 (a231fe7), A1 (a7b8c48) and Q0 (1062fc2) were cherry-picked with -x as 549e76d, db699ee and 251db95; their findings were acted on in cc00ccc and recorded in the plan's section 7 (f8f1320). A finding that would need a migration or a decision is recorded as owed on open_blockers[33] or [191], not taken."
   ],
   "acceptance_results": [
     {
       "criterion": "§8.4 Audit/security INSERT classified CARRIED on app.audit_logs and app.security_events, with no policy written",
       "result": "met",
-      "evidence": "db/foundation/lint/service-policy-map.json; foundation-contract.test.mjs:3314; make db-schema-lint exit 0; probes P01, P02, P25 bite"
+      "evidence": "db/foundation/lint/service-policy-map.json; foundation-contract.test.mjs:3321; make db-schema-lint exit 0; probes P01, P02, P25 bite; review round: the later-migration policy scan accepts quoted, qualified and unqualified spellings (MG03 and an unqualified policy bite)"
     },
     {
-      "criterion": "An audit coverage map: one row per SEC-009/OB-005 action class plus the two owed actions, each naming real tables, a real §8 row, live blockers and no producer",
+      "criterion": "An audit coverage map: one or more rows per SEC-009 class, a row for each audited action OB-005, PDPA-007/008, BIL-013, OPS-002, OPS-006 and ERD §8, §10, §11 name, plus the two owed actions, each naming real tables, a real §8 row, live blockers and no producer",
       "result": "met",
-      "evidence": "db/foundation/lint/audit-coverage-map.json; foundation-contract.test.mjs:3340; probes P03-P10, P26, P27 bite"
+      "evidence": "db/foundation/lint/audit-coverage-map.json (20 rows after the review round added 11 for C0 G1 / A1 R2); foundation-contract.test.mjs:3359 with closed row keys, the §8 slice and the 191 citations; probes P03-P10, P26, P27 and the review round's CM22, CM23, CM25 and five row probes bite"
     },
     {
       "criterion": "Static conformance between app.audit_logs and CTR-AUD-001 both ways, every divergence pinned as a closed list",
       "result": "met",
-      "evidence": "test-kits/db/fixtures/ctr-aud-001/store-conformance.json; foundation-contract.test.mjs:3437; probes P11-P20, P28 bite"
+      "evidence": "test-kits/db/fixtures/ctr-aud-001/store-conformance.json (five undeclared divergences after the review round added ids_not_blank_narrows_min_length, C0 G2); foundation-contract.test.mjs:3486, reading every column whatever its type and refusing a later ALTER on either audit table (Q0-F1); probes P11-P20, P28 and the review round's MG04, MG05, MG11, C9 bite"
     },
     {
       "criterion": "CTR-AUD-001 fixtures: valid ones storable, invalid ones failing for exactly one reason",
       "result": "met",
-      "evidence": "test-kits/db/fixtures/ctr-aud-001/ (4 valid, 8 invalid); foundation-contract.test.mjs:3515; probes P21-P24 bite"
+      "evidence": "test-kits/db/fixtures/ctr-aud-001/ (4 valid, 8 invalid); foundation-contract.test.mjs:3601, the two F6 fixtures held by their category (Q0-F5); probes P21-P24 and FX05 bite"
     },
     {
       "criterion": "Every finding the draft recorded is owed with a named owner or cross-referenced to an existing blocker",
       "result": "met",
-      "evidence": "plan §5: F1-F6 on open_blockers[33] (Q141-b, A0+A6); F7, F8, F9, F13 on the new open_blockers[191] (A1; A0); F10, F11 closed by this packaging; F12 closed by the draft"
+      "evidence": "plan §5: F1-F6 on open_blockers[33] (Q141-b, A0+A6); F7, F8, F9, F13 on the new open_blockers[191] (A1; A0); F10, F11 closed by this packaging; F12 closed by the draft. Review round (plan §7): F15 on open_blockers[33]; open_blockers[191] (5)-(9) for the coverage map's remaining completeness (A0), the CARRIED rows' re-confirmation and scope-path check (A1), the platform-scope security event (A1), the _shape.batch mismatch (A1 with A0) and the catalog assertion behind the text tripwires (A0)"
     },
     {
       "criterion": "The branch slot and the increment rationale name every file amended outside ownership",
       "result": "met",
-      "evidence": "work-packages/WP-0A-DB-00.json ownership; node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00 exit 0 (23 paths)"
+      "evidence": "work-packages/WP-0A-DB-00.json ownership; node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00 exit 0 (23 paths at b99218e; 28 at f8f1320)"
+    },
+    {
+      "criterion": "Every finding of the C0, A1 and Q0 reviews acted on, or recorded as owed with an owner",
+      "result": "met",
+      "evidence": "plan §7.2 (finding -> change -> measured): C0 G1-G4, N1, N2; A1 R1-R6; Q0-F1 to F7. Fixes in cc00ccc; 21 reversal probes (a0-141-prepr2/probes.mjs), 1 control survives and 20 of 20 mutations bite"
     }
   ],
   "tests": [
@@ -95,14 +105,14 @@
       "result": "refused, NOT clean: tests 681, pass 679, fail 2, the same two handoff tests; both commits were therefore plain commits, the sole red being the not-yet-refreshed handoff guard"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00",
+      "command": "node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00 (at b99218e)",
       "exit_code": 0,
       "result": "all 23 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "make db-schema-lint",
       "exit_code": 0,
-      "result": "db-schema-lint: ok (the only target that reads the service-policy map)"
+      "result": "db-schema-lint: ok (no live-DB target reads the service-policy map; schema-lint and the static suites do -- corrected per C0 N1)"
     },
     {
       "command": "make db-contract-check",
@@ -115,38 +125,61 @@
       "result": "28 of 28 bite; git status empty afterwards"
     },
     {
+      "command": "reversal probes for the review round (private scratchpad a0-141-prepr2/probes.mjs), each a one-file mutation or a new 999_probe.sql, restored by sha256",
+      "exit_code": 0,
+      "result": "1 control survives; 20 of 20 mutations bite; git status clean afterwards"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round fixes cc00ccc; plan section 7 f8f1320), Node v24.20.0, on the branch name",
+      "exit_code": 0,
+      "result": "clean: exit 0 -- tests 681, pass 681, fail 0, both times"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs c5a648e WP-0A-DB-00 (review round)",
+      "exit_code": 0,
+      "result": "all changed paths declared; 28 at f8f1320"
+    },
+    {
+      "command": "make db-schema-lint; make db-contract-check (review round)",
+      "exit_code": 0,
+      "result": "ok; ok"
+    },
+    {
       "command": "npm run check, npm run check:handoff, npm run verify (after this commit, on the branch name)",
       "exit_code": 0,
       "result": "recorded in the PR body, because a handoff cannot cite the commit that contains it"
     }
   ],
-  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, fixtures and static tests that refuse later drift: a service-policy row for the audit INSERT cell flipped or removed, a policy written on an audit table while RFC-2026-022 is not in effect and Q141-a is open, CTR-AUD-001 or app.audit_logs moving without the conformance file moving with it, and a coverage-map row naming a producer before Q141-a is answered. Fixtures are synthetic (no PII, no secret). make db-migrate-clean and make db-rls-smoke were NOT run: no input of the live layers changed (no migration, invariant, fixture SQL, isolation case or CI file), and no cluster was started.",
+  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, fixtures and static tests that refuse later drift: a service-policy row for the audit INSERT cell flipped or removed, a policy written on an audit table while RFC-2026-022 is not in effect and Q141-a is open, CTR-AUD-001 or app.audit_logs moving without the conformance file moving with it, and a coverage-map row naming a producer before Q141-a is answered. Fixtures are synthetic (no PII, no secret). make db-migrate-clean and make db-rls-smoke were NOT run: no input of the live layers changed (no migration, invariant, fixture SQL, isolation case or CI file), and no cluster was started. Review round: the two CARRIED rows now say they are re-confirmed when Q141-a is answered and that any service INSERT policy owes the scope-path check of open_blockers[32] (A1 R1); the platform-scope security event gap is owed to A1 on open_blockers[191] (7) (A1 R3); the text scans of later migrations are tripwires and the catalog assertion for every role is owed (open_blockers[191] (9)). Nothing reachable changes. The review round changed no live layer input either, so again no cluster was started (port 5507 unused).",
   "migration_and_data_impact": "NONE. Batch 141's preparation adds no migration and needs no migration number.",
-  "compatibility_impact": "Additive. Tests 677 -> 681 (four in foundation-contract); foundation-contract's test floor 73 -> 77, its name digest, and its assertion floor 525 -> 613 (549 on main after batch 129's review round, plus 64). Declaring evidence/VERIFICATION.md in the manifest moved every open_blockers entry down one line (open_blockers[i] is on line 254+i); the coverage map's pinned lines moved with it. A later change to the ownership block moves them again and the coverage-map test fails by name, which is the pin working. If CTR-AUD-001 or app.audit_logs moves, the conformance test fails and its file must move in the same reviewed diff.",
+  "compatibility_impact": "Additive. Tests 677 -> 681 (four in foundation-contract); foundation-contract's test floor 73 -> 77, its name digest, and its assertion floor 525 -> 613 (549 on main after batch 129's review round, plus 64), then 613 -> 633 with the review round (no test added or renamed). Declaring evidence/VERIFICATION.md in the manifest moved every open_blockers entry down one line (open_blockers[i] is on line 254+i); the coverage map's pinned lines moved with it. A later change to the ownership block moves them again and the coverage-map test fails by name, which is the pin working. If CTR-AUD-001 or app.audit_logs moves, the conformance test fails and its file must move in the same reviewed diff.",
   "known_limitations": [
-    "Four undeclared divergences between app.audit_logs and CTR-AUD-001 (F1 audit_id string vs id uuid; F2 scope ids string vs uuid; F3 actor, correlation_id, causation_id carried twice in the contract and once in the store; F4 created_at absent from the contract) are pinned, not resolved: owed to Q141-b (A0+A6) on open_blockers[33].",
-    "app.security_events is governed by no contract (F5), so the conformance covers app.audit_logs only; a rights change and a schedule transition fit no SEC-009 category (F6). Both owed to A0+A6 on open_blockers[33].",
+    "Five undeclared divergences between app.audit_logs and CTR-AUD-001 (F1 audit_id string vs id uuid; F2 scope ids string vs uuid; F3 actor, correlation_id, causation_id carried twice in the contract and once in the store -- the manifest's note (3) names the correlation_id copy, and the same holds, unstated, for actor and causation_id; F4 created_at absent from the contract; F15 the not-blank CHECKs stricter than minLength 1) are pinned, not resolved: owed to Q141-b (A0+A6) on open_blockers[33].",
+    "app.security_events is governed by no contract (F5), so the conformance covers app.audit_logs only; a rights change, a schedule transition and, after the review round, the security event, OB-005's admin actions, data export, manual replay, the service-health banner and holds fit no SEC-009 category (F6). All owed to A0+A6 on open_blockers[33].",
     "Support/break-glass has no table (F7, open_blockers[191] (1), A1); §8.4 Security event details SELECT is not classified (F13, [191] (3), A1); RFC-2026-022 §7.2's sketch does not fit the register (F9, [191] (2), A1 with A0); the catalog snapshot cannot check the coverage map until 140 is applied (F8, [191] (4), A0).",
     "No producer exists: nothing can write an audit row today (open_blockers[21]); the coverage map records UNDECIDED on every row until Q141-a is answered.",
-    "The producer-architecture RFC is not written: it needs a writable-path amendment (only RFC-2026-021 to 025 are writable)."
+    "The producer-architecture RFC is not written: it needs a writable-path amendment (only RFC-2026-021 to 025 are writable).",
+    "The coverage map is complete against SEC-009, OB-005, PDPA-007/008, BIL-013, OPS-002, OPS-006 and ERD §8, §10, §11 only; whether another domain document names a further audited action is owed to A0 before the Q141-a producer RFC (open_blockers[191] (5)). Export, admin adjustment, banner, hold and support have no table yet.",
+    "The policy and ALTER scans of later migrations are text tripwires: they cannot see a dynamic EXECUTE, and 140's in-migration block refuses only service and anonymous roles' policies; a catalog assertion for every role is owed to A0 with batch 141's migration (open_blockers[191] (9))."
   ],
   "open_risks_or_blockers": [
     "Q141-a (Owner + A1), Q141-b (A0+A6) and Q141-c (A1) are UNANSWERED; the disposition lists each with A0's recommendation (B for G1 with an RFC now; countersign 140's reading, F1-F4 included by name; resistance only until G1 as an accepted risk).",
-    "Batch 141's preparation has had no role run yet (C0, Q0, A1); the PR stays a Draft until they report.",
+    "Batch 141's preparation has had its C0, A1 and Q0 role runs (no stop-the-line; one MEDIUM each from C0 and A1 on the coverage map, one MEDIUM from Q0 on the conformance test), and the review round has acted on every finding (plan §7); re-checks of the round by those roles are owed, and the PR stays a Draft until they report.",
     "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #168 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. No migration, policy or grant is added, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "C0, Q0 and A1 role runs on batch 141's preparation, then its merge under the standing delegation if the bar of 127 §6 is met.",
+    "C0, A1 and Q0 re-checks of batch 141 prep's review round (cc00ccc, f8f1320), then its merge under the standing delegation if the bar of 127 §6 is met.",
     "Put Q141-a, Q141-b and Q141-c to their owners; the producer-architecture RFC after a writable-path amendment.",
     "The planned batches 150, 160 (Owner decisions needed first) and 170: their no-decision parts, per a0-phase-plan-141-170-2026-10-03.md.",
     "A5's review of 091's schedule states and (h), when an A5 run exists."
   ],
   "reviewer_instructions": [
-    "Read the plan's sections 2, 3 and 5 with db/foundation/lint/service-policy-map.json (the two audit rows and the note at line 153), db/foundation/lint/audit-coverage-map.json, test-kits/db/fixtures/ctr-aud-001/store-conformance.json and the four batch 141 prep tests in test-kits/db/foundation-contract.test.mjs (3314, 3340, 3437, 3515).",
+    "Read the plan's sections 2, 3, 5 and 7 with db/foundation/lint/service-policy-map.json (the two audit rows, _shape.batch, and the note after them), db/foundation/lint/audit-coverage-map.json, test-kits/db/fixtures/ctr-aud-001/store-conformance.json and the four batch 141 prep tests in test-kits/db/foundation-contract.test.mjs (3321, 3359, 3486, 3601).",
     "Check F1-F4 against contract-catalog/shared-kernel/ctr-aud-001/schema.json, ctr-ten-001/schema.json and db/foundation/migrations/140_audit.sql:418-448; check that open_blockers[33]'s addition and the new open_blockers[191] own every finding by name and duplicate no other blocker's text.",
     "Reproduce the reversal probes (plan section 4): each one-file mutation must fail at least one of the four tests, restored byte for byte.",
-    "Confirm no migration, policy or grant is added (no path under db/foundation/migrations changes against c5a648e) and that the 525 -> 613 assertion floor is the guard's own count (549 on main plus 64)."
+    "Confirm no migration, policy or grant is added (no path under db/foundation/migrations changes against c5a648e) and that the 525 -> 613 -> 633 assertion floor is the guard's own count (549 on main, plus 64, plus the review round's 20).",
+    "For the review round, check each row of plan §7.2 against cc00ccc and re-run a0-141-prepr2/probes.mjs's mutations (or your own): each must fail one of the four tests."
   ],
   "superseded_by": null
 }
