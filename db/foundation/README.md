@@ -319,13 +319,13 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts eighteen families of rules over all of `app` and
-`private` (and, for rules 11, 13, 14 and 16, every schema, database and role a client can reach, and for rule 15
-every object initdb made), in twenty-six probes (twenty-four at batch 129, twenty-three at batch 128, twenty-one at batch 127's review
+After the ceiling probe, `make db-migrate-clean` asserts twenty-two families of rules over all of `app` and
+`private` (and, for rules 11, 13, 14, 16 and 20, every schema, database and role a client can reach, and for rule 15
+every object initdb made), in thirty probes (twenty-six at batch 170, twenty-four at batch 129, twenty-three at batch 128, twenty-one at batch 127's review
 round, nineteen at batch 127, sixteen before it). The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
-exempt (batch 126; Q0 F6 on batch 125). The other seventeen are
+exempt (batch 126; Q0 F6 on batch 125). The other twenty-one are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -611,6 +611,36 @@ break it silently:
    privilege, table or column level, on the eight refused tables (jobs, outbox_events, consumer_ledger,
    billing_webhook_receipts, and the four in `private`) or on a refused column (none: the ERD classes no
    column).
+18. **The tables batch 150 will rebuild are pinned whole, by text** (batch 150's prerequisites;
+   weak-assertion survey §6 item 5). `db/foundation/lint/pinned-shapes.json` holds `app.performance_snapshots`,
+   `app.published_posts` and `app.usage_events`: row level security enabled AND forced (rule 1; FORCE was
+   asserted nowhere, Q0 D30), every constraint by type, `pg_get_constraintdef` and validation (rule 2), every
+   index by `pg_get_indexdef` and validity (rule 3), and every policy by permissive flag, command, roles and
+   both halves (rule 4), each set compared both ways. 121's block held these by name, a quoted-token set and
+   a `LIKE`. A batch that rebuilds one of them (Q150-a, undecided) rewrites the file in the same diff.
+19. **Every vocabulary CHECK is pinned by its fixed text** (survey §6 item 6).
+   `db/foundation/lint/vocabulary-checks.json` holds the 60 CHECKs in `app` and `private` whose deparse
+   carries a literal array (`ARRAY['`) or is the single-column `CHECK ((col = 'value'::text))`; the probe
+   selects the same set from the catalog and names one found and not pinned in its text (rule 1) or pinned
+   and not found validated in its text (rule 2). A vocabulary shared by several homes (channel, provider,
+   dimension, quantity unit) was held only by comparing the homes with each other. Not read: a vocabulary
+   written as an OR, a regex or a domain, and the other 209 CHECKs.
+20. **Every policy on every table is named by a pinned list** (survey §6 item 7). With
+   `PERMISSIVE_POLICIES`, `PINNED_POLICIES` and the five closure lists, `db/foundation/lint/policy-set.json`
+   closes the set: the 17 permissive read predicates of tables no client writes, the 26 service-path closures
+   (held before by rls-smoke's text check on named tables) and `app_authz`'s own policy. Rule 1 names a policy
+   on a table in any schema but the system ones that no list names; rule 2 names a row of the file that is not
+   found in its exact text.
+21. **Every RLS predicate column and keyset cursor has an index** (plan (b); ERD §3.3, line 109; the foreign-key
+   half is the FK support probe). Rule 1 is computed: a column a policy on its own table reads in its USING half
+   (a `pg_depend` dependency the USING deparse names) sits in the leading run of a valid whole index whose
+   key columns are all such columns, or is exempt in `db/foundation/lint/index-coverage.json` by
+   `schema.table.column` with a reason (four state filters, measured). Rule 2: every declared lookup -- the
+   named WS:905-910 queries today's indexes serve, and every index a migration named `*_keyset_idx` -- is
+   served by a valid index whose key columns begin with its columns, in order and direction, with exactly its
+   predicate. Rule 3: every exemption names a column rule 1 finds uncovered. The content list's first page
+   has NO serving index today; it is a finding in the file (IC-1), not a lookup, since the index is a migration
+   (Q150-b).
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule
@@ -662,6 +692,26 @@ corrections, F1–F3).
 Rules 2 and 5 compare PostgreSQL's deparsed text. A change of the Postgres major version in CI could
 change that text without the policy changing. If that happens, the probe fails by name, and the
 fix is to re-measure the text, not to loosen the rule.
+
+## The WS:905 fixture and the EXPLAIN harness (not a target, not in CI)
+
+`test-kits/db/ws905-fixture.mjs` writes the SQL of a synthetic fixture of the workstream's production-like
+shape (`docs/plans/core-database-and-rls-workstream-th.md:905`: 100 workspaces, 10 businesses and 20 pages
+per workspace, 100k content rows, 1M usage, audit and metric rows), every id derived, every row synthetic.
+The scale is a parameter: `WS905_SMALL` (the default), `WS905_FULL`, or `ws905Scaled(factor)`, which keeps the
+tenant hierarchy and scales the volume. `scripts/db/explain-harness.mjs` loads it into a database `make
+db-migrate-clean` built, in one transaction, checks the row counts, runs ANALYZE, captures the plan of each
+named query (membership check, workspace list, content, calendar and library first page, worker claim, and
+three reads of the tables batch 150 concerns) under the role that runs it, prints each plan's Seq Scans,
+indexes and sorts, and rolls back:
+
+    DB_TEST_URL=postgresql://postgres@127.0.0.1:<port>/postgres node scripts/db/explain-harness.mjs --scale 0.2
+
+It asserts no timing: the p95 budget is the SLO the team has not set (Q150-d). A Seq Scan on a
+membership-class query is reported, and fails the run only under `--fail-on-seq-scan`. It refuses without
+`DB_TEST_URL` and on a host off the `db-reset-test` allowlist. It is not a make target and CI does not run it:
+CI is protected, and adding it is the Integration Owner's. The full scale needs about 2 GB of free disk for
+the cluster while the transaction is open.
 
 ## What this package deliberately does not contain
 

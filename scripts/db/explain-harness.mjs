@@ -1,0 +1,187 @@
+#!/usr/bin/env node
+// THE WS:905 EXPLAIN HARNESS (the batch 150 prerequisite draft; plan "Batch 150 -- Can do now" (c)).
+//
+//   DB_TEST_URL=postgresql://postgres@127.0.0.1:<port>/postgres node scripts/db/explain-harness.mjs [options]
+//     --scale small | full | <factor in (0,1]>   the fixture size (default small: WS905_SMALL)
+//     --analyze                                    EXPLAIN (ANALYZE, BUFFERS): the plans as executed
+//     --json                                       print every plan and its summary as JSON
+//     --fail-on-seq-scan                           exit 3 when a membership-class query plans a Seq Scan
+//
+// It loads the synthetic WS:905 fixture (test-kits/db/ws905-fixture.mjs) into a database that `make
+// db-migrate-clean` built, inside ONE transaction; checks every table holds the rows the fixture says; runs
+// ANALYZE on them; captures the plan of each named query of docs/plans/core-database-and-rls-workstream-th.md
+// :905-910 (membership check, workspace list, content / calendar / library first page, worker claim, and
+// three reads the batch 150 tables serve), each under the role that runs it; prints each plan's summary --
+// every Seq Scan by relation, every index used, any Sort -- and ROLLS BACK, so the database is left as it was
+// (pg_class.reltuples, which ANALYZE writes in place, is the one trace).
+//
+// What it does NOT do, by decision of the plan: it asserts no p95 or any other timing (the SLO is Q150-d,
+// undecided), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
+// the Integration Owner), and it changes no schema. A Seq Scan on a membership-class query is REPORTED; it
+// fails the run only under --fail-on-seq-scan, because at a small scale the planner may rightly prefer one.
+//
+// It refuses without DB_TEST_URL, and refuses a host that is not localhost, 127.0.0.1 or the CI service
+// container (the db-reset-test allowlist): it writes a million rows, even if it rolls them back.
+import { argv, env, exit, stderr, stdout } from 'node:process';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+import { WS905_FULL, WS905_SMALL, ws905Scaled, fixtureSql, expectedCounts, fixtureIds } from '../../test-kits/db/ws905-fixture.mjs';
+
+export const EXIT = Object.freeze({ ok: 0, failed: 1, refused: 2, seqScan: 3 });
+export const HOST_ALLOWLIST = /@(localhost|127\.0\.0\.1|postgres)[:/]/;
+
+export function parseArgs(args) {
+  const opts = { scale: 'small', analyze: false, json: false, failOnSeqScan: false };
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '--analyze') opts.analyze = true;
+    else if (a === '--json') opts.json = true;
+    else if (a === '--fail-on-seq-scan') opts.failOnSeqScan = true;
+    else if (a === '--scale' && i + 1 < args.length) opts.scale = args[++i];
+    else throw new Error(`unknown argument ${a}`);
+  }
+  return opts;
+}
+
+export function paramsFor(scale) {
+  if (scale === 'small') return WS905_SMALL;
+  if (scale === 'full') return WS905_FULL;
+  const f = Number(scale);
+  if (!Number.isFinite(f)) throw new Error(`--scale is small, full or a factor in (0, 1], not ${scale}`);
+  return ws905Scaled(f);
+}
+
+// The named queries. `role` is the role the statement runs as in the product: the membership check is the
+// body of app.workspace_member_role, a SECURITY DEFINER function owned by app_authz; the client reads run as
+// authenticated through every policy; the worker and the service reads run as the migration owner, because
+// no worker identity exists yet (RFC-2026-022 §7, DATA-DEC-03), which the report says.
+const ws1 = fixtureIds.workspace(1);
+const bp1 = fixtureIds.business(1);
+const pp1 = "md5('ws905:pp:1')::uuid";
+export const NAMED_QUERIES = Object.freeze([
+  { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:907; app.workspace_member_role',
+    sql: `select m.role from app.workspace_members m where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' limit 1` },
+  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:907; workspaces_select_active_member',
+    sql: 'select w.id, w.name from app.workspaces w order by w.name limit 50' },
+  { name: 'content first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+    sql: `select c.id, c.title, c.status, c.created_at from app.content_items c where c.workspace_id = ${ws1} and c.business_profile_id = ${bp1} and c.deleted_at is null order by c.created_at desc, c.id desc limit 50` },
+  { name: 'calendar first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+    sql: `select k.id, k.content_item_id, k.scheduled_local_date from app.calendar_items k where k.workspace_id = ${ws1} and k.deleted_at is null and k.scheduled_local_date >= date '2026-10-01' and k.scheduled_local_date < date '2026-11-01' order by k.scheduled_local_date, k.id limit 200` },
+  { name: 'library first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+    sql: `select a.id, a.title, a.kind, a.created_at from app.assets a where a.workspace_id = ${ws1} and a.business_profile_id = ${bp1} and a.deleted_at is null order by a.created_at desc, a.id desc limit 50` },
+  { name: 'worker claim', klass: 'worker', role: null, source: 'WS:910; no worker role exists yet (DATA-DEC-03)',
+    sql: 'select j.id from app.jobs j where j.available_at <= now() and j.lease_expires_at is null and j.cancel_requested_at is null order by j.available_at limit 10 for update skip locked' },
+  { name: 'metrics per post', klass: 'batch 150 table', role: 'authenticated', source: 'performance_snapshots, the table Q150-a would rebuild',
+    sql: `select s.metric_time, s.metrics from app.performance_snapshots s where s.workspace_id = ${ws1} and s.business_profile_id = ${bp1} and s.published_post_id = ${pp1} order by s.metric_time desc limit 30` },
+  { name: 'usage recompute', klass: 'batch 150 table', role: null, source: 'usage_events, 1M rows at WS:905',
+    sql: `select u.dimension, sum(u.quantity_amount) from app.usage_events u where u.workspace_id = ${ws1} and u.business_profile_id = ${bp1} and u.dimension = 'ai_tokens' and u.occurred_at >= timestamptz '2026-09-01 00:00:00+00' and u.occurred_at < timestamptz '2026-09-02 00:00:00+00' group by u.dimension` },
+  { name: 'audit first page', klass: 'batch 150 table', role: null, source: 'audit_logs, 1M rows at WS:905; no client reads it',
+    sql: `select l.id, l.occurred_at, l.action_name from app.audit_logs l where l.workspace_id = ${ws1} order by l.occurred_at desc, l.id desc limit 50` },
+]);
+
+const quote = (s) => `'${String(s).replace(/'/g, "''")}'`;
+
+// The whole run as one script: the fixture, the count check, ANALYZE, the plans into a temporary table,
+// one SELECT of them, ROLLBACK. Each statement's role and claims are set with set_config(..., true), as
+// db/foundation/test-helpers/auth-context.sql does, and reset before the plan is stored.
+export function harnessScript(params, { analyze = false } = {}) {
+  const counts = expectedCounts(params);
+  const explain = analyze ? 'explain (analyze, buffers, format json) ' : 'explain (format json) ';
+  const claims = `json_build_object('role', 'authenticated', 'sub', (${fixtureIds.owner(1)})::text)::text`;
+  const steps = NAMED_QUERIES.map((q, i) => `
+  ${q.role ? `perform pg_catalog.set_config('request.jwt.claims', ${claims}, true);
+  perform pg_catalog.set_config('role', ${quote(q.role)}, true);` : '-- as the migration owner'}
+  execute ${quote(explain + q.sql)} into plan;
+  perform pg_catalog.set_config('role', 'none', true);
+  perform pg_catalog.set_config('request.jwt.claims', '', true);
+  plans := plans || jsonb_build_object('n', ${i}, 'plan', plan);`).join('');
+  return `begin;
+${fixtureSql(params)}
+do $ws905$
+declare
+  found_rows bigint;
+begin
+${Object.entries(counts).map(([t, n]) => `  select count(*) into found_rows from ${t};
+  if found_rows <> ${n} then raise exception 'ws905 fixture: ${t} holds % row(s), not ${n}', found_rows; end if;`).join('\n')}
+end $ws905$;
+analyze ${Object.keys(counts).join(', ')};
+create temporary table ws905_plans (n integer, plan jsonb) on commit drop;
+do $ws905$
+declare
+  plan json;
+  plans jsonb := '[]'::jsonb;
+begin${steps}
+  insert into ws905_plans select (x ->> 'n')::integer, x -> 'plan' from jsonb_array_elements(plans) x;
+end $ws905$;
+select n, plan::text as plan from ws905_plans order by n;
+rollback;
+`;
+}
+
+// What a plan says, read from its JSON: every node type, every relation read by Seq Scan, every index, and
+// whether it sorts. A node's children are under "Plans".
+export function summarisePlan(planJson) {
+  const root = Array.isArray(planJson) ? planJson[0] : planJson;
+  const nodes = [];
+  const walk = (node) => { if (!node) return; nodes.push(node); for (const c of node.Plans ?? []) walk(c); };
+  walk(root?.Plan);
+  const relation = (n) => (n.Schema ? `${n.Schema}.${n['Relation Name']}` : n['Relation Name']);
+  return {
+    seqScans: nodes.filter((n) => n['Node Type'] === 'Seq Scan').map(relation),
+    indexes: [...new Set(nodes.filter((n) => n['Index Name']).map((n) => `${n['Node Type']} ${n['Index Name']}`))],
+    sorts: nodes.filter((n) => n['Node Type'] === 'Sort' || n['Node Type'] === 'Incremental Sort').map((n) => (n['Sort Key'] ?? []).join(', ')),
+    totalCost: root?.Plan?.['Total Cost'] ?? null,
+    nodeTypes: [...new Set(nodes.map((n) => n['Node Type']))],
+  };
+}
+
+export function verdict(results) {
+  const flagged = results.filter((r) => r.klass === 'membership' && r.summary.seqScans.length > 0);
+  return { flagged: flagged.map((r) => `${r.name}: Seq Scan on ${r.summary.seqScans.join(', ')}`) };
+}
+
+async function main() {
+  let opts;
+  try { opts = parseArgs(argv.slice(2)); } catch (e) { stderr.write(`explain-harness: ${e.message}\n`); return EXIT.refused; }
+  const url = env.DB_TEST_URL ?? '';
+  if (!url) {
+    stderr.write('explain-harness needs a Postgres TEST instance: set DB_TEST_URL to a database `make db-migrate-clean` built. It has no no-database mode.\n');
+    return EXIT.refused;
+  }
+  if (!HOST_ALLOWLIST.test(url)) {
+    stderr.write('explain-harness refuses this host: it is not localhost, 127.0.0.1 or the CI service container.\n');
+    return EXIT.refused;
+  }
+  let params;
+  try { params = paramsFor(opts.scale); } catch (e) { stderr.write(`explain-harness: ${e.message}\n`); return EXIT.refused; }
+  const { feed } = await import('./psql-driver.mjs');
+  const started = Date.now();
+  const out = await feed(harnessScript(params, { analyze: opts.analyze }));
+  if (out.error) { stderr.write(`explain-harness: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return EXIT.failed; }
+  const rows = out.rows ?? [];
+  if (rows.length !== NAMED_QUERIES.length) { stderr.write(`explain-harness: ${rows.length} plan(s) came back for ${NAMED_QUERIES.length} queries\n`); return EXIT.failed; }
+  const results = rows.map((r) => {
+    const q = NAMED_QUERIES[Number(r.n)];
+    const plan = JSON.parse(r.plan);
+    return { name: q.name, klass: q.klass, role: q.role ?? 'migration owner', source: q.source, summary: summarisePlan(plan), plan };
+  });
+  const v = verdict(results);
+  if (opts.json) {
+    stdout.write(`${JSON.stringify({ params, analyze: opts.analyze, seconds: Math.round((Date.now() - started) / 1000), results, flagged: v.flagged }, null, 2)}\n`);
+  } else {
+    stdout.write(`ws905 fixture ${JSON.stringify(params)} loaded, analysed and rolled back in ${Math.round((Date.now() - started) / 1000)} s\n`);
+    for (const r of results) {
+      const s = r.summary;
+      stdout.write(`  ${r.name} [${r.klass}; as ${r.role}]: ${s.seqScans.length ? `SEQ SCAN on ${s.seqScans.join(', ')}` : 'no seq scan'}; `
+        + `${s.indexes.length ? s.indexes.join(', ') : 'no index'}${s.sorts.length ? `; sort on ${s.sorts.join(' | ')}` : ''}; total cost ${s.totalCost}\n`);
+    }
+    stdout.write(v.flagged.length ? `membership-class seq scans: ${v.flagged.join('; ')}\n` : 'membership-class seq scans: none\n');
+    stdout.write('No timing is asserted (Q150-d). Not run by CI.\n');
+  }
+  return v.flagged.length && opts.failOnSeqScan ? EXIT.seqScan : EXIT.ok;
+}
+
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  exit(await main());
+}

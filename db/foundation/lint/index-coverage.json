@@ -1,0 +1,324 @@
+{
+  "_what": "What the index coverage probe in scripts/db/run.mjs reads (ERD §3.3, docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:109: every FK, RLS predicate and keyset cursor column has an index; the FK half is the FK support probe). Rule 1 is computed live, not listed: every column of a table in app or private that a policy on that table reads in its USING half (a pg_depend dependency of the policy whose name the USING deparse carries unqualified or qualified by the table) must sit in the leading run of some valid whole index on that table whose key columns are all USING columns of the table, or be exempt here by schema.table.column with a reason. Rule 2: every lookup below is served by a valid index whose key columns BEGIN with its columns in order, direction included, and whose predicate is the lookup's where (or none). Rule 3: every exemption names a column rule 1 reads and finds uncovered, so an exemption cannot outlive its reason.",
+  "_measured": "On a clean migrate-clean at 1319042: 112 (table, column) pairs read by a USING half, 108 covered, the 4 below uncovered; 28 lookups, all served. The lookups are the six named queries of WS:905-910 the existing indexes serve, plus every index the migrations named *_keyset_idx, plus the two the survey and the metering batch name.",
+  "rls_predicate_exemptions": {
+    "app.approval_requests.status": "a state filter (status = 'pending') applied with workspace_id, business_profile_id and content_item_id, which approval_requests_item_version_scope_idx and the scope key carry; a request's status has four values and an index leading with it would not be chosen",
+    "app.calendar_items.deleted_at": "deleted_at IS NULL is the predicate of calendar_items_date_idx and calendar_items_one_active_per_item (partial indexes), which rule 1 does not count; a whole index on a soft-delete stamp would not be chosen",
+    "app.content_schedules.status": "a state filter (status in draft, armed) applied with the scope columns content_schedules_scope_key carries; content_schedules_due_idx is partial on status = armed",
+    "app.workspaces.lifecycle_state": "a state filter applied with id, which the primary key carries; two of four values pass"
+  },
+  "lookups": {
+    "assets keyset (workspace_id, business_profile_id, kind, created_at DESC)": {
+      "table": "app.assets",
+      "columns": [
+        "workspace_id",
+        "business_profile_id",
+        "kind",
+        "created_at DESC"
+      ],
+      "where": "(deleted_at IS NULL)",
+      "why": "a keyset cursor: 100_asset.sql names its index assets_kind_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "library first page": {
+      "table": "app.assets",
+      "columns": [
+        "workspace_id",
+        "business_profile_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": "(deleted_at IS NULL)",
+      "why": "library first page (a business's undeleted assets, created_at DESC, id DESC), WS:908; today assets_library_keyset_idx, 100_asset.sql"
+    },
+    "assets keyset (workspace_id, page_context_profile_id, created_at DESC)": {
+      "table": "app.assets",
+      "columns": [
+        "workspace_id",
+        "page_context_profile_id",
+        "created_at DESC"
+      ],
+      "where": "((page_context_profile_id IS NOT NULL) AND (deleted_at IS NULL))",
+      "why": "a keyset cursor: 100_asset.sql names its index assets_page_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "audit_logs keyset (workspace_id, occurred_at DESC, id DESC)": {
+      "table": "app.audit_logs",
+      "columns": [
+        "workspace_id",
+        "occurred_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 140_audit.sql names its index audit_logs_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "billing_invoices keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.billing_invoices",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 131_billing_projection.sql names its index billing_invoices_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "billing_payments keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.billing_payments",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 131_billing_projection.sql names its index billing_payments_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "billing_subscriptions keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.billing_subscriptions",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 130_billing.sql names its index billing_subscriptions_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "business_profiles keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.business_profiles",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 020_business.sql names its index business_profiles_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "calendar first page": {
+      "table": "app.calendar_items",
+      "columns": [
+        "workspace_id",
+        "scheduled_local_date"
+      ],
+      "where": "(deleted_at IS NULL)",
+      "why": "calendar first page (a workspace's undeleted items by local date), WS:908; today calendar_items_date_idx, 091_calendar.sql"
+    },
+    "industry_assignments keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.industry_assignments",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 030_industry.sql names its index industry_assignments_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "worker claim": {
+      "table": "app.jobs",
+      "columns": [
+        "available_at"
+      ],
+      "where": null,
+      "why": "worker claim (due jobs by available_at), WS:910; today jobs_available_at_idx, 050_async_kernel.sql"
+    },
+    "jobs keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.jobs",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 050_async_kernel.sql names its index jobs_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "knowledge_items keyset (business_profile_id, created_at DESC, id DESC)": {
+      "table": "app.knowledge_items",
+      "columns": [
+        "business_profile_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 040_knowledge.sql names its index knowledge_items_business_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "notifications keyset (workspace_id, user_id, created_at DESC, id DESC)": {
+      "table": "app.notifications",
+      "columns": [
+        "workspace_id",
+        "user_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 051_notification.sql names its index notifications_recipient_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "outbox_events keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.outbox_events",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 050_async_kernel.sql names its index outbox_events_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "page_context_profiles keyset (business_profile_id, created_at DESC, id DESC)": {
+      "table": "app.page_context_profiles",
+      "columns": [
+        "business_profile_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 020_business.sql names its index page_context_profiles_business_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "metrics per post": {
+      "table": "app.performance_snapshots",
+      "columns": [
+        "workspace_id",
+        "business_profile_id",
+        "published_post_id",
+        "metric_time DESC"
+      ],
+      "where": null,
+      "why": "metrics per post (a post's snapshots newest first, the read batch 150's rebuild of performance_snapshots must keep serving); today performance_snapshots_post_time_idx, 121_publisher_metrics.sql"
+    },
+    "research_runs keyset (business_profile_id, created_at DESC, id DESC)": {
+      "table": "app.research_runs",
+      "columns": [
+        "business_profile_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 070_research.sql names its index research_runs_business_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "security_events keyset (workspace_id, occurred_at DESC, id DESC)": {
+      "table": "app.security_events",
+      "columns": [
+        "workspace_id",
+        "occurred_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 140_audit.sql names its index security_events_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "social_accounts keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.social_accounts",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 110_meta_connector.sql names its index social_accounts_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "quota bucket recompute": {
+      "table": "app.usage_events",
+      "columns": [
+        "workspace_id",
+        "business_profile_id",
+        "dimension",
+        "occurred_at"
+      ],
+      "where": null,
+      "why": "quota bucket recompute (a workspace's usage by business, dimension and time; the 1M usage rows of WS:905 land here); today usage_events_bucket_recompute_idx, 061_metering.sql"
+    },
+    "usage_events keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.usage_events",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 061_metering.sql names its index usage_events_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "workspace_invitations keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.workspace_invitations",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 010_identity.sql names its index workspace_invitations_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "workspace_member_scopes keyset (workspace_id, user_id, created_at DESC, id DESC)": {
+      "table": "app.workspace_member_scopes",
+      "columns": [
+        "workspace_id",
+        "user_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 021_member_scope.sql names its index workspace_member_scopes_member_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    },
+    "member scope helpers": {
+      "table": "app.workspace_member_scopes",
+      "columns": [
+        "workspace_id",
+        "user_id",
+        "scope_type",
+        "business_profile_id",
+        "page_context_profile_id"
+      ],
+      "where": null,
+      "why": "member scope helpers (app.member_scope_covers_*: the caller's scope rows in a workspace, user_id by the select_own policy); today workspace_member_scopes_one_per_target, 021_member_scope.sql"
+    },
+    "membership check": {
+      "table": "app.workspace_members",
+      "columns": [
+        "workspace_id",
+        "user_id"
+      ],
+      "where": null,
+      "why": "membership check (app.workspace_member_role: workspace_id = $1 and user_id = jwt subject and status active), WS:907; today workspace_members_one_per_workspace, 010_identity.sql"
+    },
+    "workspace switch / list": {
+      "table": "app.workspace_members",
+      "columns": [
+        "user_id",
+        "status"
+      ],
+      "where": null,
+      "why": "workspace switch / list (the caller's active memberships), WS:907; today workspace_members_user_id_status_idx, 010_identity.sql"
+    },
+    "workspace_members keyset (workspace_id, created_at DESC, id DESC)": {
+      "table": "app.workspace_members",
+      "columns": [
+        "workspace_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": null,
+      "why": "a keyset cursor: 010_identity.sql names its index workspace_members_workspace_keyset_idx (ERD §3.3: every keyset cursor column indexed)"
+    }
+  },
+  "findings": [
+    {
+      "id": "IC-1",
+      "query": "content first page (WS:908)",
+      "table": "app.content_items",
+      "columns": [
+        "workspace_id",
+        "business_profile_id",
+        "created_at DESC",
+        "id DESC"
+      ],
+      "where": "(deleted_at IS NULL)",
+      "finding": "NO index serves it: content_items carries content_items_created_at_idx (created_at) and the scope keys, none leading with the workspace and business then created_at. It is NOT a lookup here, because rule 2 would fail today and adding the index is a migration (Q150-b: production index work waits on the fixture and an SLO). The EXPLAIN harness shows the plan."
+    },
+    {
+      "id": "IC-2",
+      "query": "membership check through RLS on every row",
+      "table": "app.workspace_members",
+      "columns": [],
+      "finding": "Rule 1 reads columns a policy names; a policy helper's own lookup (app.workspace_member_role reads workspace_members by workspace_id, user_id, status; the member scope helpers read workspace_member_scopes) is not a pg_depend dependency of the policy, so it is declared as a lookup above, not computed."
+    },
+    {
+      "id": "IC-3",
+      "query": "parent lookups inside a USING subquery",
+      "table": "every table a narrowing joins",
+      "columns": [],
+      "finding": "Rule 1 reads the policy's OWN table. The EXISTS subqueries of the 33 scope narrowings look up their parent by (workspace_id, business_profile_id, id), which each parent's scope key carries today; no rule reads that, and a parent rebuilt without its scope key would be named only by the FK support probe if a key references it."
+    }
+  ]
+}
