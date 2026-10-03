@@ -5,16 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "86f55d207bb0996211626d1491b772b63c015ad2",
-  "head_revision_or_patch_checksum": "7fde2ef108669e1a7ab83ff2b6759eee9ed851d9",
+  "head_revision_or_patch_checksum": "5cb649c59c6b28a95329bfc93459cc8dd1ebecf4",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/091_calendar.sql",
     "db/foundation/migrations/124_calendar_publish_intent_fk.sql",
     "evidence/WP-0A-DB-00/a0-batch-091-integration-2026-09-28.md",
     "evidence/WP-0A-DB-00/a0-batch-091-plan-2026-09-28.md",
+    "evidence/WP-0A-DB-00/a1-batch-091-corrections-reverify-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-091-round3-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-091-security-review-2026-09-28.md",
     "evidence/WP-0A-DB-00/c0-batch-091-contract-review-2026-09-28.md",
+    "evidence/WP-0A-DB-00/c0-batch-091-corrections-reverify-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-091-round3-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-batch-091.md",
+    "evidence/WP-0A-DB-00/q0-batch-091-round3-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-091-test-review-2026-10-03.md",
     "tests/db/identity/fixtures/091-calendar-fixture.sql"
   ],
   "files_modified": [
@@ -46,17 +52,17 @@
     {
       "criterion": "The two tables exist with §4.7's columns, §8.3's access, scope pinning and the attribution closures from birth",
       "result": "met",
-      "evidence": "091's apply-time block (nine checks) and the post-migrate pass; the updated_by update closure and coverage probes pin both tables (17 -> 19); rls-smoke 33 cases"
+      "evidence": "091's apply-time block (ten numbered checks: since the second round all six permissive policies by command and exact text, one per table per command, column and table privileges of the service roles, every NOT NULL, and the zone, value and key constraints by text) and the post-migrate pass; the updated_by update closure and coverage probes pin both tables (17 -> 19); rls-smoke: 68 cases of batch 091, 1058 in all"
     },
     {
       "criterion": "No client can arm, dispatch, complete or fail a schedule, or link it to an intent",
       "result": "met",
-      "evidence": "owner-a-cannot-create-a-schedule-already-armed, owner-a-cannot-arm-a-draft, owner-a-cannot-mark-a-schedule-dispatched, owner-a-cannot-link-a-schedule-to-an-intent"
+      "evidence": "owner-a-cannot-create-a-schedule-already-armed, owner-a-cannot-arm-a-draft-schedule, owner-a-cannot-mark-a-schedule-dispatched, owner-a-cannot-link-a-schedule-to-an-intent, and the restrictive content_schedules_client_transition_is_bounded (reopen, revive, rewrite and cancel-dispatched cases)"
     },
     {
       "criterion": "Each family is detectable on its own in the negative control",
       "result": "met",
-      "evidence": "with row level security off on calendar_items or content_schedules, exactly seven cases of that family fail and no others (measured); two CI control entries"
+      "evidence": "with row level security off on calendar_items, 15 cases fail and all 15 match its pattern; on content_schedules, 21 fail and all 21 match its pattern; none matches the other (measured on bae8d91, here 5523f6d); a static test holds every one of 091's 68 cases to exactly one of the two CI control entries"
     }
   ],
   "tests": [
@@ -68,35 +74,36 @@
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "47 blocks, 37 as written, 10 replaced; eleven catalog probes, each refused each of its drifts and was clean again; rls-smoke 1023 cases ok"
+      "result": "47 blocks, 37 as written, 10 replaced; eleven catalog probes, each refused each of its drifts and was clean again; rls-smoke 1058 cases ok, and again on the same database 1058 ok; migrate-clean and rls-smoke also exit 0 under PGDATESTYLE 'SQL, DMY' and 'German'"
     },
     {
       "command": "per-table negative control (private cluster)",
       "exit_code": 0,
-      "result": "calendar_items: 7 of its own; content_schedules: 7 of its own"
+      "result": "calendar_items: 15 of 1058 fail, 15 of its own pattern; content_schedules: 21 of 1058, 21 of its own pattern"
     }
   ],
-  "security_privacy_cost_impact": "Two tenant tables under the schema's full shape: forced row level security, active-member reads, owner/admin writes, the Business/Page narrowing through the content item, restrictive updated_by closures and service-path closures from birth. No grant to app_worker or anon. No secret or customer data.",
+  "security_privacy_cost_impact": "Two tenant tables under the schema's full shape: forced row level security, active-member reads, owner/admin writes, the Business/Page narrowing through the content item, restrictive updated_by closures, row-bounding closures (the schedule transitions; a deleted placement is final for clients) and service-path closures from birth. No grant of any kind, table or column, to app_worker or anon. Zones are IANA-shaped and recognised. No secret or customer data.",
   "migration_and_data_impact": "TWO MIGRATIONS: 091_calendar.sql (two tables, policies, closures, triggers, grants, apply-time block) and 124_calendar_publish_intent_fk.sql (the deferred scope foreign key to publish_intents). Both declared in the snapshot's not-applied tail. No existing table changes.",
-  "compatibility_impact": "Additive. Cases 990 -> 1023. Batch 123's pin test now counts 19 UPDATE closures.",
+  "compatibility_impact": "Additive. Cases 990 -> 1058. Batch 123's pin test now counts 19 UPDATE closures. The identity-isolation assertion floor 2144 -> 2152.",
   "known_limitations": [
     "A5's review of the schedule states is owed (the Owner's choice ค); A5 may narrow the disarm a client may make.",
     "No writer can arm, dispatch, complete or fail a schedule, or set publish_intent_id (the no-writer class).",
+    "The zone rule is shape + timezone(); whether to pin an explicit IANA allowlist instead, and what a restore onto older tzdata does to a stored name, are A5's (blocker 191 (h)).",
     "The editor's and the service's `P` are refused; display_status is unenumerated; §11.3 archiving and SCHEDULE-HISTORY retention are owed.",
     "Blocker 186 items 11-15 and 17-19 (the hardening batch) are still owed."
   ],
   "open_risks_or_blockers": [
-    "Count 191: one new blocker records what batch 091 leaves open, (a) to (f).",
+    "Count 191: one new blocker records what batch 091 leaves open, (a) to (h), updated by the second round (soft-deleted visibility and recovery, scheduled_for in the past, deleted_at trustworthy for client writes only, the zone choice).",
     "FOR THE OWNER: the merge (a governance change: it touches CI); and one sentence on whether A0 presses a merge when the Owner writes 'merge #N แล้ว ทำต่อได้เลย'."
   ],
-  "rollback_or_forward_fix": "A reviewed revert PR would reopen both forgeries; forward fix is the default. NEVER a force-push.",
+  "rollback_or_forward_fix": "Before merge: close PR #164. After merge: a reviewed revert PR of the merge removes 091 and 124 with their fixture, cases, CI control entries, probe pins and records; no other migration's SQL references app.calendar_items or app.content_schedules (081 and 120 name them in comments only), and no persistent database has applied them (G0 has not passed; CI clusters are ephemeral), so the revert diverges no database. If one ever has applied them, a forward-fix migration is required instead, because an integrated migration is never rewritten. NEVER a force-push.",
   "recommended_next_work_packages": [
     "The hardening batch for blocker 186 items 11-15 and 17-19.",
     "created_by at INSERT in 102's shape, with the coverage probe's INSERT half.",
     "A5's review of 091's schedule states, when an A5 run exists."
   ],
   "reviewer_instructions": [
-    "Read 091 and 124 and their blocks; reproduce the per-table negative control (row level security off on each table: seven of its own cases, no others) and the no-writer refusals.",
+    "Read 091 and 124 and their blocks; reproduce the per-table negative control (row level security off on each table: 15 and 21 cases, each matched by its own pattern, none by the other) and the no-writer refusals.",
     "Check that the closures, narrowing and service-path closures match batches 105/123/122 exactly, and that the fixture writes only 091's two tables.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
