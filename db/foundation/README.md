@@ -427,7 +427,9 @@ break it silently:
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
    another table. No role or database defaults `session_replication_role`, and no parameter grant
-   (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125).
+   (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125). **No event trigger**
+   but the pinned ones, and none is pinned (`PINNED_EVENT_TRIGGERS`; batch 129's review round, A1 R3: no
+   probe read `pg_event_trigger`): one fires on DDL in any session, a client's TEMPORARY DDL included.
 6. **Every trigger on `app.approval_requests` is exactly its pinned `pg_get_triggerdef` text, and every
    function those triggers run matches its pinned body digest, security and empty `search_path`**
    (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125), and its
@@ -518,7 +520,13 @@ break it silently:
    since batch 129 (A1 R2, C0 F3 on 128's re-check: `alter role authenticated bypassrls` was held by
    rls-smoke alone): `rolsuper`, `rolbypassrls`, `rolcreaterole`, `rolcreatedb`, `rolinherit`,
    `rolcanlogin` and `rolreplication` are each pinned false for both (`CLIENT_ROLE_FALSE_ATTRIBUTES`, as the
-   shim makes them; no migration alters them), and a client role that does not exist is named.
+   shim makes them; no migration alters them), and a client role that does not exist is named. **And what
+   every client session starts with** (batch 129's review round; A1 R2: `pg_db_role_setting` was read for
+   `session_replication_role` alone): every setting default for `anon`, `authenticated` or every role, in
+   one database or all, is named unless pinned (`CLIENT_ROLE_SETTINGS`, empty as measured on the clean set),
+   since such a default applies before any statement a session runs: a `search_path`, or a
+   `request.jwt.claims` the policies read. A platform that sets some (a statement timeout, say) is a pin to
+   add with its reason.
 15. **What initdb made is as initdb made it** (batch 129; C0 G1 and Q0 F1 on 128's re-check, MEDIUM). Rule
    10 and every OID arm read objects **made** after initdb. `CREATE OR REPLACE` and `GRANT` assign no OID,
    so a view, a function or a grant initdb made and a migration redefines in place passed every layer: C0
@@ -526,17 +534,27 @@ break it silently:
    columns appended, C0 X8 and Q0 Q-IPF made an `information_schema` function SECURITY DEFINER over
    `content_ideas`, Q0 Q-GS granted `pg_statistic` to `authenticated`, and a session with no claims read
    both workspaces' rows. So `make db-migrate-clean` takes a **fingerprint** of every function, relation,
-   schema and language whose OID is below 16384 (a function's owner, language, security, settings, body
-   and ACL among the rest; a relation's owner, ACL, row level security, options, view definition, columns
+   schema and language whose OID is below 16384 (a function's name and schema, owner, language, security,
+   settings, body, `prosrc` and an SQL-standard body in `prosqlbody` alike, and ACL among the rest; a relation's owner, ACL, row level security, options, view definition, columns
    with their ACLs, and the names of its rules, triggers and policies; a schema's or language's owner and
    ACL) **before the prerequisite and the first migration**, on the database as initdb and the shim left
-   it, into `catalog_baseline.system_fingerprint`, and seals it (row count and md5) so that a migration
-   that rewrites it fails the target. The probe then compares the fingerprint of the built database with
-   it, both ways, by kind and OID, and names what changed, went or appeared. The fingerprint is computed
+   it, into `catalog_baseline.system_fingerprint`, and seals it (row count and md5). The seal alone did not
+   keep that reference out of a migration's reach (C0 F1 on 129: a migration renamed the table and put a view
+   in its place that answered the seal query with the old rows and the probe with new ones, and with Q-IPF
+   a session with no claims read both workspaces with every layer green). So since 129's review round the
+   executor also reads the fingerprint's rows into its own memory before the first migration (the table
+   must hold exactly them), reads them again from the catalogs after the last, and compares the two in
+   JavaScript, by kind and OID, both ways; and it reads the table's identity from `pg_class` before and after
+   (its OID, a plain table, no rule, trigger or row level security, its owner), so a swap is named as one.
+   The probe compares the built database with the table the same way, and is what each self-test drift is
+   refused by. Both name what changed, went, appeared or was renamed (the name and schema since 129's
+   review round, C0 F2: a rename in place passed every layer). The fingerprint is computed
    on each cluster, never pinned in the repository, so the PostgreSQL minor version does not matter.
    Measured at batch 129 on PostgreSQL 17.11: 3753 objects, identical after the shim and every migration,
    and identical to `template1`. Not read: types, operators, casts, operator classes and collations
    initdb made (rule 10 reads what is made in those schemas), and an object a migration made and dropped.
+   Still trusted: the catalog functions the reading itself calls (`format`, `pg_get_viewdef` and the
+   rest), which a superuser migration could replace to forge its own row (owed on blocker 186).
    A run on a database that holds a fingerprint keeps the first; a run on one whose `app` exists and holds
    none is refused, since that fingerprint would bless what the migrations did.
 
