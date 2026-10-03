@@ -2217,7 +2217,7 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   assert.deepEqual(metaCommandFindings([{ name: '999_x.sql', sql: "select '\\!';" }]), []);
   // Since batch 129 the system object fingerprint is scanned with them and taken first (C0 G1, Q0 F1 on 128's
   // re-check), then the loop.
-  assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
+  assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query, feed: readRows \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
     'and the scan runs before the fingerprint and the loop that applies them');
 });
 
@@ -2635,6 +2635,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // drift, pg_default_acl, A1 R1); client schema 13ad35c1af22ba18 to 6c400e229948cda6 (every other database, Q0
   // F3); client membership 9dc722ac7efd2c45 to 930e93b4411edcf5 (the roles' own attributes and a drift, A1
   // R2, C0 F3).
+  // Batch 129's review round (129's re-checks): client membership 930e93b4411edcf5 to d82a36c9fbe730c6 (every
+  // role default a client session starts with, and a drift, A1 R2); system object fingerprint 35887b50de64acf6
+  // to 6a533b62eacf2022 (prosqlbody read, A1 R1; the name compared, C0 F2, Q0 F1; three more shapes in its
+  // drift); trigger 9f3dc969be47bd74 to 7ebb13f1c66bd33a (event triggers pinned, and a drift, A1 R3).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2648,13 +2652,13 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'permissive policy probe': '2fd449e14cd8900f',
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
-    'client membership probe': '930e93b4411edcf5',
-    'system object fingerprint probe': '35887b50de64acf6',
+    'client membership probe': 'd82a36c9fbe730c6',
+    'system object fingerprint probe': '6a533b62eacf2022',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '42d056bde20ea854',
     'policy helper probe': '79f1d9721698eb44',
-    'trigger probe': '9f3dc969be47bd74',
+    'trigger probe': '7ebb13f1c66bd33a',
     'pinned trigger probe': 'f136765c6beb5dbf',
     'pinned grant probe': '2e3ef3743a2ca6ad',
     'pinned default probe': '570796093410bc0a',
@@ -2810,13 +2814,18 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /from pg_catalog\.pg_roles r cross join lateral \(values \('rolbypassrls', r\.rolbypassrls\), \('rolcanlogin', r\.rolcanlogin\), \('rolcreatedb', r\.rolcreatedb\), \('rolcreaterole', r\.rolcreaterole\), \('rolinherit', r\.rolinherit\), \('rolreplication', r\.rolreplication\), \('rolsuper', r\.rolsuper\)\) as a\(k, v\)\n\s+where r\.rolname in \('anon', 'authenticated'\) and a\.v is distinct from false\n/,
     'each attribute of both client roles, any value but false named');
   assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /where not exists \(select 1 from pg_catalog\.pg_roles r where r\.rolname = c\.r\)/, 'and a client role that does not exist');
-  assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 8, 'eight selects, counted at batch 129 (four at 128, and the attribute rule\'s four)');
+  // AND WHAT EVERY CLIENT SESSION STARTS WITH (batch 129's review round; A1 R2: pg_db_role_setting was read for
+  // session_replication_role alone). Every default for anon, authenticated or every role, in any database.
+  assert.deepEqual(m.CLIENT_ROLE_SETTINGS, [], 'no role default applies to a client session, measured at batch 129: a pin is an RFC-sized decision');
+  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /from pg_catalog\.pg_db_role_setting s\n\s+left join pg_catalog\.pg_roles r on r\.oid = s\.setrole\n\s+left join pg_catalog\.pg_database d on d\.oid = s\.setdatabase\n\s+cross join lateral unnest\(s\.setconfig\) as g\(setting\)\n\s+where s\.setrole = 0::pg_catalog\.oid or r\.rolname in \('anon', 'authenticated'\)\n\s+\) f\n\s+where not \(x = any \(array\[\]::text\[\]\)\);/,
+    'every setting default for a client role or for every role, in any database, none pinned');
+  assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 10, 'ten selects, counted at batch 129\'s review round (four at 128, the attribute rule\'s four, and the settings rule\'s two)');
   // WHAT initdb MADE, AS initdb MADE IT (batch 129; C0 G1, Q0 F1 on 128's re-check: a view, a function and a
   // grant initdb made, redefined or re-granted in place, kept OIDs below 16384 and passed every layer). The
   // fingerprint is COMPUTED on the database itself before the migrations, not pinned here; what it reads is.
   const fp = m.SYSTEM_FINGERPRINT_ROWS;
-  assert.match(fp, /row\(p\.proowner, p\.prolang, p\.prokind, p\.prosecdef, p\.proleakproof, p\.proisstrict, p\.provolatile, p\.proparallel,\n\s+p\.procost, p\.prorows, p\.prosupport, p\.prorettype, p\.proargdefaults::text, p\.prosrc, p\.probin, p\.proconfig, p\.proacl\)::text as fp\n\s+from pg_catalog\.pg_proc p join pg_catalog\.pg_namespace n on n\.oid = p\.pronamespace\n\s+where p\.oid < 16384::pg_catalog\.oid\n/,
-    'every function initdb made: owner, language, security, settings, body, binary and ACL among the rest');
+  assert.match(fp, /row\(p\.proowner, p\.prolang, p\.prokind, p\.prosecdef, p\.proleakproof, p\.proisstrict, p\.provolatile, p\.proparallel,\n\s+p\.procost, p\.prorows, p\.prosupport, p\.prorettype, p\.proargdefaults::text, p\.prosrc, p\.prosqlbody::text, p\.probin, p\.proconfig, p\.proacl\)::text as fp\n\s+from pg_catalog\.pg_proc p join pg_catalog\.pg_namespace n on n\.oid = p\.pronamespace\n\s+where p\.oid < 16384::pg_catalog\.oid\n/,
+    'every function initdb made: owner, language, security, settings, body (prosrc, and prosqlbody since 129\'s review round, A1 R1), binary and ACL among the rest');
   assert.match(fp, /row\(c\.relowner, c\.relkind, c\.relacl, c\.relrowsecurity, c\.relforcerowsecurity, c\.relhasrules, c\.relhastriggers, c\.reloptions,\n\s+case when c\.relkind in \('v', 'm'\) then pg_catalog\.pg_get_viewdef\(c\.oid\) end,/,
     'every relation initdb made: owner, ACL, row level security, rules, triggers, options and a view\'s definition');
   assert.match(fp, /row\(a\.attnum, a\.attname, a\.atttypid, a\.attacl\)::text order by a\.attnum\) from pg_catalog\.pg_attribute a where a\.attrelid = c\.oid and a\.attnum > 0\)/, 'and every column, its ACL included');
@@ -2826,8 +2835,15 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.equal((fp.match(/ < 16384::pg_catalog\.oid/g) ?? []).length, 4, 'four kinds, each read whole below FirstNormalObjectId and nowhere filtered by schema');
   assert.doesNotMatch(fp, /nspname\s*(not\b|in\b|!?~|<>|!=|=|like\b)/i, 'no schema is left out by name');
   assert.ok(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL.includes(fp) && m.SYSTEM_FINGERPRINT_PROBE_SQL.includes(fp), 'the reference is taken and compared by the same text');
-  assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /from now n full join catalog_baseline\.system_fingerprint b on b\.kind = n\.kind and b\.objoid = n\.objoid\n\s+where n\.fp is distinct from b\.fp\n/,
-    'compared both ways by kind and OID: a changed, gone or new row is counted');
+  assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /from now n full join catalog_baseline\.system_fingerprint b on b\.kind = n\.kind and b\.objoid = n\.objoid\n\s+where \(n\.fp, n\.ident\) is distinct from \(b\.fp, b\.ident\)\n/,
+    'compared both ways by kind and OID: a changed, gone, new or renamed row is counted (the name since 129\'s review round, C0 F2, Q0 F1)');
+  assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /when n\.ident is distinct from b\.ident then ' \[renamed to ' \|\| n\.ident \|\| '\]'/, 'and a rename is named as one');
+  // The drift carries each shape the reviews named, so a narrowing of what is read fails at migrate-clean too.
+  const fpDrift = m.CATALOG_RULE_PROBES.find((p) => p.label === 'system object fingerprint probe').selfTests[0];
+  for (const shape of [/create or replace view information_schema\./, /security definer;/, /grant execute on function pg_catalog\./,
+    /create or replace function information_schema\.\w+\([^)]*\) returns integer language sql immutable parallel safe strict return /, / rename to probe_renamed_read_file;/, /alter table information_schema\.\w+ rename to /]) {
+    assert.match(fpDrift.drift, shape, `the fingerprint's drift holds ${shape}`);
+  }
   assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /if differing > 0 then\n\s+raise exception/, 'and any one of them refuses');
   assert.match(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL, /^set local search_path = pg_catalog;\n/, 'taken under the search_path the probe runs with, so the texts compare');
   assert.match(m.SYSTEM_FINGERPRINT_SNAPSHOT_SQL, /if exists \(select 1 from catalog_baseline\.system_fingerprint\) then\n\s+return;\n\s+end if;\n\s+if exists \(select 1 from pg_catalog\.pg_namespace where nspname = 'app'\) then\n\s+raise exception/,
@@ -2845,6 +2861,44 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'fingerprint, seal, every step, the seal again and its comparison, then the probes');
   assert.match(exec.slice(takenAt, stepsAt), /if \(taken\.error\) \{[^\n]*return 1; \}\n[\s\S]*if \(!seal \|\| !\/\^\[1-9\]\\d\*:\[0-9a-f\]\{32\}\$\/\.test\(seal\)\) \{[^\n]*return 1; \}/, 'no fingerprint, or an empty one, fails the target');
   assert.match(exec.slice(movedAt, ceilingAt), /^[^\n]*\n\s+stderr\.write\([^\n]*\);\n\s+return 1;\n\s+\}/, 'and a moved seal fails it');
+  // THE REFERENCE OUT OF THE DATABASE'S REACH (batch 129's review round; C0 F1: a view swapped in for the table
+  // answered the seal query with the old rows and the probe with new ones, and every layer was green). The rows
+  // are read into the executor's memory before the first migration, the table must hold exactly them, and
+  // after the last migration they are read again from the catalogs and compared in JavaScript; the table's
+  // identity is read before and after.
+  const identityAt = at('const relation = await query(SYSTEM_FINGERPRINT_RELATION_SQL);');
+  const beforeAt = at('const before = await readRows(SYSTEM_FINGERPRINT_READ_SQL);');
+  const heldAt = at('const held = await readRows(SYSTEM_FINGERPRINT_TABLE_READ_SQL);');
+  const unheldAt = at('const unheld = diffSystemFingerprint(held.rows, before.rows);');
+  const identityAfterAt = at('const relationAfter = await query(SYSTEM_FINGERPRINT_RELATION_SQL);');
+  const afterAt = at('const after = await readRows(SYSTEM_FINGERPRINT_READ_SQL);');
+  const comparedAt = at('const moved = diffSystemFingerprint(before.rows, after.rows);');
+  assert.ok(sealedAt < identityAt && identityAt < beforeAt && beforeAt < heldAt && heldAt < unheldAt && unheldAt < stepsAt
+    && movedAt < identityAfterAt && identityAfterAt < afterAt && afterAt < comparedAt && comparedAt < ceilingAt,
+    'the identity, the rows and the table read before the first migration; the identity and the rows again after the last, then compared, before the probes');
+  assert.match(exec.slice(identityAt, beforeAt), /if \(!identity \|\| !SYSTEM_FINGERPRINT_RELATION_SHAPE\.test\(identity\)\) \{[^\n]*return 1; \}/, 'a table that is not one plain table fails the target');
+  assert.match(exec.slice(unheldAt, stepsAt), /^[^\n]*\n\s+if \(unheld\.length\) \{[^\n]*return 1; \}/, 'and so does a table that does not hold what the catalogs read');
+  assert.match(exec.slice(identityAfterAt, afterAt), /if \(identityAfter !== identity\) \{\n\s+stderr\.write\([^\n]*\);\n\s+return 1;\n\s+\}/, 'a replaced table fails it');
+  assert.match(exec.slice(comparedAt, ceilingAt), /^[^\n]*\n\s+if \(moved\.length\) \{\n\s+stderr\.write\([^\n]*\);\n\s+return 1;\n\s+\}/, 'and any initdb object not as it was fails it');
+  assert.equal(m.SYSTEM_FINGERPRINT_READ_SQL, `begin;\nset local search_path = pg_catalog;\n${fp};\nrollback;\n`, 'read by the same text, under the same search_path, as the fingerprint was taken');
+  assert.match(m.SYSTEM_FINGERPRINT_RELATION_SQL, /from pg_catalog\.pg_class c join pg_catalog\.pg_namespace n on n\.oid = c\.relnamespace\n\s+where n\.nspname = 'catalog_baseline' and c\.relname = 'system_fingerprint'$/, 'the identity read from pg_class, not from the relation');
+  for (const ok of ['16390 r rules=f triggers=f rls=f owner=10']) assert.match(ok, m.SYSTEM_FINGERPRINT_RELATION_SHAPE);
+  for (const bad of ['16390 v rules=f triggers=f rls=f owner=10', '16390 r rules=t triggers=f rls=f owner=10', '16390 r rules=f triggers=t rls=f owner=10',
+    '16390 r rules=f triggers=f rls=t owner=10', '16390 p rules=f triggers=f rls=f owner=10', '']) assert.doesNotMatch(bad, m.SYSTEM_FINGERPRINT_RELATION_SHAPE, `refused: ${bad}`);
+  // The comparison, pure, on synthetic rows: each way a row can move is named as the probe names it.
+  const row = (kind, objoid, ident, fp) => ({ kind, objoid: String(objoid), ident, fp });
+  const base = [row('function', 1, 'pg_catalog.f(integer)', 'a'), row('relation', 2, 'information_schema.v', 'b'), row('schema', 3, 'information_schema', 'c')];
+  assert.deepEqual(m.diffSystemFingerprint(base, base), [], 'the same rows: nothing');
+  assert.deepEqual(m.diffSystemFingerprint(base, [...base].reverse()), [], 'in any order');
+  assert.deepEqual(m.diffSystemFingerprint(base, [row('function', 1, 'pg_catalog.f(integer)', 'a2'), base[1], base[2]]), ['function pg_catalog.f(integer) [changed]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [row('function', 1, 'pg_catalog.g(integer)', 'a'), base[1], base[2]]), ['function pg_catalog.f(integer) [renamed to pg_catalog.g(integer)]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [base[0], row('relation', 2, 'public.v', 'b2'), base[2]]), ['relation information_schema.v [renamed to public.v] [changed]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [base[0], base[2]]), ['relation information_schema.v [gone]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [...base, row('language', 4, 'plx', 'd')]), ['language plx [not in the fingerprint]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [...base, base[0]]), ['function pg_catalog.f(integer) [read twice after]']);
+  assert.deepEqual(m.diffSystemFingerprint(base, [row('function', 1, 'pg_catalog.f(integer)', 'a2'), row('relation', 9, 'information_schema.v', 'b')]),
+    ['function pg_catalog.f(integer) [changed]', 'relation information_schema.v [gone]', 'relation information_schema.v [not in the fingerprint]', 'schema information_schema [gone]'],
+    'sorted, and keyed by kind and OID: the same name under another OID is a row gone and a row new');
   // AND THE DEFINER PROBE READS EXTENSION MEMBERS (batch 128; A1 N2 on 127's re-check).
   assert.deepEqual(m.EXTENSION_DEFINER_FUNCTIONS, [], 'no SECURITY DEFINER extension member, measured at batch 128');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /join pg_catalog\.pg_depend d on d\.classid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass and d\.objid = p\.oid and d\.deptype = 'e'\n\s+join pg_catalog\.pg_extension e on d\.refclassid = 'pg_catalog\.pg_extension'::pg_catalog\.regclass and e\.oid = d\.refobjid\n\s+where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n/,
@@ -2896,6 +2950,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.TRIGGER_PROBE_SQL, /where n\.nspname not in \('pg_catalog', 'information_schema'\) and t\.tgenabled <> 'O';/, 'internal triggers included (C0 M2)');
   assert.match(m.TRIGGER_PROBE_SQL, /pg_catalog\.pg_get_triggerdef\(t\.oid\) as def/, 'definitions by TEXT (C0 M1)');
   assert.match(m.TRIGGER_PROBE_SQL, /session_replication_role=%/, 'no default session_replication_role (Q0 F5)');
+  assert.deepEqual(m.PINNED_EVENT_TRIGGERS, [], 'no event trigger, measured at batch 129');
+  assert.match(m.TRIGGER_PROBE_SQL, /from pg_catalog\.pg_event_trigger e\n\s+where not \(e\.evtname::text = any \(array\[\]::text\[\]\)\);/, 'every event trigger, enabled or not, none pinned (A1 R3 on 129)');
   assert.match(m.TRIGGER_PROBE_SQL, /pg_inherits i where i\.inhparent = c\.oid or i\.inhrelid = c\.oid/, 'no child, no partitions (A1 F2)');
   assert.match(m.TRIGGER_PROBE_SQL, /from pg_catalog\.pg_parameter_acl p\s+cross join lateral pg_catalog\.aclexplode\(p\.paracl\) a[\s\S]*where p\.parname = 'session_replication_role' and not coalesce\(r\.rolsuper, false\);/,
     'no parameter grant of session_replication_role to a non-superuser (blocker 186 item 14; A1 V3 on 125)');

@@ -625,7 +625,16 @@ end \$\$;
 // creates roles or databases, inherits, logs in or replicates is named, attribute by attribute. A client
 // role that does not exist is named too. Not read: the connection limit, the password and its validity,
 // which grant nothing.
+//
+// AND WHAT EVERY CLIENT SESSION STARTS WITH (batch 129's review round; A1 R2: pg_db_role_setting was read
+// for session_replication_role alone). A default set for anon, for authenticated or for every role, in
+// one database or all, applies to every session of that role before any statement runs: a search_path,
+// or a setting the policies read through current_setting. So the third rule reads each such default and
+// names any not pinned, as `<role> in <database>: <name>=<value>`. Measured on the clean set at batch 129:
+// none (the shim sets none and no migration does). The platform may set some, a statement timeout for
+// example (read, not measured here); pinning those is an RFC-sized decision in the same diff as its reason.
 export const CLIENT_ROLE_MEMBERSHIPS = [];
+export const CLIENT_ROLE_SETTINGS = [];
 export const CLIENT_ROLE_FALSE_ATTRIBUTES = ['rolbypassrls', 'rolcanlogin', 'rolcreatedb', 'rolcreaterole', 'rolinherit', 'rolreplication', 'rolsuper'];
 export const CLIENT_MEMBERSHIP_PROBE_SQL = `do \$\$
 declare
@@ -657,6 +666,18 @@ begin
   if offending is not null then
     raise exception 'client role attribute(s) not their pinned value (false): %', offending;
   end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select pg_catalog.format('%s in %s: %s', coalesce(r.rolname::text, 'every role'), coalesce('database ' || d.datname::text, 'every database'), g.setting) as x
+      from pg_catalog.pg_db_role_setting s
+      left join pg_catalog.pg_roles r on r.oid = s.setrole
+      left join pg_catalog.pg_database d on d.oid = s.setdatabase
+      cross join lateral unnest(s.setconfig) as g(setting)
+     where s.setrole = 0::pg_catalog.oid or r.rolname in ('anon', 'authenticated')
+  ) f
+   where not (x = any (array[${CLIENT_ROLE_SETTINGS.map((m) => `'${m}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'client role setting default(s) not pinned, each applied to every session of the role: %', offending;
+  end if;
 end \$\$;
 `;
 
@@ -671,7 +692,8 @@ end \$\$;
 //
 // So the executor takes a FINGERPRINT of every object whose OID is below 16384 -- every function (owner,
 // language, kind, SECURITY DEFINER, leakproof, strict, volatility, parallel, cost, rows, support, return
-// type, argument defaults, body, probin, settings, ACL), every relation (owner, kind, ACL, row level
+// type, argument defaults, body in prosrc and an SQL-standard body in prosqlbody, probin, settings, ACL;
+// prosqlbody since batch 129's review round, A1 R1), every relation (owner, kind, ACL, row level
 // security and its FORCE, rules, triggers, options, a view's definition by pg_get_viewdef, every column's
 // name, type and ACL, and the names of its rules, triggers and policies), every schema (owner, ACL) and
 // every language (owner, trust, handlers, ACL) -- on the database migrate-clean is given, the shim already
@@ -679,9 +701,13 @@ end \$\$;
 // schema of the probe's own; no client holds anything on it, which the client probes read). It is
 // COMPUTED there, not pinned here: what initdb makes varies with the PostgreSQL minor version, and the
 // comparison is always with the same cluster's own. The executor seals the table (its row count and an md5
-// of its rows) before the first migration and refuses the run if the seal moved by the end of the last, so
-// a migration cannot rewrite the reference it is compared with. This probe then compares, both ways, by
-// kind and OID: a changed, gone or new row is named. Measured at batch 129 on PostgreSQL 17.11: 3753 rows
+// of its rows) before the first migration and refuses the run if the seal moved by the end of the last.
+// The seal alone did NOT keep the reference out of a migration's reach (C0 F1 on 129: a view swapped in
+// for the table answered the seal query with the old rows and this probe with new ones), so since 129's
+// review round the verdict on the migrations as built is the executor's, in memory (below the seal), and
+// this probe, which reads the table by name, is what each drift is refused by. It compares, both ways, by
+// kind and OID: a changed, gone or new row is named, and since that review round a row whose name or schema
+// moved (C0 F2, Q0 F1: the name, `ident`, was stored and never compared, so a rename passed every layer). Measured at batch 129 on PostgreSQL 17.11: 3753 rows
 // (3330 functions, 415 relations, 4 schemas, 4 languages); after the shim and every migration the same
 // fingerprint, row for row, and the cluster's template1 the same too.
 //
@@ -695,7 +721,7 @@ export const SYSTEM_FINGERPRINT_TABLE = 'catalog_baseline.system_fingerprint';
 export const SYSTEM_FINGERPRINT_ROWS = `select 'function'::text as kind, p.oid as objoid,
        pg_catalog.format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) as ident,
        row(p.proowner, p.prolang, p.prokind, p.prosecdef, p.proleakproof, p.proisstrict, p.provolatile, p.proparallel,
-           p.procost, p.prorows, p.prosupport, p.prorettype, p.proargdefaults::text, p.prosrc, p.probin, p.proconfig, p.proacl)::text as fp
+           p.procost, p.prorows, p.prosupport, p.prorettype, p.proargdefaults::text, p.prosrc, p.prosqlbody::text, p.probin, p.proconfig, p.proacl)::text as fp
   from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
  where p.oid < ${FIRST_NORMAL_OID}::pg_catalog.oid
 union all
@@ -735,6 +761,51 @@ end \$\$;
 `;
 // The seal: one row, read before the first migration and after the last.
 export const SYSTEM_FINGERPRINT_SEAL_SQL = `select pg_catalog.count(*)::text || ':' || coalesce(pg_catalog.md5(pg_catalog.string_agg(kind || ':' || objoid::text || ':' || ident || ':' || fp, pg_catalog.chr(10) order by kind, objoid)), '') as seal from ${SYSTEM_FINGERPRINT_TABLE}`;
+// THE REFERENCE OUT OF THE DATABASE'S REACH (batch 129's review round; C0 F1). The seal pins the ANSWER to
+// one query over the table, read by name, and the probe reads the same name: C0 FV3 renamed the table and
+// put a view in its place that answered the seal query with the rows taken before the migrations and every
+// other reader with rows taken after them, and Q-IPF then crossed tenants with every layer green. So:
+//   * the executor reads the fingerprint's rows into its own memory BEFORE the first migration (straight
+//     from the catalogs, and requires the table to hold exactly those rows), reads them again from the
+//     catalogs AFTER the last, and compares the two in JavaScript (diffSystemFingerprint, pure and tested
+//     on synthetic rows). No relation a migration can create, rename or replace is read by that verdict;
+//   * and the table's own identity is read from pg_class before and after (its OID, a plain table, no rule,
+//     no trigger, no row level security, its owner), so a swap is named as a swap, not only by its effect.
+// What this still trusts: the catalog functions the reading itself calls (format, pg_get_viewdef and the
+// rest), which a superuser migration could replace and so forge its own row; that is the perfect-forgery
+// class blocker 186 carries as owed.
+export const SYSTEM_FINGERPRINT_READ_SQL = `begin;\nset local search_path = pg_catalog;\n${SYSTEM_FINGERPRINT_ROWS};\nrollback;\n`;
+export const SYSTEM_FINGERPRINT_TABLE_READ_SQL = `begin;\nset local search_path = pg_catalog;\nselect kind, objoid, ident, fp from ${SYSTEM_FINGERPRINT_TABLE};\nrollback;\n`;
+export const SYSTEM_FINGERPRINT_RELATION_SQL = `select pg_catalog.format('%s %s rules=%s triggers=%s rls=%s owner=%s', c.oid, c.relkind, c.relhasrules, c.relhastriggers, c.relrowsecurity, c.relowner) as relation
+  from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'catalog_baseline' and c.relname = 'system_fingerprint'`;
+export const SYSTEM_FINGERPRINT_RELATION_SHAPE = /^[1-9]\d* r rules=f triggers=f rls=f owner=[1-9]\d*$/;
+// Both ways, by kind and OID, as the probe compares: a row gone, a row new, a name moved (`[renamed to ...]`,
+// C0 F2) and a fingerprint changed, each named as the probe names it, sorted as its `order by x` sorts
+// under the C collation. A row read twice is named too: the comparison is keyed, and a key read twice
+// would hide one of its readings.
+export function diffSystemFingerprint(before, after) {
+  const keyed = (rows, side, out) => {
+    const map = new Map();
+    for (const r of rows) {
+      const k = `${r.kind}\u0000${r.objoid}`;
+      if (map.has(k)) out.push(`${r.kind} ${r.ident} [read twice ${side}]`);
+      map.set(k, r);
+    }
+    return map;
+  };
+  const out = [];
+  const b = keyed(before, 'before', out);
+  const a = keyed(after, 'after', out);
+  for (const [k, r] of b) {
+    const n = a.get(k);
+    if (!n) { out.push(`${r.kind} ${r.ident} [gone]`); continue; }
+    const tags = `${n.ident !== r.ident ? ` [renamed to ${n.ident}]` : ''}${n.fp !== r.fp ? ' [changed]' : ''}`;
+    if (tags) out.push(`${r.kind} ${r.ident}${tags}`);
+  }
+  for (const [k, n] of a) if (!b.has(k)) out.push(`${n.kind} ${n.ident} [not in the fingerprint]`);
+  return out.sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+}
 export const SYSTEM_FINGERPRINT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -743,10 +814,12 @@ begin
   with now as (
 ${SYSTEM_FINGERPRINT_ROWS}
   ), d as (
-    select coalesce(n.kind, b.kind) || ' ' || coalesce(n.ident, b.ident)
-           || case when n.fp is null then ' [gone]' when b.fp is null then ' [not in the fingerprint]' else ' [changed]' end as x
+    select coalesce(b.kind, n.kind) || ' ' || coalesce(b.ident, n.ident)
+           || case when n.fp is null then ' [gone]' when b.fp is null then ' [not in the fingerprint]'
+                   else case when n.ident is distinct from b.ident then ' [renamed to ' || n.ident || ']' else '' end
+                        || case when n.fp is distinct from b.fp then ' [changed]' else '' end end as x
       from now n full join ${SYSTEM_FINGERPRINT_TABLE} b on b.kind = n.kind and b.objoid = n.objoid
-     where n.fp is distinct from b.fp
+     where (n.fp, n.ident) is distinct from (b.fp, b.ident)
   )
   select count(*)::integer, string_agg(x, ', ' order by x) filter (where rn <= 40) into differing, offending
     from (select x, row_number() over (order by x) as rn from d) r;
@@ -995,6 +1068,9 @@ export const REFUSE_MUTATION_TRIGGERS = [
   'CREATE TRIGGER refuse_mutation BEFORE DELETE OR UPDATE ON app.security_events FOR EACH ROW EXECUTE FUNCTION private.refuse_mutation()',
   'CREATE TRIGGER refuse_truncate BEFORE TRUNCATE ON app.security_events FOR EACH STATEMENT EXECUTE FUNCTION private.refuse_mutation()',
 ];
+// The event triggers a migration may make, by name (batch 129's review round; A1 R3). None, as measured on
+// the clean set at batch 129: a pin is an RFC-sized decision in the same diff as its reason.
+export const PINNED_EVENT_TRIGGERS = [];
 export const TRIGGER_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1060,6 +1136,15 @@ begin
    where p.parname = 'session_replication_role' and not coalesce(r.rolsuper, false);
   if offending is not null then
     raise exception 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant by: %', offending;
+  end if;
+  -- No event trigger but the pinned ones (batch 129's review round; A1 R3: no probe read pg_event_trigger).
+  -- An event trigger fires on DDL in ANY session, a client's TEMPORARY DDL included, and runs a function no
+  -- other rule here enumerates by that path. Measured on the clean set at batch 129: none.
+  select string_agg(format('%s on %s', e.evtname, e.evtevent), ', ' order by e.evtname) into offending
+    from pg_catalog.pg_event_trigger e
+   where not (e.evtname::text = any (array[${PINNED_EVENT_TRIGGERS.map((t) => `'${t}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'event trigger(s) not pinned, each running on DDL in any session: %', offending;
   end if;
 end \$\$;
 `;
@@ -1440,7 +1525,7 @@ export const CATALOG_RULE_PROBES = [
         'unlisted: authenticated CREATE on schema information_schema', 'unlisted: authenticated CREATE on database', 'unlisted: authenticated CREATE on database template1'] }] },
   // Batch 128 (Q0 N2, A1 N3 on 127's re-check): what a client role may become.
   { label: 'client membership probe', sql: CLIENT_MEMBERSHIP_PROBE_SQL,
-    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s), and each has ${CLIENT_ROLE_FALSE_ATTRIBUTES.join(', ')} false`,
+    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s), each has ${CLIENT_ROLE_FALSE_ATTRIBUTES.join(', ')} false, and they and every role default exactly the ${CLIENT_ROLE_SETTINGS.length} pinned setting(s)`,
     // Q0 R0 and A1 V14d (superuser by SET ROLE), and a membership two roles deep, with no INHERIT. The
     // superuser is a role of the drift's own, not `postgres`: the driver redacts the connection's user
     // name from stderr, so a refusal naming `postgres` could not be tied to its object (measured).
@@ -1452,15 +1537,25 @@ export const CATALOG_RULE_PROBES = [
       { drift: 'alter role authenticated bypassrls; alter role anon inherit createdb;',
         raises: 'client role attribute(s) not their pinned value',
         names: ['authenticated rolbypassrls = true', 'anon rolcreatedb = true', 'anon rolinherit = true'] },
+      // Batch 129's review round (A1 R2): a client role's search_path, and a default for every role in one database.
+      { drift: "alter role authenticated set search_path = public, app; alter role all in database template1 set work_mem = '64kB';",
+        raises: 'client role setting default(s) not pinned',
+        names: ['authenticated in every database: search_path=public, app', 'every role in database template1: work_mem=64kB'] },
     ] },
   // Batch 129 (C0 G1, Q0 F1 on 128's re-check): what initdb made, redefined or re-granted in place. One rule,
   // one drift with the three shapes the re-checks named: a view replaced, a function made SECURITY DEFINER,
-  // and a grant on a pg_catalog function.
+  // and a grant on a pg_catalog function. Batch 129's review round adds three: an SQL-standard body replaced
+  // by another with nothing else changed (A1 R1: prosqlbody was not read, and prosrc is empty for all 56
+  // such functions initdb makes), and a function and a table renamed in place (C0 F2, Q0 F1: the name was
+  // stored and never compared).
   { label: 'system object fingerprint probe', sql: SYSTEM_FINGERPRINT_PROBE_SQL,
-    claim: 'every function, relation, schema and language initdb made (OID below 16384) is exactly as the fingerprint taken on this database before the migrations found it: body, security, settings, owner, ACL, view definition, columns, rules, triggers and policies',
-    selfTests: [{ drift: "create or replace view information_schema.information_schema_catalog_name as select 'probe'::information_schema.sql_identifier as catalog_name; alter function information_schema._pg_char_max_length(oid, integer) security definer; grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;",
+    claim: 'every function, relation, schema and language initdb made (OID below 16384) is exactly as the fingerprint taken on this database before the migrations found it: name, body (prosrc and an SQL-standard body), security, settings, owner, ACL, view definition, columns, rules, triggers and policies',
+    selfTests: [{ drift: "create or replace view information_schema.information_schema_catalog_name as select 'probe'::information_schema.sql_identifier as catalog_name; alter function information_schema._pg_char_max_length(oid, integer) security definer; grant execute on function pg_catalog.pg_ls_dir(text) to authenticated; create or replace function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) returns integer language sql immutable parallel safe strict return 2; alter function pg_catalog.pg_read_file(text) rename to probe_renamed_read_file; alter table information_schema.sql_features rename to probe_renamed_sql_features;",
       raises: 'initdb object(s) not as the fingerprint taken before the migrations found them',
-      names: ['relation information_schema.information_schema_catalog_name [changed]', 'function information_schema._pg_char_max_length(typid oid, typmod integer) [changed]', 'function pg_catalog.pg_ls_dir(text) [changed]'] }] },
+      names: ['relation information_schema.information_schema_catalog_name [changed]', 'function information_schema._pg_char_max_length(typid oid, typmod integer) [changed]', 'function pg_catalog.pg_ls_dir(text) [changed]',
+        'function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) [changed]',
+        'function pg_catalog.pg_read_file(text) [renamed to pg_catalog.probe_renamed_read_file(text)]',
+        'relation information_schema.sql_features [renamed to information_schema.probe_renamed_sql_features]'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
@@ -1506,7 +1601,7 @@ export const CATALOG_RULE_PROBES = [
         names: ['app.probe_helper(workspace uuid)'] },
     ] },
   { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
-    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, and no parameter grant hands session_replication_role to a non-superuser`,
+    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, no parameter grant hands session_replication_role to a non-superuser, and the event triggers are exactly the ${PINNED_EVENT_TRIGGERS.length} pinned`,
     // Each drift leaves the rules before its own intact, since the first raise ends the block.
     selfTests: [
       { drift: 'alter table app.security_events disable trigger refuse_mutation;',
@@ -1521,6 +1616,9 @@ export const CATALOG_RULE_PROBES = [
       // Blocker 186 item 14 (A1 V3 on batch 125).
       { drift: 'grant set on parameter session_replication_role to authenticated;',
         raises: 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant', names: ['authenticated (SET)'] },
+      // Batch 129's review round (A1 R3): an event trigger, on a function of the drift's own.
+      { drift: 'create function pg_temp.probe_event_fn() returns event_trigger language plpgsql as $f$ begin null; end $f$; create event trigger probe_event_ddl on ddl_command_end execute function pg_temp.probe_event_fn(); create event trigger probe_event_drop on sql_drop execute function pg_temp.probe_event_fn();',
+        raises: 'event trigger(s) not pinned', names: ['probe_event_ddl on ddl_command_end', 'probe_event_drop on sql_drop'] },
     ] },
   // Blocker 186 item 13 (Q0 F3, F8 on batch 125).
   { label: 'pinned trigger probe', sql: PINNED_TRIGGER_PROBE_SQL,
@@ -2964,14 +3062,24 @@ async function runLive(target) {
     if (meta.length) { for (const m of meta) stderr.write(`  ${m}\n`); return 1; }
     // THE SYSTEM OBJECT FINGERPRINT (batch 129; C0 G1, Q0 F1 on 128's re-check), taken BEFORE the
     // prerequisite and the first migration, on the database as initdb and the shim left it, and sealed:
-    // the seal read again after the last migration must be the same, so no migration rewrites the
-    // reference the system object fingerprint probe compares with.
-    const { query } = await import('./psql-driver.mjs');
+    // the seal read again after the last migration must be the same. The seal alone pins one query's answer,
+    // not the relation it reads (C0 F1 on 129), so the verdict on the migrations as built is taken here, in
+    // memory: the rows read before the first migration against the rows read after the last, with the
+    // table's own identity read before and after as well. The probe compares with the table for its drifts.
+    const { query, feed: readRows } = await import('./psql-driver.mjs');
     const taken = await script(SYSTEM_FINGERPRINT_SNAPSHOT_SQL);
     if (taken.error) { stderr.write(`  system object fingerprint: ${taken.error.message} (${taken.error.code ?? 'no code'})\n`); return 1; }
     const sealed = await query(SYSTEM_FINGERPRINT_SEAL_SQL);
     const seal = sealed.rows?.length === 1 ? sealed.rows[0].seal : null;
     if (!seal || !/^[1-9]\d*:[0-9a-f]{32}$/.test(seal)) { stderr.write(`  system object fingerprint: no sealed fingerprint (${sealed.error?.message ?? seal})\n`); return 1; }
+    const relation = await query(SYSTEM_FINGERPRINT_RELATION_SQL);
+    const identity = relation.rows?.length === 1 ? relation.rows[0].relation : null;
+    if (!identity || !SYSTEM_FINGERPRINT_RELATION_SHAPE.test(identity)) { stderr.write(`  system object fingerprint: its table is not one plain table with no rule, trigger or row level security (${relation.error?.message ?? identity})\n`); return 1; }
+    const before = await readRows(SYSTEM_FINGERPRINT_READ_SQL);
+    const held = await readRows(SYSTEM_FINGERPRINT_TABLE_READ_SQL);
+    if (before.error || held.error || !before.rows?.length) { stderr.write(`  system object fingerprint: not read (${(before.error ?? held.error)?.message ?? 'no rows'})\n`); return 1; }
+    const unheld = diffSystemFingerprint(held.rows, before.rows);
+    if (unheld.length) { stderr.write(`  system object fingerprint: its table does not hold what initdb made, before any migration ran (${unheld.length}, the first 40 named): ${unheld.slice(0, 40).join(', ')}\n`); return 1; }
     stdout.write(`  system object fingerprint: ${seal.split(':')[0]} objects initdb made, taken before the migrations and sealed\n`);
     for (const { name, sql } of steps) {
       const out = await script(sql);
@@ -2983,6 +3091,20 @@ async function runLive(target) {
       stderr.write(`  system object fingerprint: its seal moved while the migrations ran (${resealed.error?.message ?? 'the table was rewritten'}), so it is no reference\n`);
       return 1;
     }
+    const relationAfter = await query(SYSTEM_FINGERPRINT_RELATION_SQL);
+    const identityAfter = relationAfter.rows?.length === 1 ? relationAfter.rows[0].relation : null;
+    if (identityAfter !== identity) {
+      stderr.write(`  system object fingerprint: its table was replaced while the migrations ran (${identity} before, ${relationAfter.error?.message ?? identityAfter ?? 'none'} after), so it is no reference\n`);
+      return 1;
+    }
+    const after = await readRows(SYSTEM_FINGERPRINT_READ_SQL);
+    if (after.error || !after.rows?.length) { stderr.write(`  system object fingerprint: not read after the migrations (${after.error?.message ?? 'no rows'})\n`); return 1; }
+    const moved = diffSystemFingerprint(before.rows, after.rows);
+    if (moved.length) {
+      stderr.write(`  system object fingerprint, compared in memory: initdb object(s) not as the fingerprint taken before the migrations found them (${moved.length}, the first 40 named): ${moved.slice(0, 40).join(', ')}\n`);
+      return 1;
+    }
+    stdout.write(`  system object fingerprint: the ${after.rows.length} objects initdb made, read again after the last migration and compared in memory, are as they were\n`);
     // THE CEILING PROBE. Every migration used to be capped at ~128 KiB by the driver handing it to
     // psql as one argv string; the driver now feeds a script on stdin. That is a claim about the
     // driver, so the target proves it on every run rather than in a comment: a script larger than
