@@ -38,9 +38,11 @@ A0 transcribes; the Owner decided. Where this reading is wrong, the Owner's corr
 37111859581, "Bootstrap validation", success). The merge commit is
 `3f80599269186895fd4e6de368c837b7be48f9e8`, at 2026-10-03T10:08:51Z.
 
-**A0 EXECUTED the Owner's decision; A0 did not make it.** The standing answer `ใช่ merge ทำต่อได้เลย`
-(product-owner-disposition-2026-10-03-batch-126.md §2) lets A0 press a merge the Owner has decided;
-the words above are that decision for #165.
+**On A0's reading of those words, A0 executed the Owner's decision and did not make it.** The standing
+answer `ใช่ merge ทำต่อได้เลย` (product-owner-disposition-2026-10-03-batch-126.md §2) lets A0 press a
+merge the Owner has decided; A0 read the words above as that decision for #165. That they were is A0's
+reading of a general reply, not a fact this file can show: the Owner's explicit confirmation of #165, or a
+correction, replaces it (C0 F7 on batch 127; the wording was corrected in 127's review round).
 
 **The RFC-2026-025 §5 points remain open.** The blocker beginning "RFC-2026-025 §5, WHAT IT LEAVES
 OPEN, FOR THE OWNER" is unchanged by these words, which were about this merge and this batch, not the
@@ -63,4 +65,5 @@ It does not mark batch 127 ready, approve it, or merge it. Its role runs (C0, Q0
 PR stays a Draft until they report and the Owner decides its merge.
 
 Still open after these words: the RFC-2026-025 §5 points (above); and, recorded on blocker 186, the
-client-encoding change through a run-time-computed name and schema `public` (A1 F6 on 123).
+client-encoding change through a run-time-computed name. Schema `public` (A1 F6 on 123) was closed for
+client privileges by 127's review round (the client privilege probe; plan, "Review round").
