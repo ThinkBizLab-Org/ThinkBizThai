@@ -1,0 +1,223 @@
+{
+  "_what": "The exact shape of the tables batch 150 will rebuild or whose keys the weak-assertion survey names (evidence/WP-0A-DB-00/weak-assertion-survey-2026-09-27.md §6 items 5 and 6): row level security enabled AND forced, every constraint by pg_get_constraintdef, every index by pg_get_indexdef, every policy by its permissive flag, command, roles and the deparse of both halves, and (since batch 150-prereq's review round, A1 S4 and C0-8) every non-internal trigger by pg_get_triggerdef and enabled, none today. The pinned shape probe in scripts/db/run.mjs reads each set EXACTLY, both ways. NOT pinned: the columns (type, NOT NULL, default, identity; F7, open_blockers[194] (4)).",
+  "_measured": "Read from the catalog on a clean migrate-clean at 1319042 (PostgreSQL 17.11, search_path pg_catalog as every probe job runs), by the batch 150 prerequisite draft. Not hand-written.",
+  "_why_these_tables": {
+    "app.performance_snapshots": "batch 121; survey item 5: its unique keys, index and CHECKs were held by NAME, its three metric CHECKs by a quoted-token set, its policy by LIKE, FORCE not at all (Q0 D30). Blocker 185 / Q150-a: the table batch 150 would rebuild.",
+    "app.published_posts": "batch 121 added published_posts_scope_unique, the key performance_snapshots_post_scope_fk references; a rebuild of either side moves both.",
+    "app.usage_events": "survey item 6: usage_events_dedupe_key_unique had no probe at all; the 1M usage rows of the WS:911 fixture land here."
+  },
+  "tables": {
+    "app.performance_snapshots": {
+      "rls": {
+        "enabled": true,
+        "forced": true
+      },
+      "constraints": {
+        "performance_snapshots_metrics_is_an_object": {
+          "type": "c",
+          "def": "CHECK ((jsonb_typeof(metrics) = 'object'::text))"
+        },
+        "performance_snapshots_metrics_is_bounded": {
+          "type": "c",
+          "def": "CHECK ((octet_length((metrics)::text) <= 2048))"
+        },
+        "performance_snapshots_metrics_is_not_empty": {
+          "type": "c",
+          "def": "CHECK ((metrics <> '{}'::jsonb))"
+        },
+        "performance_snapshots_metrics_keys_are_known": {
+          "type": "c",
+          "def": "CHECK (((metrics - ARRAY['impressions'::text, 'reach'::text, 'engagements'::text, 'likes'::text, 'comments'::text, 'shares'::text, 'saves'::text, 'video_views'::text, 'clicks'::text, 'profile_visits'::text]) = '{}'::jsonb))"
+        },
+        "performance_snapshots_metrics_values_are_numbers": {
+          "type": "c",
+          "def": "CHECK (((COALESCE(jsonb_typeof((metrics -> 'impressions'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'reach'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'engagements'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'likes'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'comments'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'shares'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'saves'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'video_views'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'clicks'::text)), 'number'::text) = 'number'::text) AND (COALESCE(jsonb_typeof((metrics -> 'profile_visits'::text)), 'number'::text) = 'number'::text)))"
+        },
+        "performance_snapshots_metrics_values_are_plausible": {
+          "type": "c",
+          "def": "CHECK ((((COALESCE(((metrics ->> 'impressions'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'impressions'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'reach'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'reach'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'engagements'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'engagements'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'likes'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'likes'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'comments'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'comments'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'shares'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'shares'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'saves'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'saves'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'video_views'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'video_views'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'clicks'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'clicks'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric)) AND ((COALESCE(((metrics ->> 'profile_visits'::text))::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE(((metrics ->> 'profile_visits'::text))::numeric, (0)::numeric) <= ('1000000000000'::bigint)::numeric))))"
+        },
+        "performance_snapshots_one_per_post_instant": {
+          "type": "u",
+          "def": "UNIQUE (published_post_id, metric_time)"
+        },
+        "performance_snapshots_pkey": {
+          "type": "p",
+          "def": "PRIMARY KEY (id)"
+        },
+        "performance_snapshots_post_scope_fk": {
+          "type": "f",
+          "def": "FOREIGN KEY (workspace_id, business_profile_id, published_post_id) REFERENCES app.published_posts(workspace_id, business_profile_id, id)"
+        },
+        "performance_snapshots_schema_version_is_positive": {
+          "type": "c",
+          "def": "CHECK ((metrics_schema_version >= 1))"
+        }
+      },
+      "indexes": {
+        "performance_snapshots_one_per_post_instant": "CREATE UNIQUE INDEX performance_snapshots_one_per_post_instant ON app.performance_snapshots USING btree (published_post_id, metric_time)",
+        "performance_snapshots_pkey": "CREATE UNIQUE INDEX performance_snapshots_pkey ON app.performance_snapshots USING btree (id)",
+        "performance_snapshots_post_time_idx": "CREATE INDEX performance_snapshots_post_time_idx ON app.performance_snapshots USING btree (workspace_id, business_profile_id, published_post_id, metric_time DESC)",
+        "performance_snapshots_scope_time_idx": "CREATE INDEX performance_snapshots_scope_time_idx ON app.performance_snapshots USING btree (workspace_id, business_profile_id, metric_time)"
+      },
+      "policies": {
+        "performance_snapshots_scope_narrowing": {
+          "permissive": false,
+          "cmd": "*",
+          "roles": "authenticated",
+          "using": "(EXISTS ( SELECT 1\n   FROM (((app.published_posts p\n     JOIN app.publish_targets t ON (((t.workspace_id = p.workspace_id) AND (t.business_profile_id = p.business_profile_id) AND (t.id = p.publish_target_id))))\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((p.workspace_id = performance_snapshots.workspace_id) AND (p.business_profile_id = performance_snapshots.business_profile_id) AND (p.id = performance_snapshots.published_post_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))",
+          "check": "(EXISTS ( SELECT 1\n   FROM (((app.published_posts p\n     JOIN app.publish_targets t ON (((t.workspace_id = p.workspace_id) AND (t.business_profile_id = p.business_profile_id) AND (t.id = p.publish_target_id))))\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((p.workspace_id = performance_snapshots.workspace_id) AND (p.business_profile_id = performance_snapshots.business_profile_id) AND (p.id = performance_snapshots.published_post_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))"
+        },
+        "performance_snapshots_select_active_member": {
+          "permissive": true,
+          "cmd": "r",
+          "roles": "authenticated",
+          "using": "app.is_active_member(workspace_id)",
+          "check": null
+        }
+      },
+      "triggers": {}
+    },
+    "app.published_posts": {
+      "rls": {
+        "enabled": true,
+        "forced": true
+      },
+      "constraints": {
+        "published_posts_external_hash_is_sha256": {
+          "type": "c",
+          "def": "CHECK ((octet_length(external_post_hash) = 32))"
+        },
+        "published_posts_external_hash_unique": {
+          "type": "u",
+          "def": "UNIQUE (social_account_id, external_post_hash)"
+        },
+        "published_posts_one_per_target": {
+          "type": "u",
+          "def": "UNIQUE (publish_target_id)"
+        },
+        "published_posts_pkey": {
+          "type": "p",
+          "def": "PRIMARY KEY (id)"
+        },
+        "published_posts_platform_known": {
+          "type": "c",
+          "def": "CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text])))"
+        },
+        "published_posts_scope_unique": {
+          "type": "u",
+          "def": "UNIQUE (workspace_id, business_profile_id, id)"
+        },
+        "published_posts_target_destination_fk": {
+          "type": "f",
+          "def": "FOREIGN KEY (workspace_id, publish_target_id, social_account_id) REFERENCES app.publish_targets(workspace_id, id, social_account_id)"
+        },
+        "published_posts_target_scope_fk": {
+          "type": "f",
+          "def": "FOREIGN KEY (workspace_id, business_profile_id, publish_target_id) REFERENCES app.publish_targets(workspace_id, business_profile_id, id)"
+        }
+      },
+      "indexes": {
+        "published_posts_destination_idx": "CREATE INDEX published_posts_destination_idx ON app.published_posts USING btree (workspace_id, publish_target_id, social_account_id)",
+        "published_posts_external_hash_unique": "CREATE UNIQUE INDEX published_posts_external_hash_unique ON app.published_posts USING btree (social_account_id, external_post_hash)",
+        "published_posts_one_per_target": "CREATE UNIQUE INDEX published_posts_one_per_target ON app.published_posts USING btree (publish_target_id)",
+        "published_posts_pkey": "CREATE UNIQUE INDEX published_posts_pkey ON app.published_posts USING btree (id)",
+        "published_posts_published_at_idx": "CREATE INDEX published_posts_published_at_idx ON app.published_posts USING btree (published_at)",
+        "published_posts_scope_unique": "CREATE UNIQUE INDEX published_posts_scope_unique ON app.published_posts USING btree (workspace_id, business_profile_id, id)",
+        "published_posts_target_scope_idx": "CREATE INDEX published_posts_target_scope_idx ON app.published_posts USING btree (workspace_id, business_profile_id, publish_target_id)"
+      },
+      "policies": {
+        "published_posts_scope_narrowing": {
+          "permissive": false,
+          "cmd": "*",
+          "roles": "authenticated",
+          "using": "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = published_posts.workspace_id) AND (t.business_profile_id = published_posts.business_profile_id) AND (t.id = published_posts.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))",
+          "check": "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = published_posts.workspace_id) AND (t.business_profile_id = published_posts.business_profile_id) AND (t.id = published_posts.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))"
+        },
+        "published_posts_select_active_member": {
+          "permissive": true,
+          "cmd": "r",
+          "roles": "authenticated",
+          "using": "app.is_active_member(workspace_id)",
+          "check": null
+        }
+      },
+      "triggers": {}
+    },
+    "app.usage_events": {
+      "rls": {
+        "enabled": true,
+        "forced": true
+      },
+      "constraints": {
+        "usage_events_cost_basis_known": {
+          "type": "c",
+          "def": "CHECK ((cost_basis = ANY (ARRAY['provider_reported'::text, 'estimated'::text])))"
+        },
+        "usage_events_cost_currency_known": {
+          "type": "c",
+          "def": "CHECK ((cost_currency = ANY (ARRAY['THB'::text, 'USD'::text])))"
+        },
+        "usage_events_cost_not_negative": {
+          "type": "c",
+          "def": "CHECK ((cost_amount >= (0)::numeric))"
+        },
+        "usage_events_dedupe_key_bounded": {
+          "type": "c",
+          "def": "CHECK (((length(dedupe_key) >= 1) AND (length(dedupe_key) <= 512)))"
+        },
+        "usage_events_dedupe_key_form": {
+          "type": "c",
+          "def": "CHECK ((dedupe_key ~ '^usg:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+:(ai_tokens|research_search|storage_bytes|egress_bytes|media_processing|publish_operation):(provider_reported|estimated):[0-9]{8}T[0-9]{6}(?:[0-9]{1,6})?Z$'::text))"
+        },
+        "usage_events_dedupe_key_names_its_row": {
+          "type": "c",
+          "def": "CHECK (starts_with(dedupe_key, (((((((('usg:'::text || (workspace_id)::text) || ':'::text) || (job_id)::text) || ':'::text) || dimension) || ':'::text) || cost_basis) || ':'::text)))"
+        },
+        "usage_events_dedupe_key_unique": {
+          "type": "u",
+          "def": "UNIQUE (workspace_id, dedupe_key)"
+        },
+        "usage_events_dimension_known": {
+          "type": "c",
+          "def": "CHECK ((dimension = ANY (ARRAY['ai_tokens'::text, 'research_search'::text, 'storage_bytes'::text, 'egress_bytes'::text, 'media_processing'::text, 'publish_operation'::text])))"
+        },
+        "usage_events_pkey": {
+          "type": "p",
+          "def": "PRIMARY KEY (id)"
+        },
+        "usage_events_provider_key_form": {
+          "type": "c",
+          "def": "CHECK ((provider_key ~ '^[a-z][a-z0-9._-]*$'::text))"
+        },
+        "usage_events_quantity_not_negative": {
+          "type": "c",
+          "def": "CHECK ((quantity_amount >= (0)::numeric))"
+        },
+        "usage_events_quantity_unit_known": {
+          "type": "c",
+          "def": "CHECK ((quantity_unit = ANY (ARRAY['token'::text, 'request'::text, 'byte'::text, 'second'::text, 'operation'::text])))"
+        },
+        "usage_events_supersedes_is_not_self": {
+          "type": "c",
+          "def": "CHECK (((supersedes_usage_id IS NULL) OR (supersedes_usage_id <> usage_id)))"
+        },
+        "usage_events_usage_id_unique": {
+          "type": "u",
+          "def": "UNIQUE (usage_id)"
+        }
+      },
+      "indexes": {
+        "usage_events_bucket_recompute_idx": "CREATE INDEX usage_events_bucket_recompute_idx ON app.usage_events USING btree (workspace_id, business_profile_id, dimension, occurred_at)",
+        "usage_events_dedupe_key_unique": "CREATE UNIQUE INDEX usage_events_dedupe_key_unique ON app.usage_events USING btree (workspace_id, dedupe_key)",
+        "usage_events_job_idx": "CREATE INDEX usage_events_job_idx ON app.usage_events USING btree (job_id)",
+        "usage_events_pkey": "CREATE UNIQUE INDEX usage_events_pkey ON app.usage_events USING btree (id)",
+        "usage_events_supersedes_at_most_once": "CREATE UNIQUE INDEX usage_events_supersedes_at_most_once ON app.usage_events USING btree (supersedes_usage_id) WHERE (supersedes_usage_id IS NOT NULL)",
+        "usage_events_usage_id_unique": "CREATE UNIQUE INDEX usage_events_usage_id_unique ON app.usage_events USING btree (usage_id)",
+        "usage_events_workspace_keyset_idx": "CREATE INDEX usage_events_workspace_keyset_idx ON app.usage_events USING btree (workspace_id, created_at DESC, id DESC)"
+      },
+      "policies": {},
+      "triggers": {}
+    }
+  }
+}

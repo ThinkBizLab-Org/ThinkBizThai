@@ -203,7 +203,15 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // premises (no view, matview or foreign table in app and private; no superuser but the migration owner;
 // no membership among non-superuser roles, none pinned) and the classification SQL's refused tables; the
 // role CTEs anchored in place of one assertion; no test added or renamed; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 793,
+// 793 to 878 with batch 150's prerequisites (2026-10-04, no migration): the pinned shapes, vocabulary
+// checks, policy set and index coverage files and their probes' reading predicates, the WS:911 fixture's
+// shape and the EXPLAIN harness's refusals, rollback and absence from the Makefile and CI; no test is added
+// and none renamed, so the test floor and the name digest stay; the guard's own count.
+// 878 to 898 with batch 150-prereq's review round (2026-10-04, no migration): the shared test-instance host
+// guard (A1 S1, Q0 Q-4, C0-9), the harness's emptiness refusal (A1 S3, C0-4, Q0 Q-6), the pinned shape
+// trigger set (A1 S4, C0-8), the roles comparisons (Q0 Q-3), the index coverage run, qualified column,
+// btree and NULLS readings (C0-1, Q0 Q-1, Q-2) and the 16-table count (C0-5); no test added or renamed.
+  'test-kits/db/foundation-contract.test.mjs': 898,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
