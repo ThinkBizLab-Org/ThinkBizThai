@@ -16857,7 +16857,9 @@ export function buildCases(id) {
       sql: 'select id from app.calendar_items where id = $1',
       params: [id('calendar_item_a2')],
       expect: 'no-rows',
-      why: 'BATCH 091: the restrictive narrowing asks the member scope of the ITEM; business_a2 is outside the editor\'s scope.',
+      why: 'BATCH 091: the restrictive narrowing asks the member scope of the ITEM; business_a2 is outside the editor\'s scope. '
+         + 'calendar_item_a2 is soft-deleted (so its item is free for the out-of-remit placement below), and a deleted placement is visible to every active member today; '
+         + 'if A5 hides deleted placements (blocker 191 (a)), this case must move to a live row.',
     },
     {
       id: 'anonymous-cannot-read-the-calendar',
@@ -16965,7 +16967,7 @@ export function buildCases(id) {
       sql: "update app.calendar_items set scheduled_local_date = '2026-10-12', updated_by = $2 where id = $1 returning id",
       params: [id('calendar_item_a1'), '__SELF__'],
       expect: 'no-effect',
-      witness: { as: ownerA, sql: 'select scheduled_local_date::text as d from app.calendar_items where id = $1', params: [id('calendar_item_a1')], column: 'd', equals: '2026-10-05' },
+      witness: { as: ownerA, sql: 'select to_char(scheduled_local_date, \'YYYY-MM-DD\') as d from app.calendar_items where id = $1', params: [id('calendar_item_a1')], column: 'd', equals: '2026-10-05' },
       why: 'BATCH 091: the write policy\'s USING admits only owner and admin, so the editor\'s statement matches nothing; the owner witnesses the date unchanged.',
     },
     {
@@ -17068,7 +17070,7 @@ export function buildCases(id) {
       why: 'BATCH 091: a draft is the owner\'s to edit.',
     },
     {
-      id: 'owner-a-cannot-arm-a-draft',
+      id: 'owner-a-cannot-arm-a-draft-schedule',
       covers: ['§4.7', '§8.3'],
       as: ownerA,
       sql: "update app.content_schedules set status = 'armed', updated_by = $2 where id = $1 returning id",
@@ -17221,7 +17223,7 @@ export function buildCases(id) {
       why: 'BATCH 091: calendar_items_deleted_is_final filters a deleted placement out of every client UPDATE; undeleting is a command path\'s.',
     },
     {
-      id: 'owner-a-cannot-backdate-a-deletion',
+      id: 'owner-a-cannot-backdate-a-placement-deletion',
       covers: ['§8.5', '§10/SCHEDULE-HISTORY'],
       as: ownerA,
       sql: "with deleted as (update app.calendar_items set deleted_at = timestamptz '2001-01-01 00:00:00+00', updated_by = $2 "
@@ -17267,12 +17269,15 @@ export function buildCases(id) {
       covers: ['§8.6/3', '§7/member-scope'],
       as: adminA,
       sql: 'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
-         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Asia/Bangkok', $4)",
+         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Asia/Bangkok', $4) on conflict do nothing",
       params: ['__A__', id('business_a2'), id('content_target_a2'), '__SELF__'],
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'content_schedules' },
-      why: 'BATCH 091: the narrowing\'s WITH CHECK half refuses the row. NO RETURNING, on purpose: with it the USING half would refuse the returned row as well, and a WITH CHECK gutted alone would go unseen. Row level security runs before the live-schedule index, so a gutted WITH CHECK reads 23505 here instead.',
+      why: 'BATCH 091: the narrowing\'s WITH CHECK half refuses the row. NO RETURNING, on purpose: with it the USING half would refuse the returned row as well, and a WITH CHECK gutted alone would go unseen. '
+         + 'ON CONFLICT DO NOTHING, on purpose too (Q0 F7 on 091\'s corrections): content_target_a2 is the only target under business_a2 and carries the live content_schedule_a2, '
+         + 'which the cancel case above needs, so without it a gutted WITH CHECK reached the live-schedule index and read as 23505. Row level security checks the row before the conflict, '
+         + 'so the clean database still refuses it by name; with the WITH CHECK gutted the statement is ADMITTED and does nothing, and the case fails as a statement that was not refused.',
     },
     {
       id: 'admin-a-cannot-place-an-item-outside-their-remit',
@@ -17284,7 +17289,8 @@ export function buildCases(id) {
       expect: 'denied',
       deniedBy: 'policy',
       deniedOn: { kind: 'table', name: 'calendar_items' },
-      why: 'BATCH 091 (A1 F2): the calendar narrowing\'s WITH CHECK half; with it gutted A1 measured an out-of-scope placement written. NO RETURNING, so the USING half cannot stand in for it (measured: with RETURNING this case stayed green with the WITH CHECK gutted).',
+      why: 'BATCH 091 (A1 F2): the calendar narrowing\'s WITH CHECK half; with it gutted A1 measured an out-of-scope placement written. NO RETURNING, so the USING half cannot stand in for it (measured: with RETURNING this case stayed green with the WITH CHECK gutted). '
+         + 'content_item_a2 has NO live placement (calendar_item_a2 is soft-deleted, Q0 F7 on 091\'s corrections), so with the WITH CHECK gutted the placement is written and the case fails as admitted, not by 23505.',
     },
     {
       id: 'narrow-editor-a-cannot-see-the-placement-on-the-sibling-item',
@@ -17364,18 +17370,19 @@ export function buildCases(id) {
       covers: ['§3.2'],
       as: ownerA,
       sql: 'insert into app.calendar_items (workspace_id, business_profile_id, content_item_id, scheduled_local_date, timezone, created_by)'
-         + " values ($1, $2, $3, '2026-10-09', 'Not/AZone', $4) returning id",
+         + " values ($1, $2, $3, '2026-10-09', 'Asia/Not_A_Zone', $4) returning id",
       params: ['__A__', BUSINESS_A1, id('content_item_a1_page'), '__SELF__'],
       expect: 'rejected',
       sqlstate: '22023',
-      why: 'BATCH 091: calendar_items_timezone_known asks PostgreSQL to read the zone, which raises 22023 on a name it does not know.',
+      why: 'BATCH 091: calendar_items_timezone_known asks PostgreSQL to read the zone, which raises 22023 on a name it does not know. '
+         + 'The name has IANA\'s shape (Area/Location), so timezone_is_iana admits it and only the timezone() call can refuse it.',
     },
     {
       id: 'owner-a-cannot-schedule-in-an-unknown-zone',
       covers: ['§3.2'],
       as: ownerA,
       sql: 'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
-         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Not/AZone', $4) returning status",
+         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Asia/Not_A_Zone', $4) returning status",
       params: ['__A__', BUSINESS_A1, id('content_target_a1_page'), '__SELF__'],
       expect: 'rejected',
       sqlstate: '22023',
@@ -17391,6 +17398,135 @@ export function buildCases(id) {
       sqlstate: '23514',
       violates: 'calendar_items_display_status_bounded',
       why: 'BATCH 091 (A1 F8): display_status has no vocabulary yet (blocker, for A5), but every active member reads it, so its length is bounded.',
+    },
+    // -- BATCH 091's SECOND ROUND (Q0's test, C0's and A1's re-verification, 2026-10-03) ---------------
+    //
+    // §8.3's N CELLS FOR THE APPROVER AND THE VIEWER, ON EVERY WRITE (Q0 F1, MEDIUM). A read policy
+    // retyped FOR ALL under its own name passed every layer and let user_approver_a place an item and
+    // user_viewer_a create a schedule; no case asked either. The block now pins both read policies and
+    // counts the permissive ones per command; these cases are the run-time half.
+    {
+      id: 'approver-a-cannot-place-an-item-on-the-calendar',
+      covers: ['§8.3', '§8.6/2'],
+      as: approverA,
+      sql: 'insert into app.calendar_items (workspace_id, business_profile_id, content_item_id, scheduled_local_date, timezone, created_by)'
+         + " values ($1, $2, $3, '2026-10-09', 'Asia/Bangkok', $4) returning id",
+      params: ['__A__', BUSINESS_A1, id('content_item_a1_page'), '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'calendar_items' },
+      why: 'BATCH 091 (Q0 F1): Schedule/unschedule is N for the approver; content_item_a1_page has no placement, so only a policy can refuse it.',
+    },
+    {
+      id: 'approver-a-cannot-move-a-placement',
+      covers: ['§8.3', '§8.6/2'],
+      as: approverA,
+      sql: "update app.calendar_items set scheduled_local_date = '2026-10-12', updated_by = $2 where id = $1 returning id",
+      params: [id('calendar_item_a1'), '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: ownerA, sql: 'select to_char(scheduled_local_date, \'YYYY-MM-DD\') as d from app.calendar_items where id = $1', params: [id('calendar_item_a1')], column: 'd', equals: '2026-10-05' },
+      why: 'BATCH 091 (Q0 F1): the approver reads the placement and may not move it; the owner witnesses the date unchanged.',
+    },
+    {
+      id: 'viewer-a-cannot-move-a-placement',
+      covers: ['§8.3', '§8.6/2'],
+      as: viewerA,
+      sql: "update app.calendar_items set scheduled_local_date = '2026-10-12', updated_by = $2 where id = $1 returning id",
+      params: [id('calendar_item_a1'), '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: ownerA, sql: 'select to_char(scheduled_local_date, \'YYYY-MM-DD\') as d from app.calendar_items where id = $1', params: [id('calendar_item_a1')], column: 'd', equals: '2026-10-05' },
+      why: 'BATCH 091 (Q0 F1): the same for the viewer, the weakest active role.',
+    },
+    {
+      id: 'viewer-a-cannot-schedule-a-target',
+      covers: ['§8.3', '§8.6/2'],
+      as: viewerA,
+      sql: 'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
+         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Asia/Bangkok', $4) returning status",
+      params: ['__A__', BUSINESS_A1, id('content_target_a1_page'), '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'content_schedules' },
+      why: 'BATCH 091 (Q0 F1): Schedule/unschedule is N for the viewer; content_target_a1_page has no live schedule, so only a policy can refuse it.',
+    },
+    {
+      id: 'approver-a-cannot-cancel-a-schedule',
+      covers: ['§8.3', '§8.6/2'],
+      as: approverA,
+      sql: "update app.content_schedules set status = 'cancelled', updated_by = $2 where id = $1 returning id",
+      params: [id('content_schedule_a1_fb'), '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: ownerA, sql: 'select status from app.content_schedules where id = $1', params: [id('content_schedule_a1_fb')], column: 'status', equals: 'draft' },
+      why: 'BATCH 091 (Q0 F1): "unschedule" is N for the approver; the owner witnesses the draft unchanged.',
+    },
+    {
+      id: 'viewer-a-cannot-cancel-a-schedule',
+      covers: ['§8.3', '§8.6/2'],
+      as: viewerA,
+      sql: "update app.content_schedules set status = 'cancelled', updated_by = $2 where id = $1 returning id",
+      params: [id('content_schedule_a1_fb'), '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: ownerA, sql: 'select status from app.content_schedules where id = $1', params: [id('content_schedule_a1_fb')], column: 'status', equals: 'draft' },
+      why: 'BATCH 091 (Q0 F1): the same for the viewer.',
+    },
+    // ZONES MUST HAVE IANA's SHAPE (Q0 F4, C0 G1, A1 N1). Each refused spelling is one timezone() reads,
+    // so only *_timezone_is_iana refuses it, and each case names that constraint.
+    {
+      id: 'owner-a-cannot-place-an-item-in-utc-plus-7',
+      covers: ['§3.2'],
+      as: ownerA,
+      sql: 'insert into app.calendar_items (workspace_id, business_profile_id, content_item_id, scheduled_local_date, timezone, created_by)'
+         + " values ($1, $2, $3, '2026-10-09', 'UTC+7', $4) returning id",
+      params: ['__A__', BUSINESS_A1, id('content_item_a1_page'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'calendar_items_timezone_is_iana',
+      why: 'BATCH 091 (Q0 F4, C0 G1): PostgreSQL reads \'UTC+7\' as POSIX, which is UTC-7, fourteen hours from what a Thai user means. Not IANA, refused.',
+    },
+    {
+      id: 'owner-a-cannot-schedule-in-plus-07',
+      covers: ['§3.2'],
+      as: ownerA,
+      sql: 'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
+         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', '+07', $4) returning status",
+      params: ['__A__', BUSINESS_A1, id('content_target_a1_page'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'content_schedules_timezone_is_iana',
+      why: 'BATCH 091 (Q0 F4, C0 G1): \'+07\' is read with the POSIX sign too, as UTC-7. Refused by the shape.',
+    },
+    {
+      id: 'owner-a-cannot-schedule-in-an-abbreviation',
+      covers: ['§3.2'],
+      as: ownerA,
+      sql: 'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
+         + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'EST', $4) returning status",
+      params: ['__A__', BUSINESS_A1, id('content_target_a1_page'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'content_schedules_timezone_is_iana',
+      why: 'BATCH 091 (C0 G1, A1 N1): \'EST\' is -5 under the default timezone_abbreviations and +10 under Australia\'s, so its meaning depends on the session. Refused by the shape.',
+    },
+    {
+      id: 'owner-a-cannot-place-an-item-in-a-posix-rule',
+      covers: ['§3.2'],
+      as: ownerA,
+      sql: 'insert into app.calendar_items (workspace_id, business_profile_id, content_item_id, scheduled_local_date, timezone, created_by)'
+         + " values ($1, $2, $3, '2026-10-09', 'XYZ+3', $4) returning id",
+      params: ['__A__', BUSINESS_A1, id('content_item_a1_page'), '__SELF__'],
+      expect: 'rejected',
+      sqlstate: '23514',
+      violates: 'calendar_items_timezone_is_iana',
+      why: 'BATCH 091 (C0 G1): \'XYZ+3\' is a POSIX rule with an invented name, which timezone() accepts. Refused by the shape.',
+    },
+    {
+      id: 'owner-a-can-re-zone-a-placement-to-asia-bangkok',
+      covers: ['§3.2'],
+      as: ownerA,
+      sql: "update app.calendar_items set timezone = 'Asia/Bangkok', updated_by = $2 where id = $1 returning timezone",
+      params: [id('calendar_item_a1'), '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 091: the positive the four refusals above are measured against: an IANA Area/Location name passes both zone CHECKs.',
     },
     // THE SERVICE-PATH CLOSURES, READ BACK FROM THE CATALOG (C0 F4), as batch 082's are.
     {

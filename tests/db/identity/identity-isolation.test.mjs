@@ -11434,10 +11434,20 @@ test('batch 091 case ids are held to its own two control entries and to no other
   const ours = entries.filter((e) => e.batch === '091');
   assert.deepEqual(ours.map((e) => e.table).sort(), ['calendar_items', 'content_schedules'], 'batch 091 owns two control entries');
   const family = Object.fromEntries(ours.map((e) => [e.table, cases.filter((c) => new RegExp(`^${e.pattern}`).test(c.id))]));
-  assert.equal(family.calendar_items.length, 23, '23 placement ids (after 091\'s corrections)');
-  assert.equal(family.content_schedules.length, 32, '32 schedule ids (after 091\'s corrections)');
+  // 091's second round: six placement ids and five schedule ids added (Q0 F1, F4), and the two ids that
+  // matched neither pattern renamed into their families (Q0 F3, C0 G7): 23 to 30 and 32 to 38.
+  assert.equal(family.calendar_items.length, 30, '30 placement ids (after 091\'s second round)');
+  assert.equal(family.content_schedules.length, 38, '38 schedule ids (after 091\'s second round)');
   for (const [table, members] of Object.entries(family)) {
     for (const c of members) assert.match(c.why, /^BATCH 091/, `${c.id} matches app.${table}'s control and is not a batch 091 case`);
+  }
+  // And the converse (Q0 F3 on 091's corrections): every batch 091 case is in exactly one of the two
+  // families, so a case that fails under a control is always counted by that control's pattern.
+  const batch091 = cases.filter((c) => /^BATCH 091/.test(c.why ?? ''));
+  assert.equal(batch091.length, 68, 'batch 091 has 68 cases');
+  for (const c of batch091) {
+    const matched = ours.filter((e) => new RegExp(`^${e.pattern}`).test(c.id)).map((e) => e.table);
+    assert.equal(matched.length, 1, `${c.id} matches ${matched.length} of batch 091's two control patterns, not exactly one`);
   }
   const overlap = family.calendar_items.filter((c) => family.content_schedules.includes(c)).map((c) => c.id);
   assert.deepEqual(overlap, [], 'the two families are disjoint');

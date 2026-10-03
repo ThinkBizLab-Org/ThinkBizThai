@@ -474,7 +474,7 @@
     },
     "calendar_item_a2": {
       "uuid": "e85d3696-ee89-5598-89c5-6b181cb86800",
-      "role": "Batch 091: the placement of content_item_a2 (business_a2), outside user_editor_a's scope -- §8.6 case 3 for the calendar."
+      "role": "Batch 091: the placement of content_item_a2 (business_a2), outside user_editor_a's scope -- §8.6 case 3 for the calendar. SOFT-DELETED since 091's second round (Q0 F7), so content_item_a2 has no live placement and the out-of-remit insert is written, not refused by the one-active index, when the narrowing's WITH CHECK is gutted."
     },
     "calendar_item_b1": {
       "uuid": "89052307-19b9-57f0-9aa4-2aa8e31cdc6f",

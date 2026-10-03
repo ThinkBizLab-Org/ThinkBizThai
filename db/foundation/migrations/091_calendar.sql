@@ -37,6 +37,13 @@
 -- in the one-schedule-per-target index, zones must be ones PostgreSQL recognises, display_status is
 -- bounded, and deleted_at is the database's. A0's record: evidence/WP-0A-DB-00/.
 --
+-- THE SECOND ROUND (Q0's test and C0's and A1's re-verification of those corrections, 2026-10-03): the
+-- two read policies are pinned by command and text and the permissive policies are counted per table
+-- and per command (Q0 F1, MEDIUM: a read policy retyped FOR ALL under its own name let an approver
+-- place an item and a viewer create a schedule with every layer green); zones must have IANA's shape
+-- and the pinned text no longer depends on DateStyle; the service roles are checked for column and
+-- REFERENCES/TRIGGER grants; every NOT NULL and the two remaining CHECKs are pinned.
+--
 -- THE ORDERING, and why one column has no foreign key. content_schedules.publish_intent_id names
 -- batch 120's app.publish_intents, and this file sorts before 120. So the column is created here and
 -- its foreign key is added by 124_calendar_publish_intent_fk.sql, after 120 and 122. This is the
@@ -61,12 +68,24 @@ create table if not exists app.calendar_items (
   -- calendar, and the timestamp belongs to the schedule.
   scheduled_local_date  date        not null,
   -- The zone the date is read in. Asia/Bangkok is the product default (DEC-UX-06, fixed in CTR-TEN-001
-  -- and 010's workspace_settings). The CHECK below refuses a zone PostgreSQL does not recognise:
-  -- timezone(text, timestamp) is IMMUTABLE and raises 22023 on an unknown name (a timestamp WITHOUT a zone,
-  -- so the constraint's deparsed text does not depend on the session's TimeZone). It admits every zone
-  -- PostgreSQL knows, POSIX spellings such as 'UTC+7' included; IANA-only would need pg_timezone_names,
-  -- which is not immutable (C0 F8, A1 F8 on 091's first head; the first draft said "a non-blank shape
-  -- is all the database can check", which was untrue).
+  -- and 010's workspace_settings). §3.2 asks for an IANA zone, and two CHECKs below hold it:
+  --   * *_timezone_is_iana: the SHAPE. 'UTC', or an IANA Area/Location name -- one of the ten
+  --     geographic Areas, then one or more Location segments of letters, underscores and inner hyphens.
+  --     It refuses every offset spelling ('UTC+7', '+07' and '7' are POSIX and read as UTC-7, the
+  --     opposite of what a Thai user means; 'Etc/GMT-7' is IANA's own inverted form), every bare
+  --     abbreviation ('EST', 'ICT', 'WST', whose meaning, and whether PostgreSQL accepts them at all,
+  --     depends on the session's timezone_abbreviations, so a row could become un-updatable in another
+  --     session) and every POSIX rule ('XYZ+3', 'EST5EDT'). A name with a '/' is never read as an
+  --     abbreviation, so what this admits means the same in every session.
+  --   * *_timezone_known: PostgreSQL must recognise the name. timezone(text, timestamp) is IMMUTABLE and
+  --     raises 22023 on an unknown name. The literal is make_timestamp(2000, 1, 1, 0, 0, 0), not a quoted
+  --     timestamp, so the deparsed text the block pins depends on neither TimeZone nor DateStyle (C0 G2
+  --     on 091's corrections: under DateStyle 'SQL, DMY' the quoted literal deparsed as '01/01/2000' and
+  --     091 failed to apply).
+  -- Together they admit the IANA names PostgreSQL's tzdata knows in those Areas, and 'UTC'. A pinned
+  -- allowlist instead of the shape, and what a restore onto a server with older tzdata does to a stored
+  -- name, are A5's to decide (blocker 191 (h); C0 F8, A1 F8 on 091's first head, Q0 F4, C0 G1 and A1 N1
+  -- on its corrections).
   timezone              text        not null default 'Asia/Bangkok',
   -- No vocabulary: §4.7 names display_status and enumerates nothing. Batch 080 left approval_state
   -- the same way. A blank value is refused; which values are legal is a blocker for A5.
@@ -79,8 +98,12 @@ create table if not exists app.calendar_items (
   -- on it.
   deleted_at            timestamptz,
   constraint calendar_items_timezone_not_blank check (length(btrim(timezone)) > 0),
+  constraint calendar_items_timezone_is_iana
+    check (timezone = 'UTC'
+           or timezone ~ '^(Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)(/[A-Za-z_]+(-[A-Za-z_]+)*)+$'),
   constraint calendar_items_timezone_known
-    check (length(timezone) <= 64 and pg_catalog.timezone(timezone, timestamp '2000-01-01 00:00:00') is not null),
+    check (length(timezone) <= 64
+           and pg_catalog.timezone(timezone, pg_catalog.make_timestamp(2000, 1, 1, 0, 0, 0)) is not null),
   constraint calendar_items_display_status_not_blank
     check (display_status is null or length(btrim(display_status)) > 0),
   constraint calendar_items_display_status_bounded
@@ -127,9 +150,13 @@ create table if not exists app.content_schedules (
   constraint content_schedules_status_known
     check (status in ('draft', 'armed', 'dispatched', 'cancelled', 'completed', 'failed')),
   constraint content_schedules_timezone_not_blank check (length(btrim(timezone_snapshot)) > 0),
+  -- The same two CHECKs as calendar_items.timezone (see there).
+  constraint content_schedules_timezone_is_iana
+    check (timezone_snapshot = 'UTC'
+           or timezone_snapshot ~ '^(Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)(/[A-Za-z_]+(-[A-Za-z_]+)*)+$'),
   constraint content_schedules_timezone_known
     check (length(timezone_snapshot) <= 64
-           and pg_catalog.timezone(timezone_snapshot, timestamp '2000-01-01 00:00:00') is not null),
+           and pg_catalog.timezone(timezone_snapshot, pg_catalog.make_timestamp(2000, 1, 1, 0, 0, 0)) is not null),
   constraint content_schedules_version_positive check (version >= 1),
   constraint content_schedules_target_scope_fk
     foreign key (workspace_id, business_profile_id, content_target_id)
@@ -383,12 +410,17 @@ begin
       using hint = '§8.3 Schedule/unschedule is Y for owner and admin, P for editor (undefined, refused), N for approver and viewer.';
   end if;
 
-  -- 5. THE FOUR PERMISSIVE WRITE POLICIES, BY EXACT TEXT, BOTH HALVES (C0 F1/F2 and A1 F1/F2 on 091's
+  -- 5. ALL SIX PERMISSIVE POLICIES, BY COMMAND AND EXACT TEXT, BOTH HALVES (C0 F1/F2 and A1 F1/F2 on 091's
   --    first head: a regex over one half let a widened USING through). The INSERT policies admit a draft,
   --    unlinked, at version 1; the UPDATE policies touch only owner/admin rows, and a schedule only while
-  --    draft or armed, writing only draft or cancelled.
+  --    draft or armed, writing only draft or cancelled. The two READ policies are pinned too, as FOR
+  --    SELECT with no WITH CHECK (Q0 F1 on 091's corrections, MEDIUM: a read policy recreated FOR ALL
+  --    under its own name, with the owner/admin token in its WITH CHECK, passed items 3 and 4 and the count
+  --    of six, and let an approver place an item and a viewer create a schedule).
   select string_agg(pin.name, ', ' order by pin.name) into offending
     from (values
+      ('calendar_items_select_active_member', 'r', 'app.is_active_member(workspace_id)', null),
+      ('content_schedules_select_active_member', 'r', 'app.is_active_member(workspace_id)', null),
       ('calendar_items_insert_scheduler', 'a', null,
        '((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY[''owner''::text, ''admin''::text])))'),
       ('calendar_items_update_scheduler', 'w',
@@ -405,30 +437,50 @@ begin
       where pol.polname = pin.name and pol.polpermissive and pol.polcmd = pin.cmd
         and pol.polrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass)
         and pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) is not distinct from pin.using_text
-        and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = pin.check_text);
+        and pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) is not distinct from pin.check_text);
   if offending is not null then
-    raise exception 'batch 091 write policy(ies) not in their exact text: %', offending;
+    raise exception 'batch 091 permissive policy(ies) not in their command and exact text: %', offending;
   end if;
-  if (select count(*) from pg_catalog.pg_policy pol
-       where pol.polrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass) and pol.polpermissive) <> 6 then
-    raise exception 'batch 091 has other permissive policies than its two reads and four writes';
+  -- Exactly one permissive policy per table per command, SELECT, INSERT and UPDATE, and none FOR ALL or
+  -- FOR DELETE: a total of six could hide a retyped policy beside a missing one.
+  if (select array_agg(format('%s:%s', c.relname, pol.polcmd) order by c.relname, pol.polcmd)
+        from pg_catalog.pg_policy pol join pg_catalog.pg_class c on c.oid = pol.polrelid
+       where pol.polrelid in ('app.calendar_items'::regclass, 'app.content_schedules'::regclass) and pol.polpermissive)
+     is distinct from array['calendar_items:a', 'calendar_items:r', 'calendar_items:w',
+                            'content_schedules:a', 'content_schedules:r', 'content_schedules:w'] then
+    raise exception 'batch 091 has other permissive policies than one SELECT, one INSERT and one UPDATE on each table';
   end if;
 
   -- 6. The client grants: status, publish_intent_id and version are not insertable; publish_intent_id
-  --    and version are not updatable; app_worker and anon hold nothing.
+  --    and version are not updatable; neither is the id, the scope (workspace, Business and the item or
+  --    target) or created_by on either table (Q0 F6 on 091's corrections: an UPDATE grant on the scope
+  --    columns passed every layer, and only the composite key then stood between a client and a move
+  --    across scope); app_worker and anon hold nothing.
   select string_agg(format('%s.%s %s', t, col, priv), ', ') into offending
     from (values ('content_schedules', 'status', 'INSERT'), ('content_schedules', 'publish_intent_id', 'INSERT'),
                  ('content_schedules', 'version', 'INSERT'), ('content_schedules', 'publish_intent_id', 'UPDATE'),
                  ('content_schedules', 'version', 'UPDATE'), ('content_schedules', 'content_target_id', 'UPDATE'),
                  ('calendar_items', 'content_item_id', 'UPDATE'), ('calendar_items', 'updated_by', 'INSERT'),
-                 ('content_schedules', 'updated_by', 'INSERT')) as g(t, col, priv)
+                 ('content_schedules', 'updated_by', 'INSERT'),
+                 ('calendar_items', 'id', 'UPDATE'), ('calendar_items', 'workspace_id', 'UPDATE'),
+                 ('calendar_items', 'business_profile_id', 'UPDATE'), ('calendar_items', 'created_by', 'UPDATE'),
+                 ('content_schedules', 'id', 'UPDATE'), ('content_schedules', 'workspace_id', 'UPDATE'),
+                 ('content_schedules', 'business_profile_id', 'UPDATE'), ('content_schedules', 'created_by', 'UPDATE'))
+         as g(t, col, priv)
    where pg_catalog.has_column_privilege('authenticated', ('app.' || t)::regclass, col, priv);
   if offending is not null then
     raise exception 'authenticated holds a batch 091 column privilege it must not: %', offending;
   end if;
+  -- Every table privilege, and every column privilege on any column (Q0 F2 on 091's corrections: a
+  -- column-level UPDATE or SELECT, or TRIGGER or REFERENCES, reached app_worker with this check green,
+  -- because has_table_privilege is false for a column-only grant and the list named five of seven).
+  -- MAINTAIN exists from PostgreSQL 17 and is asked only there.
   select string_agg(format('%s on %s', r, t), ', ') into offending
     from unnest(cal_tables) t, unnest(array['anon', 'app_worker', 'app_command', 'app_maintenance', 'app_authz']) r
-   where pg_catalog.has_table_privilege(r, ('app.' || t)::regclass, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE');
+   where pg_catalog.has_table_privilege(r, ('app.' || t)::regclass,
+           'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'
+           || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then ', MAINTAIN' else '' end)
+      or pg_catalog.has_any_column_privilege(r, ('app.' || t)::regclass, 'SELECT, INSERT, UPDATE, REFERENCES');
   if offending is not null then
     raise exception 'a non-client role holds a privilege on a batch 091 table: %', offending;
   end if;
@@ -438,7 +490,8 @@ begin
     raise exception 'authenticated may DELETE from %; §8.5 gives no broad user delete', offending;
   end if;
 
-  -- 7. The status vocabulary, the value bounds and the two scope keys, by definition text. The deferred
+  -- 7. The status vocabulary, the zone and value CHECKs and the two scope keys, by definition text, and
+  --    every NOT NULL. The zone pins hold the DateStyle-independent literal (C0 G2). The deferred
   --    intent key is 124's to assert (C0 F4 on 091's first head: this comment used to claim the key's
   --    absence was checked, and it was not).
   if (select pg_catalog.pg_get_constraintdef(con.oid) from pg_catalog.pg_constraint con
@@ -450,9 +503,15 @@ begin
     from (values
       ('calendar_items_item_scope_fk', 'FOREIGN KEY (workspace_id, business_profile_id, content_item_id) REFERENCES app.content_items(workspace_id, business_profile_id, id)'),
       ('content_schedules_target_scope_fk', 'FOREIGN KEY (workspace_id, business_profile_id, content_target_id) REFERENCES app.content_targets(workspace_id, business_profile_id, id)'),
-      ('calendar_items_timezone_known', 'CHECK (((length(timezone) <= 64) AND (timezone(timezone, ''2000-01-01 00:00:00''::timestamp without time zone) IS NOT NULL)))'),
-      ('content_schedules_timezone_known', 'CHECK (((length(timezone_snapshot) <= 64) AND (timezone(timezone_snapshot, ''2000-01-01 00:00:00''::timestamp without time zone) IS NOT NULL)))'),
-      ('calendar_items_display_status_bounded', 'CHECK (((display_status IS NULL) OR (length(display_status) <= 64)))')
+      ('calendar_items_timezone_known', 'CHECK (((length(timezone) <= 64) AND (timezone(timezone, make_timestamp(2000, 1, 1, 0, 0, (0)::double precision)) IS NOT NULL)))'),
+      ('content_schedules_timezone_known', 'CHECK (((length(timezone_snapshot) <= 64) AND (timezone(timezone_snapshot, make_timestamp(2000, 1, 1, 0, 0, (0)::double precision)) IS NOT NULL)))'),
+      ('calendar_items_timezone_is_iana', 'CHECK (((timezone = ''UTC''::text) OR (timezone ~ ''^(Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)(/[A-Za-z_]+(-[A-Za-z_]+)*)+$''::text)))'),
+      ('content_schedules_timezone_is_iana', 'CHECK (((timezone_snapshot = ''UTC''::text) OR (timezone_snapshot ~ ''^(Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)(/[A-Za-z_]+(-[A-Za-z_]+)*)+$''::text)))'),
+      ('calendar_items_display_status_bounded', 'CHECK (((display_status IS NULL) OR (length(display_status) <= 64)))'),
+      -- Q0 F5 on 091's corrections: these two were asserted by nothing, and each could be dropped with
+      -- every layer green.
+      ('calendar_items_display_status_not_blank', 'CHECK (((display_status IS NULL) OR (length(btrim(display_status)) > 0)))'),
+      ('content_schedules_version_positive', 'CHECK ((version >= 1))')
     ) as pin(name, def)
    where not exists (
      select 1 from pg_catalog.pg_constraint con
@@ -461,6 +520,24 @@ begin
         and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
   if offending is not null then
     raise exception 'batch 091 constraint(s) missing, unvalidated or not in their required text: %', offending;
+  end if;
+  -- Every NOT NULL column of both tables (Q0 F5 on 091's corrections: dropping NOT NULL on the scope, the
+  -- item, the date or the status passed every layer; a null workspace_id lets the composite scope key
+  -- skip the row, and a null status escapes status_known and both partial indexes).
+  select string_agg(format('%s.%s', req.t, req.col), ', ' order by req.t, req.col) into offending
+    from (values ('calendar_items', 'id'), ('calendar_items', 'workspace_id'), ('calendar_items', 'business_profile_id'),
+                 ('calendar_items', 'content_item_id'), ('calendar_items', 'scheduled_local_date'),
+                 ('calendar_items', 'timezone'), ('calendar_items', 'created_at'), ('calendar_items', 'updated_at'),
+                 ('content_schedules', 'id'), ('content_schedules', 'workspace_id'),
+                 ('content_schedules', 'business_profile_id'), ('content_schedules', 'content_target_id'),
+                 ('content_schedules', 'scheduled_for'), ('content_schedules', 'timezone_snapshot'),
+                 ('content_schedules', 'status'), ('content_schedules', 'version'), ('content_schedules', 'created_at'),
+                 ('content_schedules', 'updated_at')) as req(t, col)
+   where not exists (
+     select 1 from pg_catalog.pg_attribute a
+      where a.attrelid = ('app.' || req.t)::regclass and a.attname = req.col and not a.attisdropped and a.attnotnull);
+  if offending is not null then
+    raise exception 'batch 091 column(s) no longer NOT NULL: %', offending;
   end if;
 
   -- 8. The two unique-active rules, by definition text.

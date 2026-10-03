@@ -153,7 +153,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // transaction control, and 125's pin test (2026-09-28), the guard's own count.
   'test-kits/db/foundation-contract.test.mjs': 365,
   'test-kits/db/rls-assertions.test.mjs': 108,
-  'tests/db/identity/identity-isolation.test.mjs': 2150,
+  // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
+  // control family (Q0 F3 on 091's corrections), the guard's own count.
+  'tests/db/identity/identity-isolation.test.mjs': 2152,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,

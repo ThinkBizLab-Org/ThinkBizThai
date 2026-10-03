@@ -8,7 +8,8 @@
 -- THIS FIXTURE WRITES INTO BATCH 091's TWO TABLES AND NO OTHER, which is batch 120's lesson. What it
 -- adds:
 --   calendar_item_a1        content_item_a1 (business_a1), inside user_editor_a's scope
---   calendar_item_a2        content_item_a2 (business_a2), OUTSIDE user_editor_a's scope -- §8.6 case 3
+--   calendar_item_a2        content_item_a2 (business_a2), OUTSIDE user_editor_a's scope -- §8.6 case 3;
+--                           SOFT-DELETED since 091's second round (Q0 F7), so its item is free
 --   calendar_item_b1        content_item_b1, tenant B
 --   content_schedule_a1_fb  content_target_a1_fb, a DRAFT
 --   content_schedule_a1_ig  content_target_a1_ig, ARMED -- which no client can produce, so it is here
@@ -25,9 +26,12 @@
 --   content_schedule_a1_page_completed  content_target_a1_page, COMPLETED
 --   content_schedule_a1_page_failed     content_target_a1_page, FAILED
 --
--- WHAT IS DELIBERATELY LEFT FREE: content_item_a1_page has no placement, and content_target_a1_page has
--- no LIVE schedule (its three rows are history, which the partial unique index does not count). The
--- positive insert cases land on those, and the uniqueness cases collide on the rows above.
+-- WHAT IS DELIBERATELY LEFT FREE: content_item_a1_page and content_item_a2 have no live placement, and
+-- content_target_a1_page has no LIVE schedule (its three rows are history, which the partial unique
+-- index does not count). The positive insert cases land on those, the out-of-remit placement aims at
+-- content_item_a2, and the uniqueness cases collide on the rows above. content_target_a2 cannot be left
+-- free: it is the only target under business_a2 and content_schedule_a2 must be live for the
+-- out-of-remit cancel, so the out-of-remit schedule case uses ON CONFLICT DO NOTHING instead.
 --
 -- Rows are written as the connecting role, which bypasses row level security. That is how an `armed`
 -- schedule exists at all, and it is why no case may read the fixture's existence as evidence that a
@@ -40,9 +44,6 @@ insert into app.calendar_items
    created_by, updated_by) values
   ('462b7fa7-98ff-575b-85bb-a64a704e4fa9', 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
    'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a', '963952b8-b41d-58cd-b10f-ca3a3557fe65', '2026-10-05',
-   'Asia/Bangkok', 'planned', '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
-  ('e85d3696-ee89-5598-89c5-6b181cb86800', 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
-   '0a5bed73-2981-5699-b2a1-e1c1663127f4', '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '2026-10-06',
    'Asia/Bangkok', 'planned', '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f'),
   ('89052307-19b9-57f0-9aa4-2aa8e31cdc6f', '43fd5c24-ebea-528f-9ce9-eedf1f8f9765',
    '3fd4e154-ab6e-5d61-8d96-ff1d6a5c31d3', '306426ca-a54a-5e3d-90ec-1feff18372ca', '2026-10-05',
@@ -60,7 +61,14 @@ insert into app.calendar_items
    created_by, updated_by, deleted_at) values
   ('94d5ce3d-9507-51fd-9dfc-a09071c016d0', 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
    'dd7c6dc0-8a6e-5780-a656-0eeae7ef5b4a', '963952b8-b41d-58cd-b10f-ca3a3557fe65', '2026-10-01',
-   'Asia/Bangkok', 'planned', '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f', timestamptz '2026-09-20 09:00:00+00')
+   'Asia/Bangkok', 'planned', '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f', timestamptz '2026-09-20 09:00:00+00'),
+  -- calendar_item_a2, deleted too (Q0 F7 on 091's corrections), so content_item_a2 has no live
+  -- placement and the out-of-remit insert, with the narrowing's WITH CHECK gutted, is WRITTEN rather
+  -- than refused by the one-active index. The read case still sees it: a deleted placement is visible
+  -- to every active member today (blocker 191 (a) asks A5 whether it should be).
+  ('e85d3696-ee89-5598-89c5-6b181cb86800', 'c4840acc-0323-5e13-b1d3-c18d7eb615cb',
+   '0a5bed73-2981-5699-b2a1-e1c1663127f4', '5ddfe1bf-ca6e-5077-9a9e-84ad3399b82d', '2026-10-06',
+   'Asia/Bangkok', 'planned', '5c460eb8-0710-557a-b423-f9b12c76834f', '5c460eb8-0710-557a-b423-f9b12c76834f', timestamptz '2026-09-21 09:00:00+00')
 on conflict (id) do nothing;
 
 insert into app.content_schedules

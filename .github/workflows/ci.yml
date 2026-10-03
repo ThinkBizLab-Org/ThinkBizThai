@@ -779,15 +779,18 @@ jobs:
           control app.approval_requests       '[a-z0-9-]*approval-request'    090
           control app.approval_events         '[a-z0-9-]*approval-event'      090
           # BATCH 091's TWO TABLES (calendar.core, A5's module, written by A0 on the Owner's decision of
-          # 2026-09-28). Measured on a private PostgreSQL 17.11 before the push, with 091's corrections:
-          # with row level security off on app.calendar_items, twelve cases fail and every one is a
-          # placement -- the cross-tenant read, the Business- and Page-scope reads and the out-of-scope
-          # placement, the suspended read, the refused placements and moves, a placement of tenant B's
-          # item, a forged creator and updater, and the undelete; with it off on app.content_schedules,
-          # eighteen fail and every one is a schedule -- the same scope, tenant, suspension and forgery
-          # cases plus every refused state transition. The placement family's ids carry `calendar`,
-          # `placement` or `place-an-item`, and no other case id in the suite contains `calendar`,
-          # `placement` or `schedule`; a static test in identity-isolation holds both patterns to 091.
+          # 2026-09-28). Measured on a private PostgreSQL 17.11 before the push, with 091's second round
+          # (2026-10-03): with row level security off on app.calendar_items, fifteen cases fail and all
+          # fifteen match the placement pattern below -- the cross-tenant read, the Business- and
+          # Page-scope reads and the out-of-scope placement, the suspended read, the editor's, viewer's
+          # and approver's refused placements and moves, a placement of tenant B's item, a forged creator
+          # and updater, and the undelete; with it off on app.content_schedules, twenty-one fail and all
+          # twenty-one match the schedule pattern -- the same scope, tenant, suspension and forgery cases,
+          # the editor's, approver's and viewer's refused schedules and cancels, and every refused state
+          # transition. No failure under either control matches the other pattern. The placement
+          # family's ids carry `calendar`, `placement` or `place-an-item`, and no other case id in the
+          # suite contains `calendar`, `placement` or `schedule`; a static test in identity-isolation
+          # holds both patterns to 091 and every one of 091's 68 cases to exactly one of them.
           control app.calendar_items          '[a-z0-9-]*(calendar|placement|place-an-item)' 091
           control app.content_schedules       '[a-z0-9-]*schedule'            091
           # BATCH 100's FOUR TABLES, AND THE FIRST ENTRY IN THIS LIST WHOSE BASIS INCLUDES A SERVICE
