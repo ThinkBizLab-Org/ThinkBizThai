@@ -3278,3 +3278,296 @@ test('content_targets_social_scope_fk carries no ON DELETE action, by the Owner\
     assert.doesNotMatch(text, /content_targets_social_scope_fk[\s\S]{0,300}on\s+delete/i, `${later} does not give the social key an ON DELETE action without changing the decision first`);
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 141 PREPARATION (A0, 2026-10-03; no migration). Plan:
+// evidence/WP-0A-DB-00/a0-phase-plan-141-170-2026-10-03.md, "Batch 141 -- 3. Can do now". Four
+// static holds on what 141 can do before any of its decisions (Q141-a/b/c) is taken: the §8.4 cell
+// classified in the service-policy map, the audit coverage map, the store's reading of CTR-AUD-001,
+// and fixtures that validate against the Draft contract.
+// ---------------------------------------------------------------------------------------------
+
+const AUDIT_MIGRATION_140 = 'db/foundation/migrations/140_audit.sql';
+const AUDIT_COVERAGE_MAP = 'db/foundation/lint/audit-coverage-map.json';
+const AUD_FIXTURES = 'test-kits/db/fixtures/ctr-aud-001';
+const ERD_DOC = 'docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md';
+const SEC_DOC = 'docs/plans/meta-security-production-ops-workstream-th.md';
+const WP_FILE = 'work-packages/WP-0A-DB-00.json';
+
+// The body of one `create table` in 140, read from the file with line comments stripped: its
+// columns (name, type, not null) and its constraint text.
+const tableBodyOf = (code, table) => {
+  const start = code.indexOf(`create table if not exists ${table} (`);
+  assert.ok(start >= 0, `${table} is created by 140_audit.sql`);
+  const end = code.indexOf('\n);', start);
+  return code.slice(start, end);
+};
+const columnsOf = (body) => {
+  const columns = new Map();
+  for (const m of body.matchAll(/^\s{2}(\w+)\s+(uuid|text|timestamptz|boolean|bytea)\b([^\n]*)$/gm)) {
+    if (m[1] === 'constraint') continue;
+    columns.set(m[1], { type: m[2], notNull: /\bnot null\b|\bprimary key\b/.test(m[3]) });
+  }
+  return columns;
+};
+
+test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED, and still buys no policy', async () => {
+  const { SERVICE_POLICY_MAP, servicePolicyMapLint, tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(SERVICE_POLICY_MAP, 'utf8'));
+  assert.deepEqual(servicePolicyMapLint(map, await tablesCreatedByMigrations()), []);
+  for (const table of ['audit_logs', 'security_events']) {
+    const rows = map.cells.filter((c) => (c.table.includes('.') ? c.table : `app.${c.table}`) === `app.${table}`);
+    assert.equal(rows.length, 1, `app.${table} is classified exactly once`);
+    const [row] = rows;
+    assert.equal(row.operation, 'insert', `app.${table}: the §8.4 cell is the INSERT; UPDATE/DELETE is N for every role`);
+    assert.equal(row.shape, 'carried', `app.${table}: RFC-2026-022 §3 classes this cell CARRIED and §7.2 uses it as its own example`);
+    assert.equal(row.batch, '140_audit.sql');
+    assert.match(row.cell, /^§8\.4 Audit\/security INSERT \| N \| N \| N \| N \| N \| S\b/,
+      `app.${table}: the cell is quoted from §8.4's row`);
+    assert.match(row.why, /Q141-a/, `app.${table}: the row says the producer is undecided rather than implying one`);
+  }
+  // NO POLICY AT ALL on either table, which is stronger than "no service policy" and true today:
+  // RFC-2026-022 is approved and NOT IN EFFECT, and 140 writes no client policy either.
+  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  assert.doesNotMatch(code, /create\s+policy/i, '140 writes no policy; a classification authorises none');
+  for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
+    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(/--[^\n]*/g, '');
+    assert.doesNotMatch(text, /create\s+policy[^;]*\bon\s+app\.(audit_logs|security_events)\b/i,
+      `${later} writes a policy on an audit table while RFC-2026-022 is not in effect and Q141-a is open`);
+  }
+});
+
+test('batch 141 prep: the audit coverage map names real tables, real §8 rows, live blockers, and no producer', async () => {
+  const { tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const map = JSON.parse(await readFile(AUDIT_COVERAGE_MAP, 'utf8'));
+  const tables = await tablesCreatedByMigrations();
+  const wpText = await readFile(WP_FILE, 'utf8');
+  const wpLines = wpText.split('\n');
+  const blockers = JSON.parse(wpText).open_blockers;
+  const erd = await readFile(ERD_DOC, 'utf8');
+  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  const vocabulary = [...code.match(/audit_logs_action_category_known\s+check \(action_category in \(([^)]*)\)\)/)[1]
+    .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.equal(vocabulary.length, 6, "140's category CHECK was read");
+
+  // THE TABLE SET IS THE MIGRATIONS', NOT THE CATALOG SNAPSHOT'S. catalog-snapshot.json was taken
+  // against the provisioned instance on 2026-09-06 and declares 140 (with every batch after 010) not
+  // applied there, so it lists none of the tables this map names. The day 140 is applied and the
+  // snapshot retaken, this assertion fails and the map should be checked against the snapshot too.
+  const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
+  assert.ok(snapshot.not_applied_to_this_instance.migrations.includes('140_audit.sql'),
+    'catalog-snapshot.json now claims 140 is applied: check the coverage map against the snapshot as well');
+
+  const ids = map.actions.map((a) => a.id);
+  assert.equal(new Set(ids).size, ids.length, 'every action id is unique');
+  for (const a of map.actions) {
+    assert.match(a.id, /^[a-z_]+\.[a-z_]+$/, `${a.id}: a dotted, stable id`);
+    // Q141-a is open: a producer named here would be that decision taken in a lint file.
+    assert.equal(a.producer_path, 'UNDECIDED', `${a.id}: the producer path is Q141-a's, not this map's`);
+    assert.equal(a.producer_decision, 'Q141-a', `${a.id}: cites the question that decides it`);
+    assert.ok(Array.isArray(a.tables), `${a.id}: tables is a list`);
+    if (a.tables.length === 0) assert.ok(a.tables_note?.length > 40, `${a.id}: no table only with a reason`);
+    for (const t of a.tables) {
+      assert.match(t, /^(app|private)\.\w+$/, `${a.id}: ${t} is schema-qualified`);
+      assert.ok(tables.has(t), `${a.id}: ${t} is created by no migration`);
+    }
+    if (a.category === null) {
+      assert.ok(a.category_note?.length > 40, `${a.id}: a null category is a finding and says so`);
+    } else {
+      assert.ok(vocabulary.includes(a.category), `${a.id}: ${a.category} is not one of 140's six categories`);
+    }
+    if (a.section8_cell === null) {
+      assert.ok(a.section8_note?.length > 20, `${a.id}: no §8 row only with a reason`);
+    } else {
+      assert.ok(Array.isArray(a.section8_cell) && a.section8_cell.length > 0, `${a.id}: names its §8 row(s)`);
+      for (const cell of a.section8_cell) {
+        assert.ok(erd.includes(`\n| ${cell} |`), `${a.id}: "${cell}" is not a row of the ERD's §8 matrices`);
+      }
+    }
+    assert.ok(Array.isArray(a.blockers) && a.blockers.length > 0, `${a.id}: every row names the blocker that holds it`);
+    for (const b of a.blockers) {
+      assert.ok(Number.isInteger(b.index) && blockers[b.index] !== undefined, `${a.id}: open_blockers[${b.index}] exists`);
+      assert.ok(blockers[b.index].includes(b.quote),
+        `${a.id}: open_blockers[${b.index}] no longer says "${b.quote}" -- the list moved or the blocker changed`);
+      assert.ok(wpLines[b.line - 1]?.includes(JSON.stringify(blockers[b.index]).slice(1, 80)),
+        `${a.id}: open_blockers[${b.index}] is not on ${WP_FILE}:${b.line}`);
+    }
+  }
+
+  // SEC-009's six action classes, read from the document rather than typed here, each have a row.
+  const sec009 = (await readFile(SEC_DOC, 'utf8')).split('\n').find((l) => l.startsWith('| SEC-009 |'));
+  const named = sec009.match(/\| ([a-z]+(?:\/[a-z]+)+) action/)[1].split('/');
+  assert.deepEqual([...named].sort(), [...vocabulary].sort(), "SEC-009's classes are 140's categories");
+  for (const category of named) {
+    assert.ok(map.actions.some((a) => a.category === category), `SEC-009's ${category} action has no row`);
+  }
+  // And the two actions the work package records as owed to 141's coverage, by blocker.
+  assert.ok(map.actions.some((a) => a.id === 'owed.asset_rights_change' && a.blockers.some((b) => b.index === 156)),
+    'the rights change open_blockers[156] owes to batch 141');
+  assert.ok(map.actions.some((a) => a.id === 'owed.schedule_transition_history' && a.blockers.some((b) => b.index === 190)),
+    "091's schedule transition history, open_blockers[190] (f)");
+});
+
+// The contract's leaves, with $ref resolved: path -> { schema, required } where required means
+// required at every step from the root.
+const contractLeaves = async () => {
+  const dir = 'contract-catalog/shared-kernel';
+  const load = async (p) => JSON.parse(await readFile(p, 'utf8'));
+  const refs = {
+    '../ctr-ten-001/schema.json': await load(`${dir}/ctr-ten-001/schema.json`),
+    '../ctr-err-001/schema.json': await load(`${dir}/ctr-err-001/schema.json`),
+  };
+  const schema = await load(`${dir}/ctr-aud-001/schema.json`);
+  const leaves = new Map();
+  const walk = (node, path, required) => {
+    const s = node.$ref ? refs[node.$ref] : node;
+    assert.ok(s, `${path}: unresolvable $ref ${node.$ref}`);
+    if (s.properties && Object.keys(s.properties).length > 0) {
+      for (const [name, sub] of Object.entries(s.properties)) {
+        walk(sub, path ? `${path}.${name}` : name, required && (s.required ?? []).includes(name));
+      }
+    } else {
+      leaves.set(path, { schema: s, required });
+    }
+  };
+  walk(schema, '', true);
+  return { schema, refs, leaves };
+};
+
+test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with every divergence pinned', async () => {
+  const conformance = JSON.parse(await readFile(`${AUD_FIXTURES}/store-conformance.json`, 'utf8'));
+  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  const body = tableBodyOf(code, 'app.audit_logs');
+  const columns = columnsOf(body);
+  const { leaves } = await contractLeaves();
+
+  // BOTH DIRECTIONS. Every column the store has is in the reading, and nothing the reading names is
+  // missing from the store.
+  assert.deepEqual([...columns.keys()].sort(), Object.keys(conformance.columns).sort(),
+    'the columns of app.audit_logs and the columns the conformance reading names differ');
+  const mapped = new Set(Object.values(conformance.columns).flatMap((c) => c.paths));
+  for (const path of mapped) assert.ok(leaves.has(path), `CTR-AUD-001 no longer has ${path}, which the store maps`);
+  // Every contract leaf is mapped by a column or pinned as unmapped -- and not both.
+  for (const path of leaves.keys()) {
+    const pinned = Object.hasOwn(conformance.unmapped_contract_paths, path);
+    assert.ok(mapped.has(path) !== pinned,
+      `CTR-AUD-001's ${path} is ${mapped.has(path) ? 'both mapped and pinned unmapped' : 'neither mapped by a column nor pinned as a divergence'}`);
+  }
+  for (const path of Object.keys(conformance.unmapped_contract_paths)) {
+    assert.ok(leaves.has(path), `the pinned unmapped path ${path} is no longer in CTR-AUD-001`);
+  }
+
+  // THE DIVERGENCES ARE A CLOSED LIST: the four 140 declares (open_blockers[33], line 286), and the
+  // ones this reading found that 140 does not declare. Adding one is a diff a reviewer reads.
+  const divergences = conformance.divergences;
+  assert.deepEqual(Object.keys(divergences).filter((k) => divergences[k].declared).sort(),
+    ['error_is_one_column', 'no_details_column', 'no_locale_no_timezone', 'tenant_context_flattened'],
+    "140's four declared divergences, exactly");
+  assert.deepEqual(Object.keys(divergences).filter((k) => !divergences[k].declared).sort(),
+    ['audit_id_is_a_uuid_named_id', 'created_at_is_store_only', 'scope_ids_are_uuid', 'two_contract_values_one_column'],
+    'the undeclared divergences this reading found, each a finding in the draft record');
+  const used = new Set([
+    ...Object.values(conformance.columns).map((c) => c.divergence).filter(Boolean),
+    ...Object.values(conformance.unmapped_contract_paths),
+    ...Object.values(conformance.type_narrowings),
+  ]);
+  assert.deepEqual([...used].sort(), Object.keys(divergences).sort(), 'every divergence is used, and only those');
+  const wp = JSON.parse(await readFile(WP_FILE, 'utf8'));
+  assert.match(wp.open_blockers[33], /four divergences are declared in the migration header/,
+    'open_blockers[33] still records the four declared divergences');
+
+  // TYPE AND REQUIREDNESS, column by column, from the column's first contract path.
+  for (const [name, { paths }] of Object.entries(conformance.columns)) {
+    const column = columns.get(name);
+    if (paths.length === 0) continue;
+    const { schema, required } = leaves.get(paths[0]);
+    assert.equal(column.notNull, required, `${name}: NOT NULL must follow ${paths[0]}'s requiredness in CTR-AUD-001`);
+    const expected = conformance.type_narrowings[name] ? 'uuid'
+      : schema.format === 'date-time' ? 'timestamptz'
+        : schema.const === true ? 'boolean' : 'text';
+    assert.equal(column.type, expected, `${name}: ${paths[0]} reads as ${expected}`);
+    if (expected === 'uuid') assert.equal(schema.type, 'string', `${name}: the narrowing pinned is string -> uuid`);
+  }
+
+  // VOCABULARIES AND GRAMMARS, CHECK text against the contract keyword, so a moved enum or pattern
+  // fails by column name.
+  const inList = (column) => [...body.match(new RegExp(`check \\(${column} in \\(([^)]*)\\)\\)`))[1]
+    .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.deepEqual(inList('action_category'), leaves.get('action.category').schema.enum, 'action_category = action.category enum');
+  assert.deepEqual(inList('outcome'), leaves.get('outcome').schema.enum, 'outcome = outcome enum');
+  assert.deepEqual(inList('actor_kind'), leaves.get('actor.kind').schema.enum, 'actor_kind = actor.kind enum');
+  assert.deepEqual(leaves.get('tenant_context.actor.kind').schema.enum, leaves.get('actor.kind').schema.enum,
+    'the two actor kinds the column collapses still agree');
+  for (const [column, path] of [['action_name', 'action.name'], ['reason_key', 'reason_key'],
+    ['retention_policy_ref', 'retention.policy_ref'], ['change_before_ref', 'change.before_ref'],
+    ['change_after_ref', 'change.after_ref']]) {
+    const { schema } = leaves.get(path);
+    const sqlPattern = body.match(new RegExp(`${column} ~ '([^']*)'`))?.[1];
+    assert.equal(sqlPattern, schema.pattern.replaceAll('(?:', '('), `${column}: CHECK pattern = ${path} pattern`);
+    assert.match(body, new RegExp(`length\\(${column}\\) <= ${schema.maxLength}\\b`), `${column}: CHECK length = ${path} maxLength`);
+  }
+  for (const flag of ['secret_redacted', 'content_redacted', 'pii_redacted']) {
+    assert.equal(leaves.get(`redaction.${flag}`).schema.const, true, `redaction.${flag} is const true`);
+  }
+  assert.match(body, /check \(secret_redacted and content_redacted and pii_redacted\)/, 'the store asserts all three');
+});
+
+test('batch 141 prep: CTR-AUD-001 fixtures validate as declared, and every valid one fits the store', async () => {
+  const { validate } = await import('../contracts/json-schema-subset.mjs');
+  const { schema, refs, leaves } = await contractLeaves();
+  const resolve = (ref) => refs[ref] ?? null;
+  const conformance = JSON.parse(await readFile(`${AUD_FIXTURES}/store-conformance.json`, 'utf8'));
+  // Each invalid fixture fails for ONE stated reason, at its path -- not for an incidental one.
+  const INVALID = {
+    'invalid-category-rights.json': '$.action.category: value not in enum',
+    'invalid-category-schedule.json': '$.action.category: value not in enum',
+    'invalid-delete-without-before-ref.json': "$.change: missing required property 'before_ref'",
+    'invalid-details-not-empty.json': '$.details: has 1 properties, more than maxProperties 0',
+    'invalid-failed-without-error.json': "$: missing required property 'error'",
+    'invalid-pii-not-redacted.json': '$.redaction.pii_redacted: expected const true',
+    'invalid-succeeded-with-error.json': '$: matches a schema it must not match',
+    'invalid-tenant-locale-not-thai.json': '$.tenant_context.locale: expected const "th-TH"',
+  };
+  const files = (await readdir(AUD_FIXTURES)).filter((n) => /^(valid|invalid)-.*\.json$/.test(n)).sort();
+  assert.deepEqual(files.filter((n) => n.startsWith('invalid-')), Object.keys(INVALID).sort(),
+    'every invalid fixture has its expected reason here, and every expectation has its fixture');
+  const valid = files.filter((n) => n.startsWith('valid-'));
+  assert.ok(valid.length >= 4, 'at least four valid fixtures');
+  const categories = new Set();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const at = (doc, path) => path.split('.').reduce((v, k) => (v == null ? undefined : v[k]), doc);
+  for (const name of files) {
+    const doc = JSON.parse(await readFile(`${AUD_FIXTURES}/${name}`, 'utf8'));
+    const errors = validate(schema, doc, { resolve });
+    if (name.startsWith('invalid-')) {
+      assert.equal(errors.length, 1, `${name} fails for exactly one reason, got ${JSON.stringify(errors)}`);
+      assert.ok(errors[0].startsWith(INVALID[name]), `${name}: expected "${INVALID[name]}", got "${errors[0]}"`);
+      continue;
+    }
+    assert.deepEqual(errors, [], `${name} is valid against CTR-AUD-001`);
+    categories.add(doc.action.category);
+    // THE STORE CAN HOLD IT: every NOT NULL column gets a value, the copies a column collapses
+    // agree, and the uuid-typed columns get uuids.
+    for (const [column, { paths }] of Object.entries(conformance.columns)) {
+      if (paths.length === 0) continue;
+      const values = paths.map((p) => at(doc, p)).filter((v) => v !== undefined);
+      assert.ok(new Set(values.map((v) => JSON.stringify(v))).size <= 1,
+        `${name}: ${paths.join(', ')} disagree, and app.audit_logs.${column} can hold one of them`);
+      if (leaves.get(paths[0]).required) assert.ok(values.length > 0, `${name}: ${column} is NOT NULL and gets no value`);
+      if (conformance.type_narrowings[column] && values.length > 0) {
+        assert.match(values[0], uuid, `${name}: ${column} is uuid in the store`);
+      }
+    }
+  }
+  assert.ok(categories.size >= 4, 'the valid fixtures span at least four of the six categories');
+
+  // app.security_events: no contract governs it, and the conformance file says so; the day one does,
+  // this fails and the reading above owes it a twin.
+  assert.ok(conformance.not_governed['app.security_events'], 'the gap is recorded');
+  for (const entry of await readdir('contract-catalog/shared-kernel', { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const text = await readFile(`contract-catalog/shared-kernel/${entry.name}/schema.json`, 'utf8');
+    assert.doesNotMatch(text, /security_event|source_ip_hash|user_agent_hash/,
+      `${entry.name} now describes the security event; write its store conformance`);
+  }
+});

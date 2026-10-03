@@ -1,0 +1,39 @@
+{
+  "audit_id": "00000000-0000-4000-8000-000001410001",
+  "occurred_at": "2026-10-03T09:00:00Z",
+  "actor": {
+    "kind": "user",
+    "id": "user_synthetic_141_owner"
+  },
+  "tenant_context": {
+    "workspace_id": "00000000-0000-4000-8000-0000000141a1",
+    "actor": {
+      "kind": "user",
+      "id": "user_synthetic_141_owner"
+    },
+    "request_id": "req_synthetic_141_0001",
+    "correlation_id": "corr_synthetic_141_0001",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_141_0001",
+  "redaction": {
+    "secret_redacted": true,
+    "content_redacted": true,
+    "pii_redacted": true
+  },
+  "retention": {
+    "policy_ref": "retention.audit.security_action"
+  },
+  "details": {},
+  "action": {
+    "category": "role",
+    "name": "workspace.member_scope.changed"
+  },
+  "outcome": "succeeded",
+  "reason_key": "audit.role.scope_changed_by_owner",
+  "change": {
+    "before_ref": "record:workspace_member_scope.synthetic-141-1.v1",
+    "after_ref": "record:workspace_member_scope.synthetic-141-1.v2"
+  }
+}

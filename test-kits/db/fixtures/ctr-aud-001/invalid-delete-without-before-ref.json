@@ -1,0 +1,39 @@
+{
+  "audit_id": "00000000-0000-4000-8000-000001410002",
+  "occurred_at": "2026-10-03T09:00:00Z",
+  "actor": {
+    "kind": "user",
+    "id": "user_synthetic_141_owner"
+  },
+  "tenant_context": {
+    "workspace_id": "00000000-0000-4000-8000-0000000141a1",
+    "actor": {
+      "kind": "user",
+      "id": "user_synthetic_141_owner"
+    },
+    "request_id": "req_synthetic_141_0001",
+    "correlation_id": "corr_synthetic_141_0001",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok",
+    "business_profile_id": "00000000-0000-4000-8000-0000000141b1"
+  },
+  "correlation_id": "corr_synthetic_141_0001",
+  "redaction": {
+    "secret_redacted": true,
+    "content_redacted": true,
+    "pii_redacted": true
+  },
+  "retention": {
+    "policy_ref": "retention.audit.security_action"
+  },
+  "details": {},
+  "action": {
+    "category": "delete",
+    "name": "asset.version.purged"
+  },
+  "outcome": "succeeded",
+  "reason_key": "audit.delete.retention_purge",
+  "change": {
+    "after_ref": "snapshot:asset_version.synthetic-141-2.v4"
+  }
+}

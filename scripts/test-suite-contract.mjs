@@ -81,8 +81,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // fourth, the verdict driven by synthetic outcomes: 66 to 67. The catalog-rule probes added one
 // more (2026-09-27): 67 to 68, and Q0's F2 on that head a sixth, the probe verdict: 68 to 69. Batch
 // 105's pin test: 69 to 70. Batch 123's pin test: 70 to 71. Its corrections renamed two and added none.
-// Batch 125's pin test: 71 to 72. Batch 127's pin test: 72 to 73.
-  'test-kits/db/foundation-contract.test.mjs': 73,
+// Batch 125's pin test: 71 to 72. Batch 127's pin test: 72 to 73. The batch 141 preparation draft
+// (2026-10-03, no migration): four tests -- the §8.4 audit cell in the service-policy map, the audit
+// coverage map, the store's reading of CTR-AUD-001 and its fixtures -- 73 to 77.
+  'test-kits/db/foundation-contract.test.mjs': 77,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -173,7 +175,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // sealed and compared), the client roles' attributes, pg_default_acl, every other database, and a pg_toast
 // object in each client privilege drift; no test is added and none renamed, so the test floor and the name
 // digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 525,
+// 525 to 613 with the batch 141 preparation (2026-10-03, no migration): the §8.4 audit cell in the
+// service-policy map, the audit coverage map, the store's reading of CTR-AUD-001 and its fixtures, 64
+// assertions; the other 24 are batch 129's review round, which made 549 on main c5a648e without moving this
+// floor. Four tests added, so the test floor moves 73 to 77 and the name digest with it; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 613,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -213,7 +219,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'c125bbd792fa8a92',
+  'test-kits/db/foundation-contract.test.mjs': 'a91ced9f62276ebe',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '1f31de81782c9104',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',

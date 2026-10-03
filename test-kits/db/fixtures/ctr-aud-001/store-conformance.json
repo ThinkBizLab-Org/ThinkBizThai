@@ -1,0 +1,60 @@
+{
+  "_what": "How app.audit_logs (db/foundation/migrations/140_audit.sql) reads CTR-AUD-001 (contract-catalog/shared-kernel/ctr-aud-001/schema.json, status Draft, owners A0+A6), written down so a test can hold it in both directions: every column maps to contract paths or is a pinned divergence, and every contract leaf is mapped by a column or is a pinned divergence. If the Draft moves -- a property added, renamed, retyped, made required, or its enum or pattern changed -- the test in test-kits/db/foundation-contract.test.mjs fails naming the path.",
+  "_written_by": "Batch 141 preparation draft (A0 /claude/a0_atlas drafting subagent, 2026-10-03). It records batch 140's reading and the gaps found in it; it countersigns nothing. Whether CTR-AUD-001 freezes as 140 reads it is Q141-b (A0+A6), not taken here.",
+  "contract": "contract-catalog/shared-kernel/ctr-aud-001/schema.json",
+  "table": "app.audit_logs",
+  "columns": {
+    "id": { "paths": ["audit_id"], "divergence": "audit_id_is_a_uuid_named_id" },
+    "workspace_id": { "paths": ["tenant_context.workspace_id"], "divergence": "tenant_context_flattened" },
+    "business_profile_id": { "paths": ["tenant_context.business_profile_id"], "divergence": "tenant_context_flattened" },
+    "page_context_profile_id": { "paths": ["tenant_context.page_context_profile_id"], "divergence": "tenant_context_flattened" },
+    "occurred_at": { "paths": ["occurred_at"] },
+    "actor_kind": { "paths": ["actor.kind", "tenant_context.actor.kind"], "divergence": "two_contract_values_one_column" },
+    "actor_id": { "paths": ["actor.id", "tenant_context.actor.id"], "divergence": "two_contract_values_one_column" },
+    "action_category": { "paths": ["action.category"] },
+    "action_name": { "paths": ["action.name"] },
+    "outcome": { "paths": ["outcome"] },
+    "reason_key": { "paths": ["reason_key"] },
+    "request_id": { "paths": ["tenant_context.request_id"], "divergence": "tenant_context_flattened" },
+    "correlation_id": { "paths": ["correlation_id", "tenant_context.correlation_id", "error.correlation_id"], "divergence": "two_contract_values_one_column" },
+    "causation_id": { "paths": ["causation_id", "tenant_context.causation_id"], "divergence": "two_contract_values_one_column" },
+    "change_before_ref": { "paths": ["change.before_ref"] },
+    "change_after_ref": { "paths": ["change.after_ref"] },
+    "error_code": { "paths": ["error.code"], "divergence": "error_is_one_column" },
+    "secret_redacted": { "paths": ["redaction.secret_redacted"] },
+    "content_redacted": { "paths": ["redaction.content_redacted"] },
+    "pii_redacted": { "paths": ["redaction.pii_redacted"] },
+    "retention_policy_ref": { "paths": ["retention.policy_ref"] },
+    "created_at": { "paths": [], "divergence": "created_at_is_store_only" }
+  },
+  "unmapped_contract_paths": {
+    "details": "no_details_column",
+    "tenant_context.locale": "no_locale_no_timezone",
+    "tenant_context.timezone": "no_locale_no_timezone",
+    "error.message_key": "error_is_one_column",
+    "error.category": "error_is_one_column",
+    "error.retryable": "error_is_one_column",
+    "error.retry_after_seconds": "error_is_one_column",
+    "error.field_errors": "error_is_one_column",
+    "error.details": "error_is_one_column"
+  },
+  "type_narrowings": {
+    "id": "audit_id_is_a_uuid_named_id",
+    "workspace_id": "scope_ids_are_uuid",
+    "business_profile_id": "scope_ids_are_uuid",
+    "page_context_profile_id": "scope_ids_are_uuid"
+  },
+  "divergences": {
+    "no_details_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (first); WP-0A-DB-00 open_blockers[33] (line 286)" },
+    "no_locale_no_timezone": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (second); open_blockers[33]" },
+    "error_is_one_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (third); open_blockers[33]" },
+    "tenant_context_flattened": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (fourth); open_blockers[33]" },
+    "audit_id_is_a_uuid_named_id": { "declared": false, "finding": "The contract's audit_id is a string of minLength 1; the store's key is `id uuid primary key default gen_random_uuid()`. Neither the rename nor the narrowing is among the four divergences 140 declares, and every valid example in contract-catalog/shared-kernel/ctr-aud-001/examples/ (aud_synthetic_0001 ...) is an audit_id the store cannot hold." },
+    "scope_ids_are_uuid": { "declared": false, "finding": "CTR-TEN-001 types workspace_id, business_profile_id and page_context_profile_id as strings of minLength 1; the store types them uuid. 140 declares the flattening into §3.3's names, not the narrowing; the contract's own examples (ws_synthetic_0001 ...) cannot be stored." },
+    "two_contract_values_one_column": { "declared": false, "finding": "The contract carries actor, correlation_id and causation_id twice -- at the root and inside tenant_context -- and correlation_id a third time inside error; its untestable_by_schema note (3) says nothing checks they agree. The store has one column for each, so it cannot hold a record in which they differ, and nothing says which copy a producer must write. 140's header says only that `correlation_id is already a column here` for the error copy." },
+    "created_at_is_store_only": { "declared": false, "finding": "created_at has no contract property. 140 explains it in a column comment (when the record was written, distinct from occurred_at) but does not list it as a divergence." }
+  },
+  "not_governed": {
+    "app.security_events": "No shared-kernel contract governs it. 140_audit.sql builds it from §5's inventory row and §9.1 alone (\"thinner ground than any other table stands on\"); CTR-AUD-001 is the audit EVENT and declares none of event_type, source_ip_hash or user_agent_hash. So this file holds no conformance for it, and the test asserts that no contract in contract-catalog/shared-kernel names those columns -- the day one does, this gap closes and the test says so."
+  }
+}
