@@ -534,3 +534,24 @@ bounded change.
 
 `npm run check`, `npm run check:handoff` and `npm run verify` after the handoff refresh are recorded in
 the PR body, not here.
+
+## 9. Re-checks of the review round (2026-10-04)
+
+C0, A1 and Q0 re-checked `8af817f` (code `b06b4e0`). Their files are cherry-picked with `-x`:
+
+- C0: `7980c85` → `e537ec1`
+- A1: `7a55142` → `848acf2`
+- Q0: `16d522c` → `2208b23`. This is Q0's final file.
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is
+green on `8af817f` (run 37147066016). Q0 measured its F1–F6 closed. A0 changes no code in this round.
+No export path exists, so every gap below is in a test or a fixture, not in a running control. These
+items stay owed on open_blockers[192]:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| `export_allowed` is pinned by no test. One data edit exports app.meta_connections (SECRET-4 in its §5 cell), and app.workspace_invitations' `token_hash` is excluded only by the fixture's own omitted list, with every test still green (A1 R1, R2; Q0 R-3) | LOW | A0: derive `export_allowed=false` from any SECRET-4 or token/credential column in the §5 cell, and pin it in the test |
+| Nothing holds F160-17's record. Removing `also_claimed_by` or the finding leaves every test green (C0 R1) | LOW | A0: a static pin |
+| The new guards hold today's cases, not the declared rules. The export label forbids only PUBLISH/FINANCE-HISTORY, and the minimum-domain guard reads only one label (C0 R2; Q0 R-5) | LOW | A0: assert the rule over every §11.1 domain |
+| The static read of grants and triggers misses six spellings: `alter table if exists … disable trigger`, `drop function … cascade`, a no-op `create or replace`, and quoted or schema-qualified names (Q0 R-2) | LOW | A0, with the 141-prep tripwire widening on [191] |
+| The window guard does not read `30d`, `12mo`, `P30D`, string numbers, spelled-out numbers or Thai digits. §10 and DATA-DEC use none of these, and every phrase they do use is caught (C0 R-N1; A1 R3; Q0 R-1). `partial_cover`'s verdict and F160-13's count are not cross-checked (Q0 R-4). The b06b4e0 body says "numeric windows" where it means number-typed fields (C0 R-N2) | INFO | recorded |
