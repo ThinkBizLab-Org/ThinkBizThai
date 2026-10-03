@@ -5,10 +5,30 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "e5380b04a7f243b925182ec3d6f97ee166749a13",
-  "head_revision_or_patch_checksum": "e5380b04a7f243b925182ec3d6f97ee166749a13",
+  "head_revision_or_patch_checksum": "f421764d5a8675b5015d3a1581f2755038cf9ddb",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "db/foundation/invariants/125_approval_settled_is_immutable.1.sql",
+    "db/foundation/migrations/126_approval_decision_frozen_for_every_writer.sql",
+    "evidence/WP-0A-DB-00/a0-batch-126-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-126.md"
+  ],
+  "files_modified": [
+    "db/foundation/README.md",
+    "db/foundation/invariants/superseded.json",
+    "db/foundation/lint/catalog-snapshot.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
+    "scripts/db/psql-driver.mjs",
+    "scripts/db/rls-smoke.mjs",
+    "scripts/db/run.mjs",
+    "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "tests/db/identity/fixtures/090-approval-fixture.sql",
+    "tests/db/identity/isolation-cases.mjs",
+    "work-packages/WP-0A-DB-00.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
@@ -37,14 +57,44 @@
   ],
   "tests": [
     {
-      "command": "npm run verify (on the branch name)",
+      "command": "npm run verify (on the branch name agent/claude/WP-0A-DB-00-batch-126)",
       "exit_code": 0,
-      "result": "see the commit"
+      "result": "clean: tests 675, pass 675, fail 0 (commit-when-clean on f421764 and on this commit)"
     },
     {
-      "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
+      "command": "npm run check (on f421764)",
       "exit_code": 0,
-      "result": "see the last commit"
+      "result": "675 of 675"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs e5380b0 WP-0A-DB-00 (on f421764)",
+      "exit_code": 0,
+      "result": "all 18 changed paths declared, and every amendment explains one"
+    },
+    {
+      "command": "make db-migrate-clean (fresh private PostgreSQL 17 cluster, 127.0.0.1:5507, on f421764)",
+      "exit_code": 0,
+      "result": "fourteen catalog probes, each refused each of its drifts and was clean again; 48 apply-time blocks, 37 as written, 11 replaced"
+    },
+    {
+      "command": "make db-rls-smoke, twice on that one database",
+      "exit_code": 0,
+      "result": "1058 of 1058, then 1058 of 1058"
+    },
+    {
+      "command": "node --test test-kits/db/foundation-contract.test.mjs",
+      "exit_code": 0,
+      "result": "72 of 72"
+    },
+    {
+      "command": "drifts appended to 140_audit.sql as later files, each on a fresh cluster, 140 restored byte for byte",
+      "exit_code": 2,
+      "result": "D12, D13a, D14, D15a, D17, D18, G1, G2, G3, G4, G5, TZ: migrate-clean exit 2 each, naming its object; rls-smoke green for D13a, D14, D17, D18, G1, G2, G3, G5, TZ (the probe is the only layer), red for D15a and G4 (and D12, on an empty database); D12's file was not created (plan section 6)"
+    },
+    {
+      "command": "code mutations to scripts/db/run.mjs, each restored",
+      "exit_code": 1,
+      "result": "M-Q1, M-TG1, M-J3, M-CV1, M-CV1d, M-TCK, M-MARK, M-GRC, M-GRR, M-GRM, M-DEF: the static suite fails on every one; migrate-clean also fails on M-Q1, M-TG1, M-GRC, M-GRR, M-DEF (plan section 6)"
     }
   ],
   "security_privacy_cost_impact": "Tightens only. A settled approval request's status, decided_by and decided_at are now frozen for every writer that fires triggers, and an INSERT that names a decider is timed by the database. Probes added or hardened: the verdict ties each refusal to its object and its transaction, psql meta-commands are refused in every SQL source before anything runs, every trigger on approval_requests and the functions they run are pinned, a parameter grant of session_replication_role is refused, and every non-superuser role's privileges on the two calendar tables are held to an allowlist. No grant is added. No secret or customer data.",
@@ -72,6 +122,7 @@
   "reviewer_instructions": [
     "Read 126 and its block, 125's replacement, the 090 fixture's DO block, and the plan's section 2 table; reproduce D15a (125's body put back: rls-smoke fails on the fixture's loader) and D13a (a second trigger: migrate-clean fails, rls-smoke green).",
     "Reproduce the grant probe's drifts G1-G5 and TZ as later files, and check that PINNED_GRANTS equals 091's grant statements.",
+    "Evidence: evidence/WP-0A-DB-00/a0-batch-126-plan-2026-10-03.md (item -> change -> proving drift or case, measured) and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-126.md (the Owner's words, #164's merge, O1-O4).",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null
