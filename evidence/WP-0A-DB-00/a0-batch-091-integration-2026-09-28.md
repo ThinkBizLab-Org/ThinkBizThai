@@ -132,3 +132,27 @@ set, so a later file's retype is caught there (measured above).
   test with two more assertions, floor 2150 → 2152).
 
 These are the Author's measurements. They verify nothing on a role's behalf.
+
+## 7. Third-round re-checks (2026-10-03), and what stays owed
+
+Q0, C0 and A1 re-checked the second round's corrections, `bae8d91` (here `5523f6d`), on their own
+branches and clusters. Their files are cherry-picked with `-x`: Q0 `82d5687` → `fa568a4`,
+C0 `73dfbe1` → `51610c0`, A1 `d1de47f` → `9d6487c`. **None of the three reports a stop-the-line,
+and none reports anything that blocks the Owner's merge.** Each reproduced the Author's mutation
+results.
+
+A0 did not change the code in this round. The remaining findings are LOW or INFO, and they are
+recorded here and on the batch 091 blocker as owed:
+
+| Finding | Grade | Owed to |
+|---|---|---|
+| Item 6 is a denylist. Grants it does not name pass every layer: INSERT on `deleted_at`, which allows a backdated deletion through INSERT because `set_deleted_at` fires on UPDATE only; INSERT on `created_at`; UPDATE on `created_at`; and TRUNCATE, TRIGGER, REFERENCES and MAINTAIN to `authenticated` (C0 H1, A1 R1, R3) | LOW | A0, hardening: assert the grant set by allowlist on both tables, at table and column level |
+| The IANA shape admits wrong-case names (`Asia/BANGKOK`, `Asia/bangkok`) and stores them as typed. It refuses `Etc/UTC` (Q0 G1, C0 H2, A1 R2) | LOW | A5, on blocker item (h): canonicalise or refuse case variants, and decide on `Etc/UTC` |
+| Nothing pins the default `calendar_items.timezone` = `Asia/Bangkok` (DEC-UX-06) (C0 H3) | INFO | A0, hardening |
+| §6 says S1 is held by review only, but the six new approver and viewer cases now catch it at run time (C0 H4). Two calendar control cases still fail with 23505 (Q0 G3). After a read-policy recast, the move and cancel cases fail with 42501 (Q0 G2) | INFO | wording; recorded here |
+| `service_role` is not in item 6's role list. This is the repo-wide convention (A1 R4). The custom abbreviation files on the server are unmeasured (A1 R5) | INFO | recorded |
+
+The Owner's and A5's open questions from this round are on the blocker: (a) the visibility of
+soft-deleted placements and the 30-day recovery, (a) a `scheduled_for` in the past, (h) the zone
+allowlist and its case handling, and the use of `ON CONFLICT DO NOTHING` in
+`admin-a-cannot-schedule-a-target-outside-their-remit`.
