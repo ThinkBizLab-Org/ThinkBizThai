@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b5f53c3c3a45f199afb35d0fecb2e7542bca2641",
-  "head_revision_or_patch_checksum": "7717c81f8a03d8e3cd11888ea25e23ed62ac7cc5",
+  "head_revision_or_patch_checksum": "77a1f769559c2b400d6f1da47245bba413787d31",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/index-coverage.json",
@@ -13,9 +13,12 @@
     "db/foundation/lint/policy-set.json",
     "db/foundation/lint/vocabulary-checks.json",
     "evidence/WP-0A-DB-00/a0-batch-150-prereq-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-150-prereq-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-150-prereq-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-150-prereq-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-150-prereq-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150-prereq.md",
+    "evidence/WP-0A-DB-00/q0-batch-150-prereq-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-150-prereq-test-review-2026-10-03.md",
     "scripts/db/explain-harness.mjs",
     "test-kits/db/ws905-fixture.mjs"
