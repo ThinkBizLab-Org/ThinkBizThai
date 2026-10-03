@@ -5,14 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "18f14695b5d3a60021f437a15d68932420789879",
-  "head_revision_or_patch_checksum": "0273a6a9a892c86800292d1d4b5b199a8c4f6e52",
+  "head_revision_or_patch_checksum": "e863fab6cb84a6dddb1066aa821673649d13e3dc",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md"
+    "evidence/WP-0A-DB-00/a1-batch-128-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-128-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md",
+    "evidence/WP-0A-DB-00/q0-batch-128-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "db/foundation/README.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/psql-driver.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
@@ -29,7 +33,8 @@
   "assumptions": [
     "THIS INCREMENT IS BATCH 128: what batch 127's re-checks (C0, A1, Q0; 127 plan §8) left OWED TO BATCH 128 on blocker 186 -- client-role membership (Q0 N2, A1 N3), client privileges read in every non-system schema and client USAGE/CREATE on schemas pinned (A1 N1, N5; C0 N1; Q0 N1), extension-member SECURITY DEFINER functions (A1 N2), psqlLex's U& and E'' spellings and its stated limit (C0 N2, A1 N4, Q0 N7), the notifications bare-UPDATE case (Q0 N3), no OR/TRUE/NOT in a narrowing (Q0 N4) -- and Q0 N6, C0 N4, C0 N3. Plan a0-batch-128-plan-2026-10-03.md (the local draft's record moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-128.md.",
     "Assertion and tooling only: NO MIGRATION, so batch 128 needs no migration number and asks the Owner nothing. No new Owner words: the batch is written under the standing delegation transcribed in product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #166 (18f1469, at the reviewed head f10c412, run 37121377460 green, 2026-10-03T12:29:31Z); A0 executed that delegation and did not decide the merge.",
-    "The local draft (b53baa6, 35b7b10 on draft/wp-db00-128, stacked on f10c412, whose tree equals main's) was cherry-picked unchanged as aaaeb80 and 2ed2040; d777d29 packages the batch (branch slot, rationale, blocker 186, integrity manifest); 0273a6a is the plan and disposition."
+    "The local draft (b53baa6, 35b7b10 on draft/wp-db00-128, stacked on f10c412, whose tree equals main's) was cherry-picked unchanged as aaaeb80 and 2ed2040; d777d29 packages the batch (branch slot, rationale, blocker 186, integrity manifest); 0273a6a is the plan and disposition.",
+    "REVIEW ROUND (2026-10-03): C0 8b29eda, A1 e665f0e and Q0 bbe4e21 on b8435fa are cherry-picked -x (dcb6fdc, a39fca6, ee42a3f); the code is b594b46 and the record e863fab (plan §7). It answers C0 F1 and Q0-128-F1 (MEDIUM, latent), C0 F2, C0 F4 and Q0-128-F2 (LOW), and A1 N2's wording; C0 F3 and A1 N1 (INFO, optional) are owed on blocker 186."
   ],
   "acceptance_results": [
     {
@@ -56,26 +61,26 @@
       "criterion": "A widened notifications_update_own_read_state is noticed even with its pin widened (Q0 N3); no OR, TRUE or NOT in a narrowing (Q0 N4); rule 1 has a MAINTAIN drift (Q0 N6); the helper drift hits all five conditions (C0 N4); C0 F2 named (C0 N3)",
       "result": "met",
       "evidence": "plan §3-§4: DP5 fails migrate-clean and rls-smoke (exactly the new case); MP5 fails rls-smoke on that case alone; NW fails migrate-clean; MNWC fails static; R1m fails migrate-clean; MR1v and MHSD each fail a self-test; C0 F2 in README rule 2 and known_limitations"
+    },
+    {
+      "criterion": "Objects made after initdb in information_schema, pg_catalog or a pg_* schema are read (C0 F1, Q0-128-F1)",
+      "result": "met",
+      "evidence": "plan §7.3: X1b, X2, X2b, X5, ISV, IST and ISF, each green on every layer at b8435fa, fail migrate-clean by name (X2 and X2b also static, refused before anything is applied); X2c and X2bc (the switch set by a computed name) fail it by the object's OID; with the guard's new arms reverted (MG), X5, ISV and IST are still refused by the probes' OID arms and the guard's self-test, and static fails; the control passes"
+    },
+    {
+      "criterion": "CREATE and TEMPORARY on the database are pinned for the client roles (C0 F2)",
+      "result": "met",
+      "evidence": "plan §7.3: X4 (grant create on database to authenticated) fails migrate-clean, 'unlisted: authenticated CREATE on database'"
     }
   ],
   "tests": [
     {
-      "command": "npm run check (on the branch name agent/claude/WP-0A-DB-00-batch-128, at 0273a6a with the refreshed handoff, Node v24.20.0)",
+      "command": "node --test test-kits/db/foundation-contract.test.mjs tests/db/identity/identity-isolation.test.mjs (at b594b46, Node v24.20.0)",
       "exit_code": 0,
-      "result": "677 of 677"
+      "result": "378 of 378"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (committing d777d29 and 0273a6a)",
-      "exit_code": 1,
-      "result": "tests 677, pass 675, fail 2, both times: the sole red was the handoff guard (the handoff for this branch describes this branch, and the handoff ratchet running it on a copy), red until the handoff is refreshed last; so both were plain commits"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs 18f1469 WP-0A-DB-00 (on d777d29)",
-      "exit_code": 0,
-      "result": "all 10 changed path(s) are declared, and every amendment explains one (the draft's exit 74 cleared)"
-    },
-    {
-      "command": "make db-migrate-clean (fresh private PostgreSQL 17 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked; two rounds, fresh initdb each)",
+      "command": "make db-migrate-clean (fresh private PostgreSQL 17 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked; two rounds at b594b46, fresh initdb each)",
       "exit_code": 0,
       "result": "23 catalog probes, each refused every drift and was clean again; 49 apply-time blocks, 37 as written, 12 replaced; both rounds"
     },
@@ -85,18 +90,38 @@
       "result": "1079 of 1079, all four times"
     },
     {
-      "command": "drifts R0, R1r, V14c, V11, F1sf, F1srv, V13, V16, C0-control, V06b, LU1, LU2, E2, DP5, NW, R1m appended to 140_audit.sql, each on a fresh cluster, 140 restored byte for byte (plan section 3)",
-      "exit_code": 2,
-      "result": "migrate-clean exit 2 on every one but the control (exit 0), by name; static exit 1 on V11, LU1, LU2, E2; rls-smoke exit 2 on DP5 (exactly the new case) and on LU1, LU2, E2 (nothing applied), green on the rest"
+      "command": "node scripts/commit-when-clean.mjs (committing b594b46 and e863fab)",
+      "exit_code": 0,
+      "result": "tests 677, pass 677, both times"
     },
     {
-      "command": "mutations MR1v, MSCH, MCRE, MREC, MEXT, MHSD, MESC, MP5, MNWC, MESC2, MESC3, each restored byte for byte (plan section 4)",
+      "command": "node scripts/verify-branch-scope.mjs 18f1469 WP-0A-DB-00 (on e863fab, branch name)",
+      "exit_code": 0,
+      "result": "all 15 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run check (branch name, at e863fab, before this refresh)",
       "exit_code": 1,
-      "result": "each fails at least one layer: static on MSCH, MCRE, MREC, MEXT, MESC, MNWC, MESC2, MESC3; migrate-clean on MR1v, MSCH, MCRE, MREC, MEXT, MHSD, MESC; rls-smoke on MP5 (exactly the new case); identical to the draft's measurement"
+      "result": "677 tests, 675 pass, 2 fail: the sole red was the handoff guard (the handoff for this branch describes this branch, and the ratchet running it on a copy), since the handoff still cited 0273a6a; cleared by this refresh"
+    },
+    {
+      "command": "drifts X1, X1b, X2, X2c, X2s, X2b, X2bc, X5, X4, ISV, IST, ISF, control, R0, V16, V06b, LU1, X6 appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan §7.3)",
+      "exit_code": 2,
+      "result": "migrate-clean exit 2 on every one but the control and X6 (exit 0), by name; static exit 1 on X1, X2, X2b, LU1; rls-smoke exit 2 on X2, X2b, LU1 (nothing applied) and X6 (347 of 1079, held by rls-smoke alone: C0 F3, owed)"
+    },
+    {
+      "command": "mutation MG (the pg_catalog guard's new arms reverted) with X5, ISV, IST (plan §7.3)",
+      "exit_code": 2,
+      "result": "static exit 1; migrate-clean exit 2: the definer rule and client privilege rules 2 and 3 name each object by its OID arm, and the guard's own self-test fails; rls-smoke 0"
+    },
+    {
+      "command": "npm run check:handoff and npm run verify (branch name, after the handoff commit)",
+      "exit_code": 0,
+      "result": "recorded in the PR body and plan §7.2 after this commit, which must be last and alone (C0 F4)"
     }
   ],
-  "security_privacy_cost_impact": "Tightens only, and only against later drift: nothing reachable on the clean set changes. A later file that makes a client a member of any role, grants a client USAGE or CREATE on a schema beyond the four pinned triples, grants a client anything on a view or table in any new schema, adds a SECURITY DEFINER function to an extension, spells a SET through U& or E'' escapes, widens notifications_update_own_read_state together with its pin, or puts OR, TRUE or NOT into a pinned narrowing now fails a layer by name. No data, secret or cost impact.",
-  "migration_and_data_impact": "NONE. Batch 128 adds no migration and needs no migration number; it changes catalog probes, the psql lexer, static tests, the README and one rls-smoke case. No database state changes.",
+  "security_privacy_cost_impact": "Tightens only, and only against later drift: nothing reachable on the clean set changes. A later file that makes a client a member of any role, grants a client USAGE or CREATE on a schema beyond the four pinned triples, grants a client anything on a view or table in any new schema, adds a SECURITY DEFINER function to an extension, spells a SET through U& or E'' escapes, widens notifications_update_own_read_state together with its pin, or puts OR, TRUE or NOT into a pinned narrowing now fails a layer by name. No data, secret or cost impact. The review round tightens further, again only against later drift: an object a later file puts in information_schema, pg_catalog, pg_toast or a pg_* schema, any mention of allow_system_table_mods in a fed script, and CREATE on the database for a client now fail migrate-clean (or static) by name.",
+  "migration_and_data_impact": "NONE. Batch 128, review round included, adds no migration and needs no migration number; it changes catalog probes, the psql lexer, static tests, the README and one rls-smoke case. No database state changes.",
   "compatibility_impact": "Additive. Cases 1078 -> 1079 (owner-a-cannot-mark-a-teammates-notification-read-by-a-bare-update); tests stay 677; foundation-contract's assertion floor 480 -> 494 (no test added or renamed); probes 21 -> 23. A later batch that grants a client a schema privilege, a role membership, or makes an extension member SECURITY DEFINER pins it in CLIENT_SCHEMA_PRIVILEGES, CLIENT_ROLE_MEMBERSHIPS or EXTENSION_DEFINER_FUNCTIONS with its reason; a fed file may not use U& or E'' string or identifier spellings.",
   "known_limitations": [
     "C0 F2 (C0 N3 on 127's re-check): a looser permissive SELECT sibling on a client-readable, non-writable table is held by rls-smoke alone; the permissive policy probe reads client-writable tables only.",
@@ -105,23 +130,28 @@
     "The other roles' reach (app_worker, service_role, RFC-2026-023 command roles) is read by no rule here, for RFC-2026-023's disposition; with it blocker 186's (15) command-role half, (16) (the anonymisation route batch 160 needs) and (20) stay owed.",
     "A constant-true narrowing spelled without OR, TRUE or NOT (1 = 1) is not read statically; the three owner-UPDATE permissive policies (workspaces, workspace_settings, workspace_invitations) have no bare-UPDATE case of their own.",
     "The client schema and membership probes model the CI shim; on the platform the managed schemas grant clients USAGE and authenticator is a member of the client roles, and the probes do not run there.",
-    "Remedy (b), created_by out of the client INSERT grant, is not taken, by the Owner's answer of 2026-10-03. 122's service-path closures are pinned by exact deparse in no probe."
+    "Remedy (b), created_by out of the client INSERT grant, is not taken, by the Owner's answer of 2026-10-03. 122's service-path closures are pinned by exact deparse in no probe.",
+    "C0 F3 (INFO): the client roles' own attributes (rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolinherit) are read by no catalog rule; `alter role authenticated bypassrls` is held by rls-smoke alone (347 of 1079). Owed.",
+    "A1 N1 (INFO): pg_default_acl is not read; a default privilege granted to a client is named only by its effect on a later object. Owed.",
+    "allow_system_table_mods set by a name computed at run time passes the lexer by design; what it enables is read by OID (X2c, X2bc). The pg_catalog guard reads relations, functions, operators and casts, not other object kinds, in an initdb schema."
   ],
   "open_risks_or_blockers": [
-    "Batch 128 has had no role run: C0, Q0 and A1 follow on this head; the PR stays a Draft until they report.",
+    "Batch 128's review round has had no re-check: C0, A1 and Q0 re-checks of b594b46/e863fab follow; the PR stays a Draft.",
     "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #166 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. 128 has no migration: it changes probes, the lexer, static tests, the README and one rls-smoke case, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Role runs on batch 128 (C0 contract review, A1 security review, Q0 independent test) on this branch.",
-    "The other roles' reach (app_worker, service_role, RFC-2026-023), the run-time-computed client-encoding name and Q0 N5 (operator-reached functions), as a later hardening batch.",
+    "Re-checks of batch 128's review round (C0, A1, Q0) on this branch: plan §7.",
+    "C0 F3 and A1 N1 (client role attributes, pg_default_acl), the other roles' reach (app_worker, service_role, RFC-2026-023), the run-time-computed client-encoding name and Q0 N5 (operator-reached functions), as a later hardening batch.",
     "A5's review of 091's schedule states and (h), when an A5 run exists."
   ],
   "reviewer_instructions": [
     "Read the client privilege probe (every non-system schema), the two new probes (client schema, client membership), the security definer probe's third rule, escapeSpellings in scripts/db/psql-driver.mjs, the new rls-smoke case and the narrowing-word test, with the plan's section 1 table.",
     "Reproduce R0, V11, F1sf, V13, V16, V06b, DP5 and NW (plan section 3) as later files appended to 140_audit.sql on a fresh cluster, and the control (a new schema with no client grant), which must pass.",
     "Reproduce MP5 (the notifications pin widened with the policy, digests refreshed: held by rls-smoke alone), MNWC (held by static alone) and MESC2/MESC3 (held by static alone).",
-    "Evidence: evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md (item -> change -> proving drift or case, measured) and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md (no new Owner words; the merge of #166 as A0 executing the standing delegation)."
+    "Evidence: evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md (item -> change -> proving drift or case, measured) and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md (no new Owner words; the merge of #166 as A0 executing the standing delegation).",
+    "Review round: read userObject and FIRST_NORMAL_OID, the client privilege rules, the client schema probe (every schema, the database), the definer and helper rules' OID arms, the pg_catalog guard and the allow_system_table_mods lexer rule, with plan §7.1.",
+    "Reproduce X1b, X2c, X2bc, X5, ISV, IST, ISF and X4 (plan §7.3) as later files on a fresh cluster, each must fail migrate-clean by name; and MG (the guard's new arms reverted) with X5 or ISV, which the probes' own OID arms must still refuse."
   ],
   "superseded_by": null
 }
