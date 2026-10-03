@@ -59,7 +59,7 @@
     "scripts/verify-test-coverage-floor.mjs": "07e82f8a59ef51bfd21e341ab01881de6fa6912896407a3fe9567abfc64bb57f",
     "scripts/verify-toolchain.mjs": "3ee3fb3492df132acb50a6cdbebccddea02d07ef7f800d8d5da55cf3befba633",
     "test-kits/authority-dispositions.test.mjs": "1113110b0ce469f041104f13ce68178ae9b66877361ee0ba2bd01fcad10d269c",
-    "test-kits/branch-identity.test.mjs": "d6838188ef1c52e959807c39dfaf7409ceb7ff22d083b9ec073473d7f145b0bc",
+    "test-kits/branch-identity.test.mjs": "9e7398fb74a7fd3762b1c262d87e2aaca8a492e12c50fc9c4b8b58807eedc263",
     "test-kits/branch-scope.test.mjs": "74e41676f3a95ceb741031cb5c000835bce54672a342a1e53a4a12f8873e36d6",
     "test-kits/capability-profile.test.mjs": "f1b5204abebcc3558c5f6eac23a968a814eed135d6ea5f11bfa4e827ebb5421e",
     "test-kits/ci-guard-behaviour.test.mjs": "20f731693f20a7eeb4f6ea2add033f68d03b799f86a00799caf03bf8fb56cbc3",
