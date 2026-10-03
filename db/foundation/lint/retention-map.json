@@ -1,0 +1,3465 @@
+{
+  "_what": "Batch 160 preparation, data only: one row per table in `app` and `private`, the §5 retention class each sits under, whether §10 defines it, what a sweep would read, §10's final behaviour, what blocks that behaviour today and the open decisions it needs. NO NUMBER from §10 is encoded here as a value: §10's numbers are unapproved (ERD:484) and §15 forbids an agent choosing an open decision. A class §10 does not define is a FINDING, never a number.",
+  "_measured": "The table set, columns, indexes, UPDATE/DELETE privileges, triggers and foreign keys were read from a clean `make db-migrate-clean` at 75c9274 (PostgreSQL 17.11, 127.0.0.1:5511, shim first) and are re-derived from the migration text by test-kits/db/foundation-contract.test.mjs on every run, so this file cannot silently describe a schema that no longer exists.",
+  "_shape": {
+    "table": "schema-qualified table a migration creates; exactly one row each",
+    "section5": "the §5 inventory row (ERD line) the table sits under, its cells verbatim",
+    "section9_classes": "§9.1 classes this table carries, each picked from §5's sensitivity cell",
+    "section10_class": "the §10 class, or null when none can be given (then class_status is `finding`)",
+    "sweeps": "each predicate a sweep would read: its key columns, its basis (never a number), and the indexes whose leading columns cover the key (empty = not covered; a partial index is named too, and its predicate is not read here)",
+    "final_behaviour": "§10's final behaviour reduced to purge / anonymise / retain; the verbatim text is in section10_classes",
+    "blocking_controls": "what refuses that behaviour today. Kinds: no-delete-grant, no-update-grant, client-only-update, grant-without-policy, trigger, no-schema-usage. controls_on_every_row hold for all rows.",
+    "decisions": "open decision ids the row needs: DATA-DEC-04..10 (ERD:867-873) and Q160-a..d (the 141-170 phase plan)"
+  },
+  "controls_on_every_row": [
+    {
+      "kind": "no-executor",
+      "what": "No service identity exists: RFC-2026-022 is NOT IN EFFECT (the only member of app_worker is postgres), no policy anywhere names app_worker, app_maintenance, app_command or service_role, and app_maintenance holds no privilege on any table.",
+      "decisions": [
+        "DATA-DEC-03"
+      ]
+    },
+    {
+      "kind": "no-legal-hold-table",
+      "what": "§10's precedence puts a hold first (ERD:516-526) and no hold table exists (WP:374 (open_blockers[120])).",
+      "decisions": [
+        "Q160-a"
+      ]
+    },
+    {
+      "kind": "no-deletion-manifest",
+      "what": "The immutable object-deletion manifest has no home or owner (WP:404 (open_blockers[150]); CONTRIBUTING_AGENTS.md:47).",
+      "decisions": [
+        "Q160-d"
+      ]
+    }
+  ],
+  "section10_classes": {
+    "ID-USER": {
+      "row": 1,
+      "line": 488,
+      "final_behaviour_as_written": "delete/anonymize identity link",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    "TENANT-LIFE": {
+      "row": 2,
+      "line": 489,
+      "final_behaviour_as_written": "hard delete/anonymizeตาม dependency",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    "HISTORY": {
+      "row": 3,
+      "line": 490,
+      "final_behaviour_as_written": "purge หากไม่มี legal/financial hold",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "AUTH-HISTORY": {
+      "row": 4,
+      "line": 491,
+      "final_behaviour_as_written": "anonymize actor fields; retain security minimum 1 year",
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ]
+    },
+    "TOKEN-SHORT": {
+      "row": 5,
+      "line": 492,
+      "final_behaviour_as_written": "purge token/hash recordตาม security need",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "RESEARCH-RUN": {
+      "row": 6,
+      "line": 493,
+      "final_behaviour_as_written": "purge/anonymize; keep nonidentifying aggregate",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    "RESEARCH-SNAPSHOT": {
+      "row": 7,
+      "line": 494,
+      "final_behaviour_as_written": "purge object + locator; preserve permitted hash/citation metadata",
+      "final_behaviour": [
+        "purge",
+        "retain"
+      ]
+    },
+    "CONTENT-HISTORY": {
+      "row": 8,
+      "line": 495,
+      "final_behaviour_as_written": "purge content; keep anonymized product aggregates only",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "APPROVAL-HISTORY": {
+      "row": 9,
+      "line": 496,
+      "final_behaviour_as_written": "anonymize actor after minimum retention; preserve decision integrity",
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ]
+    },
+    "SCHEDULE-HISTORY": {
+      "row": 10,
+      "line": 497,
+      "final_behaviour_as_written": "purge/anonymize",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    "ASSET-ORIGINAL": {
+      "row": 11,
+      "line": 498,
+      "final_behaviour_as_written": "purge object, versions, signed access; verify deletion",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "ASSET-DERIVATIVE": {
+      "row": 12,
+      "line": 499,
+      "final_behaviour_as_written": "regenerate when needed; no backup required",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "RIGHTS-PROOF": {
+      "row": 13,
+      "line": 500,
+      "final_behaviour_as_written": "retain under rights/legal hold then purge",
+      "final_behaviour": [
+        "retain",
+        "purge"
+      ]
+    },
+    "UPLOAD-TEMP": {
+      "row": 14,
+      "line": 501,
+      "final_behaviour_as_written": "purge object/session residue",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "WEBHOOK-SHORT": {
+      "row": 15,
+      "line": 502,
+      "final_behaviour_as_written": "redact/purge payload, retain dedupe hash longer",
+      "final_behaviour": [
+        "purge",
+        "retain"
+      ]
+    },
+    "PUBLISH-HISTORY": {
+      "row": 16,
+      "line": 503,
+      "final_behaviour_as_written": "purge tenant content; retain anonymized aggregate",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "JOB-SHORT": {
+      "row": 17,
+      "line": 504,
+      "final_behaviour_as_written": "purge payload; retain redacted operational counters",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "OUTBOX-SHORT": {
+      "row": 18,
+      "line": 505,
+      "final_behaviour_as_written": "purge after guarantee window",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "CONSUMER-LEDGER": {
+      "row": 19,
+      "line": 506,
+      "final_behaviour_as_written": "purge by partition/window",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "NOTIFICATION-INBOX": {
+      "row": 20,
+      "line": 507,
+      "final_behaviour_as_written": "purge",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "PUSH-SECRET": {
+      "row": 21,
+      "line": 508,
+      "final_behaviour_as_written": "purge token/reference",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "AI-RUN": {
+      "row": 22,
+      "line": 509,
+      "final_behaviour_as_written": "anonymize/purge prompt/outputตาม content deletion",
+      "final_behaviour": [
+        "anonymise",
+        "purge"
+      ]
+    },
+    "AI-RAW": {
+      "row": 23,
+      "line": 510,
+      "final_behaviour_as_written": "purge/redact",
+      "final_behaviour": [
+        "purge"
+      ]
+    },
+    "FINANCE-HISTORY": {
+      "row": 24,
+      "line": 511,
+      "final_behaviour_as_written": "anonymize nonrequired PII; retain ledger integrity",
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ]
+    },
+    "AUDIT": {
+      "row": 25,
+      "line": 512,
+      "final_behaviour_as_written": "anonymize actor where allowed; purge after policy",
+      "final_behaviour": [
+        "anonymise",
+        "purge"
+      ]
+    },
+    "SECURITY": {
+      "row": 26,
+      "line": 513,
+      "final_behaviour_as_written": "hash/anonymize PII; retain active investigation/legal hold",
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ]
+    },
+    "BACKUP": {
+      "row": 27,
+      "line": 514,
+      "final_behaviour_as_written": "inaccessible except restore procedure; expire automatically",
+      "final_behaviour": [
+        "purge"
+      ]
+    }
+  },
+  "section10_classes_without_a_row": [
+    {
+      "class": "RIGHTS-PROOF",
+      "why": "app.asset_rights would carry it, but §5 assigns `ASSET-*` (F160-07)."
+    },
+    {
+      "class": "UPLOAD-TEMP",
+      "why": "No multipart or temporary-upload table exists."
+    },
+    {
+      "class": "OUTBOX-SHORT",
+      "why": "app.outbox_events would carry it, but §5 assigns `JOB-SHORT/LEDGER` (F160-05)."
+    },
+    {
+      "class": "CONSUMER-LEDGER",
+      "why": "app.consumer_ledger would carry it, but §5 assigns `JOB-SHORT/LEDGER` (F160-05)."
+    },
+    {
+      "class": "PUSH-SECRET",
+      "why": "private.push_subscription_references would carry it, but §5 assigns `NOTIFICATION-*` (F160-03)."
+    },
+    {
+      "class": "AI-RUN",
+      "why": "No generation-run table exists (F160-06)."
+    },
+    {
+      "class": "AI-RAW",
+      "why": "No raw prompt/response table exists; DATA-DEC-08 is open."
+    },
+    {
+      "class": "BACKUP",
+      "why": "Backups are not tables; DATA-DEC-09 is open and §11.4 step 9 propagates deletion by expiry."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F160-01",
+      "class_as_written": "CONNECTION-HISTORY",
+      "what": "§5 assigns connector.meta `CONNECTION-HISTORY`; §10 defines no such class.",
+      "source": "ERD:211; ERD:488-514; WP:258 (open_blockers[4])",
+      "decision": "Q160-c"
+    },
+    {
+      "id": "F160-02",
+      "class_as_written": "CATALOG/HISTORY",
+      "what": "§5 assigns industry.core `CATALOG/HISTORY`; §10 defines no `CATALOG`, and `HISTORY` (\"immutable ... versions\", \"อายุ Workspace + lineage\") cannot describe a global catalog row, nor a mutable business assignment.",
+      "source": "ERD:204; ERD:490; WP:331 (open_blockers[77])",
+      "decision": "Q160-c"
+    },
+    {
+      "id": "F160-03",
+      "class_as_written": "NOTIFICATION-*",
+      "what": "§5's glob `NOTIFICATION-*` does not reach §10's `PUSH-SECRET`, the class written for this table. The class is DEFINED in §10 (row 21); the finding is the assignment, not the definition.",
+      "source": "ERD:215; ERD:508; WP:345 (open_blockers[91])",
+      "decision": "Q160-c"
+    },
+    {
+      "id": "F160-04",
+      "class_as_written": "NOTIFICATION-*",
+      "what": "The glob reaches only `NOTIFICATION-INBOX` (\"user notifications\", 180 days, purge), which does not describe a preference row; no §10 class does.",
+      "source": "ERD:215; ERD:507; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-05",
+      "class_as_written": "JOB-SHORT/LEDGER",
+      "what": "§10 defines no `LEDGER`; it defines `OUTBOX-SHORT` and `CONSUMER-LEDGER`, which §5 does not name. Batch 050 recorded it and encoded nothing.",
+      "source": "ERD:214; ERD:505-506; 050_async_kernel.sql:373-379; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-06",
+      "class_as_written": "AI-RUN-*",
+      "what": "The glob `AI-RUN-*` matches no §10 class literally (§10 has `AI-RUN` and `AI-RAW`), both describe runs, and no generation-run table exists; neither describes the global model registry, a workspace model policy or a credential reference.",
+      "source": "ERD:216; ERD:509-510; 060_ai_gateway.sql:162-170; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-07",
+      "class_as_written": "ASSET-*",
+      "what": "The glob `ASSET-*` reaches `ASSET-ORIGINAL` and `ASSET-DERIVATIVE` only. Batch 100 reads it as also covering `RIGHTS-PROOF` and `UPLOAD-TEMP` (100_asset.sql:421-423), which the glob does not match; and no §10 class describes a content-asset link row.",
+      "source": "ERD:210; ERD:498-501; 100_asset.sql:421-423; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-08",
+      "class_as_written": "FINANCE-HISTORY",
+      "what": "§5 puts billing.core under `FINANCE-HISTORY`, while §10's `WEBHOOK-SHORT` names the \"raw Meta/payment webhook inbox\" in its data column. Batch 131 read the receipt as WEBHOOK-SHORT; the two documents disagree about this table, and WEBHOOK-SHORT's two-speed behaviour degenerates because the receipt stores no payload.",
+      "source": "ERD:218; ERD:502; WP:359 (open_blockers[105])",
+      "decision": null
+    },
+    {
+      "id": "F160-09",
+      "class_as_written": null,
+      "what": "app.workspaces carries lifecycle_state and no timestamp of entering a state, so the 30-day recovery window (DATA-DEC-04) has no column to measure from; updated_at moves on any update.",
+      "source": "010_identity.sql:156-157; ERD:571-600; WP:446 (open_blockers[192])",
+      "decision": "DATA-DEC-04"
+    },
+    {
+      "id": "F160-10",
+      "class_as_written": null,
+      "what": "app.jobs has no terminal-state column or timestamp, so JOB-SHORT's \"30 วัน success; 90 วัน failed/DLQ\" split cannot be swept; there is no attempts or DLQ table.",
+      "source": "ERD:504; ERD:214; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-11",
+      "class_as_written": null,
+      "what": "SCHEDULE-HISTORY is \"12 เดือนหลัง final state\" and neither app.calendar_items nor app.content_schedules records when a final state was reached.",
+      "source": "ERD:497; 091_calendar.sql:59; WP:444 (open_blockers[190])",
+      "decision": null
+    },
+    {
+      "id": "F160-12",
+      "class_as_written": null,
+      "what": "RESEARCH-RUN is \"12 เดือนหลัง last use\" and app.research_runs has no last-use column (used_at is on suggestions only); completed_at is the nearest column and it is not indexed.",
+      "source": "ERD:493; 070_research.sql:478; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-13",
+      "class_as_written": null,
+      "what": "Sweep keys with no covering index, measured: see every row whose sweeps[].covered_by is empty (13 keys). Two more are covered only by a partial index whose predicate excludes the rows the sweep reads (sweeps[].partial_cover.verdict = F160-13): workspace_invitations.expires_at (pending only) and billing_webhook_receipts.received_at (unprocessed only). Fifteen in all.",
+      "source": "live catalog, this draft; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-14",
+      "class_as_written": null,
+      "what": "Rows §10 retains hold foreign keys to rows §10 purges (see purge-order.json retention_conflicts); with every FK NO ACTION, the parent cannot be purged while the retained child exists. In particular app.workspaces cannot be hard-deleted while FINANCE-HISTORY rows reference it. Twelve is a LOWER BOUND: the rule needs a behaviour on both ends of a key, finding rows have none, and 21 non-self keys touch a finding row (measured); the count can grow when Q160-c is answered.",
+      "source": "live catalog FKs; ERD:589-600; WP:446 (open_blockers[192])",
+      "decision": "Q160-a"
+    },
+    {
+      "id": "F160-15",
+      "class_as_written": null,
+      "what": "app.assets and app.asset_versions reference each other (assets_current_version_scope_fk and asset_versions_asset_scope_fk); the purge must null assets.current_version_id first, an UPDATE only app_worker holds a grant for and no policy admits.",
+      "source": "live catalog FKs; WP:446 (open_blockers[192])",
+      "decision": "Q160-d"
+    },
+    {
+      "id": "F160-16",
+      "class_as_written": "CONTENT-HISTORY",
+      "what": "§10's `HISTORY` data column names knowledge and content versions, which §5 puts under `CONTENT-HISTORY`; both end in a purge, so the disagreement changes no behaviour today.",
+      "source": "ERD:490; ERD:495; ERD:205; ERD:207; WP:446 (open_blockers[192])",
+      "decision": null
+    },
+    {
+      "id": "F160-17",
+      "class_as_written": "TOKEN-SHORT",
+      "what": "§5 gives app.workspace_invitations TOKEN-SHORT (purge), while §10 AUTH-HISTORY's data column names \"invitations history\" (anonymise actor fields, retain a security minimum). The two classes disagree on the final behaviour; the map keeps §5's TOKEN-SHORT and decides nothing, in particular not whether accepted invitations are AUTH-HISTORY.",
+      "source": "ERD:201; ERD:491; ERD:492; WP:446 (open_blockers[192])",
+      "decision": null
+    }
+  ],
+  "rows": [
+    {
+      "table": "app.ai_model_policies",
+      "section5": {
+        "line": 216,
+        "module": "ai.gateway",
+        "family": "model registry/policies/credential refs/generation runs",
+        "sensitivity": "CONTENT-2/SECRET-4",
+        "retention": "AI-RUN-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's ai.gateway cell covers the whole family (model registry/policies/credential refs/generation runs); this row holds workspace_id, ai_model_id and actor ids, no secret. The family's SECRET-4 member is private.ai_credential_references, which is excluded."
+        }
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-06",
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "ai_model_policies_pkey"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.ai_models",
+      "section5": {
+        "line": 216,
+        "module": "ai.gateway",
+        "family": "model registry/policies/credential refs/generation runs",
+        "sensitivity": "CONTENT-2/SECRET-4",
+        "retention": "AI-RUN-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's ai.gateway cell covers the whole family; this global registry row holds provider, model_key and label, no secret. The family's SECRET-4 member is private.ai_credential_references, which is excluded."
+        }
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-06",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.approval_events",
+      "section5": {
+        "line": 208,
+        "module": "approval.core",
+        "family": "policies/requests/events",
+        "sensitivity": "CONTENT-2/AUTH-3",
+        "retention": "APPROVAL-HISTORY"
+      },
+      "section9_classes": [
+        "AUTH-3"
+      ],
+      "section10_class": "APPROVAL-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 9 of 27 (ERD:496)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime + approval minimum",
+          "covered_by": [
+            "approval_events_action_idempotency_key",
+            "approval_events_request_scope_idx",
+            "approval_events_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "actor",
+        "comment"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "actor",
+            "comment"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.approval_policies",
+      "section5": {
+        "line": 208,
+        "module": "approval.core",
+        "family": "policies/requests/events",
+        "sensitivity": "CONTENT-2/AUTH-3",
+        "retention": "APPROVAL-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "APPROVAL-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 9 of 27 (ERD:496)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime + approval minimum",
+          "covered_by": [
+            "approval_policies_page_scope_idx",
+            "approval_policies_scope_key",
+            "approval_policies_version_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "created_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.approval_requests",
+      "section5": {
+        "line": 208,
+        "module": "approval.core",
+        "family": "policies/requests/events",
+        "sensitivity": "CONTENT-2/AUTH-3",
+        "retention": "APPROVAL-HISTORY"
+      },
+      "section9_classes": [
+        "AUTH-3"
+      ],
+      "section10_class": "APPROVAL-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 9 of 27 (ERD:496)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime + approval minimum",
+          "covered_by": [
+            "approval_requests_item_version_scope_idx",
+            "approval_requests_policy_scope_idx",
+            "approval_requests_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "requested_by",
+        "decided_by",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "requested_by",
+            "created_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "decided_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "trigger",
+          "trigger": "set_decided_at",
+          "function": "private.set_decided_at",
+          "blocks": "anonymise of decided_by"
+        }
+      ],
+      "decisions": [
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.asset_rights",
+      "section5": {
+        "line": 210,
+        "module": "asset.core",
+        "family": "assets/versions/rights/links/backup/usage",
+        "sensitivity": "MEDIA-2/RIGHTS-3",
+        "retention": "ASSET-*"
+      },
+      "section9_classes": [
+        "RIGHTS-3"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-07",
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id",
+            "business_profile_id",
+            "asset_id"
+          ],
+          "basis": "after asset use (if the class were RIGHTS-PROOF)",
+          "covered_by": [
+            "asset_rights_asset_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.asset_versions",
+      "section5": {
+        "line": 210,
+        "module": "asset.core",
+        "family": "assets/versions/rights/links/backup/usage",
+        "sensitivity": "MEDIA-2/RIGHTS-3",
+        "retention": "ASSET-*"
+      },
+      "section9_classes": [
+        "MEDIA-2"
+      ],
+      "section10_class": "ASSET-ORIGINAL",
+      "class_status": "defined",
+      "section10_row": "row 11 of 27 (ERD:498)",
+      "section10_classes_by_row": [
+        "ASSET-ORIGINAL",
+        "ASSET-DERIVATIVE"
+      ],
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id",
+            "business_profile_id",
+            "asset_id"
+          ],
+          "basis": "follows its asset",
+          "covered_by": [
+            "asset_versions_asset_history_idx",
+            "asset_versions_asset_scope_id_key",
+            "asset_versions_asset_version_key",
+            "asset_versions_parent_idx",
+            "asset_versions_unpurged_idx"
+          ],
+          "partial_predicates": {
+            "asset_versions_parent_idx": "parent_version_id is not null",
+            "asset_versions_unpurged_idx": "purged_at is null"
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a",
+        "Q160-d"
+      ]
+    },
+    {
+      "table": "app.assets",
+      "section5": {
+        "line": 210,
+        "module": "asset.core",
+        "family": "assets/versions/rights/links/backup/usage",
+        "sensitivity": "MEDIA-2/RIGHTS-3",
+        "retention": "ASSET-*"
+      },
+      "section9_classes": [
+        "MEDIA-2"
+      ],
+      "section10_class": "ASSET-ORIGINAL",
+      "class_status": "defined",
+      "section10_row": "row 11 of 27 (ERD:498)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "purge_after"
+          ],
+          "basis": "trash window",
+          "covered_by": [
+            "assets_trash_purge_due_idx"
+          ],
+          "partial_predicates": {
+            "assets_trash_purge_due_idx": "deleted_at is not null and purge_after is not null"
+          },
+          "partial_cover": {
+            "verdict": "serves-the-sweep",
+            "why": "The trash sweep reads exactly the rows the predicate admits: deleted rows with a purge_after set."
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a",
+        "Q160-d"
+      ]
+    },
+    {
+      "table": "app.audit_logs",
+      "section5": {
+        "line": 219,
+        "module": "audit.core",
+        "family": "audit logs/security events",
+        "sensitivity": "AUTH-3/SECURITY-4",
+        "retention": "AUDIT/SECURITY"
+      },
+      "section9_classes": [
+        "AUTH-3"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECURITY-4",
+          "why": "A judgement. §5's audit.core cell covers audit logs and security events together; audit_logs carries no IP or user-agent column (140_audit.sql), and §11.1 names a \"Tenant-visible audit trail\" among the minimum export domains (ERD:555). SECURITY-4 detail sits on app.security_events, which is excluded. The export fixture includes audit_logs on that reading (export_allowed). Which audit rows are tenant-visible is NOT decided here.",
+          "export_allowed": true
+        }
+      ],
+      "section10_class": "AUDIT",
+      "class_status": "defined",
+      "section10_row": "row 25 of 27 (ERD:512)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "occurred_at"
+          ],
+          "basis": "audit window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "purge"
+      ],
+      "anonymise_columns": [
+        "actor_id"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "trigger",
+          "trigger": "refuse_mutation",
+          "function": "private.refuse_mutation",
+          "blocks": "purge and anonymise"
+        },
+        {
+          "kind": "trigger",
+          "trigger": "refuse_truncate",
+          "function": "private.refuse_mutation",
+          "blocks": "purge by truncate"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "actor_id"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-06",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_invoices",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "issued_at"
+          ],
+          "basis": "finance retention window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_payments",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "occurred_at"
+          ],
+          "basis": "finance retention window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_plan_versions",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_plans",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_subscriptions",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "current_period_end"
+          ],
+          "basis": "finance retention window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.billing_webhook_receipts",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-08",
+      "sweeps": [
+        {
+          "key": [
+            "processed_at"
+          ],
+          "basis": "after processed (if the class were WEBHOOK-SHORT)",
+          "covered_by": []
+        },
+        {
+          "key": [
+            "dead_lettered_at"
+          ],
+          "basis": "after dead-letter (if the class were WEBHOOK-SHORT)",
+          "covered_by": []
+        },
+        {
+          "key": [
+            "received_at"
+          ],
+          "basis": "receipt time",
+          "covered_by": [
+            "billing_webhook_receipts_unprocessed_idx"
+          ],
+          "partial_predicates": {
+            "billing_webhook_receipts_unprocessed_idx": "processed_at is null and dead_lettered_at is null"
+          },
+          "partial_cover": {
+            "verdict": "F160-13",
+            "why": "The only covering index admits unprocessed, not-dead-lettered receipts; a retention sweep reads processed and dead-lettered ones, so the sweep has no usable index (C0 G6)."
+          }
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.business_profile_versions",
+      "section5": {
+        "line": 202,
+        "module": "business.core",
+        "family": "`business_profiles`, `business_profile_versions`",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE/HISTORY"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 3 of 27 (ERD:490)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime + lineage",
+          "covered_by": [
+            "business_profile_versions_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.business_profiles",
+      "section5": {
+        "line": 202,
+        "module": "business.core",
+        "family": "`business_profiles`, `business_profile_versions`",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE/HISTORY"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "TENANT-LIFE",
+      "class_status": "defined",
+      "section10_row": "row 2 of 27 (ERD:489)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "business_profiles_scope_key",
+            "business_profiles_workspace_keyset_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "name",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "grant-without-policy",
+          "role": "app_worker",
+          "columns": [
+            "name",
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-10",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.calendar_items",
+      "section5": {
+        "line": 209,
+        "module": "calendar.core",
+        "family": "calendar items/schedules",
+        "sensitivity": "CONTENT-2",
+        "retention": "SCHEDULE-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "SCHEDULE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 10 of 27 (ERD:497)",
+      "finding": null,
+      "sweeps": [],
+      "sweep_finding": "F160-11",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "created_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.consumer_ledger",
+      "section5": {
+        "line": 214,
+        "module": "jobs.kernel",
+        "family": "jobs/attempts/DLQ/outbox/consumed ledger",
+        "sensitivity": "INTERNAL-3",
+        "retention": "JOB-SHORT/LEDGER"
+      },
+      "section9_classes": [
+        "INTERNAL-3"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-05",
+      "sweeps": [
+        {
+          "key": [
+            "consumed_at"
+          ],
+          "basis": "replay window (if the class were CONSUMER-LEDGER)",
+          "covered_by": [
+            "consumer_ledger_window_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.content_asset_links",
+      "section5": {
+        "line": 210,
+        "module": "asset.core",
+        "family": "assets/versions/rights/links/backup/usage",
+        "sensitivity": "MEDIA-2/RIGHTS-3",
+        "retention": "ASSET-*"
+      },
+      "section9_classes": [
+        "MEDIA-2"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-07",
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_asset_links_asset_usage_idx",
+            "content_asset_links_asset_version_idx",
+            "content_asset_links_logical_key",
+            "content_asset_links_scope_key",
+            "content_asset_links_variant_idx",
+            "content_asset_links_version_order_idx"
+          ],
+          "partial_predicates": {
+            "content_asset_links_variant_idx": "content_variant_id is not null"
+          }
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.content_ideas",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_ideas_client_request_idempotency",
+            "content_ideas_page_scope_idx",
+            "content_ideas_scope_key"
+          ],
+          "partial_predicates": {
+            "content_ideas_client_request_idempotency": "client_request_id is not null"
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.content_items",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_items_page_scope_idx",
+            "content_items_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.content_schedules",
+      "section5": {
+        "line": 209,
+        "module": "calendar.core",
+        "family": "calendar items/schedules",
+        "sensitivity": "CONTENT-2",
+        "retention": "SCHEDULE-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "SCHEDULE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 10 of 27 (ERD:497)",
+      "finding": null,
+      "sweeps": [],
+      "sweep_finding": "F160-11",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "created_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.content_targets",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_targets_destination_key",
+            "content_targets_item_scope_idx",
+            "content_targets_scope_key",
+            "content_targets_social_scope_idx",
+            "content_targets_variant_scope_idx"
+          ],
+          "partial_predicates": {
+            "content_targets_variant_scope_idx": "content_variant_id is not null"
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.content_variants",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_variants_logical_key",
+            "content_variants_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.content_versions",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "also_claimed_by": "HISTORY",
+      "also_claimed_finding": "F160-16",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "content_versions_item_scope_id_key",
+            "content_versions_item_version_key",
+            "content_versions_parent_idx",
+            "content_versions_scope_key"
+          ],
+          "partial_predicates": {
+            "content_versions_parent_idx": "parent_version_id is not null"
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.industry_assignments",
+      "section5": {
+        "line": 204,
+        "module": "industry.core",
+        "family": "pack catalog/versions/assignments",
+        "sensitivity": "PUBLIC-0/TENANT-1",
+        "retention": "CATALOG/HISTORY"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-02",
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime (if the class were TENANT-LIFE)",
+          "covered_by": [
+            "industry_assignments_one_per_business",
+            "industry_assignments_workspace_keyset_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "app.industry_pack_versions",
+      "section5": {
+        "line": 204,
+        "module": "industry.core",
+        "family": "pack catalog/versions/assignments",
+        "sensitivity": "PUBLIC-0/TENANT-1",
+        "retention": "CATALOG/HISTORY"
+      },
+      "section9_classes": [
+        "PUBLIC-0"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-02",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "app.industry_packs",
+      "section5": {
+        "line": 204,
+        "module": "industry.core",
+        "family": "pack catalog/versions/assignments",
+        "sensitivity": "PUBLIC-0/TENANT-1",
+        "retention": "CATALOG/HISTORY"
+      },
+      "section9_classes": [
+        "PUBLIC-0"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-02",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "app.jobs",
+      "section5": {
+        "line": 214,
+        "module": "jobs.kernel",
+        "family": "jobs/attempts/DLQ/outbox/consumed ledger",
+        "sensitivity": "INTERNAL-3",
+        "retention": "JOB-SHORT/LEDGER"
+      },
+      "section9_classes": [
+        "INTERNAL-3"
+      ],
+      "section10_class": "JOB-SHORT",
+      "class_status": "defined",
+      "section10_row": "row 17 of 27 (ERD:504)",
+      "finding": null,
+      "sweeps": [],
+      "sweep_finding": "F160-10",
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.knowledge_item_versions",
+      "section5": {
+        "line": 205,
+        "module": "knowledge.core",
+        "family": "items/versions/voice/audience/offers/restrictions",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "also_claimed_by": "HISTORY",
+      "also_claimed_finding": "F160-16",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "knowledge_item_versions_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.knowledge_items",
+      "section5": {
+        "line": 205,
+        "module": "knowledge.core",
+        "family": "items/versions/voice/audience/offers/restrictions",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "knowledge_items_page_scope_idx",
+            "knowledge_items_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.meta_connections",
+      "section5": {
+        "line": 211,
+        "module": "connector.meta",
+        "family": "connections/accounts/bindings",
+        "sensitivity": "INTEGRATION-2/SECRET-4",
+        "retention": "CONNECTION-HISTORY"
+      },
+      "section9_classes": [
+        "INTEGRATION-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's connector.meta cell covers connections/accounts/bindings; this row holds display_name and revoked_at, no token. The family's SECRET-4 member is private.meta_credential_references, which is excluded."
+        }
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-01",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "app.notification_preferences",
+      "section5": {
+        "line": 215,
+        "module": "notification.core",
+        "family": "notifications/preferences/push subscriptions",
+        "sensitivity": "PII-2/SECRET-4",
+        "retention": "NOTIFICATION-*"
+      },
+      "section9_classes": [
+        "PII-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's notification.core cell covers notifications/preferences/push subscriptions; this row holds channel and enabled, no secret. The family's SECRET-4 member is private.push_subscription_references, which is excluded."
+        }
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-04",
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "notification_preferences_pk"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.notifications",
+      "section5": {
+        "line": 215,
+        "module": "notification.core",
+        "family": "notifications/preferences/push subscriptions",
+        "sensitivity": "PII-2/SECRET-4",
+        "retention": "NOTIFICATION-*"
+      },
+      "section9_classes": [
+        "PII-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's notification.core cell covers the whole family; this row holds a message key, a deep-link reference and delivery state, no secret. The family's SECRET-4 member is private.push_subscription_references, which is excluded."
+        }
+      ],
+      "section10_class": "NOTIFICATION-INBOX",
+      "class_status": "defined",
+      "section10_row": "row 20 of 27 (ERD:507)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "created_at"
+          ],
+          "basis": "inbox window",
+          "covered_by": [
+            "notifications_inbox_window_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.outbox_events",
+      "section5": {
+        "line": 214,
+        "module": "jobs.kernel",
+        "family": "jobs/attempts/DLQ/outbox/consumed ledger",
+        "sensitivity": "INTERNAL-3",
+        "retention": "JOB-SHORT/LEDGER"
+      },
+      "section9_classes": [
+        "INTERNAL-3"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-05",
+      "sweeps": [
+        {
+          "key": [
+            "dispatched_at"
+          ],
+          "basis": "after consumers ack (if the class were OUTBOX-SHORT)",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "app.page_context_profile_versions",
+      "section5": {
+        "line": 203,
+        "module": "business.core",
+        "family": "`page_context_profiles`, versions, bindings",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE/HISTORY"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 3 of 27 (ERD:490)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime + lineage",
+          "covered_by": [
+            "page_context_profile_versions_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.page_context_profiles",
+      "section5": {
+        "line": 203,
+        "module": "business.core",
+        "family": "`page_context_profiles`, versions, bindings",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE/HISTORY"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "TENANT-LIFE",
+      "class_status": "defined",
+      "section10_row": "row 2 of 27 (ERD:489)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "page_context_profiles_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "name",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "grant-without-policy",
+          "role": "app_worker",
+          "columns": [
+            "name",
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-10",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.performance_snapshots",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "PROVIDER-3"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "metric_time"
+          ],
+          "basis": "metrics detail window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.plan_entitlements",
+      "section5": {
+        "line": 218,
+        "module": "billing.core",
+        "family": "plans/prices/subscriptions/invoices/payment refs",
+        "sensitivity": "PII-2/FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.publish_intents",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "publish_intents_idempotency_key_unique",
+            "publish_intents_item_version_scope_idx",
+            "publish_intents_scope_key"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.publish_jobs",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "PROVIDER-3"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "publish_jobs_provider_request_key_unique",
+            "publish_jobs_target_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.publish_target_assets",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "publish_target_assets_asset_version_idx",
+            "publish_target_assets_target_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.publish_targets",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "publish_targets_content_target_idx",
+            "publish_targets_destination_key",
+            "publish_targets_intent_scope_idx",
+            "publish_targets_scope_key",
+            "publish_targets_social_scope_idx",
+            "publish_targets_variant_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.published_posts",
+      "section5": {
+        "line": 213,
+        "module": "publisher.meta",
+        "family": "intents/targets/jobs/posts/metrics",
+        "sensitivity": "CONTENT-2/PROVIDER-3",
+        "retention": "PUBLISH-HISTORY"
+      },
+      "section9_classes": [
+        "PROVIDER-3"
+      ],
+      "section10_class": "PUBLISH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 16 of 27 (ERD:503)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "published_posts_destination_idx",
+            "published_posts_scope_unique",
+            "published_posts_target_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.quality_reviews",
+      "section5": {
+        "line": 207,
+        "module": "content.core",
+        "family": "ideas/items/versions/variants/quality/targets",
+        "sensitivity": "CONTENT-2",
+        "retention": "CONTENT-HISTORY"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "CONTENT-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 8 of 27 (ERD:495)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "quality_reviews_scope_key",
+            "quality_reviews_version_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.quota_buckets",
+      "section5": {
+        "line": 217,
+        "module": "metering.core",
+        "family": "reservations/events/quota buckets",
+        "sensitivity": "FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "period_end"
+          ],
+          "basis": "finance retention window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.research_evidence",
+      "section5": {
+        "line": 206,
+        "module": "research.core",
+        "family": "runs/sources/snapshots/evidence/suggestions",
+        "sensitivity": "CONTENT-2/COPYRIGHT-3",
+        "retention": "RESEARCH-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "RESEARCH-RUN",
+      "class_status": "defined",
+      "section10_row": "row 6 of 27 (ERD:493)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id",
+            "business_profile_id",
+            "research_source_id"
+          ],
+          "basis": "follows its source",
+          "covered_by": [
+            "research_evidence_source_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.research_runs",
+      "section5": {
+        "line": 206,
+        "module": "research.core",
+        "family": "runs/sources/snapshots/evidence/suggestions",
+        "sensitivity": "CONTENT-2/COPYRIGHT-3",
+        "retention": "RESEARCH-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "RESEARCH-RUN",
+      "class_status": "defined",
+      "section10_row": "row 6 of 27 (ERD:493)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "completed_at"
+          ],
+          "basis": "after last use (no last-use column: F160-12)",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "created_by"
+          ],
+          "blocks": "anonymise"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.research_snapshots",
+      "section5": {
+        "line": 206,
+        "module": "research.core",
+        "family": "runs/sources/snapshots/evidence/suggestions",
+        "sensitivity": "CONTENT-2/COPYRIGHT-3",
+        "retention": "RESEARCH-*"
+      },
+      "section9_classes": [
+        "COPYRIGHT-3"
+      ],
+      "section10_class": "RESEARCH-SNAPSHOT",
+      "class_status": "defined",
+      "section10_row": "row 7 of 27 (ERD:494)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "retention_until"
+          ],
+          "basis": "stated per capture",
+          "covered_by": [
+            "research_snapshots_unpurged_retention_idx"
+          ],
+          "partial_predicates": {
+            "research_snapshots_unpurged_retention_idx": "purged_at is null"
+          },
+          "partial_cover": {
+            "verdict": "serves-the-sweep",
+            "why": "The sweep reads unpurged snapshots by retention_until; a purged snapshot has nothing left to purge."
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-07",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.research_sources",
+      "section5": {
+        "line": 206,
+        "module": "research.core",
+        "family": "runs/sources/snapshots/evidence/suggestions",
+        "sensitivity": "CONTENT-2/COPYRIGHT-3",
+        "retention": "RESEARCH-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "RESEARCH-RUN",
+      "class_status": "defined",
+      "section10_row": "row 6 of 27 (ERD:493)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id",
+            "business_profile_id",
+            "research_run_id"
+          ],
+          "basis": "follows its run",
+          "covered_by": [
+            "research_sources_run_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.research_suggestions",
+      "section5": {
+        "line": 206,
+        "module": "research.core",
+        "family": "runs/sources/snapshots/evidence/suggestions",
+        "sensitivity": "CONTENT-2/COPYRIGHT-3",
+        "retention": "RESEARCH-*"
+      },
+      "section9_classes": [
+        "CONTENT-2"
+      ],
+      "section10_class": "RESEARCH-RUN",
+      "class_status": "defined",
+      "section10_row": "row 6 of 27 (ERD:493)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id",
+            "business_profile_id",
+            "research_run_id"
+          ],
+          "basis": "follows its run",
+          "covered_by": [
+            "research_suggestions_run_scope_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.security_events",
+      "section5": {
+        "line": 219,
+        "module": "audit.core",
+        "family": "audit logs/security events",
+        "sensitivity": "AUTH-3/SECURITY-4",
+        "retention": "AUDIT/SECURITY"
+      },
+      "section9_classes": [
+        "SECURITY-4"
+      ],
+      "section10_class": "SECURITY",
+      "class_status": "defined",
+      "section10_row": "row 26 of 27 (ERD:513)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "occurred_at"
+          ],
+          "basis": "security window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "actor_id",
+        "source_ip_hash",
+        "user_agent_hash"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "trigger",
+          "trigger": "refuse_mutation",
+          "function": "private.refuse_mutation",
+          "blocks": "purge and anonymise"
+        },
+        {
+          "kind": "trigger",
+          "trigger": "refuse_truncate",
+          "function": "private.refuse_mutation",
+          "blocks": "purge by truncate"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "actor_id",
+            "source_ip_hash",
+            "user_agent_hash"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-06",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.social_accounts",
+      "section5": {
+        "line": 211,
+        "module": "connector.meta",
+        "family": "connections/accounts/bindings",
+        "sensitivity": "INTEGRATION-2/SECRET-4",
+        "retention": "CONNECTION-HISTORY"
+      },
+      "section9_classes": [
+        "INTEGRATION-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's connector.meta cell covers connections/accounts/bindings; this row holds account_kind, display_name and an external account hash, no token. The family's SECRET-4 member is private.meta_credential_references, which is excluded."
+        }
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-01",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "app.usage_events",
+      "section5": {
+        "line": 217,
+        "module": "metering.core",
+        "family": "reservations/events/quota buckets",
+        "sensitivity": "FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "occurred_at"
+          ],
+          "basis": "finance retention window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.usage_reservations",
+      "section5": {
+        "line": 217,
+        "module": "metering.core",
+        "family": "reservations/events/quota buckets",
+        "sensitivity": "FIN-3",
+        "retention": "FINANCE-HISTORY"
+      },
+      "section9_classes": [
+        "FIN-3"
+      ],
+      "section10_class": "FINANCE-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 24 of 27 (ERD:511)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "expires_at"
+          ],
+          "basis": "finance retention window",
+          "covered_by": [
+            "usage_reservations_expiry_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-05",
+        "Q160-a",
+        "Q160-b"
+      ]
+    },
+    {
+      "table": "app.user_profiles",
+      "section5": {
+        "line": 198,
+        "module": "identity.core",
+        "family": "`user_profiles`",
+        "sensitivity": "PII-2",
+        "retention": "ID-USER"
+      },
+      "section9_classes": [
+        "PII-2"
+      ],
+      "section10_class": "ID-USER",
+      "class_status": "defined",
+      "section10_row": "row 1 of 27 (ERD:488)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "deleted_at"
+          ],
+          "basis": "soft-delete, then recovery window",
+          "covered_by": []
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "display_name"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "client-only-update",
+          "columns": [
+            "display_name"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.workspace_invitations",
+      "section5": {
+        "line": 201,
+        "module": "identity.core",
+        "family": "`workspace_invitations`",
+        "sensitivity": "PII-2/AUTH-3",
+        "retention": "TOKEN-SHORT"
+      },
+      "section9_classes": [
+        "PII-2",
+        "AUTH-3"
+      ],
+      "section10_class": "TOKEN-SHORT",
+      "class_status": "defined",
+      "section10_row": "row 5 of 27 (ERD:492)",
+      "also_claimed_by": "AUTH-HISTORY",
+      "also_claimed_finding": "F160-17",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "expires_at"
+          ],
+          "basis": "after expiry",
+          "covered_by": [
+            "workspace_invitations_expires_at_idx"
+          ],
+          "partial_predicates": {
+            "workspace_invitations_expires_at_idx": "accepted_at is null and revoked_at is null"
+          },
+          "partial_cover": {
+            "verdict": "F160-13",
+            "why": "The only covering index admits pending invitations; TOKEN-SHORT also purges accepted and revoked ones, which the predicate excludes, so the sweep has no usable index for them (C0 G6)."
+          }
+        }
+      ],
+      "final_behaviour": [
+        "purge"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        }
+      ],
+      "decisions": [
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.workspace_member_scopes",
+      "section5": {
+        "line": 200,
+        "module": "identity.core",
+        "family": "`workspace_members`, `workspace_member_scopes`",
+        "sensitivity": "PII-2/AUTH-3",
+        "retention": "AUTH-HISTORY"
+      },
+      "section9_classes": [
+        "AUTH-3"
+      ],
+      "section10_class": "AUTH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 4 of 27 (ERD:491)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "workspace_member_scopes_member_keyset_idx",
+            "workspace_member_scopes_one_per_target",
+            "workspace_member_scopes_target_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "user_id",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-update-grant",
+          "columns": [
+            "user_id",
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-06",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.workspace_members",
+      "section5": {
+        "line": 200,
+        "module": "identity.core",
+        "family": "`workspace_members`, `workspace_member_scopes`",
+        "sensitivity": "PII-2/AUTH-3",
+        "retention": "AUTH-HISTORY"
+      },
+      "section9_classes": [
+        "PII-2",
+        "AUTH-3"
+      ],
+      "section10_class": "AUTH-HISTORY",
+      "class_status": "defined",
+      "section10_row": "row 4 of 27 (ERD:491)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "workspace_members_one_per_workspace",
+            "workspace_members_workspace_keyset_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "anonymise_columns": [
+        "user_id",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "grant-without-policy",
+          "role": "app_worker",
+          "columns": [
+            "user_id",
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-06",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.workspace_settings",
+      "section5": {
+        "line": 199,
+        "module": "identity.core",
+        "family": "`workspaces`, `workspace_settings`",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "TENANT-LIFE",
+      "class_status": "defined",
+      "section10_row": "row 2 of 27 (ERD:489)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "workspace_id"
+          ],
+          "basis": "workspace lifetime",
+          "covered_by": [
+            "workspace_settings_pkey"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "grant-without-policy",
+          "role": "app_worker",
+          "columns": [
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-10",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "app.workspaces",
+      "section5": {
+        "line": 199,
+        "module": "identity.core",
+        "family": "`workspaces`, `workspace_settings`",
+        "sensitivity": "TENANT-1",
+        "retention": "TENANT-LIFE"
+      },
+      "section9_classes": [
+        "TENANT-1"
+      ],
+      "section10_class": "TENANT-LIFE",
+      "class_status": "defined",
+      "section10_row": "row 2 of 27 (ERD:489)",
+      "finding": null,
+      "sweeps": [],
+      "sweep_finding": "F160-09",
+      "final_behaviour": [
+        "purge",
+        "anonymise"
+      ],
+      "anonymise_columns": [
+        "name",
+        "created_by",
+        "updated_by"
+      ],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "grant-without-policy",
+          "role": "app_worker",
+          "columns": [
+            "name",
+            "created_by",
+            "updated_by"
+          ],
+          "blocks": "anonymise"
+        }
+      ],
+      "decisions": [
+        "DATA-DEC-04",
+        "DATA-DEC-10",
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "private.ai_credential_references",
+      "section5": {
+        "line": 216,
+        "module": "ai.gateway",
+        "family": "model registry/policies/credential refs/generation runs",
+        "sensitivity": "CONTENT-2/SECRET-4",
+        "retention": "AI-RUN-*"
+      },
+      "section9_classes": [
+        "SECRET-4"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-06",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-schema-usage",
+          "schema": "private",
+          "blocks": "purge and anonymise"
+        }
+      ],
+      "decisions": []
+    },
+    {
+      "table": "private.meta_credential_references",
+      "section5": {
+        "line": 211,
+        "module": "connector.meta",
+        "family": "connections/accounts/bindings",
+        "sensitivity": "INTEGRATION-2/SECRET-4",
+        "retention": "CONNECTION-HISTORY"
+      },
+      "section9_classes": [
+        "SECRET-4"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-01",
+      "sweeps": [],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-schema-usage",
+          "schema": "private",
+          "blocks": "purge and anonymise"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    },
+    {
+      "table": "private.meta_webhook_inbox",
+      "section5": {
+        "line": 212,
+        "module": "connector.meta",
+        "family": "raw webhook inbox",
+        "sensitivity": "PROVIDER-3/SECRET-4",
+        "retention": "WEBHOOK-SHORT"
+      },
+      "section9_classes": [
+        "PROVIDER-3",
+        "SECRET-4"
+      ],
+      "section10_class": "WEBHOOK-SHORT",
+      "class_status": "defined",
+      "section10_row": "row 15 of 27 (ERD:502)",
+      "finding": null,
+      "sweeps": [
+        {
+          "key": [
+            "processed_at"
+          ],
+          "basis": "after processed",
+          "covered_by": [
+            "meta_webhook_inbox_processed_window_idx"
+          ]
+        },
+        {
+          "key": [
+            "failed_at"
+          ],
+          "basis": "after failure",
+          "covered_by": [
+            "meta_webhook_inbox_failed_window_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [
+        "purge",
+        "retain"
+      ],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-schema-usage",
+          "schema": "private",
+          "blocks": "purge and anonymise"
+        }
+      ],
+      "decisions": [
+        "Q160-a"
+      ]
+    },
+    {
+      "table": "private.push_subscription_references",
+      "section5": {
+        "line": 215,
+        "module": "notification.core",
+        "family": "notifications/preferences/push subscriptions",
+        "sensitivity": "PII-2/SECRET-4",
+        "retention": "NOTIFICATION-*"
+      },
+      "section9_classes": [
+        "SECRET-4"
+      ],
+      "section10_class": null,
+      "class_status": "finding",
+      "section10_row": null,
+      "finding": "F160-03",
+      "sweeps": [
+        {
+          "key": [
+            "last_active_at"
+          ],
+          "basis": "after inactivity (if the class were PUSH-SECRET)",
+          "covered_by": [
+            "push_subscription_references_inactive_idx"
+          ]
+        }
+      ],
+      "final_behaviour": [],
+      "anonymise_columns": [],
+      "blocking_controls": [
+        {
+          "kind": "no-delete-grant",
+          "blocks": "purge"
+        },
+        {
+          "kind": "no-schema-usage",
+          "schema": "private",
+          "blocks": "purge and anonymise"
+        }
+      ],
+      "decisions": [
+        "Q160-c"
+      ]
+    }
+  ]
+}
