@@ -67,3 +67,29 @@ PR stays a Draft until they report and the Owner decides its merge.
 Still open after these words: the RFC-2026-025 §5 points (above); and, recorded on blocker 186, the
 client-encoding change through a run-time-computed name. Schema `public` (A1 F6 on 123) was closed for
 client privileges by 127's review round (the client privilege probe; plan, "Review round").
+
+## 6. A standing delegation to merge (2026-10-03)
+
+The Owner wrote, verbatim:
+
+> ถ้าเสร็จแล้วคุณ merge เองไปได้เลย
+>
+> ระบบนี้ผมใช้งานเองคนเดียว ไม่ impact user อยู่แล้ว
+
+In English: "When it's done, merge it yourself. I'm the only one who uses this system, so it doesn't
+affect any users anyway."
+
+A0 reads this as a standing delegation. When a batch is done, A0 presses its merge. "Done" means all
+of the following:
+
+- its role runs and re-checks have reported;
+- none of them reports a stop-the-line or anything that blocks the merge;
+- its required check is green on the reviewed head;
+- the head contains main.
+
+A0 merges with `--match-head-commit`. A stop-the-line finding still halts the merge. A0 executes the
+merge under the Owner's delegation; it does not decide it. This settles who presses the button. It does
+not settle the RFC-2026-025 §5 points.
+
+Batch 127 meets that bar. The re-checks of its review round (plan §8) report no stop-the-line and
+nothing that blocks the merge. Their findings are owed to batch 128 on blocker 186.
