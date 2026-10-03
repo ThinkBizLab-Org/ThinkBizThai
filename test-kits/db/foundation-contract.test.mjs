@@ -366,6 +366,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '125_approval_settled_is_immutable.sql',
   // Batch 126: 125's function replaced and one CHECK on 090's approval_requests, after 125.
   '126_approval_decision_frozen_for_every_writer.sql',
+  // Batch 127: nineteen restrictive INSERT policies on tables batches 010-120 made, after 126.
+  '127_created_by_on_insert_is_caller.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -2165,7 +2167,21 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     ["select set_config('standard_' || 'conforming_strings', 'off', false);\nselect 'x\\' as a, ' \\! f\nas b;", 1],
     ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 2],
     ["select '\\'; \\! x\n-- '", 2], ['select 1 as x$a$; \\! x\n-- $a$', 1],
-    ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 0]]) {
+    ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 0],
+    // Batch 127 (Q0 F1 on batch 126's re-check): the odd-run rule at runs of three and five, not one alone.
+    // Narrowed to `run === 1` the rule passed every layer and XODD3B -- the setting turned off by a
+    // concatenated name, then three backslashes before the quote -- ran a shell command at migrate-clean.
+    // Each odd run is one finding and hides its \\! from nobody; each even run is none.
+    ["select pg_catalog.set_config('standard_' || 'conforming_strings', 'off', false);\nselect '\\\\\\''; \\! touch f\n-- '", 1],
+    ["select 'a\\\\\\'' as b; \\! x\n-- '", 1], ["select 'a\\\\\\\\\\'' as b; \\! x\n-- '", 1],
+    ["select 'a\\\\\\\\';", 0], ["select 'a\\\\\\\\\\\\';", 0],
+    // Batch 127 (C0 R2 on batch 126): a change of client encoding, by name anywhere or by SET NAMES, is
+    // refused, and `\\encoding` is a backslash like any other. A string or column that merely says
+    // "names" is not.
+    ["set client_encoding = 'SJIS';\nselect 1;", 1], ["select pg_catalog.set_config('client_encoding', 'BIG5', false);", 1],
+    ["alter role app_worker set client_encoding = 'GBK';", 1], ['-- client_encoding, in a comment\nselect 1;', 1],
+    ["SET NAMES 'SJIS';", 1], ["set session names 'UHC';\nselect 1;", 1], ["/* c */ set local names 'GB18030';", 1],
+    ['\\encoding SJIS', 1], ["select 'set names' as names, 1 as set_names;", 0]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2260,6 +2276,29 @@ test('the forward fix 123 keeps its ten UPDATE closures, its decider closure and
   assert.deepEqual(DECIDER_CLOSURES, ['approval_requests'], 'the probe pins the decider closure');
   assert.ok(code.includes(PINNED_CHECKS['approval_requests.approval_requests_decider_is_a_pair']), '123 and the probe pin the pair in one text');
   assert.ok(code.includes(PINNED_CHECKS['approval_requests.approval_requests_decision_has_a_decider'].replace(/'/g, "''")), "123 and the probe pin 090's equivalence in one text");
+});
+
+// BATCH 127 (blocker 186's created_by class; A1 F5 on batch 123, A1 F3 on batch 091): created_by at INSERT
+// bound by a restrictive closure on every table that hands it to a client. Pinned here so an emptied
+// file fails before a database.
+test('the forward fix 127 keeps its nineteen created_by INSERT closures and its exact general rule', async () => {
+  const code = (await readFile('db/foundation/migrations/127_created_by_on_insert_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const { CREATED_BY_CLOSURES, CREATED_BY_CHECK_TEXT } = await import('../../scripts/db/run.mjs');
+  for (const t of CREATED_BY_CLOSURES) {
+    assert.match(code, new RegExp(`create policy ${t}_created_by_is_caller on app\\.${t}\\s+as restrictive for insert to authenticated\\s+with check \\(created_by = \\(select auth\\.uid\\(\\)\\)\\);`),
+      `127: ${t} carries a RESTRICTIVE INSERT closure binding created_by to the caller`);
+  }
+  assert.equal([...code.matchAll(/create policy/g)].length, CREATED_BY_CLOSURES.length, '127 creates exactly one policy per pinned table, and the probe pins every table it closes');
+  // The general rule requires the closure itself, by name and exact text, from birth (123's lesson), with
+  // no fixed count (091's lesson), over every client-insertable created_by.
+  assert.match(code, /pol\.polname = c\.relname \|\| '_created_by_is_caller'/);
+  assert.match(code, /not pol\.polpermissive and pol\.polcmd = 'a' and pol\.polqual is null/);
+  assert.ok(code.includes(`pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) = '${CREATED_BY_CHECK_TEXT}'`), '127 and the probe pin one text');
+  assert.match(code, /has_column_privilege\('authenticated', c\.oid, a\.attnum, 'INSERT'\)/);
+  assert.match(code, /c\.relkind in \('r', 'p'\)/);
+  assert.match(code, /not \(c\.relrowsecurity and c\.relforcerowsecurity\)/);
+  assert.match(code, /created_by is client-insertable without batch 127''s exact restrictive INSERT closure/);
+  assert.doesNotMatch(code, /count_of/, 'no fixed count: the probe\'s pinned list keeps it');
 });
 
 // BATCH 125 (A1 N1 and C0 F2 on batch 123's corrections): a settled approval request cannot be updated by
@@ -2432,10 +2471,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   const m = await import('../../scripts/db/run.mjs');
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
-      m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
+      m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL,
+      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
       m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all sixteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3)');
+    'all eighteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2548,6 +2588,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'updated_by update closure probe': '024492df9c6413be',
     'decider closure probe': '84bd3a00310d26af',
     'closure coverage probe': '1a626907571ffb7e',
+    'created_by insert closure probe': '00def6f1e5194911',
+    'insert closure coverage probe': '3996c38c9f5081a9',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': '8d249faed4de9d73',
     'security definer probe': '890866dd704c458b',
@@ -2563,7 +2605,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable or not c\.convalidated/, 'actions, deferrable and NOT VALID (Q0 F4)');
   assert.match(m.FK_ACTION_PROBE_SQL, /n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema but the system ones (Q0 F07)');
   for (const [sql, suffix] of [[m.UPDATED_BY_CLOSURE_PROBE_SQL, 'updated_by_is_caller'], [m.REQUESTER_CLOSURE_PROBE_SQL, 'requester_is_caller'],
-    [m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, 'updated_by_on_update_is_caller'], [m.DECIDER_CLOSURE_PROBE_SQL, 'decided_by_on_update_is_caller']]) {
+    [m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, 'updated_by_on_update_is_caller'], [m.DECIDER_CLOSURE_PROBE_SQL, 'decided_by_on_update_is_caller'],
+    [m.CREATED_BY_CLOSURE_PROBE_SQL, 'created_by_is_caller']]) {
     assert.match(sql, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, `${suffix}: closures compared by TEXT, not tokens (A1 F3)`);
     assert.match(sql, new RegExp(`has no %s_${suffix}[\\s\\S]*where not exists`), `${suffix}: a dropped closure is caught (C0 LOW 3)`);
   }
@@ -2585,6 +2628,24 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     + ` and not (format('%s.%s', c.relname, a.attname) = any (array[${pinnedKeys}]));`,
     'the coverage probe\'s statement is exactly this: no predicate added, dropped or narrowed');
   assert.equal((m.CLOSURE_COVERAGE_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 1, 'and it is the probe\'s only statement that reads');
+  // THE SAME AT INSERT (batch 127): the UPDATE probe read UPDATE alone, so a later table granting
+  // authenticated INSERT on a *_by column with no closure passed every probe. Pinned whole, as above.
+  const insertKeys = Object.entries(m.ATTRIBUTION_INSERT_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ');
+  assert.equal(m.INSERT_CLOSURE_COVERAGE_PROBE_SQL.match(/\n  (select string_agg[\s\S]*?\]\)\);)\n/)?.[1].replace(/\s+/g, ' '),
+    "select string_agg(format('app.%s.%s', c.relname, a.attname), ', ' order by c.relname, a.attname) into offending"
+    + ' from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace'
+    + ' join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped'
+    + " where n.nspname = 'app' and c.relkind in ('r', 'p') and a.attname like '%\\_by'"
+    + " and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'INSERT')"
+    + ` and not (format('%s.%s', c.relname, a.attname) = any (array[${insertKeys}]));`,
+    'the INSERT coverage probe\'s statement is exactly this: no predicate added, dropped or narrowed');
+  assert.equal((m.INSERT_CLOSURE_COVERAGE_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 1, 'and it is that probe\'s only statement that reads');
+  // Every attribution column at INSERT is pinned to the closure list of its own column, and each list is
+  // the one its own closure probe pins by exact text.
+  assert.deepEqual(m.ATTRIBUTION_INSERT_CLOSURES, { created_by: m.CREATED_BY_CLOSURES, requested_by: m.REQUESTER_CLOSURES, updated_by: m.UPDATED_BY_CLOSURES });
+  assert.equal(m.CREATED_BY_CHECK_TEXT, '(created_by = ( SELECT auth.uid() AS uid))', 'created_by at INSERT is exactly the caller, as 105\'s updated_by at UPDATE');
+  assert.equal(m.CREATED_BY_CLOSURES.length, 19, 'nineteen tables grant authenticated INSERT on created_by, measured from the catalog at batch 127');
+  assert.deepEqual([...m.CREATED_BY_CLOSURES].sort(), m.CREATED_BY_CLOSURES, 'sorted, so a diff to the list reads as one line');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
     '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');

@@ -17548,7 +17548,118 @@ export function buildCases(id) {
       expect: 'rows',
       why: 'BATCH 091: the same, on the schedules.',
     },
+    // BATCH 127: created_by FORGED ALONE, on every table that hands the column to a client at INSERT.
+    // A1's review of batch 123, F5: the cases named for forging created_by mostly forged updated_by too,
+    // so 102's updated_by closure refused them first and they tested nothing about created_by. Each case
+    // below is a statement every policy on its table admits with created_by = the caller (the twin is
+    // measured in the batch 127 draft record), with created_by alone changed to ANOTHER MEMBER OF THE
+    // SAME WORKSPACE; every other attribution column it writes names the caller. Its refusal is
+    // attributable to created_by and to nothing else -- to 127's restrictive closure, and while the
+    // permissive INSERT policies still bind the column, to them as well.
+    ...createdByAloneCases({ ownerA, editorA, id, BUSINESS_A1 }),
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
+}
+
+// The batch 127 family: one case per table in run.mjs's CREATED_BY_CLOSURES, each named for its table
+// in that table's CI negative-control pattern, so disabling row level security on the table is noticed
+// by this case too. The noun is the control pattern's word (approval-policy, library-asset, schedule,
+// ...), and identity-isolation.test.mjs holds the set to the closure list, one case per table.
+export const CREATED_BY_ALONE_MARK = 'cannot-forge-created-by-alone-on-';
+function createdByAloneCases({ ownerA, editorA, id, BUSINESS_A1 }) {
+  const asOwner = { as: ownerA, other: id('user_editor_a') };
+  const asEditor = { as: editorA, other: id('user_owner_a') };
+  const rows = [
+    ['approval_policies', 'an-approval-policy', asOwner,
+      'insert into app.approval_policies (workspace_id, business_profile_id, policy_key, version, enabled, minimum_approvers, created_by, updated_by)'
+      + ' values ($1::uuid, $2::uuid, $3, $4::integer, true, 1, $5::uuid, $6::uuid) returning id',
+      ['__A__', BUSINESS_A1, 'fixture-a1-business', '3', 'FORGED', '__SELF__']],
+    ['approval_requests', 'an-approval-request', asEditor,
+      'insert into app.approval_requests (workspace_id, business_profile_id, content_item_id, content_version_id, requested_by, created_by, updated_by)'
+      + ' values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $5::uuid) returning id',
+      ['__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__', 'FORGED']],
+    ['asset_rights', 'an-asset-rights', asOwner,
+      'insert into app.asset_rights (workspace_id, business_profile_id, asset_id, rights_type, rights_status, created_by, updated_by)'
+      + " values ($1::uuid, $2::uuid, $3::uuid, 'owned', 'valid', $4::uuid, $5::uuid) returning id",
+      ['__A__', BUSINESS_A1, id('asset_a1'), 'FORGED', '__SELF__']],
+    ['assets', 'a-library-asset', asEditor,
+      'insert into app.assets (workspace_id, business_profile_id, kind, title, source, created_by, updated_by)'
+      + " values ($1::uuid, $2::uuid, 'image', 'attempted asset title', 'upload', $3::uuid, $4::uuid) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED', '__SELF__']],
+    ['business_profile_versions', 'a-business-version', asOwner,
+      'insert into app.business_profile_versions (workspace_id, business_profile_id, version_number, name, created_by)'
+      + " values ($1, $2, 2, 'attempted business version', $3) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED']],
+    ['business_profiles', 'a-business', asOwner,
+      'insert into app.business_profiles (workspace_id, name, created_by, updated_by)'
+      + " values ($1, 'attempted business', $2, $3) returning id",
+      ['__A__', 'FORGED', '__SELF__']],
+    ['calendar_items', 'a-calendar-placement', asOwner,
+      'insert into app.calendar_items (workspace_id, business_profile_id, content_item_id, scheduled_local_date, timezone, created_by)'
+      + " values ($1, $2, $3, '2026-10-09', 'Asia/Bangkok', $4) returning id",
+      ['__A__', BUSINESS_A1, id('content_item_a1_page'), 'FORGED']],
+    ['content_ideas', 'a-content-idea', asOwner,
+      'insert into app.content_ideas (workspace_id, business_profile_id, goal, topic, created_by, updated_by)'
+      + " values ($1::uuid, $2::uuid, 'attempted content goal', 'attempted content topic', $3::uuid, $4::uuid) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED', '__SELF__']],
+    ['content_items', 'a-content-item', asOwner,
+      'insert into app.content_items (workspace_id, business_profile_id, title, content_type, created_by, updated_by)'
+      + " values ($1::uuid, $2::uuid, 'attempted content item', 'post', $3::uuid, $4::uuid) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED', '__SELF__']],
+    ['content_schedules', 'a-schedule', asOwner,
+      'insert into app.content_schedules (workspace_id, business_profile_id, content_target_id, scheduled_for, timezone_snapshot, created_by)'
+      + " values ($1, $2, $3, '2026-10-09 09:00:00+07', 'Asia/Bangkok', $4) returning status",
+      ['__A__', BUSINESS_A1, id('content_target_a1_page'), 'FORGED']],
+    ['content_targets', 'a-content-target', asOwner,
+      'insert into app.content_targets (workspace_id, business_profile_id, content_item_id, social_account_id, created_by, updated_by)'
+      + ' values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid) returning id',
+      ['__A__', BUSINESS_A1, id('content_item_a1_page'), id('social_account_a2'), 'FORGED', '__SELF__']],
+    ['industry_assignments', 'an-industry-assignment', asOwner,
+      'insert into app.industry_assignments (workspace_id, business_profile_id, industry_pack_version_id, created_by, updated_by)'
+      + ' values ($1, $2, $3, $4, $5) returning id',
+      ['__A__', id('business_a4_unassigned'), id('industry_pack_interior_v1'), 'FORGED', '__SELF__']],
+    ['knowledge_item_versions', 'a-knowledge-version', asOwner,
+      'insert into app.knowledge_item_versions (workspace_id, business_profile_id, knowledge_item_id, version_number, name, created_by)'
+      + " values ($1, $2, $3, 2, 'attempted knowledge version', $4) returning id",
+      ['__A__', BUSINESS_A1, id('knowledge_a1_business'), 'FORGED']],
+    ['knowledge_items', 'a-knowledge-item', asOwner,
+      'insert into app.knowledge_items (workspace_id, business_profile_id, page_context_profile_id, kind, name, created_by, updated_by)'
+      + " values ($1, $2, null, 'voice', 'attempted knowledge', $3, $4) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED', '__SELF__']],
+    ['page_context_profile_versions', 'a-page-version', asOwner,
+      'insert into app.page_context_profile_versions (workspace_id, business_profile_id, page_context_profile_id, version_number, name, created_by)'
+      + " values ($1, $2, $3, 2, 'attempted page version', $4) returning id",
+      ['__A__', BUSINESS_A1, id('page_a1'), 'FORGED']],
+    ['page_context_profiles', 'a-page', asOwner,
+      'insert into app.page_context_profiles (workspace_id, business_profile_id, name, created_by, updated_by)'
+      + " values ($1, $2, 'attempted page', $3, $4) returning id",
+      ['__A__', BUSINESS_A1, 'FORGED', '__SELF__']],
+    ['publish_intents', 'a-publish-intent', asOwner,
+      'insert into app.publish_intents (workspace_id, business_profile_id, content_item_id, content_version_id, requested_by, request_kind, idempotency_key, created_by, updated_by)'
+      + " values ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'now', $6, $7::uuid, $5::uuid) returning id",
+      ['__A__', BUSINESS_A1, id('content_item_a1'), id('content_version_a1'), '__SELF__', 'case:publish:created-by-alone', 'FORGED']],
+    ['workspace_invitations', 'a-workspace-invitation', asOwner,
+      'insert into app.workspace_invitations (workspace_id, role, token_hash, expires_at, created_by)'
+      + " values ($1, 'editor', sha256(convert_to($2, 'utf8')), now() + interval '1 day', $3) returning id",
+      ['__A__', 'thinkbizthai.fixture.created_by_alone_invitation', 'FORGED']],
+    ['workspace_member_scopes', 'a-member-scope', asOwner,
+      'insert into app.workspace_member_scopes (workspace_id, user_id, scope_type, created_by, updated_by)'
+      + " values ($1, $2, 'all_businesses', $3, $4) returning id",
+      ['__A__', id('user_owner_a'), 'FORGED', '__SELF__']],
+  ];
+  return rows.map(([table, noun, { as, other }, sql, params]) => ({
+    id: `${as === ownerA ? 'owner' : 'editor'}-a-${CREATED_BY_ALONE_MARK}${noun}`,
+    covers: ['§12.6/7', '§8.6/8', '§8.5'],
+    as,
+    sql,
+    params: params.map((p) => (p === 'FORGED' ? other : p)),
+    forgedCreatedBy: other,
+    expect: 'denied',
+    deniedBy: 'policy',
+    deniedOn: { kind: 'table', name: table },
+    why: `BATCH 127 (A1 F5 on 123): app.${table} admits this row with created_by = the caller; created_by alone names another `
+       + 'member of the same workspace, and every other attribution column names the caller. Refused by '
+       + `${table}_created_by_is_caller, which no permissive INSERT policy can widen.`,
+  }));
 }
 
 // `__A__`, `__B__` and `__SELF__` keep the shared `invite(...)` builder readable without letting a

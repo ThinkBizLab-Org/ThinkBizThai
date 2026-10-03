@@ -14,6 +14,7 @@ declare
   immutable_tables constant text[] :=
     array['content_versions', 'content_variants', 'quality_reviews'];
 begin
+  -- SUPERSEDED BY 127 as well: batch 127 added `<table>_created_by_is_caller`, restrictive, INSERT, to content_ideas, content_items.
   -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to content_ideas, content_items.
   -- SUPERSEDED BY 082, 102. Batch 080 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: content_ideas_service_path_closed (082), content_ideas_updated_by_is_caller (102), content_items_service_path_closed (082), content_items_updated_by_is_caller (102), content_variants_service_path_closed (082), content_versions_service_path_closed (082), quality_reviews_service_path_closed (082).
@@ -22,12 +23,12 @@ begin
   -- restrictive predicates of 080's original assertions, which are otherwise kept word for word.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_ideas'::regclass and not pol.polpermissive)
-     is distinct from array['content_ideas_scope_narrowing', 'content_ideas_service_path_closed', 'content_ideas_updated_by_is_caller', 'content_ideas_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+     is distinct from array['content_ideas_created_by_is_caller', 'content_ideas_scope_narrowing', 'content_ideas_service_path_closed', 'content_ideas_updated_by_is_caller', 'content_ideas_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure; and 127: its INSERT closure
     raise exception 'app.content_ideas restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_items'::regclass and not pol.polpermissive)
-     is distinct from array['content_items_scope_narrowing', 'content_items_service_path_closed', 'content_items_updated_by_is_caller', 'content_items_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+     is distinct from array['content_items_created_by_is_caller', 'content_items_scope_narrowing', 'content_items_service_path_closed', 'content_items_updated_by_is_caller', 'content_items_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure; and 127: its INSERT closure
     raise exception 'app.content_items restrictive policies are not exactly batch 080''s narrowing and the ones 082, 102, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
@@ -263,7 +264,7 @@ begin
    where n.nspname = 'app'
      and c.relname::text = any (content_tables)
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_on_update_is_caller'), ('content_items', 'content_items_updated_by_on_update_is_caller'));  -- SUPERSEDED BY 082, 102, 123: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_on_update_is_caller'), ('content_items', 'content_items_updated_by_on_update_is_caller'), ('content_ideas', 'content_ideas_created_by_is_caller'), ('content_items', 'content_items_created_by_is_caller'));  -- SUPERSEDED BY 082, 102, 123: names another file wrote, see the header
   if count_of <> 5 then
     raise exception 'batch 080 wrote % restrictive policies and it creates five tables to narrow', count_of;
   end if;
@@ -285,7 +286,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (content_tables)
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_on_update_is_caller'), ('content_items', 'content_items_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 082, 102, 123: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('content_ideas', 'content_ideas_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_is_caller'), ('content_items', 'content_items_service_path_closed'), ('content_items', 'content_items_updated_by_is_caller'), ('content_variants', 'content_variants_service_path_closed'), ('content_versions', 'content_versions_service_path_closed'), ('quality_reviews', 'quality_reviews_service_path_closed'), ('content_ideas', 'content_ideas_updated_by_on_update_is_caller'), ('content_items', 'content_items_updated_by_on_update_is_caller'), ('content_ideas', 'content_ideas_created_by_is_caller'), ('content_items', 'content_items_created_by_is_caller'))  -- SUPERSEDED BY 082, 102, 123: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

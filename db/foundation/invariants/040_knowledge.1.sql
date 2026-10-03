@@ -5,6 +5,7 @@ declare
   narrowing text;
   probe     record;
 begin
+  -- SUPERSEDED BY 127 as well: batch 127 added `<table>_created_by_is_caller`, restrictive, INSERT, to knowledge_item_versions, knowledge_items.
   -- SUPERSEDED BY 042, 102, 105. Batch 040 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: knowledge_item_versions_service_path_closed (042), knowledge_items_service_path_closed (042), knowledge_items_updated_by_is_caller (102), knowledge_items_updated_by_on_update_is_caller (105).
   -- Each of those is asserted by its own batch's block, which this pass also re-runs. The final-state
@@ -12,12 +13,12 @@ begin
   -- restrictive predicates of 040's original assertions, which are otherwise kept word for word.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.knowledge_item_versions'::regclass and not pol.polpermissive)
-     is distinct from array['knowledge_item_versions_scope_narrows_member', 'knowledge_item_versions_service_path_closed'] then
+     is distinct from array['knowledge_item_versions_created_by_is_caller', 'knowledge_item_versions_scope_narrows_member', 'knowledge_item_versions_service_path_closed'] then  -- SUPERSEDED BY 127: its INSERT closure
     raise exception 'app.knowledge_item_versions restrictive policies are not exactly batch 040''s narrowing and the ones 042 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.knowledge_items'::regclass and not pol.polpermissive)
-     is distinct from array['knowledge_items_scope_narrows_member', 'knowledge_items_service_path_closed', 'knowledge_items_updated_by_is_caller', 'knowledge_items_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 105: its UPDATE closure
+     is distinct from array['knowledge_items_created_by_is_caller', 'knowledge_items_scope_narrows_member', 'knowledge_items_service_path_closed', 'knowledge_items_updated_by_is_caller', 'knowledge_items_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 105: its UPDATE closure; and 127: its INSERT closure
     raise exception 'app.knowledge_items restrictive policies are not exactly batch 040''s narrowing and the ones 042, 102 added';
   end if;
   -- ENABLE and FORCE on both tables. The two are different catalog columns and the data package's
@@ -128,7 +129,7 @@ begin
    where n.nspname = 'app'
      and c.relname in ('knowledge_items', 'knowledge_item_versions')
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'), ('knowledge_items', 'knowledge_items_updated_by_on_update_is_caller'));  -- SUPERSEDED BY 042, 102, 105: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'), ('knowledge_items', 'knowledge_items_updated_by_on_update_is_caller'), ('knowledge_item_versions', 'knowledge_item_versions_created_by_is_caller'), ('knowledge_items', 'knowledge_items_created_by_is_caller'));  -- SUPERSEDED BY 042, 102, 105: names another file wrote, see the header
   if count_of <> 2 then
     raise exception 'batch 040 wrote % restrictive policies and it creates two tables to narrow', count_of
       using hint = 'One per table. A version row holds what a knowledge item used to say, so a '
@@ -164,7 +165,7 @@ begin
      where n.nspname = 'app'
        and c.relname in ('knowledge_items', 'knowledge_item_versions')
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'), ('knowledge_items', 'knowledge_items_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 042, 102, 105: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('knowledge_item_versions', 'knowledge_item_versions_service_path_closed'), ('knowledge_items', 'knowledge_items_service_path_closed'), ('knowledge_items', 'knowledge_items_updated_by_is_caller'), ('knowledge_items', 'knowledge_items_updated_by_on_update_is_caller'), ('knowledge_item_versions', 'knowledge_item_versions_created_by_is_caller'), ('knowledge_items', 'knowledge_items_created_by_is_caller'))  -- SUPERSEDED BY 042, 102, 105: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

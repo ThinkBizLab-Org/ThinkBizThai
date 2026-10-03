@@ -12,6 +12,7 @@ declare
     array['id', 'workspace_id', 'business_profile_id', 'content_item_id', 'social_account_id',
           'content_variant_id', 'created_by', 'created_at'];
 begin
+  -- SUPERSEDED BY 127 as well: batch 127 added `<table>_created_by_is_caller`, restrictive, INSERT, to content_targets.
   -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to content_targets.
   -- SUPERSEDED BY 083, 102. Batch 081 wrote one restrictive narrowing per table. The later files
   -- added restrictive policies to the same tables: content_targets_service_path_closed (083), content_targets_updated_by_is_caller (102).
@@ -20,7 +21,7 @@ begin
   -- restrictive predicates of 081's original assertions, which are otherwise kept word for word.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.content_targets'::regclass and not pol.polpermissive)
-     is distinct from array['content_targets_scope_narrowing', 'content_targets_service_path_closed', 'content_targets_updated_by_is_caller', 'content_targets_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+     is distinct from array['content_targets_created_by_is_caller', 'content_targets_scope_narrowing', 'content_targets_service_path_closed', 'content_targets_updated_by_is_caller', 'content_targets_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure; and 127: its INSERT closure
     raise exception 'app.content_targets restrictive policies are not exactly batch 081''s narrowing and the ones 083, 102, 123 added';
   end if;
   -- ENABLE AND FORCE. They are DIFFERENT CATALOG COLUMNS and the data package's own lint rule reads
@@ -304,7 +305,7 @@ begin
    where n.nspname = 'app'
      and c.relname = 'content_targets'
      and not pol.polpermissive
-     and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'), ('content_targets', 'content_targets_updated_by_on_update_is_caller'));  -- SUPERSEDED BY 083, 102, 111, 123: names another file wrote, see the header
+     and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'), ('content_targets', 'content_targets_updated_by_on_update_is_caller'), ('content_targets', 'content_targets_created_by_is_caller'));  -- SUPERSEDED BY 083, 102, 111, 123: names another file wrote, see the header
   if count_of <> 1 then
     raise exception 'batch 081 wrote % restrictive policies and it creates one table to narrow', count_of;
   end if;
@@ -323,7 +324,7 @@ begin
      where n.nspname = 'app'
        and c.relname = 'content_targets'
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'), ('content_targets', 'content_targets_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 083, 102, 111, 123: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('content_targets', 'content_targets_service_path_closed'), ('content_targets', 'content_targets_updated_by_is_caller'), ('content_targets', 'content_targets_updated_by_on_update_is_caller'), ('content_targets', 'content_targets_created_by_is_caller'))  -- SUPERSEDED BY 083, 102, 111, 123: names another file wrote, see the header
   loop
     count_of := count_of + 1;
     foreach narrowing in array array[probe.using_half, probe.check_half] loop

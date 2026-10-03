@@ -25,6 +25,7 @@ declare
     array['id', 'workspace_id', 'business_profile_id', 'publish_target_id', 'kernel_job_id',
           'provider_request_key', 'created_at'];
 begin
+  -- SUPERSEDED BY 127 as well: batch 127 added `<table>_created_by_is_caller`, restrictive, INSERT, to publish_intents.
   -- SUPERSEDED BY 123 as well: batch 123 added `<table>_updated_by_on_update_is_caller`, restrictive, to publish_intents.
   -- SUPERSEDED BY 122. Batch 120 wrote one restrictive narrowing per table, plus two INSERT
   -- closures on publish_intents (094's and 102's shapes). The later files
@@ -34,7 +35,7 @@ begin
   -- restrictive predicates of 120's original assertions, which are otherwise kept word for word.
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
        where pol.polrelid = 'app.publish_intents'::regclass and not pol.polpermissive)
-     is distinct from array['publish_intents_requester_is_caller', 'publish_intents_scope_narrowing', 'publish_intents_service_path_closed', 'publish_intents_updated_by_is_caller', 'publish_intents_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure
+     is distinct from array['publish_intents_created_by_is_caller', 'publish_intents_requester_is_caller', 'publish_intents_scope_narrowing', 'publish_intents_service_path_closed', 'publish_intents_updated_by_is_caller', 'publish_intents_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 123: its UPDATE closure; and 127: its INSERT closure
     raise exception 'app.publish_intents restrictive policies are not exactly batch 120''s narrowing and the ones 122, 123 added';
   end if;
   if (select array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol
@@ -335,7 +336,7 @@ begin
      where n.nspname = 'app'
        and c.relname::text = any (publisher_tables)
        and not pol.polpermissive
-       and (c.relname::text, pol.polname::text) not in (('publish_intents', 'publish_intents_service_path_closed'), ('publish_target_assets', 'publish_target_assets_service_path_closed'), ('publish_intents', 'publish_intents_updated_by_on_update_is_caller'))  -- SUPERSEDED BY 122, 123: names another file wrote, see the header
+       and (c.relname::text, pol.polname::text) not in (('publish_intents', 'publish_intents_service_path_closed'), ('publish_target_assets', 'publish_target_assets_service_path_closed'), ('publish_intents', 'publish_intents_updated_by_on_update_is_caller'), ('publish_intents', 'publish_intents_created_by_is_caller'))  -- SUPERSEDED BY 122, 123: names another file wrote, see the header
        -- FOR ALL ONLY, and the qualifier is a measurement rather than a precaution: this batch writes
        -- THREE restrictive policies on app.publish_intents, and two of them are batch 094's and 102's
        -- shape -- RESTRICTIVE FOR INSERT, which has no USING half at all, so pg_get_expr(polqual) is

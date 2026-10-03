@@ -216,6 +216,18 @@ export const UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL = closureProbe(closureRule('
 export const DECIDER_CLOSURES = ['approval_requests'];
 export const DECIDER_CHECK_TEXT = '((decided_by IS NULL) OR (decided_by = ( SELECT auth.uid() AS uid)))';
 export const DECIDER_CLOSURE_PROBE_SQL = closureProbe(closureRule('decided_by_on_update_is_caller', DECIDER_CLOSURES, DECIDER_CHECK_TEXT, 'w'));
+// Batch 127's created_by INSERT closures (blocker 186; A1 F5 on batch 123, A1 F3 on batch 091). Every
+// table that grants authenticated INSERT on created_by, measured from the catalog on the clean set
+// through 126: nineteen, where created_by was bound only inside twenty-four permissive INSERT policies,
+// so a looser permissive sibling reopened the forgery with every layer green. Equality, as 105's: every
+// permissive INSERT policy on these tables already required it.
+export const CREATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'asset_rights', 'assets',
+  'business_profile_versions', 'business_profiles', 'calendar_items', 'content_ideas', 'content_items',
+  'content_schedules', 'content_targets', 'industry_assignments', 'knowledge_item_versions', 'knowledge_items',
+  'page_context_profile_versions', 'page_context_profiles', 'publish_intents', 'workspace_invitations',
+  'workspace_member_scopes'];
+export const CREATED_BY_CHECK_TEXT = '(created_by = ( SELECT auth.uid() AS uid))';
+export const CREATED_BY_CLOSURE_PROBE_SQL = closureProbe(closureRule('created_by_is_caller', CREATED_BY_CLOSURES, CREATED_BY_CHECK_TEXT));
 
 // 2b. COVERAGE of the attribution UPDATE closures, as its own probe so it has its own self-test drift
 // (Q0's test of 105, F3; C0's review of 123, F5: folded into the closure probe, it could be silenced
@@ -242,6 +254,35 @@ begin
      and not (format('%s.%s', c.relname, a.attname) = any (array[${Object.entries(ATTRIBUTION_UPDATE_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ')}]));
   if offending is not null then
     raise exception 'client-updatable attribution column(s) with no pinned UPDATE closure: %', offending;
+  end if;
+end \$\$;
+`;
+// 2b'. THE SAME COVERAGE AT INSERT (batch 127). The UPDATE probe above reads only UPDATE, so a later
+// table granting authenticated INSERT on created_by -- or on any `*_by` column -- with no closure passed
+// every probe; only 127's own apply-time block, for created_by alone, would have refused it. At INSERT
+// the set is bounded and measured: created_by on nineteen tables, updated_by on fourteen (102 and 120)
+// and requested_by on two (094 and 120), each held by a restrictive INSERT closure pinned by exact text
+// in its own probe. A (table, column) client-insertable and not pinned fails by name. Its own probe, so
+// it has its own drift (C0 on 123, F5).
+export const ATTRIBUTION_INSERT_CLOSURES = {
+  created_by: CREATED_BY_CLOSURES,
+  requested_by: REQUESTER_CLOSURES,
+  updated_by: UPDATED_BY_CLOSURES,
+};
+export const INSERT_CLOSURE_COVERAGE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('app.%s.%s', c.relname, a.attname), ', ' order by c.relname, a.attname) into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+   where n.nspname = 'app' and c.relkind in ('r', 'p')
+     and a.attname like '%\\_by'
+     and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'INSERT')
+     and not (format('%s.%s', c.relname, a.attname) = any (array[${Object.entries(ATTRIBUTION_INSERT_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ')}]));
+  if offending is not null then
+    raise exception 'client-insertable attribution column(s) with no pinned INSERT closure: %', offending;
   end if;
 end \$\$;
 `;
@@ -745,6 +786,15 @@ export const CATALOG_RULE_PROBES = [
     claim: `every client-updatable *_by column is among the ${Object.values(ATTRIBUTION_UPDATE_CLOSURES).flat().length} with a pinned closure (${Object.keys(ATTRIBUTION_UPDATE_CLOSURES).join(', ')})`,
     selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
       raises: 'client-updatable attribution column(s) with no pinned UPDATE closure', names: ['app.workspace_member_scopes.updated_by'] }] },
+  // Batch 127 (blocker 186's created_by class; A1 F5 on 123, A1 F3 on 091).
+  { label: 'created_by insert closure probe', sql: CREATED_BY_CLOSURE_PROBE_SQL,
+    claim: `${CREATED_BY_CLOSURES.length} created_by INSERT closures in their exact text on their pinned tables`,
+    selfTests: [{ drift: 'alter policy content_schedules_created_by_is_caller on app.content_schedules with check (true);',
+      raises: 'created_by_is_caller closure(s) not in their pinned shape', names: ['content_schedules.content_schedules_created_by_is_caller'] }] },
+  { label: 'insert closure coverage probe', sql: INSERT_CLOSURE_COVERAGE_PROBE_SQL,
+    claim: `every client-insertable *_by column is among the ${Object.values(ATTRIBUTION_INSERT_CLOSURES).flat().length} with a pinned INSERT closure (${Object.keys(ATTRIBUTION_INSERT_CLOSURES).join(', ')})`,
+    selfTests: [{ drift: 'grant insert (created_by) on app.content_versions to authenticated;',
+      raises: 'client-insertable attribution column(s) with no pinned INSERT closure', names: ['app.content_versions.created_by'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [

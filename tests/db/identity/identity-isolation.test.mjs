@@ -10934,10 +10934,12 @@ test('no batch 100 case id can satisfy another batch\'s control entry', async ()
   // all, and the count of ids this batch's four patterns claim is PINNED, so a rename that escapes
   // both fails on the number.
   // 80 until batch 123, whose forging case on the rights row (owner-a-cannot-allow-paid-ads-on-an-
-  // asset-rights-naming-another-updater) is a row-level refusal on app.asset_rights.
-  assert.equal(assetCases.length, 81,
-    'batch 100 contributes exactly 81 case ids across its four patterns — 24 on app.assets, 18 on '
-    + 'app.asset_versions, 21 on app.asset_rights and 18 on app.content_asset_links (14, plus the four '
+  // asset-rights-naming-another-updater) is a row-level refusal on app.asset_rights. 83 from batch 127,
+  // whose created_by-alone cases on the library asset and the rights row are row-level refusals on
+  // app.assets and app.asset_rights and belong to those families' controls.
+  assert.equal(assetCases.length, 83,
+    'batch 100 contributes exactly 83 case ids across its four patterns — 25 on app.assets, 18 on '
+    + 'app.asset_versions, 22 on app.asset_rights and 18 on app.content_asset_links (14, plus the four '
     + 'separation cases Q0-100 F1 added on 2026-09-15). A case renamed out of '
     + 'its own family changes this number, which is the only thing a rename cannot hide from.');
   for (const testCase of cases.filter((c) => c.id.includes('asset'))) {
@@ -11436,10 +11438,13 @@ test('batch 091 case ids are held to its own two control entries and to no other
   const family = Object.fromEntries(ours.map((e) => [e.table, cases.filter((c) => new RegExp(`^${e.pattern}`).test(c.id))]));
   // 091's second round: six placement ids and five schedule ids added (Q0 F1, F4), and the two ids that
   // matched neither pattern renamed into their families (Q0 F3, C0 G7): 23 to 30 and 32 to 38.
-  assert.equal(family.calendar_items.length, 30, '30 placement ids (after 091\'s second round)');
-  assert.equal(family.content_schedules.length, 38, '38 schedule ids (after 091\'s second round)');
+  // Batch 127 adds one created_by-alone case to each family: a row-level refusal on that table, so
+  // disabling row level security there is noticed by it too. It is a batch 127 case, and the only one.
+  assert.equal(family.calendar_items.length, 31, '30 placement ids (after 091\'s second round) and batch 127\'s one');
+  assert.equal(family.content_schedules.length, 39, '38 schedule ids (after 091\'s second round) and batch 127\'s one');
   for (const [table, members] of Object.entries(family)) {
-    for (const c of members) assert.match(c.why, /^BATCH 091/, `${c.id} matches app.${table}'s control and is not a batch 091 case`);
+    for (const c of members) assert.match(c.why, /^BATCH 091|^BATCH 127 /, `${c.id} matches app.${table}'s control and is not a batch 091 case`);
+    assert.equal(members.filter((c) => /^BATCH 127 /.test(c.why)).length, 1, `app.${table}'s family holds exactly one batch 127 case`);
   }
   // And the converse (Q0 F3 on 091's corrections): every batch 091 case is in exactly one of the two
   // families, so a case that fails under a control is always counted by that control's pattern.
@@ -11469,8 +11474,9 @@ test('no batch 120 case id can satisfy another control entry, and its own five a
   const mine = cases.filter((c) => /publish-intent|publish-target|publish-pin|publish-job|published-post/.test(c.id));
   // 82 until batch 123, whose forging case on the intent (owner-a-cannot-cancel-a-publish-intent-naming-
   // another-updater) is a row-level refusal on app.publish_intents and belongs to that family's control.
-  assert.equal(mine.length, 83,
-    'batch 120 contributes exactly 83 case ids across its five patterns — 31 on app.publish_intents, '
+  // 84 from batch 127, whose created_by-alone case on the intent is the same kind of refusal.
+  assert.equal(mine.length, 84,
+    'batch 120 contributes exactly 84 case ids across its five patterns — 32 on app.publish_intents, '
     + '16 on app.publish_targets, 8 on app.publish_target_assets, 14 on app.publish_jobs and 14 on '
     + 'app.published_posts. The two batch-122 closure cases are NOT among them and must not be: they '
     + 'ask pg_policy a question, a catalog row does not change when row level security is switched '
@@ -11767,4 +11773,63 @@ test('batch 121 leaves its table open, and 122 is not extended to cover it', asy
     + 'table stays OPEN so the CARRIED policy RFC-2026-022 §7 will one day put beside its narrowing '
     + 'is not pre-empted by a closure that would have to be amended first. The metric table is an '
     + '`S`-cell table (question K).');
+});
+
+// BATCH 127: created_by FORGED ALONE, one case per table that hands created_by to a client at INSERT
+// (A1's review of batch 123, F5: most cases named for forging created_by forged updated_by too, so 102's
+// closure refused them first). The family is held to run.mjs's CREATED_BY_CLOSURES, one case per table,
+// and each case is read here: created_by names another member of workspace A, and every other
+// attribution column the statement writes names the caller, so the refusal is created_by's alone.
+test('batch 127 forges created_by alone on every table that grants it at INSERT, one case each', async () => {
+  const { CREATED_BY_CLOSURES } = await import('../../../scripts/db/run.mjs');
+  const { CREATED_BY_ALONE_MARK } = await import('./isolation-cases.mjs');
+  const family = cases.filter((c) => c.id.includes(CREATED_BY_ALONE_MARK));
+  assert.deepEqual(family.map((c) => c.deniedOn.name).sort(), [...CREATED_BY_CLOSURES].sort(),
+    'exactly one created_by-alone case per pinned table');
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)].map((m) => ({ table: m[1], pattern: m[2] }));
+  // The version tables and the invitations have no control entry of their own; their cases sit in the
+  // family of the table they hang from.
+  const controlOf = { business_profile_versions: 'business_profiles', page_context_profile_versions: 'page_context_profiles',
+    workspace_invitations: 'workspaces' };
+  const members = new Set([id('user_owner_a'), id('user_editor_a')]);
+  const splitTop = (text) => {
+    const parts = []; let depth = 0; let cur = ''; let quoted = false;
+    for (const ch of text) {
+      if (ch === "'") quoted = !quoted;
+      if (!quoted && ch === '(') depth += 1;
+      if (!quoted && ch === ')') depth -= 1;
+      if (!quoted && depth === 0 && ch === ',') { parts.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    parts.push(cur.trim());
+    return parts;
+  };
+  for (const c of family) {
+    const table = c.deniedOn.name;
+    assert.equal(c.expect, 'denied', `${c.id}: denied`);
+    assert.equal(c.deniedBy, 'policy', `${c.id}: by a policy, which the grant admits`);
+    assert.match(c.why, /^BATCH 127 /, `${c.id}: a batch 127 case`);
+    const m = c.sql.match(new RegExp(`^insert into app\\.${table} \\(([^)]*)\\) values \\((.*)\\) returning \\w+$`));
+    assert.ok(m, `${c.id}: one INSERT into app.${table}`);
+    const columns = m[1].split(',').map((s) => s.trim());
+    const values = splitTop(m[2]);
+    assert.equal(columns.length, values.length, `${c.id}: a value per column`);
+    const attribution = columns.map((col, i) => [col, values[i]]).filter(([col]) => /_by$/.test(col));
+    assert.ok(attribution.some(([col]) => col === 'created_by'), `${c.id}: writes created_by`);
+    for (const [col, value] of attribution) {
+      const n = value.match(/^\$(\d+)(::uuid)?$/);
+      assert.ok(n, `${c.id}: ${col} is a parameter`);
+      const param = c.params[Number(n[1]) - 1];
+      if (col === 'created_by') {
+        assert.notEqual(param, c.as.subject, `${c.id}: created_by is forged`);
+        assert.ok(members.has(param), `${c.id}: forged as ANOTHER MEMBER of workspace A, so no tenant or membership rule refuses it`);
+      } else {
+        assert.equal(param, c.as.subject, `${c.id}: ${col} names the caller, so only created_by is forged`);
+      }
+    }
+    const control = entries.find((e) => e.table === (controlOf[table] ?? table));
+    assert.ok(control, `${c.id}: app.${table} has a control entry to belong to`);
+    assert.match(c.id, new RegExp(`^${control.pattern}`), `${c.id}: named for app.${table}, in its control's pattern`);
+  }
 });

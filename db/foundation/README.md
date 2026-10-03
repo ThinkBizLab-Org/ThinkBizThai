@@ -345,8 +345,14 @@ break it silently:
 
    105's first general rule only checked that some policy *contained* the binding, so a looser
    permissive sibling could reopen the forgery. 123 closed that: a restrictive policy ANDs with
-   whatever admits the row. `created_by` at INSERT is still bound only inside permissive policies;
-   that gap is recorded as a blocker.
+   whatever admits the row. `created_by` at INSERT was still bound only inside permissive policies
+   until batch 127, which puts `<table>_created_by_is_caller` (restrictive, INSERT, TO authenticated,
+   WITH CHECK exactly `created_by = (select auth.uid())`) on all nineteen tables that grant
+   `authenticated` INSERT on `created_by`, pinned in `CREATED_BY_CLOSURES`. A separate INSERT coverage
+   probe (`ATTRIBUTION_INSERT_CLOSURES`) refuses any `app` table granting `authenticated` INSERT on a
+   `*_by` column that is not in the closure list for its column (`created_by`, `updated_by`,
+   `requested_by`), and 127's own block requires the exact closure on every table that grants
+   `created_by`. One rls-smoke case per table forges `created_by` alone (A1 F5 on batch 123).
 
    **Who decided an approval request is held the same way.** `approval_requests_decided_by_on_update_is_caller`
    (batch 123) is restrictive, UPDATE, TO authenticated: `decided_by` is NULL or the caller, and its text
@@ -428,7 +434,12 @@ transaction control (`begin`, `commit`, `rollback`, `end`, `savepoint`, `release
 `start transaction`, `prepare transaction`), and no drift or probe may hold a psql meta-command
 outside a literal, a dollar-quoted body, a quoted identifier or a comment, nor any of the shapes on
 which psql could read the text otherwise: a bare carriage return, any mention of
-`standard_conforming_strings`, or a quote after an odd run of backslashes in a plain literal. That
+`standard_conforming_strings`, a quote after an odd run of backslashes in a plain literal (tested at
+runs of one, three and five since batch 127, Q0 F1 on 126's re-check), or a change of client encoding
+by any mention of `client_encoding` or a `set names` statement (batch 127, C0 R2 on 126's re-check).
+A client encoding changed through a name psql never sees spelled out (a concatenated `set_config`, a
+computed `EXECUTE`) stays outside the list: the two readings could part after any non-ASCII
+character, which the integrated migrations carry thousands of times. That
 is a claim about the shapes measured and that list, not about every way psql could lex a file
 (batch 126's review round: A1 F1, Q0 F1). Statement position, not any word: a DO block or a function body is
 admitted (batch 126; A1 V4, Q0 F1-F2 on batch 125). Each drift also NAMES the objects its refusal
