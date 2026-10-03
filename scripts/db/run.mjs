@@ -443,12 +443,28 @@ end \$\$;
 // app and private, and no client role holds any privilege on a relation outside app, so nothing that
 // passed before is refused now. Which schemas a client may USE or CREATE in is the client schema probe's,
 // below, and what a client role may BECOME is the client membership probe's.
+//
+// AND EVERY OBJECT MADE AFTER INITDB, WHATEVER ITS SCHEMA IS CALLED (batch 128's review round; C0 F1, Q0 F1).
+// "A user schema cannot be named pg_*" holds only for a non-superuser: the migration owner is a superuser,
+// and with `set allow_system_table_mods = on` it can create a schema named pg_* and relations in pg_catalog;
+// information_schema needs nothing at all (it is an ordinary schema owned by the migration owner), and
+// clients hold USAGE on both system schemas through PUBLIC. C0 X1b, X2, X2b and Q0 ISV, IST put a
+// definer-rights view or an RLS-less table, granted to authenticated, in information_schema, in pg_c0api and
+// in pg_catalog: every layer stayed green and a session with no claims read both workspaces' ideas. So each
+// rule reads a relation when its schema is not a system one by name OR its own OID is at or above 16384
+// (FirstNormalObjectId): everything initdb made is below it, everything a migration or a drift makes is at
+// or above it, in any schema (temporary ones included, A1 N2 on 128). Measured on the clean set at 128's
+// review round: no relation, function or operator at or above 16384 in any schema initdb made but public,
+// so nothing that passed is refused. The pg_catalog guard (9, below) refuses such an object in those
+// schemas first, in every job; this is the second reading, held by the static pins.
 export const CLIENT_ROLES = ['anon', 'authenticated', 'public'];
 export const CLIENT_VIEWS = {};
 export const CLIENT_NON_APP_TABLES = {};
 const clientRoles = `unnest(array[${CLIENT_ROLES.map((r) => `'${r}'`).join(', ')}]) as cr(r)`;
 const pinnedArray = (o) => `array[${Object.keys(o).map((k) => `'${k}'`).join(', ')}]::text[]`;
 export const NON_SYSTEM_SCHEMA = "n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_'";
+export const FIRST_NORMAL_OID = 16384;
+export const userObject = (oid) => `((${NON_SYSTEM_SCHEMA}) or ${oid} >= ${FIRST_NORMAL_OID})`;
 export const CLIENT_PRIVILEGE_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -456,7 +472,7 @@ begin
   with rels as (
     select c.oid, format('%s.%s', n.nspname, c.relname) as t
       from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-     where ${NON_SYSTEM_SCHEMA} and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     where ${userObject('c.oid')} and c.relkind in ('r', 'p', 'v', 'm', 'f')
   ), privs as (
     select unnest(array['TRUNCATE', 'TRIGGER', 'REFERENCES']
                   || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
@@ -470,7 +486,7 @@ begin
   end if;
   select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
     from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
-   where ${NON_SYSTEM_SCHEMA} and c.relkind in ('v', 'm', 'f')
+   where ${userObject('c.oid')} and c.relkind in ('v', 'm', 'f')
      and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
           or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
      and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_VIEWS)}) and c.relkind = 'v'
@@ -481,7 +497,7 @@ begin
   end if;
   select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
     from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
-   where n.nspname <> 'app' and ${NON_SYSTEM_SCHEMA} and c.relkind in ('r', 'p')
+   where n.nspname <> 'app' and ${userObject('c.oid')} and c.relkind in ('r', 'p')
      and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
           or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
      and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_NON_APP_TABLES)}));
@@ -498,15 +514,31 @@ end \$\$;
 // CREATE granted on any schema (A1 V16: nothing reads it today), or a grant option, is named; so is a pinned
 // triple that went missing. Read with has_schema_privilege, so what PUBLIC holds is counted for anon and
 // authenticated too, as a client meets it. Measured on the clean set at batch 128 (the shim, then every
-// migration): exactly the four below. On the platform the managed schemas (auth, storage, graphql_public,
+// migration): exactly four, outside the system schemas (the review round adds the six there, below). On the platform the managed schemas (auth, storage, graphql_public,
 // extensions) grant clients USAGE as well; the probe runs on the shim, which grants none (stated, not
 // modelled).
+//
+// EVERY SCHEMA, AND THE DATABASE (batch 128's review round; C0 F1 and F2, Q0 F1). The first version left out
+// pg_catalog, information_schema and every pg_* schema by name, and the migration owner can make a pg_*
+// schema (C0 X2: pg_c0api, by allow_system_table_mods) and grant clients USAGE on it with every layer green.
+// So no schema is left out now: the USAGE initdb gives PUBLIC on pg_catalog and information_schema is pinned
+// like any other triple, as measured on the clean set (the shim, then every migration), and a temporary
+// schema is read like the rest (it carries no ACL, so a client holds nothing on it; A1 N2). And CREATE on the
+// DATABASE lets a client make a schema of its own (C0 X4 passed every layer and did), so CREATE and
+// TEMPORARY on the current database are read the same way, both ways: TEMPORARY is what PUBLIC holds by
+// default, pinned for the three client roles, and CREATE for none.
 export const CLIENT_SCHEMA_PRIVILEGES = {
   app: { authenticated: ['USAGE'] },
+  information_schema: { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] },
+  pg_catalog: { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] },
   public: { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] },
 };
-const clientSchemaRows = Object.entries(CLIENT_SCHEMA_PRIVILEGES).flatMap(([schema, roles]) =>
-  Object.entries(roles).flatMap(([role, privs]) => privs.map((p) => `${role} ${p} on schema ${schema}`)));
+export const CLIENT_DATABASE_PRIVILEGES = { anon: ['TEMPORARY'], authenticated: ['TEMPORARY'], public: ['TEMPORARY'] };
+const clientSchemaRows = [
+  ...Object.entries(CLIENT_SCHEMA_PRIVILEGES).flatMap(([schema, roles]) =>
+    Object.entries(roles).flatMap(([role, privs]) => privs.map((p) => `${role} ${p} on schema ${schema}`))),
+  ...Object.entries(CLIENT_DATABASE_PRIVILEGES).flatMap(([role, privs]) => privs.map((p) => `${role} ${p} on database`)),
+];
 export const CLIENT_SCHEMA_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -514,8 +546,11 @@ begin
   with found as (
     select format('%s %s%s on schema %s', cr.r, p.p, go.opt, n.nspname) as g
       from pg_catalog.pg_namespace n, ${clientRoles}, unnest(array['USAGE', 'CREATE']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
-     where ${NON_SYSTEM_SCHEMA}
-       and pg_catalog.has_schema_privilege(cr.r, n.oid, p.p || go.opt)
+     where pg_catalog.has_schema_privilege(cr.r, n.oid, p.p || go.opt)
+    union all
+    select format('%s %s%s on database', cr.r, p.p, go.opt)
+      from ${clientRoles}, unnest(array['CREATE', 'TEMPORARY']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where pg_catalog.has_database_privilege(cr.r, pg_catalog.current_database(), p.p || go.opt)
   ), pinned as (
     select unnest(array[${clientSchemaRows.map((r) => `'${r}'`).join(', ')}]::text[]) as g
   )
@@ -525,7 +560,7 @@ begin
     select 'missing: ' || p.g from pinned p where not exists (select 1 from found f where f.g = p.g)
   ) d;
   if offending is not null then
-    raise exception 'client schema privilege(s) not exactly the pinned list: %', offending;
+    raise exception 'client schema or database privilege(s) not exactly the pinned list: %', offending;
   end if;
 end \$\$;
 `;
@@ -695,6 +730,10 @@ export const SECURITY_DEFINER_FUNCTIONS = [
 // green. So the third rule (batch 128) reads exactly those members, in every schema the first reads: each
 // SECURITY DEFINER extension member must be pinned here as 'schema.name(args) (extension name)'. Measured
 // on the clean set at batch 128 (pgcrypto in extensions, plpgsql): none, so the list is empty.
+// Since batch 128's review round the first and third rules also read a function in pg_catalog or
+// information_schema whose OID is at or above 16384, made after initdb (C0 X5, Q0 ISF: a SECURITY DEFINER
+// function in information_schema, EXECUTE to authenticated, counted every tenant's ideas with every layer
+// green). The pg_catalog guard refuses one there first, in every job; this is the second reading.
 export const EXTENSION_DEFINER_FUNCTIONS = [];
 export const SECURITY_DEFINER_PROBE_SQL = `do \$\$
 declare
@@ -712,7 +751,7 @@ begin
       from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
       left join (values ${SECURITY_DEFINER_FUNCTIONS.map(([f, o, d]) => `('${f}', '${o}', '${d}')`).join(', ')}) as pin(fn, owner, digest)
         on pin.fn = format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid))
-     where p.prosecdef and n.nspname not in ('pg_catalog', 'information_schema')
+     where p.prosecdef and (n.nspname not in ('pg_catalog', 'information_schema') or p.oid >= ${FIRST_NORMAL_OID})
        and not exists (select 1 from pg_catalog.pg_depend d where d.classid = 'pg_catalog.pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
   ) f
    where x ~ '\\[';
@@ -731,7 +770,7 @@ begin
       from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
       join pg_catalog.pg_depend d on d.classid = 'pg_catalog.pg_proc'::pg_catalog.regclass and d.objid = p.oid and d.deptype = 'e'
       join pg_catalog.pg_extension e on d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass and e.oid = d.refobjid
-     where p.prosecdef and n.nspname not in ('pg_catalog', 'information_schema')
+     where p.prosecdef and (n.nspname not in ('pg_catalog', 'information_schema') or p.oid >= ${FIRST_NORMAL_OID})
   ) f
    where not (x = any (array[${EXTENSION_DEFINER_FUNCTIONS.map((f) => `'${f}'`).join(', ')}]::text[]));
   if offending is not null then
@@ -779,7 +818,7 @@ begin
       from pg_catalog.pg_depend d join pg_catalog.pg_proc p on p.oid = d.refobjid
       join pg_catalog.pg_namespace n on n.oid = p.pronamespace
      where d.classid = 'pg_catalog.pg_policy'::pg_catalog.regclass and d.refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass
-       and n.nspname not in ('pg_catalog', 'information_schema')
+       and (n.nspname not in ('pg_catalog', 'information_schema') or p.oid >= ${FIRST_NORMAL_OID})
   ) called
    where not (called.fn = any (array[${[...POLICY_HELPER_FUNCTIONS.map(([f]) => f), ...SECURITY_DEFINER_FUNCTIONS.map(([f]) => f), ...POLICY_PLATFORM_FUNCTIONS].map((f) => `'${f}'`).join(', ')}]));
   if offending is not null then
@@ -1087,21 +1126,35 @@ end \$\$;
 // the message's detail, written after the decision, calls anything a drift could shadow. It runs as
 // its own probe too, so its rule has a drift on every migrate-clean, and probeJobScript places it in
 // every job.
+// EVERY SCHEMA initdb MADE BUT public, AND RELATIONS TOO (batch 128's review round; C0 F1, Q0 F1). The
+// rules that read by schema name left pg_catalog and information_schema out, and the migration owner can
+// write both: information_schema with nothing more (C0 X1b, X5; Q0 ISV, IST, ISF), pg_catalog with
+// allow_system_table_mods (C0 X2b, a definer-rights view there). Clients hold USAGE on both through PUBLIC,
+// and each of those passed every layer and read every tenant's ideas. So the guard reads every namespace
+// whose own OID is below 16384 -- pg_catalog (11), pg_toast (99) and information_schema -- except public
+// (2200), which the probes read as a user schema: no function or operator in one at or above 16384, and no
+// relation at or above 16384 in one but pg_toast, where every user table's TOAST table lives. Still OID
+// comparisons and nothing a drift could overload. Measured on the clean set at 128's review round: none
+// of the three kinds, so nothing that passed is refused.
 export const PG_CATALOG_GUARD_SQL = `do \$\$
 declare
   offending text;
 begin
-  if exists (select 1 from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid)
-     or exists (select 1 from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid)
-     or exists (select 1 from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) then
+  if exists (select 1 from pg_catalog.pg_proc p where p.pronamespace < 16384::pg_catalog.oid and p.pronamespace <> 2200::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_operator o where o.oprnamespace < 16384::pg_catalog.oid and o.oprnamespace <> 2200::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_class c where c.relnamespace < 16384::pg_catalog.oid and c.relnamespace <> 2200::pg_catalog.oid and c.relnamespace <> 99::pg_catalog.oid and c.oid >= 16384::pg_catalog.oid) then
     select string_agg(x, ', ' order by x) into offending from (
       select 'function ' || p.proname::text || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' as x
-        from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid
+        from pg_catalog.pg_proc p where p.pronamespace < 16384::pg_catalog.oid and p.pronamespace <> 2200::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid
       union all
-      select 'operator ' || o.oprname::text from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid
+      select 'operator ' || o.oprname::text from pg_catalog.pg_operator o where o.oprnamespace < 16384::pg_catalog.oid and o.oprnamespace <> 2200::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid
       union all
-      select 'cast ' || k.oid::text from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) f;
-    raise exception 'object(s) created in pg_catalog, where a call in a probe could resolve to them: %', coalesce(offending, 'unnamed');
+      select 'cast ' || k.oid::text from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid
+      union all
+      select 'relation ' || c.relnamespace::pg_catalog.regnamespace::text || '.' || c.relname::text
+        from pg_catalog.pg_class c where c.relnamespace < 16384::pg_catalog.oid and c.relnamespace <> 2200::pg_catalog.oid and c.relnamespace <> 99::pg_catalog.oid and c.oid >= 16384::pg_catalog.oid) f;
+    raise exception 'object(s) created in pg_catalog or another schema initdb made (information_schema, pg_toast), where a call in a probe could resolve to them or a client reach them past every rule that reads by schema name: %', coalesce(offending, 'unnamed');
   end if;
 end \$\$;
 `;
@@ -1186,33 +1239,39 @@ export const CATALOG_RULE_PROBES = [
   // Batch 127's review round: what reaches past every policy (C0 F1; A1 F1 and F2; Q0 F1). Each drift
   // leaves the rules before its own intact, since the first raise ends the block.
   { label: 'client privilege probe', sql: CLIENT_PRIVILEGE_PROBE_SQL,
-    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in any schema but the system ones; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table outside app (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
+    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in any schema but the system ones, or made after initdb in any schema; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table outside app (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
     selfTests: [
       // C0 X6: TRUNCATE skips row level security. And the other three, each on its own table: MAINTAIN since
       // batch 128 (Q0 N6 on 127's re-check: a probe that stopped reading MAINTAIN still passed this drift).
       // MAINTAIN is PostgreSQL 17's (CI's image and the local server); the rule reads it on 17 and later.
-      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public; grant maintain on app.workspace_settings to authenticated;',
+      // Since 128's review round each of the three drifts also puts an object in a TEMPORARY schema,
+      // pg_temp_N: a pg_* name the rules once left out, read now because the object's OID is at or above
+      // 16384 (C0 F1, Q0 F1). A drift cannot use information_schema or pg_catalog for this, which the guard
+      // refuses first, nor allow_system_table_mods, which the lexer refuses.
+      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public; grant maintain on app.workspace_settings to authenticated; create temporary table probe_temp_r1 (id uuid); grant truncate on probe_temp_r1 to authenticated;',
         raises: 'client role(s) hold TRUNCATE, TRIGGER, REFERENCES or MAINTAIN',
-        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items', 'authenticated MAINTAIN on app.workspace_settings'] },
+        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items', 'authenticated MAINTAIN on app.workspace_settings', '.probe_temp_r1'] },
       // A1 R5b (invoker switched off by ALTER VIEW), Q0's plain view, and a materialized view in private; and
       // since batch 128 a definer-rights view in a NEW schema a client may use (A1 V11, C0 G1, Q0 F1-sf).
-      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public; create schema probe_view_api; grant usage on schema probe_view_api to authenticated; create view probe_view_api.probe_ideas_v as select id, workspace_id, created_by from app.content_ideas; grant select, insert on probe_view_api.probe_ideas_v to authenticated;',
+      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public; create schema probe_view_api; grant usage on schema probe_view_api to authenticated; create view probe_view_api.probe_ideas_v as select id, workspace_id, created_by from app.content_ideas; grant select, insert on probe_view_api.probe_ideas_v to authenticated; create temporary view probe_temp_v as select id, workspace_id, created_by from app.content_ideas; grant select on probe_temp_v to authenticated;',
         raises: 'view(s), materialized view(s) or foreign table(s) a client role can use',
-        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v', 'probe_view_api.probe_ideas_v'] },
+        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v', 'probe_view_api.probe_ideas_v', '.probe_temp_v'] },
       // A1 R6: an allow-everything table in public; a grant on a private table; and since batch 128 a table
       // with no RLS in a new schema (A1 V13, C0 G2, Q0 R3s).
-      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated; create schema probe_table_api; create table probe_table_api.probe_notes (id uuid, workspace_id uuid); grant select, insert, update, delete on probe_table_api.probe_notes to authenticated;',
+      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated; create schema probe_table_api; create table probe_table_api.probe_notes (id uuid, workspace_id uuid); grant select, insert, update, delete on probe_table_api.probe_notes to authenticated; create temporary table probe_temp_notes (id uuid, workspace_id uuid); grant select, insert on probe_temp_notes to authenticated;',
         raises: 'table(s) outside schema app a client role can read or write',
-        names: ['private.ai_credential_references', 'public.probe_pub', 'probe_table_api.probe_notes'] },
+        names: ['private.ai_credential_references', 'public.probe_pub', 'probe_table_api.probe_notes', '.probe_temp_notes'] },
     ] },
   // Batch 128 (A1 N1 and N5, C0 N1, Q0 N1 on 127's re-check): which schemas a client may use or create in.
   { label: 'client schema probe', sql: CLIENT_SCHEMA_PROBE_SQL,
-    claim: `the USAGE and CREATE ${CLIENT_ROLES.join(', ')} hold on every schema but the system ones are exactly the ${clientSchemaRows.length} pinned, none with grant option`,
+    claim: `the USAGE and CREATE ${CLIENT_ROLES.join(', ')} hold on every schema, and the CREATE and TEMPORARY they hold on the database, are exactly the ${clientSchemaRows.length} pinned, none with grant option`,
     // A new schema a client may use (the re-checks' first step), CREATE on app (A1 V16), a grant option,
-    // and a pinned triple revoked: unlisted and missing are each named.
-    selfTests: [{ drift: 'create schema probe_client_api; grant usage on schema probe_client_api to authenticated; grant create on schema app to anon; grant usage on schema public to authenticated with grant option; revoke usage on schema app from authenticated;',
-      raises: 'client schema privilege(s) not exactly the pinned list',
-      names: ['unlisted: authenticated USAGE on schema probe_client_api', 'unlisted: anon CREATE on schema app', 'unlisted: authenticated USAGE WITH GRANT OPTION on schema public', 'missing: authenticated USAGE on schema app'] }] },
+    // and a pinned triple revoked: unlisted and missing are each named. Since 128's review round, CREATE on
+    // information_schema (a system schema the first version did not read) and on the database (C0 X4).
+    selfTests: [{ drift: "create schema probe_client_api; grant usage on schema probe_client_api to authenticated; grant create on schema app to anon; grant usage on schema public to authenticated with grant option; revoke usage on schema app from authenticated; grant create on schema information_schema to authenticated; do $d$ begin execute pg_catalog.format('grant create on database %I to authenticated', pg_catalog.current_database()); end $d$;",
+      raises: 'client schema or database privilege(s) not exactly the pinned list',
+      names: ['unlisted: authenticated USAGE on schema probe_client_api', 'unlisted: anon CREATE on schema app', 'unlisted: authenticated USAGE WITH GRANT OPTION on schema public', 'missing: authenticated USAGE on schema app',
+        'unlisted: authenticated CREATE on schema information_schema', 'unlisted: authenticated CREATE on database'] }] },
   // Batch 128 (Q0 N2, A1 N3 on 127's re-check): what a client role may become.
   { label: 'client membership probe', sql: CLIENT_MEMBERSHIP_PROBE_SQL,
     claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s)`,
@@ -1330,9 +1389,11 @@ export const CATALOG_RULE_PROBES = [
       raises: 'rewrite rule(s) on a relation in app or private', names: ['app.approval_requests.probe_self_approve'] }] },
   // Batch 126's review round (Q0 F3). Also run inside every job by probeJobScript.
   { label: 'pg_catalog guard probe', sql: PG_CATALOG_GUARD_SQL,
-    claim: 'nothing in pg_catalog was created after initdb (no function, operator or cast at or above OID 16384), checked here and in every probe job after its drift',
-    selfTests: [{ drift: "create function pg_catalog.probe_overload(integer) returns integer language sql as 'select 1';",
-      raises: 'object(s) created in pg_catalog', names: ['function probe_overload(integer)'] }] },
+    claim: 'nothing in pg_catalog, information_schema or pg_toast was created after initdb (no function, operator, cast or relation but a TOAST table at or above OID 16384), checked here and in every probe job after its drift',
+    // Since 128's review round the drift also puts a definer-rights view and a SECURITY DEFINER function in
+    // information_schema (C0 X1b, X5; Q0 ISV, ISF), each named.
+    selfTests: [{ drift: "create function pg_catalog.probe_overload(integer) returns integer language sql as 'select 1'; create view information_schema.probe_is_v as select id, workspace_id from app.content_ideas; create function information_schema.probe_is_f() returns bigint language sql security definer set search_path = '' as 'select count(*) from app.content_ideas';",
+      raises: 'object(s) created in pg_catalog', names: ['function probe_overload(integer)', 'relation information_schema.probe_is_v', 'function probe_is_f()'] }] },
 ];
 
 // A drift runs inside the executor's `begin; ... rollback;`, so a drift that ends that transaction

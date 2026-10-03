@@ -417,7 +417,10 @@ break it silently:
    reviewer. An extension's own members are skipped by that rule, so since batch 128 a third rule reads
    exactly them: every SECURITY DEFINER extension member must be pinned in `EXTENSION_DEFINER_FUNCTIONS`
    (empty; A1 V06b on 127's re-check hid a definer function that read every tenant in pgcrypto with one
-   `ALTER EXTENSION ... ADD`).
+   `ALTER EXTENSION ... ADD`). Since 128's review round both rules also read a function made after initdb
+   (OID at or above 16384) in `pg_catalog` or `information_schema`: C0 X5 and Q0 ISF put a SECURITY DEFINER
+   function counting every tenant's ideas in `information_schema`, EXECUTE to `authenticated`, and every
+   layer stayed green. Rule 10 refuses one there first.
 5. **Every trigger on a table in `app` and `private` is enabled**, including the internal triggers
    that enforce foreign keys. The `private.refuse_mutation` triggers are exactly four pinned
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
@@ -445,10 +448,16 @@ break it silently:
    `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
 9. **No relation in `app` or `private` carries a rewrite rule** but a view's `_RETURN` (batch 126's
    review round; Q0 F5: a later file's INSERT rule let an editor approve their own request).
-10. **Nothing is created in `pg_catalog`** after initdb: no function, operator or cast at or above OID
-   16384. The probes run with `search_path` pinned to `pg_catalog`, so an overload there could answer a
-   probe's call; Q0 F3 on batch 126 forged a refusal that way. This guard runs as its own probe and
-   inside every probe job, after the drift and before the probe.
+10. **Nothing is created in `pg_catalog`, `information_schema` or `pg_toast`** after initdb: no function,
+   operator or cast at or above OID 16384, and no relation but a TOAST table. The probes run with
+   `search_path` pinned to `pg_catalog`, so an overload there could answer a probe's call; Q0 F3 on batch
+   126 forged a refusal that way. Since 128's review round the guard reads every schema initdb made but
+   `public` (each by its own OID, below 16384) and relations too: the migration owner can write
+   `information_schema` with nothing more and `pg_catalog` with `allow_system_table_mods`, clients hold
+   USAGE on both through PUBLIC, and C0 X1b, X2b, X5 and Q0 ISV, IST, ISF put a definer-rights view, an
+   RLS-less table or a SECURITY DEFINER function there, granted to `authenticated`, and read every tenant's
+   ideas with every layer green (C0 F1, Q0 F1). This guard runs as its own probe and inside every probe
+   job, after the drift and before the probe.
 11. **No client role holds what no policy governs (batch 127's review round).** `anon`, `authenticated`
    and `PUBLIC` hold no TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation (C0 F1: TRUNCATE skips
    row level security, and C0 X6 emptied another workspace's rows); no privilege on a view, materialized
@@ -459,18 +468,30 @@ break it silently:
    pin is a reviewed change. **In every schema but `pg_catalog`, `information_schema` and the `pg_*`
    ones** since batch 128: 127's version read `app`, `private` and `public` by name, and each re-check
    put a definer-rights view or an RLS-less table in a new schema a client could use and crossed
-   tenants with every layer green (A1 N1, C0 N1, Q0 N1 on 127's re-check).
+   tenants with every layer green (A1 N1, C0 N1, Q0 N1 on 127's re-check). **And every relation made
+   after initdb, whatever its schema** since 128's review round: "a user schema cannot be named `pg_*`"
+   holds only for a non-superuser, and C0 X2 made `pg_c0api` with `allow_system_table_mods`, put a
+   definer-rights view in it and read both workspaces' ideas with every layer green (C0 F1, Q0 F1). So a
+   relation is read when its schema is not a system one by name or its own OID is at or above 16384
+   (FirstNormalObjectId); a temporary schema, `pg_temp_N`, is read the same way (A1 N2), and each of the
+   three drifts puts an object in one. The static lexer refuses `allow_system_table_mods` in every fed
+   script, by any mention, as it refuses `client_encoding`.
 12. **The invoker helpers the policies call match their pinned body** (`POLICY_HELPER_FUNCTIONS`: owner,
    md5 of the body, `search_path=""`), and every function a policy calls (read from `pg_depend`) is one of
    them, a pinned SECURITY DEFINER function or `auth.uid()` (batch 127's review round, C0 F4: replacing
    `member_scope_covers_business` with `select true` left every deparse unchanged and passed
    migrate-clean). Its first drift exercises all five conditions it reports, one helper each, since
    batch 128 (C0 N4 on 127's re-check).
-13. **Client USAGE and CREATE on schemas are exactly a pinned list** (`CLIENT_SCHEMA_PRIVILEGES`; batch
-   128, A1 N1 and N5, C0 N1, Q0 N1 on 127's re-check): `authenticated` USAGE on `app`, and `anon`,
-   `authenticated` and `PUBLIC` USAGE on `public`, read with `has_schema_privilege` on every schema but the
-   system ones, each also WITH GRANT OPTION, both ways. A new schema a client can use, CREATE anywhere,
-   or a missing pin is named. The probe runs on the CI shim, which grants clients nothing on the
+13. **Client USAGE and CREATE on schemas, and CREATE and TEMPORARY on the database, are exactly a pinned
+   list** (`CLIENT_SCHEMA_PRIVILEGES`, `CLIENT_DATABASE_PRIVILEGES`; batch 128, A1 N1 and N5, C0 N1, Q0 N1
+   on 127's re-check; the database and the system schemas since 128's review round, C0 F1 and F2):
+   `authenticated` USAGE on `app`; `anon`, `authenticated` and `PUBLIC` USAGE on `public`, `pg_catalog` and
+   `information_schema` (initdb's default, measured); and TEMPORARY on the database for the three (PUBLIC's
+   default), CREATE for none. Read with `has_schema_privilege` on **every** schema, a temporary one
+   included (it carries no ACL, so a client holds nothing there), and `has_database_privilege` on the
+   current database, each also WITH GRANT OPTION, both ways. A new schema a client can use (a `pg_*` one
+   included), CREATE anywhere, CREATE on the database (C0 X4 passed every layer and let a client make a
+   schema of its own), or a missing pin is named. The probe runs on the CI shim, which grants clients nothing on the
    platform's managed schemas (`auth`, `storage`, `extensions`); the platform does, and this list does
    not model it.
 14. **`anon` and `authenticated` are members of no role** (`CLIENT_ROLE_MEMBERSHIPS`, empty; batch 128,
@@ -503,7 +524,11 @@ inside every literal and dollar-quoted body, read again as SQL, since `EXECUTE` 
 (C0 N2, A1 N4, Q0 N7 on 127's re-check: `set U&"client\005fencoding" to 'SJIS'`, `execute
 E'set\x20names ...'` and the U& spelling of `standard_conforming_strings` each passed and, measured, moved
 psql's encoding or turned the setting off). None of the 87 `.sql` files, and no probe or drift, carries
-one. A client encoding changed through a name or SET psql never sees spelled out because it is
+one. That rule's own code is held by one layer: migrate-clean refuses through the same function, so a
+weakened `escapeSpellings` is caught by the static lexer shapes alone (Q0 F2 on 128, QESC1 and QESC2),
+as for every lexer rule here. Since 128's review round any mention of `allow_system_table_mods` is
+refused too (C0 F1); it is not a lexing hazard, but it is the switch that lets the migration owner write
+`pg_catalog` and name a schema `pg_*`. A client encoding changed through a name or SET psql never sees spelled out because it is
 **computed at run time** (a concatenated `set_config`, an `EXECUTE` of `'set ' || 'names ...'`, `chr()`,
 `format()`, `convert_from()`) stays outside the list: escapes were the static spellings of that class,
 and what remains is computation. The two readings could part after any non-ASCII

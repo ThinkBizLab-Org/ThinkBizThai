@@ -352,6 +352,11 @@ export async function feedTranscript(sql, options = {}) {
 //     of 86 files, most of them `§` before a digit in a comment, in integrated migrations that are never
 //     edited. So the computed-name case stays outside this list, named here and in the batch 127 and 128
 //     records.
+//     ONE LAYER FOR THE RULE'S OWN CODE (batch 128's review round; Q0 F2). migrate-clean refuses an escape
+//     spelling through this same function, so a weakened escapeSpellings (its E'' or U& arm removed) is
+//     caught by the static lexer shapes in foundation-contract alone: Q0 measured QESC1 and QESC2 with a
+//     reviewer drift in a later file, static 1, migrate-clean 0, rls-smoke 0. That is the shape of every
+//     lexer rule here, and is stated rather than doubled.
 // The claim is the shapes measured and this list, not "anywhere psql would execute one".
 export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
 // Every place a U& or E'' token opens, at top level and inside every literal and dollar body read again as
@@ -428,6 +433,16 @@ export function psqlLex(sql) {
     }
     for (const found of text.matchAll(SET_NAMES)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'set names, which changes the client encoding psql splits bytes by' });
+    }
+    // Not a place psql's lexer parts from this one, but the one scan every fed script passes before it is
+    // applied (batch 128's review round; C0 F1): allow_system_table_mods lets the migration owner, a
+    // superuser, create a schema named pg_* and write pg_catalog, where C0 X2 and X2b put a definer-rights
+    // view a client could read every tenant through. The catalog rules read such an object by its OID
+    // now and the pg_catalog guard refuses it; this names the switch itself. Any mention, as with
+    // client_encoding; an escape spelling of it is refused below; a name computed at run time is not read
+    // here and is left to those two.
+    for (const found of text.matchAll(/allow_system_table_mods/gi)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
     }
     for (const found of escapeSpellings(text)) {
       metaCommands.push({ line: text.slice(0, found.at).split('\n').length,
