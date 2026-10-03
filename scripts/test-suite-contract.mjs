@@ -195,12 +195,18 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // later drop/disable trigger are read, the WP citations are checked, and the purge order holds its key
 // names, its phases, its inversions, the tables no workspace owns and the conflicts' fields; no test is
 // added and none renamed, so the test floor and the name digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 747,
+// 747 to 788 with batch 170's assertions (2026-10-04, no migration): the pinned grant list as data over every
+// table and role, the read allowlist and its known exceptions, the classification registry, and the two new
+// probes' reading predicates; no test is added and none renamed, so the test floor and the name digest stay;
+// the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 788,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
   // Batch 127: 2152 to 2166, the created_by-alone family hold, the guard's own count.
-  'tests/db/identity/identity-isolation.test.mjs': 2166,
+  // Batch 170: 2166 to 2167, batch 132's absence assertion turned into presence and emptiness of
+  // read-allowlist.json, the line 132 said the landing batch would edit; the guard's own count.
+  'tests/db/identity/identity-isolation.test.mjs': 2167,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,

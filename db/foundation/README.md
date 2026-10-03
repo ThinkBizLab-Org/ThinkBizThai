@@ -319,13 +319,13 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts sixteen families of rules over all of `app` and
-`private` (and, for rules 11, 13 and 14, every schema, database and role a client can reach, and for rule 15
-every object initdb made), in twenty-four probes (twenty-three at batch 128, twenty-one at batch 127's review
+After the ceiling probe, `make db-migrate-clean` asserts eighteen families of rules over all of `app` and
+`private` (and, for rules 11, 13, 14 and 16, every schema, database and role a client can reach, and for rule 15
+every object initdb made), in twenty-six probes (twenty-four at batch 129, twenty-three at batch 128, twenty-one at batch 127's review
 round, nineteen at batch 127, sixteen before it). The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
-exempt (batch 126; Q0 F6 on batch 125). The other fifteen are
+exempt (batch 126; Q0 F6 on batch 125). The other seventeen are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -436,17 +436,25 @@ break it silently:
    pinned owner (Q0 F8 on batch 126). A second BEFORE UPDATE trigger sorting after `set_decided_at`, a
    rewritten body or a changed owner fails by name. The pinned check probe also holds
    `approval_requests.created_at` NOT NULL (`PINNED_NOT_NULL`), since a CHECK reading a NULL passes.
-7. **The privileges every non-superuser role holds on `app.calendar_items` and `app.content_schedules`
-   are exactly an allowlist** (`PINNED_GRANTS`; batch 126, C0 H1 and A1 R1, R3 on batch 091's third
-   round). Every role that is neither a superuser nor a predefined `pg_*` role is read for its
+7. **The privileges every non-superuser role holds on every table in `app` and `private` are exactly an
+   allowlist** (`PINNED_GRANTS`, read from `db/foundation/lint/pinned-grants.json`; batch 126, C0 H1 and
+   A1 R1, R3 on batch 091's third round, for 091's two tables; every table and every role since the batch
+   170 draft). Every role that is neither a superuser nor a predefined `pg_*` role (`authenticated`,
+   `anon`, `service_role`, `app_worker`, `app_command`, `app_maintenance`, `app_authz`) is read for its
    effective table privileges (MAINTAIN included on PostgreSQL 17) and its effective column privileges,
    and the set must equal the pinned one, both ways: an unlisted grant and a missing one are each named.
    091's block lists privileges a role must NOT hold, so a grant it did not name, such as INSERT on
-   `deleted_at`, passed every layer. A batch that changes these grants changes `PINNED_GRANTS` in the same
-   change; the static test holds the list to 091's grant statements. Each privilege is read WITH GRANT
-   OPTION too, which the allowlist never lists, and the probe's first rule requires each pinned table's
-   owner to be a superuser, since the role set leaves superusers out (batch 126's review round: C0 F3,
-   F5, A1 F3, Q0 F7).
+   `deleted_at`, passed every layer; and before the draft a privilege for `app_worker`, `app_command` or
+   `service_role` on any other table passed every layer. The file is generated from a live catalog read
+   and committed as reviewed data, one entry per table and one line per role; a column privilege a
+   table-level one already implies is not listed. Its first rule closes the TABLE list too: every table in
+   `app` and `private` has an entry (an empty one when no role holds anything) and every entry is a table.
+   Measured at the draft: 66 tables, 43 table-level and 1328 column-level privileges, held by `app_worker`,
+   `authenticated` and `app_authz` only. A batch that grants, revokes or adds a table changes the file in
+   the same change; the static test holds 091's two tables to 091's grant statements. Each privilege is
+   read WITH GRANT OPTION too, which the allowlist never lists, and the probe's second rule requires each
+   pinned table's owner to be a superuser, since the role set leaves superusers out (batch 126's review
+   round: C0 F3, F5, A1 F3, Q0 F7).
 8. **Column defaults a decision fixes are pinned by deparse text** (`PINNED_DEFAULTS`): today only
    `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
 9. **No relation in `app` or `private` carries a rewrite rule** but a view's `_RETURN` (batch 126's
@@ -557,6 +565,29 @@ break it silently:
    rest), which a superuser migration could replace to forge its own row (owed on blocker 186).
    A run on a database that holds a fingerprint keeps the first; a run on one whose `app` exists and holds
    none is refused, since that fingerprint would bless what the migrations did.
+16. **Every client SELECT is on the read allowlist or in its known exceptions, and every row of either is a
+   real grant** (the batch 170 draft; RFC-2026-021 §8.1, §8.2 and §8.5). `db/foundation/lint/read-allowlist.json`
+   is an empty array, as RFC-021 approved it, and the only place "is this on the allowlist" is answered;
+   `read-allowlist-known-exceptions.json` names the inherited base-table grants as exceptions rather than
+   as silence, and is CLOSED: measured at the draft, 41 tables `authenticated` reads by column grants, and
+   nothing for `anon` or PUBLIC. The probe reads, from the catalog, every relation a client role can SELECT
+   from in any schema but the system ones (or made after initdb), as `<role> SELECT (<level>) on
+   <relation>` with the level `columns`, `table` (a table-wide SELECT, a finding even over the same
+   columns, §8.4) or `view`. Rule 1 names a grant on no list; rule 2 names a list row that matches no
+   grant, which is how a list becomes documentation. An allowlist entry contributes its view and column
+   SELECT on each base table behind it. Which columns are granted is rule 7's; this rule reads the
+   boundary by relation. Whether the exceptions are kept for Pilot or converted to views is Q170-b,
+   undecided; the read side of client INSERT, UPDATE and DELETE is not this rule's.
+17. **No client privilege on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3** (the batch 170
+   draft; ERD §9.1). `db/foundation/lint/data-classification.json` gives every table in `app` and
+   `private` its ERD §5 family and that row's §9.1 classes, verbatim, and a class only where §5 gives one
+   or where §9.1/§9.2 names the table's own content as an example of a refused class (a push token, an API
+   key, an OAuth token, a webhook). A table left between a refused class and another is a FINDING in the
+   file, never a guess: twelve at the draft, seven of them read by `authenticated` today (the publisher
+   family and notifications). Rule 1 holds the registry to the catalog both ways; rule 2 names any client
+   privilege, table or column level, on the eight refused tables (jobs, outbox_events, consumer_ledger,
+   billing_webhook_receipts, and the four in `private`) or on a refused column (none: the ERD classes no
+   column).
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule

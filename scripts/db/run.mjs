@@ -17,6 +17,7 @@
 //     naming the environment variable that would let them run.
 import { createHash, randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
@@ -1217,42 +1218,36 @@ begin
 end \$\$;
 `;
 
-// 6. THE GRANT SET ON A PINNED TABLE, BY ALLOWLIST, AT TABLE AND COLUMN LEVEL (batch 126; C0 H1, A1 R1
-// and R3 on batch 091's third round). 091's block item 6 names privileges a role must NOT hold, so a
-// grant it does not name passes every layer: C0 measured `grant insert (deleted_at)` on calendar_items
-// to authenticated -- a placement born deleted, dated by the client, since set_deleted_at fires on
-// UPDATE only -- and INSERT or UPDATE on created_at, and A1 TRUNCATE, TRIGGER, REFERENCES and MAINTAIN,
-// each green on migrate-clean and rls-smoke. Here every role that is neither a superuser nor a
-// predefined pg_* role (authenticated, anon, service_role and the app_* service roles on this cluster)
-// is read for its EFFECTIVE privileges, has_table_privilege and has_column_privilege, and the set found
-// must be exactly the set below: anything unlisted and anything missing is named. The list is 091's
-// grants as written; a batch that changes them changes this list in the same diff. 091's apply-time
-// block is integrated and is not rewritten: this is the forward assertion beside it.
-export const PINNED_GRANTS = {
-  'app.calendar_items': {
-    authenticated: {
-      table: [],
-      SELECT: ['id', 'workspace_id', 'business_profile_id', 'content_item_id', 'scheduled_local_date', 'timezone',
-        'display_status', 'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'],
-      INSERT: ['workspace_id', 'business_profile_id', 'content_item_id', 'scheduled_local_date', 'timezone',
-        'display_status', 'created_by'],
-      UPDATE: ['scheduled_local_date', 'timezone', 'display_status', 'updated_at', 'updated_by', 'deleted_at'],
-      REFERENCES: [],
-    },
-  },
-  'app.content_schedules': {
-    authenticated: {
-      table: [],
-      SELECT: ['id', 'workspace_id', 'business_profile_id', 'content_target_id', 'scheduled_for', 'timezone_snapshot',
-        'status', 'publish_intent_id', 'version', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-      INSERT: ['workspace_id', 'business_profile_id', 'content_target_id', 'scheduled_for', 'timezone_snapshot', 'created_by'],
-      UPDATE: ['scheduled_for', 'timezone_snapshot', 'status', 'updated_at', 'updated_by'],
-      REFERENCES: [],
-    },
-  },
-};
+// 6. THE GRANT SET ON EVERY TABLE IN app AND private, BY ALLOWLIST, AT TABLE AND COLUMN LEVEL (batch 126;
+// C0 H1, A1 R1 and R3 on batch 091's third round; every table and every role since the batch 170 draft).
+// 091's block item 6 names privileges a role must NOT hold, so a grant it does not name passes every
+// layer: C0 measured `grant insert (deleted_at)` on calendar_items to authenticated -- a placement born
+// deleted, dated by the client, since set_deleted_at fires on UPDATE only -- and INSERT or UPDATE on
+// created_at, and A1 TRUNCATE, TRIGGER, REFERENCES and MAINTAIN, each green on migrate-clean and
+// rls-smoke. Here every role that is neither a superuser nor a predefined pg_* role (authenticated, anon,
+// service_role, app_worker, app_command, app_maintenance and app_authz on this cluster) is read for its
+// EFFECTIVE privileges, has_table_privilege and has_column_privilege, and the set found must be exactly
+// the pinned set: anything unlisted and anything missing is named.
+//
+// EVERY TABLE, EVERY ROLE (the batch 170 draft; plan "Batch 170 -- Can do now" (a), WP blocker text "the
+// other roles' reach (app_worker, service_role, RFC-2026-023 command roles), which no rule here reads").
+// The first version pinned 091's two tables, so a privilege granted to app_worker, app_command or
+// service_role on any other table passed every layer. The list is now DATA, db/foundation/lint/
+// pinned-grants.json, generated from a live catalog read on the clean set and committed as reviewed data:
+// one entry per table, one line per role. Its first rule makes the TABLE list closed too: every table in
+// app and private is an entry (one no role holds anything on is an empty one), and every entry is a
+// table, so a new table is named even when it is granted nothing. Measured on the clean set at the
+// draft: 66 tables, 43 table-level and 1328 column-level privileges, held by app_worker (on 41 tables),
+// authenticated (44) and app_authz (1); service_role, app_command, app_maintenance and anon hold none, and
+// no privilege is held WITH GRANT OPTION. A column privilege a table-level privilege already implies is
+// not read at the column level (the table-level row carries it), so a role's table-wide SELECT is one
+// row, not one per column. A batch that grants, revokes or adds a table changes the file in the same
+// diff. 091's apply-time block is integrated and is not rewritten: this is the forward assertion beside it.
+const lintData = (name) => JSON.parse(readFileSync(new URL(`../../db/foundation/lint/${name}`, import.meta.url), 'utf8'));
+export const PINNED_GRANTS_FILE = 'db/foundation/lint/pinned-grants.json';
+export const PINNED_GRANTS = lintData('pinned-grants.json').tables;
 const pinnedGrantRows = (level) => Object.entries(PINNED_GRANTS).flatMap(([table, roles]) => Object.entries(roles).flatMap(([role, privs]) =>
-  level === 'table' ? privs.table.map((p) => `${role} ${p} on ${table}`)
+  level === 'table' ? (privs.table ?? []).map((p) => `${role} ${p} on ${table}`)
     : Object.entries(privs).filter(([p]) => p !== 'table').flatMap(([p, cols]) => cols.map((c) => `${role} ${p} (${c}) on ${table}`))));
 const grantDiff = (found, rows) => `
   ), pinned as (
@@ -1263,8 +1258,9 @@ const grantDiff = (found, rows) => `
     union all
     select 'missing: ' || p.g from pinned p where p.g not in (select g from ${found})
   ) d;`;
+const pinnedGrantTables = `array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]::text[]`;
 // The review round on batch 126 added two things. The role set leaves superusers out, so the probe
-// ASSUMES each pinned table's owner is a superuser (C0 F5): that is now its first rule, not a silent
+// ASSUMES each pinned table's owner is a superuser (C0 F5): that is now a rule, not a silent
 // premise -- on a cluster where the owner is not one, the owner's implicit privileges would read as
 // unlisted, and the rule says why first. And each privilege is read WITH GRANT OPTION as well, a row
 // the allowlist never lists (C0 F3, A1 F3, Q0 F7: `... with grant option` passed every layer).
@@ -1272,8 +1268,21 @@ export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
 begin
+  select string_agg(x, ', ' order by x) into offending from (
+    select 'unpinned: ' || format('%s.%s', n.nspname, c.relname) as x
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname in ('app', 'private') and c.relkind in ('r', 'p')
+       and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedGrantTables}))
+    union all
+    select 'pinned but absent: ' || tabs.t from unnest(${pinnedGrantTables}) as tabs(t)
+     where not exists (select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+                        where format('%s.%s', n.nspname, c.relname) = tabs.t and c.relkind in ('r', 'p'))
+  ) d;
+  if offending is not null then
+    raise exception 'app or private table(s) not exactly the pinned grant table list: %', offending;
+  end if;
   select string_agg(format('%s (owner %s)', tabs.t, pg_catalog.pg_get_userbyid(c.relowner)), ', ' order by tabs.t) into offending
-    from unnest(array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]) as tabs(t)
+    from unnest(${pinnedGrantTables}) as tabs(t)
     join pg_catalog.pg_class c on c.oid = tabs.t::regclass
    where not exists (select 1 from pg_catalog.pg_roles o where o.oid = c.relowner and o.rolsuper);
   if offending is not null then
@@ -1282,7 +1291,7 @@ begin
   with roles as (
     select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
   ), tabs as (
-    select unnest(array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]) as t
+    select unnest(${pinnedGrantTables}) as t
   ), tprivs as (
     select unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
                   || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
@@ -1299,13 +1308,124 @@ begin
     select c.oid as rel, format('%s.%s', n.nspname, c.relname) as t, a.attnum, a.attname
       from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
       join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
-     where format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}])
+     where format('%s.%s', n.nspname, c.relname) = any (${pinnedGrantTables})
   ), found as (
     select format('%s %s%s (%s) on %s', roles.r, p.p, go.opt, cols.attname, cols.t) as g
       from roles, cols, unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
-     where pg_catalog.has_column_privilege(roles.r, cols.rel, cols.attnum, p.p || go.opt)${grantDiff('found', pinnedGrantRows('column'))}
+     where pg_catalog.has_column_privilege(roles.r, cols.rel, cols.attnum, p.p || go.opt)
+       and not pg_catalog.has_table_privilege(roles.r, cols.rel, p.p || go.opt)${grantDiff('found', pinnedGrantRows('column'))}
   if offending is not null then
     raise exception 'column privilege(s) on a pinned table not exactly its allowlist: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 6b. THE READ ALLOWLIST, BOTH WAYS (the batch 170 draft; RFC-2026-021 §8.1, §8.2 and §8.5, approved).
+// RFC-021 makes db/foundation/lint/read-allowlist.json the only place "is this on the allowlist" is
+// answered -- an EMPTY array on approval, which it still is -- and requires the rule to run both ways:
+// every client grant is an inherited base-table grant in the known-exceptions block or corresponds to a
+// registry entry, and every entry corresponds to something that exists. Neither file existed (WP blocker
+// text "read-allowlist.json does not exist"). §8.3 asks for the catalog reading, so this is a catalog
+// rule: every relation a client role (anon, authenticated, PUBLIC) can SELECT from, in any schema but the
+// system ones or made after initdb, is read as `<role> SELECT (<level>) on <relation>`, the level being
+// `columns` for a base table read through column grants, `table` for a table-wide SELECT and `view` for a
+// view, materialized view or foreign table. An allowlist entry contributes its view and, for each base
+// table behind it, column-level SELECT for each of its roles (§8.1's shape); a known exception contributes
+// its own row. Rule 1 names a grant on no list; rule 2 names a list row with no grant. A table-wide
+// SELECT on an excepted table is unlisted (§8.4's first negative: a table-wide grant is a finding even
+// over the same columns). Which COLUMNS are granted is the pinned grant probe's, exactly; this probe reads
+// the boundary RFC-021 draws, by relation. Measured on the clean set at the draft: 41 relations, all
+// authenticated SELECT by column grants on base tables in app, which are exactly the §8.5 exceptions;
+// anon and PUBLIC hold none; no view. What this does not read (stated): client INSERT, UPDATE and DELETE
+// (the pinned grant and permissive policy probes hold them), and RFC-021 §8.2's migration-TEXT half
+// (the contract test reads read-allowlist.json's shape statically).
+export const READ_ALLOWLIST_FILE = 'db/foundation/lint/read-allowlist.json';
+export const READ_ALLOWLIST_EXCEPTIONS_FILE = 'db/foundation/lint/read-allowlist-known-exceptions.json';
+export const READ_ALLOWLIST = lintData('read-allowlist.json');
+export const READ_ALLOWLIST_EXCEPTIONS = lintData('read-allowlist-known-exceptions.json').exceptions;
+export const readAllowlistRows = () => [...new Set([
+  ...READ_ALLOWLIST_EXCEPTIONS.map((e) => `${e.role} SELECT (${e.level}) on ${e.relation}`),
+  ...READ_ALLOWLIST.flatMap((e) => e.roles.flatMap((r) => [`${r} SELECT (view) on ${e.view}`, ...e.base_tables.map((t) => `${r} SELECT (columns) on ${t}`)])),
+])].sort();
+const readAllowlistFound = `with found as (
+    select distinct format('%s SELECT (%s) on %s.%s', cr.r,
+             case when c.relkind not in ('r', 'p') then 'view'
+                  when pg_catalog.has_table_privilege(cr.r, c.oid, 'SELECT') then 'table' else 'columns' end,
+             n.nspname, c.relname) as g
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
+     where ${userObject('c.oid')} and c.relkind in ('r', 'p', 'v', 'm', 'f')
+       and pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT')
+  ), pinned as (
+    select unnest(array[${readAllowlistRows().map((r) => `'${r}'`).join(', ')}]::text[]) as g
+  )`;
+export const READ_ALLOWLIST_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  ${readAllowlistFound}
+  select string_agg(f.g, ', ' order by f.g) into offending from found f where not exists (select 1 from pinned p where p.g = f.g);
+  if offending is not null then
+    raise exception 'client SELECT grant(s) neither on the read allowlist nor in its known exceptions: %', offending;
+  end if;
+  ${readAllowlistFound}
+  select string_agg(p.g, ', ' order by p.g) into offending from pinned p where not exists (select 1 from found f where f.g = p.g);
+  if offending is not null then
+    raise exception 'read allowlist or known-exception row(s) matching no client grant: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 6c. NO CLIENT PRIVILEGE ON A SECRET-4, PROVIDER-3 OR INTERNAL-3 TABLE OR COLUMN (the batch 170 draft;
+// plan "Batch 170 -- Can do now" (c); ERD §9.1, WS:803's "no credential, raw webhook, DLQ payload or
+// internal billing payload" exposure). The classes come from db/foundation/lint/data-classification.json,
+// which reads every table's class from the ERD's §5 family row and §9.1/§9.2 text and nowhere else: a
+// table whose §5 row mixes a refused class with others and that the ERD does not resolve is a FINDING in
+// that file, not a guess. Rule 1 holds the registry to the catalog both ways (every table in app and
+// private is classified, every classified table exists), so a new table cannot arrive unclassified. Rule
+// 2: no client role (anon, authenticated, PUBLIC) holds any privilege, at table or column level, on a
+// refused table, or on a column the registry classes with a refused class (none: the ERD names no
+// column). Measured on the clean set at the draft: 8 refused tables (jobs, outbox_events, consumer_ledger,
+// billing_webhook_receipts, and the four in private), no client privilege on any.
+export const DATA_CLASSIFICATION_FILE = 'db/foundation/lint/data-classification.json';
+export const DATA_CLASSIFICATION = lintData('data-classification.json');
+export const REFUSED_CLASSES = ['SECRET-4', 'PROVIDER-3', 'INTERNAL-3'];
+export const REFUSED_CLASS_TABLES = Object.entries(DATA_CLASSIFICATION.tables)
+  .filter(([, e]) => REFUSED_CLASSES.includes(e.class) || (e.class === null && e.erd_classes.every((c) => REFUSED_CLASSES.includes(c))))
+  .map(([t]) => t);
+export const REFUSED_CLASS_COLUMNS = Object.entries(DATA_CLASSIFICATION.columns).filter(([, c]) => REFUSED_CLASSES.includes(c)).map(([k]) => k);
+const classifiedTables = `array[${Object.keys(DATA_CLASSIFICATION.tables).map((t) => `'${t}'`).join(', ')}]::text[]`;
+export const DATA_CLASSIFICATION_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(x, ', ' order by x) into offending from (
+    select 'unclassified: ' || format('%s.%s', n.nspname, c.relname) as x
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname in ('app', 'private') and c.relkind in ('r', 'p')
+       and not (format('%s.%s', n.nspname, c.relname) = any (${classifiedTables}))
+    union all
+    select 'classified but absent: ' || tabs.t from unnest(${classifiedTables}) as tabs(t)
+     where not exists (select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+                        where format('%s.%s', n.nspname, c.relname) = tabs.t and c.relkind in ('r', 'p'))
+  ) d;
+  if offending is not null then
+    raise exception 'app or private table(s) not exactly the classification registry: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s %s on %s', cr.r, p.p, t.t) as x
+      from unnest(array[${REFUSED_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), ${clientRoles},
+           unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES', 'DELETE', 'TRUNCATE', 'TRIGGER']
+                  || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p(p)
+     where case when p.p in ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES') then pg_catalog.has_any_column_privilege(cr.r, t.t::regclass, p.p)
+                else pg_catalog.has_table_privilege(cr.r, t.t::regclass, p.p) end
+    union all
+    select format('%s %s (%s) on %s.%s', cr.r, p.p, split_part(k.k, '.', 3), split_part(k.k, '.', 1), split_part(k.k, '.', 2))
+      from unnest(array[${REFUSED_CLASS_COLUMNS.map((k) => `'${k}'`).join(', ')}]::text[]) as k(k), ${clientRoles},
+           unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p)
+     where pg_catalog.has_column_privilege(cr.r, (split_part(k.k, '.', 1) || '.' || split_part(k.k, '.', 2))::regclass, split_part(k.k, '.', 3), p.p)
+  ) f;
+  if offending is not null then
+    raise exception 'client privilege(s) on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3: %', offending;
   end if;
 end \$\$;
 `;
@@ -1635,25 +1755,61 @@ export const CATALOG_RULE_PROBES = [
         raises: 'trigger function(s) on a pinned table not in their pinned shape',
         names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]'] },
     ] },
-  // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3).
+  // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
+  // batch 170 draft, with the table-list rule first.
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `each of ${Object.keys(PINNED_GRANTS).join(', ')} is owned by a superuser, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned, none with grant option`,
+    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list, each owned by a superuser, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option`,
     selfTests: [
+      // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away.
+      { drift: 'create table app.probe_unpinned (id uuid); create table private.probe_unpinned_private (id uuid); alter table app.audit_logs rename to probe_audit_renamed;',
+        raises: 'app or private table(s) not exactly the pinned grant table list',
+        names: ['unpinned: app.probe_unpinned', 'unpinned: private.probe_unpinned_private', 'unpinned: app.probe_audit_renamed', 'pinned but absent: app.audit_logs'] },
       // A1's R1: a table-level privilege no item of 091's block names.
       // C0 F5 on batch 126: the owner the role set leaves out must be a superuser.
       { drift: 'create role probe_table_owner nologin; alter table app.calendar_items owner to probe_table_owner;',
         raises: 'pinned table(s) owned by a role that is not a superuser',
         names: ['app.calendar_items (owner probe_table_owner)'] },
-      // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126).
-      { drift: 'grant truncate on app.content_schedules to authenticated with grant option;',
+      // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126). Since the batch 170 draft, a
+      // privilege for a role no rule read (app_maintenance) on a table outside 091's two, and one revoked.
+      { drift: 'grant truncate on app.content_schedules to authenticated with grant option; grant delete on app.audit_logs to app_maintenance; revoke select on app.ai_models from app_worker;',
         raises: 'table-level privilege(s) on a pinned table not exactly its allowlist',
-        names: ['unlisted: authenticated TRUNCATE on app.content_schedules', 'unlisted: authenticated TRUNCATE WITH GRANT OPTION on app.content_schedules'] },
+        names: ['unlisted: authenticated TRUNCATE on app.content_schedules', 'unlisted: authenticated TRUNCATE WITH GRANT OPTION on app.content_schedules',
+          'unlisted: app_maintenance DELETE on app.audit_logs', 'missing: app_worker SELECT on app.ai_models'] },
       // C0's d3 and d11: a placement born deleted, and a creation time the client chooses; and a column
-      // for a service role, which a role list naming authenticated alone would miss (A1 R4).
-      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option;',
+      // for a service role, which a role list naming authenticated alone would miss (A1 R4). Since the
+      // batch 170 draft, a column for a command role on a kernel table, and a worker's column revoked.
+      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option; grant select (input_ref) on app.jobs to app_command; revoke update (lease_owner) on app.jobs from app_worker;',
         raises: 'column privilege(s) on a pinned table not exactly its allowlist',
         names: ['unlisted: authenticated INSERT (deleted_at) on app.calendar_items', 'unlisted: authenticated INSERT (created_at) on app.content_schedules',
-          'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items'] },
+          'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items',
+          'unlisted: app_command SELECT (input_ref) on app.jobs', 'missing: app_worker UPDATE (lease_owner) on app.jobs'] },
+    ] },
+  // The batch 170 draft (RFC-2026-021 §8.2, §8.5): the read allowlist, both ways.
+  { label: 'read allowlist probe', sql: READ_ALLOWLIST_PROBE_SQL,
+    claim: `every relation a client role can SELECT from is one of the ${READ_ALLOWLIST.length} read allowlist entries (${READ_ALLOWLIST_FILE}) or the ${READ_ALLOWLIST_EXCEPTIONS.length} known exceptions (${READ_ALLOWLIST_EXCEPTIONS_FILE}), at its level, and every one of them matches a client grant`,
+    selfTests: [
+      // A column grant on a table no list names, for authenticated and for anon; a table-wide SELECT on an
+      // excepted table (§8.4: a finding even over the same columns); and a view no entry names.
+      { drift: 'grant select (id) on app.jobs to authenticated; grant select (user_id) on app.user_profiles to anon; grant select on app.workspaces to authenticated; create view app.probe_allow_v with (security_invoker = true) as select id from app.workspaces; grant select on app.probe_allow_v to authenticated;',
+        raises: 'client SELECT grant(s) neither on the read allowlist nor in its known exceptions',
+        names: ['authenticated SELECT (columns) on app.jobs', 'anon SELECT (columns) on app.user_profiles', 'authenticated SELECT (table) on app.workspaces', 'authenticated SELECT (view) on app.probe_allow_v'] },
+      // An excepted grant revoked: the exception now names nothing, which is how a list becomes documentation.
+      { drift: 'revoke select on app.notifications from authenticated;',
+        raises: 'read allowlist or known-exception row(s) matching no client grant',
+        names: ['authenticated SELECT (columns) on app.notifications'] },
+    ] },
+  // The batch 170 draft (plan (c); ERD §5, §9.1): classification, and no client reach into a refused class.
+  { label: 'data classification probe', sql: DATA_CLASSIFICATION_PROBE_SQL,
+    claim: `the ${Object.keys(DATA_CLASSIFICATION.tables).length} tables in app and private are exactly those ${DATA_CLASSIFICATION_FILE} classifies, and no client role holds any privilege on the ${REFUSED_CLASS_TABLES.length} tables or ${REFUSED_CLASS_COLUMNS.length} columns classed ${REFUSED_CLASSES.join(', ')}`,
+    selfTests: [
+      { drift: 'create table app.probe_unclassified (id uuid); alter table app.consumer_ledger rename to probe_ledger_renamed;',
+        raises: 'app or private table(s) not exactly the classification registry',
+        names: ['unclassified: app.probe_unclassified', 'unclassified: app.probe_ledger_renamed', 'classified but absent: app.consumer_ledger'] },
+      // The plan's drift: SELECT on a refused table's column to authenticated; and INSERT for anon and a
+      // PUBLIC grant on a SECRET-4 table (which every client inherits).
+      { drift: 'grant select (input_ref) on app.jobs to authenticated; grant insert (id) on app.outbox_events to anon; grant select (id) on private.ai_credential_references to public;',
+        raises: 'client privilege(s) on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3',
+        names: ['authenticated SELECT on app.jobs', 'anon INSERT on app.outbox_events', 'public SELECT on private.ai_credential_references', 'authenticated SELECT on private.ai_credential_references'] },
     ] },
   // Batch 126, from batch 091's third round (C0 H3).
   { label: 'pinned default probe', sql: PINNED_DEFAULT_PROBE_SQL,

@@ -2504,8 +2504,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL,
       m.CLIENT_SCHEMA_PROBE_SQL, m.CLIENT_MEMBERSHIP_PROBE_SQL, m.SYSTEM_FINGERPRINT_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.POLICY_HELPER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
-      m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all twenty-four, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check); the system object fingerprint probe is batch 129 (C0 G1, Q0 F1 on 128\'s re-check)');
+      m.PINNED_GRANT_PROBE_SQL, m.READ_ALLOWLIST_PROBE_SQL, m.DATA_CLASSIFICATION_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
+    'all twenty-six, in order (the read allowlist and data classification probes are the batch 170 draft: RFC-2026-021 §8.2 and §8.5, plan (b) and (c)):one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check); the system object fingerprint probe is batch 129 (C0 G1, Q0 F1 on 128\'s re-check)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2639,6 +2639,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // role default a client session starts with, and a drift, A1 R2); system object fingerprint 35887b50de64acf6
   // to 6a533b62eacf2022 (prosqlbody read, A1 R1; the name compared, C0 F2, Q0 F1; three more shapes in its
   // drift); trigger 9f3dc969be47bd74 to 7ebb13f1c66bd33a (event triggers pinned, and a drift, A1 R3).
+  // The batch 170 draft (plan "Batch 170 -- Can do now", assertion only): pinned grant 2e3ef3743a2ca6ad to
+  // 7a8fe3e222e6827f (every table in app and private and every non-superuser role, read from
+  // db/foundation/lint/pinned-grants.json; the table-list rule and its drift first; a column privilege a
+  // table-level one implies is read at the table level; non-client roles granted and revoked in drifts 3
+  // and 4); the read allowlist and data classification probes are new (RFC-2026-021 §8.2 and §8.5; ERD §9.1).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2660,7 +2665,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '7ebb13f1c66bd33a',
     'pinned trigger probe': 'f136765c6beb5dbf',
-    'pinned grant probe': '2e3ef3743a2ca6ad',
+    'pinned grant probe': '7a8fe3e222e6827f',
+    'read allowlist probe': 'a97a58b338e52627',
+    'data classification probe': '42c77e0015f12eaf',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
     'pg_catalog guard probe': '75f034a2f40a686e',
@@ -2975,21 +2982,116 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_GRANT_PROBE_SQL, /from roles, tabs, tprivs, \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_table_privilege\(roles\.r, tabs\.t::regclass, tprivs\.p \|\| go\.opt\)/,
     'every table privilege with and without grant option');
   assert.ok(!Object.values(m.PINNED_GRANTS).some((roles) => JSON.stringify(roles).includes('GRANT OPTION')), 'and no grant option is ever pinned');
-  assert.match(m.PINNED_GRANT_PROBE_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  select string_agg\(format\('%s \(owner %s\)'[\s\S]*where not exists \(select 1 from pg_catalog\.pg_roles o where o\.oid = c\.relowner and o\.rolsuper\);\n  if offending is not null then\n    raise exception 'pinned table\(s\) owned by a role that is not a superuser/,
-    'its first rule: the owner the role set leaves out is a superuser, stated rather than assumed (C0 F5 on 126)');
+  // Its first rule since the batch 170 draft: the TABLE list is closed, both ways, over app and private.
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  select string_agg\(x, ', ' order by x\) into offending from \(\n    select 'unpinned: ' \|\| format\('%s\.%s', n\.nspname, c\.relname\) as x\n[^\n]*\n     where n\.nspname in \('app', 'private'\) and c\.relkind in \('r', 'p'\)\n[\s\S]*?select 'pinned but absent: ' \|\| tabs\.t [\s\S]*?raise exception 'app or private table\(s\) not exactly the pinned grant table list: %'/,
+    'its first rule: every table in app and private is pinned and every pinned table exists (the batch 170 draft)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /raise exception 'app or private table\(s\) not exactly the pinned grant table list: %', offending;\n  end if;\n  select string_agg\(format\('%s \(owner %s\)'[\s\S]*where not exists \(select 1 from pg_catalog\.pg_roles o where o\.oid = c\.relowner and o\.rolsuper\);\n  if offending is not null then\n    raise exception 'pinned table\(s\) owned by a role that is not a superuser/,
+    'its second rule: the owner the role set leaves out is a superuser, stated rather than assumed (C0 F5 on 126)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)\n\s+and not pg_catalog\.has_table_privilege\(roles\.r, cols\.rel, p\.p \|\| go\.opt\)\n\s+\), pinned as/,
+    'a column privilege is read unless a table-level privilege, with the same grant option, already implies it (the table-level rule reads that one)');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 2, 'an unlisted grant named at both levels');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 2, 'and a missing one');
-  assert.deepEqual(Object.keys(m.PINNED_GRANTS), ['app.calendar_items', 'app.content_schedules'], 'batch 091\'s two tables');
+  // EVERY TABLE AND EVERY ROLE, AS DATA (the batch 170 draft; plan (a)). The pinned list is the lint file,
+  // one entry per table, and its tables are exactly the tables the migrations create in app and private.
+  {
+    const file = JSON.parse(await readFile(m.PINNED_GRANTS_FILE, 'utf8'));
+    assert.deepEqual(m.PINNED_GRANTS, file.tables, 'the probe reads the lint file and nothing else');
+    const created = new Set();
+    for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
+      for (const t of (await readFile(`db/foundation/migrations/${name}`, 'utf8')).matchAll(/^create table if not exists ((?:app|private)\.[a-z_]+)/gm)) created.add(t[1]);
+    }
+    assert.deepEqual(Object.keys(m.PINNED_GRANTS), [...created].sort(), 'one entry per table the migrations create in app and private, sorted');
+    assert.equal(created.size, 66, 'sixty-six tables at the batch 170 draft');
+    for (const [table, roles] of Object.entries(m.PINNED_GRANTS)) {
+      assert.deepEqual(Object.keys(roles), Object.keys(roles).sort(), `${table}: roles sorted`);
+      for (const [role, privs] of Object.entries(roles)) {
+        assert.ok(role !== 'postgres' && !/^pg_/.test(role), `${table}: ${role} is a non-superuser, non-predefined role`);
+        assert.ok(Object.keys(privs).length > 0 && Object.keys(privs).every((k) => ['table', 'SELECT', 'INSERT', 'UPDATE', 'REFERENCES'].includes(k)), `${table}: ${role} lists table-level privileges and the four column privileges only`);
+        for (const [k, v] of Object.entries(privs)) assert.ok(Array.isArray(v) && v.length > 0 && new Set(v).size === v.length, `${table}: ${role} ${k} is a non-empty list with no repeat`);
+        for (const p of privs.table ?? []) assert.ok(!privs[p], `${table}: ${role}'s table-level ${p} is not also listed by column`);
+      }
+    }
+    // The roles no rule read before the draft are now read and hold, measured, nothing.
+    const holders = new Set(Object.values(m.PINNED_GRANTS).flatMap((roles) => Object.keys(roles)));
+    assert.deepEqual([...holders].sort(), ['app_authz', 'app_worker', 'authenticated'], 'measured at the draft: only these three roles hold anything on any table; anon, service_role, app_command and app_maintenance hold nothing');
+  }
   {
     const migration = await readFile('db/foundation/migrations/091_calendar.sql', 'utf8');
-    for (const [table, { authenticated }] of Object.entries(m.PINNED_GRANTS)) {
+    for (const table of ['app.calendar_items', 'app.content_schedules']) {
+      const { authenticated, ...others } = m.PINNED_GRANTS[table];
+      assert.deepEqual(others, {}, `no role but authenticated holds anything on ${table}`);
       for (const priv of ['SELECT', 'INSERT', 'UPDATE']) {
         const written = migration.match(new RegExp(`grant ${priv.toLowerCase()} \\(([^)]*)\\)\\s+on ${table.replace('.', '\\.')} to authenticated;`));
         assert.ok(written, `091 writes one ${priv} grant on ${table}`);
         assert.deepEqual(authenticated[priv], written[1].split(',').map((c) => c.trim()), `the pinned ${priv} columns on ${table} are 091's grant as written`);
       }
-      assert.deepEqual([authenticated.table, authenticated.REFERENCES], [[], []], `no table-level grant and no REFERENCES on ${table}`);
+      assert.deepEqual([authenticated.table ?? [], authenticated.REFERENCES ?? []], [[], []], `no table-level grant and no REFERENCES on ${table}`);
     }
+  }
+  // THE READ ALLOWLIST (the batch 170 draft; RFC-2026-021 §8.1, §8.2, §8.5). The allowlist is an empty array
+  // on approval, and stays one; an entry, when one is written, carries every field §8.1 names, `caller`
+  // included. The known exceptions are authenticated base-table grants read by column, each from a
+  // migration that grants it, sorted and without repeat.
+  {
+    assert.deepEqual(JSON.parse(await readFile(m.READ_ALLOWLIST_FILE, 'utf8')), [], 'read-allowlist.json is an empty array (RFC-2026-021 §8.1, §7/3)');
+    for (const e of m.READ_ALLOWLIST) {
+      assert.deepEqual(Object.keys(e).sort(), ['base_tables', 'batch', 'caller', 'columns', 'roles', 'rfc', 'sensitivity', 'view'], 'an entry is exactly §8.1\'s fields');
+      assert.ok(typeof e.caller === 'string' && e.caller.length > 0, 'C1 as a required field: an entry that cannot name its caller cannot be written');
+      assert.ok(!e.roles.includes('anon'), '§7/4: anon is granted nothing');
+    }
+    const exc = m.READ_ALLOWLIST_EXCEPTIONS;
+    assert.equal(exc.length, 41, 'forty-one inherited authenticated base-table grants, measured at the draft');
+    assert.deepEqual(exc.map((e) => e.relation), exc.map((e) => e.relation).sort(), 'sorted by relation');
+    assert.equal(new Set(exc.map((e) => `${e.role} ${e.relation}`)).size, exc.length, 'no repeat');
+    for (const e of exc) {
+      assert.deepEqual([e.role, e.level], ['authenticated', 'columns'], `${e.relation}: authenticated, by column grants (no table-wide SELECT, §8.4)`);
+      assert.ok(e.granted_by.length > 0, `${e.relation}: names the migration that grants it`);
+      for (const f of e.granted_by) {
+        const sql = (await readFile(`db/foundation/migrations/${f}`, 'utf8')).replace(/--[^\n]*/g, '');
+        assert.match(sql, new RegExp(`grant\\s+[^;]*select[^;]*\\s+on\\s+(?:table\\s+)?${e.relation.replace('.', '\\.')}\\s+to\\s+[^;]*authenticated`, 'i'), `${e.relation}: ${f} grants it SELECT`);
+      }
+    }
+    assert.deepEqual(Object.entries(m.PINNED_GRANTS).filter(([, r]) => r.authenticated?.SELECT || r.authenticated?.table?.includes('SELECT') || r.anon).map(([t]) => t), exc.map((e) => e.relation),
+      'the exceptions are exactly the client SELECT grants the pinned grant list holds');
+    assert.match(m.READ_ALLOWLIST_PROBE_SQL, /where \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\) and c\.relkind in \('r', 'p', 'v', 'm', 'f'\)\n\s+and pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\)/,
+      'every relation in any schema but the system ones, or made after initdb, that a client role can SELECT from');
+    assert.match(m.READ_ALLOWLIST_PROBE_SQL, /unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/, 'anon, authenticated and PUBLIC');
+    assert.match(m.READ_ALLOWLIST_PROBE_SQL, /case when c\.relkind not in \('r', 'p'\) then 'view'\n\s+when pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'SELECT'\) then 'table' else 'columns' end/, 'the level: a view, a table-wide SELECT or column grants');
+    assert.equal((m.READ_ALLOWLIST_PROBE_SQL.match(/raise exception/g) ?? []).length, 2, 'two rules: a grant on no list, and a list row with no grant');
+  }
+  // THE CLASSIFICATION REGISTRY (the batch 170 draft; plan (c); ERD §5, §9.1). Every table the migrations
+  // create, each with its §5 classes verbatim; a class only where §5 gives one or §9.1/§9.2 names the
+  // table's content as a refused class's example; every mixed row it leaves open is a finding.
+  {
+    const reg = m.DATA_CLASSIFICATION;
+    const classes = ['PUBLIC-0', 'TENANT-1', 'PII-2', 'CONTENT-2', 'MEDIA-2', 'INTEGRATION-2', 'PROVIDER-3', 'AUTH-3', 'FIN-3', 'RIGHTS-3', 'COPYRIGHT-3', 'INTERNAL-3', 'SECRET-4', 'SECURITY-4'];
+    const erd = await readFile('docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md', 'utf8');
+    for (const c of classes) assert.ok(erd.includes(`| \`${c}\` |`), `${c} is a §9.1 class`);
+    assert.deepEqual(Object.keys(reg.tables), Object.keys(m.PINNED_GRANTS), 'the registry classifies exactly the tables the migrations create, in the same order');
+    assert.deepEqual(m.REFUSED_CLASSES, ['SECRET-4', 'PROVIDER-3', 'INTERNAL-3'], 'the three classes the plan names');
+    for (const [t, e] of Object.entries(reg.tables)) {
+      assert.ok(e.erd_classes.length > 0 && e.erd_classes.every((c) => classes.includes(c)), `${t}: its §5 classes are §9.1 classes`);
+      const line = Number(e.family.match(/:(\d+)\)$/)?.[1]);
+      assert.ok(erd.split('\n')[line - 1]?.includes(`| ${e.erd_classes.join('/')} |`), `${t}: the §5 row it cites carries exactly ${e.erd_classes.join('/')}`);
+      if (e.erd_classes.length === 1) assert.equal(e.class, e.erd_classes[0], `${t}: a one-class row is that class`);
+      else if (e.class !== null) {
+        assert.ok(m.REFUSED_CLASSES.includes(e.class) && /§9\.[12] \(/.test(e.resolved_by), `${t}: a multi-class row is resolved only INTO a refused class, by §9.1/§9.2 text`);
+      }
+      const open = e.class === null && e.erd_classes.some((c) => m.REFUSED_CLASSES.includes(c)) && !e.erd_classes.every((c) => m.REFUSED_CLASSES.includes(c));
+      assert.equal(open, e.class === null && typeof e.finding === 'string' && e.finding.length > 40, `${t}: a table left open between a refused class and another carries a finding, and only such a table has one with no class`);
+      if (!e.named_in_family) assert.match(e.family_inferred_from, /^batch \d{3} \(§6/, `${t}: an inferred family names the §6 batch it is inferred from`);
+    }
+    assert.deepEqual(m.REFUSED_CLASS_TABLES, ['app.billing_webhook_receipts', 'app.consumer_ledger', 'app.jobs', 'app.outbox_events', 'private.ai_credential_references',
+      'private.meta_credential_references', 'private.meta_webhook_inbox', 'private.push_subscription_references'], 'the eight tables in a refused class, measured unexposed at the draft');
+    assert.deepEqual(Object.entries(reg.tables).filter(([, e]) => e.finding && e.class === null).map(([t]) => t),
+      ['app.ai_model_policies', 'app.ai_models', 'app.meta_connections', 'app.notification_preferences', 'app.notifications', 'app.performance_snapshots',
+        'app.publish_intents', 'app.publish_jobs', 'app.publish_target_assets', 'app.publish_targets', 'app.published_posts', 'app.social_accounts'],
+      'the twelve tables the ERD leaves between a refused class and another: findings, never guesses');
+    assert.deepEqual(reg.columns, {}, 'the ERD names no column, so no column is classed');
+    assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /case when p\.p in \('SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\) then pg_catalog\.has_any_column_privilege\(cr\.r, t\.t::regclass, p\.p\)\n\s+else pg_catalog\.has_table_privilege\(cr\.r, t\.t::regclass, p\.p\) end/,
+      'any privilege, by any column or table-wide');
+    assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'REFERENCES', 'DELETE', 'TRUNCATE', 'TRIGGER'\]\n\s+\|\| case when [^\n]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+');
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 2, 'the three client roles, at table and at column level');
   }
   assert.deepEqual(m.PINNED_DEFAULTS, { 'app.calendar_items.timezone': "'Asia/Bangkok'::text" }, 'DEC-UX-06 (C0 H3 on 091\'s third round)');
   assert.match(m.PINNED_DEFAULT_PROBE_SQL, /pg_catalog\.pg_get_expr\(d\.adbin, d\.adrelid\) = pin\.def/, 'defaults compared by TEXT');

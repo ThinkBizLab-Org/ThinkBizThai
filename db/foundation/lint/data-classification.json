@@ -1,0 +1,666 @@
+{
+  "_what": "Every table in schemas app and private, with the ERD §5 family it belongs to and the §9.1 data class(es) that family carries, read from the ERD text and nowhere else (batch 170's assertion-only part, plan \"Batch 170 -- Can do now\" (c); read by the data classification probe in scripts/db/run.mjs).",
+  "_rule": "No client role (anon, authenticated, PUBLIC) may hold any privilege on a table that is REFUSED, or on a column in \"columns\" whose class is one of SECRET-4, PROVIDER-3, INTERNAL-3. A table is refused when its \"class\" is one of them, or when its \"class\" is null and EVERY class in \"erd_classes\" is one of them. A table whose \"class\" is null and whose \"erd_classes\" mix refused and other classes is a FINDING and carries \"finding\": it is not classified, by guess or otherwise. A multi-class §5 row is resolved (\"resolved_by\") only where §9.1 or §9.2 names the table's own content as an example of a refused class, which can only add a refusal; a reading that would lift a table out of a refused class (every one of them is a migration's, not the ERD's) is left to the ERD owner.",
+  "_shape": "{ \"module\", \"family\": \"the §5 row, with its line\", \"named_in_family\": \"false when §5 does not name the table\", \"family_inferred_from\": \"then: the batch that created it, by §6\", \"erd_classes\": [\"the §5 row's classes, verbatim\"], \"class\": \"the one class, or null\", \"resolved_by\": \"the §9.1/§9.2 text that resolves a multi-class row\", \"finding\": \"what the ERD leaves open about this table\" }",
+  "_columns": "Column-level classes, \"<schema>.<table>.<column>\": \"<class>\". The ERD names no column of any table, so this is empty. The PROVIDER-3 and INTERNAL-3 columns batches 120 and 121 record in their own text (publish_targets.failure_class and performance_snapshots.payload inside the client SELECT; publish_jobs.provider_request_key, its failure code and the published_posts hash outside it) are the migrations' reading, listed as findings in the batch 170 draft record, not classes here.",
+  "columns": {},
+  "tables": {
+    "app.ai_model_policies": {
+      "module": "ai.gateway",
+      "family": "model registry/policies/credential refs/generation runs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:216)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes ai.gateway CONTENT-2/SECRET-4 and names no table. 060_ai_gateway.sql:329 records TENANT-1 by §9.1's \"settings\" (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). No client privilege today (measured)."
+    },
+    "app.ai_models": {
+      "module": "ai.gateway",
+      "family": "model registry/policies/credential refs/generation runs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:216)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes ai.gateway CONTENT-2/SECRET-4 and names no table. 060_ai_gateway.sql:294 records PUBLIC-0 by §9.1's \"public model label\" (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). No client privilege today (measured)."
+    },
+    "app.approval_events": {
+      "module": "approval.core",
+      "family": "policies/requests/events (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:208)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.approval_policies": {
+      "module": "approval.core",
+      "family": "policies/requests/events (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:208)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.approval_requests": {
+      "module": "approval.core",
+      "family": "policies/requests/events (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:208)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.asset_rights": {
+      "module": "asset.core",
+      "family": "assets/versions/rights/links/backup/usage (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:210)",
+      "named_in_family": true,
+      "erd_classes": [
+        "MEDIA-2",
+        "RIGHTS-3"
+      ],
+      "class": null
+    },
+    "app.asset_versions": {
+      "module": "asset.core",
+      "family": "assets/versions/rights/links/backup/usage (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:210)",
+      "named_in_family": true,
+      "erd_classes": [
+        "MEDIA-2",
+        "RIGHTS-3"
+      ],
+      "class": null
+    },
+    "app.assets": {
+      "module": "asset.core",
+      "family": "assets/versions/rights/links/backup/usage (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:210)",
+      "named_in_family": true,
+      "erd_classes": [
+        "MEDIA-2",
+        "RIGHTS-3"
+      ],
+      "class": null
+    },
+    "app.audit_logs": {
+      "module": "audit.core",
+      "family": "audit logs/security events (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:219)",
+      "named_in_family": true,
+      "erd_classes": [
+        "AUTH-3",
+        "SECURITY-4"
+      ],
+      "class": null
+    },
+    "app.billing_invoices": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.billing_payments": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.billing_plan_versions": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.billing_plans": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.billing_subscriptions": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.billing_webhook_receipts": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": false,
+      "family_inferred_from": "batch 131 (§6: A6 Billing, \"webhook/invoice/payment read model\"), docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:247-283",
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": "PROVIDER-3",
+      "resolved_by": "§9.1 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:448) lists \"webhook\" as a PROVIDER-3 example, which is the table's whole content; 131_billing_projection.sql:553 records the same",
+      "finding": "Not named by the billing.core family (plans/prices/subscriptions/invoices/payment refs, PII-2/FIN-3), whose classes do not include PROVIDER-3: the family row and §9.1 disagree. Resolved INTO the refused class by §9.1's example, which only adds a refusal (no client privilege today, measured); the family row is for the ERD owner."
+    },
+    "app.business_profile_versions": {
+      "module": "business.core",
+      "family": "`business_profiles`, `business_profile_versions` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:202)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "app.business_profiles": {
+      "module": "business.core",
+      "family": "`business_profiles`, `business_profile_versions` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:202)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "app.calendar_items": {
+      "module": "calendar.core",
+      "family": "calendar items/schedules (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:209)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.consumer_ledger": {
+      "module": "jobs.kernel",
+      "family": "jobs/attempts/DLQ/outbox/consumed ledger (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:214)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTERNAL-3"
+      ],
+      "class": "INTERNAL-3"
+    },
+    "app.content_asset_links": {
+      "module": "asset.core",
+      "family": "assets/versions/rights/links/backup/usage (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:210)",
+      "named_in_family": true,
+      "erd_classes": [
+        "MEDIA-2",
+        "RIGHTS-3"
+      ],
+      "class": null
+    },
+    "app.content_ideas": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.content_items": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.content_schedules": {
+      "module": "calendar.core",
+      "family": "calendar items/schedules (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:209)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.content_targets": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.content_variants": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.content_versions": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.industry_assignments": {
+      "module": "industry.core",
+      "family": "pack catalog/versions/assignments (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:204)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PUBLIC-0",
+        "TENANT-1"
+      ],
+      "class": null
+    },
+    "app.industry_pack_versions": {
+      "module": "industry.core",
+      "family": "pack catalog/versions/assignments (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:204)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PUBLIC-0",
+        "TENANT-1"
+      ],
+      "class": null
+    },
+    "app.industry_packs": {
+      "module": "industry.core",
+      "family": "pack catalog/versions/assignments (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:204)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PUBLIC-0",
+        "TENANT-1"
+      ],
+      "class": null
+    },
+    "app.jobs": {
+      "module": "jobs.kernel",
+      "family": "jobs/attempts/DLQ/outbox/consumed ledger (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:214)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTERNAL-3"
+      ],
+      "class": "INTERNAL-3"
+    },
+    "app.knowledge_item_versions": {
+      "module": "knowledge.core",
+      "family": "items/versions/voice/audience/offers/restrictions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:205)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.knowledge_items": {
+      "module": "knowledge.core",
+      "family": "items/versions/voice/audience/offers/restrictions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:205)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.meta_connections": {
+      "module": "connector.meta",
+      "family": "connections/accounts/bindings (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:211)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTEGRATION-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes connector.meta's connections/accounts/bindings INTEGRATION-2/SECRET-4 and names no table. 110_meta_connector.sql:398 and :427 record INTEGRATION-2 by §9.1's \"account display/capability/health\" (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). No client privilege today (measured)."
+    },
+    "app.notification_preferences": {
+      "module": "notification.core",
+      "family": "notifications/preferences/push subscriptions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:215)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes notification.core PII-2/SECRET-4 and names no table. 051_notification.sql:716 records TENANT-1/PII-2 (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). No client privilege today (measured)."
+    },
+    "app.notifications": {
+      "module": "notification.core",
+      "family": "notifications/preferences/push subscriptions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:215)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes notification.core PII-2/SECRET-4 and names no table. 051_notification.sql:490 records PII-2, and :190 reads the family's SECRET-4 half as the push token alone (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). authenticated holds SELECT on 10 columns and UPDATE on 1 today (measured)."
+    },
+    "app.outbox_events": {
+      "module": "jobs.kernel",
+      "family": "jobs/attempts/DLQ/outbox/consumed ledger (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:214)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTERNAL-3"
+      ],
+      "class": "INTERNAL-3"
+    },
+    "app.page_context_profile_versions": {
+      "module": "business.core",
+      "family": "`page_context_profiles`, versions, bindings (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:203)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "app.page_context_profiles": {
+      "module": "business.core",
+      "family": "`page_context_profiles`, versions, bindings (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:203)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "app.performance_snapshots": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "§5 classes publisher.meta CONTENT-2/PROVIDER-3 and names no table. 121_publisher_metrics.sql:261 records the TABLE as PROVIDER-3, and :297-298 put its PROVIDER-3 payload INSIDE the client SELECT behind a shape (question D). authenticated holds SELECT on 8 columns today (measured): if the ERD owner adopts the migration's table class, the exposure rule fails today."
+    },
+    "app.plan_entitlements": {
+      "module": "billing.core",
+      "family": "plans/prices/subscriptions/invoices/payment refs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:218)",
+      "named_in_family": false,
+      "family_inferred_from": "batch 130 (§6: A6 Billing, \"plan/price/entitlement/subscription\"), docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:247-283",
+      "erd_classes": [
+        "PII-2",
+        "FIN-3"
+      ],
+      "class": null
+    },
+    "app.publish_intents": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "§5 classes publisher.meta CONTENT-2/PROVIDER-3 and names no table. 120_publisher.sql:291 records CONTENT-2 (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). authenticated holds SELECT on 13 columns today (measured)."
+    },
+    "app.publish_jobs": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "§5 classes publisher.meta CONTENT-2/PROVIDER-3 and names no table. 120_publisher.sql:504-505 records the table CONTENT-2/PROVIDER-3, :468 and :474 keep provider_request_key and the failure code (PROVIDER-3) outside the client SELECT, and :511 records an INTERNAL-3 job reference. authenticated holds SELECT on 9 columns today (measured)."
+    },
+    "app.publish_target_assets": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": false,
+      "family_inferred_from": "batch 120 (§6: A6 Publisher, \"intent/target/job/post\"), docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:247-283",
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "Not named by any §5 family; batch 120 created it, so publisher.meta (CONTENT-2/PROVIDER-3) is inferred from §6. 120_publisher.sql:454 records MEDIA-2 by reference (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). authenticated holds SELECT on 9 columns today (measured)."
+    },
+    "app.publish_targets": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "§5 classes publisher.meta CONTENT-2/PROVIDER-3 and names no table. 120_publisher.sql:391 records the table CONTENT-2/PROVIDER-3, and 120_publisher.sql:330 with 121_publisher_metrics.sql:268 put its PROVIDER-3 column failure_class INSIDE the client SELECT as §9.1's \"safe projection only\". authenticated holds SELECT on 14 columns today (measured)."
+    },
+    "app.published_posts": {
+      "module": "publisher.meta",
+      "family": "intents/targets/jobs/posts/metrics (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:213)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "PROVIDER-3"
+      ],
+      "class": null,
+      "finding": "§5 classes publisher.meta CONTENT-2/PROVIDER-3 and names no table. 120_publisher.sql:563 records the TABLE as PROVIDER-3, and 120_publisher.sql:529-565 withhold the external post ID hash from the client. authenticated holds SELECT on 8 columns today (measured): if the ERD owner adopts the migration's table class, the exposure rule fails today."
+    },
+    "app.quality_reviews": {
+      "module": "content.core",
+      "family": "ideas/items/versions/variants/quality/targets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:207)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2"
+      ],
+      "class": "CONTENT-2"
+    },
+    "app.quota_buckets": {
+      "module": "metering.core",
+      "family": "reservations/events/quota buckets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:217)",
+      "named_in_family": true,
+      "erd_classes": [
+        "FIN-3"
+      ],
+      "class": "FIN-3"
+    },
+    "app.research_evidence": {
+      "module": "research.core",
+      "family": "runs/sources/snapshots/evidence/suggestions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:206)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "COPYRIGHT-3"
+      ],
+      "class": null
+    },
+    "app.research_runs": {
+      "module": "research.core",
+      "family": "runs/sources/snapshots/evidence/suggestions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:206)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "COPYRIGHT-3"
+      ],
+      "class": null
+    },
+    "app.research_snapshots": {
+      "module": "research.core",
+      "family": "runs/sources/snapshots/evidence/suggestions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:206)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "COPYRIGHT-3"
+      ],
+      "class": null
+    },
+    "app.research_sources": {
+      "module": "research.core",
+      "family": "runs/sources/snapshots/evidence/suggestions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:206)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "COPYRIGHT-3"
+      ],
+      "class": null
+    },
+    "app.research_suggestions": {
+      "module": "research.core",
+      "family": "runs/sources/snapshots/evidence/suggestions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:206)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "COPYRIGHT-3"
+      ],
+      "class": null
+    },
+    "app.security_events": {
+      "module": "audit.core",
+      "family": "audit logs/security events (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:219)",
+      "named_in_family": true,
+      "erd_classes": [
+        "AUTH-3",
+        "SECURITY-4"
+      ],
+      "class": null
+    },
+    "app.social_accounts": {
+      "module": "connector.meta",
+      "family": "connections/accounts/bindings (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:211)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTEGRATION-2",
+        "SECRET-4"
+      ],
+      "class": null,
+      "finding": "§5 classes connector.meta's connections/accounts/bindings INTEGRATION-2/SECRET-4 and names no table. 110_meta_connector.sql:508 records INTEGRATION-2 (the migration's reading, which would lift the table OUT of a refused class: left to the ERD owner). No client privilege today (measured)."
+    },
+    "app.usage_events": {
+      "module": "metering.core",
+      "family": "reservations/events/quota buckets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:217)",
+      "named_in_family": true,
+      "erd_classes": [
+        "FIN-3"
+      ],
+      "class": "FIN-3"
+    },
+    "app.usage_reservations": {
+      "module": "metering.core",
+      "family": "reservations/events/quota buckets (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:217)",
+      "named_in_family": true,
+      "erd_classes": [
+        "FIN-3"
+      ],
+      "class": "FIN-3"
+    },
+    "app.user_profiles": {
+      "module": "identity.core",
+      "family": "`user_profiles` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:198)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2"
+      ],
+      "class": "PII-2"
+    },
+    "app.workspace_invitations": {
+      "module": "identity.core",
+      "family": "`workspace_invitations` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:201)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.workspace_member_scopes": {
+      "module": "identity.core",
+      "family": "`workspace_members`, `workspace_member_scopes` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:200)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.workspace_members": {
+      "module": "identity.core",
+      "family": "`workspace_members`, `workspace_member_scopes` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:200)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "AUTH-3"
+      ],
+      "class": null
+    },
+    "app.workspace_settings": {
+      "module": "identity.core",
+      "family": "`workspaces`, `workspace_settings` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:199)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "app.workspaces": {
+      "module": "identity.core",
+      "family": "`workspaces`, `workspace_settings` (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:199)",
+      "named_in_family": true,
+      "erd_classes": [
+        "TENANT-1"
+      ],
+      "class": "TENANT-1"
+    },
+    "private.ai_credential_references": {
+      "module": "ai.gateway",
+      "family": "model registry/policies/credential refs/generation runs (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:216)",
+      "named_in_family": true,
+      "erd_classes": [
+        "CONTENT-2",
+        "SECRET-4"
+      ],
+      "class": "SECRET-4",
+      "resolved_by": "§9.1 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:454) lists \"API key\" as a SECRET-4 example; §9.2 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:469) describes the secret table as holding only credential_reference, provider, a fingerprint, status, timestamps and an audit reference, which is this table's shape"
+    },
+    "private.meta_credential_references": {
+      "module": "connector.meta",
+      "family": "connections/accounts/bindings (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:211)",
+      "named_in_family": true,
+      "erd_classes": [
+        "INTEGRATION-2",
+        "SECRET-4"
+      ],
+      "class": "SECRET-4",
+      "resolved_by": "§9.1 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:454) lists \"OAuth token\" as a SECRET-4 example; §9.2 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:469) describes the secret table as holding only credential_reference, provider, a fingerprint, status, timestamps and an audit reference, which is this table's shape"
+    },
+    "private.meta_webhook_inbox": {
+      "module": "connector.meta",
+      "family": "raw webhook inbox (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:212)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PROVIDER-3",
+        "SECRET-4"
+      ],
+      "class": null
+    },
+    "private.push_subscription_references": {
+      "module": "notification.core",
+      "family": "notifications/preferences/push subscriptions (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:215)",
+      "named_in_family": true,
+      "erd_classes": [
+        "PII-2",
+        "SECRET-4"
+      ],
+      "class": "SECRET-4",
+      "resolved_by": "§9.1 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:454) lists \"push token\" as a SECRET-4 example; §9.2 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:469) describes the secret table as holding only credential_reference, provider, a fingerprint, status, timestamps and an audit reference, which is this table's shape"
+    }
+  }
+}

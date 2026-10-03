@@ -1,0 +1,228 @@
+{
+  "_what": "The closed list of every effective privilege every non-superuser, non-pg_* role holds on every table in schemas app and private (batch 170's assertion-only part, plan \"Batch 170 -- Can do now\" (a); read by PINNED_GRANT_PROBE_SQL in scripts/db/run.mjs).",
+  "_how_measured": "Generated from a live catalog read on the clean set (the shim, then every migration through 140, PostgreSQL 17.11) with has_table_privilege and has_column_privilege, then committed as reviewed data. A column privilege a table-level privilege already implies is not listed: the table-level row carries it. No privilege is held WITH GRANT OPTION, and none is ever pinned with one.",
+  "_shape": "tables: { \"<schema>.<table>\": { \"<role>\": { \"table\": [table-level privileges], \"SELECT\" | \"INSERT\" | \"UPDATE\" | \"REFERENCES\": [columns, in attnum order] } } }. A table no role holds anything on is an empty object, so the TABLE list is closed too. A batch that grants, revokes or adds a table changes this file in the same diff.",
+  "tables": {
+    "app.ai_model_policies": {
+      "app_worker": { "table": ["SELECT", "INSERT"], "UPDATE": ["ai_model_id", "updated_at", "updated_by"] }
+    },
+    "app.ai_models": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.approval_events": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "approval_request_id", "step", "action", "actor", "comment", "occurred_at", "request_id", "correlation_id", "idempotency_key"] }
+    },
+    "app.approval_policies": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "policy_key", "version", "enabled", "minimum_approvers", "required_role", "required_scope_type", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "page_context_profile_id", "policy_key", "version", "enabled", "minimum_approvers", "required_role", "required_scope_type", "created_by", "updated_by"], "UPDATE": ["enabled", "updated_at", "updated_by"] }
+    },
+    "app.approval_requests": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "content_version_id", "policy_version_id", "status", "requested_by", "decided_at", "decided_by", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "content_item_id", "content_version_id", "policy_version_id", "requested_by", "created_by", "updated_by"], "UPDATE": ["status", "decided_at", "decided_by", "updated_at", "updated_by"] }
+    },
+    "app.asset_rights": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "asset_id", "rights_type", "rights_status", "owner_name", "allowed_channels", "paid_ads_allowed", "ai_edit_allowed", "starts_at", "expires_at", "proof_asset_id", "proof_url", "note", "created_at", "updated_at", "created_by", "updated_by"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "asset_id", "rights_type", "rights_status", "allowed_channels", "paid_ads_allowed", "ai_edit_allowed", "starts_at", "expires_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "asset_id", "rights_type", "rights_status", "owner_name", "allowed_channels", "paid_ads_allowed", "ai_edit_allowed", "starts_at", "expires_at", "proof_asset_id", "proof_url", "note", "created_by", "updated_by"], "UPDATE": ["rights_type", "rights_status", "owner_name", "allowed_channels", "paid_ads_allowed", "ai_edit_allowed", "starts_at", "expires_at", "proof_asset_id", "proof_url", "note", "updated_at", "updated_by"] }
+    },
+    "app.asset_versions": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "asset_id", "version_no", "parent_version_id", "purpose", "platform", "storage_provider", "bucket", "object_key", "original_filename", "detected_mime", "byte_size", "width", "height", "duration_ms", "sha256", "status", "purged_at", "created_at", "updated_at", "created_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "asset_id", "version_no", "parent_version_id", "purpose", "platform", "storage_provider", "bucket", "object_key", "original_filename", "detected_mime", "byte_size", "width", "height", "duration_ms", "sha256", "status", "created_by"], "UPDATE": ["object_key", "status", "purged_at", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "asset_id", "version_no", "parent_version_id", "purpose", "platform", "storage_provider", "bucket", "object_key", "detected_mime", "byte_size", "width", "height", "duration_ms", "sha256", "status", "purged_at", "created_at", "updated_at", "created_by"] }
+    },
+    "app.assets": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "current_version_id", "deleted_at", "purge_after", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "created_by"], "UPDATE": ["current_version_id", "purge_after", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "current_version_id", "deleted_at", "purge_after", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "created_by", "updated_by"], "UPDATE": ["title", "deleted_at", "updated_at", "updated_by"] }
+    },
+    "app.audit_logs": {
+      "app_worker": { "table": ["SELECT", "INSERT"] }
+    },
+    "app.billing_invoices": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "billing_subscription_id", "provider", "livemode", "provider_invoice_hash", "currency", "amount_due", "issued_at", "due_at", "settled_at", "voided_at", "provider_revision", "last_projection_error_code", "created_at", "updated_at"], "INSERT": ["workspace_id", "billing_subscription_id", "provider", "livemode", "provider_invoice_hash", "currency", "amount_due", "issued_at", "due_at", "provider_revision"], "UPDATE": ["currency", "amount_due", "due_at", "settled_at", "voided_at", "provider_revision", "last_projection_error_code", "updated_at"] }
+    },
+    "app.billing_payments": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "billing_invoice_id", "provider", "livemode", "provider_payment_hash", "direction", "currency", "amount", "occurred_at", "succeeded_at", "failed_at", "failure_code", "created_at"], "INSERT": ["workspace_id", "billing_invoice_id", "provider", "livemode", "provider_payment_hash", "direction", "currency", "amount", "occurred_at", "succeeded_at", "failed_at", "failure_code"] }
+    },
+    "app.billing_plan_versions": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.billing_plans": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.billing_subscriptions": {
+      "app_worker": { "table": ["SELECT"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "billing_plan_version_id", "local_access_state", "current_period_start", "current_period_end", "grace_expires_at", "created_at", "updated_at"] }
+    },
+    "app.billing_webhook_receipts": {
+      "app_worker": { "SELECT": ["id", "provider", "livemode", "provider_event_hash", "payload_hash", "provider_event_type", "provider_created_at", "received_at", "correlation_workspace_id", "attempt_count", "next_attempt_at", "processed_at", "dead_lettered_at", "last_error_code", "created_at", "updated_at"], "INSERT": ["provider", "livemode", "provider_event_hash", "payload_hash", "provider_event_type", "provider_created_at", "correlation_workspace_id", "next_attempt_at"], "UPDATE": ["correlation_workspace_id", "attempt_count", "next_attempt_at", "processed_at", "dead_lettered_at", "last_error_code", "updated_at"] }
+    },
+    "app.business_profile_versions": {
+      "app_worker": { "table": ["SELECT", "INSERT"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "version_number", "name", "created_at", "created_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "version_number", "name", "created_by"] }
+    },
+    "app.business_profiles": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "name", "archived_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "name", "created_by", "updated_by"], "UPDATE": ["name", "archived_at", "updated_by"] }
+    },
+    "app.calendar_items": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "scheduled_local_date", "timezone", "display_status", "created_at", "updated_at", "created_by", "updated_by", "deleted_at"], "INSERT": ["workspace_id", "business_profile_id", "content_item_id", "scheduled_local_date", "timezone", "display_status", "created_by"], "UPDATE": ["scheduled_local_date", "timezone", "display_status", "updated_at", "updated_by", "deleted_at"] }
+    },
+    "app.consumer_ledger": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "consumer", "event_id", "consumed_at"], "INSERT": ["workspace_id", "consumer", "event_id"] }
+    },
+    "app.content_asset_links": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_version_id", "content_variant_id", "asset_id", "asset_version_id", "role", "sort_order", "platform", "created_at", "created_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "content_version_id", "content_variant_id", "asset_id", "asset_version_id", "role", "sort_order", "platform", "created_by"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_version_id", "content_variant_id", "asset_id", "asset_version_id", "role", "sort_order", "platform", "created_at", "created_by"] }
+    },
+    "app.content_ideas": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "research_suggestion_id", "goal", "topic", "brief", "status", "client_request_id", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "page_context_profile_id", "research_suggestion_id", "goal", "topic", "brief", "status", "client_request_id", "created_by", "updated_by"], "UPDATE": ["goal", "topic", "brief", "status", "updated_at", "updated_by"] }
+    },
+    "app.content_items": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "title", "content_type", "status", "current_version_id", "approval_state", "created_at", "updated_at", "created_by", "updated_by", "deleted_at"], "INSERT": ["workspace_id", "business_profile_id", "page_context_profile_id", "title", "content_type", "created_by", "updated_by"], "UPDATE": ["title", "updated_at", "updated_by", "deleted_at"] }
+    },
+    "app.content_schedules": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_target_id", "scheduled_for", "timezone_snapshot", "status", "publish_intent_id", "version", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "content_target_id", "scheduled_for", "timezone_snapshot", "created_by"], "UPDATE": ["scheduled_for", "timezone_snapshot", "status", "updated_at", "updated_by"] }
+    },
+    "app.content_targets": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "social_account_id", "content_variant_id", "status", "created_at", "updated_at", "created_by", "updated_by", "deleted_at"], "INSERT": ["workspace_id", "business_profile_id", "content_item_id", "social_account_id", "content_variant_id", "status", "created_by", "updated_by"], "UPDATE": ["status", "updated_at", "updated_by", "deleted_at"] }
+    },
+    "app.content_variants": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_version_id", "platform", "variant_type", "body", "metadata", "created_at", "created_by"] }
+    },
+    "app.content_versions": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "version_no", "body", "structured_content", "source", "parent_version_id", "generation_run_id", "brief_snapshot", "knowledge_snapshot_refs", "created_at", "created_by"] }
+    },
+    "app.industry_assignments": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "industry_pack_version_id", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "industry_pack_version_id", "created_by", "updated_by"], "UPDATE": ["industry_pack_version_id", "updated_by"] }
+    },
+    "app.industry_pack_versions": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.industry_packs": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.jobs": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "job_type", "job_version", "priority", "available_at", "attempt", "max_attempts", "timeout_seconds", "lease_owner", "lease_expires_at", "dedupe_key", "cancel_requested_at", "input_ref", "result_ref", "progress_percent", "progress_stage", "last_error_code", "created_at", "updated_at"], "INSERT": ["id", "workspace_id", "job_type", "job_version", "priority", "available_at", "attempt", "max_attempts", "timeout_seconds", "dedupe_key", "input_ref", "progress_percent", "progress_stage"], "UPDATE": ["job_type", "job_version", "priority", "available_at", "attempt", "max_attempts", "timeout_seconds", "lease_owner", "lease_expires_at", "cancel_requested_at", "input_ref", "result_ref", "progress_percent", "progress_stage", "last_error_code"] }
+    },
+    "app.knowledge_item_versions": {
+      "app_worker": { "table": ["SELECT", "INSERT"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "knowledge_item_id", "version_number", "name", "created_at", "created_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "knowledge_item_id", "version_number", "name", "created_by"] }
+    },
+    "app.knowledge_items": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "name", "archived_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "name", "created_by", "updated_by"], "UPDATE": ["name", "archived_at", "updated_by"] }
+    },
+    "app.meta_connections": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "display_name", "revoked_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "display_name", "created_by", "updated_by"], "UPDATE": ["display_name", "revoked_at", "updated_by"] }
+    },
+    "app.notification_preferences": {
+      "app_worker": { "SELECT": ["workspace_id", "user_id", "channel", "enabled", "created_at", "updated_at"] }
+    },
+    "app.notifications": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "user_id", "channel", "message_key", "dedupe_key", "deep_link_target_ref", "deep_link_requires_permission", "delivery_state", "delivery_failure_class", "read_at", "created_at", "updated_at"], "INSERT": ["workspace_id", "user_id", "channel", "message_key", "dedupe_key", "deep_link_target_ref", "deep_link_requires_permission", "delivery_state"], "UPDATE": ["delivery_state", "delivery_failure_class"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "user_id", "channel", "message_key", "deep_link_target_ref", "deep_link_requires_permission", "read_at", "created_at", "updated_at"], "UPDATE": ["read_at"] }
+    },
+    "app.outbox_events": {
+      "app_worker": { "SELECT": ["id", "event_id", "event_type", "event_version", "occurred_at", "producer_module_key", "producer_implementation_version", "workspace_id", "subject_type", "subject_id", "subject_version", "correlation_id", "causation_id", "idempotency_key", "schema_ref", "dispatched_at", "created_at", "updated_at"], "INSERT": ["event_id", "event_type", "event_version", "occurred_at", "producer_module_key", "producer_implementation_version", "workspace_id", "subject_type", "subject_id", "subject_version", "correlation_id", "causation_id", "idempotency_key", "schema_ref"], "UPDATE": ["dispatched_at"] }
+    },
+    "app.page_context_profile_versions": {
+      "app_worker": { "table": ["SELECT", "INSERT"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "version_number", "name", "created_at", "created_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "version_number", "name", "created_by"] }
+    },
+    "app.page_context_profiles": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "name", "archived_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "name", "created_by", "updated_by"], "UPDATE": ["name", "archived_at", "updated_by"] }
+    },
+    "app.performance_snapshots": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "published_post_id", "metric_time", "metrics", "metrics_schema_version", "collected_at"], "INSERT": ["workspace_id", "business_profile_id", "published_post_id", "metric_time", "metrics", "metrics_schema_version"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "published_post_id", "metric_time", "metrics", "metrics_schema_version", "collected_at"] }
+    },
+    "app.plan_entitlements": {
+      "app_worker": { "table": ["SELECT"] }
+    },
+    "app.publish_intents": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "content_version_id", "requested_by", "request_kind", "idempotency_key", "cancelled_at", "created_at", "updated_at", "created_by", "updated_by"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_item_id", "content_version_id", "requested_by", "request_kind", "idempotency_key", "cancelled_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "content_item_id", "content_version_id", "requested_by", "request_kind", "idempotency_key", "created_by", "updated_by"], "UPDATE": ["cancelled_at", "updated_at", "updated_by"] }
+    },
+    "app.publish_jobs": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "kernel_job_id", "provider_request_key", "status", "attempt_count", "last_attempt_at", "last_error_code", "created_at", "updated_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "kernel_job_id", "provider_request_key", "status"], "UPDATE": ["status", "attempt_count", "last_attempt_at", "last_error_code", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "status", "attempt_count", "last_attempt_at", "created_at", "updated_at"] }
+    },
+    "app.publish_target_assets": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "asset_id", "asset_version_id", "sort_order", "role", "created_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "asset_id", "asset_version_id", "sort_order", "role"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "asset_id", "asset_version_id", "sort_order", "role", "created_at"] }
+    },
+    "app.publish_targets": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_intent_id", "content_target_id", "social_account_id", "content_variant_id", "status", "dispatched_at", "completed_at", "failed_at", "failure_class", "created_at", "updated_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "publish_intent_id", "content_target_id", "social_account_id", "content_variant_id", "status"], "UPDATE": ["status", "dispatched_at", "completed_at", "failed_at", "failure_class", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_intent_id", "content_target_id", "social_account_id", "content_variant_id", "status", "dispatched_at", "completed_at", "failed_at", "failure_class", "created_at", "updated_at"] }
+    },
+    "app.published_posts": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "social_account_id", "platform", "external_post_hash", "published_at", "created_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "social_account_id", "platform", "external_post_hash", "published_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "publish_target_id", "social_account_id", "platform", "published_at", "created_at"] }
+    },
+    "app.quality_reviews": {
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "content_version_id", "rule_set_version", "status", "score_dimensions", "findings", "reviewer_type", "generation_run_id", "created_at"] }
+    },
+    "app.quota_buckets": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "dimension", "quantity_unit", "period_start", "period_end", "consumed_amount", "reserved_amount", "computed_through", "created_at", "updated_at"], "INSERT": ["workspace_id", "business_profile_id", "dimension", "quantity_unit", "period_start", "period_end", "consumed_amount", "reserved_amount", "computed_through"], "UPDATE": ["consumed_amount", "reserved_amount", "computed_through", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "dimension", "quantity_unit", "period_start", "period_end", "consumed_amount", "reserved_amount", "created_at", "updated_at"] }
+    },
+    "app.research_evidence": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_source_id", "snapshot_content_hash", "created_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "research_source_id", "snapshot_content_hash"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_source_id", "snapshot_content_hash", "created_at"] }
+    },
+    "app.research_runs": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "brief", "started_at", "completed_at", "cancel_requested_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "brief", "created_by"], "UPDATE": ["started_at", "completed_at", "updated_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "brief", "started_at", "completed_at", "cancel_requested_at", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["cancel_requested_at", "updated_by"] }
+    },
+    "app.research_snapshots": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_source_id", "object_ref", "content_hash", "captured_at", "retention_until", "purged_at", "created_at", "updated_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "research_source_id", "object_ref", "content_hash", "captured_at", "retention_until"], "UPDATE": ["object_ref", "purged_at", "updated_at"] }
+    },
+    "app.research_sources": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_run_id", "source_uri", "cited_at", "created_at"], "INSERT": ["id", "workspace_id", "business_profile_id", "research_run_id", "source_uri", "cited_at"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_run_id", "source_uri", "cited_at", "created_at"] }
+    },
+    "app.research_suggestions": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_run_id", "title", "saved_at", "dismissed_at", "used_at", "created_at", "updated_at", "updated_by"], "INSERT": ["id", "workspace_id", "business_profile_id", "research_run_id", "title"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "research_run_id", "title", "saved_at", "dismissed_at", "used_at", "created_at", "updated_at", "updated_by"], "UPDATE": ["saved_at", "dismissed_at", "used_at", "updated_by"] }
+    },
+    "app.security_events": {
+      "app_worker": { "table": ["SELECT", "INSERT"] }
+    },
+    "app.social_accounts": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "meta_connection_id", "account_kind", "display_name", "external_account_hash", "created_at", "updated_at"], "INSERT": ["id", "workspace_id", "meta_connection_id", "account_kind", "display_name", "external_account_hash"], "UPDATE": ["display_name"] }
+    },
+    "app.usage_events": {
+      "app_worker": { "SELECT": ["id", "usage_id", "occurred_at", "dimension", "quantity_amount", "quantity_unit", "workspace_id", "business_profile_id", "job_id", "provider_key", "cost_amount", "cost_currency", "cost_basis", "supersedes_usage_id", "dedupe_key", "created_at"], "INSERT": ["usage_id", "occurred_at", "dimension", "quantity_amount", "quantity_unit", "workspace_id", "business_profile_id", "job_id", "provider_key", "cost_amount", "cost_currency", "cost_basis", "supersedes_usage_id", "dedupe_key"] }
+    },
+    "app.usage_reservations": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "business_profile_id", "dimension", "quantity_amount", "quantity_unit", "job_id", "reserved_at", "expires_at", "released_at", "consumed_usage_id", "created_at", "updated_at"], "INSERT": ["workspace_id", "business_profile_id", "dimension", "quantity_amount", "quantity_unit", "job_id", "expires_at"], "UPDATE": ["released_at", "consumed_usage_id", "updated_at"] }
+    },
+    "app.user_profiles": {
+      "app_worker": { "table": ["SELECT"] },
+      "authenticated": { "SELECT": ["user_id", "display_name", "locale", "timezone", "created_at", "updated_at", "deleted_at"], "UPDATE": ["display_name", "locale", "timezone"] }
+    },
+    "app.workspace_invitations": {
+      "app_worker": { "SELECT": ["id", "workspace_id", "role", "invited_email", "expires_at", "accepted_at", "revoked_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "role", "token_hash", "invited_email", "expires_at", "created_by", "updated_by"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "role", "invited_email", "expires_at", "accepted_at", "revoked_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "role", "token_hash", "invited_email", "expires_at", "created_by", "updated_by"], "UPDATE": ["role", "invited_email", "expires_at", "accepted_at", "revoked_at", "updated_by"] }
+    },
+    "app.workspace_member_scopes": {
+      "app_worker": { "table": ["SELECT", "INSERT"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "user_id", "scope_type", "business_profile_id", "page_context_profile_id", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "user_id", "scope_type", "business_profile_id", "page_context_profile_id", "created_by", "updated_by"] }
+    },
+    "app.workspace_members": {
+      "app_authz": { "SELECT": ["workspace_id", "user_id", "role", "status"] },
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "workspace_id", "user_id", "role", "status", "created_at", "updated_at", "created_by", "updated_by"] }
+    },
+    "app.workspace_settings": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["workspace_id", "default_locale", "default_timezone", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["default_locale", "default_timezone", "updated_by"] }
+    },
+    "app.workspaces": {
+      "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
+      "authenticated": { "SELECT": ["id", "name", "lifecycle_state", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["name", "lifecycle_state", "updated_by"] }
+    },
+    "private.ai_credential_references": {},
+    "private.meta_credential_references": {},
+    "private.meta_webhook_inbox": {},
+    "private.push_subscription_references": {}
+  }
+}
