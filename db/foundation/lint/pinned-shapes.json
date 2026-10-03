@@ -1,10 +1,10 @@
 {
-  "_what": "The exact shape of the tables batch 150 will rebuild or whose keys the weak-assertion survey names (evidence/WP-0A-DB-00/weak-assertion-survey-2026-09-27.md §6 items 5 and 6): row level security enabled AND forced, every constraint by pg_get_constraintdef, every index by pg_get_indexdef, every policy by its permissive flag, command, roles and the deparse of both halves. The pinned shape probe in scripts/db/run.mjs reads each set EXACTLY, both ways.",
+  "_what": "The exact shape of the tables batch 150 will rebuild or whose keys the weak-assertion survey names (evidence/WP-0A-DB-00/weak-assertion-survey-2026-09-27.md §6 items 5 and 6): row level security enabled AND forced, every constraint by pg_get_constraintdef, every index by pg_get_indexdef, every policy by its permissive flag, command, roles and the deparse of both halves, and (since batch 150-prereq's review round, A1 S4 and C0-8) every non-internal trigger by pg_get_triggerdef and enabled, none today. The pinned shape probe in scripts/db/run.mjs reads each set EXACTLY, both ways. NOT pinned: the columns (type, NOT NULL, default, identity; F7, open_blockers[194] (4)).",
   "_measured": "Read from the catalog on a clean migrate-clean at 1319042 (PostgreSQL 17.11, search_path pg_catalog as every probe job runs), by the batch 150 prerequisite draft. Not hand-written.",
   "_why_these_tables": {
     "app.performance_snapshots": "batch 121; survey item 5: its unique keys, index and CHECKs were held by NAME, its three metric CHECKs by a quoted-token set, its policy by LIKE, FORCE not at all (Q0 D30). Blocker 185 / Q150-a: the table batch 150 would rebuild.",
     "app.published_posts": "batch 121 added published_posts_scope_unique, the key performance_snapshots_post_scope_fk references; a rebuild of either side moves both.",
-    "app.usage_events": "survey item 6: usage_events_dedupe_key_unique had no probe at all; the 1M usage rows of the WS:905 fixture land here."
+    "app.usage_events": "survey item 6: usage_events_dedupe_key_unique had no probe at all; the 1M usage rows of the WS:911 fixture land here."
   },
   "tables": {
     "app.performance_snapshots": {
@@ -75,7 +75,8 @@
           "using": "app.is_active_member(workspace_id)",
           "check": null
         }
-      }
+      },
+      "triggers": {}
     },
     "app.published_posts": {
       "rls": {
@@ -140,7 +141,8 @@
           "using": "app.is_active_member(workspace_id)",
           "check": null
         }
-      }
+      },
+      "triggers": {}
     },
     "app.usage_events": {
       "rls": {
@@ -214,7 +216,8 @@
         "usage_events_usage_id_unique": "CREATE UNIQUE INDEX usage_events_usage_id_unique ON app.usage_events USING btree (usage_id)",
         "usage_events_workspace_keyset_idx": "CREATE INDEX usage_events_workspace_keyset_idx ON app.usage_events USING btree (workspace_id, created_at DESC, id DESC)"
       },
-      "policies": {}
+      "policies": {},
+      "triggers": {}
     }
   }
 }

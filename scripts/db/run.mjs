@@ -1483,7 +1483,10 @@ end \$\$;
 // is the file that will rebuild the table. Here each table in db/foundation/lint/pinned-shapes.json is read
 // whole and both ways: rule 1, row level security enabled AND forced; rule 2, every constraint by type,
 // pg_get_constraintdef and validation; rule 3, every index by pg_get_indexdef and validity; rule 4, every
-// policy by permissive flag, command, roles and the deparse of both halves. Three tables: performance_snapshots
+// policy by permissive flag, command, roles and the deparse of both halves; rule 5 (batch 150-prereq's review
+// round, A1 S4 and C0-8: a BEFORE INSERT trigger on performance_snapshots passed every layer), every
+// non-internal trigger by pg_get_triggerdef and enabled ('O'), none today. "Whole" stops there: no column is
+// pinned (type, NOT NULL, default, identity; F7, open_blockers[194] (4)). Three tables: performance_snapshots
 // (121), published_posts (121 added the scope key its foreign key references) and usage_events (survey item 6:
 // usage_events_dedupe_key_unique had no probe). Measured on the clean set at 1319042: 32 constraints, 18
 // indexes and 4 policies. A batch that rebuilds one of them changes the file in the same diff, which is what
@@ -1545,6 +1548,15 @@ begin
   if offending is not null then
     raise exception 'policy(ies) on a pinned shape table not exactly its pinned text: %', offending;
   end if;
+  with found as (
+    select format('%s.%s', tg.tgrelid::regclass, tg.tgname) as k, pg_catalog.pg_get_triggerdef(tg.oid) as def, tg.tgenabled = 'O' as ok
+      from pg_catalog.pg_trigger tg where not tg.tgisinternal and tg.tgrelid = any (select pg_catalog.to_regclass(t) from unnest(${shapeTables}) t)
+  ), pinned as (
+    select k, def, true as ok from (values ${shapeRows('triggers', (t, k, v) => `'${t}.${k}', ${sqlText(v)}`) || '(null::text, null::text)'}) as pin(k, def) where k is not null
+  )${shapeDiff('found', 'pinned', ['def', 'ok'])}
+  if offending is not null then
+    raise exception 'trigger(s) on a pinned shape table not exactly its pinned definition: %', offending;
+  end if;
 end \$\$;
 `;
 
@@ -1592,8 +1604,9 @@ end \$\$;
 // the permissive policy set per table"). Batches 126-128 pinned the 33 scope narrowings by exact deparse
 // (PINNED_POLICIES), the closures by suffix (the five lists) and the permissive policies of every table a
 // client WRITES (PERMISSIVE_POLICIES). Measured on the clean set at 1319042, 209 policies in app, and 44 of
-// them were read by no migrate-clean rule: the permissive SELECT policies of the 13 tables a client only
-// reads (a looser sibling there widens what every member sees), the 26 service-path closures (held by
+// them were read by no migrate-clean rule: the 17 permissive SELECT policies on the 16 tables that have no row
+// in PERMISSIVE_POLICIES (workspace_members carries two; the draft's "13 tables a client only reads" was a
+// miscount, C0-5 on batch 150-prereq; a looser sibling there widens what every member sees), the 26 service-path closures (held by
 // rls-smoke's SERVICE_PATH_CLOSURE_ON text on named tables only) and app_authz's own policy (held by the
 // static authz lint on the committed snapshot). They are pinned in db/foundation/lint/policy-set.json. Rule
 // 1: every policy on any table in any schema but the system ones is named by one of the lists, so a new
@@ -1643,11 +1656,15 @@ end \$\$;
 // of a table in app or private is an RLS predicate column when a policy on that table depends on it
 // (pg_depend) AND its USING deparse names it unqualified or qualified by the table's own name (a column only
 // a WITH CHECK half reads filters no row); it is covered when it sits in the leading run of a valid whole
-// index on the table whose key columns are all such columns. An uncovered one is named unless exempt by
+// BTREE index on the table whose key columns are all such columns. An uncovered one is named unless exempt by
 // schema.table.column, with its reason, in db/foundation/lint/index-coverage.json (the FK_SUPPORT_EXEMPTIONS
-// pattern). Rule 2: every declared lookup -- the named WS:905-910 queries today's indexes serve and every
-// index the migrations named *_keyset_idx -- is served by a valid index whose key columns BEGIN with its
-// columns in order and direction, with exactly its predicate. Rule 3: every exemption names a column rule 1
+// pattern). Rule 2: every declared lookup -- the named WS:909-917 queries today's indexes serve and every
+// index the migrations named *_keyset_idx -- is served by a valid BTREE index whose key columns BEGIN with its
+// columns in order, direction and NULLS order (a column token carries ' NULLS FIRST' / ' NULLS LAST' only
+// where it differs from its direction's default), with exactly its predicate. Both rules read the access
+// method since batch 150-prereq's review round (C0-1, Q0 Q-1, measured: a HASH worker-claim index, a BRIN
+// workspace-switch index and a DESC NULLS LAST audit keyset passed every layer while the declared query lost
+// its index; 0 non-btree indexes exist in app or private, so nothing that passed is refused). Rule 3: every exemption names a column rule 1
 // reads and finds uncovered, so an exemption outlives no reason. Measured on the clean set at 1319042: 112
 // predicate columns, 108 covered, 4 exempt (state filters); 28 lookups, all served; the content first page
 // has NO serving index and is a finding in the file, not a lookup (Q150-b).
@@ -1673,7 +1690,8 @@ const rlsPredicateColumns = `with pol as (
              where k.ord <= coalesce((select min(v.ord) - 1 from unnest((i.indkey::int2[])[0:i.indnkeyatts - 1]) with ordinality as v(k, ord)
                                        where not (v.k = any (s.cols))), i.indnkeyatts)) as run
       from pg_catalog.pg_index i join s on s.relid = i.indrelid
-     where i.indisvalid and i.indpred is null
+      join pg_catalog.pg_class ic on ic.oid = i.indexrelid join pg_catalog.pg_am am on am.oid = ic.relam
+     where i.indisvalid and i.indpred is null and am.amname = 'btree'
   ), uncovered as (
     select format('%s.%s', u.relid::pg_catalog.regclass, u.attname) as k from used u
      where not exists (select 1 from runs r where r.relid = u.relid and u.attnum = any (r.run))
@@ -1690,11 +1708,13 @@ begin
   end if;
   with idx as (
     select format('%s.%s', n.nspname, c.relname) as t, pg_catalog.pg_get_expr(i.indpred, i.indrelid) as pred,
-           (select array_agg(case when k.k = 0 then '(expression)' else a.attname::text || case when (i.indoption::int2[])[k.ord - 1] & 1 = 1 then ' DESC' else '' end end order by k.ord)
+           (select array_agg(case when k.k = 0 then '(expression)' else a.attname::text || case when (i.indoption::int2[])[k.ord - 1] & 1 = 1 then ' DESC' else '' end
+                                     || case (i.indoption::int2[])[k.ord - 1] & 3 when 2 then ' NULLS FIRST' when 1 then ' NULLS LAST' else '' end end order by k.ord)
               from unnest((i.indkey::int2[])[0:i.indnkeyatts - 1]) with ordinality as k(k, ord)
               left join pg_catalog.pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.k) as cols
       from pg_catalog.pg_index i join pg_catalog.pg_class c on c.oid = i.indrelid join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-     where i.indisvalid and n.nspname in ('app', 'private')
+      join pg_catalog.pg_class ic on ic.oid = i.indexrelid join pg_catalog.pg_am am on am.oid = ic.relam
+     where i.indisvalid and am.amname = 'btree' and n.nspname in ('app', 'private')
   )
   select string_agg(format('%s on %s (%s)', l.name, l.t, pg_catalog.array_to_string(l.cols, ', ')), '; ' order by l.name) into offending
     from (values ${Object.entries(INDEX_COVERAGE.lookups).map(([name, l]) => `(${sqlText(name)}, '${l.table}', array[${l.columns.map((c) => `'${c}'`).join(', ')}]::text[], ${sqlText(l.where)})`).join(',\n      ')}) as l(name, t, cols, pred)
@@ -2107,7 +2127,7 @@ export const CATALOG_RULE_PROBES = [
     ] },
   // The batch 150 prerequisite draft (survey §6 item 5): the tables batch 150 will rebuild, whole.
   { label: 'pinned shape probe', sql: PINNED_SHAPE_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_SHAPES).length} tables in ${PINNED_SHAPES_FILE} (${Object.keys(PINNED_SHAPES).join(', ')}) have row level security enabled and forced, and exactly their ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.constraints).length, 0)} constraints, ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.indexes).length, 0)} indexes and ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.policies).length, 0)} policies in their pinned text`,
+    claim: `the ${Object.keys(PINNED_SHAPES).length} tables in ${PINNED_SHAPES_FILE} (${Object.keys(PINNED_SHAPES).join(', ')}) have row level security enabled and forced, and exactly their ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.constraints).length, 0)} constraints, ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.indexes).length, 0)} indexes, ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.policies).length, 0)} policies and ${Object.values(PINNED_SHAPES).reduce((n, s) => n + Object.keys(s.triggers).length, 0)} non-internal triggers in their pinned text (no column is pinned)`,
     selfTests: [
       // Q0 D30: FORCE was asserted nowhere.
       { drift: 'alter table app.performance_snapshots no force row level security;',
@@ -2124,11 +2144,18 @@ export const CATALOG_RULE_PROBES = [
         raises: 'index(es) on a pinned shape table not exactly its pinned definition',
         names: ['unlisted or changed: app.performance_snapshots.performance_snapshots_scope_time_idx', 'missing or changed: app.performance_snapshots.performance_snapshots_scope_time_idx',
           'unlisted or changed: app.usage_events.probe_shape_idx'] },
-      // The read policy LIKE '%is_active_member%' held, gutted; and a looser sibling.
-      { drift: "alter policy performance_snapshots_select_active_member on app.performance_snapshots using (app.is_active_member(workspace_id) or true); create policy probe_shape_read on app.published_posts for select to authenticated using (true);",
+      // The read policy LIKE '%is_active_member%' held, gutted; and a looser sibling; and (batch 150-prereq's
+      // review round, Q0 Q-3: mutant C2, roles not compared, survived its own probe) a narrowing's roles
+      // widened to anon with its text unchanged.
+      { drift: "alter policy performance_snapshots_select_active_member on app.performance_snapshots using (app.is_active_member(workspace_id) or true); create policy probe_shape_read on app.published_posts for select to authenticated using (true); alter policy published_posts_scope_narrowing on app.published_posts to authenticated, anon;",
         raises: 'policy(ies) on a pinned shape table not exactly its pinned text',
         names: ['unlisted or changed: app.performance_snapshots.performance_snapshots_select_active_member', 'missing or changed: app.performance_snapshots.performance_snapshots_select_active_member',
-          'unlisted or changed: app.published_posts.probe_shape_read'] },
+          'unlisted or changed: app.published_posts.probe_shape_read',
+          'unlisted or changed: app.published_posts.published_posts_scope_narrowing', 'missing or changed: app.published_posts.published_posts_scope_narrowing'] },
+      // Rule 5 (A1 S4, C0-8): a BEFORE INSERT trigger on the table batch 150 rebuilds, which passed every layer.
+      { drift: 'create function app.probe_shape_trg() returns trigger language plpgsql as $f$ begin return new; end $f$; create trigger probe_shape_trg before insert on app.performance_snapshots for each row execute function app.probe_shape_trg();',
+        raises: 'trigger(s) on a pinned shape table not exactly its pinned definition',
+        names: ['unlisted or changed: app.performance_snapshots.probe_shape_trg'] },
     ] },
   // The batch 150 prerequisite draft (survey §6 item 6): the vocabularies, by fixed text.
   { label: 'vocabulary check probe', sql: VOCABULARY_CHECK_PROBE_SQL,
@@ -2151,23 +2178,34 @@ export const CATALOG_RULE_PROBES = [
       { drift: 'create policy probe_loose_read on app.content_versions for select to authenticated using (true); create table private.probe_policy_t (id integer); alter table private.probe_policy_t enable row level security; create policy probe_private_policy on private.probe_policy_t using (true);',
         raises: 'policy(ies) no pinned list names',
         names: ['app.content_versions.probe_loose_read', 'private.probe_policy_t.probe_private_policy'] },
-      // A read-only table's read predicate gutted, and a service-path closure opened (held by rls-smoke only).
-      { drift: "alter policy content_versions_select_active_member on app.content_versions using (true); alter policy content_items_service_path_closed on app.content_items using (current_user = 'authenticated' or true);",
+      // A read-only table's read predicate gutted, and a service-path closure opened (held by rls-smoke only);
+      // and (batch 150-prereq's review round, Q0 Q-3: mutant C6, roles not compared, survived its own probe)
+      // a read policy's roles widened to anon with its text unchanged.
+      { drift: "alter policy content_versions_select_active_member on app.content_versions using (true); alter policy content_items_service_path_closed on app.content_items using (current_user = 'authenticated' or true); alter policy approval_events_select_active_member on app.approval_events to authenticated, anon;",
         raises: 'policy-set row(s) missing or not in their pinned text',
-        names: ['app.content_versions.content_versions_select_active_member', 'app.content_items.content_items_service_path_closed'] },
+        names: ['app.content_versions.content_versions_select_active_member', 'app.content_items.content_items_service_path_closed', 'app.approval_events.approval_events_select_active_member'] },
     ] },
   // The batch 150 prerequisite draft (plan (b); ERD §3.3): RLS predicate and keyset cursor columns indexed.
   { label: 'index coverage probe', sql: INDEX_COVERAGE_PROBE_SQL,
-    claim: `every RLS predicate column in app and private sits in the leading run of an index of such columns, ${Object.keys(INDEX_COVERAGE.rls_predicate_exemptions).length} exempt by schema.table.column; the ${Object.keys(INDEX_COVERAGE.lookups).length} declared lookups and keyset cursors in ${INDEX_COVERAGE_FILE} are each served by an index that begins with their columns; and each exemption names an uncovered column`,
+    claim: `every RLS predicate column in app and private sits in the leading run of a valid whole btree index of such columns, ${Object.keys(INDEX_COVERAGE.rls_predicate_exemptions).length} exempt by schema.table.column; the ${Object.keys(INDEX_COVERAGE.lookups).length} declared lookups and keyset cursors in ${INDEX_COVERAGE_FILE} are each served by a valid btree index that begins with their columns in order, direction and NULLS order; and each exemption names an uncovered column`,
     selfTests: [
       // A new table whose read policy filters an unindexed column, and an existing policy narrowed on one.
-      { drift: "create table app.probe_ic_t (id uuid primary key, workspace_id uuid); alter table app.probe_ic_t enable row level security; create policy probe_ic_read on app.probe_ic_t for select to authenticated using (app.is_active_member(workspace_id)); alter policy content_items_select_active_member on app.content_items using (app.is_active_member(workspace_id) and title <> '');",
+      // Batch 150-prereq's review round: the new table's predicate column also sits in an index BEHIND a
+      // column no policy reads (Q0 Q-2, mutant C8: "leading run" read as "any key column" survived); a second
+      // new table's policy names its column table-qualified inside an EXISTS (mutant C9: the qualified
+      // alternative dropped survived); and the workspace-switch index rebuilt as BRIN under its own name (C0-1,
+      // Q0 Q-1: rule 1 counted any access method).
+      { drift: "create table app.probe_ic_t (id uuid primary key, workspace_id uuid); alter table app.probe_ic_t enable row level security; create policy probe_ic_read on app.probe_ic_t for select to authenticated using (app.is_active_member(workspace_id)); create index probe_ic_t_behind_idx on app.probe_ic_t (id, workspace_id); alter policy content_items_select_active_member on app.content_items using (app.is_active_member(workspace_id) and title <> ''); create table app.probe_ic_q (id uuid primary key, workspace_id uuid); alter table app.probe_ic_q enable row level security; create policy probe_ic_q_read on app.probe_ic_q for select to authenticated using (exists (select 1 from app.workspace_members m where m.workspace_id = probe_ic_q.workspace_id and m.user_id = app.jwt_subject())); drop index app.workspace_members_user_id_status_idx; create index workspace_members_user_id_status_idx on app.workspace_members using brin (user_id, status);",
         raises: 'RLS predicate column(s) with no supporting index and no named exemption',
-        names: ['app.probe_ic_t.workspace_id', 'app.content_items.title'] },
-      // The worker claim's index dropped, and the library keyset rebuilt ascending under its own name.
-      { drift: 'drop index app.jobs_available_at_idx; drop index app.assets_library_keyset_idx; create index assets_library_keyset_idx on app.assets (workspace_id, business_profile_id, created_at, id) where deleted_at is null;',
+        names: ['app.probe_ic_t.workspace_id', 'app.content_items.title', 'app.probe_ic_q.workspace_id', 'app.workspace_members.status'] },
+      // The worker claim's index dropped, and the library keyset rebuilt ascending under its own name. Batch
+      // 150-prereq's review round (C0-1, Q0 Q-1, measured: each passed every layer while the query lost its
+      // index): the worker claim's index rebuilt as HASH rather than dropped, and the audit keyset rebuilt
+      // DESC NULLS LAST under its own name.
+      { drift: 'drop index app.jobs_available_at_idx; create index jobs_available_at_idx on app.jobs using hash (available_at); drop index app.assets_library_keyset_idx; create index assets_library_keyset_idx on app.assets (workspace_id, business_profile_id, created_at, id) where deleted_at is null; drop index app.audit_logs_workspace_keyset_idx; create index audit_logs_workspace_keyset_idx on app.audit_logs (workspace_id, occurred_at desc nulls last, id desc nulls last);',
         raises: 'declared lookup(s) or keyset cursor(s) no valid index begins with',
-        names: ['worker claim on app.jobs (available_at)', 'library first page on app.assets (workspace_id, business_profile_id, created_at DESC, id DESC)'] },
+        names: ['worker claim on app.jobs (available_at)', 'library first page on app.assets (workspace_id, business_profile_id, created_at DESC, id DESC)',
+          'audit_logs keyset (workspace_id, occurred_at DESC, id DESC) on app.audit_logs (workspace_id, occurred_at DESC, id DESC)'] },
       // An exempt column now covered: the exemption outlives its reason.
       { drift: 'create index probe_ic_status_idx on app.approval_requests (workspace_id, status);',
         raises: 'index coverage exemption(s) naming no uncovered RLS predicate column',
@@ -3553,16 +3591,17 @@ function refuseLive(target) {
 // The live half, wired. Each target does its job or fails saying why; none has a mode that
 // reports a pass without a database, which is what `refuseLive` exists to enforce.
 async function runLive(target) {
-  const { script } = await import('./psql-driver.mjs');
+  const { script, testHostRefusal } = await import('./psql-driver.mjs');
 
   if (target === 'reset-test') {
     // §12.5: reset must refuse any host or database outside an explicit test allowlist. The
     // allowlist is deliberately narrow — a local container or the CI service — because this target
-    // DROPS things, and the cost of a wrong match is someone's data.
+    // DROPS things, and the cost of a wrong match is someone's data. Since batch 150-prereq's review
+    // round the URL is parsed, not matched as text (A1 S1, Q0 Q-4, C0-9): testHostRefusal in the driver.
     const url = env[TEST_URL] ?? '';
-    const allowed = /@(localhost|127\.0\.0\.1|postgres)[:/]/.test(url);
-    if (!allowed) {
-      stderr.write('db-reset-test refuses this host: it is not localhost, 127.0.0.1 or the CI service container.\n'
+    const refusal = testHostRefusal(url);
+    if (refusal) {
+      stderr.write(`db-reset-test refuses this host: ${refusal}; it is not localhost, 127.0.0.1 or the CI service container.\n`
         + '  This target drops and recreates. It does not run against a host it cannot recognise as a test instance.\n');
       return 1;
     }

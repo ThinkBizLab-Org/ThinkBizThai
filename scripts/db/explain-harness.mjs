@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// THE WS:905 EXPLAIN HARNESS (the batch 150 prerequisite draft; plan "Batch 150 -- Can do now" (c)).
+// THE WS:911 EXPLAIN HARNESS (the batch 150 prerequisite draft; plan "Batch 150 -- Can do now" (c)).
 //
 //   DB_TEST_URL=postgresql://postgres@127.0.0.1:<port>/postgres node scripts/db/explain-harness.mjs [options]
 //     --scale small | full | <factor in (0,1]>   the fixture size (default small: WS905_SMALL)
@@ -7,29 +7,42 @@
 //     --json                                       print every plan and its summary as JSON
 //     --fail-on-seq-scan                           exit 3 when a membership-class query plans a Seq Scan
 //
-// It loads the synthetic WS:905 fixture (test-kits/db/ws905-fixture.mjs) into a database that `make
-// db-migrate-clean` built, inside ONE transaction; checks every table holds the rows the fixture says; runs
-// ANALYZE on them; captures the plan of each named query of docs/plans/core-database-and-rls-workstream-th.md
-// :905-910 (membership check, workspace list, content / calendar / library first page, worker claim, and
+// It loads the synthetic WS:911 fixture (test-kits/db/ws905-fixture.mjs) into a FRESH database that `make
+// db-migrate-clean` built and nothing has written to since -- run it before `make db-rls-smoke`, which
+// commits rows (C0-4, Q0 Q-6 on batch 150-prereq) -- inside ONE transaction. Before its first write it
+// refuses (exit 2) unless every table the fixture loads is empty (A1 S3: it used to load everything and
+// only then find the residue); then it checks every table holds the rows the fixture says; runs ANALYZE on
+// them; captures the plan of each named query of docs/plans/core-database-and-rls-workstream-th.md
+// :909-917 (membership check, workspace list, content / calendar / library first page, worker claim, and
 // three reads the batch 150 tables serve), each under the role that runs it; prints each plan's summary --
-// every Seq Scan by relation, every index used, any Sort -- and ROLLS BACK, so the database is left as it was
-// (pg_class.reltuples, which ANALYZE writes in place, is the one trace).
+// every Seq Scan by relation, every index used, any Sort -- and ROLLS BACK.
+//
+// Rolled back is NOT "left as it was" (A1 S2, Q0 Q-5 on batch 150-prereq, measured): no row stays, but
+// identity sequences advance (nextval is not transactional; 402000 values after three runs), ANALYZE's
+// reltuples stay, and the dead tuples and WAL stay on disk until VACUUM or the cluster is removed (A1
+// measured three runs, small, 0.2 and 0.2: the database grew from 14 MB to 592 MB and 1.6 GB of free disk
+// went, none of it returned at rollback; the full scale needs about 2 GB while it runs). Plan costs drift between repeat runs on one cluster although the plan shapes do not. So: one run per
+// fresh cluster, and remove the cluster afterwards. It has no free-space guard (open_blockers[194] (12)).
 //
 // What it does NOT do, by decision of the plan: it asserts no p95 or any other timing (the SLO is Q150-d,
 // undecided), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
 // the Integration Owner), and it changes no schema. A Seq Scan on a membership-class query is REPORTED; it
 // fails the run only under --fail-on-seq-scan, because at a small scale the planner may rightly prefer one.
 //
-// It refuses without DB_TEST_URL, and refuses a host that is not localhost, 127.0.0.1 or the CI service
-// container (the db-reset-test allowlist): it writes a million rows, even if it rolls them back.
+// It refuses without DB_TEST_URL, and refuses a URL the shared test-instance guard refuses (testHostRefusal
+// in psql-driver.mjs, also db-reset-test's): the URL is parsed, its host must be exactly localhost,
+// 127.0.0.1, [::1] or the CI service container, and it may carry no host, hostaddr, service or servicefile
+// parameter (A1 S1, Q0 Q-4, C0-9). It writes up to 3.1M rows, even if it rolls them back.
 import { argv, env, exit, stderr, stdout } from 'node:process';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { WS905_FULL, WS905_SMALL, ws905Scaled, fixtureSql, expectedCounts, fixtureIds } from '../../test-kits/db/ws905-fixture.mjs';
+import { testHostRefusal } from './psql-driver.mjs';
 
 export const EXIT = Object.freeze({ ok: 0, failed: 1, refused: 2, seqScan: 3 });
-export const HOST_ALLOWLIST = /@(localhost|127\.0\.0\.1|postgres)[:/]/;
+// The first statement after BEGIN raises this when a fixture table already holds a row, before any write.
+export const NOT_EMPTY = 'ws905 harness refuses a database that is not empty';
 
 export function parseArgs(args) {
   const opts = { scale: 'small', analyze: false, json: false, failOnSeqScan: false };
@@ -60,23 +73,23 @@ const ws1 = fixtureIds.workspace(1);
 const bp1 = fixtureIds.business(1);
 const pp1 = "md5('ws905:pp:1')::uuid";
 export const NAMED_QUERIES = Object.freeze([
-  { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:907; app.workspace_member_role',
+  { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:913; app.workspace_member_role',
     sql: `select m.role from app.workspace_members m where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' limit 1` },
-  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:907; workspaces_select_active_member',
+  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:913; workspaces_select_active_member',
     sql: 'select w.id, w.name from app.workspaces w order by w.name limit 50' },
-  { name: 'content first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+  { name: 'content first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
     sql: `select c.id, c.title, c.status, c.created_at from app.content_items c where c.workspace_id = ${ws1} and c.business_profile_id = ${bp1} and c.deleted_at is null order by c.created_at desc, c.id desc limit 50` },
-  { name: 'calendar first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+  { name: 'calendar first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
     sql: `select k.id, k.content_item_id, k.scheduled_local_date from app.calendar_items k where k.workspace_id = ${ws1} and k.deleted_at is null and k.scheduled_local_date >= date '2026-10-01' and k.scheduled_local_date < date '2026-11-01' order by k.scheduled_local_date, k.id limit 200` },
-  { name: 'library first page', klass: 'first page', role: 'authenticated', source: 'WS:908',
+  { name: 'library first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
     sql: `select a.id, a.title, a.kind, a.created_at from app.assets a where a.workspace_id = ${ws1} and a.business_profile_id = ${bp1} and a.deleted_at is null order by a.created_at desc, a.id desc limit 50` },
-  { name: 'worker claim', klass: 'worker', role: null, source: 'WS:910; no worker role exists yet (DATA-DEC-03)',
+  { name: 'worker claim', klass: 'worker', role: null, source: 'WS:915; no worker role exists yet (DATA-DEC-03)',
     sql: 'select j.id from app.jobs j where j.available_at <= now() and j.lease_expires_at is null and j.cancel_requested_at is null order by j.available_at limit 10 for update skip locked' },
   { name: 'metrics per post', klass: 'batch 150 table', role: 'authenticated', source: 'performance_snapshots, the table Q150-a would rebuild',
     sql: `select s.metric_time, s.metrics from app.performance_snapshots s where s.workspace_id = ${ws1} and s.business_profile_id = ${bp1} and s.published_post_id = ${pp1} order by s.metric_time desc limit 30` },
-  { name: 'usage recompute', klass: 'batch 150 table', role: null, source: 'usage_events, 1M rows at WS:905',
+  { name: 'usage recompute', klass: 'batch 150 table', role: null, source: 'usage_events, 1M rows at WS:911',
     sql: `select u.dimension, sum(u.quantity_amount) from app.usage_events u where u.workspace_id = ${ws1} and u.business_profile_id = ${bp1} and u.dimension = 'ai_tokens' and u.occurred_at >= timestamptz '2026-09-01 00:00:00+00' and u.occurred_at < timestamptz '2026-09-02 00:00:00+00' group by u.dimension` },
-  { name: 'audit first page', klass: 'batch 150 table', role: null, source: 'audit_logs, 1M rows at WS:905; no client reads it',
+  { name: 'audit first page', klass: 'batch 150 table', role: null, source: 'audit_logs, 1M rows at WS:911; no client reads it',
     sql: `select l.id, l.occurred_at, l.action_name from app.audit_logs l where l.workspace_id = ${ws1} order by l.occurred_at desc, l.id desc limit 50` },
 ]);
 
@@ -97,6 +110,15 @@ export function harnessScript(params, { analyze = false } = {}) {
   perform pg_catalog.set_config('request.jwt.claims', '', true);
   plans := plans || jsonb_build_object('n', ${i}, 'plan', plan);`).join('');
   return `begin;
+do $ws905$
+declare
+  occupied text;
+begin
+  select string_agg(t, ', ' order by t) into occupied from (
+${Object.keys(counts).map((t) => `    select '${t}' as t where exists (select 1 from ${t})`).join('\n    union all\n')}
+  ) o;
+  if occupied is not null then raise exception '${NOT_EMPTY} (run it on a fresh migrate-clean, before rls-smoke): % already hold rows', occupied; end if;
+end $ws905$;
 ${fixtureSql(params)}
 do $ws905$
 declare
@@ -149,8 +171,9 @@ async function main() {
     stderr.write('explain-harness needs a Postgres TEST instance: set DB_TEST_URL to a database `make db-migrate-clean` built. It has no no-database mode.\n');
     return EXIT.refused;
   }
-  if (!HOST_ALLOWLIST.test(url)) {
-    stderr.write('explain-harness refuses this host: it is not localhost, 127.0.0.1 or the CI service container.\n');
+  const refusal = testHostRefusal(url);
+  if (refusal) {
+    stderr.write(`explain-harness refuses this host: ${refusal}; it is not localhost, 127.0.0.1 or the CI service container.\n`);
     return EXIT.refused;
   }
   let params;
@@ -158,7 +181,10 @@ async function main() {
   const { feed } = await import('./psql-driver.mjs');
   const started = Date.now();
   const out = await feed(harnessScript(params, { analyze: opts.analyze }));
-  if (out.error) { stderr.write(`explain-harness: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return EXIT.failed; }
+  if (out.error) {
+    stderr.write(`explain-harness: ${out.error.message} (${out.error.code ?? 'no code'})\n`);
+    return out.error.code === 'P0001' && out.error.message.startsWith(NOT_EMPTY) ? EXIT.refused : EXIT.failed;
+  }
   const rows = out.rows ?? [];
   if (rows.length !== NAMED_QUERIES.length) { stderr.write(`explain-harness: ${rows.length} plan(s) came back for ${NAMED_QUERIES.length} queries\n`); return EXIT.failed; }
   const results = rows.map((r) => {

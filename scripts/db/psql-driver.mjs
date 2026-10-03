@@ -21,6 +21,40 @@ const run = promisify(execFile);
 
 const CONNECTION = 'DB_TEST_URL';
 
+// THE TEST-INSTANCE HOST GUARD, shared by db-reset-test (which drops app and private) and the EXPLAIN
+// harness (which writes up to 3.1M rows and rolls them back). Batch 150-prereq's review round (A1 S1, Q0
+// Q-4, C0-9): both used `/@(localhost|127\.0\.0\.1|postgres)[:/]/` against the whole URL TEXT, so a URL
+// whose authority names an allowlisted host but which libpq connects elsewhere passed it -- measured:
+// `?host=` (libpq honours the query parameter over the authority), a host list `localhost:5432,other`,
+// `?service=`, `?hostaddr=`, and an off-list host with `?application_name=@localhost/` appended. So the
+// URL is PARSED: a postgres(ql):// URL whose authority holds one `@` and no `,`, whose hostname is exactly
+// one of TEST_HOSTS, and which carries none of the query parameters libpq would connect by instead.
+// Returns null when the URL may be used, else the reason (which never repeats the host). The driver also
+// drops PGHOST, PGHOSTADDR, PGSERVICE and PGSERVICEFILE from psql's environment (scrubbedEnv), so an
+// inherited variable cannot supply what the URL left out (PGHOSTADDR would override the host's address).
+export const TEST_HOSTS = Object.freeze(['localhost', '127.0.0.1', '[::1]', 'postgres']);
+const CONNECT_BY_PARAMS = new Set(['host', 'hostaddr', 'service', 'servicefile']);
+export function testHostRefusal(url) {
+  const text = String(url ?? '');
+  const authority = /^postgres(?:ql)?:\/\/([^/?#]*)/i.exec(text)?.[1];
+  if (authority === undefined) return 'it is not a postgresql:// URL';
+  if ((authority.match(/@/g) ?? []).length !== 1) return 'its authority does not name exactly one user@host';
+  if (authority.includes(',')) return 'it names a list of hosts';
+  let parsed;
+  try { parsed = new URL(text); } catch { return 'it does not parse as a URL'; }
+  if (!TEST_HOSTS.includes(parsed.hostname.toLowerCase())) return `its host is not one of ${TEST_HOSTS.join(', ')}`;
+  for (const key of parsed.searchParams.keys()) {
+    if (CONNECT_BY_PARAMS.has(key.toLowerCase())) return `it carries a ${key.toLowerCase()} parameter, which libpq would connect by instead of the host`;
+  }
+  return null;
+}
+export const SCRUBBED_ENV = Object.freeze(['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE']);
+export function scrubbedEnv(env) {
+  const out = { ...env };
+  for (const k of SCRUBBED_ENV) delete out[k];
+  return out;
+}
+
 // psql prints `ERROR:  message` then, under verbose, a line containing `SQLSTATE`. Both forms have
 // been seen depending on version and locale, so both are matched.
 // psql prints the host, the user and the database name in its own error text — "could not
@@ -41,6 +75,8 @@ export function redactConnection(text, url) {
     for (const part of [parsed.hostname, parsed.username, parsed.password, parsed.port, parsed.pathname.replace(/^\//, '')]) {
       if (part && part.length > 2) parts.add(part);
     }
+    // And every query parameter's value (A1 S6 on batch 150-prereq: a `?host=` value was printed).
+    for (const value of parsed.searchParams.values()) if (value && value.length > 2) parts.add(value);
   } catch { /* an unparseable URL still gets the scheme rule above */ }
   for (const part of parts) {
     out = out.split(part).join('[redacted]');
@@ -153,7 +189,7 @@ async function invoke(sql, { env = process.env, url = null, viaStdin = false, tr
     '--set', 'VERBOSITY=verbose',
   ];
   const options = {
-    env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
+    env: { ...scrubbedEnv(env), LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
   };
   try {
     const { stdout, stderr } = viaStdin
@@ -643,7 +679,7 @@ export function openSession({ env = process.env, url = null, timeoutMs = SESSION
       '--set', 'ON_ERROR_STOP=0', '--set', 'VERBOSITY=verbose'],
     {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
+      env: { ...scrubbedEnv(env), LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
     });
 
   let buffer = '';

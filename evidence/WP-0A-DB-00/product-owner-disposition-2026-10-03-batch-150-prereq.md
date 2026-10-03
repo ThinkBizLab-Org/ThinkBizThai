@@ -41,7 +41,7 @@ Already on record, and still standing:
     vocabulary CHECKs and every policy, each pinned by text);
   - an index-coverage probe for RLS-predicate and keyset cursor columns, measured first, with its gaps
     recorded as exemptions or findings;
-  - a WS:905 fixture generator and an EXPLAIN harness that report plans only, assert no p95, and run
+  - a WS:911 fixture generator and an EXPLAIN harness that report plans only, assert no p95, and run
     only where `DB_TEST_URL` exists.
 - What needs a decision is **put to its owner and not taken** (§5). The batch writes no migration, no
   policy, no index and no grant, because each would take Q150-a or Q150-b.
@@ -93,12 +93,17 @@ Branch `agent/claude/WP-0A-DB-00-batch-150-prereq`, from `b5f53c3`; plan
 Each is open until its named owner answers it in words. A0's recommendations are the phase plan's
 ("Batch 150 — 4. Decisions needed").
 
-| Q-id | Owner | Question | A0's recommendation | Status |
-|---|---|---|---|---|
-| Q150-a | Owner | Change `performance_snapshots`' primary key to `(id, metric_time)` now, while the table is empty and applied nowhere, without declaring partitioning? | **Yes, as a small forward migration once the item-5 pins exist.** Later partitioning becomes "create a parent and ATTACH this table" with no rewrite. It reverses the "id alone" answer to question C. This batch lands the item-5 pins. | **UNANSWERED** |
-| Q150-b | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** The 150 migration waits; the fixture, harness and probes land now. | **UNANSWERED** |
-| Q150-c | Owner / A0 | Who owns 150, and in which range? | **A0 authors, A1 reviews, number 150**, with a recorded one-time exception to MOD-120's range for the rebuild. | **UNANSWERED** |
-| Q150-d | Product / Ops | Set the p95 DB-time SLO per query class. | **Draft values from the first fixture run, then have the Owner ratify them.** The harness asserts no timing. | **UNANSWERED** |
+Since the review round (C0-3) each question also names its other options and what follows from "no", and
+F2's question is put as its own id, Q150-e, rather than routed to the SLO question. A0's recommendation is
+unchanged; the alternatives are written so that the answer is a choice, not a confirmation.
+
+| Q-id | Owner | Question | A0's recommendation | Other options | If the answer is no | Status |
+|---|---|---|---|---|---|---|
+| Q150-a | Owner | Change `performance_snapshots`' primary key to `(id, metric_time)` now, while the table is empty and applied nowhere, without declaring partitioning? | **Yes, as a small forward migration once the item-5 pins exist.** Later partitioning becomes "create a parent and ATTACH this table" with no rewrite. It reverses the "id alone" answer to question C. This batch lands the item-5 pins. | (1) Keep `PRIMARY KEY (id)` and take the rewrite when partitioning is declared. (2) Keep `(id)` and drop partition-readiness for this table from §4.8. | `PRIMARY KEY (id)` stays pinned as it is; the table cannot be partitioned by month without a rebuild later, when it may hold rows; `open_blockers[179]` stays open. | **UNANSWERED** |
+| Q150-b | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** The 150 migration waits; the fixture, harness and probes land now. | (1) Land the indexes the harness already shows missing (IC-1, the content first page) now, and defer only `partition by`. (2) Land both now on the 0.2-scale plans. | Batch 150 writes its migration before an SLO exists; IC-1's index would be the first candidate, and the plans that justify it are the 0.2-scale ones of plan §5. | **UNANSWERED** |
+| Q150-c | Owner / A0 | Who owns 150, and in which range? | **A0 authors, A1 reviews, number 150**, with a recorded one-time exception to MOD-120's range for the rebuild. | (1) The "DB performance owner" ERD:279-282 names for 150, who is not assigned (ERD:280). (2) MOD-140's owner, since DR:163 reserves 140-180 for MOD-140 ("A6 with A0 contract"). (3) MOD-120's owner for the rebuild of its table (range 115-129, DR:161), and 150 for the indexes only. | No one may author batch 150's migration; this batch's assertions stand, and the phase plan's ownership conflict (its §2) stays open. | **UNANSWERED** |
+| Q150-d | Product / Ops | Set the p95 DB-time SLO per query class. | **Draft values from the first fixture run, then have the Owner ratify them.** The harness asserts no timing. | (1) Set the values without a fixture run. (2) Leave the first-page budget out of 150 and keep WS:914 as a statement only. | The harness keeps reporting plans and asserting no timing; WS:914's p95 budget is not checked by anything. | **UNANSWERED** |
+| Q150-e | Owner | (F2) Is 100 workspaces "a growing table" under WS:913's "no sequential scan" for workspace switch/list, which is not an SLO? If yes, which fix? | **Yes, and rewrite the list query to start from `workspace_members`** (no migration), measured with the harness; A0's, new at the review round. | (1) No: at 100 rows a seq scan is the right plan, and WS:913 binds only larger tables. (2) Yes, and rewrite `workspaces_select_active_member` (a policy change, so an RFC-2026-016 shape question). (3) Yes, and add an index (a migration, so Q150-b). | The workspace list keeps seq-scanning `workspaces` at the WS:911 shape, and `--fail-on-seq-scan` keeps exiting 3 on it; `open_blockers[194]` (1) stays open. | **UNANSWERED** |
 
 ## 6. What this file does not do
 

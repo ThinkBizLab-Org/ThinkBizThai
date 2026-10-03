@@ -27,8 +27,11 @@ Q150-a, Q150-b, Q150-c and Q150-d are left undecided (§7).
 | `6a7bf73` | the draft's `fef718d`, cherry-picked. The draft was cut at `1319042`, the head of the batch 170 draft. That draft merged in reworked form as #171 (`b5f53c3`), so only `fef718d` and `9e45aa4` were taken. Three conflicts: `scripts/test-suite-contract.mjs` (main had moved foundation-contract's assertion floor to 793; the draft's 590 → 675 was its base's), the digest comment in `test-kits/db/foundation-contract.test.mjs` (main's batch 170 review-round comment and the draft's 150 comment, both kept), and `test-kits/integrity-manifest.json`. They were resolved by keeping main's text, taking the guard's own count (§0.1) and regenerating the manifest. `scripts/db/run.mjs` and `db/foundation/README.md` merged without conflict; three README phrases that said "the draft" were reworded. The commit keeps the draft's message, whose "590 -> 675" is the base's, not this branch's. |
 | `305935c` | the draft's `9e45aa4` (the draft record), cherry-picked without conflict. |
 | `9d57cda` | packaging: the branch slot and increment rationale; blockers 179 and 185 extended and 194 new; the branch-identity slot; the integrity manifest. Committed plainly. `commit-when-clean` refused with exit 1 (tests 684, pass 682, fail 2), and the only two failures were the handoff guard ("the handoff for this branch describes this branch" and the handoff ratchet). The last commit refreshes it. |
-| next | this plan (moved from the draft record) and the disposition. |
-| last, alone | `npm run refresh:handoff`, then the handoff's text fields. |
+| `00505b1` | this plan (moved from the draft record) and the disposition. |
+| `782df87` | `npm run refresh:handoff`, then the handoff's text fields (last and alone, the reviewed head). |
+| `9aec4f8`, `0805728`, `af4bb79` | the review round: C0, A1 and Q0's records, cherry-picked with `-x` (§10). |
+| next | the review round's fixes (code, lint data, tests), then its records (this §10, the disposition's §5, the blockers). |
+| last, alone | `npm run refresh:handoff` again, then the handoff's text fields. |
 
 ### 0.1 Floors, digests, manifest, verification record, line numbers
 
@@ -100,8 +103,8 @@ each round.
 | (a) survey item 5: 121's unique keys, indexes, CHECKs and policy by `pg_get_constraintdef` / `pg_get_indexdef` / `pg_get_expr`, plus `relforcerowsecurity` | `db/foundation/lint/pinned-shapes.json` (new): `app.performance_snapshots`, `app.published_posts` (121 added the key the snapshot FK references), `app.usage_events` (item 6's unique key); `run.mjs:1433-1504` | **pinned shape probe** (`run.mjs:2051`), 4 rules: (1) RLS enabled AND forced; (2) every constraint by type, text and validation, both ways (32); (3) every index by text and validity, both ways (18); (4) every policy by flag, command, roles and both halves, both ways (4) | 4: FORCE off; a CHECK rewritten under its own name + `usage_events_dedupe_key_unique` dropped + a new CHECK; an index rebuilt narrower under its name + a new index; the read policy `... or true` + a looser sibling | `:3116-3149`: the probe reads the file; tables exist; every constraint 121 names on performance_snapshots is pinned; the dedupe key's text; the narrowing's two pins agree; reading predicates (FORCE, constraintdef + convalidated, indexdef + indisvalid, both policy halves); digest `d9d0a827e5be09e3` |
 | (a) survey item 6: the vocabulary CHECKs' text across the schema (measure the set) | `db/foundation/lint/vocabulary-checks.json` (new, 60 rows); `run.mjs:1506-1544` | **vocabulary check probe** (`run.mjs:2076`), 2 rules: (1) a CHECK in app/private whose deparse holds `ARRAY['` or is `CHECK ((col = 'v'::text))`, not pinned in that exact text; (2) a pinned one not found validated in its text | 2: channel widened in one home + dimension widened in one home + a new vocabulary; one dropped + one rewritten as a regex (out of the selector) | `:3150-3174`: 60, sorted, each of the selector's shape and named by a migration; the four shared vocabularies (channel, provider, dimension, quantity_unit) are one text in every home; the selector text; digest `d28d49cb3af0a0fd` |
 | (a) survey item 7: the narrowing predicates not already pinned (measure what is left) | `db/foundation/lint/policy-set.json` (new, 44 rows); `run.mjs:1546-1593` | **policy set probe** (`run.mjs:2089`), 2 rules: (1) every policy on a table in any non-system schema (or made after initdb) is named by `PERMISSIVE_POLICIES`, `PINNED_POLICIES`, the five closure lists or the file; (2) every file row found in its exact text | 2: a looser permissive read on a read-only table + a policy in `private`; a read predicate gutted + a service-path closure opened | `:3175-3199`: 44 rows, disjoint from the other lists, 209 in all; the 26 service-path rows' one shape; the 17 read rows are permissive SELECT to authenticated; app_authz's policy; digest `10e2446a17df3d73` |
-| (b) index coverage for RLS-predicate and keyset cursor columns | `db/foundation/lint/index-coverage.json` (new: 4 exemptions keyed `schema.table.column`, 28 lookups, 3 findings); `run.mjs:1595-1675` | **index coverage probe** (`run.mjs:2102`), 3 rules: (1) every USING column of a policy's own table (pg_depend ∩ named in the USING deparse) sits in the leading run of a valid whole index of such columns, or is exempt; (2) every declared lookup is served by a valid index beginning with its columns, in order and direction, with exactly its predicate; (3) every exemption names an uncovered column | 3: a new table filtering an unindexed column + an existing read policy narrowed on `title`; the worker-claim index dropped + the library keyset rebuilt ascending; an exempt column given an index | `:3200-3231`: exemption keys and reasons; the four exemptions by name; every `*_keyset_idx` a migration creates (21) is a lookup; the five named WS:905-910 lookups; the content first page is finding IC-1 and no lookup; reading predicates; digest `7e53a75a9931e962` |
-| (c) WS:905 fixture generator, scale a parameter, small by default | `test-kits/db/ws905-fixture.mjs` (new) | — (not a probe; never applied by migrate-clean, rls-smoke or CI) | — | `:3232-3279`: `WS905_FULL` is WS:905's numbers and the docs line still says them; expected counts; small default; `ws905Scaled` keeps the hierarchy; parameter checks; no meta-command, no transaction control, INSERTs into app only, every table loaded, no address |
+| (b) index coverage for RLS-predicate and keyset cursor columns | `db/foundation/lint/index-coverage.json` (new: 4 exemptions keyed `schema.table.column`, 28 lookups, 3 findings); `run.mjs:1595-1675` | **index coverage probe** (`run.mjs:2102`), 3 rules: (1) every USING column of a policy's own table (pg_depend ∩ named in the USING deparse) sits in the leading run of a valid whole index of such columns, or is exempt; (2) every declared lookup is served by a valid index beginning with its columns, in order and direction, with exactly its predicate; (3) every exemption names an uncovered column | 3: a new table filtering an unindexed column + an existing read policy narrowed on `title`; the worker-claim index dropped + the library keyset rebuilt ascending; an exempt column given an index | `:3200-3231`: exemption keys and reasons; the four exemptions by name; every `*_keyset_idx` a migration creates (21) is a lookup; the five named WS:909-917 lookups; the content first page is finding IC-1 and no lookup; reading predicates; digest `7e53a75a9931e962` |
+| (c) WS:911 fixture generator, scale a parameter, small by default | `test-kits/db/ws905-fixture.mjs` (new) | — (not a probe; never applied by migrate-clean, rls-smoke or CI) | — | `:3232-3279`: `WS905_FULL` is WS:911's numbers and the docs line still says them; expected counts; small default; `ws905Scaled` keeps the hierarchy; parameter checks; no meta-command, no transaction control, INSERTs into app only, every table loaded, no address |
 | (c) EXPLAIN harness: named queries, seq scans on membership checks, `DB_TEST_URL` only, no p95, not in CI | `scripts/db/explain-harness.mjs` (new) | — | — | `:89-116` (the refusal test): exit 2 with no `DB_TEST_URL` and with a host off the allowlist, nothing on stdout; `:3261-3279`: one transaction, rolled back, never committed, no timing, the named queries in WS order, the membership class, plan summary and verdict on synthetic plans, exit 3 only under the flag, absent from `Makefile` and `.github/workflows/ci.yml` |
 
 Also changed: `db/foundation/README.md` (rules 18-21 at `:591-621`; the count is twenty-two families in
@@ -120,7 +123,8 @@ job runs, so deparse is schema-qualified):
 - **Vocabulary CHECKs:** 269 CHECKs in app and private; 60 match the selector (59 app, 1 private).
 - **Policies:** 209 in app (none elsewhere). Already pinned: 74 permissive policies of client-writable tables,
   36 restrictive policies, 55 closures. Not read by any migrate-clean rule: 44. They are 17 permissive
-  SELECT policies on the 13 tables a client only reads, 26 `*_service_path_closed` (rls-smoke's
+  SELECT policies on 16 tables (the draft wrote "the 13 tables a client only reads"; they are the 16 tables
+  `PERMISSIVE_POLICIES` has no row for, `workspace_members` carrying two; C0-5, §10), 26 `*_service_path_closed` (rls-smoke's
   `SERVICE_PATH_CLOSURE_ON` text check covers all 26 by name, measured from `isolation-cases.mjs`, but
   migrate-clean did not), and `workspace_members_select_authz_own_active` (static authz lint on the
   committed snapshot only). **All 33 scope narrowings were already pinned by 127's review round.**
@@ -215,13 +219,14 @@ At small scale (4 workspaces), the membership check and the workspace list both 
   `/System/Volumes/Data` had 129 MiB free; the cluster held 1.7 GB. psql reported `No space left on device`, the
   transaction rolled back, and the cluster was stopped and removed at once (1.9 GiB free after). After three
   0.2-scale runs on one cluster, free space fell to 176 MiB again (dead tuples and WAL), and the cluster was
-  removed again. Another session writing to that volume in those windows could have failed. **The full WS:905
+  removed again. Another session writing to that volume in those windows could have failed. **The full WS:911
   scale was not measured here.** The README states the ~2 GB need. The harness has no free-space guard.
 - **F2 (finding for batch 150).** The workspace list's plan seq-scans `app.workspaces` at 100 workspaces.
-  WS:907's budget says no sequential scan for "workspace switch/list". The policy
+  WS:913's budget says no sequential scan for "workspace switch/list". The policy
   `workspaces_select_active_member` is read from `workspaces` outward (`lifecycle_state` plus an EXISTS on
   `workspace_members`), so the planner starts from the workspace table. Whether 100 rows is "a growing table" is
-  for Q150-d. A query written from `workspace_members` would plan differently. Not changed here.
+  ~~for Q150-d~~ Q150-e's since the review round (C0-3: WS:913's rule is not an SLO). A query written from
+  `workspace_members` would plan differently. Not changed here.
 - **F3 (finding IC-1).** No index serves the content first page: `app.content_items` has no
   `(workspace_id, business_profile_id, created_at DESC, id DESC)`, and the plan sorts. Adding one is a migration
   (Q150-b). It is recorded in `db/foundation/lint/index-coverage.json` (`findings`, IC-1), not as a lookup.
@@ -247,9 +252,11 @@ At small scale (4 workspaces), the membership check and the workspace list both 
   the batch 170 draft's F14. A later batch edits the JSON by hand or writes its own generator.
 - **F11 (citation drift in the plan).** The plan cites `run.mjs:883-893` for the audit partition refusal; at
   `1319042` it is `run.mjs:1116-1125`. It cites `run.mjs:607-611` for `PINNED_CHECKS`; that is `run.mjs:837`.
-  The batch 170 draft's F12 already noted the second. These citations read as the plan says: WS:575, 905-910;
+  The batch 170 draft's F12 already noted the second. These citations read as the plan says: WS:575;
   ERD:109, 280, 289-290; WP:432, :438; survey §6 at `:317-335`; `psql-driver.mjs:152` (`ON_ERROR_STOP=1`);
-  `run.mjs:80-85` (FK support).
+  `run.mjs:80-85` (FK support). *(Struck at the review round, C0-2 and Q0 Q-7: the draft's sentence also
+  listed "905-910" as reading as the plan says. It did not: the phase plan says WS:909-917 and WS:911, and
+  WS:905-908 is §9.4's migration-test list. Every WS line this branch cites is re-cited in §10.)*
 - **F12 (packaging, not done by instruction).** The manifest's `ownership.branch` names batch 129's branch.
   `check:scope` exits 74 and `check:handoff` exits 75 on this branch. Whoever packages the batch updates the
   slot, the rationale and the branch-identity slot, and writes the handoff. This branch is stacked on the
@@ -265,7 +272,7 @@ At small scale (4 workspaces), the membership check and the workspace list both 
 | Finding | Owner | Held on |
 |---|---|---|
 | F1, the disk incident | A0 (a free-space guard, if the full scale is to be run) | §6.2, an incident note; `open_blockers[194]` (12) |
-| F2, the workspace list seq-scans `app.workspaces` (against WS:907) | batch 150's author, under Q150-d | `open_blockers[194]` (1) |
+| F2, the workspace list seq-scans `app.workspaces` (against WS:913) | batch 150's author, under ~~Q150-d~~ Q150-e (the Owner; review round, C0-3) | `open_blockers[194]` (1) |
 | F3 = IC-1, no index serves the content first page | batch 150's author, under Q150-b | `open_blockers[194]` (2); `index-coverage.json` `findings` |
 | F4, no worker identity, so the worker plans run as the owner | DATA-DEC-03 and the worker RFC | `open_blockers[113]`, cross-referenced from `[194]` (3) |
 | F5 = IC-2 and IC-3, rule 1 reads own-table USING columns only | A0 | `open_blockers[194]` (5); `index-coverage.json` `findings` |
@@ -290,7 +297,7 @@ At small scale (4 workspaces), the membership check and the workspace list both 
   brought free space down to 176 MiB again (dead tuples and WAL), and that cluster was removed too.
 - **Exposure.** Any other session writing to that volume in those windows could have failed. None is
   known to have.
-- **Consequence.** The full WS:905 scale has **not** been measured. The README states the ~2 GB need,
+- **Consequence.** The full WS:911 scale has **not** been measured. The README states the ~2 GB need,
   and the harness has no free-space guard.
 - **On this branch.** The harness ran only at small and 0.2 scale, on a fresh cluster each round,
   removed afterwards. The volume held 11 GiB free throughout.
@@ -303,13 +310,18 @@ At small scale (4 workspaces), the membership check and the workspace list both 
 | Q150-b | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** The 150 migration waits; the fixture, harness and probes land now. No index is added here, and IC-1 stays a finding. | **UNANSWERED** |
 | Q150-c | Owner / A0 | Who owns 150, and in which range? | **A0 authors, A1 reviews, number 150**, with a recorded one-time exception to MOD-120's range for the rebuild. | **UNANSWERED** |
 | Q150-d | Product / Ops | Set the p95 DB-time SLO per query class. | **Draft values from the first fixture run, then the Owner ratifies them.** The harness asserts no timing; §5 is a plan summary, not a budget. | **UNANSWERED** |
+| Q150-e | Owner | (F2; put at the review round, C0-3) Is 100 workspaces "a growing table" under WS:913's "no sequential scan" for workspace switch/list? If yes, which fix: the list query written from `workspace_members`, a policy rewrite, or an index? | **Yes, and rewrite the list query from `workspace_members`** (no migration), measured with the harness. | **UNANSWERED** |
+
+Since the review round (C0-3) each Q-id's other options and the consequence of "no" are written out in the
+disposition, `product-owner-disposition-2026-10-03-batch-150-prereq.md` §5. For Q150-c they include the
+ERD:280 "DB performance owner" (unassigned) and MOD-140's owner under DR:163's 140-180 range.
 
 ## 8. What is not done
 
 - No migration, policy, index or grant: each would take Q150-a or Q150-b.
 - The harness is not a make target and is not in `.github/workflows/ci.yml`. CI is protected, so adding
   it needs the Integration Owner (F13). The four new probes do run in CI, through `make db-migrate-clean`.
-- The full WS:905 scale is not measured (§6.2).
+- The full WS:911 scale is not measured (§6.2).
 - The generators behind the four lint files are not in the repository (F10).
 - The role runs (C0, Q0, A1) follow this commit. Nothing here is reviewed, tested by an independent role
   or approved.
@@ -326,3 +338,99 @@ record, kept below.
 The cluster on 127.0.0.1:5509 was stopped and its data directory removed after each use, and at the end.
 Port 5509 is free, and no other port was touched. The private exports (`base`, `wt`) were removed. In every
 round's tree, `140_audit.sql` is byte-identical to its saved copy.
+
+## 10. Review round (C0, A1 and Q0 on `782df87`)
+
+Written 2026-10-04 by a subagent of `/claude/a0_atlas`, on the branch name
+`agent/claude/WP-0A-DB-00-batch-150-prereq` (checked out in this run's worktree with
+`--ignore-other-worktrees`, after reading that the author worktree `wf_6dce59ae-fd8-1` held no file newer
+than its index, so no uncommitted work). It fixes; it approves nothing, and decides none of Q150-a..e.
+**Still no migration, no policy, no index and no grant.**
+
+### 10.1 Cherry-pick map
+
+| role run | review branch | commit there | cherry-picked here (`-x`) | file |
+|---|---|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `review/c0-batch-150-prereq` | `4a224c2` | `9aec4f8` | `c0-batch-150-prereq-contract-review-2026-10-03.md` |
+| A1 `/claude/a1_bastion` | `review/a1-batch-150-prereq` | `f975f86` | `0805728` | `a1-batch-150-prereq-security-review-2026-10-03.md` |
+| Q0 `/claude/q0_sentinel` | `review/q0-batch-150-prereq` | `c3b61e4` | `af4bb79` | `q0-batch-150-prereq-test-review-2026-10-03.md` |
+
+No conflict; each adds one file.
+
+### 10.2 Finding → change → measured
+
+Duplicates are answered once: C0-1 = Q-1; S1 = Q-4 = C0-9; C0-4 = Q-6 (and S3); S2 = Q-5; C0-2 = Q-7;
+S4 = C0-8; S7 = C0-6 = Q-8 (first bullet).
+
+| Finding | Grade | Change | Measured |
+|---|---|---|---|
+| C0-1, Q-1: index coverage calls a HASH, BRIN or `DESC NULLS LAST` index "served" | MEDIUM | `scripts/db/run.mjs` 6g: rule 1's `runs` and rule 2's `idx` join `pg_am` and read `amname = 'btree'` only; rule 2's column token carries ` NULLS FIRST` / ` NULLS LAST` where `indoption & 3` differs from the direction's default. Self-test drift 1 adds the BRIN rebuild of `workspace_members_user_id_status_idx`; drift 2 rebuilds `jobs_available_at_idx` as HASH (instead of dropping it) and `audit_logs_workspace_keyset_idx` as `DESC NULLS LAST`. Comment, claim, README rule 21 and `index-coverage.json` `_what` say btree and NULLS order. | On the clean set nothing changed (0 non-btree indexes): migrate-clean 0 with "refused each of its 3 drifts". As later files appended to 140, each on a fresh cluster (sl / mc / rs): **dA** HASH worker claim + NULLS LAST audit keyset 0 / **2** / 0, named "audit_logs keyset (...) on app.audit_logs (...); worker claim on app.jobs (available_at)"; **dB** BRIN workspace switch 0 / **2** / 0, named "app.workspace_members.status" (rule 1 answers first); **dL4** `assets_library_keyset_idx` `DESC NULLS LAST` 0 / **2** / 0, named "library first page on app.assets (...)". Before: each 0 / 0 / 0 (C0 dA, dB; Q0 L2-L4). Mutants on a live database, the probe SQL edited in memory: btree reading removed → drift 1 loses `app.workspace_members.status` and drift 2 loses the worker claim; NULLS reading removed → drift 2 loses the audit keyset. Each is a verdict failure. |
+| Q-2: mutants C8 (run = any key column), C9 (table-qualified alternative dropped), C10 (rule 2 `indisvalid` dropped) survive | LOW | Drift 1 also gives `app.probe_ic_t` an index `(id, workspace_id)` (its predicate column behind a column no policy reads) and adds `app.probe_ic_q`, whose policy names `probe_ic_q.workspace_id` table-qualified inside an EXISTS. Static regexes in `foundation-contract.test.mjs` over the `runs` computation, both rule 1 regexes, rule 2's `where i.indisvalid and am.amname = 'btree' ...`, the NULLS token and the three `pg_am` joins. | Live: drift 1 names `app.content_items.title, app.probe_ic_q.workspace_id, app.probe_ic_t.workspace_id, app.workspace_members.status`. Under C8 it loses `app.probe_ic_t.workspace_id`; under C9 it loses `app.probe_ic_q.workspace_id`. C10 cannot be driven by a transactional migration (Q0), so it is held by the static regex only; that is stated. |
+| Q-3: no self-test drifts a policy's roles (C2, C6 survive their own layers) | LOW | Pinned shape drift 4 adds `alter policy published_posts_scope_narrowing ... to authenticated, anon`; policy set drift 2 adds `alter policy approval_events_select_active_member ... to authenticated, anon`. Static: both probes' roles comparisons. | Live: each drift names the policy. Under C2 (roles dropped both ways) drift 4 loses `published_posts_scope_narrowing`; under C6 drift 2 loses `approval_events_select_active_member`. |
+| S1, Q-4, C0-9: the host allowlist is a substring match | MEDIUM | `scripts/db/psql-driver.mjs` `testHostRefusal(url)`: a `postgres(ql)://` URL, one `@` and no `,` in the authority, `new URL` hostname exactly `localhost`, `127.0.0.1`, `[::1]` or `postgres`, and no `host`, `hostaddr`, `service` or `servicefile` query parameter (any case, percent-decoded). Used by `db-reset-test` (`run.mjs`) and the harness. `scrubbedEnv` drops `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE` at both psql spawn sites. The harness's `HOST_ALLOWLIST` export is removed. | Static (in the existing refusal test, no test added): 15 crafted URLs refused, among them A1's five, Q0's suffix case and C0's `?u=@localhost/`; 5 admitted, CI's `postgresql://postgres@localhost:5432/thinkbizthai_test` among them; the first ten run through both tools, harness exit 2 and reset-test exit 1, each saying "refuses this host". Live, server listening on 5507: `?host=/nonexistent-a0-dir` → harness **2**, reset-test **1**; a host list → reset-test **1**; `app` and `private` still present afterwards. |
+| S6: redaction misses query-parameter values | INFO | `redactConnection` also redacts every query parameter value. | Static: a `?host=db.internal.invalid` value comes out `[redacted]`. |
+| S3, C0-4, Q-6: the harness writes everything before noticing a used database; it fails on one `rls-smoke` has used | LOW | The script's first statement after `begin;` reads every fixture table and raises "ws905 harness refuses a database that is not empty ..." before the first INSERT; `main` maps that raise to exit 2. Header and README: a fresh migrate-clean, before rls-smoke, or its own database in CI. Blocker 194 (9) says so for the Integration Owner. Deltas were not chosen: refusing is cheaper and is the throwaway signal A1 asked for. | Live: fresh migrate-clean, harness `--scale 0.05` **0** (plans as §5's shapes; workspace list seq-scans `workspaces`); then rls-smoke **0**; then the harness **2**, listing the 19 occupied tables; `usage_events_id_seq` 50003 and the database 100 MB before and after the refusal (nothing written). |
+| S2, Q-5: "left as it was" and "the one trace" are false | LOW | Harness header, README harness section and the static test's message now state the traces: sequences, `reltuples`, dead tuples and WAL until VACUUM or cluster removal; costs drift between repeats; one run per fresh cluster. The free-space guard stays owed (blocker 194 (12)), with why. | Text. The figures quoted are A1's and Q0's, attributed. |
+| S4, C0-8: the pinned shapes pin no trigger | LOW | Pinned shape rule 5: every non-internal trigger on the three tables by `pg_get_triggerdef` and `tgenabled = 'O'`, both ways; `pinned-shapes.json` gains `"triggers": {}` per table and its `_what` says columns are still not pinned. Drift 5 creates a BEFORE INSERT trigger. Claim, comment and README rule 18. | Live: migrate-clean 0, "refused each of its 5 drifts", "0 non-internal triggers". As a later file (A1's T2 shape), **dT2** 0 / **2** / 0, named "unlisted or changed: app.performance_snapshots.probe_a0_trg". Before: 0 / 0 / 0 (A1 T2). |
+| S5: "workspace switch / list" is green while WS:913's query seq-scans | INFO | The lookup's `why` and `index-coverage.json` `_what` say green is the membership side only, citing F2; README rule 21 says "served" means an index of that shape exists. | Text. |
+| C0-2, Q-7: every WS citation is six lines early; F11 says the opposite | LOW | Re-cited throughout this branch's files: WS:905-910 → WS:909-917, WS:905 → WS:911 (fixture), WS:907 → WS:913 (no seq scan), WS:908 → WS:914 (p95 first page), WS:910 → WS:915 (worker claim), `workstream-th.md:905` → `:911`. The `ws905` / `WS905_*` identifiers stay as names. F11's false sentence is struck in place (§6). | `grep` for `WS:90[5-8]` and `WS:910` over the branch's code, lint data, README, manifest and plan: none, except where this plan names the old citation to correct it (§6 F11, this row), and in the three review records, which quote. |
+| C0-3: Q150-a..d are single proposals; F2's question has no Q | LOW | Disposition §5 gains "Other options" and "If the answer is no" per Q; Q150-c names ERD:280's DB performance owner, MOD-140 under DR:163 and MOD-120's owner. F2 is posed as **Q150-e** (Owner), not Q150-d. Plan §6, §6.1, §7 and blocker 194 (1) follow. | Text. Every Q is UNANSWERED. |
+| C0-5: "the 13 tables a client only reads" | LOW | `run.mjs` comment, plan §2, README rule 20, `policy-set.json` `_measured` and the static comment: 17 permissive SELECT policies on the 16 tables `PERMISSIVE_POLICIES` has no row for. Static: the 17 rows are on 16 tables, none in `PERMISSIVE_POLICIES`. | Static test passes. |
+| C0-6, S7, Q-8: blocker 194 cites §5 and a moved file; 185 cites "draft record §4" | INFO | 194 cites plan §6 and §6.1 (and this §10) and says the draft file was moved here; 185 cites plan §4. | Text. |
+| C0-7, Q-8: §0.1's line numbers | INFO | Not rewritten (they record `782df87`). At this round's head: the four lint constants at `run.mjs`:1494, :1573, :1615, :1671; probe jobs from :2129 (pinned shape) to :2189 (index coverage); static blocks at `foundation-contract.test.mjs`:3176, :3214, :3239, :3268, :3312; the refusal additions at :114-153; README rules 18, 20, 21 at :614, :631, :638 and the harness section at :705. | Read. |
+| Q-8: `6a7bf73`'s message keeps "590 -> 675" | INFO | Not changed: only a history rewrite could, and none is made. Recorded on blocker 194 (13). | — |
+
+### 10.3 Guards, floors, digests
+
+- `foundation-contract.test.mjs` assertions, by the guard's own `stripNonCode`: 878 → **898**; no test
+  added or renamed (80 tests; suite 684), so the test floor, the name digest and `evidence/VERIFICATION.md`
+  stay.
+- Digests: pinned shape `d9d0a827e5be09e3` → `b54ae8e9c8c7f6ce`, policy set `10e2446a17df3d73` →
+  `3c643bfe1fcfb040`, index coverage `7e53a75a9931e962` → `ae187b635c0ae0f4`. Vocabulary check and every
+  older digest stay.
+- `test-kits/integrity-manifest.json` regenerated (88 digests).
+- `scripts/db/psql-driver.mjs` is a new path in the diff; it is inside `scripts/db/**`, so it is owned, not
+  amended. `amends_without_owning.paths` is unchanged.
+
+### 10.4 Measured on this round
+
+Setup: Node `v24.20.0` (`/Users/bank/.local/node-v24.20.0/bin` first on the PATH, `node -v` printed before
+each run); PostgreSQL 17.11 from `/opt/homebrew/bin`; 127.0.0.1:5507 only, TCP only
+(`-c unix_socket_directories=''`), `initdb --locale=C -A trust -U postgres` afresh each round, `LC_ALL=C`; the
+shim first, then `DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres`; private directory
+`scratchpad/a0-150-prereqr2/`. Drifts appended to `140_audit.sql` and restored byte for byte (sha256
+`2ac596bb950e8dfb…` before and after every round).
+
+| Round | Command | Exit | Output |
+|---|---|---|---|
+| static | `node --test test-kits/db/foundation-contract.test.mjs` | 0 | tests 80, pass 80 |
+| all | `npm run check` (before the commits) | 0 | tests 684, pass 684 |
+| r1 | `make db-migrate-clean` | 0 | the four probes' claims, each "refused each of its N drifts" (5, 2, 2, 3) |
+| r2 | `make db-schema-lint` / `db-migrate-clean` / `db-rls-smoke` / `db-rls-smoke` (same database) | 0 / 0 / 0 / 0 | post-migrate 49 / 37 / 12; 1079 isolation cases and 6 claims, twice |
+| r3 | migrate-clean, harness `--scale 0.05` | 0, 0 | plan shapes as §5; workspace list `SEQ SCAN on workspaces` (F2) |
+| r3 | rls-smoke, then harness `--scale 0.05` | 0, **2** | "refuses a database that is not empty"; sequence and size unchanged |
+| r3 | harness / reset-test with `?host=/nonexistent-a0-dir`; reset-test with a host list | **2** / **1** / **1** | "refuses this host: it carries a host parameter ..." / "... names a list of hosts" |
+| dA | HASH `jobs_available_at_idx` + `DESC NULLS LAST` audit keyset | 0 / **2** / 0 | index coverage rule 2, both lookups named |
+| dB | BRIN `workspace_members_user_id_status_idx` | 0 / **2** / 0 | index coverage rule 1, `app.workspace_members.status` |
+| dL4 | `assets_library_keyset_idx` `DESC NULLS LAST` | 0 / **2** / 0 | index coverage rule 2, the library first page |
+| dT2 | a BEFORE INSERT trigger on `performance_snapshots` | 0 / **2** / 0 | pinned shape rule 5, `probe_a0_trg` |
+
+The guards on the branch name (`verify-branch-scope`, `npm run check`, `check:handoff`, `npm run verify`)
+are in the handoff, run after the refresh commit.
+
+### 10.5 Owed, not done here
+
+- The free-space guard (F1, S2's second half): the disk that fills is the server's, reachable only through
+  SQL; reading it needs server-side file access a test role should not hold. A design question, not a
+  bounded change. `open_blockers[194]` (12).
+- The four lint files' generators (F10). `open_blockers[194]` (8).
+- Columns in the pinned shapes (F7). `open_blockers[194]` (4).
+- The shared host guard now also governs `db-reset-test`; the Integration Owner accepts it or not.
+  `open_blockers[194]` (13).
+- Q150-a..e: UNANSWERED.
+
+### 10.6 Cleanup
+
+The cluster on 127.0.0.1:5507 was stopped and its data directory removed after every round, and at the
+end. Port 5507 is free. Ports 5432 and 5499, and every other run's port, were not touched.
+`140_audit.sql` is byte-identical to main's. The free space on `/System/Volumes/Data` was 10 GiB at the end.

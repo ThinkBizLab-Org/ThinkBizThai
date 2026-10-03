@@ -111,6 +111,46 @@ test('a target needing a database refuses without one, rather than reporting a p
     assert.match(result.stderr, why, 'and says why');
     assert.equal(result.stdout, '', 'and reports nothing it did not measure');
   }
+  // Batch 150-prereq's review round (A1 S1, Q0 Q-4, C0-9): the host guard was a text match, and each URL below
+  // passed it while libpq would connect somewhere else (measured: `?host=` wins over the authority; a host list
+  // is tried in order). Both tools now share testHostRefusal, and each refuses every one before connecting. No
+  // host here resolves or listens: .invalid names, a missing socket directory, TEST-NET-1.
+  const { testHostRefusal, scrubbedEnv, redactConnection } = await import('../../scripts/db/psql-driver.mjs');
+  const crafted = [
+    'postgresql://postgres@127.0.0.1:5507/postgres?host=db.example.invalid',
+    'postgresql://postgres@127.0.0.1:5507/postgres?host=/nonexistent-dir',
+    'postgresql://postgres@localhost:5432,db.example.invalid:5432/app',
+    'postgresql://postgres@127.0.0.1:5507/postgres?service=prod',
+    'postgresql://postgres@127.0.0.1:5507/postgres?servicefile=/nonexistent-dir/pg_service.conf',
+    'postgresql://postgres@127.0.0.1:5507/postgres?hostaddr=192.0.2.1',
+    'postgresql://postgres@127.0.0.1:5507/postgres?HOST=db.example.invalid',
+    'postgresql://app:secret@db.example.invalid:5432/app?options=@localhost/',
+    'postgresql://postgres@q0-probe.invalid:5503/postgres?application_name=@localhost/',
+    'postgresql://postgres@db.example.invalid/x?u=@localhost/',
+    'postgresql://a@b@localhost:5432/x',
+    'postgresql://localhost:5432/x',
+    'postgresql://postgres@localhost.example.invalid:5432/x',
+    'postgresql://postgres@127.0.0.1%2Cdb.example.invalid:5432/x',
+    'mysql://postgres@localhost:5432/x',
+  ];
+  for (const url of crafted) assert.ok(testHostRefusal(url), `${url}: refused by the shared guard`);
+  for (const url of ['postgresql://postgres@localhost:5432/thinkbizthai_test', 'postgresql://postgres@127.0.0.1:5507/postgres',
+    'postgres://postgres@[::1]:5432/x', 'postgresql://postgres@postgres:5432/x?sslmode=disable', 'postgresql://u:p%40ss@LOCALHOST/x']) {
+    assert.equal(testHostRefusal(url), null, `${url}: a test instance, admitted (CI's URL among them)`);
+  }
+  assert.deepEqual(Object.keys(scrubbedEnv({ PGHOST: 'a', PGHOSTADDR: 'b', PGSERVICE: 'c', PGSERVICEFILE: 'd', PGPORT: '5', LC_ALL: 'C' })).sort(), ['LC_ALL', 'PGPORT'],
+    'psql never inherits a host, address or service the URL left out');
+  assert.equal(redactConnection('could not connect to db.internal.invalid', 'postgresql://postgres@127.0.0.1:5507/postgres?host=db.internal.invalid'), 'could not connect to [redacted]',
+    'a query parameter\'s value is redacted too (A1 S6)');
+  for (const url of crafted.slice(0, 10)) {
+    for (const [file, args, code] of [['explain-harness', ['scripts/db/explain-harness.mjs'], 2], ['db-reset-test', ['scripts/db/run.mjs', 'reset-test'], 1]]) {
+      const result = await run('node', args, { env: { ...env, DB_TEST_URL: url } }).then(
+        (ok) => ({ code: 0, ...ok }),
+        (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+      assert.equal(result.code, code, `${file} with ${url} refuses (exit ${code})`);
+      assert.match(result.stderr, new RegExp(`${file} refuses this host: `), `${file}: and says so before connecting`);
+    }
+  }
 });
 
 test('db-verify fails as a whole, and its summary names what is missing', async () => {
@@ -2664,6 +2704,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Batch 150's prerequisites (plan "Batch 150 -- Can do now", assertion only): the pinned shape,
   // vocabulary check, policy set and index coverage probes are new (weak-assertion survey §6 items 5, 6 and 7;
   // ERD §3.3), each reading a lint file in db/foundation/lint/; no existing digest moves.
+  // Batch 150-prereq's review round: pinned shape d9d0a827e5be09e3 to b54ae8e9c8c7f6ce (rule 5, triggers, and
+  // its drift, A1 S4, C0-8; a roles drift, Q0 Q-3), policy set 10e2446a17df3d73 to 3c643bfe1fcfb040 (a roles
+  // drift, Q0 Q-3), index coverage 7e53a75a9931e962 to ae187b635c0ae0f4 (btree only and the NULLS order, C0-1,
+  // Q0 Q-1; drifts for HASH, BRIN, NULLS LAST, a column behind a non-predicate column and a table-qualified
+  // column, Q0 Q-2). The vocabulary check probe and every older digest stay.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2688,10 +2733,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'pinned grant probe': 'baa6379790cb8733',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': '42c77e0015f12eaf',
-    'pinned shape probe': 'd9d0a827e5be09e3',
+    'pinned shape probe': 'b54ae8e9c8c7f6ce',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
-    'policy set probe': '10e2446a17df3d73',
-    'index coverage probe': '7e53a75a9931e962',
+    'policy set probe': '3c643bfe1fcfb040',
+    'index coverage probe': 'ae187b635c0ae0f4',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
     'pg_catalog guard probe': '75f034a2f40a686e',
@@ -3146,6 +3191,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       for (const [k, p] of Object.entries(s.policies)) {
         assert.ok(['r', 'a', 'w', 'd', '*'].includes(p.cmd) && typeof p.permissive === 'boolean' && typeof p.roles === 'string', `${t}.${k}: command, flag and roles`);
       }
+      // Batch 150-prereq's review round (A1 S4, C0-8): the trigger set is pinned too, and is empty today.
+      assert.deepEqual(s.triggers, {}, `${t}: no non-internal trigger, pinned as an empty set (rule 5)`);
     }
     const m121 = (await readFile('db/foundation/migrations/121_publisher_metrics.sql', 'utf8')).replace(/--[^\n]*/g, '');
     const named = [...m121.matchAll(/constraint (performance_snapshots_[a-z_]+)\s*\n?\s*(?:check|unique|foreign|primary)/g)].map((x) => x[1]);
@@ -3159,8 +3206,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_constraintdef\(con\.oid\) as def, con\.convalidated as ok/, 'rule 2: constraint text and validation');
     assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_indexdef\(i\.indexrelid\) as def, i\.indisvalid as ok/, 'rule 3: index text and validity');
     assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_expr\(pol\.polqual, pol\.polrelid\) as using_text, pg_catalog\.pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) as check_text/, 'rule 4: both halves of every policy');
-    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'unlisted or changed: ' \|\| f\.k as x from found f/g) ?? []).length, 3, 'rules 2-4 name what is found and not pinned');
-    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'missing or changed: ' \|\| p\.k from pinned p/g) ?? []).length, 3, 'and what is pinned and not found');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_triggerdef\(tg\.oid\) as def, tg\.tgenabled = 'O' as ok\n\s+from pg_catalog\.pg_trigger tg where not tg\.tgisinternal and tg\.tgrelid = any/, 'rule 5: every non-internal trigger by text and enabled (A1 S4, C0-8)');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'unlisted or changed: ' \|\| f\.k as x from found f/g) ?? []).length, 4, 'rules 2-5 name what is found and not pinned');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'missing or changed: ' \|\| p\.k from pinned p/g) ?? []).length, 4, 'and what is pinned and not found');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/ and [pf]\.roles is not distinct from [pf]\.roles/g) ?? []).length, 2, 'rule 4 compares roles both ways (Q0 Q-3, mutant C2)');
   }
   // THE VOCABULARY CHECKS (survey §6 item 6). Each pinned text is of the selector's shape and named by a
   // migration; a vocabulary shared by several homes is one text in each, so the rewrite of every home alike
@@ -3188,7 +3237,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal((m.VOCABULARY_CHECK_PROBE_SQL.match(/raise exception/g) ?? []).length, 2, 'two rules: found and not pinned, pinned and not found');
   }
   // THE POLICY SET (survey §6 item 7). With the other lists it names every policy in app exactly once; its
-  // rows are the read predicates of tables no client writes, the service-path closures and app_authz's own.
+  // rows are the read predicates on the 16 tables PERMISSIVE_POLICIES has no row for (C0-5 on the review
+  // round: not "tables no client writes"), the service-path closures and app_authz's own.
   {
     const file = JSON.parse(await readFile(m.POLICY_SET_FILE, 'utf8'));
     assert.deepEqual(m.POLICY_SET, file.policies, 'the probe reads the lint file and nothing else');
@@ -3204,6 +3254,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     }
     const reads = rows.filter(([k]) => !k.endsWith('_service_path_closed') && k !== `${m.AUTHZ_TABLE}.${m.AUTHZ_POLICY}`);
     assert.equal(reads.length, 17, 'seventeen permissive read predicates');
+    assert.equal(new Set(reads.map(([k]) => k.split('.')[0])).size, 16, 'on sixteen tables (C0-5: the draft said thirteen)');
+    for (const [k] of reads) assert.ok(!Object.keys(m.PERMISSIVE_POLICIES).some((p) => p.split('.')[0] === k.split('.')[0]), `${k}: on a table PERMISSIVE_POLICIES has no row for`);
+    assert.match(m.POLICY_SET_PROBE_SQL, / and f\.roles = p\.roles\n/, 'rule 2 compares roles (Q0 Q-3, mutant C6)');
     for (const [k, p] of reads) {
       assert.deepEqual([p.permissive, p.cmd, p.roles, p.check], [true, 'r', 'authenticated', null], `${k}: a permissive SELECT for authenticated`);
       assert.ok(p.using.length > 10, `${k}: with its predicate`);
@@ -3213,7 +3266,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal((m.POLICY_SET_PROBE_SQL.match(/raise exception/g) ?? []).length, 2, 'two rules');
   }
   // INDEX COVERAGE (plan (b); ERD §3.3). Exemptions keyed schema.table.column with a reason; every index a
-  // migration names *_keyset_idx is a declared lookup; the named WS:905 queries are there; the content first
+  // migration names *_keyset_idx is a declared lookup; the named WS:911 queries are there; the content first
   // page is a finding, not a lookup.
   {
     const file = JSON.parse(await readFile(m.INDEX_COVERAGE_FILE, 'utf8'));
@@ -3231,7 +3284,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(keyset.length, 21, 'twenty-one *_keyset_idx indexes in the migrations, as the catalog measured');
     const lookups = Object.entries(m.INDEX_COVERAGE.lookups);
     for (const t of keyset) assert.ok(lookups.some(([, l]) => l.table === t && /DESC$/.test(l.columns.at(-1))), `${t}: its keyset cursor is a declared lookup`);
-    for (const q of ['membership check', 'workspace switch / list', 'calendar first page', 'library first page', 'worker claim']) assert.ok(m.INDEX_COVERAGE.lookups[q], `WS:905-910's ${q} is declared`);
+    for (const q of ['membership check', 'workspace switch / list', 'calendar first page', 'library first page', 'worker claim']) assert.ok(m.INDEX_COVERAGE.lookups[q], `WS:909-917's ${q} is declared`);
     for (const [name, l] of lookups) {
       assert.ok(Object.keys(m.PINNED_GRANTS).includes(l.table), `${name}: on a table the migrations create`);
       assert.ok(l.columns.length > 0 && l.columns.every((c) => /^[a-z_]+( DESC)?$/.test(c)), `${name}: column names, each with its direction`);
@@ -3240,11 +3293,23 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(m.INDEX_COVERAGE.findings.find((f) => f.id === 'IC-1')?.table, 'app.content_items', 'the content first page, served by no index, is a finding (Q150-b), not a lookup that would fail');
     assert.ok(!lookups.some(([, l]) => l.table === 'app.content_items'), 'and no lookup claims it');
     assert.match(m.INDEX_COVERAGE_PROBE_SQL, /pg_catalog\.pg_depend d on d\.classid = 'pg_catalog\.pg_policy'::pg_catalog\.regclass and d\.objid = pol\.oid/, 'rule 1 reads what each policy depends on');
-    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and i\.indpred is null\n/, 'and counts only valid whole indexes');
-    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /idx\.cols\[1:pg_catalog\.cardinality\(l\.cols\)\] = l\.cols and idx\.pred is not distinct from l\.pred/, 'rule 2: the index begins with the lookup, in order and direction, with its predicate');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and i\.indpred is null and am\.amname = 'btree'\n/, 'and counts only valid whole btree indexes (C0-1, Q0 Q-1: HASH and BRIN passed)');
+    // Batch 150-prereq's review round (Q0 Q-2): the mechanics mutants C8, C9 and C10 changed with every layer
+    // green. The leading run stops at the first key column no policy reads (C8; drift 1's probe_ic_t also
+    // carries an index with its predicate column behind such a column); a column the USING deparse qualifies by
+    // its own table counts (C9; drift 1's probe_ic_q); rule 2 reads only valid btree indexes (C10, which an
+    // ordinary migration cannot drive, so it is held here), and compares the NULLS order (C0-1).
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where k\.ord <= coalesce\(\(select min\(v\.ord\) - 1 from unnest\(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) with ordinality as v\(k, ord\)\n\s+where not \(v\.k = any \(s\.cols\)\)\), i\.indnkeyatts\)\) as run/,
+      'rule 1: the run is the key columns up to the first one no policy reads (C8)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where pol\.using_text ~ \('\(\^\|\[\^\.a-z0-9_\]\)' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n\s+or pol\.using_text ~ \('\[\[:<:\]\]' \|\| c\.relname \|\| '\[\.\]' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n/,
+      'rule 1: a column named unqualified, or qualified by its own table (C9)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and am\.amname = 'btree' and n\.nspname in \('app', 'private'\)\n/, 'rule 2 reads valid btree indexes only (C10; C0-1)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /\|\| case \(i\.indoption::int2\[\]\)\[k\.ord - 1\] & 3 when 2 then ' NULLS FIRST' when 1 then ' NULLS LAST' else '' end/, 'rule 2 reads the NULLS order where it differs from the direction\'s default (C0-1)');
+    assert.equal((m.INDEX_COVERAGE_PROBE_SQL.match(/join pg_catalog\.pg_am am on am\.oid = ic\.relam/g) ?? []).length, 3, 'the access method joined in rule 1 (twice, as its CTE is written twice) and rule 2');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /idx\.cols\[1:pg_catalog\.cardinality\(l\.cols\)\] = l\.cols and idx\.pred is not distinct from l\.pred/, 'rule 2: the index begins with the lookup, in order, direction and NULLS order, with its predicate');
     assert.equal((m.INDEX_COVERAGE_PROBE_SQL.match(/raise exception/g) ?? []).length, 3, 'three rules');
   }
-  // THE WS:905 FIXTURE AND THE EXPLAIN HARNESS (plan (c)). The full shape is the workstream's own numbers; the
+  // THE WS:911 FIXTURE AND THE EXPLAIN HARNESS (plan (c)). The full shape is the workstream's own numbers; the
   // default is small; the SQL is one transaction's worth of INSERTs with nothing psql would execute and no
   // transaction control of its own; the harness rolls back, asserts no timing, and is in no make target or CI
   // workflow (CI is protected: adding it is the Integration Owner's).
@@ -3253,9 +3318,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     const h = await import('../../scripts/db/explain-harness.mjs');
     const { psqlLex } = await import('../../scripts/db/psql-driver.mjs');
     const ws = await readFile('docs/plans/core-database-and-rls-workstream-th.md', 'utf8');
-    assert.ok(ws.includes('100 Workspaces, 10 Businesses/workspace, 20 Pages/workspace, 100k Content, 1M Usage/Audit/Metric rows'), 'WS:905 still names the shape');
+    assert.ok(ws.includes('100 Workspaces, 10 Businesses/workspace, 20 Pages/workspace, 100k Content, 1M Usage/Audit/Metric rows'), 'WS:911 still names the shape');
     assert.deepEqual([fx.WS905_FULL.workspaces, fx.WS905_FULL.businessesPerWorkspace, fx.WS905_FULL.pagesPerWorkspace, fx.WS905_FULL.contentRows, fx.WS905_FULL.usageRows, fx.WS905_FULL.auditRows, fx.WS905_FULL.metricRows],
-      [100, 10, 20, 100_000, 1_000_000, 1_000_000, 1_000_000], 'the full shape is WS:905\'s');
+      [100, 10, 20, 100_000, 1_000_000, 1_000_000, 1_000_000], 'the full shape is WS:911\'s');
     const full = fx.expectedCounts(fx.WS905_FULL);
     assert.deepEqual([full['app.workspaces'], full['app.business_profiles'], full['app.page_context_profiles'], full['app.content_items'], full['app.usage_events'], full['app.audit_logs'], full['app.performance_snapshots']],
       [100, 1000, 2000, 100_000, 1_000_000, 1_000_000, 1_000_000], 'and the counts the harness checks after loading it');
@@ -3275,12 +3340,19 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     }
     const script = h.harnessScript(fx.WS905_SMALL);
     assert.match(script, /^begin;\n/, 'one transaction');
-    assert.match(script, /\nrollback;\n$/, 'rolled back: the database is left as it was');
+    assert.match(script, /\nrollback;\n$/, 'rolled back: no row stays (sequences, reltuples, dead tuples and WAL do not roll back; A1 S2, Q0 Q-5)');
+    // Batch 150-prereq's review round (A1 S3, C0-4, Q0 Q-6): before the first write, every table the fixture
+    // loads must be empty, or the harness refuses with exit 2.
+    const firstInsert = script.indexOf('\ninsert into ');
+    const emptiness = script.indexOf(`raise exception '${h.NOT_EMPTY}`);
+    assert.ok(emptiness > 0 && emptiness < firstInsert, 'the emptiness refusal comes before the first INSERT');
+    for (const t of Object.keys(fx.expectedCounts(fx.WS905_SMALL))) assert.ok(script.slice(0, firstInsert).includes(`select '${t}' as t where exists (select 1 from ${t})`), `${t}: read for rows before any write`);
+    assert.match(await readFile('scripts/db/explain-harness.mjs', 'utf8'), /return out\.error\.code === 'P0001' && out\.error\.message\.startsWith\(NOT_EMPTY\) \? EXIT\.refused : EXIT\.failed;/, 'and that refusal exits 2, not 1');
     assert.doesNotMatch(script, /^\s*commit\b/im, 'never committed');
     assert.deepEqual(psqlLex(script).metaCommands, [], 'and nothing psql would execute');
     assert.doesNotMatch(script, /p95|statement_timeout|\bms\b/, 'no timing is asserted (Q150-d)');
     assert.deepEqual(h.NAMED_QUERIES.slice(0, 6).map((q) => q.name), ['membership check', 'workspace list', 'content first page', 'calendar first page', 'library first page', 'worker claim'],
-      'WS:905-910\'s named queries, in its order');
+      'WS:909-917\'s named queries, in its order');
     assert.deepEqual(h.NAMED_QUERIES.filter((q) => q.klass === 'membership').map((q) => q.name), ['membership check', 'workspace list'], 'the two the seq scan budget reads');
     const seq = h.summarisePlan([{ Plan: { 'Node Type': 'Limit', 'Total Cost': 9, Plans: [{ 'Node Type': 'Sort', 'Sort Key': ['x'], Plans: [{ 'Node Type': 'Seq Scan', 'Relation Name': 'workspace_members' }] }] } }]);
     assert.deepEqual([seq.seqScans, seq.sorts, seq.totalCost], [['workspace_members'], ['x'], 9], 'a Seq Scan and a Sort are read from the plan JSON');

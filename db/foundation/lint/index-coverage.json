@@ -1,6 +1,6 @@
 {
-  "_what": "What the index coverage probe in scripts/db/run.mjs reads (ERD §3.3, docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:109: every FK, RLS predicate and keyset cursor column has an index; the FK half is the FK support probe). Rule 1 is computed live, not listed: every column of a table in app or private that a policy on that table reads in its USING half (a pg_depend dependency of the policy whose name the USING deparse carries unqualified or qualified by the table) must sit in the leading run of some valid whole index on that table whose key columns are all USING columns of the table, or be exempt here by schema.table.column with a reason. Rule 2: every lookup below is served by a valid index whose key columns BEGIN with its columns in order, direction included, and whose predicate is the lookup's where (or none). Rule 3: every exemption names a column rule 1 reads and finds uncovered, so an exemption cannot outlive its reason.",
-  "_measured": "On a clean migrate-clean at 1319042: 112 (table, column) pairs read by a USING half, 108 covered, the 4 below uncovered; 28 lookups, all served. The lookups are the six named queries of WS:905-910 the existing indexes serve, plus every index the migrations named *_keyset_idx, plus the two the survey and the metering batch name.",
+  "_what": "What the index coverage probe in scripts/db/run.mjs reads (ERD §3.3, docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:109: every FK, RLS predicate and keyset cursor column has an index; the FK half is the FK support probe). Rule 1 is computed live, not listed: every column of a table in app or private that a policy on that table reads in its USING half (a pg_depend dependency of the policy whose name the USING deparse carries unqualified or qualified by the table) must sit in the leading run of some valid whole BTREE index on that table whose key columns are all USING columns of the table, or be exempt here by schema.table.column with a reason. Rule 2: every lookup below is served by a valid BTREE index whose key columns BEGIN with its columns in order, direction and NULLS order included (a column here carries NULLS FIRST or NULLS LAST only where it differs from its direction's default; none does), and whose predicate is the lookup's where (or none). Rule 3: every exemption names a column rule 1 reads and finds uncovered, so an exemption cannot outlive its reason. Both rules read the access method and rule 2 the NULLS order since batch 150-prereq's review round (C0-1, Q0 Q-1: a HASH, a BRIN and a DESC NULLS LAST rebuild each passed every layer while the declared query lost its index). A green lookup says an index of that shape exists, not that the query plans through it: the workspace switch / list lookup is green while the WS:913 workspace list seq-scans app.workspaces (F2, open_blockers[194] (1)).",
+  "_measured": "On a clean migrate-clean at 1319042: 112 (table, column) pairs read by a USING half, 108 covered, the 4 below uncovered; 28 lookups, all served. The lookups are the six named queries of WS:909-917 the existing indexes serve, plus every index the migrations named *_keyset_idx, plus the two the survey and the metering batch name.",
   "rls_predicate_exemptions": {
     "app.approval_requests.status": "a state filter (status = 'pending') applied with workspace_id, business_profile_id and content_item_id, which approval_requests_item_version_scope_idx and the scope key carry; a request's status has four values and an index leading with it would not be chosen",
     "app.calendar_items.deleted_at": "deleted_at IS NULL is the predicate of calendar_items_date_idx and calendar_items_one_active_per_item (partial indexes), which rule 1 does not count; a whole index on a soft-delete stamp would not be chosen",
@@ -28,7 +28,7 @@
         "id DESC"
       ],
       "where": "(deleted_at IS NULL)",
-      "why": "library first page (a business's undeleted assets, created_at DESC, id DESC), WS:908; today assets_library_keyset_idx, 100_asset.sql"
+      "why": "library first page (a business's undeleted assets, created_at DESC, id DESC), WS:914; today assets_library_keyset_idx, 100_asset.sql"
     },
     "assets keyset (workspace_id, page_context_profile_id, created_at DESC)": {
       "table": "app.assets",
@@ -97,7 +97,7 @@
         "scheduled_local_date"
       ],
       "where": "(deleted_at IS NULL)",
-      "why": "calendar first page (a workspace's undeleted items by local date), WS:908; today calendar_items_date_idx, 091_calendar.sql"
+      "why": "calendar first page (a workspace's undeleted items by local date), WS:914; today calendar_items_date_idx, 091_calendar.sql"
     },
     "industry_assignments keyset (workspace_id, created_at DESC, id DESC)": {
       "table": "app.industry_assignments",
@@ -115,7 +115,7 @@
         "available_at"
       ],
       "where": null,
-      "why": "worker claim (due jobs by available_at), WS:910; today jobs_available_at_idx, 050_async_kernel.sql"
+      "why": "worker claim (due jobs by available_at), WS:915; today jobs_available_at_idx, 050_async_kernel.sql"
     },
     "jobs keyset (workspace_id, created_at DESC, id DESC)": {
       "table": "app.jobs",
@@ -218,7 +218,7 @@
         "occurred_at"
       ],
       "where": null,
-      "why": "quota bucket recompute (a workspace's usage by business, dimension and time; the 1M usage rows of WS:905 land here); today usage_events_bucket_recompute_idx, 061_metering.sql"
+      "why": "quota bucket recompute (a workspace's usage by business, dimension and time; the 1M usage rows of WS:911 land here); today usage_events_bucket_recompute_idx, 061_metering.sql"
     },
     "usage_events keyset (workspace_id, created_at DESC, id DESC)": {
       "table": "app.usage_events",
@@ -270,7 +270,7 @@
         "user_id"
       ],
       "where": null,
-      "why": "membership check (app.workspace_member_role: workspace_id = $1 and user_id = jwt subject and status active), WS:907; today workspace_members_one_per_workspace, 010_identity.sql"
+      "why": "membership check (app.workspace_member_role: workspace_id = $1 and user_id = jwt subject and status active), WS:913; today workspace_members_one_per_workspace, 010_identity.sql"
     },
     "workspace switch / list": {
       "table": "app.workspace_members",
@@ -279,7 +279,7 @@
         "status"
       ],
       "where": null,
-      "why": "workspace switch / list (the caller's active memberships), WS:907; today workspace_members_user_id_status_idx, 010_identity.sql"
+      "why": "workspace switch / list (the caller's active memberships), WS:913; today workspace_members_user_id_status_idx, 010_identity.sql. Green here is the membership side only: the workspace list query itself starts from app.workspaces and seq-scans it at 100 workspaces (F2, open_blockers[194] (1); A1 S5)"
     },
     "workspace_members keyset (workspace_id, created_at DESC, id DESC)": {
       "table": "app.workspace_members",
@@ -295,7 +295,7 @@
   "findings": [
     {
       "id": "IC-1",
-      "query": "content first page (WS:908)",
+      "query": "content first page (WS:914)",
       "table": "app.content_items",
       "columns": [
         "workspace_id",

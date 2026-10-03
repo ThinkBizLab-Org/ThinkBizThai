@@ -1,5 +1,5 @@
-// A SYNTHETIC FIXTURE OF THE WS:905 SHAPE (the batch 150 prerequisite draft; plan "Batch 150 -- Can do now"
-// (c)). docs/plans/core-database-and-rls-workstream-th.md:905-910 asks for a production-like fixture of at
+// A SYNTHETIC FIXTURE OF THE WS:911 SHAPE (the batch 150 prerequisite draft; plan "Batch 150 -- Can do now"
+// (c)). docs/plans/core-database-and-rls-workstream-th.md:909-917 asks for a production-like fixture of at
 // least 100 workspaces, 10 businesses per workspace, 20 pages per workspace, 100k content rows and 1M usage,
 // audit and metric rows, against which "no sequential scan on membership checks" and the first-page budgets
 // are read. This module only WRITES SQL: one string, no psql meta-command, no transaction control (the
@@ -7,7 +7,7 @@
 // can be reproduced and no customer data or secret can enter it (CONTRIBUTING_AGENTS.md: synthetic fixtures
 // by default).
 //
-// The scale is a parameter. WS905_FULL is the WS:905 shape; WS905_SMALL is the default, small enough for a
+// The scale is a parameter. WS905_FULL is the WS:911 shape; WS905_SMALL is the default, small enough for a
 // test to build the text and for a local run to load in seconds. Rows are spread round-robin over the
 // workspaces and, within a workspace, over its businesses, so every workspace carries the same share.
 //
@@ -29,7 +29,7 @@ export const WS905_SMALL = Object.freeze({
 });
 
 // The full shape with every ROW count multiplied by `factor` (workspaces, businesses and pages kept), so a
-// run can keep the tenant hierarchy of WS:905 and scale only the volume.
+// run can keep the tenant hierarchy of WS:911 and scale only the volume.
 export function ws905Scaled(factor) {
   if (!(factor > 0 && factor <= 1)) throw new Error(`a scale factor is in (0, 1], not ${factor}`);
   const rows = (n) => Math.max(1, Math.round(n * factor));
@@ -101,7 +101,7 @@ export function fixtureSql(params = WS905_SMALL) {
   const page = (c) => `case when ${c} % 2 = 0 and ${slot(c)} < ${P} then ${uuidOf('page', `(${ws(c)} - 1) * ${P} + ${slot(c)} + 1`)} end`;
   const owner = (w) => uuidOf('user', `(${w} - 1) * ${M} + 1`);
   const job = (r) => `(${ws(r)} + ${W} * (((${r} - 1) / ${W}) % ${p.jobsPerWorkspace}))`;
-  return `-- WS:905 synthetic fixture: ${JSON.stringify(p)}
+  return `-- WS:911 synthetic fixture: ${JSON.stringify(p)}
 insert into app.workspaces (id, name, lifecycle_state, created_at)
 select ${uuidOf('ws', 'w')}, 'ws905 workspace ' || w, 'active', ${base} + w * interval '1 minute'
   from generate_series(1, ${W}) w;

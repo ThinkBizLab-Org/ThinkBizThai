@@ -615,9 +615,12 @@ break it silently:
    weak-assertion survey §6 item 5). `db/foundation/lint/pinned-shapes.json` holds `app.performance_snapshots`,
    `app.published_posts` and `app.usage_events`: row level security enabled AND forced (rule 1; FORCE was
    asserted nowhere, Q0 D30), every constraint by type, `pg_get_constraintdef` and validation (rule 2), every
-   index by `pg_get_indexdef` and validity (rule 3), and every policy by permissive flag, command, roles and
-   both halves (rule 4), each set compared both ways. 121's block held these by name, a quoted-token set and
-   a `LIKE`. A batch that rebuilds one of them (Q150-a, undecided) rewrites the file in the same diff.
+   index by `pg_get_indexdef` and validity (rule 3), every policy by permissive flag, command, roles and
+   both halves (rule 4), and every non-internal trigger by `pg_get_triggerdef` and enabled (rule 5, none
+   today; a BEFORE INSERT trigger passed every layer before it, A1 S4 and C0-8 on the review round), each set
+   compared both ways. 121's block held these by name, a quoted-token set and a `LIKE`. No column is pinned
+   (type, NOT NULL, default, identity: F7, `open_blockers[194]` (4)). A batch that rebuilds one of them
+   (Q150-a, undecided) rewrites the file in the same diff.
 19. **Every vocabulary CHECK is pinned by its fixed text** (survey §6 item 6).
    `db/foundation/lint/vocabulary-checks.json` holds the 60 CHECKs in `app` and `private` whose deparse
    carries a literal array (`ARRAY['`) or is the single-column `CHECK ((col = 'value'::text))`; the probe
@@ -627,18 +630,24 @@ break it silently:
    written as an OR, a regex or a domain, and the other 209 CHECKs.
 20. **Every policy on every table is named by a pinned list** (survey §6 item 7). With
    `PERMISSIVE_POLICIES`, `PINNED_POLICIES` and the five closure lists, `db/foundation/lint/policy-set.json`
-   closes the set: the 17 permissive read predicates of tables no client writes, the 26 service-path closures
+   closes the set: the 17 permissive read predicates on the 16 tables `PERMISSIVE_POLICIES` has no row for
+   (`workspace_members` carries two; C0-5 on the review round), the 26 service-path closures
    (held before by rls-smoke's text check on named tables) and `app_authz`'s own policy. Rule 1 names a policy
    on a table in any schema but the system ones that no list names; rule 2 names a row of the file that is not
    found in its exact text.
 21. **Every RLS predicate column and keyset cursor has an index** (plan (b); ERD §3.3, line 109; the foreign-key
    half is the FK support probe). Rule 1 is computed: a column a policy on its own table reads in its USING half
-   (a `pg_depend` dependency the USING deparse names) sits in the leading run of a valid whole index whose
-   key columns are all such columns, or is exempt in `db/foundation/lint/index-coverage.json` by
+   (a `pg_depend` dependency the USING deparse names) sits in the leading run of a valid whole btree index
+   whose key columns are all such columns, or is exempt in `db/foundation/lint/index-coverage.json` by
    `schema.table.column` with a reason (four state filters, measured). Rule 2: every declared lookup -- the
-   named WS:905-910 queries today's indexes serve, and every index a migration named `*_keyset_idx` -- is
-   served by a valid index whose key columns begin with its columns, in order and direction, with exactly its
-   predicate. Rule 3: every exemption names a column rule 1 finds uncovered. The content list's first page
+   named WS:909-917 queries today's indexes serve, and every index a migration named `*_keyset_idx` -- is
+   served by a valid btree index whose key columns begin with its columns, in order, direction and NULLS
+   order, with exactly its predicate. Both rules read the access method, and rule 2 the NULLS order, since the
+   review round (C0-1, Q0 Q-1: a HASH worker-claim index, a BRIN workspace-switch index and a `DESC NULLS
+   LAST` audit keyset each passed every layer while its query lost the index). "Served" means an index of
+   that shape exists; whether the query plans through it is the harness's to show (F2: the workspace list
+   seq-scans `workspaces` while its membership lookup is green). Rule 3: every exemption names a column rule
+   1 finds uncovered. The content list's first page
    has NO serving index today; it is a finding in the file (IC-1), not a lookup, since the index is a migration
    (Q150-b).
 
@@ -693,25 +702,44 @@ Rules 2 and 5 compare PostgreSQL's deparsed text. A change of the Postgres major
 change that text without the policy changing. If that happens, the probe fails by name, and the
 fix is to re-measure the text, not to loosen the rule.
 
-## The WS:905 fixture and the EXPLAIN harness (not a target, not in CI)
+## The WS:911 fixture and the EXPLAIN harness (not a target, not in CI)
 
 `test-kits/db/ws905-fixture.mjs` writes the SQL of a synthetic fixture of the workstream's production-like
-shape (`docs/plans/core-database-and-rls-workstream-th.md:905`: 100 workspaces, 10 businesses and 20 pages
+shape (`docs/plans/core-database-and-rls-workstream-th.md:911`: 100 workspaces, 10 businesses and 20 pages
 per workspace, 100k content rows, 1M usage, audit and metric rows), every id derived, every row synthetic.
 The scale is a parameter: `WS905_SMALL` (the default), `WS905_FULL`, or `ws905Scaled(factor)`, which keeps the
-tenant hierarchy and scales the volume. `scripts/db/explain-harness.mjs` loads it into a database `make
-db-migrate-clean` built, in one transaction, checks the row counts, runs ANALYZE, captures the plan of each
-named query (membership check, workspace list, content, calendar and library first page, worker claim, and
-three reads of the tables batch 150 concerns) under the role that runs it, prints each plan's Seq Scans,
-indexes and sorts, and rolls back:
+tenant hierarchy and scales the volume. `scripts/db/explain-harness.mjs` loads it into a FRESH database `make
+db-migrate-clean` built and nothing has written to since -- run it before `make db-rls-smoke`, which commits
+rows -- in one transaction, checks the row counts, runs ANALYZE, captures the plan of each named query
+(membership check, workspace list, content, calendar and library first page, worker claim, and three reads
+of the tables batch 150 concerns) under the role that runs it, prints each plan's Seq Scans, indexes and
+sorts, and rolls back:
 
     DB_TEST_URL=postgresql://postgres@127.0.0.1:<port>/postgres node scripts/db/explain-harness.mjs --scale 0.2
 
+Before its first write it refuses with exit 2 unless every table the fixture loads is empty, so on a
+database `rls-smoke` has used (CI's order: migrate-clean, then rls-smoke, on one service database) it
+refuses rather than loading three million rows and failing on the count (C0-4, Q0 Q-6, A1 S3 on the review
+round). An Integration Owner wiring it into CI runs it between the two, or on its own database.
+
+Rolled back is not "left as it was". No row stays, but identity sequences advance (`nextval` is not
+transactional), ANALYZE's `reltuples` stay, and the dead tuples and WAL stay on disk until `VACUUM` or the
+cluster is removed: A1 measured three runs (small, 0.2, 0.2) growing the database from 14 MB to 592 MB and
+taking 1.6 GB of free disk, none of it returned at rollback, and Q0 measured plan costs drifting between
+repeat runs while the plan shapes held (A1 S2, Q0 Q-5). Run it once per fresh cluster and remove the cluster
+afterwards. The full scale needs about 2 GB of free disk while it runs; the harness has no free-space guard
+(`open_blockers[194]` (12)).
+
 It asserts no timing: the p95 budget is the SLO the team has not set (Q150-d). A Seq Scan on a
 membership-class query is reported, and fails the run only under `--fail-on-seq-scan`. It refuses without
-`DB_TEST_URL` and on a host off the `db-reset-test` allowlist. It is not a make target and CI does not run it:
-CI is protected, and adding it is the Integration Owner's. The full scale needs about 2 GB of free disk for
-the cluster while the transaction is open.
+`DB_TEST_URL`, and refuses a URL the shared test-instance guard refuses (`testHostRefusal` in
+`scripts/db/psql-driver.mjs`, which `db-reset-test` uses too): the URL is parsed, its host must be exactly
+`localhost`, `127.0.0.1`, `[::1]` or the CI service container `postgres`, its authority must hold one `@`
+and no host list, and it may carry no `host`, `hostaddr`, `service` or `servicefile` parameter (A1 S1, Q0
+Q-4, C0-9: the old text match let `?host=` and a host list reach another server). The driver also drops
+`PGHOST`, `PGHOSTADDR`, `PGSERVICE` and `PGSERVICEFILE` from psql's environment, and redacts every query
+parameter value from what it prints. It is not a make target and CI does not run it: CI is protected, and
+adding it is the Integration Owner's.
 
 ## What this package deliberately does not contain
 
