@@ -469,3 +469,25 @@ What stays owed, on open_blockers[194]:
 | The index-coverage rule reads neither collation nor opclass. Measured: an index `(user_id, status COLLATE "C")` passes every layer while the status predicate stops using it (Q0 R-2) | LOW | A0: compare indcollation and indclass with the column's defaults |
 | Blocker (1) still names Q150-d where the plan and disposition say Q150-e (C0 R-2). The guard's allowlist now admits `[::1]` for db-reset-test, which is loopback and recorded here (C0 R-3) | INFO | wording |
 | Rule 5 pins pg_get_triggerdef but not the trigger function, and the tables have no triggers today (A1 R2). "Once per cluster" is not enforced (A1 R3). The emptiness check sees every row only if the role bypasses RLS (A1 R4, read, not measured). The emptiness refusal's condition is not statically pinned (Q0 R-4). Rule 5's tgenabled comparison is vacuous today (Q0 R-3) | INFO | recorded |
+
+## 12. Re-check of the host-guard fix (2026-10-04)
+
+Q0 re-checked `6cab312`, whose fix is `77a1f76`. Its file is cherry-picked as `4293112` → `9d1a4a0`.
+
+**R-1 is closed, measured.** Every `#` spelling Q0 tried is refused before any connection is opened:
+`#?host=`, `#x?hostaddr=`, `#` with a socket dir, `%23`, `#&host=`, and `#` in the port. Each of
+explain-harness, `run.mjs reset-test` and `make db-reset-test` refuses them.
+
+Q0 also tried 81 other spellings. None of them reaches an off-list host. Legitimate test URLs are
+still admitted, and `npm run check` passes 684/684.
+
+No stop-the-line, and nothing blocks the merge. Owed on the batch 150 blocker:
+
+- **G-1 (LOW).** Only the first ten crafted URLs go through the real tools. Mutants that drop either
+  half of the fix alone survive the static test. Owed: run every crafted URL through both tools, and
+  add one pin per half.
+- **G-2 (LOW).** `redactConnection` still reads WHATWG `searchParams`. An unguarded target, such as
+  `make db-migrate-clean` with `#?host=...`, printed the host unredacted, and `[::1]` prints as
+  `::1`. Owed: collect redaction values from the raw query, or refuse `#` for every target.
+- **G-3 and G-4 (INFO).** An upper-case scheme and TAB/LF are admitted but reach no off-list host. A
+  few refusals are stricter than they need to be, and these are harmless.
