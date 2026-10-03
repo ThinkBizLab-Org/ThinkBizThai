@@ -1,5 +1,5 @@
 {
-  "_what": "How app.audit_logs (db/foundation/migrations/140_audit.sql) reads CTR-AUD-001 (contract-catalog/shared-kernel/ctr-aud-001/schema.json, status Draft, owners A0+A6), written down so a test can hold it in both directions: every column maps to contract paths or is a pinned divergence, and every contract leaf is mapped by a column or is a pinned divergence. If the Draft moves -- a property added, renamed, retyped, made required, or its enum or pattern changed -- the test in test-kits/db/foundation-contract.test.mjs fails naming the path.",
+  "_what": "How app.audit_logs (db/foundation/migrations/140_audit.sql) reads CTR-AUD-001 (contract-catalog/shared-kernel/ctr-aud-001/schema.json, status Draft, owners A0+A6), written down so a test can hold it in both directions: every column maps to contract paths or is a pinned divergence, and every contract leaf is mapped by a column or is a pinned divergence. If the Draft moves -- a property added, renamed, retyped, made required, or its enum or pattern changed -- the test in test-kits/db/foundation-contract.test.mjs fails naming the path. `check_narrowings` (added by batch 141 prep's review round, C0 G2) names each column whose CHECK is stricter than the contract paths it maps beyond its type; every `*_not_blank` CHECK on app.audit_logs must be named there, and the test reads each one's text.",
   "_written_by": "Batch 141 preparation draft (A0 /claude/a0_atlas drafting subagent, 2026-10-03). It records batch 140's reading and the gaps found in it; it countersigns nothing. Whether CTR-AUD-001 freezes as 140 reads it is Q141-b (A0+A6), not taken here.",
   "contract": "contract-catalog/shared-kernel/ctr-aud-001/schema.json",
   "table": "app.audit_logs",
@@ -44,6 +44,13 @@
     "business_profile_id": "scope_ids_are_uuid",
     "page_context_profile_id": "scope_ids_are_uuid"
   },
+  "check_narrowings": {
+    "actor_id": "ids_not_blank_narrows_min_length",
+    "request_id": "ids_not_blank_narrows_min_length",
+    "correlation_id": "ids_not_blank_narrows_min_length",
+    "causation_id": "ids_not_blank_narrows_min_length",
+    "error_code": "ids_not_blank_narrows_min_length"
+  },
   "divergences": {
     "no_details_column": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (first); WP-0A-DB-00 open_blockers[33] (line 287)" },
     "no_locale_no_timezone": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (second); open_blockers[33]" },
@@ -51,7 +58,8 @@
     "tenant_context_flattened": { "declared": true, "where": "140_audit.sql header, FOUR DIVERGENCES (fourth); open_blockers[33]" },
     "audit_id_is_a_uuid_named_id": { "declared": false, "finding": "The contract's audit_id is a string of minLength 1; the store's key is `id uuid primary key default gen_random_uuid()`. Neither the rename nor the narrowing is among the four divergences 140 declares, and every valid example in contract-catalog/shared-kernel/ctr-aud-001/examples/ (aud_synthetic_0001 ...) is an audit_id the store cannot hold." },
     "scope_ids_are_uuid": { "declared": false, "finding": "CTR-TEN-001 types workspace_id, business_profile_id and page_context_profile_id as strings of minLength 1; the store types them uuid. 140 declares the flattening into §3.3's names, not the narrowing; the contract's own examples (ws_synthetic_0001 ...) cannot be stored." },
-    "two_contract_values_one_column": { "declared": false, "finding": "The contract carries actor, correlation_id and causation_id twice -- at the root and inside tenant_context -- and correlation_id a third time inside error; its untestable_by_schema note (3) says nothing checks they agree. The store has one column for each, so it cannot hold a record in which they differ, and nothing says which copy a producer must write. 140's header says only that `correlation_id is already a column here` for the error copy." },
+    "two_contract_values_one_column": { "declared": false, "finding": "The contract carries actor, correlation_id and causation_id twice -- at the root and inside tenant_context -- and correlation_id a third time inside error; its untestable_by_schema note (3) names the correlation_id copy as one nothing checks; the same holds, unstated, for actor and causation_id. The store has one column for each, so it cannot hold a record in which they differ, and nothing says which copy a producer must write. 140's header says only that `correlation_id is already a column here` for the error copy." },
+    "ids_not_blank_narrows_min_length": { "declared": false, "finding": "CTR-TEN-001 types actor.id, request_id, correlation_id and causation_id, and CTR-ERR-001 types code, as strings of minLength 1, so a whitespace-only value is contract-valid; 140 checks each of the five columns with length(btrim(x)) > 0 (audit_logs_actor_id_not_blank, _request_id_not_blank, _correlation_id_not_blank, _causation_id_not_blank, _error_code_not_blank), so the store refuses it. Measured live by C0 in batch 141 prep's review: an actor id of one space was refused by audit_logs_actor_id_not_blank. A narrowing of the same kind as scope_ids_are_uuid that 140 does not declare; check_narrowings names the five columns and the test reads each CHECK's text. Owed to Q141-b (A0+A6) on open_blockers[33] as F15." },
     "created_at_is_store_only": { "declared": false, "finding": "created_at has no contract property. 140 explains it in a column comment (when the record was written, distinct from occurred_at) but does not list it as a divergence." }
   },
   "not_governed": {

@@ -179,7 +179,12 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // service-policy map, the audit coverage map, the store's reading of CTR-AUD-001 and its fixtures, 64
 // assertions; the other 24 are batch 129's review round, which made 549 on main c5a648e without moving this
 // floor. Four tests added, so the test floor moves 73 to 77 and the name digest with it; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 613,
+// 613 to 633 with the batch 141 preparation's review round (2026-10-03, no migration): every column of
+// 140's body whatever its type, no later ALTER TABLE or policy on an audit table in any spelling, the
+// not-blank CHECKs as a pinned narrowing, the coverage map's closed keys, §8 slice, support citation and
+// the review round's eleven rows, and the F6 fixtures' categories; no test is added and none renamed, so
+// the test floor and the name digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 633,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
