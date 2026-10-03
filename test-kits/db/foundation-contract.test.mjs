@@ -2154,7 +2154,18 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   // The lexer, on the shapes the reviews measured and the shapes it must leave alone.
   for (const [sql, n] of [['select 1; \\! touch f', 1], ['select 1 \\gexec', 1], ['\\c other', 1], ['select 1;\n  \\set a COM', 1],
     ["select E'\\'' as a; \\gexec", 1], ["select '%\\_by';", 0], ["select '\\!' as a;", 0], ['select $$ \\! $$;', 0], ['select $t$ \\! $t$;', 0],
-    ['-- \\! a comment\nselect 1;', 0], ['/* \\! /* nested */ */ select 1;', 0], ['select "a\\b" from t;', 0]]) {
+    ['-- \\! a comment\nselect 1;', 0], ['/* \\! /* nested */ */ select 1;', 0], ['select "a\\b" from t;', 0],
+    // Batch 126's review round (A1 F1, Q0 F1): where psql's lexer could part from this one, refused. A
+    // bare CR ends a -- comment for psql (A1 L3); standard_conforming_strings, named anywhere (A1 L2, Q0
+    // X1); a quote after an odd run of backslashes in a plain literal, which is where turning it off by
+    // any spelling moves the literal's end (A1 L2 by set_config); `1.e'` is a plain literal (A1 L1); a
+    // plain literal read as an E-string, and a dollar tag after an identifier character, would each
+    // hide the \\! (Q0 M-LEX-E, M-LEX-DQ).
+    ['select 1 as one; -- a comment\r \\! touch f\n', 1], ["set standard_conforming_strings = off;\nselect 'x';", 1],
+    ["select set_config('standard_' || 'conforming_strings', 'off', false);\nselect 'x\\' as a, ' \\! f\nas b;", 1],
+    ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 2],
+    ["select '\\'; \\! x\n-- '", 2], ['select 1 as x$a$; \\! x\n-- $a$', 1],
+    ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 0]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2284,6 +2295,8 @@ test('the forward fix 125 keeps its settled-row closure, the database-owned deci
     'an INSERT that names a decider is timed by the database (item 15)');
   assert.match(next, /elsif old\.status <> 'pending'\s+and \(new\.status is distinct from old\.status\s+or new\.decided_by is distinct from old\.decided_by\s+or new\.decided_at is distinct from old\.decided_at\) then\s+raise exception 'a settled approval request keeps its status, decided_by and decided_at'/,
     'a settled request keeps its outcome for every writer that fires triggers (item 15)');
+  assert.match(next, /elsif old\.status <> 'pending'\s+and \(pg_catalog\.to_jsonb\(new\) - array\['updated_at', 'updated_by'\]\)\s+is distinct from \(pg_catalog\.to_jsonb\(old\) - array\['updated_at', 'updated_by'\]\) then\s+raise exception 'a settled approval request keeps what it decided: every column but updated_at and updated_by'/,
+    'and what it decided: every column but updated_at and updated_by, read as the row so a later column is frozen too (Q0 F2 on 126)');
   assert.match(next, /elsif old\.decided_by is null and new\.decided_by is not null then\s+new\.decided_at := pg_catalog\.statement_timestamp\(\);/,
     "the statement's time, not the transaction's (item 17)");
   assert.doesNotMatch(next, /pg_catalog\.now\(\)/, 'and now() is gone from the body');
@@ -2297,13 +2310,14 @@ test('the forward fix 125 keeps its settled-row closure, the database-owned deci
   assert.ok(replacement.includes(`md5(p.prosrc) = '${nextDigest}'`), "125's replacement pins 126's body");
   assert.ok(replacement.includes('BEFORE INSERT OR UPDATE ON app.approval_requests'), "and 126's trigger definition");
   const { PINNED_TRIGGER_FUNCTIONS, PINNED_TABLE_TRIGGERS, PINNED_CHECKS: CHECKS } = await import('../../scripts/db/run.mjs');
-  assert.deepEqual(PINNED_TRIGGER_FUNCTIONS.find(([f]) => f === 'private.set_decided_at()'), ['private.set_decided_at()', 'invoker', nextDigest],
-    'and the pinned trigger probe pins the same body, a second pin in another file (item 13)');
+  assert.deepEqual(PINNED_TRIGGER_FUNCTIONS.find(([f]) => f === 'private.set_decided_at()'), ['private.set_decided_at()', 'invoker', nextDigest, 'migration owner'],
+    'and the pinned trigger probe pins the same body, a second pin in another file (item 13), and its owner (Q0 F8 on 126)');
   assert.ok(PINNED_TABLE_TRIGGERS['app.approval_requests'].includes('CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()'));
   assert.equal(CHECKS['approval_requests.approval_requests_decided_after_created'], 'CHECK ((decided_at >= created_at))');
   // The non-client writer is shown refused on every rls-smoke run, by the loader itself (item 15).
   const fixture = await readFile('tests/db/identity/fixtures/090-approval-fixture.sql', 'utf8');
   assert.match(fixture, /the loader overturned a settled approval request/);
+  assert.match(fixture, /the loader changed what a settled approval request decided/);
   assert.match(fixture, /the loader turned a cancelled approval request into a decision/);
   assert.match(fixture, /kept the decision time the loader sent/);
 });
@@ -2420,8 +2434,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
-      m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL],
-    'all fourteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3)');
+      m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
+    'all sixteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2494,11 +2508,14 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     fails(k, { ...raised(job, message), nonce: undefined }, 'an outcome with no nonce');
   }
   // THE JOB SCRIPT, in order: the transaction id before the drift, the drift, the nonce and the id after
-  // it, the search_path pinned, the probe, the closing marker, rollback.
+  // it, the search_path pinned, the pg_catalog guard (Q0 F3 on 126), the probe, the closing marker, rollback.
   const script = m.probeJobScript({ drift: 'D;', sql: 'S' }, nonce).split('\n');
   assert.deepEqual(script, ['begin;', `select '${m.PROBE_TX_MARK}' || pg_catalog.txid_current() as probe;`, 'D;',
-    `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`, 'set local search_path = pg_catalog;', 'S',
+    `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`, 'set local search_path = pg_catalog;', ...m.PG_CATALOG_GUARD_SQL.trimEnd().split('\n'), 'S',
     `select '${nonce}:end:' || pg_catalog.txid_current() as probe;`, 'rollback;', '']);
+  // The guard decides by EXISTS over OID comparisons, before anything a drift could overload is called.
+  assert.match(m.PG_CATALOG_GUARD_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  if exists \(select 1 from pg_catalog\.pg_proc p where p\.pronamespace = 11::pg_catalog\.oid and p\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_operator o where o\.oprnamespace = 11::pg_catalog\.oid and o\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_cast k where k\.oid >= 16384::pg_catalog\.oid\) then\n/,
+    'functions, operators and casts in pg_catalog at or above FirstNormalObjectId, decided first');
   // THE PROBES AND THEIR PINS, BY DIGEST (Q0 F2: no test pinned the values). A change to a probe, its
   // pinned lists, its drift, its raise or the objects it names changes one of these, in the same diff as
   // the reason for it.
@@ -2518,6 +2535,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // approval_requests_decided_after_created (item 17); trigger prints what differs in its second rule
   // and gains the parameter-grant rule and drift (items 11, 14); pinned trigger probe is new (item 13);
   // pinned grant and pinned default probes are new (batch 091's third round: C0 H1 and H3, A1 R1 and R3).
+  // Batch 126's review round: pinned check 9160fbd1a4c57d58 to 9fbe921cb30965f5 (a NOT NULL rule on the
+  // column the order CHECK reads, Q0 F8); pinned trigger 24fef9153a8b1c5c to f136765c6beb5dbf (126's new
+  // body digest, the owner pinned, Q0 F2 and F8); pinned grant d7e4ecebf95f0fae to 2e3ef3743a2ca6ad (the
+  // owner rule and the grant option, C0 F3 and F5, A1 F3, Q0 F7); rewrite rule and pg_catalog guard are new
+  // (Q0 F5, F3).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2526,14 +2548,16 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'updated_by update closure probe': '024492df9c6413be',
     'decider closure probe': '84bd3a00310d26af',
     'closure coverage probe': '1a626907571ffb7e',
-    'pinned check probe': '9160fbd1a4c57d58',
+    'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': '8d249faed4de9d73',
     'security definer probe': '890866dd704c458b',
     'trigger probe': '9f3dc969be47bd74',
-    'pinned trigger probe': '24fef9153a8b1c5c',
-    'pinned grant probe': 'd7e4ecebf95f0fae',
+    'pinned trigger probe': 'f136765c6beb5dbf',
+    'pinned grant probe': '2e3ef3743a2ca6ad',
     'pinned default probe': '570796093410bc0a',
-  }, 'a probe, a pinned list, a drift, a raise or a named object changed: update this digest in the same change, saying why');
+    'rewrite rule probe': '7125c3c6adc84957',
+    'pg_catalog guard probe': 'dde779af70d95fcf',
+  },'a probe, a pinned list, a drift, a raise or a named object changed: update this digest in the same change, saying why');
   // What each probe must READ, stated as intent beside the digest (the digest says THAT it changed;
   // these say WHAT must survive a change). Each names the finding that made it necessary.
   assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable or not c\.convalidated/, 'actions, deferrable and NOT VALID (Q0 F4)');
@@ -2548,6 +2572,19 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.CLOSURE_COVERAGE_PROBE_SQL, /and a\.attname like '%\\_by'\n/, 'every column named *_by, by one LIKE (A1 N3)');
   assert.doesNotMatch(m.CLOSURE_COVERAGE_PROBE_SQL, /attname\s*(=|in\b|~)/, 'and no single column, list or regex narrows it');
   assert.match(m.CLOSURE_COVERAGE_PROBE_SQL, /has_column_privilege\('authenticated', c\.oid, a\.attnum, 'UPDATE'\)/, 'client-updatable, read from the catalog');
+  // AND THE WHOLE STATEMENT, every join and every predicate (Q0 F4 on 126: `and a.attname not like
+  // 'decided%'` on the next line passed the LIKE assertion, and with it a client-writable decided_by).
+  // Rebuilt here from its own pinned list, so the only free text is what this test states.
+  const pinnedKeys = Object.entries(m.ATTRIBUTION_UPDATE_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ');
+  assert.equal(m.CLOSURE_COVERAGE_PROBE_SQL.match(/\n  (select string_agg[\s\S]*?\]\)\);)\n/)?.[1].replace(/\s+/g, ' '),
+    "select string_agg(format('app.%s.%s', c.relname, a.attname), ', ' order by c.relname, a.attname) into offending"
+    + ' from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace'
+    + ' join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped'
+    + " where n.nspname = 'app' and c.relkind in ('r', 'p') and a.attname like '%\\_by'"
+    + " and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'UPDATE')"
+    + ` and not (format('%s.%s', c.relname, a.attname) = any (array[${pinnedKeys}]));`,
+    'the coverage probe\'s statement is exactly this: no predicate added, dropped or narrowed');
+  assert.equal((m.CLOSURE_COVERAGE_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 1, 'and it is the probe\'s only statement that reads');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
     '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');
@@ -2563,13 +2600,26 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'no parameter grant of session_replication_role to a non-superuser (blocker 186 item 14; A1 V3 on 125)');
   assert.match(m.PINNED_TRIGGER_PROBE_SQL, /where not t\.tgisinternal[\s\S]*'unpinned: ' \|\| f\.def/, 'every non-internal trigger on a pinned table, an unpinned one by name (Q0 F3 on 125)');
   assert.match(m.PINNED_TRIGGER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'the functions they run, by body digest (Q0 F3, F8 on 125)');
+  assert.match(m.PINNED_TRIGGER_PROBE_SQL, /pg_get_userbyid\(p\.proowner\) <> case when pin\.owner = 'migration owner' then current_user::text else pin\.owner end\n\s+then ' \[owner is not the pinned owner\]'/,
+    'and by owner (Q0 F8 on 126)');
+  assert.ok(m.PINNED_TRIGGER_FUNCTIONS.every((row) => row.length === 4 && row[3].length > 0), 'every pinned trigger function names its owner');
+  assert.deepEqual(m.PINNED_NOT_NULL, ['app.approval_requests.created_at'], 'the column 126\'s order CHECK reads that must never be NULL (Q0 F8 on 126)');
+  assert.match(m.PINNED_CHECK_PROBE_SQL, /and a\.attname = split_part\(pin\.k, '\.', 3\) and a\.attnum > 0 and not a\.attisdropped and a\.attnotnull\);/, 'read from attnotnull');
+  assert.match(m.REWRITE_RULE_PROBE_SQL, /where n\.nspname in \('app', 'private'\)\n\s+and not \(r\.rulename = '_RETURN' and c\.relkind in \('v', 'm'\)\);/,
+    'no rewrite rule in app or private but a view\'s _RETURN (Q0 F5 on 126)');
   assert.deepEqual(Object.keys(m.PINNED_TABLE_TRIGGERS), ['app.approval_requests'], 'the table whose decision time is the database\'s');
   // The grant probe is an ALLOWLIST read from the catalog (C0 H1, A1 R3 on 091's third round): every
   // non-superuser role, every table privilege MAINTAIN included on 17+, every column privilege, each
   // compared both ways against the pinned set.
   assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_roles where not rolsuper and rolname !~ '\^pg_'/, 'every role but superusers and predefined roles, not a named list');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'\][\s\S]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+ (A1 R1)');
-  assert.match(m.PINNED_GRANT_PROBE_SQL, /has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p\)/, 'every column, by the effective privilege');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /unnest\(array\['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\]\) as p\(p\), \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)/,
+    'every column, by the effective privilege, all four column privileges, each with and without grant option (Q0 F7, C0 F3, A1 F3 on 126)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /from roles, tabs, tprivs, \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_table_privilege\(roles\.r, tabs\.t::regclass, tprivs\.p \|\| go\.opt\)/,
+    'every table privilege with and without grant option');
+  assert.ok(!Object.values(m.PINNED_GRANTS).some((roles) => JSON.stringify(roles).includes('GRANT OPTION')), 'and no grant option is ever pinned');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  select string_agg\(format\('%s \(owner %s\)'[\s\S]*where not exists \(select 1 from pg_catalog\.pg_roles o where o\.oid = c\.relowner and o\.rolsuper\);\n  if offending is not null then\n    raise exception 'pinned table\(s\) owned by a role that is not a superuser/,
+    'its first rule: the owner the role set leaves out is a superuser, stated rather than assumed (C0 F5 on 126)');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 2, 'an unlisted grant named at both levels');
   assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 2, 'and a missing one');
   assert.deepEqual(Object.keys(m.PINNED_GRANTS), ['app.calendar_items', 'app.content_schedules'], 'batch 091\'s two tables');

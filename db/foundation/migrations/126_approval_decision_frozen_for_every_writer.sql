@@ -17,13 +17,23 @@
 --          by any writer that fires triggers. All four non-pending values are terminal: 090's two client
 --          paths already require a pending row, and no documented flow moves a request out of a
 --          terminal state;
+--        * and once it is not pending, every OTHER column but updated_at and updated_by is refused any
+--          change too (Q0 F2 on this batch, before it was integrated: the superuser re-pointed an
+--          approved request's content_item_id and content_version_id to another item, still approved
+--          under the original decider's name and time -- a version nobody decided). Read as the row
+--          minus those two columns, so a column added later is frozen without editing this body;
+--          batch 160's anonymisation route (blocker 186 item 16) must account for this as for status;
 --        * a BEFORE INSERT branch records decided_at as the statement's time whenever an INSERT names a
 --          decider, whatever it sent. No client role holds INSERT on the decision columns, so this binds
 --          the loader, the superuser and a future command role.
 --      NOT DONE HERE, AND WHY: the settled-row closure for the command role. RFC-2026-023 has not said
 --      which role that is or whether it reaches this table, and a policy written for a role that does
 --      not exist is a grant reviewed against no caller (010's rule). Recorded on blocker 186 for when
---      RFC-2026-023 is disposed.
+--      RFC-2026-023 is disposed. NOR, FOR THE SAME REASON, DELETE: the freeze binds UPDATE, upsert and
+--      MERGE; a writer holding DELETE can delete a settled request and insert it again as anything
+--      (C0 F2, A1 F2 on this batch). Today only the owner and a superuser hold DELETE, and either can
+--      switch triggers off. A BEFORE DELETE refusal would pre-empt batch 160's erasure route (item
+--      16), so it is owed with RFC-2026-023's role: give that role no DELETE, or add the refusal then.
 -- (17) decided_at IS THE STATEMENT'S TIME, NOT THE TRANSACTION'S (A1 V5 NOTE: a decision recorded 1.03 s
 --      before its request's created_at, because now() is when the decider's transaction began). And
 --      approval_requests_decided_after_created: CHECK (decided_at >= created_at), which A1 named as
@@ -60,6 +70,11 @@ begin
              or new.decided_at is distinct from old.decided_at) then
     raise exception 'a settled approval request keeps its status, decided_by and decided_at'
       using errcode = 'check_violation';
+  elsif old.status <> 'pending'
+        and (pg_catalog.to_jsonb(new) - array['updated_at', 'updated_by'])
+            is distinct from (pg_catalog.to_jsonb(old) - array['updated_at', 'updated_by']) then
+    raise exception 'a settled approval request keeps what it decided: every column but updated_at and updated_by'
+      using errcode = 'check_violation';
   elsif old.decided_by is not null
         and (new.decided_by is distinct from old.decided_by or new.decided_at is distinct from old.decided_at) then
     raise exception 'an approval request that records its decision keeps its decided_by and decided_at'
@@ -76,8 +91,9 @@ revoke all on function private.set_decided_at() from public;
 comment on function private.set_decided_at() is
   'Batches 125 and 126: the database records when a decision was taken -- the statement''s time, when '
   'an UPDATE sets decided_by from NULL or an INSERT names a decider, whatever was sent -- and once a '
-  'request is not pending its status, decided_by and decided_at are refused any change by every writer '
-  'that fires triggers. For clients the settled-row closure refuses the row first.';
+  'request is not pending its status, decided_by and decided_at -- and every other column but updated_at '
+  'and updated_by -- are refused any change by every writer that fires triggers. For clients the '
+  'settled-row closure refuses the row first.';
 
 drop trigger set_decided_at on app.approval_requests;
 create trigger set_decided_at before insert or update on app.approval_requests
@@ -102,7 +118,7 @@ begin
        select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'private' and p.proname = 'set_decided_at' and not p.prosecdef
           and p.proconfig = array['search_path=""']
-          and md5(p.prosrc) = 'bc70360c6b8d2df4ce7af11b03c8500c'
+          and md5(p.prosrc) = '48bcd0d03295b86120ea89fa4dec7adf'
           and not pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')) then
     raise exception 'batch 126''s private.set_decided_at() is missing, rewritten, or not SECURITY INVOKER with an empty search_path and no EXECUTE for PUBLIC';
   end if;

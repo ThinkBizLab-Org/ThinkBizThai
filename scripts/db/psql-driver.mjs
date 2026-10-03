@@ -302,10 +302,38 @@ export async function feedTranscript(sql, options = {}) {
 // first words rather than any word anywhere (A1 V4: the keyword rule refused every DO block).
 // Known over-refusal, which fails closed: a SQL-standard `begin atomic ... end` body is split at its
 // inner `;`, so its `end` reads as a statement head.
+//
+// WHERE psql'S LEXER COULD PART FROM THIS ONE, REFUSED RATHER THAN MODELLED (batch 126's review round:
+// A1 F1, Q0 F1). This is not psql's lexer, and A1 and Q0 each ran a shell command out of a migration past
+// every scan through a place the two disagree. So the scan reports, as a finding in `metaCommands`
+// beside the backslashes, every shape on which they could disagree, and the caller refuses the source:
+//   * a carriage return not followed by a line feed: psql ends a `--` comment at a bare CR (A1 L3);
+//   * any mention of standard_conforming_strings, in any statement, literal or comment: with it off,
+//     psql reads a backslash in a plain literal as an escape (A1 L2, Q0 X1);
+//   * a quote inside or closing a PLAIN literal that follows an ODD run of backslashes. With the setting
+//     off, psql reads `\x` as one escaped character, so a quote is escaped exactly when an odd run of
+//     backslashes precedes it, and that is the only place the two readings of a plain literal can
+//     part. With none, the setting cannot move where a plain literal ends, whatever spelling turns it
+//     off (set_config of a concatenated name included). A backslash elsewhere in a plain literal (the
+//     regexes in 030, 050, 070, 140 and others, which are integrated and are not edited) is admitted;
+//   * `e'` opens an E-string only where psql's would: not after an identifier character and not after
+//     a `.` -- `1.e'\'` is one junk token and a plain literal to psql 15+ (A1 L1), and is now a plain
+//     literal whose closing quote follows one backslash, refused above.
+// The claim is the shapes measured and this list, not "anywhere psql would execute one".
 export function psqlLex(sql) {
   const text = String(sql);
   const metaCommands = [];
   const statements = [];
+  {
+    let at = 1;
+    for (let k = 0; k < text.length; k += 1) {
+      if (text[k] === '\n') at += 1;
+      else if (text[k] === '\r' && text[k + 1] !== '\n') metaCommands.push({ line: at, text: '\\r: a bare carriage return, which ends a -- comment for psql' });
+    }
+    for (const found of text.matchAll(/standard_conforming_strings/gi)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'standard_conforming_strings, which changes how psql reads a backslash' });
+    }
+  }
   let head = '';
   let headLine = 1;
   let line = 1;
@@ -336,11 +364,16 @@ export function psqlLex(sql) {
       i -= 1; head += ' '; continue;
     }
     if (ch === "'") {
-      const escapes = /[eE]/.test(text[i - 1] ?? '') && !isIdent(text[i - 2]);
+      const escapes = /[eE]/.test(text[i - 1] ?? '') && !isIdent(text[i - 2]) && text[i - 2] !== '.';
       let j = i + 1;
       for (; j < text.length; j += 1) {
         if (text[j] === '\n') line += 1;
         if (escapes && text[j] === '\\') { j += 1; continue; }
+        if (!escapes && text[j] === "'") {
+          let run = 0;
+          while (j - 1 - run > i && text[j - 1 - run] === '\\') run += 1;
+          if (run % 2 === 1) metaCommands.push({ line, text: "\\' inside a plain literal, which ends elsewhere for psql when standard_conforming_strings is off" });
+        }
         if (text[j] === "'") { if (text[j + 1] === "'") { j += 1; continue; } break; }
       }
       head += text.slice(i, j + 1); i = j; continue;
@@ -374,6 +407,7 @@ export function psqlLex(sql) {
     head += ch;
   }
   endStatement();
+  metaCommands.sort((a, b) => a.line - b.line);
   return { metaCommands, statements };
 }
 

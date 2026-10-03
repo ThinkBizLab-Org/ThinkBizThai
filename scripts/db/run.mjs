@@ -256,6 +256,10 @@ export const PINNED_CHECKS = {
   // Batch 126 (blocker 186 item 17; A1 V5 on batch 125): a decision cannot predate its request.
   'approval_requests.approval_requests_decided_after_created': 'CHECK ((decided_at >= created_at))',
 };
+// A CHECK is NULL, and so passes, when a column it reads is NULL. decided_at is NULL by design while a
+// request is pending (the pair CHECK says when); created_at must never be, or 126's order CHECK admits
+// anything (Q0 F8 on batch 126: `drop not null` on created_at passed every layer).
+export const PINNED_NOT_NULL = ['app.approval_requests.created_at'];
 export const PINNED_CHECK_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -269,6 +273,15 @@ begin
         and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
   if offending is not null then
     raise exception 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text: %', offending;
+  end if;
+  select string_agg(pin.k, ', ' order by pin.k) into offending
+    from unnest(array[${PINNED_NOT_NULL.map((k) => `'${k}'`).join(', ')}]) as pin(k)
+   where not exists (
+     select 1 from pg_catalog.pg_attribute a
+      where a.attrelid = to_regclass(split_part(pin.k, '.', 1) || '.' || split_part(pin.k, '.', 2))
+        and a.attname = split_part(pin.k, '.', 3) and a.attnum > 0 and not a.attisdropped and a.attnotnull);
+  if offending is not null then
+    raise exception 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing: %', offending;
   end if;
 end \$\$;
 `;
@@ -450,9 +463,12 @@ export const PINNED_TABLE_TRIGGERS = {
     'CREATE TRIGGER set_updated_at BEFORE UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()',
   ],
 };
+// [function, security, body digest, owner]. The owner is pinned beside the digest (Q0 F8 on batch 126: a
+// later file handing set_decided_at to app_worker passed every layer, and an owner can drop the trigger).
 export const PINNED_TRIGGER_FUNCTIONS = [
-  ['private.set_decided_at()', 'invoker', 'bc70360c6b8d2df4ce7af11b03c8500c'],
-  ['private.set_updated_at()', 'definer', SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[2]],
+  ['private.set_decided_at()', 'invoker', '48bcd0d03295b86120ea89fa4dec7adf', 'migration owner'],
+  ['private.set_updated_at()', 'definer', SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[2],
+    SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[1]],
 ];
 export const PINNED_TRIGGER_PROBE_SQL = `do \$\$
 declare
@@ -476,18 +492,21 @@ begin
     raise exception 'trigger(s) on a pinned table not exactly its pinned definitions: %', offending;
   end if;
   select string_agg(x, ', ' order by x) into offending from (
-    select format('%s.%s()%s%s%s%s', pn.nspname, p.proname,
+    select format('%s.%s()%s%s%s%s%s', pn.nspname, p.proname,
                   case when pin.fn is null then ' [not a pinned trigger function]' else '' end,
                   case when pin.fn is not null and md5(p.prosrc) <> pin.digest then ' [body differs from the pinned digest]' else '' end,
                   case when pin.fn is not null and p.prosecdef <> (pin.security = 'definer') then ' [not ' || pin.security || ']' else '' end,
                   case when p.proconfig is distinct from array['search_path=""'] or pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')
-                       then ' [search_path is not exactly "" or PUBLIC can execute]' else '' end) as x
+                       then ' [search_path is not exactly "" or PUBLIC can execute]' else '' end,
+                  case when pin.fn is not null
+                        and pg_catalog.pg_get_userbyid(p.proowner) <> case when pin.owner = 'migration owner' then current_user::text else pin.owner end
+                       then ' [owner is not the pinned owner]' else '' end) as x
       from (select distinct t.tgfoid from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
               join pg_catalog.pg_namespace n on n.oid = c.relnamespace
              where not t.tgisinternal
                and format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_TABLE_TRIGGERS).map((t) => `'${t}'`).join(', ')}])) used
       join pg_catalog.pg_proc p on p.oid = used.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
-      left join (values ${PINNED_TRIGGER_FUNCTIONS.map(([f, sec, d]) => `('${f}', '${sec}', '${d}')`).join(', ')}) as pin(fn, security, digest)
+      left join (values ${PINNED_TRIGGER_FUNCTIONS.map(([f, sec, d, o]) => `('${f}', '${sec}', '${d}', '${o}')`).join(', ')}) as pin(fn, security, digest, owner)
         on pin.fn = format('%s.%s(%s)', pn.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid))
   ) f
    where x ~ '\\[';
@@ -543,10 +562,22 @@ const grantDiff = (found, rows) => `
     union all
     select 'missing: ' || p.g from pinned p where p.g not in (select g from ${found})
   ) d;`;
+// The review round on batch 126 added two things. The role set leaves superusers out, so the probe
+// ASSUMES each pinned table's owner is a superuser (C0 F5): that is now its first rule, not a silent
+// premise -- on a cluster where the owner is not one, the owner's implicit privileges would read as
+// unlisted, and the rule says why first. And each privilege is read WITH GRANT OPTION as well, a row
+// the allowlist never lists (C0 F3, A1 F3, Q0 F7: `... with grant option` passed every layer).
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
 begin
+  select string_agg(format('%s (owner %s)', tabs.t, pg_catalog.pg_get_userbyid(c.relowner)), ', ' order by tabs.t) into offending
+    from unnest(array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]) as tabs(t)
+    join pg_catalog.pg_class c on c.oid = tabs.t::regclass
+   where not exists (select 1 from pg_catalog.pg_roles o where o.oid = c.relowner and o.rolsuper);
+  if offending is not null then
+    raise exception 'pinned table(s) owned by a role that is not a superuser, whose implicit privileges the allowlist would misread: %', offending;
+  end if;
   with roles as (
     select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
   ), tabs as (
@@ -555,9 +586,9 @@ begin
     select unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
                   || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
   ), found as (
-    select format('%s %s on %s', roles.r, tprivs.p, tabs.t) as g
-      from roles, tabs, tprivs
-     where pg_catalog.has_table_privilege(roles.r, tabs.t::regclass, tprivs.p)${grantDiff('found', pinnedGrantRows('table'))}
+    select format('%s %s%s on %s', roles.r, tprivs.p, go.opt, tabs.t) as g
+      from roles, tabs, tprivs, (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where pg_catalog.has_table_privilege(roles.r, tabs.t::regclass, tprivs.p || go.opt)${grantDiff('found', pinnedGrantRows('table'))}
   if offending is not null then
     raise exception 'table-level privilege(s) on a pinned table not exactly its allowlist: %', offending;
   end if;
@@ -569,9 +600,9 @@ begin
       join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
      where format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}])
   ), found as (
-    select format('%s %s (%s) on %s', roles.r, p.p, cols.attname, cols.t) as g
-      from roles, cols, unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p)
-     where pg_catalog.has_column_privilege(roles.r, cols.rel, cols.attnum, p.p)${grantDiff('found', pinnedGrantRows('column'))}
+    select format('%s %s%s (%s) on %s', roles.r, p.p, go.opt, cols.attname, cols.t) as g
+      from roles, cols, unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where pg_catalog.has_column_privilege(roles.r, cols.rel, cols.attnum, p.p || go.opt)${grantDiff('found', pinnedGrantRows('column'))}
   if offending is not null then
     raise exception 'column privilege(s) on a pinned table not exactly its allowlist: %', offending;
   end if;
@@ -599,6 +630,57 @@ begin
         and pg_catalog.pg_get_expr(d.adbin, d.adrelid) = pin.def);
   if offending is not null then
     raise exception 'pinned column default(s) missing or not in their pinned text: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 8. NO REWRITE RULE ON A TABLE IN app OR private (batch 126's review round; Q0 F5). A rule rewrites a
+// write before any trigger or policy sees it, and its action runs as the table's owner: Q0 measured a
+// later file's `create rule ... on insert to app.approval_requests ... do also update ... set status =
+// 'approved', decided_by = new.created_by` let an editor approve their own request, and no probe read
+// rules. The only rule a relation here may carry is a view's (or materialized view's) _RETURN.
+export const REWRITE_RULE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('%s.%s.%s', n.nspname, c.relname, r.rulename), ', ' order by n.nspname, c.relname, r.rulename) into offending
+    from pg_catalog.pg_rewrite r join pg_catalog.pg_class c on c.oid = r.ev_class
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname in ('app', 'private')
+     and not (r.rulename = '_RETURN' and c.relkind in ('v', 'm'));
+  if offending is not null then
+    raise exception 'rewrite rule(s) on a relation in app or private, which rewrite a write past its triggers and policies: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 9. NOTHING CREATED IN pg_catalog, checked in EVERY probe job after its drift and before its probe
+// (batch 126's review round; Q0 F3). The probes run with search_path pinned to pg_catalog, and a
+// superuser drift that ADDS a better-matching overload there -- Q0's `create function
+// pg_catalog.format(text, name, name)` raising a rule's own prefix and names -- had a silenced rule
+// counted as refusing its drift, with every layer green. (Replacing a built-in does not work: the
+// function manager dispatches a built-in OID to the compiled function, which is why plan §3's first
+// description of this limit was wrong.) Every object a migration or a drift creates has an OID at or
+// above 16384 (FirstNormalObjectId); the built-ins are below it. The decision is taken by EXISTS over
+// OID comparisons that are exact matches to built-in operators, which no overload can displace; only
+// the message's detail, written after the decision, calls anything a drift could shadow. It runs as
+// its own probe too, so its rule has a drift on every migrate-clean, and probeJobScript places it in
+// every job.
+export const PG_CATALOG_GUARD_SQL = `do \$\$
+declare
+  offending text;
+begin
+  if exists (select 1 from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) then
+    select string_agg(x, ', ' order by x) into offending from (
+      select 'function ' || p.proname::text || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' as x
+        from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid
+      union all
+      select 'operator ' || o.oprname::text from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid
+      union all
+      select 'cast ' || k.oid::text from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) f;
+    raise exception 'object(s) created in pg_catalog, where a call in a probe could resolve to them: %', coalesce(offending, 'unnamed');
   end if;
 end \$\$;
 `;
@@ -664,9 +746,14 @@ export const CATALOG_RULE_PROBES = [
     selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
       raises: 'client-updatable attribution column(s) with no pinned UPDATE closure', names: ['app.workspace_member_scopes.updated_by'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text`,
-    selfTests: [{ drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
-      raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider'] }] },
+    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
+    selfTests: [
+      { drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
+        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider'] },
+      // Q0 T3 on batch 126.
+      { drift: 'alter table app.approval_requests alter column created_at drop not null;',
+        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at'] },
+    ] },
   { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policies that bound which rows a client may update or see, in their pinned text`,
     selfTests: [{ drift: 'alter policy approval_requests_settled_is_immutable on app.approval_requests using (true);',
@@ -707,30 +794,46 @@ export const CATALOG_RULE_PROBES = [
         names: ['unpinned: CREATE TRIGGER set_decided_at_backfill BEFORE UPDATE ON app.approval_requests'] },
       // Q0's M6: the body rewritten in place. A function body is a DO-free drift that holds `begin` and
       // `end` inside its dollar quotes, which the statement-position rule admits (A1 V4).
-      { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$;",
+      // And Q0 T5 on batch 126: its owner changed as well.
+      { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$; alter function private.set_decided_at() owner to app_worker;",
         raises: 'trigger function(s) on a pinned table not in their pinned shape',
-        names: ['private.set_decided_at() [body differs from the pinned digest]'] },
+        names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]'] },
     ] },
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3).
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `every non-superuser role's privileges on ${Object.keys(PINNED_GRANTS).join(', ')} are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned`,
+    claim: `each of ${Object.keys(PINNED_GRANTS).join(', ')} is owned by a superuser, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned, none with grant option`,
     selfTests: [
       // A1's R1: a table-level privilege no item of 091's block names.
-      { drift: 'grant truncate on app.content_schedules to authenticated;',
+      // C0 F5 on batch 126: the owner the role set leaves out must be a superuser.
+      { drift: 'create role probe_table_owner nologin; alter table app.calendar_items owner to probe_table_owner;',
+        raises: 'pinned table(s) owned by a role that is not a superuser',
+        names: ['app.calendar_items (owner probe_table_owner)'] },
+      // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126).
+      { drift: 'grant truncate on app.content_schedules to authenticated with grant option;',
         raises: 'table-level privilege(s) on a pinned table not exactly its allowlist',
-        names: ['unlisted: authenticated TRUNCATE on app.content_schedules'] },
+        names: ['unlisted: authenticated TRUNCATE on app.content_schedules', 'unlisted: authenticated TRUNCATE WITH GRANT OPTION on app.content_schedules'] },
       // C0's d3 and d11: a placement born deleted, and a creation time the client chooses; and a column
       // for a service role, which a role list naming authenticated alone would miss (A1 R4).
-      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role;',
+      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option;',
         raises: 'column privilege(s) on a pinned table not exactly its allowlist',
         names: ['unlisted: authenticated INSERT (deleted_at) on app.calendar_items', 'unlisted: authenticated INSERT (created_at) on app.content_schedules',
-          'unlisted: service_role SELECT (id) on app.content_schedules'] },
+          'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items'] },
     ] },
   // Batch 126, from batch 091's third round (C0 H3).
   { label: 'pinned default probe', sql: PINNED_DEFAULT_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_DEFAULTS).length} column default(s) a decision fixes (${Object.keys(PINNED_DEFAULTS).join(', ')}) in their pinned text`,
     selfTests: [{ drift: "alter table app.calendar_items alter column timezone set default 'UTC';",
       raises: 'pinned column default(s) missing or not in their pinned text', names: ['app.calendar_items.timezone'] }] },
+  // Batch 126's review round (Q0 F5).
+  { label: 'rewrite rule probe', sql: REWRITE_RULE_PROBE_SQL,
+    claim: 'no relation in app or private carries a rewrite rule but a view\'s _RETURN',
+    selfTests: [{ drift: 'create rule probe_self_approve as on delete to app.approval_requests do instead nothing;',
+      raises: 'rewrite rule(s) on a relation in app or private', names: ['app.approval_requests.probe_self_approve'] }] },
+  // Batch 126's review round (Q0 F3). Also run inside every job by probeJobScript.
+  { label: 'pg_catalog guard probe', sql: PG_CATALOG_GUARD_SQL,
+    claim: 'nothing in pg_catalog was created after initdb (no function, operator or cast at or above OID 16384), checked here and in every probe job after its drift',
+    selfTests: [{ drift: "create function pg_catalog.probe_overload(integer) returns integer language sql as 'select 1';",
+      raises: 'object(s) created in pg_catalog', names: ['function probe_overload(integer)'] }] },
 ];
 
 // A drift runs inside the executor's `begin; ... rollback;`, so a drift that ends that transaction
@@ -780,8 +883,10 @@ export function catalogProbeJobs(probes) {
 // What psql is fed for one job. The first marker is selected BEFORE the drift and carries the
 // transaction id; the second is selected AFTER the drift and carries a nonce the drift cannot know
 // (the executor draws one per job) and the transaction id again; then the search_path is pinned to
-// pg_catalog so nothing the drift created can shadow a function the probe calls; then the probe; and,
-// only if the probe passes, a closing marker. A drift that raises the rule's prefix itself never
+// pg_catalog so nothing the drift created in another schema can shadow a function the probe calls;
+// then the pg_catalog guard (PG_CATALOG_GUARD_SQL), which refuses the job if the drift created anything
+// in pg_catalog itself, where the pinned search_path would find it (Q0 F3 on batch 126); then the
+// probe; and, only if the probe passes, a closing marker. A drift that raises the rule's prefix itself never
 // reaches the second marker, and a drift that ends the transaction changes the id.
 export const PROBE_TX_MARK = 'probe-tx:';
 export function probeJobScript(job, nonce) {
@@ -790,6 +895,7 @@ export function probeJobScript(job, nonce) {
     ...(job.drift ? [job.drift] : []),
     `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`,
     'set local search_path = pg_catalog;',
+    PG_CATALOG_GUARD_SQL.trimEnd(),
     job.sql,
     `select '${nonce}:end:' || pg_catalog.txid_current() as probe;`,
     'rollback;', ''].join('\n');

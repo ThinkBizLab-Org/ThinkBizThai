@@ -288,7 +288,8 @@ on conflict on constraint approval_events_action_idempotency_key do nothing;
 --   * the two decided rows above SEND 2026-09-11 times and the INSERT branch records the statement's
 --     time instead, so neither keeps the literal and neither predates its own created_at;
 --   * the loader cannot overturn the settled request (approved to changes_requested, keeping the
---     approver's name and time -- A1's N4);
+--     approver's name and time -- A1's N4), nor change any other column of it but updated_at and
+--     updated_by (Q0's F2 on batch 126), while an updated_by change is still admitted;
 --   * the loader cannot turn a cancelled request into a decision (A1's N11): cancel a pending row,
 --     then approve it, inside a subtransaction that is rolled back whatever happens.
 -- Each refusal is read by its own message, because 090's CHECKs raise the same SQLSTATE.
@@ -309,6 +310,21 @@ begin
   if refusal is distinct from 'a settled approval request keeps its status, decided_by and decided_at' then
     raise exception 'the loader overturned a settled approval request (%)', coalesce(refusal, 'no refusal');
   end if;
+  -- What the settled request decided is frozen too, not only its outcome (Q0 F2 on batch 126): the
+  -- loader cannot rename who requested it, and it may still touch updated_by, rolled back after.
+  refusal := null;
+  begin
+    update app.approval_requests set requested_by = '297ad853-58a6-5e83-87e1-f936f9c3ddff' where id = '87f78e21-66e3-5ceb-ba08-68f2cef543a6';
+  exception when check_violation then refusal := sqlerrm;
+  end;
+  if refusal is distinct from 'a settled approval request keeps what it decided: every column but updated_at and updated_by' then
+    raise exception 'the loader changed what a settled approval request decided (%)', coalesce(refusal, 'no refusal');
+  end if;
+  begin
+    update app.approval_requests set updated_by = '297ad853-58a6-5e83-87e1-f936f9c3ddff' where id = '87f78e21-66e3-5ceb-ba08-68f2cef543a6';
+    raise exception using errcode = 'TB126', message = 'roll the attribution back';
+  exception when sqlstate 'TB126' then null;
+  end;
   refusal := null;
   begin
     update app.approval_requests set status = 'cancelled' where id = '7dc995ee-d568-5d97-8afd-bd3f57608b11';

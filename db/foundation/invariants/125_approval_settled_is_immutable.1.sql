@@ -12,9 +12,7 @@ begin
   end if;
   -- SUPERSEDED BY 126. Batch 126 recreated the trigger BEFORE INSERT OR UPDATE (blocker 186 item 15) and
   -- replaced the function's body (items 15 and 17). The final state is asserted FIRST and strictly: the
-  -- trigger as 126 wrote it, and 126's body. 125's own two assertions follow word for word, each widened
-  -- only to admit 126's shape beside 125's, because the replacement may add and may not remove; the
-  -- strict pair above, 126's own block and the pinned trigger probe are what refuse 125's shape now.
+  -- trigger as 126 wrote it, and 126's body.
   if not exists (
        select 1 from pg_catalog.pg_trigger t
         where t.tgrelid = 'app.approval_requests'::regclass and t.tgname = 'set_decided_at'
@@ -26,10 +24,15 @@ begin
        select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'private' and p.proname = 'set_decided_at' and not p.prosecdef
           and p.proconfig = array['search_path=""']
-          and md5(p.prosrc) = 'bc70360c6b8d2df4ce7af11b03c8500c'
+          and md5(p.prosrc) = '48bcd0d03295b86120ea89fa4dec7adf'
           and not pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')) then
     raise exception 'batch 125''s private.set_decided_at() does not carry the body batch 126 wrote, or is not SECURITY INVOKER with an empty search_path and no EXECUTE for PUBLIC';
   end if;
+  -- SUPERSEDED BY 126, BOTH ASSERTIONS BELOW, AND DEAD WHILE THE PAIR ABOVE PASSES (C0 F1 on batch 126).
+  -- Each is 125's own condition with 126's shape put FIRST as an alternative -- `if not exists (<126's
+  -- shape>) and not exists (<125's shape>)` -- so neither is word for word 125's, and whenever the strict
+  -- pair above passes, both pass. They are kept because a replacement may add and may not remove 125's
+  -- raises; the strict pair, 126's own block and the pinned trigger probe are what refuse 125's shape.
   if not exists (
        select 1 from pg_catalog.pg_trigger t
         where t.tgrelid = 'app.approval_requests'::regclass and t.tgname = 'set_decided_at'
@@ -46,7 +49,7 @@ begin
        select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'private' and p.proname = 'set_decided_at' and not p.prosecdef
           and p.proconfig = array['search_path=""']
-          and md5(p.prosrc) = 'bc70360c6b8d2df4ce7af11b03c8500c'
+          and md5(p.prosrc) = '48bcd0d03295b86120ea89fa4dec7adf'
           and not pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE'))
      and not exists (
        select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
