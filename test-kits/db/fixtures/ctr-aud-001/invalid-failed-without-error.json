@@ -1,0 +1,37 @@
+{
+  "audit_id": "00000000-0000-4000-8000-000001410003",
+  "occurred_at": "2026-10-03T09:00:00Z",
+  "actor": {
+    "kind": "system_actor",
+    "id": "system_billing_projection"
+  },
+  "tenant_context": {
+    "workspace_id": "00000000-0000-4000-8000-0000000141a1",
+    "actor": {
+      "kind": "system_actor",
+      "id": "system_billing_projection"
+    },
+    "request_id": "req_synthetic_141_0001",
+    "correlation_id": "corr_synthetic_141_0001",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok",
+    "causation_id": "evt_synthetic_141_0003"
+  },
+  "correlation_id": "corr_synthetic_141_0001",
+  "redaction": {
+    "secret_redacted": true,
+    "content_redacted": true,
+    "pii_redacted": true
+  },
+  "retention": {
+    "policy_ref": "retention.audit.security_action"
+  },
+  "details": {},
+  "causation_id": "evt_synthetic_141_0003",
+  "action": {
+    "category": "billing",
+    "name": "billing.payment.failed"
+  },
+  "outcome": "failed",
+  "reason_key": "audit.billing.payment_failed"
+}

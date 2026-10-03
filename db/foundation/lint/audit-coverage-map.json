@@ -1,0 +1,324 @@
+{
+  "_what": "DB-12's \"audit coverage map\" (docs/plans/core-database-and-rls-workstream-th.md:795), as data: one or more rows per SEC-009 class; a row for each audited action OB-005 (security/admin/external actions), PDPA-007, PDPA-008, BIL-013, OPS-002, OPS-006 and ERD §8, §10 and §11 name; and the actions the work package already records as owed to batch 141's audit coverage. It is complete against those sources ONLY: whether another domain document names a further audited action is owed on WP-0A-DB-00 open_blockers[191] (5), and the batch 141 prep review round (C0 G1, A1 R2) is where the rows after the first nine came from. For each, the table(s) the action changes, the §8 cell it is, the producer that would write its audit row, and the open blocker that holds it. It is a MAP OF WHAT IS OWED, not a claim that anything is covered: nothing in this repository can write an audit row today (WP-0A-DB-00 open_blockers[21]).",
+  "_written_by": "The batch 141 preparation draft (A0 /claude/a0_atlas drafting subagent, 2026-10-03). No migration. It approves nothing and decides none of the questions it names.",
+  "_sources": {
+    "SEC-009": "docs/plans/meta-security-production-ops-workstream-th.md:164 -- \"Audit event contract | MOD-004 | Audit schema + retention | role/credential/publish/delete/billing/support action ระบุ actor/correlation ครบ\"",
+    "OB-005": "docs/plans/module-contracts-events-jobs-workstream-th.md:337 -- \"Audit event v1 | TC-001, EV-001 | security/admin/external actions | audit schema | actor/scope/action/before-after ref/reason; secret/content redaction\"",
+    "PDPA-007": "docs/plans/meta-security-production-ops-workstream-th.md:185 -- \"User/workspace data export | ... | export background, encrypted/signed, expires, audit, cross-tenant test ผ่าน\"; ERD §11.1 item 7 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:542) -- \"download URL short-lived, single-purpose, audited\"",
+    "PDPA-008": "docs/plans/meta-security-production-ops-workstream-th.md:186 -- \"Delete account/workspace/business flow | ... | tombstone/audit ครบ\"",
+    "BIL-013": "docs/plans/meta-security-production-ops-workstream-th.md:230 -- \"Admin adjustment/credit/manual payment | ... | Audited admin tools\"",
+    "OPS-002": "docs/plans/meta-security-production-ops-workstream-th.md:377 -- \"Safe job operations | ... | preview impact; idempotency; audit\", and :388 -- \"งาน publish/charge/delete ทุก manual replay ต้อง preview target และมี audit\"",
+    "OPS-006": "docs/plans/meta-security-production-ops-workstream-th.md:381 -- \"Known issues/service health banner | ... | target affected users/module; audit; expiry\"",
+    "ERD": "docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md §8 (the four matrices), §10 (:526, a hold \"ต้องมี ... audit trail\") and §11.1-§11.4",
+    "categories": "CTR-AUD-001 action.category and 140_audit.sql's audit_logs_action_category_known carry exactly SEC-009's six: role, credential, publish, delete, billing, support."
+  },
+  "_shape": {
+    "id": "unique, dotted, stable; a renamed row is a new row",
+    "action": "the action in words, quoted or paraphrased from its source",
+    "source": "where the obligation to audit it is written: SEC-009, OB-005, or an open blocker",
+    "category": "one of CTR-AUD-001's six action categories, or null when no category fits -- then category_note says why, and that is a finding, not a choice",
+    "tables": "schema-qualified tables the action changes, each created by a migration in db/foundation/migrations/; empty only with tables_note",
+    "producer_path": "always \"UNDECIDED\" until Q141-a is answered; trigger, command or worker is that decision",
+    "producer_decision": "the plan question that decides producer_path",
+    "section8_cell": "the §8 row(s) this action is, each quoted exactly as its first column appears in docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md §8.1-§8.4, or null with section8_note",
+    "blockers": "one or more { index, line, quote }: index into work-packages/WP-0A-DB-00.json open_blockers, its line in that file today, and a phrase the blocker text contains, so a renumbered list fails by name instead of pointing at the wrong blocker"
+  },
+  "_undecided": "producer_path is UNDECIDED on every row. Q141-a (Owner + A1) asks whether an audit row is produced by (A) a database trigger whose SECURITY DEFINER function is owned by a non-request-path role, (B) the application command or worker only, or (C) a hybrid. A row naming a producer would be that decision taken in a lint file.",
+  "actions": [
+    {
+      "id": "role.membership_or_scope_change",
+      "action": "Invite a member, change a member's role or scope, transfer or remove the owner",
+      "source": "SEC-009 (role)",
+      "category": "role",
+      "tables": ["app.workspace_members", "app.workspace_member_scopes", "app.workspace_invitations"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Invite/change scope", "Transfer/remove owner"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" }
+      ]
+    },
+    {
+      "id": "credential.connector_or_byok",
+      "action": "Connect, disconnect or re-authorise Meta; manage a BYOK provider credential",
+      "source": "SEC-009 (credential)",
+      "category": "credential",
+      "tables": ["app.meta_connections", "private.meta_credential_references", "private.ai_credential_references"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Connect/disconnect/re-auth Meta", "BYOK credential manage"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 6, "line": 260, "quote": "BATCH 110 IMPLEMENTS NONE" }
+      ]
+    },
+    {
+      "id": "publish.now_or_cancel",
+      "action": "Publish now or cancel a pending publish, and the delivery that follows",
+      "source": "SEC-009 (publish)",
+      "category": "publish",
+      "tables": ["app.publish_intents", "app.publish_targets", "app.publish_jobs", "app.published_posts"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Publish now/cancel pending", "Publish delivery/post/metric INSERT"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 167, "line": 421, "quote": "\"CANCEL PENDING\" IS NOT A DATABASE RULE" }
+      ]
+    },
+    {
+      "id": "delete.workspace_closing",
+      "action": "Begin workspace deletion: §11.4 step 1, \"Mark Workspace closing; write audit event\"",
+      "source": "SEC-009 (delete); ERD §11.4 step 1",
+      "category": "delete",
+      "tables": ["app.workspaces"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8 has no row for deleting a workspace. The nearest, §8.1 \"Workspace UPDATE\", governs settings and is not the lifecycle; §11.4's ten steps are the source, and which §8 cell a lifecycle transition is would be a reading this map does not make.",
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "§11.4 step 1" }
+      ]
+    },
+    {
+      "id": "delete.asset_hard_purge",
+      "action": "Hard-purge an asset and its object versions",
+      "source": "SEC-009 (delete); OB-005 (before-after ref, which CTR-AUD-001 allOf[0] requires of a delete)",
+      "category": "delete",
+      "tables": ["app.assets", "app.asset_versions"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Asset hard purge"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 150, "line": 404, "quote": "HAS NO HOME IN THIS REPOSITORY" }
+      ]
+    },
+    {
+      "id": "billing.plan_or_payment",
+      "action": "A plan or payment action, and the subscription, invoice and payment state its verified webhook projects",
+      "source": "SEC-009 (billing)",
+      "category": "billing",
+      "tables": ["app.billing_subscriptions", "app.billing_invoices", "app.billing_payments", "app.billing_webhook_receipts"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Plan/payment action"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 80, "line": 334, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" }
+      ]
+    },
+    {
+      "id": "support.break_glass_access",
+      "action": "Admin or support break-glass access to a tenant (SEC-016: least privilege, time-bound, audited, revocable)",
+      "source": "SEC-009 (support)",
+      "category": "support",
+      "tables": [],
+      "tables_note": "No table records a support or break-glass grant, so there is no table this action changes. SEC-016 is an undelivered Phase 1E task and CTR-AUD-001 carries it as an ACCEPTED GAP (examples/accepted-gap-break-glass-without-time-bound.json). FINDING: before batch 141 prep no open blocker in WP-0A-DB-00 named support or break-glass access; open_blockers[191] (1) now records it as owed to A1 (SEC-016) and to batch 141 under Q141-a, beside the general no-writer blocker.",
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8's four matrices have no support or break-glass row.",
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "SUPPORT OR BREAK-GLASS ACCESS HAS NO TABLE" }
+      ]
+    },
+    {
+      "id": "owed.asset_rights_change",
+      "action": "Change an asset's rights or sharing (asset design §6.2: \"Change rights/share | ... | Audit ทุกครั้ง\")",
+      "source": "WP-0A-DB-00 open_blockers[156] (line 410)",
+      "category": null,
+      "category_note": "FINDING: none of SEC-009's six categories is a rights change, and CTR-AUD-001's action.category enum and 140's audit_logs_action_category_known CHECK admit only those six, so a rights-change record cannot be stored until someone maps it to a category or widens the enum. Which is the contract owners' (A0+A6) to say, beside Q141-b; this map does not choose.",
+      "tables": ["app.asset_rights"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Asset rights/share"],
+      "blockers": [
+        { "index": 156, "line": 410, "quote": "Owed to the command surface, to A1 Security/Audit and to batch 141" }
+      ]
+    },
+    {
+      "id": "owed.schedule_transition_history",
+      "action": "A schedule's status transitions (arm, disarm, dispatch, complete, fail) and placement deletes, kept as history: today updated_by is overwritten, so who disarmed a schedule is lost at the next edit",
+      "source": "WP-0A-DB-00 open_blockers[190] (line 444), item (f)",
+      "category": null,
+      "category_note": "FINDING: a schedule transition is not one of SEC-009's six categories -- \"publish\" is the nearest and is not the same act (disarming publishes nothing). Same consequence as the rights row: CTR-AUD-001 and 140's CHECK cannot store it until it is mapped or the enum widens. Not chosen here.",
+      "tables": ["app.content_schedules", "app.calendar_items"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Schedule/unschedule"],
+      "blockers": [
+        { "index": 190, "line": 444, "quote": "owed with batch 141's audit coverage" }
+      ]
+    },
+    {
+      "id": "delete.business_or_page",
+      "action": "Delete a Business or a Page: archive it (ERD §11.3, \"Archive ปิด creation/publish ใหม่\") and hard-purge it after the Workspace policy, hold and reference check -- CTR-AUD-001's own example valid-business-profile-deleted.json is this action",
+      "source": "SEC-009 (delete); PDPA-008 (\"Delete account/workspace/business flow\"); ERD §11.3; CTR-AUD-001 examples",
+      "category": "delete",
+      "tables": ["app.business_profiles", "app.page_context_profiles"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Business/Page INSERT/UPDATE/archive"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "delete.account",
+      "action": "Delete a user's account (PDPA-008, \"tombstone/audit ครบ\")",
+      "source": "SEC-009 (delete); PDPA-008",
+      "category": "delete",
+      "tables": ["app.user_profiles"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8.1's only user row is \"Own user profile SELECT/UPDATE\"; no §8 row deletes an account, and which cell an account deletion is would be a reading this map does not make.",
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "role.member_remove_or_suspend",
+      "action": "Remove or suspend a member: access closed in one transaction, and the member's push tokens, sessions and active invitations revoked at once (ERD §11.2)",
+      "source": "SEC-009 (role); ERD §11.2",
+      "category": "role",
+      "tables": ["app.workspace_members", "app.workspace_member_scopes", "app.workspace_invitations", "private.push_subscription_references"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8.1 has \"Invite/change scope\" and \"Transfer/remove owner\"; it has no row for removing or suspending a member who is not the owner.",
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "security.security_event",
+      "action": "Record a security event -- §9.1's \"raw security event, replay anomaly\" -- in the workspace it is about",
+      "source": "OB-005 (security actions); ERD §8.4 \"Audit/security INSERT\"",
+      "category": null,
+      "category_note": "FINDING: app.security_events carries event_type, not action_category, and 140_audit.sql records that no document enumerates event_type; none of SEC-009's six categories is a security event. Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": ["app.security_events"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Audit/security INSERT"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "A PLATFORM-SCOPE SECURITY EVENT HAS NO HOME" }
+      ]
+    },
+    {
+      "id": "admin.approval_policy_manage",
+      "action": "Create, change or retire a Workspace's approval policy",
+      "source": "OB-005 (admin actions)",
+      "category": null,
+      "category_note": "FINDING: an approval policy change is none of SEC-009's six categories -- \"role\" is the nearest and is not the same act (it changes who must approve, not who holds a role). Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": ["app.approval_policies"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Approval policy manage"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "admin.workspace_update",
+      "action": "Change a Workspace's settings",
+      "source": "OB-005 (admin actions)",
+      "category": null,
+      "category_note": "FINDING: a Workspace settings change is none of SEC-009's six categories. Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": ["app.workspaces", "app.workspace_settings"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Workspace UPDATE"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "export.data_export",
+      "action": "Export a user's or a Workspace's data, and issue its short-lived, single-purpose download URL (ERD §11.1 item 7, \"audited\")",
+      "source": "OB-005 (external actions); PDPA-007; ERD §11.1",
+      "category": null,
+      "category_note": "FINDING: a data export is none of SEC-009's six categories, though it is the one action here that moves tenant data out. Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": [],
+      "tables_note": "No migration creates an export job, package or download record: PDPA-007 is an undelivered Phase 1E task, so there is no table this action changes yet. Owed on open_blockers[191] (5).",
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8's four matrices have no export row.",
+      "blockers": [
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "billing.admin_adjustment",
+      "action": "An admin adjustment, credit or manual payment, with dual confirmation for a significant adjustment and a required reason (BIL-013)",
+      "source": "SEC-009 (billing); BIL-013",
+      "category": "billing",
+      "tables": [],
+      "tables_note": "No migration creates a table for an adjustment or a credit, and a manual payment would land in billing state that only the verified webhook projection writes (CONTRIBUTING_AGENTS.md: entitlement is derived only from a verified Stripe webhook projection). BIL-013 is an undelivered Phase 1E task. Owed on open_blockers[191] (5) beside open_blockers[80].",
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8's matrices name tenant roles and the service; a platform admin's adjustment has no row, and \"Plan/payment action\" is the tenant Owner's.",
+      "blockers": [
+        { "index": 80, "line": 334, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "support.manual_replay",
+      "action": "A manual retry, cancel or replay of a job -- every manual replay of a publish, a charge or a delete previews its target and is audited (OPS-002; the operations guardrail at meta-security-production-ops-workstream-th.md:388)",
+      "source": "OPS-002",
+      "category": null,
+      "category_note": "FINDING: a replay is an operator's act on another action, so it is \"support\" by who does it and \"publish\", \"billing\" or \"delete\" by what it repeats; the six categories do not say which. Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": ["app.jobs"],
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": ["Internal job/attempt/DLQ payload"],
+      "blockers": [
+        { "index": 21, "line": 275, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "support.service_health_banner",
+      "action": "Publish, target or expire a known-issue or service-health banner (OPS-006, \"audit; expiry\")",
+      "source": "OPS-006",
+      "category": null,
+      "category_note": "FINDING: a banner is an operator's notice to tenants, not an action on one tenant's data; \"support\" is the nearest of SEC-009's six and is not obviously the same act. Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": [],
+      "tables_note": "No migration creates a banner table: OPS-006 is an undelivered Phase 1E task. Owed on open_blockers[191] (5).",
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8's four matrices have no banner row.",
+      "blockers": [
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    },
+    {
+      "id": "hold.legal_finance_rights",
+      "action": "Place, change or release a legal, finance or rights hold, which blocks deletion (ERD §10: a hold \"ต้องมี ... audit trail\")",
+      "source": "ERD §10 (docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md:526)",
+      "category": null,
+      "category_note": "FINDING: a hold is none of SEC-009's six categories; \"delete\" is the nearest and is the opposite act (a hold stops a deletion). Not chosen here; owed with F6 on open_blockers[33].",
+      "tables": [],
+      "tables_note": "No migration creates a hold table, and §6's registry assigns none. Owed on open_blockers[191] (5), beside the deletion manifest open_blockers[150] also has no home for.",
+      "producer_path": "UNDECIDED",
+      "producer_decision": "Q141-a",
+      "section8_cell": null,
+      "section8_note": "§8's four matrices have no hold row.",
+      "blockers": [
+        { "index": 191, "line": 445, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+      ]
+    }
+  ]
+}
