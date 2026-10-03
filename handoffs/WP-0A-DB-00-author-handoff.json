@@ -5,13 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "18f14695b5d3a60021f437a15d68932420789879",
-  "head_revision_or_patch_checksum": "e863fab6cb84a6dddb1066aa821673649d13e3dc",
+  "head_revision_or_patch_checksum": "fc867b5a591b5186a5848ff135e7e20495952616",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-128-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-128-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-128-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-128-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md",
+    "evidence/WP-0A-DB-00/q0-batch-128-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-128-test-review-2026-10-03.md"
   ],
   "files_modified": [
