@@ -137,7 +137,7 @@ The static tests therefore read the same thing the catalog showed, without a dat
 | `npm run check` (first) | **89** | tests 680, pass 680, fail 0; refused only because `evidence/VERIFICATION.md` was 677's record |
 | `npm run record:verification` | **0** | "recorded 680 passing, 0 skipped, 0 todo" |
 | `npm run check` (after) | see §3.1 | |
-| `make db-migrate-clean`, `make db-rls-smoke` (round 2, export of this branch's commit) | see §3.1 | |
+| `make db-migrate-clean` and `make db-rls-smoke` (round 2, on an export of this branch's commit) | see §3.1 | |
 
 The floors moved to the guard's own count, read through the guard's `stripNonCode` and
 `countDeclaredTests`:
@@ -149,8 +149,25 @@ The floors moved to the guard's own count, read through the guard's `stripNonCod
 
 ### 3.1 After the commit
 
-This section is filled in by the run that commits this file. See the final structured result of the
-drafting run, which records every exit code taken after the commit.
+These were measured on the local branch `draft/wp-db00-160-prep` at `9dd168e`, by name, not on a
+detached HEAD.
+
+| Command | Exit | Output |
+|---|---|---|
+| `node scripts/commit-when-clean.mjs` (`9dd168e`) | **0** | "clean: exit 0 — tests 680, pass 680, fail 0". The first attempt exited **86**: `evidence/VERIFICATION.md` had changed after the manifest was regenerated. The manifest was regenerated again before the commit. |
+| `npm run check` | **0** | tests 680, pass 680, fail 0 |
+| `npm run verify` | **0** | "clean: exit 0 — tests 680, pass 680, fail 0, skipped 0, todo 0" |
+| `node scripts/verify-branch-scope.mjs 75c9274 WP-0A-DB-00` | **73** | "changed 1 path(s) it neither owns nor records as an amendment: evidence/VERIFICATION.md". This is expected (P3): the manifest is not edited in this draft. |
+| `npm run check:handoff` | **75** | "no work package declares ownership.branch \"draft/wp-db00-160-prep\"". This is expected: the branch slot and the handoff are not edited in this draft. |
+| `make db-migrate-clean` (round 2, fresh initdb, export of `9dd168e`) | **0** | "db-migrate-clean: ok"; post-migrate pass 49 / 37 / 12 |
+| `make db-rls-smoke`, then again on the same database | **0**, **0** | "1079 isolation case(s) passed", both times; "db-authz-proofs: ok — 6 claim(s) discharged by execution" |
+
+After the round, the cluster on 5511 was stopped and its data directory removed. Nothing is listening
+on 5511 (`lsof` exit 1). Ports 5432 and 5499 were not touched.
+
+Two layers did not read this draft's files: the database layers and `db-schema-lint`. Both read their
+lint inputs by name, and the catalog snapshot digests only `migrations/*.sql`. Round 2 was run anyway,
+to show that nothing they read changed.
 
 ## 4. Findings (each one recorded, none resolved)
 
@@ -220,7 +237,10 @@ Findings about the plan and the process:
     no test.
   - By instruction, the manifest's branch slot and rationale are **not** edited, so
     `verify-branch-scope` is expected to refuse until the packaging step writes them.
-  - The measurement is in the structured result.
+  - It was measured in §3.1. `verify-branch-scope` exits **73**, naming `evidence/VERIFICATION.md`.
+    It does not object to the other two paths, because they are listed, even though the rationale
+    under them is batch 128's. A reviewer should read that as a gap in the guard: it checks that a
+    path is listed, not that the rationale describes this branch.
 - **P4. The export fixture makes two judgements** and labels them as judgements:
   - `workspace_invitations` is omitted as token material. §11.1/5 says "secret", and the token hash
     is a stored bearer-token form (§9.3, ERD:473).
