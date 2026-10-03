@@ -1,20 +1,99 @@
-# A0 draft record: batch 150, the part that needs no decision
+# Batch 150's prerequisites: plan, item to change to test, measured
 
-- **Package:** `WP-0A-DB-00`. **Author:** `/claude/a0_atlas`, written by a drafting subagent of that run.
-- **Branch:** local `draft/wp-db00-150-prereq`, made at `1319042` (the head of the batch 170 draft,
-  `draft/wp-db00-170-assert`, itself stacked on `999456d`). Nothing is pushed.
-- **Commits:** `fef718d` (code, lint data, fixture, harness, tests, README, floor, integrity manifest), then
-  this record.
-- **Status:** a draft, written and measured by the Author's subagent. It is not reviewed, not tested by an
-  independent role and not approved. The manifest's branch slot and rationale, the branch-identity slot, the
-  handoff and the blocker texts are untouched, as instructed (F12).
-- **Brief:** the phase plan `phase-plan-141-170.md`, "Batch 150 — Can do now": (a) close weak-assertion
-  survey §6 items 5-7 as `run.mjs` probes; (b) an index-coverage probe for RLS-predicate and keyset cursor
-  columns; (c) a WS:905 fixture generator and an EXPLAIN harness that is not in CI.
+**Package:** `WP-0A-DB-00`. **Branch:** `agent/claude/WP-0A-DB-00-batch-150-prereq`, cut from main
+`b5f53c3` (PR #171, batch 170 assertions, merged by A0 at its reviewed head `e182b0f` under the Owner's
+standing delegation, `product-owner-disposition-2026-10-03-batch-127.md` §6; the required CI run
+"bootstrap" was green on `e182b0f`; merged 2026-10-03T21:52:26Z).
 
-**No migration.** Q150-a, Q150-b, Q150-c and Q150-d are left undecided (§7).
+Written 2026-10-04 by a subagent of the Author run `/claude/a0_atlas`. It is the Author's record. It
+approves nothing, decides none of the plan's Q-ids, and adds **no migration, no policy, no index and no
+grant**. Gate: pre-G0 (CONTRIBUTING_AGENTS.md:23). Its disposition is
+`product-owner-disposition-2026-10-03-batch-150-prereq.md` in this directory.
 
-## 1. Item → file → rule and test
+This file began as the draft record `a0-batch-150-prereq-draft-2026-10-03.md` (`9e45aa4` on the local
+branch `draft/wp-db00-150-prereq`) and was moved here with `git mv`. Sections 0, 6.1, 6.2, 7, 8 and 9 are
+new or rewritten. Sections 1 to 6 are the draft's, kept as measured at `1319042`. What this branch
+re-measured is stated in §0.1 and §0.2. Source: the phase plan for 141–170
+(`a0-phase-plan-141-170-2026-10-03.md`), "Batch 150 — 3. Can do now". The Owner ended the hardening chain
+at 129 and told A0 to do everything that needs no pending decision.
+
+**No migration.** Every item is an assertion, lint data, a fixture generator, a harness or a test.
+Q150-a, Q150-b, Q150-c and Q150-d are left undecided (§7).
+
+## 0. Commits on this branch
+
+| commit | what |
+|---|---|
+| `6a7bf73` | the draft's `fef718d`, cherry-picked. The draft was cut at `1319042`, the head of the batch 170 draft. That draft merged in reworked form as #171 (`b5f53c3`), so only `fef718d` and `9e45aa4` were taken. Three conflicts: `scripts/test-suite-contract.mjs` (main had moved foundation-contract's assertion floor to 793; the draft's 590 → 675 was its base's), the digest comment in `test-kits/db/foundation-contract.test.mjs` (main's batch 170 review-round comment and the draft's 150 comment, both kept), and `test-kits/integrity-manifest.json`. They were resolved by keeping main's text, taking the guard's own count (§0.1) and regenerating the manifest. `scripts/db/run.mjs` and `db/foundation/README.md` merged without conflict; three README phrases that said "the draft" were reworded. The commit keeps the draft's message, whose "590 -> 675" is the base's, not this branch's. |
+| `305935c` | the draft's `9e45aa4` (the draft record), cherry-picked without conflict. |
+| `9d57cda` | packaging: the branch slot and increment rationale; blockers 179 and 185 extended and 194 new; the branch-identity slot; the integrity manifest. Committed plainly. `commit-when-clean` refused with exit 1 (tests 684, pass 682, fail 2), and the only two failures were the handoff guard ("the handoff for this branch describes this branch" and the handoff ratchet). The last commit refreshes it. |
+| next | this plan (moved from the draft record) and the disposition. |
+| last, alone | `npm run refresh:handoff`, then the handoff's text fields. |
+
+### 0.1 Floors, digests, manifest, verification record, line numbers
+
+- `scripts/test-suite-contract.mjs`, read through the guard's own `stripNonCode`: main `b5f53c3` holds
+  foundation-contract's floor at **793**, and this branch makes **878** assertions. So the floor moves
+  793 → 878 (+85, the same 85 the draft added on its base, 590 → 675). No test is added or renamed, so
+  the test floor and the name digest stay. The draft's numbers are not used.
+- The four new probe digests are the draft's and pass on this tree: `pinned shape probe`
+  `d9d0a827e5be09e3`, `vocabulary check probe` `d28d49cb3af0a0fd`, `policy set probe` `10e2446a17df3d73`
+  and `index coverage probe` `7e53a75a9931e962`. No existing digest moves; main's `pinned grant probe`
+  `baa6379790cb8733` is kept.
+- The lint files were measured at `1319042`. The migrations are byte-identical between `1319042` and
+  `b5f53c3` (an empty diff under `db/foundation/migrations`), so the catalog they describe is the same.
+  Migrate-clean on this branch confirms every count (§0.2).
+- `evidence/VERIFICATION.md` is **not amended**. The suite stays **684** tests (`npm run check`), so the
+  record holds byte for byte. `amends_without_owning.paths` is unchanged (the same three files as #171),
+  so no WP line citation in the lint files moves. `verify-branch-scope` exited 74 before the packaging
+  commit (the draft's F12: the branch-identity amendment declared and not made) and 0 after it.
+- The new blocker `open_blockers[194]` is appended at the end, so no blocker index moves. The phase plan's
+  `WP:432` (blocker 179) and `WP:438` (blocker 185) still name those blockers on this branch.
+- `test-kits/integrity-manifest.json`: regenerated (88 digests).
+- The line numbers in §1 are the draft's. On this branch, the four file constants in `scripts/db/run.mjs`
+  are at :1491 (`PINNED_SHAPES_FILE`), :1561 (`VOCABULARY_CHECKS_FILE`), :1602 (`POLICY_SET_FILE`) and
+  :1654 (`INDEX_COVERAGE_FILE`), and the new probe jobs start at :2109. The static blocks in
+  `test-kits/db/foundation-contract.test.mjs` start at :3131 (shapes), :3165 (vocabularies), :3190
+  (policy set), :3215 (index coverage) and :3253 (fixture and harness); the harness refusal test is at
+  :107-110. README rules 18-21 are at `db/foundation/README.md`:614-643, and the harness section is at :696.
+
+### 0.2 Measured on this branch
+
+Setup for every round:
+
+- Node `v24.20.0`, checked with `node -v` before each run. One round ran under the PATH Node 26 and was
+  discarded; after that, Node 24.20.0 was put first on the PATH explicitly.
+- PostgreSQL 17.11 from `/opt/homebrew/bin`, a fresh `initdb --locale=C -A trust -U postgres` per round.
+- 127.0.0.1:5507 only, TCP only (`-c unix_socket_directories=''`), with `LC_ALL=C`.
+- The shim `db/foundation/ci/supabase-shim.sql` applied first, then
+  `DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres`.
+- Private directory `scratchpad/a0-150-prereqr/`.
+
+| Item | Command | Exit | Output |
+|---|---|---|---|
+| all | `npm run check`, the cherry-picked code alone, before packaging | 0 | tests 684, pass 684 |
+| all | `npm run check`, the tree of `9d57cda` before its commit, handoff not yet refreshed | 1 | tests 684, pass 682, fail 2: the handoff guard only |
+| scope | `node scripts/verify-branch-scope.mjs b5f53c3 WP-0A-DB-00` | 74 → 0 | before packaging: "declares 1 amendment(s) that explain nothing ...: test-kits/branch-identity.test.mjs"; after: "all 14 changed path(s) are declared" |
+| round 1 | `make db-schema-lint` | 0 | |
+| round 1 | `make db-migrate-clean` | 0 | the four new probes as in the draft: "32 constraints, 18 indexes and 4 policies", "the 60 vocabulary CHECKs", "209 in app ... the 44 rows", "4 exempt ... the 28 declared lookups"; each "refused each of its N drifts; clean again after every drift"; post-migrate pass 49 / 37 / 12; 5.2 s |
+| round 1 | `make db-rls-smoke`, first run | 0 | 1079 isolation case(s) passed; `db-authz-proofs: ok — 6 claim(s)` |
+| round 1 | `make db-rls-smoke`, second run, same database | 0 | 1079; 6 claims |
+| round 2 | `make db-migrate-clean` | 0 | as in round 1 |
+| round 2 | `node scripts/db/explain-harness.mjs --scale small` | 0 | |
+| round 2 | `node scripts/db/explain-harness.mjs --scale 0.2` | 0 | loaded, analysed and rolled back in 10 s; the same scans, indexes and sorts as §5; "membership-class seq scans: workspace list: Seq Scan on workspaces" |
+| round 2 | the same with `--fail-on-seq-scan` | 3 | the workspace list (F2) |
+| D1 | `alter table app.performance_snapshots no force row level security;` appended to 140 | mc 2, rs 0 | "pinned shape probe: as built: ... app.performance_snapshots (rls true, forced false)" |
+| D4 | `performance_snapshots_scope_time_idx` rebuilt as `(workspace_id, metric_time)` | mc 2, rs 0 | "missing or changed: app.performance_snapshots.performance_snapshots_scope_time_idx; unlisted or changed: ..." |
+| D6 | `create policy probe_extra_read on app.published_posts for select to authenticated using (app.is_active_member(workspace_id));` | mc 2, rs 0 | pinned shape ("unlisted or changed: app.published_posts.probe_extra_read") and policy set ("no pinned list names: app.published_posts.probe_extra_read") |
+| D9 | `drop index app.jobs_available_at_idx; drop index app.assets_library_keyset_idx;` | mc 2, rs 0 | index coverage: "library first page on app.assets (...); worker claim on app.jobs (available_at)" |
+
+`140_audit.sql` was saved before the drift rounds (sha256 `2ac596bb950e8dfb…`, the same as the draft's).
+It was restored byte for byte after each round, the sha256 matched every time, and `git status` shows it
+unchanged. The harness ran only at small and 0.2 scale, on the round's own cluster. Free space on
+`/System/Volumes/Data` stayed at 11 GiB before and after every round, and the cluster was removed after
+each round.
+
+## 1. Item → file → rule and test (the draft's, measured at `1319042`; line numbers re-measured in §0.1)
 
 | Plan item | File(s) | Rule (probe in `scripts/db/run.mjs`) | Self-test drifts | Static test (`test-kits/db/foundation-contract.test.mjs`) |
 |---|---|---|---|---|
@@ -32,7 +111,7 @@ added or renamed, so the test floor, the name digests and the suite count, 677, 
 `evidence/VERIFICATION.md` is not touched); `test-kits/integrity-manifest.json` (regenerated, 88 digests). No
 existing probe digest moved.
 
-## 2. How the data was measured
+## 2. How the data was measured (the draft's)
 
 On a fresh cluster after `make db-migrate-clean` at `1319042`, with `search_path = pg_catalog` (as every probe
 job runs, so deparse is schema-qualified):
@@ -56,7 +135,7 @@ job runs, so deparse is schema-qualified):
 The generator scripts (`gen.mjs`, `gen-ic.mjs`) live in the subagent's private directory, not in the repository
 (F10).
 
-## 3. Commands and exit codes
+## 3. Commands and exit codes (the draft's, at `1319042` on port 5509; this branch's are §0.2)
 
 Setup for every live round: PostgreSQL 17.11 from `/opt/homebrew/bin`. Each round ran `initdb --locale=C -A trust
 -U postgres` afresh on 127.0.0.1:5509 only, TCP only (`-c unix_socket_directories=''`), with `LC_ALL=C`. The shim
@@ -79,7 +158,7 @@ Node was `v24.20.0`, checked with `node -v` before each run (a PATH Node 26 exis
 | the same with `--fail-on-seq-scan` | **3** | the workspace list's seq scan on `workspaces` |
 | `node scripts/db/explain-harness.mjs --scale full` | **1** | `could not extend file ...: No space left on device (53100)` (F1) |
 
-## 4. Drifts as later migrations, per layer
+## 4. Drifts as later migrations, per layer (the draft's; four re-run on this branch, §0.2)
 
 Each drift was appended to `db/foundation/migrations/140_audit.sql`, in a private export of the tree, from a
 saved copy (sha256 `2ac596bb950e…`). The file was restored byte for byte after every round, and the sha256 was
@@ -108,7 +187,7 @@ Schema lint and rls-smoke are unchanged by this draft. In the "after" rounds a p
 makes its own self-tests fail (an unrelated raise answers first). That is the existing executor's behaviour,
 and migrate-clean still exits 2 naming the drift.
 
-## 5. The EXPLAIN plans at a moderate scale
+## 5. The EXPLAIN plans at a moderate scale (the draft's; re-run on this branch, §0.2)
 
 Fixture `ws905Scaled(0.2)`: 100 workspaces, 10 businesses and 20 pages per workspace, 20,000 content items, 200,000
 usage, audit and metric rows, plus 2,000 published posts, 5,000 calendar items, 2,000 assets and 1,000 jobs. It
@@ -130,7 +209,7 @@ was loaded, ANALYZEd and rolled back in 22 s. The plans are EXPLAIN estimates (n
 At small scale (4 workspaces), the membership check and the workspace list both seq-scan their tiny tables. At
 0.2, only the workspace list does: it reads `workspaces` (100 rows) whole and filters with the policy (F2).
 
-## 6. Gaps and findings
+## 6. Gaps and findings (the draft's text; owners in §6.1, the incident in §6.2)
 
 - **F1 (incident, environment).** The full-scale harness run (1M rows ×3) filled the volume. At the failure
   `/System/Volumes/Data` had 129 MiB free; the cluster held 1.7 GB. psql reported `No space left on device`, the
@@ -181,18 +260,68 @@ At small scale (4 workspaces), the membership check and the workspace list both 
 - **F14 (fixture realism).** The fixture is uniform: round-robin workspaces and businesses, no skew, no deleted
   share beyond 2% of content. Plans on real distributions may differ. It is synthetic by construction.
 
-## 7. Decisions not taken (the plan's Q-ids)
+### 6.1 Each finding's owner and where it is held
 
-- **Q150-a (Owner):** change `performance_snapshots`' primary key to `(id, metric_time)` now, without declaring
-  partitioning. Not taken. The pinned shape probe holds today's `PRIMARY KEY (id)` by text, so the change, if
-  made, rewrites `pinned-shapes.json` in the same diff.
-- **Q150-b (Owner):** defer `partition by` and all production index work until a production-like fixture and an
-  SLO exist. Not taken. No index is added; the content first-page gap is a finding (F3).
-- **Q150-c (Owner/A0):** who owns 150, and in which range. Not taken.
-- **Q150-d (Product/Ops):** the p95 DB-time SLO per query class. Not taken. The harness asserts no timing; §5 is
-  a plan summary, not a budget.
+| Finding | Owner | Held on |
+|---|---|---|
+| F1, the disk incident | A0 (a free-space guard, if the full scale is to be run) | §6.2, an incident note; `open_blockers[194]` (12) |
+| F2, the workspace list seq-scans `app.workspaces` (against WS:907) | batch 150's author, under Q150-d | `open_blockers[194]` (1) |
+| F3 = IC-1, no index serves the content first page | batch 150's author, under Q150-b | `open_blockers[194]` (2); `index-coverage.json` `findings` |
+| F4, no worker identity, so the worker plans run as the owner | DATA-DEC-03 and the worker RFC | `open_blockers[113]`, cross-referenced from `[194]` (3) |
+| F5 = IC-2 and IC-3, rule 1 reads own-table USING columns only | A0 | `open_blockers[194]` (5); `index-coverage.json` `findings` |
+| F6, the vocabulary selector misses OR, regex and domain vocabularies | A0 | `open_blockers[194]` (6) |
+| F7, the shape pins cover no column | A0, with Q150-a | `open_blockers[194]` (4) and `[179]` |
+| F8, the policy set reads policies, not RLS flags | A0 | `open_blockers[194]` (7) |
+| F9, deparse text on 17.11 against CI's postgres:17 | INFO | `open_blockers[194]` (10) |
+| F10, the lint files' generators are not in the repository | A0 | `open_blockers[194]` (8) |
+| F11, citation drift in the phase plan | A0 | A record, not a debt. The phase plan cites `run.mjs:883-893` and `:607-611`. On this branch the audit partition refusal is at `run.mjs:1116` and `PINNED_CHECKS` at `:837`. |
+| F12, packaging | A0 | closed by `9d57cda` (§0) |
+| F13, the harness is not in CI | the Integration Owner (CI is protected) | `open_blockers[194]` (9) |
+| F14, the fixture is uniform | batch 150's author | `open_blockers[194]` (11) |
+| survey §6 items 5-7 | A0 | closed here; recorded on `open_blockers[185]` |
+| `performance_snapshots`' key | the Owner (Q150-a) | `open_blockers[179]`, extended |
 
-## 8. Cleanup
+### 6.2 Incident note: the draft's full-scale run filled the disk (F1)
+
+- **What happened.** The draft ran `explain-harness.mjs --scale full` (1M usage, audit and metric rows) on
+  its own cluster. Free space on `/System/Volumes/Data` fell to 129 MiB. PostgreSQL failed with `could
+  not extend file ...: No space left on device (53100)`, and the transaction rolled back.
+- **Response.** The cluster was stopped and removed at once. Later, three 0.2-scale runs on one cluster
+  brought free space down to 176 MiB again (dead tuples and WAL), and that cluster was removed too.
+- **Exposure.** Any other session writing to that volume in those windows could have failed. None is
+  known to have.
+- **Consequence.** The full WS:905 scale has **not** been measured. The README states the ~2 GB need,
+  and the harness has no free-space guard.
+- **On this branch.** The harness ran only at small and 0.2 scale, on a fresh cluster each round,
+  removed afterwards. The volume held 11 GiB free throughout.
+
+## 7. Decisions not taken (the plan's Q-ids): UNANSWERED
+
+| Q-id | Owner | Question | A0's recommendation (the phase plan's) | Status |
+|---|---|---|---|---|
+| Q150-a | Owner | Change `performance_snapshots`' primary key to `(id, metric_time)` now, while the table is empty and applied nowhere, without declaring partitioning? | **Yes**, as a small forward migration once the item-5 pins exist (they now do). Later partitioning becomes "create a parent and ATTACH this table", with no rewrite. It reverses the "id alone" answer to question C. The pinned shape probe holds today's `PRIMARY KEY (id)` by text, so the change rewrites `pinned-shapes.json` in the same diff. | **UNANSWERED** |
+| Q150-b | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** The 150 migration waits; the fixture, harness and probes land now. No index is added here, and IC-1 stays a finding. | **UNANSWERED** |
+| Q150-c | Owner / A0 | Who owns 150, and in which range? | **A0 authors, A1 reviews, number 150**, with a recorded one-time exception to MOD-120's range for the rebuild. | **UNANSWERED** |
+| Q150-d | Product / Ops | Set the p95 DB-time SLO per query class. | **Draft values from the first fixture run, then the Owner ratifies them.** The harness asserts no timing; §5 is a plan summary, not a budget. | **UNANSWERED** |
+
+## 8. What is not done
+
+- No migration, policy, index or grant: each would take Q150-a or Q150-b.
+- The harness is not a make target and is not in `.github/workflows/ci.yml`. CI is protected, so adding
+  it needs the Integration Owner (F13). The four new probes do run in CI, through `make db-migrate-clean`.
+- The full WS:905 scale is not measured (§6.2).
+- The generators behind the four lint files are not in the repository (F10).
+- The role runs (C0, Q0, A1) follow this commit. Nothing here is reviewed, tested by an independent role
+  or approved.
+
+## 9. Cleanup
+
+The cluster on 127.0.0.1:5507 was stopped and its data directory removed after every round, and again
+at the end. Port 5507 is free. Ports 5432 and 5499, and every other run's port, were not touched.
+`140_audit.sql` is byte-identical to main's. The draft's own cleanup (port 5509, its exports) is its
+record, kept below.
+
+### 9.1 The draft's cleanup note
 
 The cluster on 127.0.0.1:5509 was stopped and its data directory removed after each use, and at the end.
 Port 5509 is free, and no other port was touched. The private exports (`base`, `wt`) were removed. In every
