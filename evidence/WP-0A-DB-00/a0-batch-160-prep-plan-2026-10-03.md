@@ -1,16 +1,59 @@
-# Batch 160 preparation: retention map, export manifest fixture, purge order (DRAFT)
+# Batch 160 preparation: plan, item to change to test, measured
 
-Author run `/claude/a0_atlas`, drafting subagent. Local branch `draft/wp-db00-160-prep`, cut from main
-`75c9274`. **This is a draft. It approves nothing, and nothing in it has been pushed.** Gate: pre-G0
-(CONTRIBUTING_AGENTS.md:23). The draft contains data, fixtures and static contract tests only. It adds
-**no migration**, takes **no decision**, and **encodes no retention number**. Source: the phase plan for
-141–170, "Batch 160 — 3. Can do now" (plan:129-140). The Owner ended the hardening chain at 129 and told
-A0 to do everything that needs no pending decision.
+**Package:** `WP-0A-DB-00`. **Branch:** `agent/claude/WP-0A-DB-00-batch-160-prep`, cut from main
+`c7fe264` (PR #169, batch 141 prep, merged by A0 at its reviewed head `4d1f10c` under the Owner's
+standing delegation, `product-owner-disposition-2026-10-03-batch-127.md` §6).
+
+Written 2026-10-03 by a subagent of the Author run `/claude/a0_atlas`. It is the Author's record. It
+approves nothing, decides none of the plan's Q-ids, and adds **no migration, no policy, no grant and no
+retention number**. Gate: pre-G0 (CONTRIBUTING_AGENTS.md:23). Its disposition is
+`product-owner-disposition-2026-10-03-batch-160-prep.md` in this directory.
+
+This file began as the draft record `a0-batch-160-prep-draft-2026-10-03.md` (`1eb29fc` on the local
+branch `draft/wp-db00-160-prep`, cut at `75c9274`) and was moved here with `git mv`. Sections 0, 0.1,
+4 (the owner column) and 7 are new; §1, §2, §3 and §6 are the draft's, kept as measured at `75c9274`,
+with what this branch re-measured stated in §0.1. Source: the phase plan for 141–170
+(`a0-phase-plan-141-170-2026-10-03.md`), "Batch 160 — 3. Can do now" (its lines 156-167 on this
+tree; the draft cited 129-140, which were the lines of the scratchpad copy). The Owner ended the
+hardening chain at 129 and told A0 to do everything that needs no pending decision.
+
+## 0. Commits on this branch
+
+| commit | what |
+|---|---|
+| `60105df` | the draft's `9dd168e`, cherry-picked. Four conflicts, each because main had moved since `75c9274` (batch 129 and 141 prep): `scripts/test-suite-contract.mjs` (141 prep had moved the same test floor, assertion floor and name digest), `test-kits/db/foundation-contract.test.mjs` (141 prep's four tests and the draft's three were both appended at the end; kept side by side, 141 prep's first, no helper name collides), `evidence/VERIFICATION.md` and `test-kits/integrity-manifest.json`. Resolved by keeping main's text and taking the guard's own count (§0.1), then `npm run record:verification` and `npm run regenerate:manifest`. |
+| `8f935a5` | the draft's `1eb29fc` (its post-commit measurements), cherry-picked without conflict. |
+| `159d43b` | packaging: branch slot, increment rationale, blockers 4, 77, 91, 105, 148, 150, 190 extended and 192 new, the retention map's `WP:` citations moved to this tree's lines, the integrity manifest. |
+| next | this plan (moved from the draft record) and the disposition. |
+| last, alone | `npm run refresh:handoff`, then the handoff's text fields. |
+
+### 0.1 Floors, digests, manifest, verification record, and what was measured here
+
+- `scripts/test-suite-contract.mjs`, read through the guard's own `stripNonCode` and
+  `countDeclaredTests` (scratch `a0-160-prepr/count160.mjs`): main `c7fe264` declares **77** tests
+  and makes **633** assertions in `foundation-contract.test.mjs`; this branch declares **80** and makes
+  **720**. So the test floor moves 77 -> 80, the assertion floor 633 -> 720 (+87, the same 87 the draft
+  added on its base, 500 -> 587), and the name digest `a91ced9f62276ebe` -> `8c35e631c28c0574`. The
+  draft's 76 / 587 / `5f91e64b5e43af7d` were its base's and are not used.
+- `evidence/VERIFICATION.md`: 681 -> **684**, written by `npm run record:verification`. Declared in
+  `amends_without_owning` (the draft's P3).
+- `test-kits/integrity-manifest.json`: regenerated, 88 digests.
+- No migration, CI file, isolation case or fixture SQL changed between `75c9274` and `c7fe264`
+  (`git diff --stat 75c9274 c7fe264 -- db docs contract-catalog` touches only `db/foundation/README.md`,
+  `audit-coverage-map.json` and `service-policy-map.json`), so the three new tests' re-derivation from
+  the migration text reads the same 66 tables, 90 keys, 216 UPDATE pairs and 269 indexes the draft
+  measured live; `node --test test-kits/db/foundation-contract.test.mjs` on this branch: 80 pass.
+- The retention map's six `WP:<line>` citations were measured at `75c9274`. 141 prep declared
+  `evidence/VERIFICATION.md`, which added a line above `open_blockers`, so each moved +1
+  (`open_blockers[i]` is on line 254+i). They now read `WP:258 (open_blockers[4])`, `WP:331 ([77])`,
+  `WP:345 ([91])`, `WP:359 ([105])`, `WP:374 ([120])` and `WP:404 ([150])`, and each finding's
+  `source` also names the blocker that owes it (§4). This packaging leaves the path list unchanged, so
+  no line above `open_blockers` moves and 141 prep's pinned blocker lines hold.
 
 ## 1. Item → file → test that holds it
 
-All three tests are in `test-kits/db/foundation-contract.test.mjs`, an existing suite file. The suite
-list is unchanged.
+All three tests are in `test-kits/db/foundation-contract.test.mjs`, an existing suite file, at lines
+3791, 3918 and 3970 on this branch (after 141 prep's four). The suite list is unchanged.
 
 | Plan item | File | Test (name) |
 |---|---|---|
@@ -18,6 +61,8 @@ list is unchanged.
 | (b) §11.1 export manifest fixture | `test-kits/db/export-manifest.fixture.json` | `the §11.1 export manifest fixture never carries an excluded class, every table is in the retention map, and its checksums recompute` |
 | (c) §11.4 purge order from the FKs | `db/foundation/lint/purge-order.json` | `the §11.4 purge order is a topological order of the foreign keys the migrations create, children first, covering every table` |
 | (d) Anonymisation route design note | this file, §6 | none; it is a note, not a rule |
+| (e) Packaging: the branch slot and the increment rationale naming every file amended outside ownership | `work-packages/WP-0A-DB-00.json` (`ownership.branch`, `amends_without_owning`), `test-kits/branch-identity.test.mjs` | `npm run check:handoff`, `node scripts/verify-branch-scope.mjs`, `branch-identity.test.mjs` |
+| (f) Every finding owed with a named owner or cross-referenced to the blocker that already holds it (§4) | `open_blockers[4]`, `[77]`, `[91]`, `[105]`, `[148]`, `[150]`, `[190]` extended; `open_blockers[192]` new, appended at the end; each map finding's `source` names its blocker | the retention-map test (each finding is recorded; no row carries a number); 141 prep's pinned-line test still passes, because nothing above `open_blockers` moved |
 
 What each test holds:
 
@@ -126,7 +171,9 @@ The text parsers that the tests use were compared against that read, using the s
 
 The static tests therefore read the same thing the catalog showed, without a database.
 
-## 3. Commands and exit codes
+## 3. Commands and exit codes (the draft, at `75c9274`)
+
+This section is the draft's, kept as measured. What this branch measured is §3.2.
 
 | Command | Exit | Output |
 |---|---|---|
@@ -169,29 +216,49 @@ Two layers did not read this draft's files: the database layers and `db-schema-l
 lint inputs by name, and the catalog snapshot digests only `migrations/*.sql`. Round 2 was run anyway,
 to show that nothing they read changed.
 
-## 4. Findings (each one recorded, none resolved)
+### 3.2 On this branch
+
+Node `v24.20.0` (`node -v` before every measured run; `/Users/bank/.local/node-v24.20.0/bin/node` is
+first on PATH, and the Homebrew Node was not used).
+
+| command | at | exit | result |
+|---|---|---|---|
+| `node --test test-kits/db/foundation-contract.test.mjs` | the resolved cherry-pick | **0** | tests 80, pass 80 |
+| `npm run record:verification` | the resolved cherry-pick | **0** | "recorded 684 passing, 0 skipped, 0 todo" |
+| `npm run check` | `159d43b`'s tree, before the handoff refresh | **1** | tests 684, pass 682, fail 2. Both failures are the handoff guard: `the handoff for this branch describes this branch` and the ratchet test that runs the same suite on an unmodified copy (`ratchets-bite.test.mjs:393`). Expected until the last commit refreshes the handoff. |
+| `node scripts/commit-when-clean.mjs` (packaging commit) | `159d43b` | **1** | refused, `NOT clean: exit 1 — tests 684, pass 682, fail 2`, the same two handoff tests. `159d43b` was therefore a plain commit, because the sole red was the not-yet-refreshed handoff guard. `60105df` and `8f935a5` are cherry-picks. |
+| `node scripts/verify-branch-scope.mjs c7fe264 WP-0A-DB-00` | `159d43b` | **0** | `all 10 changed path(s) are declared, and every amendment explains one`. Before the branch-identity edit was committed it exited **74** (`declares 1 amendment(s) that explain nothing this branch changed: test-kits/branch-identity.test.mjs`), which is the guard working. |
+| `make db-schema-lint` | static, no database | **0** | `db-schema-lint: ok` |
+| `make db-contract-check` | static | **0** | `db-contract-check: ok` |
+| `make db-migrate-clean`, `make db-rls-smoke` | not run | n/a | No input any database layer reads changed between the draft's round 2 (`9dd168e`: migrate-clean 0, rls-smoke 0 twice, 1079 cases) and this branch: no migration, invariant, fixture SQL, isolation case or CI file, and `scripts/db/run.mjs` reads its lint inputs by name (`catalog-snapshot.json`, `rls-exemption-register.json`, `service-policy-map.json`), never the three new files. No cluster was started on 5507, so none was left to remove. |
+| `npm run check`, `npm run check:handoff`, `npm run verify` | after the handoff refresh, on the branch name | | recorded in the handoff and the PR, not here, because this file is committed before that commit. |
+
+## 4. Findings (each one recorded, none resolved), and where each is owed
 
 The map carries F160-01 to F160-16 as data (`findings`). Each finding's source line is in the file and
 was verified by reading it.
 
-| Id | Finding | Where |
-|---|---|---|
-| F160-01 | §5 gives connector.meta `CONNECTION-HISTORY`, and §10 does not define it. This covers 3 tables: `meta_connections`, `social_accounts` and `private.meta_credential_references`. | ERD:211; WP:257 |
-| F160-02 | §5 gives industry.core `CATALOG/HISTORY`. §10 does not define `CATALOG`. `HISTORY` cannot describe global catalog rows, nor a mutable business assignment. 3 tables. | ERD:204, :490; WP:330 |
-| F160-03 | §5's glob `NOTIFICATION-*` does not reach `PUSH-SECRET`. **PUSH-SECRET is defined** (§10 row 21); the gap is in the assignment. | ERD:215, :508; WP:344 |
-| F160-04 | The glob reaches only `NOTIFICATION-INBOX` ("user notifications"). No class describes a preference row. | ERD:215, :507 |
-| F160-05 | `LEDGER` is undefined. §10 has `OUTBOX-SHORT` and `CONSUMER-LEDGER`, and §5 names neither (`outbox_events`, `consumer_ledger`). | ERD:214, :505-506; 050_async_kernel.sql:373-379 |
-| F160-06 | The glob `AI-RUN-*` matches no §10 class literally. No generation-run table exists, and nothing covers the model registry, the policy or the credential ref. | ERD:216, :509-510; 060_ai_gateway.sql:162-170 |
-| F160-07 | The glob `ASSET-*` does not reach `RIGHTS-PROOF`, although batch 100 reads it as doing so. No class describes `content_asset_links`. | ERD:210, :498-501; 100_asset.sql:421-423 |
-| F160-08 | The two sections disagree about `billing_webhook_receipts`. §5 says FINANCE-HISTORY, while §10's `WEBHOOK-SHORT` data column names the "payment webhook inbox" (batch 131 used WEBHOOK-SHORT). | ERD:218, :502; WP:358 |
-| F160-09 | `app.workspaces` has no timestamp for entering a lifecycle state, so DATA-DEC-04's 30-day window has nothing to be measured from. | 010_identity.sql:156-157 |
-| F160-10 | `app.jobs` has no terminal-state column or time, so JOB-SHORT's success/failure split is unsweepable. No attempts or DLQ table exists. | ERD:504 |
-| F160-11 | SCHEDULE-HISTORY runs "after final state", and neither schedule table records when that state was reached. | ERD:497; 091_calendar.sql:59 |
-| F160-12 | RESEARCH-RUN runs "after last use", and the run has no last-use column. | ERD:493; 070_research.sql:478 |
-| F160-13 | **13 sweep keys have no covering index.** See the list below the table. | measured |
-| F160-14 | **12 retention conflicts.** A kept child holds a NO ACTION key to a purged parent. See the list below the table. | measured; ERD:589-600 |
-| F160-15 | The `assets` ↔ `asset_versions` cycle can only be broken by nulling `assets.current_version_id`. Only `app_worker` holds that grant, and no policy admits it. | measured |
-| F160-16 | §10 `HISTORY`'s data column names knowledge and content versions, which §5 files under `CONTENT-HISTORY`. Both purge, so no behaviour changes today. | ERD:490, :495, :205, :207 |
+Line citations in the "Where" column are the draft's, at `75c9274`; on this tree each `WP:` line is one
+higher (§0.1). The owner column is new: each finding is owed on the blocker named, by name.
+
+| Id | Finding | Where | Owed to |
+|---|---|---|---|
+| F160-01 | §5 gives connector.meta `CONNECTION-HISTORY`, and §10 does not define it. This covers 3 tables: `meta_connections`, `social_accounts` and `private.meta_credential_references`. | ERD:211; WP:257 | `open_blockers[4]` (extended): **Q160-c** (A1 Data), then Q160-a |
+| F160-02 | §5 gives industry.core `CATALOG/HISTORY`. §10 does not define `CATALOG`. `HISTORY` cannot describe global catalog rows, nor a mutable business assignment. 3 tables. | ERD:204, :490; WP:330 | `open_blockers[77]` (extended): **Q160-c** (A1 Data), then Q160-a |
+| F160-03 | §5's glob `NOTIFICATION-*` does not reach `PUSH-SECRET`. **PUSH-SECRET is defined** (§10 row 21); the gap is in the assignment. | ERD:215, :508; WP:344 | `open_blockers[91]` (extended): **Q160-c** (A1 Data) |
+| F160-04 | The glob reaches only `NOTIFICATION-INBOX` ("user notifications"). No class describes a preference row. | ERD:215, :507 | `open_blockers[192]` (1): **A1 Data**, under Q160-c widened (P2) |
+| F160-05 | `LEDGER` is undefined. §10 has `OUTBOX-SHORT` and `CONSUMER-LEDGER`, and §5 names neither (`outbox_events`, `consumer_ledger`). | ERD:214, :505-506; 050_async_kernel.sql:373-379 | `open_blockers[192]` (2): **A1 Data**, under Q160-c widened; A0 Kernel (050) consumes; 050's LEDGER report is in `[4]` |
+| F160-06 | The glob `AI-RUN-*` matches no §10 class literally. No generation-run table exists, and nothing covers the model registry, the policy or the credential ref. | ERD:216, :509-510; 060_ai_gateway.sql:162-170 | `open_blockers[192]` (3): **A1 Data**, under Q160-c widened; A3 (060) consumes |
+| F160-07 | The glob `ASSET-*` does not reach `RIGHTS-PROOF`, although batch 100 reads it as doing so. No class describes `content_asset_links`. | ERD:210, :498-501; 100_asset.sql:421-423 | `open_blockers[192]` (4): **A1 Data**, under Q160-c widened; A4 (100) consumes; the sweep writer is `[155]` |
+| F160-08 | The two sections disagree about `billing_webhook_receipts`. §5 says FINANCE-HISTORY, while §10's `WEBHOOK-SHORT` data column names the "payment webhook inbox" (batch 131 used WEBHOOK-SHORT). | ERD:218, :502; WP:358 | `open_blockers[105]` (extended): **A1 Data** (Q160-c widened) with BILL-OQ-10's owner |
+| F160-09 | `app.workspaces` has no timestamp for entering a lifecycle state, so DATA-DEC-04's 30-day window has nothing to be measured from. | 010_identity.sql:156-157 | `open_blockers[192]` (6): **DATA-DEC-04** (Product+Security) for the window, **A1 Identity** for the column |
+| F160-10 | `app.jobs` has no terminal-state column or time, so JOB-SHORT's success/failure split is unsweepable. No attempts or DLQ table exists. | ERD:504 | `open_blockers[192]` (7): **A0 Kernel** (050), then Q160-a |
+| F160-11 | SCHEDULE-HISTORY runs "after final state", and neither schedule table records when that state was reached. | ERD:497; 091_calendar.sql:59 | `open_blockers[190]` (extended): **A5** with A1 (batch 160), then Q160-a |
+| F160-12 | RESEARCH-RUN runs "after last use", and the run has no last-use column. | ERD:493; 070_research.sql:478 | `open_blockers[192]` (8): **A2 Research** with A1, then Q160-a |
+| F160-13 | **13 sweep keys have no covering index.** See the list below the table. | measured | `open_blockers[192]` (9): **A1** (batch 160), each index a forward migration in its family's range |
+| F160-14 | **12 retention conflicts.** A kept child holds a NO ACTION key to a purged parent. See the list below the table. | measured; ERD:589-600 | `open_blockers[192]` (10): **Q160-a** with **DATA-DEC-04/05** (A1 + Owner) |
+| F160-15 | The `assets` ↔ `asset_versions` cycle can only be broken by nulling `assets.current_version_id`. Only `app_worker` holds that grant, and no policy admits it. | measured | `open_blockers[192]` (11): **DATA-DEC-03** (A0+A1) and **Q160-d**; the actor gap is `[2]` |
+| F160-16 | §10 `HISTORY`'s data column names knowledge and content versions, which §5 files under `CONTENT-HISTORY`. Both purge, so no behaviour changes today. | ERD:490, :495, :205, :207 | `open_blockers[192]` (5): **A1 Data**, under Q160-c widened |
 
 The 13 uncovered sweep keys (F160-13):
 
@@ -229,7 +296,8 @@ Findings about the plan and the process:
 - **P2. Q160-c is narrower than the findings.** It names CONNECTION-HISTORY, CATALOG and the
   NOTIFICATION-*/PUSH-SECRET glob. F160-04 to F160-08 and F160-16 have no Q-id in the plan, so their
   rows carry no decision id rather than one stretched to fit. A1 Data needs them added to Q160-c, or
-  needs a new id.
+  needs a new id. **Packaged:** held in `open_blockers[192]` (1)-(5) and `[105]`, owed to A1 Data;
+  A0 recommends widening Q160-c (disposition §5).
 - **P3. Scope declaration.** The draft amends three paths that need a rationale for this branch:
   - `scripts/test-suite-contract.mjs` (floors and digest) and `test-kits/integrity-manifest.json`
     (regenerated) are listed in `amends_without_owning`, but the rationale there describes batch 128.
@@ -241,15 +309,22 @@ Findings about the plan and the process:
     It does not object to the other two paths, because they are listed, even though the rationale
     under them is batch 128's. A reviewer should read that as a gap in the guard: it checks that a
     path is listed, not that the rationale describes this branch.
+  - **Packaged:** the slot and the rationale are written (`159d43b`), `evidence/VERIFICATION.md` is
+    declared, and `verify-branch-scope` exits 0 (§3.2). The guard gap is owed to A0 (tooling) in
+    `open_blockers[192]` (12).
 - **P4. The export fixture makes two judgements** and labels them as judgements:
   - `workspace_invitations` is omitted as token material. §11.1/5 says "secret", and the token hash
     is a stored bearer-token form (§9.3, ERD:473).
   - Nine tables outside §11.1's minimum domains (ERD:546-555) are listed as
     `outside-minimum-domains`, "NOT decided here".
 
-## 5. What this draft does NOT decide
+## 5. What this batch does NOT decide
 
-Each item below is quoted from the plan and left open.
+Each item below is quoted from the plan and left open. Each is **UNANSWERED** in the disposition, with
+A0's recommendation from the phase plan: Q160-a, approve §10's numbers as Pilot defaults behind a
+policy-version gate and keep DATA-DEC-05/06/10 open until Paid Beta; Q160-b, Route B; Q160-c, A1
+amends ERD §5/§10 (and, new from this batch, widen it to F160-04..08 and F160-16); Q160-d, A4, in the
+100–109 range, with 160 consuming the tables.
 
 - **Q160-a** (Product/Security/Legal), from the plan: "approve, change or defer §10's numbers, with a
   named owner and date for each". No number is encoded; every defined row carries `Q160-a`.
@@ -267,7 +342,7 @@ Each item below is quoted from the plan and left open.
   - the encryption, expiry and download behaviour of §11.1;
   - how each F160-14 conflict is resolved (anonymise-and-keep the parent, or detach the child).
 
-## 6. Design note: anonymising approval history (WP:401; blocker 186 item 16)
+## 6. Design note: anonymising approval history (WP:401 at `75c9274`, WP:402 here, `open_blockers[148]`; blocker 186 item 16)
 
 **What must change.** APPROVAL-HISTORY ends in "anonymize actor after minimum retention; preserve
 decision integrity" (ERD:496). Three tables are involved:
@@ -297,7 +372,7 @@ it is measured above.
   - It opens a reviewed, role-specific hole in three rules that today read "every writer": 126's
     frozen decision, 140's refusal, and §8.3's `N` for every role.
   - It rewrites the decision trail in place, so any later tamper evidence over these rows
-    (Q141-c, WP:282) has to treat anonymisation as an authorised mutation.
+    (Q141-c, WP:282 at `75c9274`, `open_blockers[29]`) has to treat anonymisation as an authorised mutation.
   - It needs `app_maintenance` to exist as a working path, which waits on DATA-DEC-03.
   - It anonymises free text (`comment`) by overwriting it, which is the one part that does work.
 
@@ -336,29 +411,22 @@ main cost is the closure migration across about 19 tables plus one definer helpe
 **before** any further family adds an `auth.uid()` actor closure, and before G1 data exists, while every
 table is still empty and applied nowhere. This is a recommendation for Q160-b; it is not taken here.
 
-## 7. Files
+## 7. Files (this branch against main `c7fe264`)
 
-- `db/foundation/lint/retention-map.json` (new)
+- `db/foundation/lint/retention-map.json` (new; packaging moved its six `WP:` citations +1 and named each finding's blocker)
 - `db/foundation/lint/purge-order.json` (new)
 - `test-kits/db/export-manifest.fixture.json` (new)
-- `test-kits/db/foundation-contract.test.mjs` (three tests and their helpers, appended)
-- `scripts/test-suite-contract.mjs` (floors 73 → 76 and 500 → 587, and the name digest)
-- `test-kits/integrity-manifest.json` (regenerated)
-- `evidence/VERIFICATION.md` (677 → 680, written by `npm run record:verification`)
-- this record
+- `test-kits/db/foundation-contract.test.mjs` (three tests and their helpers, appended after 141 prep's)
+- `scripts/test-suite-contract.mjs` (floors 77 → 80 and 633 → 720, and the name digest) — amended outside ownership
+- `evidence/VERIFICATION.md` (681 → 684, written by `npm run record:verification`) — amended outside ownership
+- `test-kits/branch-identity.test.mjs` (the branch slot) — amended outside ownership
+- `test-kits/integrity-manifest.json` (regenerated) — amended outside ownership
+- `work-packages/WP-0A-DB-00.json` (branch slot, rationale, blockers 4, 77, 91, 105, 148, 150, 190 extended, 192 new)
+- this plan, and `product-owner-disposition-2026-10-03-batch-160-prep.md`
+- `handoffs/WP-0A-DB-00-author-handoff.json` (last, alone)
 
-Scratch only, not committed, in the private directory `a0-160p/`:
+Scratch only, not committed: the draft's `a0-160p/` (`gen.mjs`, the generator, holding the judgement half;
+`catalog.sql` and `catalog.json`; `fktext.mjs`, `granttext.mjs`, `idxtext.mjs`; `mutate.mjs`; `round.sh`) and this
+branch's `a0-160-prepr/` (`count160.mjs`, the guard's own count; the manifest and plan edit scripts).
 
-- `gen.mjs`: the generator. It holds the judgement half; the measured half comes from `catalog.json`.
-- `catalog.sql` and `catalog.json`
-- `fktext.mjs`, `granttext.mjs`, `idxtext.mjs`
-- `mutate.mjs`
-- `round.sh`
-
-Not touched:
-
-- the handoff;
-- the manifest's branch slot and rationale;
-- every blocker text;
-- any migration;
-- `docs/**` and `contract-catalog/**`.
+Not touched: any migration; `docs/**` and `contract-catalog/**`; CI.
