@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "3f80599269186895fd4e6de368c837b7be48f9e8",
-  "head_revision_or_patch_checksum": "fb39bb4d08b2d881a7338558ff587a56ebf2b702",
+  "head_revision_or_patch_checksum": "4fef70a792f49e18d5366f92cf78e0e60a35c549",
   "task_ids": [],
   "files_added": [
     "db/foundation/invariants/091_calendar.1.sql",
@@ -24,13 +24,16 @@
     "db/foundation/invariants/superseded.json",
     "db/foundation/lint/catalog-snapshot.json",
     "evidence/VERIFICATION.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/psql-driver.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
+    "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
     "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs"
+    "tests/db/identity/isolation-cases.mjs",
+    "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [],
