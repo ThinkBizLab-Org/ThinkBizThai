@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "2f6ab9e0222085f4650443bcfd06585c43dc040e",
-  "head_revision_or_patch_checksum": "13cc63599130a029c6855090877b25cbc29ea9a7",
+  "head_revision_or_patch_checksum": "8f5424c6eb966c4df7ae9ca4cde3b6161f44ccc7",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/data-classification.json",
@@ -13,13 +13,17 @@
     "db/foundation/lint/read-allowlist-known-exceptions.json",
     "db/foundation/lint/read-allowlist.json",
     "evidence/WP-0A-DB-00/a0-batch-170-assert-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-170-assert-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-170-assert-contract-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170-assert.md",
+    "evidence/WP-0A-DB-00/q0-batch-170-assert-test-review-2026-10-03.md",
     "scripts/db/generate-pinned-grants.mjs"
   ],
   "files_modified": [
     "db/foundation/README.md",
     "db/foundation/lint/audit-coverage-map.json",
     "db/foundation/lint/retention-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
@@ -45,9 +49,9 @@
   ],
   "acceptance_results": [
     {
-      "criterion": "Pinned grants on every table in app and private and every non-superuser role, table and column level, with grant option, as a closed list (phase plan 170 (a))",
+      "criterion": "Pinned grants on every table in app and private and every non-superuser, non-pg_* role, table and column level, with grant option, as a closed list (phase plan 170 (a))",
       "result": "met",
-      "evidence": "db/foundation/lint/pinned-grants.json (66 tables, 43 table-level and 1328 column-level grants, none with grant option); the pinned grant probe in scripts/db/run.mjs, 4 rules, the first closing the table list both ways, 4 self-test drifts; the draft's A1-A3 drifts passed migrate-clean before and fail it by name now (plan §4); on this branch the A1 drift made migrate-clean exit 2 and the generator --check exit 1 (plan §0.1)"
+      "evidence": "db/foundation/lint/pinned-grants.json (66 tables, 43 table-level and 1328 column-level grants, none with grant option); the pinned grant probe in scripts/db/run.mjs, 6 rules since the review round (the table list closed both ways with no other relation in app or private, the owner, the superuser set, memberships among non-superuser roles, table-level, column-level), 6 self-test drifts; the draft's A1-A3 drifts passed migrate-clean before and fail it by name now (plan §4); in the review round the reviewers' d01, d02b, d03, d04b, d05b, d06 and G18 each made migrate-clean exit 2 by name (plan §9.2). A grant TO a pg_* role and a relation outside app and private are not read (owed, open_blockers[185])"
     },
     {
       "criterion": "read-allowlist.json as [] (RFC-2026-021 §8.1), the §8.2 two-way rule, and the §8.5 known-exceptions block listing exactly today's inherited grants (phase plan 170 (b))",
@@ -137,36 +141,81 @@
       "result": "cites 2f6ab9e..13cc635, 7 added, 11 modified, 0 deleted; base moved from c7fe264 to the branch point"
     },
     {
+      "command": "npm run check:handoff; npm run verify (after the db995b6 refresh, on the branch name)",
+      "exit_code": 0,
+      "result": "observed by C0, A1 and Q0 on the branch name: check:handoff 0, verify 0 (684/684); recorded in their reviews"
+    },
+    {
+      "command": "review round: node --test test-kits/db/foundation-contract.test.mjs tests/db/identity/identity-isolation.test.mjs (Node v24.20.0)",
+      "exit_code": 0,
+      "result": "tests 385, pass 385; foundation-contract 793 assertions (788 -> 793), pinned grant digest 7a8fe3e222e6827f -> baa6379790cb8733"
+    },
+    {
+      "command": "review round: node scripts/verify-branch-scope.mjs 2f6ab9e WP-0A-DB-00",
+      "exit_code": 0,
+      "result": "all 22 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "review round r1 and r2 (r2 on the committed tree 8f5424c), each a fresh initdb on 127.0.0.1:5507 with the shim: make db-migrate-clean; make db-rls-smoke twice; generate-pinned-grants.mjs --check",
+      "exit_code": 0,
+      "result": "each 0: pinned grant probe refused each of its 6 drifts; 66 / 43 / 1328, 0 memberships pinned; read allowlist 0 + 41; classification 66 / 8; 1079 isolation cases each smoke run, 6 authz claims; both files match the catalog"
+    },
+    {
+      "command": "review round drift rounds d01, d02b, d03, d04b, d05b, d06, G18, appended to 140_audit.sql and restored (sha256 2ac596bb950e8dfb after each)",
+      "exit_code": 2,
+      "result": "migrate-clean 2 for each, named by the pinned grant probe's rule 1 (not a table), 3 (superuser) or 4 (membership); rls-smoke 0 for each"
+    },
+    {
+      "command": "review round drift T02 (a new schema and table read by app_worker)",
+      "exit_code": 0,
+      "result": "migrate-clean 0, rls-smoke 0, generator 0: still passes every layer, owed on open_blockers[185]"
+    },
+    {
+      "command": "review round drifts G11 and G13: generate-pinned-grants.mjs --check",
+      "exit_code": 3,
+      "result": "G11 (table-wide SELECT) exit 3, REFUSED; G13 (anon column SELECT) exit 1, both files DIFFER; migrate-clean 2 for both"
+    },
+    {
+      "command": "review round: node scripts/commit-when-clean.mjs (for 8f5424c)",
+      "exit_code": 0,
+      "result": "clean: exit 0 -- tests 684, pass 684"
+    },
+    {
       "command": "npm run check; npm run check:handoff; npm run verify (after this commit, on the branch name)",
       "exit_code": null,
       "result": "PENDING when this file was written: they can run only after this commit; the observed exits are in the PR body, not here"
     }
   ],
-  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, two probes, a fourth-rule extension of the pinned grant probe, a generator and static tests that refuse later drift: any grant or revoke for any non-superuser role on any app or private table, a table added without a pinned entry or a classification, a client SELECT on no allowlist or exception list (and a list row with no grant), and any client privilege on a SECRET-4, PROVIDER-3 or INTERNAL-3 table. Two drifts the draft measured passed every layer before (a table-wide client SELECT on app.workspaces; a client SELECT on app.jobs.input_ref, INTERNAL-3) and now fail migrate-clean by name. Cost: the pinned grant probe is about 94 KB of SQL run six times per migrate-clean; measured 4.6-4.7 s per migrate-clean on this machine (F15).",
+  "security_privacy_cost_impact": "None at run time. No migration, policy, grant or role changes; nothing reachable by any role changes. The batch adds lint data, two probes, an extension of the pinned grant probe to six rules, a generator and static tests that refuse later drift: any grant or revoke for any non-superuser, non-pg_* role on any app or private table (a grant TO a predefined pg_* role is not read: README rule 7, open_blockers[185]); since the review round, any view, materialized view or foreign table in app or private, any superuser but the migration owner, and any membership among non-superuser roles (A1 R1, R2; Q0 Q-1, Q-2, Q-5); a table added without a pinned entry or a classification; a client SELECT on no allowlist or exception list (and a list row with no grant); and any client privilege on a SECRET-4, PROVIDER-3 or INTERNAL-3 TABLE (the column half is empty: README rule 17). Two drifts the draft measured passed every layer before (a table-wide client SELECT on app.workspaces; a client SELECT on app.jobs.input_ref, INTERNAL-3) and now fail migrate-clean by name, as do the reviewers' d01, d02b, d03, d04b, d05b, d06 and G18. Still passing every layer, owed on open_blockers[185]: a relation outside app and private that a non-client role reads (Q0 T02). Cost: the pinned grant probe is about 94 KB of SQL run eight times per migrate-clean (F15).",
   "migration_and_data_impact": "NONE. Batch 170's assertion-only part adds no migration and needs no migration number.",
-  "compatibility_impact": "Additive. Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 747 -> 788 and identity-isolation's 2166 -> 2167, the guard's own count; test floors and name digests unchanged. evidence/VERIFICATION.md leaves amends_without_owning, which moves every manifest line below it up one: the 55 WP line citations in retention-map.json, audit-coverage-map.json and the CTR-AUD-001 store-conformance fixture moved -1 and are checked; no blocker index moves (open_blockers[193] is appended at the end). Any later migration that grants, revokes or adds a table must change pinned-grants.json (regenerate with scripts/db/generate-pinned-grants.mjs and review the diff), data-classification.json and, for a client SELECT, an allowlist or exception row, in the same diff.",
+  "compatibility_impact": "Additive. Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 747 -> 788 (793 after the review round) and identity-isolation's 2166 -> 2167, the guard's own count; test floors and name digests unchanged. evidence/VERIFICATION.md leaves amends_without_owning, which moves every manifest line below it up one: the 55 WP line citations in retention-map.json, audit-coverage-map.json and the CTR-AUD-001 store-conformance fixture moved -1 and are checked; no blocker index moves (open_blockers[193] is appended at the end). Any later migration that grants, revokes or adds a table must change pinned-grants.json (regenerate with scripts/db/generate-pinned-grants.mjs and review the diff), data-classification.json and, for a client SELECT, an allowlist or exception row, in the same diff.",
   "known_limitations": [
     "Rule 17 refuses every client privilege on a PROVIDER-3 or INTERNAL-3 table, stricter than ERD §9.1; it passes only because the twelve ERD-ambiguous tables (published_posts and performance_snapshots among them, which 120/121 record as PROVIDER-3 and expose to clients by design) are unclassified (F1, F2; Q170-d; open_blockers[193]).",
-    "The ERD classes no column, so rule 17's column half asserts nothing until it does (F3).",
+    "The ERD classes no column, so rule 17's column half asserts nothing until it does (F3); README rule 17's heading says so since the review round (A1 R5).",
     "The read allowlist probe reads SELECT only; client INSERT, UPDATE and DELETE are held by the pinned grant probe and the permissive policy probe. RFC-2026-021 §8.2's migration-text half (create view <-> entry), the industry-catalog test's replacement and §8.3's exposed_views are not done (F7, F8; open_blockers[115]).",
     "Rule 7 reads a column privilege a table-level one implies at table level, so a redundant column GRANT beside a table grant is named only after the table grant is revoked (F10).",
     "Every non-superuser role is read, so on a provisioned Supabase instance the platform's own roles and default grants would read as unlisted; CI and this run use the shim's roles only (F13; Q170-c).",
-    "identity-isolation.test.mjs keeps a test name that says the registry is not in the tree; renaming it moves the name digest, the Integration Owner's to accept (F9)."
+    "identity-isolation.test.mjs keeps a test name that says the registry is not in the tree; renaming it moves the name digest, the Integration Owner's to accept (F9).",
+    "The pinned grant probe does not read a grant TO a predefined pg_* role (only a role becoming one, rule 4), nor a relation outside app and private that a non-client role can read (A1 R3, Q0 Q-3; open_blockers[185]).",
+    "\"Inherited\" in the §8.5 list is a reading: 10 of its 41 rows come from 010/020/021, which §8.5 names, and 31 from 13 later migrations; closing at 41 accepts the 31, put to A1 and the Owner with Q170-b (C0 F1, A1 R4; open_blockers[18]).",
+    "The read allowlist's entry side checks two of RFC-021 §3's five objects; inert while the allowlist is empty, owed before its first entry (C0 F3; open_blockers[115]).",
+    "scripts/db/generate-pinned-grants.mjs is a reviewer's tool, not a gate: nothing in make, npm, the tests or CI runs it (C0 F7, Q0 Q-6; open_blockers[193] (11))."
   ],
   "open_risks_or_blockers": [
     "Q170-a (Owner + A1), Q170-b (Owner), Q170-c (A0) and Q170-d (A1 + Owner, new from F1) are UNANSWERED; the disposition lists each with A0's recommendation (yes, an RFC amending RFC-020; closed list now, conversion per family later; A0 measures the provisioned instance read-only before G1; a pinned safe projection per PROVIDER-3/INTERNAL-3 table).",
     "The ERD owner (A1 Data) owes classes for the twelve ambiguous tables, column classes, and the family rows for billing_webhook_receipts, plan_entitlements and publish_target_assets (F2-F5, open_blockers[193]).",
-    "C0, A1 and Q0 have not reviewed this branch; nothing here is reviewed, independently tested or approved."
+    "C0, A1 and Q0 reviewed db995b6 (their files are cherry-picked: c0-, a1-, q0-batch-170-assert-*-2026-10-03.md); none reported a stop-the-line or anything that blocks the merge. Their findings are acted on or recorded as owed in plan §9; the review round itself (8f5424c) is not yet re-checked by them. Integration Owner evidence (RFC-2026-025 §5) is still owed."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. No migration, policy or grant is added, so a revert diverges no database. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 review of batch 170's assertion-only part, then its merge under the standing delegation if the bar of 127 §6 is met.",
+    "C0, A1 and Q0 re-check of batch 170-assert's review round (plan §9), then its merge under the standing delegation if the bar of 127 §6 is met.",
     "Put Q170-a, Q170-b, Q170-c and Q170-d to their owners; Q170-d before the ERD owner classifies published_posts or performance_snapshots.",
     "The planned batch 150: its no-decision part, per a0-phase-plan-141-170-2026-10-03.md.",
     "RFC-2026-021 §8.2's migration-text half and §8.3's exposed_views (open_blockers[115]), A0."
   ],
   "reviewer_instructions": [
-    "Read the plan's sections 0, 0.1, 1, 4 and 5.1 with db/foundation/lint/pinned-grants.json, read-allowlist.json, read-allowlist-known-exceptions.json and data-classification.json, the three probes in scripts/db/run.mjs (the pinned grant probe from :1232, the read allowlist from :1323, the data classification from :1378) and the batch 170 blocks in test-kits/db/foundation-contract.test.mjs (from :2985).",
+    "Read the plan's sections 0, 0.1, 1, 4 and 5.1 with db/foundation/lint/pinned-grants.json, read-allowlist.json, read-allowlist-known-exceptions.json and data-classification.json, the three probes in scripts/db/run.mjs (the pinned grant section from :1221, its SQL from :1287, the read allowlist and data classification after it) and the batch 170 blocks in test-kits/db/foundation-contract.test.mjs (from :2985).",
+    "Review round (plan §9): re-run the reviewers' surviving drifts (d01, d02b, d03, d04b, d05b, d06, G17/G18, T07) and check each fails migrate-clean by the new rule's name; check T02 still passes and is owed on open_blockers[185]; check the generator exits 3 on a table-wide client SELECT and renders an anon column SELECT.",
     "Re-run the generator on a fresh clean set (DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs --check) and check it reports both files as matching; then append a grant drift to 140_audit.sql and check it exits 1.",
     "Check F1's condition: no table whose §5 row mixes a refused class and another carries a class in data-classification.json, and app.billing_webhook_receipts' PROVIDER-3 (F4) only adds a refusal.",
     "Check that the extensions to open_blockers[18], [93], [115], [185] and the new open_blockers[193] own every finding of the plan's §5 by name and duplicate no other blocker's text.",
