@@ -99,6 +99,61 @@ test('a target needing a database refuses without one, rather than reporting a p
     assert.match(result.stderr, /DB_TEST_URL/, `db-${target} must name the variable that would let it run`);
     assert.match(result.stdout, new RegExp(`db-${target}: FAILED`), `db-${target} must print a failing summary line`);
   }
+  // The batch 150 prerequisite draft: the EXPLAIN harness is not a make target, and it refuses the same way --
+  // with no database, and with a host off the db-reset-test allowlist -- before it writes anything.
+  for (const [url, why] of [[undefined, /DB_TEST_URL/], ['postgresql://u@db.example.com:5432/x', /refuses this host/]]) {
+    const henv = { ...env };
+    if (url) henv.DB_TEST_URL = url;
+    const result = await run('node', ['scripts/db/explain-harness.mjs'], { env: henv }).then(
+      (ok) => ({ code: 0, ...ok }),
+      (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+    assert.equal(result.code, 2, `explain-harness with ${url ?? 'no database'} refuses with exit 2`);
+    assert.match(result.stderr, why, 'and says why');
+    assert.equal(result.stdout, '', 'and reports nothing it did not measure');
+  }
+  // Batch 150-prereq's review round (A1 S1, Q0 Q-4, C0-9): the host guard was a text match, and each URL below
+  // passed it while libpq would connect somewhere else (measured: `?host=` wins over the authority; a host list
+  // is tried in order). Both tools now share testHostRefusal, and each refuses every one before connecting. No
+  // host here resolves or listens: .invalid names, a missing socket directory, TEST-NET-1.
+  const { testHostRefusal, scrubbedEnv, redactConnection } = await import('../../scripts/db/psql-driver.mjs');
+  const crafted = [
+    'postgresql://postgres@127.0.0.1:5507/postgres?host=db.example.invalid',
+    'postgresql://postgres@127.0.0.1:5507/postgres?host=/nonexistent-dir',
+    'postgresql://postgres@localhost:5432,db.example.invalid:5432/app',
+    'postgresql://postgres@127.0.0.1:5507/postgres?service=prod',
+    'postgresql://postgres@127.0.0.1:5507/postgres?servicefile=/nonexistent-dir/pg_service.conf',
+    'postgresql://postgres@127.0.0.1:5507/postgres?hostaddr=192.0.2.1',
+    'postgresql://postgres@127.0.0.1:5507/postgres?HOST=db.example.invalid',
+    'postgresql://app:secret@db.example.invalid:5432/app?options=@localhost/',
+    'postgresql://postgres@q0-probe.invalid:5503/postgres?application_name=@localhost/',
+    'postgresql://postgres@db.example.invalid/x?u=@localhost/',
+    'postgresql://a@b@localhost:5432/x',
+    'postgresql://localhost:5432/x',
+    'postgresql://postgres@localhost.example.invalid:5432/x',
+    'postgresql://postgres@127.0.0.1%2Cdb.example.invalid:5432/x',
+    'mysql://postgres@localhost:5432/x',
+    'postgresql://postgres@127.0.0.1:5507/postgres#?host=db.example.invalid',
+    'postgresql://postgres@127.0.0.1:5507/postgres#x?hostaddr=192.0.2.1',
+    'postgresql://postgres@127.0.0.1:5507/postgres?%68ost=db.example.invalid',
+  ];
+  for (const url of crafted) assert.ok(testHostRefusal(url), `${url}: refused by the shared guard`);
+  for (const url of ['postgresql://postgres@localhost:5432/thinkbizthai_test', 'postgresql://postgres@127.0.0.1:5507/postgres',
+    'postgres://postgres@[::1]:5432/x', 'postgresql://postgres@postgres:5432/x?sslmode=disable', 'postgresql://u:p%40ss@LOCALHOST/x']) {
+    assert.equal(testHostRefusal(url), null, `${url}: a test instance, admitted (CI's URL among them)`);
+  }
+  assert.deepEqual(Object.keys(scrubbedEnv({ PGHOST: 'a', PGHOSTADDR: 'b', PGSERVICE: 'c', PGSERVICEFILE: 'd', PGPORT: '5', LC_ALL: 'C' })).sort(), ['LC_ALL', 'PGPORT'],
+    'psql never inherits a host, address or service the URL left out');
+  assert.equal(redactConnection('could not connect to db.internal.invalid', 'postgresql://postgres@127.0.0.1:5507/postgres?host=db.internal.invalid'), 'could not connect to [redacted]',
+    'a query parameter\'s value is redacted too (A1 S6)');
+  for (const url of crafted.slice(0, 10)) {
+    for (const [file, args, code] of [['explain-harness', ['scripts/db/explain-harness.mjs'], 2], ['db-reset-test', ['scripts/db/run.mjs', 'reset-test'], 1]]) {
+      const result = await run('node', args, { env: { ...env, DB_TEST_URL: url } }).then(
+        (ok) => ({ code: 0, ...ok }),
+        (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+      assert.equal(result.code, code, `${file} with ${url} refuses (exit ${code})`);
+      assert.match(result.stderr, new RegExp(`${file} refuses this host: `), `${file}: and says so before connecting`);
+    }
+  }
 });
 
 test('db-verify fails as a whole, and its summary names what is missing', async () => {
@@ -2504,8 +2559,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL,
       m.CLIENT_SCHEMA_PROBE_SQL, m.CLIENT_MEMBERSHIP_PROBE_SQL, m.SYSTEM_FINGERPRINT_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.POLICY_HELPER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
-      m.PINNED_GRANT_PROBE_SQL, m.READ_ALLOWLIST_PROBE_SQL, m.DATA_CLASSIFICATION_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all twenty-six, in order (the read allowlist and data classification probes are the batch 170 draft: RFC-2026-021 §8.2 and §8.5, plan (b) and (c)):one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check); the system object fingerprint probe is batch 129 (C0 G1, Q0 F1 on 128\'s re-check)');
+      m.PINNED_GRANT_PROBE_SQL, m.READ_ALLOWLIST_PROBE_SQL, m.DATA_CLASSIFICATION_PROBE_SQL, m.PINNED_SHAPE_PROBE_SQL, m.VOCABULARY_CHECK_PROBE_SQL,
+      m.POLICY_SET_PROBE_SQL, m.INDEX_COVERAGE_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
+    'all thirty, in order (the pinned shape, vocabulary check, policy set and index coverage probes are the batch 150 prerequisite draft: survey §6 items 5-7 and plan (b); the read allowlist and data classification probes are the batch 170 draft: RFC-2026-021 §8.2 and §8.5, plan (b) and (c)):one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check); the system object fingerprint probe is batch 129 (C0 G1, Q0 F1 on 128\'s re-check)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2648,6 +2704,14 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // view, materialized view or foreign table in app or private, and its drift adds two, A1 R2, Q0 Q-2; the
   // superuser set and every non-superuser role's memberships are rules 3 and 4 with a drift each, A1 R1,
   // Q0 Q-1, Q-5; a column for anon in the column drift, Q0 Q-5).
+  // Batch 150's prerequisites (plan "Batch 150 -- Can do now", assertion only): the pinned shape,
+  // vocabulary check, policy set and index coverage probes are new (weak-assertion survey §6 items 5, 6 and 7;
+  // ERD §3.3), each reading a lint file in db/foundation/lint/; no existing digest moves.
+  // Batch 150-prereq's review round: pinned shape d9d0a827e5be09e3 to b54ae8e9c8c7f6ce (rule 5, triggers, and
+  // its drift, A1 S4, C0-8; a roles drift, Q0 Q-3), policy set 10e2446a17df3d73 to 3c643bfe1fcfb040 (a roles
+  // drift, Q0 Q-3), index coverage 7e53a75a9931e962 to ae187b635c0ae0f4 (btree only and the NULLS order, C0-1,
+  // Q0 Q-1; drifts for HASH, BRIN, NULLS LAST, a column behind a non-predicate column and a table-qualified
+  // column, Q0 Q-2). The vocabulary check probe and every older digest stay.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2672,6 +2736,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'pinned grant probe': 'baa6379790cb8733',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': '42c77e0015f12eaf',
+    'pinned shape probe': 'b54ae8e9c8c7f6ce',
+    'vocabulary check probe': 'd28d49cb3af0a0fd',
+    'policy set probe': '3c643bfe1fcfb040',
+    'index coverage probe': 'ae187b635c0ae0f4',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
     'pg_catalog guard probe': '75f034a2f40a686e',
@@ -3107,6 +3175,198 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 2, 'the three client roles, at table and at column level');
     assert.ok(m.DATA_CLASSIFICATION_PROBE_SQL.includes(`from unnest(array[${m.REFUSED_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `),
       'the SQL refuses every one of the eight tables, as the registry gives them (Q0 Q-5 on the batch 170 draft: one dropped from the SQL passed with the digest refreshed)');
+  }
+  // THE PINNED SHAPES (the batch 150 prerequisite draft; survey §6 item 5). The probe reads the lint file;
+  // its tables exist in the migrations; 121's constraints are every one 121 names, by text now and not by
+  // name; the two pins of performance_snapshots' narrowing agree; and the probe reads FORCE.
+  {
+    const file = JSON.parse(await readFile(m.PINNED_SHAPES_FILE, 'utf8'));
+    assert.deepEqual(m.PINNED_SHAPES, file.tables, 'the probe reads the lint file and nothing else');
+    assert.deepEqual(Object.keys(m.PINNED_SHAPES), ['app.performance_snapshots', 'app.published_posts', 'app.usage_events'], 'the table batch 150 rebuilds, the table its key references, and the table of survey item 6\'s unique key');
+    for (const [t, s] of Object.entries(m.PINNED_SHAPES)) {
+      assert.ok(Object.keys(m.PINNED_GRANTS).includes(t), `${t}: a table the migrations create`);
+      assert.deepEqual(s.rls, { enabled: true, forced: true }, `${t}: row level security enabled and FORCED (Q0 D30: FORCE was asserted nowhere)`);
+      for (const [k, c] of Object.entries(s.constraints)) {
+        assert.ok(['c', 'f', 'p', 'u', 'x'].includes(c.type) && c.def.length > 6, `${t}.${k}: a typed constraint with its text`);
+        assert.match(c.def, { c: /^CHECK /, f: /^FOREIGN KEY /, p: /^PRIMARY KEY /, u: /^UNIQUE /, x: /^EXCLUDE / }[c.type], `${t}.${k}: the text is of its type`);
+      }
+      for (const [k, def] of Object.entries(s.indexes)) assert.ok(def.startsWith(`CREATE INDEX ${k} ON ${t} USING `) || def.startsWith(`CREATE UNIQUE INDEX ${k} ON ${t} USING `), `${t}.${k}: its own pg_get_indexdef, schema-qualified`);
+      for (const [k, p] of Object.entries(s.policies)) {
+        assert.ok(['r', 'a', 'w', 'd', '*'].includes(p.cmd) && typeof p.permissive === 'boolean' && typeof p.roles === 'string', `${t}.${k}: command, flag and roles`);
+      }
+      // Batch 150-prereq's review round (A1 S4, C0-8): the trigger set is pinned too, and is empty today.
+      assert.deepEqual(s.triggers, {}, `${t}: no non-internal trigger, pinned as an empty set (rule 5)`);
+    }
+    const m121 = (await readFile('db/foundation/migrations/121_publisher_metrics.sql', 'utf8')).replace(/--[^\n]*/g, '');
+    const named = [...m121.matchAll(/constraint (performance_snapshots_[a-z_]+)\s*\n?\s*(?:check|unique|foreign|primary)/g)].map((x) => x[1]);
+    assert.ok(named.length >= 9, 'measured: 121 names its performance_snapshots constraints');
+    for (const n of named) assert.ok(m.PINNED_SHAPES['app.performance_snapshots'].constraints[n], `${n}: every constraint 121 names is pinned by text`);
+    assert.ok(m.PINNED_SHAPES['app.published_posts'].constraints.published_posts_scope_unique, 'the key 121 added to published_posts, which performance_snapshots_post_scope_fk references');
+    assert.deepEqual(m.PINNED_SHAPES['app.usage_events'].constraints.usage_events_dedupe_key_unique, { type: 'u', def: 'UNIQUE (workspace_id, dedupe_key)' }, 'survey item 6: the dedupe key, which had no probe');
+    const narrowing = m.PINNED_SHAPES['app.performance_snapshots'].policies.performance_snapshots_scope_narrowing;
+    assert.deepEqual([narrowing.using, narrowing.check], [m.PINNED_POLICIES['performance_snapshots.performance_snapshots_scope_narrowing'].using, m.PINNED_POLICIES['performance_snapshots.performance_snapshots_scope_narrowing'].check], 'the two pins of the narrowing are one text');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /where c\.oid is null or not \(c\.relrowsecurity and c\.relforcerowsecurity\)/, 'rule 1 reads ENABLE and FORCE');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_constraintdef\(con\.oid\) as def, con\.convalidated as ok/, 'rule 2: constraint text and validation');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_indexdef\(i\.indexrelid\) as def, i\.indisvalid as ok/, 'rule 3: index text and validity');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_expr\(pol\.polqual, pol\.polrelid\) as using_text, pg_catalog\.pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) as check_text/, 'rule 4: both halves of every policy');
+    assert.match(m.PINNED_SHAPE_PROBE_SQL, /pg_catalog\.pg_get_triggerdef\(tg\.oid\) as def, tg\.tgenabled = 'O' as ok\n\s+from pg_catalog\.pg_trigger tg where not tg\.tgisinternal and tg\.tgrelid = any/, 'rule 5: every non-internal trigger by text and enabled (A1 S4, C0-8)');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'unlisted or changed: ' \|\| f\.k as x from found f/g) ?? []).length, 4, 'rules 2-5 name what is found and not pinned');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'missing or changed: ' \|\| p\.k from pinned p/g) ?? []).length, 4, 'and what is pinned and not found');
+    assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/ and [pf]\.roles is not distinct from [pf]\.roles/g) ?? []).length, 2, 'rule 4 compares roles both ways (Q0 Q-3, mutant C2)');
+  }
+  // THE VOCABULARY CHECKS (survey §6 item 6). Each pinned text is of the selector's shape and named by a
+  // migration; a vocabulary shared by several homes is one text in each, so the rewrite of every home alike
+  // that passed the relative pins now differs from the fixed text.
+  {
+    const file = JSON.parse(await readFile(m.VOCABULARY_CHECKS_FILE, 'utf8'));
+    assert.deepEqual(m.VOCABULARY_CHECKS, file.checks, 'the probe reads the lint file and nothing else');
+    const keys = Object.keys(m.VOCABULARY_CHECKS);
+    assert.equal(keys.length, 60, 'sixty vocabulary CHECKs, measured at 1319042');
+    assert.deepEqual(keys, [...keys].sort(), 'sorted');
+    const all = (await Promise.all((await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).map((n) => readFile(`db/foundation/migrations/${n}`, 'utf8')))).join('\n');
+    for (const [k, def] of Object.entries(m.VOCABULARY_CHECKS)) {
+      assert.match(k, /^(app|private)\.[a-z_]+\.[a-z0-9_]+$/, `${k}: schema.table.constraint`);
+      assert.ok(def.includes("ARRAY['") || /^CHECK \(\([a-z_]+ = '[^']*'::text\)\)$/.test(def), `${k}: of the selector's shape`);
+      assert.ok(all.includes(k.split('.')[2]), `${k}: a constraint a migration names`);
+    }
+    for (const [col, homes] of [['channel', ['app.notification_preferences.notification_preferences_channel_known', 'app.notifications.notifications_channel_known']],
+      ['provider', ['app.ai_models.ai_models_provider_known', 'private.ai_credential_references.ai_credential_references_provider_known']],
+      ['dimension', ['app.quota_buckets.quota_buckets_dimension_known', 'app.usage_events.usage_events_dimension_known', 'app.usage_reservations.usage_reservations_dimension_known']],
+      ['quantity_unit', ['app.quota_buckets.quota_buckets_quantity_unit_known', 'app.usage_events.usage_events_quantity_unit_known', 'app.usage_reservations.usage_reservations_quantity_unit_known']]]) {
+      assert.equal(new Set(homes.map((h) => m.VOCABULARY_CHECKS[h])).size, 1, `${col}: the survey's shared vocabulary is one fixed text in every home`);
+    }
+    assert.match(m.VOCABULARY_CHECK_PROBE_SQL, /where con\.contype = 'c' and n\.nspname in \('app', 'private'\)\n\s+and \(pg_catalog\.strpos\(pg_catalog\.pg_get_constraintdef\(con\.oid\), 'ARRAY\['''\) > 0\n\s+or pg_catalog\.pg_get_constraintdef\(con\.oid\) ~ '\^CHECK \[\(\]\[\(\]\[a-z_\]\+ = ''\[\^''\]\*''::text\[\)\]\[\)\]\$'\)/,
+      'the selector: a literal array, or the single-column equality');
+    assert.equal((m.VOCABULARY_CHECK_PROBE_SQL.match(/raise exception/g) ?? []).length, 2, 'two rules: found and not pinned, pinned and not found');
+  }
+  // THE POLICY SET (survey §6 item 7). With the other lists it names every policy in app exactly once; its
+  // rows are the read predicates on the 16 tables PERMISSIVE_POLICIES has no row for (C0-5 on the review
+  // round: not "tables no client writes"), the service-path closures and app_authz's own.
+  {
+    const file = JSON.parse(await readFile(m.POLICY_SET_FILE, 'utf8'));
+    assert.deepEqual(m.POLICY_SET, file.policies, 'the probe reads the lint file and nothing else');
+    const rows = Object.entries(m.POLICY_SET);
+    assert.equal(rows.length, 44, 'forty-four policies no other list named, measured at 1319042');
+    const others = new Set(m.PINNED_POLICY_KEYS().filter((k) => !m.POLICY_SET[k]));
+    for (const [k] of rows) assert.ok(!others.has(k), `${k}: pinned once, here`);
+    assert.equal(m.PINNED_POLICY_KEYS().length, 209, 'two hundred and nine policies in app, every one named');
+    const service = rows.filter(([k]) => k.endsWith('_service_path_closed'));
+    assert.equal(service.length, 26, 'twenty-six service-path closures');
+    for (const [k, p] of service) {
+      assert.deepEqual([p.permissive, p.cmd, p.roles, p.using, p.check], [false, '*', 'public', "(CURRENT_USER = 'authenticated'::name)", "(CURRENT_USER = 'authenticated'::name)"], `${k}: the closure's one shape`);
+    }
+    const reads = rows.filter(([k]) => !k.endsWith('_service_path_closed') && k !== `${m.AUTHZ_TABLE}.${m.AUTHZ_POLICY}`);
+    assert.equal(reads.length, 17, 'seventeen permissive read predicates');
+    assert.equal(new Set(reads.map(([k]) => k.split('.')[0])).size, 16, 'on sixteen tables (C0-5: the draft said thirteen)');
+    for (const [k] of reads) assert.ok(!Object.keys(m.PERMISSIVE_POLICIES).some((p) => p.split('.')[0] === k.split('.')[0]), `${k}: on a table PERMISSIVE_POLICIES has no row for`);
+    assert.match(m.POLICY_SET_PROBE_SQL, / and f\.roles = p\.roles\n/, 'rule 2 compares roles (Q0 Q-3, mutant C6)');
+    for (const [k, p] of reads) {
+      assert.deepEqual([p.permissive, p.cmd, p.roles, p.check], [true, 'r', 'authenticated', null], `${k}: a permissive SELECT for authenticated`);
+      assert.ok(p.using.length > 10, `${k}: with its predicate`);
+    }
+    assert.equal(m.POLICY_SET[`${m.AUTHZ_TABLE}.${m.AUTHZ_POLICY}`]?.roles, m.AUTHZ_ROLE, 'app_authz\'s own policy, read live as well as by the static authz lint');
+    assert.match(m.POLICY_SET_PROBE_SQL, /where \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\)\n\s+and not \(n\.nspname = 'app' and format/, 'rule 1 reads every policy on a table in any schema but the system ones, or made after initdb');
+    assert.equal((m.POLICY_SET_PROBE_SQL.match(/raise exception/g) ?? []).length, 2, 'two rules');
+  }
+  // INDEX COVERAGE (plan (b); ERD §3.3). Exemptions keyed schema.table.column with a reason; every index a
+  // migration names *_keyset_idx is a declared lookup; the named WS:911 queries are there; the content first
+  // page is a finding, not a lookup.
+  {
+    const file = JSON.parse(await readFile(m.INDEX_COVERAGE_FILE, 'utf8'));
+    assert.deepEqual(m.INDEX_COVERAGE, file, 'the probe reads the lint file and nothing else');
+    for (const [k, reason] of Object.entries(m.INDEX_COVERAGE.rls_predicate_exemptions)) {
+      assert.match(k, /^(app|private)\.[a-z_]+\.[a-z_]+$/, `${k}: keyed schema.table.column`);
+      assert.ok(reason.length > 40, `${k}: carries a reason`);
+    }
+    assert.deepEqual(Object.keys(m.INDEX_COVERAGE.rls_predicate_exemptions), ['app.approval_requests.status', 'app.calendar_items.deleted_at', 'app.content_schedules.status', 'app.workspaces.lifecycle_state'],
+      'the four uncovered predicate columns measured at 1319042, all state filters');
+    const keyset = [];
+    for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
+      for (const x of (await readFile(`db/foundation/migrations/${name}`, 'utf8')).matchAll(/^create index if not exists ([a-z_]+_keyset_idx)\s+on ((?:app|private)\.[a-z_]+)/gm)) keyset.push(x[2]);
+    }
+    assert.equal(keyset.length, 21, 'twenty-one *_keyset_idx indexes in the migrations, as the catalog measured');
+    const lookups = Object.entries(m.INDEX_COVERAGE.lookups);
+    for (const t of keyset) assert.ok(lookups.some(([, l]) => l.table === t && /DESC$/.test(l.columns.at(-1))), `${t}: its keyset cursor is a declared lookup`);
+    for (const q of ['membership check', 'workspace switch / list', 'calendar first page', 'library first page', 'worker claim']) assert.ok(m.INDEX_COVERAGE.lookups[q], `WS:909-917's ${q} is declared`);
+    for (const [name, l] of lookups) {
+      assert.ok(Object.keys(m.PINNED_GRANTS).includes(l.table), `${name}: on a table the migrations create`);
+      assert.ok(l.columns.length > 0 && l.columns.every((c) => /^[a-z_]+( DESC)?$/.test(c)), `${name}: column names, each with its direction`);
+      assert.ok(l.why.length > 20, `${name}: says why`);
+    }
+    assert.equal(m.INDEX_COVERAGE.findings.find((f) => f.id === 'IC-1')?.table, 'app.content_items', 'the content first page, served by no index, is a finding (Q150-b), not a lookup that would fail');
+    assert.ok(!lookups.some(([, l]) => l.table === 'app.content_items'), 'and no lookup claims it');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /pg_catalog\.pg_depend d on d\.classid = 'pg_catalog\.pg_policy'::pg_catalog\.regclass and d\.objid = pol\.oid/, 'rule 1 reads what each policy depends on');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and i\.indpred is null and am\.amname = 'btree'\n/, 'and counts only valid whole btree indexes (C0-1, Q0 Q-1: HASH and BRIN passed)');
+    // Batch 150-prereq's review round (Q0 Q-2): the mechanics mutants C8, C9 and C10 changed with every layer
+    // green. The leading run stops at the first key column no policy reads (C8; drift 1's probe_ic_t also
+    // carries an index with its predicate column behind such a column); a column the USING deparse qualifies by
+    // its own table counts (C9; drift 1's probe_ic_q); rule 2 reads only valid btree indexes (C10, which an
+    // ordinary migration cannot drive, so it is held here), and compares the NULLS order (C0-1).
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where k\.ord <= coalesce\(\(select min\(v\.ord\) - 1 from unnest\(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) with ordinality as v\(k, ord\)\n\s+where not \(v\.k = any \(s\.cols\)\)\), i\.indnkeyatts\)\) as run/,
+      'rule 1: the run is the key columns up to the first one no policy reads (C8)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where pol\.using_text ~ \('\(\^\|\[\^\.a-z0-9_\]\)' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n\s+or pol\.using_text ~ \('\[\[:<:\]\]' \|\| c\.relname \|\| '\[\.\]' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n/,
+      'rule 1: a column named unqualified, or qualified by its own table (C9)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and am\.amname = 'btree' and n\.nspname in \('app', 'private'\)\n/, 'rule 2 reads valid btree indexes only (C10; C0-1)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /\|\| case \(i\.indoption::int2\[\]\)\[k\.ord - 1\] & 3 when 2 then ' NULLS FIRST' when 1 then ' NULLS LAST' else '' end/, 'rule 2 reads the NULLS order where it differs from the direction\'s default (C0-1)');
+    assert.equal((m.INDEX_COVERAGE_PROBE_SQL.match(/join pg_catalog\.pg_am am on am\.oid = ic\.relam/g) ?? []).length, 3, 'the access method joined in rule 1 (twice, as its CTE is written twice) and rule 2');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /idx\.cols\[1:pg_catalog\.cardinality\(l\.cols\)\] = l\.cols and idx\.pred is not distinct from l\.pred/, 'rule 2: the index begins with the lookup, in order, direction and NULLS order, with its predicate');
+    assert.equal((m.INDEX_COVERAGE_PROBE_SQL.match(/raise exception/g) ?? []).length, 3, 'three rules');
+  }
+  // THE WS:911 FIXTURE AND THE EXPLAIN HARNESS (plan (c)). The full shape is the workstream's own numbers; the
+  // default is small; the SQL is one transaction's worth of INSERTs with nothing psql would execute and no
+  // transaction control of its own; the harness rolls back, asserts no timing, and is in no make target or CI
+  // workflow (CI is protected: adding it is the Integration Owner's).
+  {
+    const fx = await import('./ws905-fixture.mjs');
+    const h = await import('../../scripts/db/explain-harness.mjs');
+    const { psqlLex } = await import('../../scripts/db/psql-driver.mjs');
+    const ws = await readFile('docs/plans/core-database-and-rls-workstream-th.md', 'utf8');
+    assert.ok(ws.includes('100 Workspaces, 10 Businesses/workspace, 20 Pages/workspace, 100k Content, 1M Usage/Audit/Metric rows'), 'WS:911 still names the shape');
+    assert.deepEqual([fx.WS905_FULL.workspaces, fx.WS905_FULL.businessesPerWorkspace, fx.WS905_FULL.pagesPerWorkspace, fx.WS905_FULL.contentRows, fx.WS905_FULL.usageRows, fx.WS905_FULL.auditRows, fx.WS905_FULL.metricRows],
+      [100, 10, 20, 100_000, 1_000_000, 1_000_000, 1_000_000], 'the full shape is WS:911\'s');
+    const full = fx.expectedCounts(fx.WS905_FULL);
+    assert.deepEqual([full['app.workspaces'], full['app.business_profiles'], full['app.page_context_profiles'], full['app.content_items'], full['app.usage_events'], full['app.audit_logs'], full['app.performance_snapshots']],
+      [100, 1000, 2000, 100_000, 1_000_000, 1_000_000, 1_000_000], 'and the counts the harness checks after loading it');
+    assert.ok(fx.WS905_SMALL.contentRows <= 1000 && fx.WS905_SMALL.usageRows <= 10_000, 'the default is small');
+    assert.equal(fx.ws905Scaled(0.2).contentRows, 20_000, 'a factor scales the volume');
+    assert.equal(fx.ws905Scaled(0.2).workspaces, 100, 'and keeps the tenant hierarchy');
+    assert.throws(() => fx.checkParams({ ...fx.WS905_SMALL, workspaces: 0 }), /positive integer/);
+    assert.throws(() => fx.checkParams({ ...fx.WS905_SMALL, rows: 1 }), /unknown fixture parameter/);
+    for (const p of [fx.WS905_SMALL, fx.WS905_FULL]) {
+      const sql = fx.fixtureSql(p);
+      const lexed = psqlLex(sql);
+      assert.deepEqual(lexed.metaCommands, [], 'no psql meta-command in the fixture');
+      assert.deepEqual(lexed.statements.filter((s) => m.TRANSACTION_CONTROL.test(s.head)), [], 'no transaction control: the harness owns the transaction');
+      assert.ok(lexed.statements.every((s) => /^(-- [^\n]*\n)?insert into app\.[a-z_]+ \(/.test(s.head)), 'INSERTs into app only');
+      for (const t of Object.keys(fx.expectedCounts(p))) assert.ok(sql.includes(`insert into ${t} (`), `${t}: loaded`);
+      assert.doesNotMatch(sql, /@|https?:/, 'synthetic: no address of any kind');
+    }
+    const script = h.harnessScript(fx.WS905_SMALL);
+    assert.match(script, /^begin;\n/, 'one transaction');
+    assert.match(script, /\nrollback;\n$/, 'rolled back: no row stays (sequences, reltuples, dead tuples and WAL do not roll back; A1 S2, Q0 Q-5)');
+    // Batch 150-prereq's review round (A1 S3, C0-4, Q0 Q-6): before the first write, every table the fixture
+    // loads must be empty, or the harness refuses with exit 2.
+    const firstInsert = script.indexOf('\ninsert into ');
+    const emptiness = script.indexOf(`raise exception '${h.NOT_EMPTY}`);
+    assert.ok(emptiness > 0 && emptiness < firstInsert, 'the emptiness refusal comes before the first INSERT');
+    for (const t of Object.keys(fx.expectedCounts(fx.WS905_SMALL))) assert.ok(script.slice(0, firstInsert).includes(`select '${t}' as t where exists (select 1 from ${t})`), `${t}: read for rows before any write`);
+    assert.match(await readFile('scripts/db/explain-harness.mjs', 'utf8'), /return out\.error\.code === 'P0001' && out\.error\.message\.startsWith\(NOT_EMPTY\) \? EXIT\.refused : EXIT\.failed;/, 'and that refusal exits 2, not 1');
+    assert.doesNotMatch(script, /^\s*commit\b/im, 'never committed');
+    assert.deepEqual(psqlLex(script).metaCommands, [], 'and nothing psql would execute');
+    assert.doesNotMatch(script, /p95|statement_timeout|\bms\b/, 'no timing is asserted (Q150-d)');
+    assert.deepEqual(h.NAMED_QUERIES.slice(0, 6).map((q) => q.name), ['membership check', 'workspace list', 'content first page', 'calendar first page', 'library first page', 'worker claim'],
+      'WS:909-917\'s named queries, in its order');
+    assert.deepEqual(h.NAMED_QUERIES.filter((q) => q.klass === 'membership').map((q) => q.name), ['membership check', 'workspace list'], 'the two the seq scan budget reads');
+    const seq = h.summarisePlan([{ Plan: { 'Node Type': 'Limit', 'Total Cost': 9, Plans: [{ 'Node Type': 'Sort', 'Sort Key': ['x'], Plans: [{ 'Node Type': 'Seq Scan', 'Relation Name': 'workspace_members' }] }] } }]);
+    assert.deepEqual([seq.seqScans, seq.sorts, seq.totalCost], [['workspace_members'], ['x'], 9], 'a Seq Scan and a Sort are read from the plan JSON');
+    assert.deepEqual(h.verdict([{ name: 'membership check', klass: 'membership', summary: seq }, { name: 'worker claim', klass: 'worker', summary: seq }]).flagged,
+      ['membership check: Seq Scan on workspace_members'], 'only a membership-class seq scan is flagged');
+    assert.deepEqual(h.parseArgs(['--scale', 'full', '--json']), { scale: 'full', analyze: false, json: true, failOnSeqScan: false });
+    assert.equal(h.EXIT.seqScan, 3, 'a flagged plan fails only under --fail-on-seq-scan');
+    assert.doesNotMatch(await readFile('Makefile', 'utf8'), /explain-harness/, 'not a make target');
+    for (const f of (await readdir('.github/workflows')).filter((n) => /\.ya?ml$/.test(n))) {
+      assert.doesNotMatch(await readFile(`.github/workflows/${f}`, 'utf8'), /explain-harness|ws905/, `${f}: not run by CI (the Integration Owner's to add)`);
+    }
   }
   assert.deepEqual(m.PINNED_DEFAULTS, { 'app.calendar_items.timezone': "'Asia/Bangkok'::text" }, 'DEC-UX-06 (C0 H3 on 091\'s third round)');
   assert.match(m.PINNED_DEFAULT_PROBE_SQL, /pg_catalog\.pg_get_expr\(d\.adbin, d\.adrelid\) = pin\.def/, 'defaults compared by TEXT');
