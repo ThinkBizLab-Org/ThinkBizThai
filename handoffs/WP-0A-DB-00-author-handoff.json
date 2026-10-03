@@ -4,18 +4,18 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "18f14695b5d3a60021f437a15d68932420789879",
-  "head_revision_or_patch_checksum": "fc867b5a591b5186a5848ff135e7e20495952616",
+  "base_revision": "75c927455acd8fa8160aeb49abbc3545ce671fbb",
+  "head_revision_or_patch_checksum": "6ea446c9b54440ed0c9cf7345c7d17956e1492c6",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-128-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-128-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-128-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-128-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md",
-    "evidence/WP-0A-DB-00/q0-batch-128-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-128-test-review-2026-10-03.md"
+    "evidence/WP-0A-DB-00/a0-batch-129-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-129-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-129-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-129-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-129-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-129.md",
+    "evidence/WP-0A-DB-00/q0-batch-129-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-129-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "db/foundation/README.md",
@@ -26,7 +26,6 @@
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
@@ -34,99 +33,146 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 128: what batch 127's re-checks (C0, A1, Q0; 127 plan §8) left OWED TO BATCH 128 on blocker 186 -- client-role membership (Q0 N2, A1 N3), client privileges read in every non-system schema and client USAGE/CREATE on schemas pinned (A1 N1, N5; C0 N1; Q0 N1), extension-member SECURITY DEFINER functions (A1 N2), psqlLex's U& and E'' spellings and its stated limit (C0 N2, A1 N4, Q0 N7), the notifications bare-UPDATE case (Q0 N3), no OR/TRUE/NOT in a narrowing (Q0 N4) -- and Q0 N6, C0 N4, C0 N3. Plan a0-batch-128-plan-2026-10-03.md (the local draft's record moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-128.md.",
-    "Assertion and tooling only: NO MIGRATION, so batch 128 needs no migration number and asks the Owner nothing. No new Owner words: the batch is written under the standing delegation transcribed in product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #166 (18f1469, at the reviewed head f10c412, run 37121377460 green, 2026-10-03T12:29:31Z); A0 executed that delegation and did not decide the merge.",
-    "The local draft (b53baa6, 35b7b10 on draft/wp-db00-128, stacked on f10c412, whose tree equals main's) was cherry-picked unchanged as aaaeb80 and 2ed2040; d777d29 packages the batch (branch slot, rationale, blocker 186, integrity manifest); 0273a6a is the plan and disposition.",
-    "REVIEW ROUND (2026-10-03): C0 8b29eda, A1 e665f0e and Q0 bbe4e21 on b8435fa are cherry-picked -x (dcb6fdc, a39fca6, ee42a3f); the code is b594b46 and the record e863fab (plan §7). It answers C0 F1 and Q0-128-F1 (MEDIUM, latent), C0 F2, C0 F4 and Q0-128-F2 (LOW), and A1 N2's wording; C0 F3 and A1 N1 (INFO, optional) are owed on blocker 186."
+    "THIS INCREMENT IS BATCH 129, THE LAST BATCH OF THE ASSERTION-HARDENING CHAIN: what batch 128's re-checks (C0 465e6af, A1 39997cd, Q0 a18ac68 on 0646f32; 128 plan §8) left owed on blocker 186 -- an initdb object redefined or re-granted in place (C0 G1, Q0 F1, MEDIUM), the OID arm's self-tests on pg_temp objects only (Q0 F2), client role attributes (A1 R2, C0 F3), pg_default_acl (A1 R1), database privileges on the current database only (Q0 F3). Plan a0-batch-129-plan-2026-10-03.md (the local draft's record moved there with git mv), disposition product-owner-disposition-2026-10-03-batch-129.md.",
+    "The Owner's words since 128 (2026-10-03), transcribed verbatim in the disposition: `เอาตามที่แนะนำเลย ลุยต่อ`, accepting A0's recommendation to END the hardening chain after 129 and move to the planned batches 141, 150, 160 (needs decisions) and 170; and the session goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว`. So what 129's reviews leave owed goes to blocker 186 as owed, not to a 130-series follow-up, unless it is stop-the-line.",
+    "Assertion and tooling only: NO MIGRATION, so batch 129 needs no migration number. Written under the standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #167 (75c9274, at the reviewed head 1e85499, run 37127744567 green, 2026-10-03T14:17:50Z); A0 executed that delegation and did not decide the merge.",
+    "The local draft (51ee63e, cca5b03 on draft/wp-db00-129, stacked on 1e85499, whose tree equals main's) was cherry-picked unchanged as f3d8ef9 and 1c99a60; 36796dd packages the batch (branch slot, rationale, blocker 186, integrity manifest); 27e8817 is the plan and disposition.",
+    "129's REVIEW ROUND: C0 24c0bb8, A1 3f40326 and Q0 f9b2d31 on 0f08d92 were cherry-picked with -x as d2f5ccc, f8e16f4 and bd7f5a0; none found stop-the-line or a merge blocker. a9f7508 is the fixes (C0 F1, F2; A1 R1, R2, R3; Q0 F1), 70ad049 the record (plan section 9, README, blocker 186), and this refresh is last and alone. Written by a subagent of /claude/a0_atlas; it approves nothing."
   ],
   "acceptance_results": [
     {
-      "criterion": "Client-role membership is pinned: anon and authenticated are members of no unpinned role, read recursively (Q0 N2, A1 N3)",
+      "criterion": "An initdb object redefined or re-granted in place is refused by name (C0 G1, Q0 F1)",
       "result": "met",
-      "evidence": "plan §3-§4: R0 (grant postgres to authenticated), R1r and V14c each fail migrate-clean by name, rls-smoke green; MREC (recursion removed, digests refreshed) fails static and the probe's self-test"
+      "evidence": "plan §3, §5: the system object fingerprint (3753 objects below OID 16384, taken before the first migration, sealed by count and md5) and its probe; X7, X8, X9, Q-IPF, Q-IPVx, Q-GS and FGRANT, each green on every layer at 0646f32, fail migrate-clean by name; X10 is named as built; SEAL (a fingerprint row deleted) fails on the seal; MFP and MFV fail the probe's self-test"
     },
     {
-      "criterion": "Client privileges are read in every non-system schema and client USAGE/CREATE on schemas is pinned both ways (A1 N1, N5; C0 N1; Q0 N1)",
+      "criterion": "The OID arm is self-tested on an object in a system schema other than pg_temp (Q0 F2)",
       "result": "met",
-      "evidence": "plan §3-§4: V11, F1sf, F1srv, V13 each fail migrate-clean in two probes by name; V16 fails it by name; the control (a new schema with no client grant) passes; MSCH and MCRE each fail static and a self-test"
+      "evidence": "plan §1, §4: a pg_toast object in each of the client privilege probe's three drifts; U1 (the schema's OID) and U2 (the arm for pg_temp only), which passed migrate-clean before, fail it by naming the three pg_toast objects"
     },
     {
-      "criterion": "Extension-member SECURITY DEFINER functions are pinned (A1 N2)",
+      "criterion": "The client roles' attributes are pinned false (A1 R2, C0 F3)",
       "result": "met",
-      "evidence": "plan §3-§4: V06b fails migrate-clean by name; MEXT fails static and the rule's self-test"
+      "evidence": "plan §3-§4: X6 (bypassrls) now fails migrate-clean by name as well as rls-smoke (347 of 1079); ATTR (createrole, createdb), invisible to rls-smoke, fails migrate-clean by name; MATT fails the self-test"
     },
     {
-      "criterion": "psqlLex refuses U& and E'' spellings at top level and inside literals and dollar bodies, and its stated limit is corrected (C0 N2, A1 N4, Q0 N7)",
+      "criterion": "No pg_default_acl entry grants a client (A1 R1)",
       "result": "met",
-      "evidence": "plan §3-§4: LU1, LU2, E2 each fail static and migrate-clean before anything is applied; MESC, MESC2, MESC3 each fail static; none of the 87 fed .sql files carries one"
+      "evidence": "plan §3-§4: DACL (per schema) and DACLg (global) each fail migrate-clean by name; MDACL fails the self-test"
     },
     {
-      "criterion": "A widened notifications_update_own_read_state is noticed even with its pin widened (Q0 N3); no OR, TRUE or NOT in a narrowing (Q0 N4); rule 1 has a MAINTAIN drift (Q0 N6); the helper drift hits all five conditions (C0 N4); C0 F2 named (C0 N3)",
+      "criterion": "No client CREATE or grant option on any other database (Q0 F3)",
       "result": "met",
-      "evidence": "plan §3-§4: DP5 fails migrate-clean and rls-smoke (exactly the new case); MP5 fails rls-smoke on that case alone; NW fails migrate-clean; MNWC fails static; R1m fails migrate-clean; MR1v and MHSD each fail a self-test; C0 F2 in README rule 2 and known_limitations"
+      "evidence": "plan §3-§4: Q-T1 (CREATE on template1) fails migrate-clean by name; MDB fails the self-test"
     },
     {
-      "criterion": "Objects made after initdb in information_schema, pg_catalog or a pg_* schema are read (C0 F1, Q0-128-F1)",
+      "criterion": "Nothing integrated is over-refused",
       "result": "met",
-      "evidence": "plan §7.3: X1b, X2, X2b, X5, ISV, IST and ISF, each green on every layer at b8435fa, fail migrate-clean by name (X2 and X2b also static, refused before anything is applied); X2c and X2bc (the switch set by a computed name) fail it by the object's OID; with the guard's new arms reverted (MG), X5, ISV and IST are still refused by the probes' OID arms and the guard's self-test, and static fails; the control passes"
+      "evidence": "plan §2-§3: migrate-clean 0 and rls-smoke 0 twice (1079 of 1079) on fresh clusters; the control (a new schema and table with no client grant) passes every layer; the fingerprint's md5 was the same after the shim, on template1 and after every migration"
     },
     {
-      "criterion": "CREATE and TEMPORARY on the database are pinned for the client roles (C0 F2)",
+      "criterion": "Branch scope and the suite are green on the branch name",
       "result": "met",
-      "evidence": "plan §7.3: X4 (grant create on database to authenticated) fails migrate-clean, 'unlisted: authenticated CREATE on database'"
+      "evidence": "verify-branch-scope 75c9274 WP-0A-DB-00 exit 0 (the draft's 74 cleared, plan §2); npm run check exit 0, 677 of 677"
+    },
+    {
+      "criterion": "The fingerprint's reference is out of a migration's reach (C0 F1)",
+      "result": "met",
+      "evidence": "plan section 9.2-9.3: migrate-clean reads the rows into memory before the first migration and compares them in JavaScript with the rows read after the last, and reads the table's identity from pg_class before and after; C0 FV3, FV3n and the swap alone, green on every layer before, fail migrate-clean ('its table was replaced'); with the identity check removed in code (M-ID) the in-memory comparison alone names _pg_interval_type and pg_statistic"
+    },
+    {
+      "criterion": "SQL-standard bodies and names are read (A1 R1; C0 F2, Q0 F1)",
+      "result": "met",
+      "evidence": "plan section 9.2-9.3: R1 (an SQL-standard body replaced, every layer 0 at 0f08d92) and C0 RN3 (two renames, every layer 0 before) each fail migrate-clean by name; M-SQLBODY and M-IDENT each fail the fingerprint's self-test and the static suite"
+    },
+    {
+      "criterion": "Client role setting defaults and event triggers are pinned (A1 R2, R3)",
+      "result": "met",
+      "evidence": "plan section 9.2: R2 (an anon request.jwt.claims default, a statement_timeout for every role) and R3 (an event trigger), every layer 0 at 0f08d92, each fail migrate-clean by name"
     }
   ],
   "tests": [
     {
-      "command": "node --test test-kits/db/foundation-contract.test.mjs tests/db/identity/identity-isolation.test.mjs (at b594b46, Node v24.20.0)",
+      "command": "make db-migrate-clean (round w, in this worktree at 1c99a60's tree; fresh private PostgreSQL 17.11 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked)",
       "exit_code": 0,
-      "result": "378 of 378"
+      "result": "system object fingerprint: 3753 objects initdb made, taken before the migrations and sealed; ceiling probe plus 24 catalog probes, each refused every drift and was clean again; 49 apply-time blocks, 37 as written, 12 replaced"
     },
     {
-      "command": "make db-migrate-clean (fresh private PostgreSQL 17 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked; two rounds at b594b46, fresh initdb each)",
+      "command": "make db-rls-smoke, twice on round w's database",
       "exit_code": 0,
-      "result": "23 catalog probes, each refused every drift and was clean again; 49 apply-time blocks, 37 as written, 12 replaced; both rounds"
+      "result": "1079 of 1079 both times; authz proofs 6 of 6"
     },
     {
-      "command": "make db-rls-smoke, twice on each round's database",
+      "command": "round clean (fresh cluster, the tree exported to the private directory): static, schema-lint, migrate-clean, rls-smoke",
       "exit_code": 0,
-      "result": "1079 of 1079, all four times"
+      "result": "0, 0, 0, 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (committing b594b46 and e863fab)",
-      "exit_code": 0,
-      "result": "tests 677, pass 677, both times"
+      "command": "drifts X7, X8, X9, X10, Q-IPF, Q-IPVx, Q-GS, FGRANT, SEAL, X6, ATTR, DACL, DACLg, Q-T1, Q-PTn, control, R0, LU1 appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan §3)",
+      "exit_code": 2,
+      "result": "migrate-clean exit 2 on every one but the control (0), each by name; static exit 1 on DACLg and Q-PTn (an unrelated text rule on 140) and LU1; rls-smoke exit 2 on X6 (347 of 1079) and LU1 (nothing applied); every exit code and name matched the draft's"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 18f1469 WP-0A-DB-00 (on e863fab, branch name)",
-      "exit_code": 0,
-      "result": "all 15 changed path(s) are declared, and every amendment explains one"
+      "command": "mutations U1, U2, MFP, MFV, MATT, MDACL, MDB of scripts/db/run.mjs, each with its drift on a fresh cluster (plan §4)",
+      "exit_code": 2,
+      "result": "static exit 1 (digest and reading pins); migrate-clean exit 2 by each probe's self-test, naming what the weakened rule missed; rls-smoke 0; matched the draft"
     },
     {
-      "command": "npm run check (branch name, at e863fab, before this refresh)",
+      "command": "node scripts/commit-when-clean.mjs (committing 36796dd and 27e8817)",
       "exit_code": 1,
-      "result": "677 tests, 675 pass, 2 fail: the sole red was the handoff guard (the handoff for this branch describes this branch, and the ratchet running it on a copy), since the handoff still cited 0273a6a; cleared by this refresh"
+      "result": "677 tests, 675 pass, 2 fail: the sole red was the handoff guard (the handoff for this branch describes this branch, and the ratchet running it on a copy), since the handoff still described batch 128; both were plain commits, and this refresh clears it"
     },
     {
-      "command": "drifts X1, X1b, X2, X2c, X2s, X2b, X2bc, X5, X4, ISV, IST, ISF, control, R0, V16, V06b, LU1, X6 appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan §7.3)",
-      "exit_code": 2,
-      "result": "migrate-clean exit 2 on every one but the control and X6 (exit 0), by name; static exit 1 on X1, X2, X2b, LU1; rls-smoke exit 2 on X2, X2b, LU1 (nothing applied) and X6 (347 of 1079, held by rls-smoke alone: C0 F3, owed)"
+      "command": "node scripts/verify-branch-scope.mjs 75c9274 WP-0A-DB-00 (on 36796dd, branch name)",
+      "exit_code": 0,
+      "result": "all 9 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "mutation MG (the pg_catalog guard's new arms reverted) with X5, ISV, IST (plan §7.3)",
+      "command": "npm run check (branch name, at 27e8817 after npm run refresh:handoff, before this commit)",
+      "exit_code": 0,
+      "result": "677 of 677"
+    },
+    {
+      "command": "review round: make db-migrate-clean (fresh PostgreSQL 17.11 cluster, 127.0.0.1:5507, TCP only, LC_ALL=C, shim first, Node v24.20.0 checked) at a9f7508's tree",
+      "exit_code": 0,
+      "result": "3753 objects fingerprinted and sealed; read again after the last migration and compared in memory, unchanged; 24 catalog probes each refused every drift (client membership 3, trigger 6) and was clean again; 49 apply-time blocks, 37 as written, 12 replaced"
+    },
+    {
+      "command": "review round: make db-rls-smoke, twice on that database",
+      "exit_code": 0,
+      "result": "1079 of 1079 both times; authz proofs 6 of 6"
+    },
+    {
+      "command": "review round: drifts FV3, FV3n, SWAP, FVc, RN3, R1, R2, R3 and, again, X7, SEAL, X6, Q-T1, DACLg appended to 140_audit.sql, each on a fresh cluster, restored byte for byte (plan section 9.2, 9.4)",
       "exit_code": 2,
-      "result": "static exit 1; migrate-clean exit 2: the definer rule and client privilege rules 2 and 3 name each object by its OID arm, and the guard's own self-test fails; rls-smoke 0"
+      "result": "migrate-clean exit 2 on every one, each by name; static 0 on all but DACLg (1, the unrelated text rule, as before); rls-smoke 2 on X6 only. Before, at 0f08d92: R1, R2 and R3 measured 0 on every layer here; FV3 and RN3 0 on every layer per C0"
+    },
+    {
+      "command": "review round: mutations M-ID, M-MEM (twice), M-SQLBODY, M-IDENT (twice) of scripts/db/run.mjs, each with its drift on a fresh cluster, run.mjs restored after each (plan section 9.3)",
+      "exit_code": 2,
+      "result": "static exit 1 on every one; migrate-clean exit 2 on every one, held by the other reading or by the fingerprint self-test (M-IDENT with RN3 only incidentally; M-IDENT with no drift is the measurement)"
+    },
+    {
+      "command": "review round: node scripts/commit-when-clean.mjs for a9f7508 and for 70ad049; npm run check (branch name, a9f7508)",
+      "exit_code": 0,
+      "result": "677 of 677 each time"
+    },
+    {
+      "command": "review round: node scripts/verify-branch-scope.mjs 75c9274 WP-0A-DB-00 (branch name)",
+      "exit_code": 0,
+      "result": "all 14 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "npm run check:handoff and npm run verify (branch name, after the handoff commit)",
       "exit_code": 0,
-      "result": "recorded in the PR body and plan §7.2 after this commit, which must be last and alone (C0 F4)"
+      "result": "recorded in the PR body after this commit, which must be last and alone"
     }
   ],
-  "security_privacy_cost_impact": "Tightens only, and only against later drift: nothing reachable on the clean set changes. A later file that makes a client a member of any role, grants a client USAGE or CREATE on a schema beyond the four pinned triples, grants a client anything on a view or table in any new schema, adds a SECURITY DEFINER function to an extension, spells a SET through U& or E'' escapes, widens notifications_update_own_read_state together with its pin, or puts OR, TRUE or NOT into a pinned narrowing now fails a layer by name. No data, secret or cost impact. The review round tightens further, again only against later drift: an object a later file puts in information_schema, pg_catalog, pg_toast or a pg_* schema, any mention of allow_system_table_mods in a fed script, and CREATE on the database for a client now fail migrate-clean (or static) by name.",
-  "migration_and_data_impact": "NONE. Batch 128, review round included, adds no migration and needs no migration number; it changes catalog probes, the psql lexer, static tests, the README and one rls-smoke case. No database state changes.",
-  "compatibility_impact": "Additive. Cases 1078 -> 1079 (owner-a-cannot-mark-a-teammates-notification-read-by-a-bare-update); tests stay 677; foundation-contract's assertion floor 480 -> 494 (no test added or renamed); probes 21 -> 23. A later batch that grants a client a schema privilege, a role membership, or makes an extension member SECURITY DEFINER pins it in CLIENT_SCHEMA_PRIVILEGES, CLIENT_ROLE_MEMBERSHIPS or EXTENSION_DEFINER_FUNCTIONS with its reason; a fed file may not use U& or E'' string or identifier spellings.",
+  "security_privacy_cost_impact": "Tightens only, and only against later drift: nothing reachable on the clean set changes. Within what plan section 5 states the fingerprint reads, and subject to its stated exclusions (types, operators, casts and the rest; the catalog functions the reading itself calls, which a perfect superuser forgery could replace): a later file that redefines, renames, moves, re-grants or re-owns any function (its prosrc or SQL-standard body included), relation, schema or language initdb made (OID below 16384, in any schema), or that replaces the fingerprint's own table, makes a client role superuser, bypassrls, createrole, createdb, inherit, login or replication, sets a default setting for a client role or for every role, makes an event trigger, adds a default privilege for PUBLIC, anon or authenticated, or grants a client CREATE or a grant option on any other database now fails migrate-clean by name. As first written (0f08d92) this sentence was broader than the batch read: C0 F1 (a view swapped in for the reference) and C0 F2 (a rename) passed every layer, and A1 R1 (an SQL-standard body) was unread; 129's review round closed all three (plan section 9). migrate-clean creates schema catalog_baseline and table catalog_baseline.system_fingerprint (revoked from PUBLIC) in the test database before the first migration; it holds catalog text only. No data, secret or cost impact; migrate-clean takes about 5 s.",
+  "migration_and_data_impact": "NONE. Batch 129 adds no migration and needs no migration number; it changes catalog probes and the migrate-clean executor, a driver comment, static tests and the README. The test database gains catalog_baseline.system_fingerprint, written by migrate-clean only; no migration creates it.",
+  "compatibility_impact": "Additive. Tests stay 677 and cases 1079; foundation-contract's assertion floor 500 -> 525 (no test added or renamed); catalog probes 23 -> 24. A later batch that must change or rename an initdb object, a client role attribute, a role default for a client or for every role, an event trigger, a default privilege for a client or a client's privilege on another database fails migrate-clean and must change the rule with its reason. A database first migrated before 129 and reset with reset-test keeps a fingerprint taken after those migrations; CI uses a fresh cluster.",
   "known_limitations": [
+    "The system object fingerprint does not read (plan §5): types, domains, operators (ALTER OPERATOR ... SET (RESTRICT = ...) on an initdb operator), casts, operator classes and families, collations, conversions, text-search objects, aggregates' pg_aggregate rows, a type ACL; pg_database, pg_authid and tablespace rows; parameter ACLs but session_replication_role's; an object a migration makes and drops again; a hostile superuser migration that perfectly rewrites the output functions or operators the readings call (the in-memory comparison of 129's review round takes the reference relation out of reach, not those functions); the platform's managed schemas. Cross-minor-version stability is stated, measured on 17.11 only. The fingerprint is not placed in every probe job; a drift aimed at blinding one probe is held by that probe's self-test. Owed, as owed: the Owner ended the hardening chain at 129.",
     "C0 F2 (C0 N3 on 127's re-check): a looser permissive SELECT sibling on a client-readable, non-writable table is held by rls-smoke alone; the permissive policy probe reads client-writable tables only.",
     "A client-encoding change whose name or SET words are computed at run time (concatenation, chr(), format(), convert_from(); EXECUTE of a SET built in a DO body) is outside psqlLex's list; the static spellings (U&, E'') are refused since batch 128. Owed.",
     "A function reached through an operator is not read by the policy helper probe's called-function rule (Q0 N5, INFO); the deparse pins hold it on client-writable tables.",
@@ -134,27 +180,25 @@
     "A constant-true narrowing spelled without OR, TRUE or NOT (1 = 1) is not read statically; the three owner-UPDATE permissive policies (workspaces, workspace_settings, workspace_invitations) have no bare-UPDATE case of their own.",
     "The client schema and membership probes model the CI shim; on the platform the managed schemas grant clients USAGE and authenticator is a member of the client roles, and the probes do not run there.",
     "Remedy (b), created_by out of the client INSERT grant, is not taken, by the Owner's answer of 2026-10-03. 122's service-path closures are pinned by exact deparse in no probe.",
-    "C0 F3 (INFO): the client roles' own attributes (rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolinherit) are read by no catalog rule; `alter role authenticated bypassrls` is held by rls-smoke alone (347 of 1079). Owed.",
-    "A1 N1 (INFO): pg_default_acl is not read; a default privilege granted to a client is named only by its effect on a later object. Owed.",
-    "allow_system_table_mods set by a name computed at run time passes the lexer by design; what it enables is read by OID (X2c, X2bc). The pg_catalog guard reads relations, functions, operators and casts, not other object kinds, in an initdb schema."
+    "allow_system_table_mods set by a name computed at run time passes the lexer by design; what it enables is read by OID (X2c, X2bc). The pg_catalog guard reads relations, functions, operators and casts, not other object kinds, in an initdb schema.",
+    "129's review round (plan section 9.6): the table's identity is not re-checked inside the probe job (C0 F1 remedy (b), second half; the verdict on the migrations no longer reads the table), and CLIENT_ROLE_SETTINGS and PINNED_EVENT_TRIGGERS are pinned empty as the CI shim measures, so a platform that sets a client role default or carries event triggers would be refused by name until pinned with its reason. Owed, as owed."
   ],
   "open_risks_or_blockers": [
-    "Batch 128's review round has had no re-check: C0, A1 and Q0 re-checks of b594b46/e863fab follow; the PR stays a Draft.",
-    "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #166 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
+    "Batch 129 has had its C0, A1 and Q0 role runs (on 0f08d92) and its review round (a9f7508, 70ad049); none found stop-the-line. The fixes have not been re-checked by an independent role, and the PR stays a Draft. It is the last batch of the hardening chain: what the round leaves owed is on blocker 186 as owed.",
+    "The RFC-2026-025 section 5 points remain open; Integration Owner evidence is still owed. The merge of #167 was A0 executing the Owner's standing delegation (disposition 127 §6), not A0 deciding it."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. 128 has no migration: it changes probes, the lexer, static tests, the README and one rls-smoke case, so a revert diverges no database. NEVER a force-push.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. 129 has no migration: it changes probes, the migrate-clean executor, static tests and the README, so a revert diverges no database (catalog_baseline exists only in test databases migrate-clean built). NEVER a force-push.",
   "recommended_next_work_packages": [
-    "Re-checks of batch 128's review round (C0, A1, Q0) on this branch: plan §7.",
-    "C0 F3 and A1 N1 (client role attributes, pg_default_acl), the other roles' reach (app_worker, service_role, RFC-2026-023), the run-time-computed client-encoding name and Q0 N5 (operator-reached functions), as a later hardening batch.",
+    "Re-checks of 129's review round by C0, A1 and Q0 (plan section 9), then its merge under the standing delegation if the bar of 127 §6 is met.",
+    "The planned batches 141, 150, 160 (Owner decisions needed first) and 170; the hardening chain is ended by the Owner's words of 2026-10-03.",
     "A5's review of 091's schedule states and (h), when an A5 run exists."
   ],
   "reviewer_instructions": [
-    "Read the client privilege probe (every non-system schema), the two new probes (client schema, client membership), the security definer probe's third rule, escapeSpellings in scripts/db/psql-driver.mjs, the new rls-smoke case and the narrowing-word test, with the plan's section 1 table.",
-    "Reproduce R0, V11, F1sf, V13, V16, V06b, DP5 and NW (plan section 3) as later files appended to 140_audit.sql on a fresh cluster, and the control (a new schema with no client grant), which must pass.",
-    "Reproduce MP5 (the notifications pin widened with the policy, digests refreshed: held by rls-smoke alone), MNWC (held by static alone) and MESC2/MESC3 (held by static alone).",
-    "Evidence: evidence/WP-0A-DB-00/a0-batch-128-plan-2026-10-03.md (item -> change -> proving drift or case, measured) and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-128.md (no new Owner words; the merge of #166 as A0 executing the standing delegation).",
-    "Review round: read userObject and FIRST_NORMAL_OID, the client privilege rules, the client schema probe (every schema, the database), the definer and helper rules' OID arms, the pg_catalog guard and the allow_system_table_mods lexer rule, with plan §7.1.",
-    "Reproduce X1b, X2c, X2bc, X5, ISV, IST, ISF and X4 (plan §7.3) as later files on a fresh cluster, each must fail migrate-clean by name; and MG (the guard's new arms reverted) with X5 or ISV, which the probes' own OID arms must still refuse."
+    "Read SYSTEM_FINGERPRINT_ROWS, SYSTEM_FINGERPRINT_SNAPSHOT_SQL, the seal, SYSTEM_FINGERPRINT_READ_SQL, SYSTEM_FINGERPRINT_RELATION_SQL, diffSystemFingerprint and the executor's reading before and after the migrations, and the system object fingerprint probe in scripts/db/run.mjs; the client privilege probe's rule 4 and pg_toast drifts; the client membership probe's rules 2 and 3; the trigger probe's event-trigger rule; and the client schema probe's other-database arm, with the plan's sections 1, 5 and 9.",
+    "Reproduce X7, X8, X9, X10, Q-IPF, Q-IPVx, Q-GS, FGRANT, SEAL, ATTR, DACL, DACLg and Q-T1 (plan section 3) as later files appended to 140_audit.sql on a fresh cluster, each must fail migrate-clean by name, and the control, which must pass.",
+    "Reproduce U1 and U2 with Q-PTn, and MFP, MFV, MATT, MDACL and MDB (plan section 4): each must fail migrate-clean through its probe's self-test.",
+    "Try what plan §7.6 names: a fingerprint row forged with the seal re-forged (since the review round the verdict is taken in memory, so the forgery must also defeat the catalog reading itself), ALTER OPERATOR ... SET (RESTRICT = ...) on an initdb operator, a type ACL. Re-run C0 FV3 and RN3 and A1 R1-R3's shapes (plan section 9.2). Batch 129 is the last hardening batch: what is not closed goes to blocker 186 as owed unless it is stop-the-line.",
+    "Evidence: evidence/WP-0A-DB-00/a0-batch-129-plan-2026-10-03.md and evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-129.md (the Owner's words verbatim; the merge of #167 as A0 executing the standing delegation)."
   ],
   "superseded_by": null
 }

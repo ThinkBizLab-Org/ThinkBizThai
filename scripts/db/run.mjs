@@ -452,11 +452,28 @@ end \$\$;
 // definer-rights view or an RLS-less table, granted to authenticated, in information_schema, in pg_c0api and
 // in pg_catalog: every layer stayed green and a session with no claims read both workspaces' ideas. So each
 // rule reads a relation when its schema is not a system one by name OR its own OID is at or above 16384
-// (FirstNormalObjectId): everything initdb made is below it, everything a migration or a drift makes is at
-// or above it, in any schema (temporary ones included, A1 N2 on 128). Measured on the clean set at 128's
+// (FirstNormalObjectId): everything initdb made is below it, everything a migration or a drift MAKES is at
+// or above it, in any schema (temporary ones included, A1 N2 on 128). What a migration REDEFINES or
+// RE-GRANTS in place keeps initdb's OID (CREATE OR REPLACE and GRANT assign none), so these OID arms do not
+// read it (C0 G1, Q0 F1 on 128's re-check): the system object fingerprint probe (2b'''''', below) does,
+// against a fingerprint taken before the migrations. Measured on the clean set at 128's
 // review round: no relation, function or operator at or above 16384 in any schema initdb made but public,
 // so nothing that passed is refused. The pg_catalog guard (9, below) refuses such an object in those
 // schemas first, in every job; this is the second reading, held by the static pins.
+//
+// AND NOT ONLY THROUGH pg_temp (batch 129; Q0 F2 on 128's re-check). The three drifts read the OID arm with
+// a temporary object alone, and a mutation that reads the SCHEMA's OID (pg_temp_N is at or above 16384
+// too) or keeps the arm for pg_temp only passed them. Each drift now also puts an object in pg_toast, whose
+// own OID (99) is below 16384 and whose name is a system one, so only the object's OID reads it; the guard
+// leaves pg_toast's relations out, because every user table's TOAST table lives there. The drift sets the
+// switch by a computed name, which the lexer passes by design (its stated limit), inside the job's own
+// transaction (set_config is_local), so it ends with the rollback.
+//
+// AND WHAT EVERY LATER OBJECT WILL CARRY (batch 129; A1 R1 on 128's re-check, A1 N1 on 128): rule 4 reads
+// pg_default_acl, so a default privilege granting anon, authenticated or PUBLIC is named where it is written
+// rather than only by its effect on each later object. Measured on the clean set at batch 129 (the shim,
+// then every migration): pg_default_acl is empty. A global entry (every schema) for functions stores the
+// whole ACL, PUBLIC's EXECUTE included, so one written without revoking PUBLIC is named too (stated).
 export const CLIENT_ROLES = ['anon', 'authenticated', 'public'];
 export const CLIENT_VIEWS = {};
 export const CLIENT_NON_APP_TABLES = {};
@@ -504,6 +521,18 @@ begin
   if offending is not null then
     raise exception 'table(s) outside schema app a client role can read or write, which no probe reads: %', offending;
   end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select distinct format('%s %s on %s in %s (default for %s)',
+             case when a.grantee = 0::pg_catalog.oid then 'public' else pg_catalog.pg_get_userbyid(a.grantee)::text end, a.privilege_type,
+             case d.defaclobjtype when 'r' then 'tables' when 'S' then 'sequences' when 'f' then 'functions' when 'T' then 'types' when 'n' then 'schemas' else d.defaclobjtype::text end,
+             case when d.defaclnamespace = 0::pg_catalog.oid then 'every schema' else 'schema ' || d.defaclnamespace::pg_catalog.regnamespace::text end,
+             pg_catalog.pg_get_userbyid(d.defaclrole)) as x
+      from pg_catalog.pg_default_acl d cross join lateral pg_catalog.aclexplode(d.defaclacl) a
+     where a.grantee = 0::pg_catalog.oid or a.grantee in (select r.oid from pg_catalog.pg_roles r where r.rolname in ('anon', 'authenticated'))
+  ) f;
+  if offending is not null then
+    raise exception 'default privilege(s) granting a client role, which every object made later carries: %', offending;
+  end if;
 end \$\$;
 `;
 
@@ -527,6 +556,12 @@ end \$\$;
 // DATABASE lets a client make a schema of its own (C0 X4 passed every layer and did), so CREATE and
 // TEMPORARY on the current database are read the same way, both ways: TEMPORARY is what PUBLIC holds by
 // default, pinned for the three client roles, and CREATE for none.
+//
+// AND EVERY OTHER DATABASE (batch 129; Q0 F3 on 128's re-check: `grant create on database template1 to
+// authenticated` passed every layer). On every database but the current one a client may hold no CREATE and
+// no grant option, each named with the database. TEMPORARY there is not read: what PUBLIC holds by default
+// differs by database (measured at batch 129: TEMPORARY on a database made with the default ACL, as CI's
+// postgres beside its thinkbizthai_test; none on template0 and template1), and no tenant row lives there.
 export const CLIENT_SCHEMA_PRIVILEGES = {
   app: { authenticated: ['USAGE'] },
   information_schema: { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] },
@@ -551,6 +586,11 @@ begin
     select format('%s %s%s on database', cr.r, p.p, go.opt)
       from ${clientRoles}, unnest(array['CREATE', 'TEMPORARY']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
      where pg_catalog.has_database_privilege(cr.r, pg_catalog.current_database(), p.p || go.opt)
+    union all
+    select format('%s %s%s on database %s', cr.r, p.p, go.opt, d.datname)
+      from pg_catalog.pg_database d, ${clientRoles}, unnest(array['CREATE', 'TEMPORARY']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where d.datname <> pg_catalog.current_database() and (p.p = 'CREATE' or go.opt <> '')
+       and pg_catalog.has_database_privilege(cr.r, d.oid, p.p || go.opt)
   ), pinned as (
     select unnest(array[${clientSchemaRows.map((r) => `'${r}'`).join(', ')}]::text[]) as g
   )
@@ -577,7 +617,25 @@ end \$\$;
 // no role grants membership to anon or authenticated, so the list is empty, and a pin is an RFC-sized
 // decision in the same diff as its reason. (What may become a client role, authenticator on the
 // platform, is the other direction and authzLint's.)
+//
+// AND WHAT A CLIENT ROLE IS (batch 129; A1 R2, C0 F3 on 128's re-check). `alter role authenticated
+// bypassrls` was read by no catalog rule and held by rls-smoke alone. So the second rule reads the client
+// roles' own attributes, each pinned false as measured on the clean set at batch 129 (the shim makes both
+// NOLOGIN NOINHERIT and no migration alters them): a superuser, a role that bypasses row level security,
+// creates roles or databases, inherits, logs in or replicates is named, attribute by attribute. A client
+// role that does not exist is named too. Not read: the connection limit, the password and its validity,
+// which grant nothing.
+//
+// AND WHAT EVERY CLIENT SESSION STARTS WITH (batch 129's review round; A1 R2: pg_db_role_setting was read
+// for session_replication_role alone). A default set for anon, for authenticated or for every role, in
+// one database or all, applies to every session of that role before any statement runs: a search_path,
+// or a setting the policies read through current_setting. So the third rule reads each such default and
+// names any not pinned, as `<role> in <database>: <name>=<value>`. Measured on the clean set at batch 129:
+// none (the shim sets none and no migration does). The platform may set some, a statement timeout for
+// example (read, not measured here); pinning those is an RFC-sized decision in the same diff as its reason.
 export const CLIENT_ROLE_MEMBERSHIPS = [];
+export const CLIENT_ROLE_SETTINGS = [];
+export const CLIENT_ROLE_FALSE_ATTRIBUTES = ['rolbypassrls', 'rolcanlogin', 'rolcreatedb', 'rolcreaterole', 'rolinherit', 'rolreplication', 'rolsuper'];
 export const CLIENT_MEMBERSHIP_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -596,6 +654,177 @@ begin
    where not (x = any (array[${CLIENT_ROLE_MEMBERSHIPS.map((m) => `'${m}'`).join(', ')}]::text[]));
   if offending is not null then
     raise exception 'client role(s) members of a role not pinned, which SET ROLE reaches past every privilege rule: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s %s = %s', r.rolname, a.k, coalesce(a.v::text, 'null')) as x
+      from pg_catalog.pg_roles r cross join lateral (values ${CLIENT_ROLE_FALSE_ATTRIBUTES.map((k) => `('${k}', r.${k})`).join(', ')}) as a(k, v)
+     where r.rolname in ('anon', 'authenticated') and a.v is distinct from false
+    union all
+    select format('%s [missing]', c.r) from unnest(array['anon', 'authenticated']) as c(r)
+     where not exists (select 1 from pg_catalog.pg_roles r where r.rolname = c.r)
+  ) f;
+  if offending is not null then
+    raise exception 'client role attribute(s) not their pinned value (false): %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select pg_catalog.format('%s in %s: %s', coalesce(r.rolname::text, 'every role'), coalesce('database ' || d.datname::text, 'every database'), g.setting) as x
+      from pg_catalog.pg_db_role_setting s
+      left join pg_catalog.pg_roles r on r.oid = s.setrole
+      left join pg_catalog.pg_database d on d.oid = s.setdatabase
+      cross join lateral unnest(s.setconfig) as g(setting)
+     where s.setrole = 0::pg_catalog.oid or r.rolname in ('anon', 'authenticated')
+  ) f
+   where not (x = any (array[${CLIENT_ROLE_SETTINGS.map((m) => `'${m}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'client role setting default(s) not pinned, each applied to every session of the role: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 2b''''''. WHAT initdb MADE, AS initdb MADE IT (batch 129; C0 G1 and Q0 F1 on 128's re-check, MEDIUM). Every
+// OID arm above reads an object MADE after initdb. An object initdb made and a later migration REDEFINES or
+// RE-GRANTS in place keeps its OID below 16384: C0 X7 and Q0 Q-IPVx `create or replace`d the view
+// information_schema.information_schema_catalog_name with content_ideas' columns appended, C0 X8 and Q0 Q-IPF
+// made information_schema._pg_char_max_length / _pg_interval_type SECURITY DEFINER over content_ideas, Q0
+// Q-GS granted pg_catalog.pg_statistic to authenticated, and C0 X10 replaced
+// pg_catalog.has_database_privilege to blind a probe. Each passed every layer, and a session with no claims
+// read both workspaces' ideas through the first three.
+//
+// So the executor takes a FINGERPRINT of every object whose OID is below 16384 -- every function (owner,
+// language, kind, SECURITY DEFINER, leakproof, strict, volatility, parallel, cost, rows, support, return
+// type, argument defaults, body in prosrc and an SQL-standard body in prosqlbody, probin, settings, ACL;
+// prosqlbody since batch 129's review round, A1 R1), every relation (owner, kind, ACL, row level
+// security and its FORCE, rules, triggers, options, a view's definition by pg_get_viewdef, every column's
+// name, type and ACL, and the names of its rules, triggers and policies), every schema (owner, ACL) and
+// every language (owner, trust, handlers, ACL) -- on the database migrate-clean is given, the shim already
+// applied and BEFORE the prerequisite and the first migration, into catalog_baseline.system_fingerprint (a
+// schema of the probe's own; no client holds anything on it, which the client probes read). It is
+// COMPUTED there, not pinned here: what initdb makes varies with the PostgreSQL minor version, and the
+// comparison is always with the same cluster's own. The executor seals the table (its row count and an md5
+// of its rows) before the first migration and refuses the run if the seal moved by the end of the last.
+// The seal alone did NOT keep the reference out of a migration's reach (C0 F1 on 129: a view swapped in
+// for the table answered the seal query with the old rows and this probe with new ones), so since 129's
+// review round the verdict on the migrations as built is the executor's, in memory (below the seal), and
+// this probe, which reads the table by name, is what each drift is refused by. It compares, both ways, by
+// kind and OID: a changed, gone or new row is named, and since that review round a row whose name or schema
+// moved (C0 F2, Q0 F1: the name, `ident`, was stored and never compared, so a rename passed every layer). Measured at batch 129 on PostgreSQL 17.11: 3753 rows
+// (3330 functions, 415 relations, 4 schemas, 4 languages); after the shim and every migration the same
+// fingerprint, row for row, and the cluster's template1 the same too.
+//
+// What it does not read (stated): types, operators, casts, aggregates' own rows, operator classes and
+// collations initdb made (the guard reads what is made in those schemas; none of these is a grant or a
+// body a client reaches); the large-object, tablespace and database rows (the client schema probe reads
+// database privileges); and an object a migration made and then dropped. A migrate-clean run on a database
+// that already holds a fingerprint keeps the first one taken; one on a database whose schema app exists
+// and holds none is refused, since that fingerprint would bless whatever the migrations did.
+export const SYSTEM_FINGERPRINT_TABLE = 'catalog_baseline.system_fingerprint';
+export const SYSTEM_FINGERPRINT_ROWS = `select 'function'::text as kind, p.oid as objoid,
+       pg_catalog.format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) as ident,
+       row(p.proowner, p.prolang, p.prokind, p.prosecdef, p.proleakproof, p.proisstrict, p.provolatile, p.proparallel,
+           p.procost, p.prorows, p.prosupport, p.prorettype, p.proargdefaults::text, p.prosrc, p.prosqlbody::text, p.probin, p.proconfig, p.proacl)::text as fp
+  from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+ where p.oid < ${FIRST_NORMAL_OID}::pg_catalog.oid
+union all
+select 'relation', c.oid, pg_catalog.format('%s.%s', n.nspname, c.relname),
+       row(c.relowner, c.relkind, c.relacl, c.relrowsecurity, c.relforcerowsecurity, c.relhasrules, c.relhastriggers, c.reloptions,
+           case when c.relkind in ('v', 'm') then pg_catalog.pg_get_viewdef(c.oid) end,
+           (select pg_catalog.array_agg(row(a.attnum, a.attname, a.atttypid, a.attacl)::text order by a.attnum) from pg_catalog.pg_attribute a where a.attrelid = c.oid and a.attnum > 0),
+           (select pg_catalog.array_agg(r.rulename::text order by r.rulename) from pg_catalog.pg_rewrite r where r.ev_class = c.oid),
+           (select pg_catalog.array_agg(t.tgname::text order by t.tgname) from pg_catalog.pg_trigger t where t.tgrelid = c.oid),
+           (select pg_catalog.array_agg(pol.polname::text order by pol.polname) from pg_catalog.pg_policy pol where pol.polrelid = c.oid))::text
+  from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where c.oid < ${FIRST_NORMAL_OID}::pg_catalog.oid
+union all
+select 'schema', n.oid, n.nspname::text, row(n.nspowner, n.nspacl)::text
+  from pg_catalog.pg_namespace n
+ where n.oid < ${FIRST_NORMAL_OID}::pg_catalog.oid
+union all
+select 'language', l.oid, l.lanname::text, row(l.lanowner, l.lanpltrusted, l.lanplcallfoid, l.laninline, l.lanvalidator, l.lanacl)::text
+  from pg_catalog.pg_language l
+ where l.oid < ${FIRST_NORMAL_OID}::pg_catalog.oid`;
+export const SYSTEM_FINGERPRINT_SNAPSHOT_SQL = `set local search_path = pg_catalog;
+create schema if not exists catalog_baseline;
+revoke all on schema catalog_baseline from public;
+create table if not exists ${SYSTEM_FINGERPRINT_TABLE} (kind text not null, objoid oid not null, ident text not null, fp text not null, primary key (kind, objoid));
+revoke all on table ${SYSTEM_FINGERPRINT_TABLE} from public;
+do \$\$
+begin
+  if exists (select 1 from ${SYSTEM_FINGERPRINT_TABLE}) then
+    return;
+  end if;
+  if exists (select 1 from pg_catalog.pg_namespace where nspname = 'app') then
+    raise exception 'the system object fingerprint is taken before the migrations, and this database already has schema app and no fingerprint: run migrate-clean on a fresh cluster';
+  end if;
+  insert into ${SYSTEM_FINGERPRINT_TABLE} (kind, objoid, ident, fp)
+${SYSTEM_FINGERPRINT_ROWS};
+end \$\$;
+`;
+// The seal: one row, read before the first migration and after the last.
+export const SYSTEM_FINGERPRINT_SEAL_SQL = `select pg_catalog.count(*)::text || ':' || coalesce(pg_catalog.md5(pg_catalog.string_agg(kind || ':' || objoid::text || ':' || ident || ':' || fp, pg_catalog.chr(10) order by kind, objoid)), '') as seal from ${SYSTEM_FINGERPRINT_TABLE}`;
+// THE REFERENCE OUT OF THE DATABASE'S REACH (batch 129's review round; C0 F1). The seal pins the ANSWER to
+// one query over the table, read by name, and the probe reads the same name: C0 FV3 renamed the table and
+// put a view in its place that answered the seal query with the rows taken before the migrations and every
+// other reader with rows taken after them, and Q-IPF then crossed tenants with every layer green. So:
+//   * the executor reads the fingerprint's rows into its own memory BEFORE the first migration (straight
+//     from the catalogs, and requires the table to hold exactly those rows), reads them again from the
+//     catalogs AFTER the last, and compares the two in JavaScript (diffSystemFingerprint, pure and tested
+//     on synthetic rows). No relation a migration can create, rename or replace is read by that verdict;
+//   * and the table's own identity is read from pg_class before and after (its OID, a plain table, no rule,
+//     no trigger, no row level security, its owner), so a swap is named as a swap, not only by its effect.
+// What this still trusts: the catalog functions the reading itself calls (format, pg_get_viewdef and the
+// rest), which a superuser migration could replace and so forge its own row; that is the perfect-forgery
+// class blocker 186 carries as owed.
+export const SYSTEM_FINGERPRINT_READ_SQL = `begin;\nset local search_path = pg_catalog;\n${SYSTEM_FINGERPRINT_ROWS};\nrollback;\n`;
+export const SYSTEM_FINGERPRINT_TABLE_READ_SQL = `begin;\nset local search_path = pg_catalog;\nselect kind, objoid, ident, fp from ${SYSTEM_FINGERPRINT_TABLE};\nrollback;\n`;
+export const SYSTEM_FINGERPRINT_RELATION_SQL = `select pg_catalog.format('%s %s rules=%s triggers=%s rls=%s owner=%s', c.oid, c.relkind, c.relhasrules, c.relhastriggers, c.relrowsecurity, c.relowner) as relation
+  from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'catalog_baseline' and c.relname = 'system_fingerprint'`;
+export const SYSTEM_FINGERPRINT_RELATION_SHAPE = /^[1-9]\d* r rules=f triggers=f rls=f owner=[1-9]\d*$/;
+// Both ways, by kind and OID, as the probe compares: a row gone, a row new, a name moved (`[renamed to ...]`,
+// C0 F2) and a fingerprint changed, each named as the probe names it, sorted as its `order by x` sorts
+// under the C collation. A row read twice is named too: the comparison is keyed, and a key read twice
+// would hide one of its readings.
+export function diffSystemFingerprint(before, after) {
+  const keyed = (rows, side, out) => {
+    const map = new Map();
+    for (const r of rows) {
+      const k = `${r.kind}\u0000${r.objoid}`;
+      if (map.has(k)) out.push(`${r.kind} ${r.ident} [read twice ${side}]`);
+      map.set(k, r);
+    }
+    return map;
+  };
+  const out = [];
+  const b = keyed(before, 'before', out);
+  const a = keyed(after, 'after', out);
+  for (const [k, r] of b) {
+    const n = a.get(k);
+    if (!n) { out.push(`${r.kind} ${r.ident} [gone]`); continue; }
+    const tags = `${n.ident !== r.ident ? ` [renamed to ${n.ident}]` : ''}${n.fp !== r.fp ? ' [changed]' : ''}`;
+    if (tags) out.push(`${r.kind} ${r.ident}${tags}`);
+  }
+  for (const [k, n] of a) if (!b.has(k)) out.push(`${n.kind} ${n.ident} [not in the fingerprint]`);
+  return out.sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+}
+export const SYSTEM_FINGERPRINT_PROBE_SQL = `do \$\$
+declare
+  offending text;
+  differing integer;
+begin
+  with now as (
+${SYSTEM_FINGERPRINT_ROWS}
+  ), d as (
+    select coalesce(b.kind, n.kind) || ' ' || coalesce(b.ident, n.ident)
+           || case when n.fp is null then ' [gone]' when b.fp is null then ' [not in the fingerprint]'
+                   else case when n.ident is distinct from b.ident then ' [renamed to ' || n.ident || ']' else '' end
+                        || case when n.fp is distinct from b.fp then ' [changed]' else '' end end as x
+      from now n full join ${SYSTEM_FINGERPRINT_TABLE} b on b.kind = n.kind and b.objoid = n.objoid
+     where (n.fp, n.ident) is distinct from (b.fp, b.ident)
+  )
+  select count(*)::integer, string_agg(x, ', ' order by x) filter (where rn <= 40) into differing, offending
+    from (select x, row_number() over (order by x) as rn from d) r;
+  if differing > 0 then
+    raise exception 'initdb object(s) not as the fingerprint taken before the migrations found them (%, the first 40 named): %', differing, offending;
   end if;
 end \$\$;
 `;
@@ -839,6 +1068,9 @@ export const REFUSE_MUTATION_TRIGGERS = [
   'CREATE TRIGGER refuse_mutation BEFORE DELETE OR UPDATE ON app.security_events FOR EACH ROW EXECUTE FUNCTION private.refuse_mutation()',
   'CREATE TRIGGER refuse_truncate BEFORE TRUNCATE ON app.security_events FOR EACH STATEMENT EXECUTE FUNCTION private.refuse_mutation()',
 ];
+// The event triggers a migration may make, by name (batch 129's review round; A1 R3). None, as measured on
+// the clean set at batch 129: a pin is an RFC-sized decision in the same diff as its reason.
+export const PINNED_EVENT_TRIGGERS = [];
 export const TRIGGER_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -904,6 +1136,15 @@ begin
    where p.parname = 'session_replication_role' and not coalesce(r.rolsuper, false);
   if offending is not null then
     raise exception 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant by: %', offending;
+  end if;
+  -- No event trigger but the pinned ones (batch 129's review round; A1 R3: no probe read pg_event_trigger).
+  -- An event trigger fires on DDL in ANY session, a client's TEMPORARY DDL included, and runs a function no
+  -- other rule here enumerates by that path. Measured on the clean set at batch 129: none.
+  select string_agg(format('%s on %s', e.evtname, e.evtevent), ', ' order by e.evtname) into offending
+    from pg_catalog.pg_event_trigger e
+   where not (e.evtname::text = any (array[${PINNED_EVENT_TRIGGERS.map((t) => `'${t}'`).join(', ')}]::text[]));
+  if offending is not null then
+    raise exception 'event trigger(s) not pinned, each running on DDL in any session: %', offending;
   end if;
 end \$\$;
 `;
@@ -1239,7 +1480,7 @@ export const CATALOG_RULE_PROBES = [
   // Batch 127's review round: what reaches past every policy (C0 F1; A1 F1 and F2; Q0 F1). Each drift
   // leaves the rules before its own intact, since the first raise ends the block.
   { label: 'client privilege probe', sql: CLIENT_PRIVILEGE_PROBE_SQL,
-    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in any schema but the system ones, or made after initdb in any schema; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table outside app (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
+    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in any schema but the system ones, or made after initdb in any schema; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); any privilege on a table outside app (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned); or any default privilege`,
     selfTests: [
       // C0 X6: TRUNCATE skips row level security. And the other three, each on its own table: MAINTAIN since
       // batch 128 (Q0 N6 on 127's re-check: a probe that stopped reading MAINTAIN still passed this drift).
@@ -1247,40 +1488,74 @@ export const CATALOG_RULE_PROBES = [
       // Since 128's review round each of the three drifts also puts an object in a TEMPORARY schema,
       // pg_temp_N: a pg_* name the rules once left out, read now because the object's OID is at or above
       // 16384 (C0 F1, Q0 F1). A drift cannot use information_schema or pg_catalog for this, which the guard
-      // refuses first, nor allow_system_table_mods, which the lexer refuses.
-      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public; grant maintain on app.workspace_settings to authenticated; create temporary table probe_temp_r1 (id uuid); grant truncate on probe_temp_r1 to authenticated;',
+      // refuses first. Since batch 129 each also puts one in pg_toast (Q0 F2 on 128's re-check), by the
+      // switch set under a computed name in the job's own transaction: an initdb schema, a pg_* name, and
+      // only the object's OID reads it. TRIGGER there, not TRUNCATE: on a table in a system schema
+      // PostgreSQL withholds INSERT, UPDATE, DELETE and TRUNCATE from a non-superuser whatever its ACL
+      // says (measured at batch 129: has_table_privilege false after the grant), so rule 3 reads its SELECT.
+      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public; grant maintain on app.workspace_settings to authenticated; create temporary table probe_temp_r1 (id uuid); grant truncate on probe_temp_r1 to authenticated; do $d$ begin perform pg_catalog.set_config(\'allow_system_\' || \'table_mods\', \'on\', true); end $d$; create table pg_toast.probe_toast_r1 (id uuid); grant trigger on pg_toast.probe_toast_r1 to authenticated;',
         raises: 'client role(s) hold TRUNCATE, TRIGGER, REFERENCES or MAINTAIN',
-        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items', 'authenticated MAINTAIN on app.workspace_settings', '.probe_temp_r1'] },
+        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items', 'authenticated MAINTAIN on app.workspace_settings', '.probe_temp_r1',
+          'authenticated TRIGGER on pg_toast.probe_toast_r1'] },
       // A1 R5b (invoker switched off by ALTER VIEW), Q0's plain view, and a materialized view in private; and
       // since batch 128 a definer-rights view in a NEW schema a client may use (A1 V11, C0 G1, Q0 F1-sf).
-      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public; create schema probe_view_api; grant usage on schema probe_view_api to authenticated; create view probe_view_api.probe_ideas_v as select id, workspace_id, created_by from app.content_ideas; grant select, insert on probe_view_api.probe_ideas_v to authenticated; create temporary view probe_temp_v as select id, workspace_id, created_by from app.content_ideas; grant select on probe_temp_v to authenticated;',
+      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public; create schema probe_view_api; grant usage on schema probe_view_api to authenticated; create view probe_view_api.probe_ideas_v as select id, workspace_id, created_by from app.content_ideas; grant select, insert on probe_view_api.probe_ideas_v to authenticated; create temporary view probe_temp_v as select id, workspace_id, created_by from app.content_ideas; grant select on probe_temp_v to authenticated; do $d$ begin perform pg_catalog.set_config(\'allow_system_\' || \'table_mods\', \'on\', true); end $d$; create view pg_toast.probe_toast_v as select id, workspace_id, created_by from app.content_ideas; grant select on pg_toast.probe_toast_v to authenticated;',
         raises: 'view(s), materialized view(s) or foreign table(s) a client role can use',
-        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v', 'probe_view_api.probe_ideas_v', '.probe_temp_v'] },
+        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v', 'probe_view_api.probe_ideas_v', '.probe_temp_v', 'pg_toast.probe_toast_v'] },
       // A1 R6: an allow-everything table in public; a grant on a private table; and since batch 128 a table
       // with no RLS in a new schema (A1 V13, C0 G2, Q0 R3s).
-      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated; create schema probe_table_api; create table probe_table_api.probe_notes (id uuid, workspace_id uuid); grant select, insert, update, delete on probe_table_api.probe_notes to authenticated; create temporary table probe_temp_notes (id uuid, workspace_id uuid); grant select, insert on probe_temp_notes to authenticated;',
+      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated; create schema probe_table_api; create table probe_table_api.probe_notes (id uuid, workspace_id uuid); grant select, insert, update, delete on probe_table_api.probe_notes to authenticated; create temporary table probe_temp_notes (id uuid, workspace_id uuid); grant select, insert on probe_temp_notes to authenticated; do $d$ begin perform pg_catalog.set_config(\'allow_system_\' || \'table_mods\', \'on\', true); end $d$; create table pg_toast.probe_toast_notes (id uuid, workspace_id uuid); grant select, insert on pg_toast.probe_toast_notes to authenticated;',
         raises: 'table(s) outside schema app a client role can read or write',
-        names: ['private.ai_credential_references', 'public.probe_pub', 'probe_table_api.probe_notes', '.probe_temp_notes'] },
+        names: ['private.ai_credential_references', 'public.probe_pub', 'probe_table_api.probe_notes', '.probe_temp_notes', 'pg_toast.probe_toast_notes'] },
+      // Batch 129 (A1 R1 on 128's re-check): a default privilege for a client, per schema and in every schema.
+      { drift: 'alter default privileges for role app_worker in schema app grant select on tables to authenticated; alter default privileges for role app_worker grant execute on functions to anon; alter default privileges for role app_worker in schema private grant usage on sequences to public;',
+        raises: 'default privilege(s) granting a client role',
+        names: ['authenticated SELECT on tables in schema app (default for app_worker)', 'anon EXECUTE on functions in every schema (default for app_worker)', 'public USAGE on sequences in schema private (default for app_worker)'] },
     ] },
   // Batch 128 (A1 N1 and N5, C0 N1, Q0 N1 on 127's re-check): which schemas a client may use or create in.
   { label: 'client schema probe', sql: CLIENT_SCHEMA_PROBE_SQL,
-    claim: `the USAGE and CREATE ${CLIENT_ROLES.join(', ')} hold on every schema, and the CREATE and TEMPORARY they hold on the database, are exactly the ${clientSchemaRows.length} pinned, none with grant option`,
+    claim: `the USAGE and CREATE ${CLIENT_ROLES.join(', ')} hold on every schema, and the CREATE and TEMPORARY they hold on the database, are exactly the ${clientSchemaRows.length} pinned, none with grant option, and on every other database they hold no CREATE and no grant option`,
     // A new schema a client may use (the re-checks' first step), CREATE on app (A1 V16), a grant option,
     // and a pinned triple revoked: unlisted and missing are each named. Since 128's review round, CREATE on
-    // information_schema (a system schema the first version did not read) and on the database (C0 X4).
-    selfTests: [{ drift: "create schema probe_client_api; grant usage on schema probe_client_api to authenticated; grant create on schema app to anon; grant usage on schema public to authenticated with grant option; revoke usage on schema app from authenticated; grant create on schema information_schema to authenticated; do $d$ begin execute pg_catalog.format('grant create on database %I to authenticated', pg_catalog.current_database()); end $d$;",
+    // information_schema (a system schema the first version did not read) and on the database (C0 X4). Since
+    // batch 129, CREATE on another database, template1 (Q0 F3 on 128's re-check).
+    selfTests: [{ drift: "create schema probe_client_api; grant usage on schema probe_client_api to authenticated; grant create on schema app to anon; grant usage on schema public to authenticated with grant option; revoke usage on schema app from authenticated; grant create on schema information_schema to authenticated; do $d$ begin execute pg_catalog.format('grant create on database %I to authenticated', pg_catalog.current_database()); end $d$; grant create on database template1 to authenticated;",
       raises: 'client schema or database privilege(s) not exactly the pinned list',
       names: ['unlisted: authenticated USAGE on schema probe_client_api', 'unlisted: anon CREATE on schema app', 'unlisted: authenticated USAGE WITH GRANT OPTION on schema public', 'missing: authenticated USAGE on schema app',
-        'unlisted: authenticated CREATE on schema information_schema', 'unlisted: authenticated CREATE on database'] }] },
+        'unlisted: authenticated CREATE on schema information_schema', 'unlisted: authenticated CREATE on database', 'unlisted: authenticated CREATE on database template1'] }] },
   // Batch 128 (Q0 N2, A1 N3 on 127's re-check): what a client role may become.
   { label: 'client membership probe', sql: CLIENT_MEMBERSHIP_PROBE_SQL,
-    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s)`,
+    claim: `anon and authenticated are members, directly or through another role, of exactly the ${CLIENT_ROLE_MEMBERSHIPS.length} pinned role(s), each has ${CLIENT_ROLE_FALSE_ATTRIBUTES.join(', ')} false, and they and every role default exactly the ${CLIENT_ROLE_SETTINGS.length} pinned setting(s)`,
     // Q0 R0 and A1 V14d (superuser by SET ROLE), and a membership two roles deep, with no INHERIT. The
     // superuser is a role of the drift's own, not `postgres`: the driver redacts the connection's user
     // name from stderr, so a refusal naming `postgres` could not be tied to its object (measured).
-    selfTests: [{ drift: 'create role probe_member_super superuser nologin; grant probe_member_super to authenticated; create role probe_member_mid nologin; create role probe_member_top nologin; grant probe_member_top to probe_member_mid; grant probe_member_mid to anon with inherit false;',
+    selfTests: [
+      { drift: 'create role probe_member_super superuser nologin; grant probe_member_super to authenticated; create role probe_member_mid nologin; create role probe_member_top nologin; grant probe_member_top to probe_member_mid; grant probe_member_mid to anon with inherit false;',
       raises: 'client role(s) members of a role not pinned',
-      names: ['authenticated -> probe_member_super', 'anon -> probe_member_mid', 'anon -> probe_member_top'] }] },
+      names: ['authenticated -> probe_member_super', 'anon -> probe_member_mid', 'anon -> probe_member_top'] },
+      // Batch 129 (A1 R2, C0 F3 and X6 on 128's re-check): bypassrls, and two more attributes on the other role.
+      { drift: 'alter role authenticated bypassrls; alter role anon inherit createdb;',
+        raises: 'client role attribute(s) not their pinned value',
+        names: ['authenticated rolbypassrls = true', 'anon rolcreatedb = true', 'anon rolinherit = true'] },
+      // Batch 129's review round (A1 R2): a client role's search_path, and a default for every role in one database.
+      { drift: "alter role authenticated set search_path = public, app; alter role all in database template1 set work_mem = '64kB';",
+        raises: 'client role setting default(s) not pinned',
+        names: ['authenticated in every database: search_path=public, app', 'every role in database template1: work_mem=64kB'] },
+    ] },
+  // Batch 129 (C0 G1, Q0 F1 on 128's re-check): what initdb made, redefined or re-granted in place. One rule,
+  // one drift with the three shapes the re-checks named: a view replaced, a function made SECURITY DEFINER,
+  // and a grant on a pg_catalog function. Batch 129's review round adds three: an SQL-standard body replaced
+  // by another with nothing else changed (A1 R1: prosqlbody was not read, and prosrc is empty for all 56
+  // such functions initdb makes), and a function and a table renamed in place (C0 F2, Q0 F1: the name was
+  // stored and never compared).
+  { label: 'system object fingerprint probe', sql: SYSTEM_FINGERPRINT_PROBE_SQL,
+    claim: 'every function, relation, schema and language initdb made (OID below 16384) is exactly as the fingerprint taken on this database before the migrations found it: name, body (prosrc and an SQL-standard body), security, settings, owner, ACL, view definition, columns, rules, triggers and policies',
+    selfTests: [{ drift: "create or replace view information_schema.information_schema_catalog_name as select 'probe'::information_schema.sql_identifier as catalog_name; alter function information_schema._pg_char_max_length(oid, integer) security definer; grant execute on function pg_catalog.pg_ls_dir(text) to authenticated; create or replace function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) returns integer language sql immutable parallel safe strict return 2; alter function pg_catalog.pg_read_file(text) rename to probe_renamed_read_file; alter table information_schema.sql_features rename to probe_renamed_sql_features;",
+      raises: 'initdb object(s) not as the fingerprint taken before the migrations found them',
+      names: ['relation information_schema.information_schema_catalog_name [changed]', 'function information_schema._pg_char_max_length(typid oid, typmod integer) [changed]', 'function pg_catalog.pg_ls_dir(text) [changed]',
+        'function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) [changed]',
+        'function pg_catalog.pg_read_file(text) [renamed to pg_catalog.probe_renamed_read_file(text)]',
+        'relation information_schema.sql_features [renamed to information_schema.probe_renamed_sql_features]'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
@@ -1326,7 +1601,7 @@ export const CATALOG_RULE_PROBES = [
         names: ['app.probe_helper(workspace uuid)'] },
     ] },
   { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
-    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, and no parameter grant hands session_replication_role to a non-superuser`,
+    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, no parameter grant hands session_replication_role to a non-superuser, and the event triggers are exactly the ${PINNED_EVENT_TRIGGERS.length} pinned`,
     // Each drift leaves the rules before its own intact, since the first raise ends the block.
     selfTests: [
       { drift: 'alter table app.security_events disable trigger refuse_mutation;',
@@ -1341,6 +1616,9 @@ export const CATALOG_RULE_PROBES = [
       // Blocker 186 item 14 (A1 V3 on batch 125).
       { drift: 'grant set on parameter session_replication_role to authenticated;',
         raises: 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant', names: ['authenticated (SET)'] },
+      // Batch 129's review round (A1 R3): an event trigger, on a function of the drift's own.
+      { drift: 'create function pg_temp.probe_event_fn() returns event_trigger language plpgsql as $f$ begin null; end $f$; create event trigger probe_event_ddl on ddl_command_end execute function pg_temp.probe_event_fn(); create event trigger probe_event_drop on sql_drop execute function pg_temp.probe_event_fn();',
+        raises: 'event trigger(s) not pinned', names: ['probe_event_ddl on ddl_command_end', 'probe_event_drop on sql_drop'] },
     ] },
   // Blocker 186 item 13 (Q0 F3, F8 on batch 125).
   { label: 'pinned trigger probe', sql: PINNED_TRIGGER_PROBE_SQL,
@@ -2780,13 +3058,53 @@ async function runLive(target) {
     // caller for the reason the file itself gives: a prerequisite that lives in a workflow is a
     // prerequisite the command does not have.
     const steps = await migrateCleanSteps();
-    const meta = metaCommandFindings(steps);
+    const meta = metaCommandFindings([{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL }, ...steps]);
     if (meta.length) { for (const m of meta) stderr.write(`  ${m}\n`); return 1; }
+    // THE SYSTEM OBJECT FINGERPRINT (batch 129; C0 G1, Q0 F1 on 128's re-check), taken BEFORE the
+    // prerequisite and the first migration, on the database as initdb and the shim left it, and sealed:
+    // the seal read again after the last migration must be the same. The seal alone pins one query's answer,
+    // not the relation it reads (C0 F1 on 129), so the verdict on the migrations as built is taken here, in
+    // memory: the rows read before the first migration against the rows read after the last, with the
+    // table's own identity read before and after as well. The probe compares with the table for its drifts.
+    const { query, feed: readRows } = await import('./psql-driver.mjs');
+    const taken = await script(SYSTEM_FINGERPRINT_SNAPSHOT_SQL);
+    if (taken.error) { stderr.write(`  system object fingerprint: ${taken.error.message} (${taken.error.code ?? 'no code'})\n`); return 1; }
+    const sealed = await query(SYSTEM_FINGERPRINT_SEAL_SQL);
+    const seal = sealed.rows?.length === 1 ? sealed.rows[0].seal : null;
+    if (!seal || !/^[1-9]\d*:[0-9a-f]{32}$/.test(seal)) { stderr.write(`  system object fingerprint: no sealed fingerprint (${sealed.error?.message ?? seal})\n`); return 1; }
+    const relation = await query(SYSTEM_FINGERPRINT_RELATION_SQL);
+    const identity = relation.rows?.length === 1 ? relation.rows[0].relation : null;
+    if (!identity || !SYSTEM_FINGERPRINT_RELATION_SHAPE.test(identity)) { stderr.write(`  system object fingerprint: its table is not one plain table with no rule, trigger or row level security (${relation.error?.message ?? identity})\n`); return 1; }
+    const before = await readRows(SYSTEM_FINGERPRINT_READ_SQL);
+    const held = await readRows(SYSTEM_FINGERPRINT_TABLE_READ_SQL);
+    if (before.error || held.error || !before.rows?.length) { stderr.write(`  system object fingerprint: not read (${(before.error ?? held.error)?.message ?? 'no rows'})\n`); return 1; }
+    const unheld = diffSystemFingerprint(held.rows, before.rows);
+    if (unheld.length) { stderr.write(`  system object fingerprint: its table does not hold what initdb made, before any migration ran (${unheld.length}, the first 40 named): ${unheld.slice(0, 40).join(', ')}\n`); return 1; }
+    stdout.write(`  system object fingerprint: ${seal.split(':')[0]} objects initdb made, taken before the migrations and sealed\n`);
     for (const { name, sql } of steps) {
       const out = await script(sql);
       if (out.error) { stderr.write(`  ${name}: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return 1; }
       stdout.write(`  applied ${name}\n`);
     }
+    const resealed = await query(SYSTEM_FINGERPRINT_SEAL_SQL);
+    if (resealed.rows?.length !== 1 || resealed.rows[0].seal !== seal) {
+      stderr.write(`  system object fingerprint: its seal moved while the migrations ran (${resealed.error?.message ?? 'the table was rewritten'}), so it is no reference\n`);
+      return 1;
+    }
+    const relationAfter = await query(SYSTEM_FINGERPRINT_RELATION_SQL);
+    const identityAfter = relationAfter.rows?.length === 1 ? relationAfter.rows[0].relation : null;
+    if (identityAfter !== identity) {
+      stderr.write(`  system object fingerprint: its table was replaced while the migrations ran (${identity} before, ${relationAfter.error?.message ?? identityAfter ?? 'none'} after), so it is no reference\n`);
+      return 1;
+    }
+    const after = await readRows(SYSTEM_FINGERPRINT_READ_SQL);
+    if (after.error || !after.rows?.length) { stderr.write(`  system object fingerprint: not read after the migrations (${after.error?.message ?? 'no rows'})\n`); return 1; }
+    const moved = diffSystemFingerprint(before.rows, after.rows);
+    if (moved.length) {
+      stderr.write(`  system object fingerprint, compared in memory: initdb object(s) not as the fingerprint taken before the migrations found them (${moved.length}, the first 40 named): ${moved.slice(0, 40).join(', ')}\n`);
+      return 1;
+    }
+    stdout.write(`  system object fingerprint: the ${after.rows.length} objects initdb made, read again after the last migration and compared in memory, are as they were\n`);
     // THE CEILING PROBE. Every migration used to be capped at ~128 KiB by the driver handing it to
     // psql as one argv string; the driver now feeds a script on stdin. That is a claim about the
     // driver, so the target proves it on every run rather than in a comment: a script larger than

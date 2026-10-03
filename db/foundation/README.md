@@ -319,12 +319,13 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts fifteen families of rules over all of `app` and
-`private` (and, for rules 11, 13 and 14, every schema and role a client can reach), in twenty-three probes
-(twenty-one at batch 127's review round, nineteen at batch 127, sixteen before it). The first is the FK-support probe (batch 104): every foreign key has a
+After the ceiling probe, `make db-migrate-clean` asserts sixteen families of rules over all of `app` and
+`private` (and, for rules 11, 13 and 14, every schema, database and role a client can reach, and for rule 15
+every object initdb made), in twenty-four probes (twenty-three at batch 128, twenty-one at batch 127's review
+round, nineteen at batch 127, sixteen before it). The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
-exempt (batch 126; Q0 F6 on batch 125). The other fourteen are
+exempt (batch 126; Q0 F6 on batch 125). The other fifteen are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -426,7 +427,9 @@ break it silently:
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
    another table. No role or database defaults `session_replication_role`, and no parameter grant
-   (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125).
+   (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125). **No event trigger**
+   but the pinned ones, and none is pinned (`PINNED_EVENT_TRIGGERS`; batch 129's review round, A1 R3: no
+   probe read `pg_event_trigger`): one fires on DDL in any session, a client's TEMPORARY DDL included.
 6. **Every trigger on `app.approval_requests` is exactly its pinned `pg_get_triggerdef` text, and every
    function those triggers run matches its pinned body digest, security and empty `search_path`**
    (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125), and its
@@ -457,7 +460,8 @@ break it silently:
    USAGE on both through PUBLIC, and C0 X1b, X2b, X5 and Q0 ISV, IST, ISF put a definer-rights view, an
    RLS-less table or a SECURITY DEFINER function there, granted to `authenticated`, and read every tenant's
    ideas with every layer green (C0 F1, Q0 F1). This guard runs as its own probe and inside every probe
-   job, after the drift and before the probe.
+   job, after the drift and before the probe. It reads what is **made** there, by OID: an object initdb
+   made and a migration redefines or re-grants in place keeps its OID, and rule 15 reads that.
 11. **No client role holds what no policy governs (batch 127's review round).** `anon`, `authenticated`
    and `PUBLIC` hold no TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation (C0 F1: TRUNCATE skips
    row level security, and C0 X6 emptied another workspace's rows); no privilege on a view, materialized
@@ -474,8 +478,18 @@ break it silently:
    definer-rights view in it and read both workspaces' ideas with every layer green (C0 F1, Q0 F1). So a
    relation is read when its schema is not a system one by name or its own OID is at or above 16384
    (FirstNormalObjectId); a temporary schema, `pg_temp_N`, is read the same way (A1 N2), and each of the
-   three drifts puts an object in one. The static lexer refuses `allow_system_table_mods` in every fed
-   script, by any mention, as it refuses `client_encoding`.
+   three drifts puts an object in one. Since batch 129 each also puts one in `pg_toast` (Q0 F2 on 128's
+   re-check: a mutation that read the schema's OID, or kept the arm for `pg_temp` alone, passed drifts made
+   of temporary objects only): `pg_toast`'s own OID is below 16384 and its name is a system one, so only the
+   object's OID reads it. The drift sets the switch by a computed name inside its own transaction. On a
+   table there PostgreSQL withholds INSERT, UPDATE, DELETE and TRUNCATE from a non-superuser whatever the
+   ACL says (measured), so the drifts grant TRIGGER and SELECT. The static lexer refuses
+   `allow_system_table_mods` in every fed script, by any mention, as it refuses `client_encoding`; a
+   computed name passes it, by design and stated. **And no default privilege grants a client** (batch 129;
+   A1 R1 on 128's re-check): a fourth rule reads `pg_default_acl` whole, every schema and none, every object
+   type, and names any entry whose grantee is `PUBLIC`, `anon` or `authenticated`. Measured empty on the
+   clean set. A global entry for functions stores the whole ACL, PUBLIC's EXECUTE included, so one written
+   without revoking PUBLIC is named too.
 12. **The invoker helpers the policies call match their pinned body** (`POLICY_HELPER_FUNCTIONS`: owner,
    md5 of the body, `search_path=""`), and every function a policy calls (read from `pg_depend`) is one of
    them, a pinned SECURITY DEFINER function or `auth.uid()` (batch 127's review round, C0 F4: replacing
@@ -491,14 +505,58 @@ break it silently:
    included (it carries no ACL, so a client holds nothing there), and `has_database_privilege` on the
    current database, each also WITH GRANT OPTION, both ways. A new schema a client can use (a `pg_*` one
    included), CREATE anywhere, CREATE on the database (C0 X4 passed every layer and let a client make a
-   schema of its own), or a missing pin is named. The probe runs on the CI shim, which grants clients nothing on the
+   schema of its own), or a missing pin is named. **Every other database** since batch 129 (Q0 F3 on 128's
+   re-check: CREATE on `template1` passed every layer): a client holds no CREATE and no grant option there,
+   each named with the database. TEMPORARY on another database is not read, because PUBLIC's default
+   differs by database (TEMPORARY on CI's `postgres`, none on `template0` and `template1`, measured) and no
+   tenant row lives there. The probe runs on the CI shim, which grants clients nothing on the
    platform's managed schemas (`auth`, `storage`, `extensions`); the platform does, and this list does
    not model it.
 14. **`anon` and `authenticated` are members of no role** (`CLIENT_ROLE_MEMBERSHIPS`, empty; batch 128,
    Q0 N2 and A1 N3 on 127's re-check), read from `pg_auth_members` recursively, whatever the grant's
    INHERIT, SET or ADMIN option. Both are NOINHERIT, so every privilege rule above, which reads
    `has_*_privilege`, missed a role reached by SET ROLE: `grant postgres to authenticated` made a client
-   session superuser with every layer green. `PUBLIC` cannot be granted a role.
+   session superuser with every layer green. `PUBLIC` cannot be granted a role. **And their own attributes**
+   since batch 129 (A1 R2, C0 F3 on 128's re-check: `alter role authenticated bypassrls` was held by
+   rls-smoke alone): `rolsuper`, `rolbypassrls`, `rolcreaterole`, `rolcreatedb`, `rolinherit`,
+   `rolcanlogin` and `rolreplication` are each pinned false for both (`CLIENT_ROLE_FALSE_ATTRIBUTES`, as the
+   shim makes them; no migration alters them), and a client role that does not exist is named. **And what
+   every client session starts with** (batch 129's review round; A1 R2: `pg_db_role_setting` was read for
+   `session_replication_role` alone): every setting default for `anon`, `authenticated` or every role, in
+   one database or all, is named unless pinned (`CLIENT_ROLE_SETTINGS`, empty as measured on the clean set),
+   since such a default applies before any statement a session runs: a `search_path`, or a
+   `request.jwt.claims` the policies read. A platform that sets some (a statement timeout, say) is a pin to
+   add with its reason.
+15. **What initdb made is as initdb made it** (batch 129; C0 G1 and Q0 F1 on 128's re-check, MEDIUM). Rule
+   10 and every OID arm read objects **made** after initdb. `CREATE OR REPLACE` and `GRANT` assign no OID,
+   so a view, a function or a grant initdb made and a migration redefines in place passed every layer: C0
+   X7 and Q0 Q-IPVx replaced `information_schema.information_schema_catalog_name` with `content_ideas`'
+   columns appended, C0 X8 and Q0 Q-IPF made an `information_schema` function SECURITY DEFINER over
+   `content_ideas`, Q0 Q-GS granted `pg_statistic` to `authenticated`, and a session with no claims read
+   both workspaces' rows. So `make db-migrate-clean` takes a **fingerprint** of every function, relation,
+   schema and language whose OID is below 16384 (a function's name and schema, owner, language, security,
+   settings, body, `prosrc` and an SQL-standard body in `prosqlbody` alike, and ACL among the rest; a relation's owner, ACL, row level security, options, view definition, columns
+   with their ACLs, and the names of its rules, triggers and policies; a schema's or language's owner and
+   ACL) **before the prerequisite and the first migration**, on the database as initdb and the shim left
+   it, into `catalog_baseline.system_fingerprint`, and seals it (row count and md5). The seal alone did not
+   keep that reference out of a migration's reach (C0 F1 on 129: a migration renamed the table and put a view
+   in its place that answered the seal query with the old rows and the probe with new ones, and with Q-IPF
+   a session with no claims read both workspaces with every layer green). So since 129's review round the
+   executor also reads the fingerprint's rows into its own memory before the first migration (the table
+   must hold exactly them), reads them again from the catalogs after the last, and compares the two in
+   JavaScript, by kind and OID, both ways; and it reads the table's identity from `pg_class` before and after
+   (its OID, a plain table, no rule, trigger or row level security, its owner), so a swap is named as one.
+   The probe compares the built database with the table the same way, and is what each self-test drift is
+   refused by. Both name what changed, went, appeared or was renamed (the name and schema since 129's
+   review round, C0 F2: a rename in place passed every layer). The fingerprint is computed
+   on each cluster, never pinned in the repository, so the PostgreSQL minor version does not matter.
+   Measured at batch 129 on PostgreSQL 17.11: 3753 objects, identical after the shim and every migration,
+   and identical to `template1`. Not read: types, operators, casts, operator classes and collations
+   initdb made (rule 10 reads what is made in those schemas), and an object a migration made and dropped.
+   Still trusted: the catalog functions the reading itself calls (`format`, `pg_get_viewdef` and the
+   rest), which a superuser migration could replace to forge its own row (owed on blocker 186).
+   A run on a database that holds a fingerprint keeps the first; a run on one whose `app` exists and holds
+   none is refused, since that fingerprint would bless what the migrations did.
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule
