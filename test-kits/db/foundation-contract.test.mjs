@@ -2154,8 +2154,11 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
       `${name} line ${meta[0]?.line} carries a backslash outside any literal, body or comment. Under stdin psql executes that as a meta-command -- \\! runs a shell command -- where --command would have refused it as syntax. A migration is SQL and nothing else.`);
   }
   // The lexer, on the shapes the reviews measured and the shapes it must leave alone.
+  // Batch 128 refuses every E'' string (C0 N2, A1 N4, Q0 N7 on 127's re-check), so each shape below that
+  // opens one carries one more finding than it did: E'\\'' and its \\gexec 1 -> 2, e'\\'' 0 -> 1, and
+  // `1.e'` 2 -> 3 (psql reads that one as a plain literal; refused with the rest, fail closed).
   for (const [sql, n] of [['select 1; \\! touch f', 1], ['select 1 \\gexec', 1], ['\\c other', 1], ['select 1;\n  \\set a COM', 1],
-    ["select E'\\'' as a; \\gexec", 1], ["select '%\\_by';", 0], ["select '\\!' as a;", 0], ['select $$ \\! $$;', 0], ['select $t$ \\! $t$;', 0],
+    ["select E'\\'' as a; \\gexec", 2], ["select '%\\_by';", 0], ["select '\\!' as a;", 0], ['select $$ \\! $$;', 0], ['select $t$ \\! $t$;', 0],
     ['-- \\! a comment\nselect 1;', 0], ['/* \\! /* nested */ */ select 1;', 0], ['select "a\\b" from t;', 0],
     // Batch 126's review round (A1 F1, Q0 F1): where psql's lexer could part from this one, refused. A
     // bare CR ends a -- comment for psql (A1 L3); standard_conforming_strings, named anywhere (A1 L2, Q0
@@ -2165,9 +2168,9 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     // hide the \\! (Q0 M-LEX-E, M-LEX-DQ).
     ['select 1 as one; -- a comment\r \\! touch f\n', 1], ["set standard_conforming_strings = off;\nselect 'x';", 1],
     ["select set_config('standard_' || 'conforming_strings', 'off', false);\nselect 'x\\' as a, ' \\! f\nas b;", 1],
-    ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 2],
+    ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 3],
     ["select '\\'; \\! x\n-- '", 2], ['select 1 as x$a$; \\! x\n-- $a$', 1],
-    ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 0],
+    ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 1],
     // Batch 127 (Q0 F1 on batch 126's re-check): the odd-run rule at runs of three and five, not one alone.
     // Narrowed to `run === 1` the rule passed every layer and XODD3B -- the setting turned off by a
     // concatenated name, then three backslashes before the quote -- ran a shell command at migrate-clean.
@@ -2188,7 +2191,24 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     // "names" or "set" is not.
     ["do $$ begin execute 'set names ''SJIS'''; end $$;", 1], ["select 'set names' as a;", 1],
     ["set/* c */names 'BIG5';", 1], ["select $b$ set local\n names 'GBK' $b$;", 1],
-    ["select 'names' as names, 1 as set_names, 2 as offset_names;", 0]]) {
+    ["select 'names' as names, 1 as set_names, 2 as offset_names;", 0],
+    // Batch 128 (C0 N2, A1 N4, Q0 N7 on 127's re-check): a U& or E'' escape spells a name the rules above
+    // read as written, and each shape below passed them and, measured, moved psql's encoding or turned
+    // standard_conforming_strings off. Each is refused wherever it opens a token, at top level or inside a
+    // literal or dollar body (EXECUTE runs a literal's text); a comment, a quoted identifier, a word that
+    // ends in e or u before a quote, and a literal 'e' are not.
+    ["set U&\"client\\005fencoding\" to 'SJIS';", 1], ["set U&\"client!005fencoding\" UESCAPE '!' to 'SJIS';", 1],
+    ["select set_config(U&'client\\005fencoding', 'SJIS', false);", 1], ["select set_config(E'client\\137encoding', 'GBK', false);", 1],
+    ["do $$ begin execute 'set U&\"client\\005fencoding\" to ''SJIS'''; end $$;", 1],
+    ["do $$ begin execute E'set\\x20names ''SJIS'''; end $$;", 1], ["do $$ begin execute E'set client\\x5fencoding to ''BIG5'''; end $$;", 1],
+    ["set U&\"standard\\005fconforming\\005fstrings\" to off;", 1], ["do $$ begin execute 'select E''x'''; end $$;", 1],
+    ["select 'e' as e, date'2026-10-03' as d, menu&'x' as m;", 0], ["select d.deptype = 'e' from pg_depend d;", 0],
+    ["-- U&\"x\" and E'y' in a comment\nselect \"U&'\" from t;", 0],
+    // Batch 128's review round (C0 F1): allow_system_table_mods, named anywhere, as client_encoding is; its
+    // U& spelling is an escape spelling and is refused as one. C0 X2 and X2b used it to make a schema named
+    // pg_c0api and a view in pg_catalog, past every rule that read by schema name.
+    ['set allow_system_table_mods = on;', 1], ["select pg_catalog.set_config('allow_system_table_mods', 'on', true);", 1],
+    ['set U&"allow\\005fsystem\\005ftable\\005fmods" = on;', 1]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2479,10 +2499,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL,
-      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
+      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL,
+      m.CLIENT_SCHEMA_PROBE_SQL, m.CLIENT_MEMBERSHIP_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
       m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.POLICY_HELPER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
       m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all twenty-one, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1)');
+    'all twenty-three, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1); the client schema and client membership probes are batch 128 (A1 N1, N3, N5; C0 N1; Q0 N1, N2 on 127\'s re-check)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2561,8 +2582,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`, 'set local search_path = pg_catalog;', ...m.PG_CATALOG_GUARD_SQL.trimEnd().split('\n'), 'S',
     `select '${nonce}:end:' || pg_catalog.txid_current() as probe;`, 'rollback;', '']);
   // The guard decides by EXISTS over OID comparisons, before anything a drift could overload is called.
-  assert.match(m.PG_CATALOG_GUARD_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  if exists \(select 1 from pg_catalog\.pg_proc p where p\.pronamespace = 11::pg_catalog\.oid and p\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_operator o where o\.oprnamespace = 11::pg_catalog\.oid and o\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_cast k where k\.oid >= 16384::pg_catalog\.oid\) then\n/,
-    'functions, operators and casts in pg_catalog at or above FirstNormalObjectId, decided first');
+  // Since 128's review round in every schema initdb made but public, and relations too but in pg_toast (C0
+  // F1, Q0 F1: views, a table and a definer function in information_schema and pg_catalog passed every layer).
+  assert.match(m.PG_CATALOG_GUARD_SQL, /^do \$\$\ndeclare\n  offending text;\nbegin\n  if exists \(select 1 from pg_catalog\.pg_proc p where p\.pronamespace < 16384::pg_catalog\.oid and p\.pronamespace <> 2200::pg_catalog\.oid and p\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_operator o where o\.oprnamespace < 16384::pg_catalog\.oid and o\.oprnamespace <> 2200::pg_catalog\.oid and o\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_cast k where k\.oid >= 16384::pg_catalog\.oid\)\n     or exists \(select 1 from pg_catalog\.pg_class c where c\.relnamespace < 16384::pg_catalog\.oid and c\.relnamespace <> 2200::pg_catalog\.oid and c\.relnamespace <> 99::pg_catalog\.oid and c\.oid >= 16384::pg_catalog\.oid\) then\n/,
+    'functions and operators in any schema initdb made but public, casts, and relations in one but public and pg_toast, at or above FirstNormalObjectId, decided first');
   // THE PROBES AND THEIR PINS, BY DIGEST (Q0 F2: no test pinned the values). A change to a probe, its
   // pinned lists, its drift, its raise or the objects it names changes one of these, in the same diff as
   // the reason for it.
@@ -2592,6 +2615,19 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Batch 127's review round: the client privilege and policy helper probes are new (C0 F1, F4; A1 F1, F2;
   // Q0 F1); pinned policy 8d249faed4de9d73 to a7be93780c68245a (the other thirty-one member-scope
   // narrowings pinned by exact deparse, C0 F3).
+  // Batch 128 (127's re-checks): the client schema and client membership probes are new (A1 N1, N3, N5; C0 N1;
+  // Q0 N1, N2); client privilege 9050ddad1ecc37bc to 7d4a93840aeecd07 (every schema but the system ones, rule
+  // 3 outside app, a MAINTAIN input and two new-schema inputs: A1 N1, C0 N1, Q0 N1, N6); security definer
+  // 890866dd704c458b to 971a408c8189e608 (the extension-member rule and its drift, A1 N2); policy helper
+  // 148d38b00e422888 to 3fcabdc5eecec27c (its first drift exercises all five conditions, C0 N4).
+  // Batch 128's review round (C0 F1, F2; Q0 F1: objects in information_schema, pg_catalog or a pg_* schema the
+  // migration owner made, and CREATE on the database, passed every layer): client privilege 7d4a93840aeecd07
+  // to a620d5629d5192d7 (each rule also reads a relation made after initdb, whatever its schema; each drift
+  // gains a temporary object); client schema 3157fdd0208c0772 to 13ad35c1af22ba18 (every schema, the system
+  // ones' default USAGE pinned, and CREATE and TEMPORARY on the database); security definer 971a408c8189e608
+  // to 42d056bde20ea854 and policy helper 3fcabdc5eecec27c to 79f1d9721698eb44 (a function made after initdb
+  // in a system schema is read); pg_catalog guard dde779af70d95fcf to 75f034a2f40a686e (every schema initdb
+  // made but public, relations too, and its drift puts a view and a definer function in information_schema).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2603,17 +2639,19 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
     'permissive policy probe': '2fd449e14cd8900f',
-    'client privilege probe': '9050ddad1ecc37bc',
+    'client privilege probe': 'a620d5629d5192d7',
+    'client schema probe': '13ad35c1af22ba18',
+    'client membership probe': '9dc722ac7efd2c45',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
-    'security definer probe': '890866dd704c458b',
-    'policy helper probe': '148d38b00e422888',
+    'security definer probe': '42d056bde20ea854',
+    'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '9f3dc969be47bd74',
     'pinned trigger probe': 'f136765c6beb5dbf',
     'pinned grant probe': '2e3ef3743a2ca6ad',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
-    'pg_catalog guard probe': 'dde779af70d95fcf',
+    'pg_catalog guard probe': '75f034a2f40a686e',
   },'a probe, a pinned list, a drift, a raise or a named object changed: update this digest in the same change, saying why');
   // What each probe must READ, stated as intent beside the digest (the digest says THAT it changed;
   // these say WHAT must survive a change). Each names the finding that made it necessary.
@@ -2698,19 +2736,59 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual(m.CLIENT_ROLES, ['anon', 'authenticated', 'public'], 'the client roles, PUBLIC included, which both inherit');
   assert.deepEqual([m.CLIENT_VIEWS, m.CLIENT_NON_APP_TABLES], [{}, {}], 'both allowlists empty, measured at batch 127: a pin is an RFC-sized decision, in the same diff as its reason');
   assert.equal((clientPriv.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 3, 'every rule reads every client role');
-  assert.match(clientPriv, /where n\.nspname in \('app', 'private', 'public'\) and c\.relkind in \('r', 'p', 'v', 'm', 'f'\)\n[\s\S]*select unnest\(array\['TRUNCATE', 'TRIGGER', 'REFERENCES'\]\n\s+\|\| case when pg_catalog\.current_setting\('server_version_num'\)::integer >= 170000 then array\['MAINTAIN'\]/,
+  // EVERY SCHEMA BUT THE SYSTEM ONES (batch 128; A1 N1, C0 N1, Q0 N1 on 127's re-check: a view or table in
+  // a fourth schema passed every layer while the rules read three by name).
+  assert.equal(m.NON_SYSTEM_SCHEMA, "n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_'", 'the system schemas, and nothing else, are left out');
+  // AND EVERY RELATION MADE AFTER INITDB, IN ANY SCHEMA (batch 128's review round; C0 F1, Q0 F1: a view or an
+  // RLS-less table in information_schema, in pg_catalog or in a pg_* schema the migration owner made passed
+  // every layer). The schema names are no longer the whole test: the object's own OID is read too.
+  assert.equal(m.FIRST_NORMAL_OID, 16384, 'FirstNormalObjectId: everything initdb made is below it');
+  assert.equal(m.userObject('c.oid'), "((n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_') or c.oid >= 16384)",
+    'a relation is read when its schema is not a system one by name, OR when it was made after initdb, whatever its schema');
+  assert.doesNotMatch(clientPriv, /where \$\{?NON_SYSTEM_SCHEMA|where n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_' and c\.relkind/,
+    'no rule reads by schema name alone');
+  assert.doesNotMatch(clientPriv, /nspname in \(/, 'no rule reads a list of schemas by name');
+  assert.match(clientPriv, /where \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\) and c\.relkind in \('r', 'p', 'v', 'm', 'f'\)\n[\s\S]*select unnest\(array\['TRUNCATE', 'TRIGGER', 'REFERENCES'\]\n\s+\|\| case when pg_catalog\.current_setting\('server_version_num'\)::integer >= 170000 then array\['MAINTAIN'\]/,
     'rule 1: every relation kind in the three schemas, the four privileges no policy governs (C0 F1, X6)');
   assert.match(clientPriv, /where case when privs\.p = 'REFERENCES' then pg_catalog\.has_any_column_privilege\(cr\.r, rels\.oid, privs\.p\)\n\s+else pg_catalog\.has_table_privilege\(cr\.r, rels\.oid, privs\.p\) end;/, 'REFERENCES on any column');
-  assert.match(clientPriv, /where n\.nspname in \('app', 'private', 'public'\) and c\.relkind in \('v', 'm', 'f'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\) and c\.relkind = 'v'\n\s+and exists \(select 1 from pg_catalog\.pg_options_to_table\(c\.reloptions\) o\n\s+where o\.option_name = 'security_invoker'/,
+  assert.match(clientPriv, /where \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\) and c\.relkind in \('v', 'm', 'f'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\) and c\.relkind = 'v'\n\s+and exists \(select 1 from pg_catalog\.pg_options_to_table\(c\.reloptions\) o\n\s+where o\.option_name = 'security_invoker'/,
     'rule 2: any client privilege on a view, materialized view or foreign table, unless pinned AND security_invoker (A1 F1, Q0 F1)');
-  assert.match(clientPriv, /where n\.nspname in \('private', 'public'\) and c\.relkind in \('r', 'p'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\)\);/,
-    'rule 3: any client privilege on a table in private or public, unless pinned (A1 F2; A1 F6 on 123)');
+  assert.match(clientPriv, /where n\.nspname <> 'app' and \(\(n\.nspname not in \('pg_catalog', 'information_schema'\) and n\.nspname !~ '\^pg_'\) or c\.oid >= 16384\) and c\.relkind in \('r', 'p'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\)\);/,
+    'rule 3: any client privilege on a table outside app, unless pinned (A1 F2; A1 F6 on 123; A1 V13 on 127\'s re-check)');
   assert.equal((clientPriv.match(/\bselect\b/g) ?? []).length, 6, 'six selects, counted at batch 127\'s review round: no reading clause added unseen');
+  // WHICH SCHEMAS A CLIENT MAY USE OR CREATE IN, AND WHAT A CLIENT ROLE MAY BECOME (batch 128; A1 N1, N3,
+  // N5, C0 N1, Q0 N1, N2 on 127's re-check). Both read the catalog whole, and both lists are what the clean
+  // set measured.
+  // Since 128's review round EVERY schema, the system ones included (C0 F1, Q0 F1: C0 X2 made a schema named
+  // pg_c0api and granted clients USAGE on it with every layer green), and the database (C0 F2: CREATE on it,
+  // C0 X4, passed every layer and let a client make a schema of its own). The USAGE initdb gives PUBLIC on
+  // pg_catalog and information_schema, and the TEMPORARY it gives PUBLIC on the database, are pinned as
+  // measured on the clean set.
+  const usageForAll = { anon: ['USAGE'], authenticated: ['USAGE'], public: ['USAGE'] };
+  assert.deepEqual(m.CLIENT_SCHEMA_PRIVILEGES, { app: { authenticated: ['USAGE'] }, information_schema: usageForAll, pg_catalog: usageForAll, public: usageForAll },
+    'client USAGE on app (authenticated), and on public, pg_catalog and information_schema (all three), CREATE on none, measured at 128\'s review round');
+  assert.deepEqual(m.CLIENT_DATABASE_PRIVILEGES, { anon: ['TEMPORARY'], authenticated: ['TEMPORARY'], public: ['TEMPORARY'] },
+    'TEMPORARY on the database for the three, through PUBLIC, and CREATE for none, measured at 128\'s review round');
+  assert.match(m.CLIENT_SCHEMA_PROBE_SQL, /from pg_catalog\.pg_namespace n, unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\), unnest\(array\['USAGE', 'CREATE'\]\) as p\(p\), \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_schema_privilege\(cr\.r, n\.oid, p\.p \|\| go\.opt\)\n\s+union all\n/,
+    'every client role, USAGE and CREATE, each with and without grant option, on every schema, with no filter on the schema');
+  assert.match(m.CLIENT_SCHEMA_PROBE_SQL, /from unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\), unnest\(array\['CREATE', 'TEMPORARY'\]\) as p\(p\), \(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where pg_catalog\.has_database_privilege\(cr\.r, pg_catalog\.current_database\(\), p\.p \|\| go\.opt\)\n/,
+    'and CREATE and TEMPORARY on the current database, each with and without grant option');
+  assert.doesNotMatch(m.CLIENT_SCHEMA_PROBE_SQL, /nspname\s*(not\b|in\b|!?~|<>|!=|=|like\b)|\.oid\s*[<>]/i, 'no schema is left out, by name or by OID');
+  assert.match(m.CLIENT_SCHEMA_PROBE_SQL, /select 'unlisted: ' \|\| f\.g as x from found f[\s\S]*union all\n\s+select 'missing: ' \|\| p\.g from pinned p/, 'both directions named');
+  assert.equal((m.CLIENT_SCHEMA_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 8, 'eight selects, counted at 128\'s review round (seven at 128, and the database): no reading clause added unseen');
+  assert.deepEqual(m.CLIENT_ROLE_MEMBERSHIPS, [], 'anon and authenticated are members of no role, measured at batch 128: a pin is an RFC-sized decision');
+  assert.match(m.CLIENT_MEMBERSHIP_PROBE_SQL, /with recursive reach\(client, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where r\.rolname in \('anon', 'authenticated'\)\n\s+union\n\s+select reach\.client, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)/,
+    'pg_auth_members read recursively from both client roles, with no filter on INHERIT, SET or ADMIN');
+  assert.equal((m.CLIENT_MEMBERSHIP_PROBE_SQL.match(/\bselect\b/g) ?? []).length, 4, 'four selects, counted at batch 128');
+  // AND THE DEFINER PROBE READS EXTENSION MEMBERS (batch 128; A1 N2 on 127's re-check).
+  assert.deepEqual(m.EXTENSION_DEFINER_FUNCTIONS, [], 'no SECURITY DEFINER extension member, measured at batch 128');
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /join pg_catalog\.pg_depend d on d\.classid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass and d\.objid = p\.oid and d\.deptype = 'e'\n\s+join pg_catalog\.pg_extension e on d\.refclassid = 'pg_catalog\.pg_extension'::pg_catalog\.regclass and e\.oid = d\.refobjid\n\s+where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n/,
+    'every SECURITY DEFINER extension member, in every schema the first rule reads, and any made after initdb in a system schema (C0 X5, Q0 ISF)');
   // THE HELPERS THE POLICIES CALL, BY BODY (C0 F4): pinned like the definer functions, and every function a
   // policy depends on is pinned somewhere.
   assert.match(m.POLICY_HELPER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (C0 X1)');
-  assert.match(m.POLICY_HELPER_PROBE_SQL, /where d\.classid = 'pg_catalog\.pg_policy'::pg_catalog\.regclass and d\.refclassid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass\n\s+and n\.nspname not in \('pg_catalog', 'information_schema'\)\n/,
-    'every function any policy depends on, in every schema but the system ones');
+  assert.match(m.POLICY_HELPER_PROBE_SQL, /where d\.classid = 'pg_catalog\.pg_policy'::pg_catalog\.regclass and d\.refclassid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass\n\s+and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n/,
+    'every function any policy depends on, in every schema but the system ones, and any made after initdb in one (Q0 F1 on 128)');
   assert.deepEqual(m.POLICY_HELPER_FUNCTIONS.map(([f]) => f.split('(')[0]),
     ['app.member_scope_admits_business', 'app.member_scope_admits_page', 'app.member_scope_covers_business', 'app.member_scope_covers_page', 'app.member_scope_is_narrowed'],
     'the four helpers the policies call and the one two of them call, measured at batch 127\'s review round');
@@ -2724,11 +2802,29 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(p.using, p.check, `${k}: both halves the same text, as measured`);
     assert.match(p.using, /app\.member_scope_admits_(business|page)\(|FROM app\.[a-z_]+ /,
       `${k}: it calls a pinned helper, or reads a parent table whose own narrowing applies under its row level security`);
+    // NO DISJUNCTION AND NO CONSTANT (batch 128; Q0 N4 on 127's re-check). The match above is a substring:
+    // with `... OR true` written into the pin and a later file together (digests refreshed), it still
+    // matched, migrate-clean compared the weakened text with the weakened pin, and rls-smoke had no row
+    // outside a narrowed member's scope on content_ideas, publish_target_assets, research_evidence and
+    // research_suggestions, so every layer stayed green. A narrowing is a conjunction of scope tests: no
+    // pinned narrowing may contain the word OR, TRUE or NOT anywhere (a disjunct, a constant branch such as
+    // `ELSE true` or `coalesce(..., true)`, or a negation). Measured at batch 128: none of the 33 does, but
+    // quota_buckets, whose one disjunction is its decision (a workspace-wide bucket has no Business, so no
+    // scope narrows it) and is held here by its whole text. A constant spelled another way (`1 = 1`) is
+    // not read by this test; the pinned policy probe and the digest hold the text, and rls-smoke the rows.
+    const words = (p.using.match(/\b(or|true|not)\b/gi) ?? []).map((w) => w.toUpperCase());
+    if (k === 'quota_buckets.quota_buckets_scope_narrows_member') {
+      assert.equal(p.using, '((business_profile_id IS NULL) OR app.member_scope_admits_business(workspace_id, business_profile_id))',
+        `${k}: its one disjunction, exactly as measured`);
+      assert.deepEqual(words, ['OR'], `${k}: one OR, and no constant or negation`);
+    } else {
+      assert.deepEqual(words, [], `${k}: no OR, TRUE or NOT in a narrowing (Q0 N4 on 127's re-check)`);
+    }
   }
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
     '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');
-  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema (A1 F3, Q0 F3)');
+  assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and \(n\.nspname not in \('pg_catalog', 'information_schema'\) or p\.oid >= 16384\)\n\s+and not exists \(select 1 from pg_catalog\.pg_depend d/, 'every schema (A1 F3, Q0 F3), and a function made after initdb in a system one (C0 X5, Q0 ISF on 128)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
   assert.doesNotMatch(m.SECURITY_DEFINER_PROBE_SQL, /array_to_string\(p\.proconfig/, 'settings compared, never printed (A1 F5)');

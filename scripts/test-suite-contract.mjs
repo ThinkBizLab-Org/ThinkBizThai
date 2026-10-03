@@ -161,7 +161,15 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 464 to 480 with batch 127's review round (2026-10-03): the client privilege and policy helper probes'
 // reading predicates, the thirty-three pinned member-scope narrowings and the SET NAMES shapes anywhere;
 // no test is added and none renamed, so the test floor and the name digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 480,
+// 480 to 494 with batch 128 (2026-10-03): every schema in the client privilege probe, the client schema and
+// client membership probes, the extension-member definer rule, no OR, TRUE or NOT in a narrowing, and the
+// U& and E'' lexer shapes; no test is added and none renamed, so the test floor and the name digest stay;
+// the guard's own count.
+// 494 to 500 with batch 128's review round (2026-10-03): the object-OID reading (FirstNormalObjectId and
+// userObject), no rule by schema name alone, the database privileges and their pin, and no schema left out
+// of the client schema probe; no test is added and none renamed, so the test floor and the name digest
+// stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 500,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

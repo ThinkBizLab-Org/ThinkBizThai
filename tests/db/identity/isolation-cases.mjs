@@ -9319,6 +9319,30 @@ export function buildCases(id) {
          + 'from every witness above it in this file — a workspace owner cannot see the row, so it '
          + 'could not testify about it.',
     },
+    // BATCH 128 (Q0 N3 on batch 127's re-check): the case above names editor A's row in a WHERE, which applies
+    // notifications_select_own as well and hides the row whatever the UPDATE policy says. Q0 widened
+    // notifications_update_own_read_state in its PERMISSIVE_POLICIES pin and in a later file together (the
+    // user_id half removed from both halves, digests refreshed) and every layer stayed green, while owner A's
+    // bare `update app.notifications set read_at = now()` marked two teammates' notifications read. So this
+    // is user-a-cannot-update-user-b-profile's shape on this table: a BARE update returning a constant, gated
+    // by the UPDATE policy's USING alone. It writes owner A's own row (legitimately, rolled back) and must
+    // write no other: `having count(*) > 1` returns a row exactly when it wrote a second. The witness is
+    // editor A's row, read back by its own recipient.
+    {
+      id: 'owner-a-cannot-mark-a-teammates-notification-read-by-a-bare-update',
+      covers: ['§8.4/own-notification', '§8.6/2', '§8.5'],
+      as: ownerA,
+      sql: 'with written as (update app.notifications set read_at = $1::timestamptz returning 1 as one)'
+         + ' select count(*) as rows_written from written having count(*) > 1',
+      params: ['2026-10-03 00:00:00+00'],
+      expect: 'no-effect',
+      witness: editorANotificationStillUnread,
+      why: '§8.4 "Own notification SELECT/MARK READ" is `O` for every role: owner A may mark owner A\'s '
+         + 'notification read and no teammate\'s. A bare UPDATE is gated by '
+         + 'notifications_update_own_read_state\'s USING alone, so this is the case that fails when that '
+         + 'policy is widened in place, in its pin and in a later file together (Q0 N3 on batch 127\'s '
+         + 're-check).',
+    },
     {
       id: 'editor-a-sees-their-own-notification',
       covers: ['§8.4/own-notification', '§8.6/1'],

@@ -328,15 +328,93 @@ export async function feedTranscript(sql, options = {}) {
 //     every statement, and in a multibyte client encoding (SJIS, BIG5, GBK, UHC, GB18030) it masks the byte or bytes after a high byte before it
 //     lexes, so a quote, a backslash, a `-` or a newline after any non-ASCII character can vanish for
 //     psql while this lexer reads it. `\encoding` is a backslash and is refused above with the rest.
-//     WHAT THIS DOES NOT REACH, and why it is not a byte rule: a name or statement psql never sees
-//     spelled out -- set_config('client_' || 'encoding', ...), or EXECUTE of a SET whose words are
-//     computed ('set ' || 'names ...') inside a DO body -- still changes it. The fail-closed answer for
+//   * A U& OR E'' ESCAPE SPELLING, anywhere the server could lex one (batch 128; C0 N2, A1 N4, Q0 N7 on
+//     127's re-check). The two rules above read the NAMES as written, and an escape spells them past
+//     that: `set U&"client\005fencoding" to 'SJIS'`, `execute E'set\x20names ...'` in a DO body and
+//     `set U&"standard\005fconforming\005fstrings" to off` each passed this lexer and, measured, moved
+//     psql's encoding or turned the setting off. So `U&"`, `U&'` and `E'` (any case, not after an
+//     identifier character) are refused wherever they open a token: at top level, and inside every
+//     plain literal and dollar-quoted body, read again as SQL (with '' undoubled) to a depth of eight,
+//     past which a text that could hold one is refused, because EXECUTE runs a literal's text and a DO
+//     body is SQL. Not in a comment or a quoted
+//     identifier, which nothing executes. Measured at batch 128: no .sql file under db/ or tests/ (87),
+//     no replacement, fixture or helper, and no probe or drift carries either, so nothing integrated is
+//     refused. This also refuses an E'' string that spells nothing at all: fail closed, since a reader
+//     cannot tell from the text what its escapes spell. `1.e'...'` is refused with them (psql reads
+//     it as a plain literal; it is junk either way).
+//     WHAT THIS DOES NOT REACH, and why it is not a byte rule: a name or SET whose words are COMPUTED at
+//     run time -- set_config('client_' || 'encoding', ...), EXECUTE of 'set ' || 'names ...', chr(95),
+//     format('%s', ...), convert_from(...), or any other expression that BUILDS the text psql never sees
+//     spelled out -- still changes it. Escapes were the static spellings of that class, and are refused
+//     above; what remains is computation. The fail-closed answer for
 //     standard_conforming_strings was a rule on the one place the two readings part (a quote after an odd run of backslashes); for an encoding they part after
 //     EVERY non-ASCII character, and measured on the sources fed at batch 127 that is 4,611 places in 77
 //     of 86 files, most of them `§` before a digit in a comment, in integrated migrations that are never
-//     edited. So the computed-name case stays outside this list, named here and in the batch 127 record.
+//     edited. So the computed-name case stays outside this list, named here and in the batch 127 and 128
+//     records.
+//     ONE LAYER FOR THE RULE'S OWN CODE (batch 128's review round; Q0 F2). migrate-clean refuses an escape
+//     spelling through this same function, so a weakened escapeSpellings (its E'' or U& arm removed) is
+//     caught by the static lexer shapes in foundation-contract alone: Q0 measured QESC1 and QESC2 with a
+//     reviewer drift in a later file, static 1, migrate-clean 0, rls-smoke 0. That is the shape of every
+//     lexer rule here, and is stated rather than doubled.
 // The claim is the shapes measured and this list, not "anywhere psql would execute one".
 export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
+// Every place a U& or E'' token opens, at top level and inside every literal and dollar body read again as
+// SQL (batch 128). Returns the offset in `text` of each, or of the outermost literal or body that holds it.
+export const ESCAPE_SPELLING_DEPTH = 8;
+export function escapeSpellings(text, depth = 0, base = null, out = []) {
+  const IDENT = /[A-Za-z0-9_$\u0080-\uffff]/;
+  const isIdent = (ch) => ch !== undefined && IDENT.test(ch);
+  const TAG = /\$([A-Za-z_\u0080-\uffff][A-Za-z0-9_\u0080-\uffff]*)?\$/y;
+  const at = (i) => (base === null ? i : base);
+  // Sound as a shortcut: a token at any depth is spelled in the raw text with these characters (a literal
+  // inside a literal only doubles its quotes), so a text with none of them holds none.
+  if (!/[uU]&["']|[eE]'/.test(text)) return out;
+  // Past the depth this scan reads, a text that could hold one is refused rather than skipped: fail closed.
+  if (depth > ESCAPE_SPELLING_DEPTH) { out.push({ at: at(0), kind: "U& or E'' (nested past the depth this scan reads)" }); return out; }
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (ch === '-' && next === '-') { const eol = text.indexOf('\n', i); i = eol === -1 ? text.length : eol; continue; }
+    if (ch === '/' && next === '*') {
+      let nest = 1; i += 2;
+      while (i < text.length && nest > 0) {
+        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; continue; }
+        if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; continue; }
+        i += 1;
+      }
+      i -= 1; continue;
+    }
+    if ((ch === 'u' || ch === 'U') && next === '&' && (text[i + 2] === '"' || text[i + 2] === "'") && !isIdent(text[i - 1])) { out.push({ at: at(i), kind: 'U&' }); continue; }
+    if ((ch === 'e' || ch === 'E') && next === "'" && !isIdent(text[i - 1])) { out.push({ at: at(i), kind: "E''" }); continue; }
+    if (ch === '"') {
+      let j = i + 1;
+      for (; j < text.length; j += 1) { if (text[j] === '"') { if (text[j + 1] === '"') { j += 1; continue; } break; } }
+      i = j; continue;
+    }
+    if (ch === "'") {
+      const escapes = (text[i - 1] === 'e' || text[i - 1] === 'E') && !isIdent(text[i - 2]);
+      let j = i + 1;
+      for (; j < text.length; j += 1) {
+        if (escapes && text[j] === '\\') { j += 1; continue; }
+        if (text[j] === "'") { if (text[j + 1] === "'") { j += 1; continue; } break; }
+      }
+      if (j > i + 1) escapeSpellings(text.slice(i + 1, j).replace(/''/g, "'"), depth + 1, at(i), out);
+      i = j; continue;
+    }
+    if (ch === '$' && !isIdent(text[i - 1])) {
+      TAG.lastIndex = i;
+      const tag = TAG.exec(text);
+      if (tag) {
+        const close = text.indexOf(tag[0], i + tag[0].length);
+        const end = close === -1 ? text.length : close;
+        escapeSpellings(text.slice(i + tag[0].length, end), depth + 1, at(i), out);
+        i = (close === -1 ? text.length : close + tag[0].length) - 1; continue;
+      }
+    }
+  }
+  return out;
+}
 export function psqlLex(sql) {
   const text = String(sql);
   const metaCommands = [];
@@ -355,6 +433,20 @@ export function psqlLex(sql) {
     }
     for (const found of text.matchAll(SET_NAMES)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'set names, which changes the client encoding psql splits bytes by' });
+    }
+    // Not a place psql's lexer parts from this one, but the one scan every fed script passes before it is
+    // applied (batch 128's review round; C0 F1): allow_system_table_mods lets the migration owner, a
+    // superuser, create a schema named pg_* and write pg_catalog, where C0 X2 and X2b put a definer-rights
+    // view a client could read every tenant through. The catalog rules read such an object by its OID
+    // now and the pg_catalog guard refuses it; this names the switch itself. Any mention, as with
+    // client_encoding; an escape spelling of it is refused below; a name computed at run time is not read
+    // here and is left to those two.
+    for (const found of text.matchAll(/allow_system_table_mods/gi)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
+    }
+    for (const found of escapeSpellings(text)) {
+      metaCommands.push({ line: text.slice(0, found.at).split('\n').length,
+        text: `a ${found.kind} escape spelling, which can spell client_encoding, set names or standard_conforming_strings past the rules that read them` });
     }
   }
   let head = '';
