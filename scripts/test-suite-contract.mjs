@@ -91,8 +91,10 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // anything. Both numbers are what the guard itself prints, never a count taken by hand.
 // Batch 123's corrections: 301 to 302 tests and 2133 to 2141 assertions, the named-constraint test
 // (Q0's test of 123, F4), the guard's own counts. Batch 125: 302 to 303 tests and 2141 to 2144
-// assertions, the runCases test of `violates` (Q0's re-test of 123's corrections, F5).
-  'tests/db/identity/identity-isolation.test.mjs': 303,
+// assertions, the runCases test of `violates` (Q0's re-test of 123's corrections, F5). Batch 091's
+// corrections: 303 to 304 tests and 2144 to 2150 assertions, the static hold on its two CI control
+// entries (C0's review of 091, F11), the guard's own counts.
+  'tests/db/identity/identity-isolation.test.mjs': 304,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -151,7 +153,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // transaction control, and 125's pin test (2026-09-28), the guard's own count.
   'test-kits/db/foundation-contract.test.mjs': 365,
   'test-kits/db/rls-assertions.test.mjs': 108,
-  'tests/db/identity/identity-isolation.test.mjs': 2144,
+  // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
+  // control family (Q0 F3 on 091's corrections), the guard's own count.
+  'tests/db/identity/identity-isolation.test.mjs': 2152,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -188,7 +192,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 export const TEST_NAME_DIGEST_BY_FILE = {
   'test-kits/db/foundation-contract.test.mjs': 'd9abfb6c722f5bc2',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': '03408de42cabe39b',
+  'tests/db/identity/identity-isolation.test.mjs': '508aa725e218649f',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

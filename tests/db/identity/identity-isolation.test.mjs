@@ -240,7 +240,8 @@ test('a rejected case that names the constraint it proves names one a migration 
   assert.ok(naming.length >= 3, 'batch 123 names the pair and 090\'s equivalence in its cancellation cases');
   for (const testCase of naming) {
     assert.equal(testCase.expect, 'rejected', `${testCase.id}: only a 'rejected' case is checked against a constraint name`);
-    assert.match(sql, new RegExp(`constraint ${testCase.violates}\\b`), `${testCase.id}: no migration creates ${testCase.violates}`);
+    // A unique INDEX refuses with 23505 under its own name, as a constraint does (batch 091's live-schedule rule).
+    assert.match(sql, new RegExp(`(constraint|unique index(?: if not exists)?) ${testCase.violates}\\b`), `${testCase.id}: no migration creates ${testCase.violates}`);
   }
   const refused = (name) => ({ error: { code: '23514', message: `new row for relation "t" violates check constraint "${name}"` } });
   assert.deepEqual(assertRejectedWith(refused('a_pair'), '23514', 'c', 'a_pair'), { kind: 'rejected', code: '23514' });
@@ -11419,6 +11420,43 @@ test('the tables batch 120 adds have their own entries in the CI negative contro
       + 'is PERMANENT where the INSERT beside it is pending: RFC-2026-022 coming into effect gives '
       + 'app_worker a CARRIED policy for the INSERT §8.3 marks `S` and gives it nothing here, because '
       + 'no policy can restore a privilege no role holds.');
+  }
+});
+
+// BATCH 091's TWO CONTROL ENTRIES (C0's review of 091, F11: every table-creating batch from 021 to 121
+// holds its entries with a static test, and 091's first head did not). The patterns are held to 091's
+// own cases, disjoint from each other, and to no other entry; the counts are pinned so a rename that
+// leaves a family fails on the number.
+test('batch 091 case ids are held to its own two control entries and to no other', async () => {
+  const workflow = await readFile(CI_WORKFLOW, 'utf8');
+  const entries = [...workflow.matchAll(/^\s*control app\.(\w+)\s+'([^']+)'\s+(\d+)/gm)]
+    .map((m) => ({ table: m[1], pattern: m[2], batch: m[3] }));
+  const ours = entries.filter((e) => e.batch === '091');
+  assert.deepEqual(ours.map((e) => e.table).sort(), ['calendar_items', 'content_schedules'], 'batch 091 owns two control entries');
+  const family = Object.fromEntries(ours.map((e) => [e.table, cases.filter((c) => new RegExp(`^${e.pattern}`).test(c.id))]));
+  // 091's second round: six placement ids and five schedule ids added (Q0 F1, F4), and the two ids that
+  // matched neither pattern renamed into their families (Q0 F3, C0 G7): 23 to 30 and 32 to 38.
+  assert.equal(family.calendar_items.length, 30, '30 placement ids (after 091\'s second round)');
+  assert.equal(family.content_schedules.length, 38, '38 schedule ids (after 091\'s second round)');
+  for (const [table, members] of Object.entries(family)) {
+    for (const c of members) assert.match(c.why, /^BATCH 091/, `${c.id} matches app.${table}'s control and is not a batch 091 case`);
+  }
+  // And the converse (Q0 F3 on 091's corrections): every batch 091 case is in exactly one of the two
+  // families, so a case that fails under a control is always counted by that control's pattern.
+  const batch091 = cases.filter((c) => /^BATCH 091/.test(c.why ?? ''));
+  assert.equal(batch091.length, 68, 'batch 091 has 68 cases');
+  for (const c of batch091) {
+    const matched = ours.filter((e) => new RegExp(`^${e.pattern}`).test(c.id)).map((e) => e.table);
+    assert.equal(matched.length, 1, `${c.id} matches ${matched.length} of batch 091's two control patterns, not exactly one`);
+  }
+  const overlap = family.calendar_items.filter((c) => family.content_schedules.includes(c)).map((c) => c.id);
+  assert.deepEqual(overlap, [], 'the two families are disjoint');
+  for (const c of [...family.calendar_items, ...family.content_schedules]) {
+    for (const entry of entries) {
+      if (entry.batch === '091') continue;
+      assert.doesNotMatch(c.id, new RegExp(`^${entry.pattern}`),
+        `${c.id} matches the control pattern /${entry.pattern}/ for app.${entry.table} (batch ${entry.batch}), so that entry could be satisfied by batch 091's regression`);
+    }
   }
 });
 

@@ -467,6 +467,58 @@
     "published_post_b1": {
       "uuid": "cd8df3a5-9a3a-57ed-bb37-5d57dfba1265",
       "role": "workspace_b's own post, with a metric snapshot beneath it. §8.6 case 5 for app.performance_snapshots: every A-side identity holds its exact id and reaches neither the post nor the metric, and `owner-b-...` proves the rows are there to be reached."
+    },
+    "calendar_item_a1": {
+      "uuid": "462b7fa7-98ff-575b-85bb-a64a704e4fa9",
+      "role": "Batch 091: the calendar placement of content_item_a1 (business_a1), inside user_editor_a's scope; the uniqueness case collides on it."
+    },
+    "calendar_item_a2": {
+      "uuid": "e85d3696-ee89-5598-89c5-6b181cb86800",
+      "role": "Batch 091: the placement of content_item_a2 (business_a2), outside user_editor_a's scope -- §8.6 case 3 for the calendar. SOFT-DELETED since 091's second round (Q0 F7), so content_item_a2 has no live placement and the out-of-remit insert is written, not refused by the one-active index, when the narrowing's WITH CHECK is gutted."
+    },
+    "calendar_item_b1": {
+      "uuid": "89052307-19b9-57f0-9aa4-2aa8e31cdc6f",
+      "role": "Batch 091: tenant B's placement, the cross-tenant witness."
+    },
+    "content_schedule_a1_fb": {
+      "uuid": "cd9ccadc-9021-5797-8683-d91786a6c44c",
+      "role": "Batch 091: a DRAFT schedule of content_target_a1_fb; the edit, cancel, arm-refusal and uniqueness cases act on it."
+    },
+    "content_schedule_a1_ig": {
+      "uuid": "a7450cca-4283-5e1c-91e9-2fcb8a0ba1b7",
+      "role": "Batch 091: an ARMED schedule of content_target_a1_ig, which no client can produce; the fixture writes it so cancelling an armed schedule is exercised."
+    },
+    "content_schedule_b1": {
+      "uuid": "96ca8d53-c415-5ccb-9b62-307befbfcb93",
+      "role": "Batch 091: tenant B's draft schedule, the cross-tenant witness."
+    },
+    "content_schedule_a2": {
+      "uuid": "8f91f07e-74c1-542e-92cb-d4ffbe0bfeaf",
+      "role": "Batch 091's corrections: a DRAFT schedule of content_target_a2 (business_a2), outside user_editor_a's and user_admin_a's scope -- §8.6 case 3 for the schedules."
+    },
+    "content_schedule_a1_sibling_page": {
+      "uuid": "4d0135b7-94b6-5f64-8864-f4647faf9c07",
+      "role": "Batch 091's corrections: a DISPATCHED schedule of content_target_a1_sibling_page -- the negative half of §8.6 case 4 for the schedules (user_page_editor_a is scoped to page_a1), and the row a client may not cancel once in flight."
+    },
+    "content_schedule_a1_page_cancelled": {
+      "uuid": "c330f9f3-d17f-5e62-8188-2d5c06f0d68d",
+      "role": "Batch 091's corrections: a CANCELLED schedule of content_target_a1_page. History, so it does not block the positive inserts on that target; the row a client may not reopen."
+    },
+    "content_schedule_a1_page_completed": {
+      "uuid": "045ba964-1b19-53e3-a3f4-6ed0ad19781c",
+      "role": "Batch 091's corrections: a COMPLETED schedule of content_target_a1_page; the row a client may not revive."
+    },
+    "content_schedule_a1_page_failed": {
+      "uuid": "80fd1dd8-85cd-5937-80c2-3175abf218fd",
+      "role": "Batch 091's corrections: a FAILED schedule of content_target_a1_page; the row a client may not rewrite."
+    },
+    "calendar_item_a1_sibling_page": {
+      "uuid": "c458cc6a-83b8-5bd0-97ac-3a51bc6915c8",
+      "role": "Batch 091's corrections: the placement of content_item_a1_sibling_page -- the negative half of §8.6 case 4 for the calendar."
+    },
+    "calendar_item_a1_deleted": {
+      "uuid": "94d5ce3d-9507-51fd-9dfc-a09071c016d0",
+      "role": "Batch 091's corrections: a SOFT-DELETED placement of content_item_a1 (beside the live calendar_item_a1, which the partial unique index allows); the row a client may not undelete or edit."
     }
   },
   "_why_a_knowledge_item_needs_a_symbol_when_a_version_does_not": "Batch 040 adds FIVE symbols and no earlier batch added more than four, which is worth explaining rather than leaving as a number. A version row is addressed by its parent and its ordinal, a member scope by its member and its target, an industry assignment by the Business it belongs to -- every one of those is a natural key some document fixes. A KNOWLEDGE ITEM HAS NONE. Nothing in §4, §5 or §8 says a Business holds one voice profile, and inventing a `unique (business_profile_id, kind)` so that the fixture could address a row without a symbol would be encoding a product decision into a constraint in order to save five constants. So the items are named here and their versions are not: app.knowledge_item_versions makes (knowledge_item_id, version_number) unique, and every case that addresses a version addresses it through an item id this file fixes.",
