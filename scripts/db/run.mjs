@@ -15,10 +15,11 @@
 //     command contract itself). These run anywhere and really check.
 //   * LIVE   — require a Postgres test instance (migrate, seed replay, RLS smoke). These refuse,
 //     naming the environment variable that would let them run.
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { psqlLex } from './psql-driver.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 
 const MIGRATIONS = 'db/foundation/migrations';
@@ -72,12 +73,14 @@ export const CEILING_PROBE_SQL = `do \$\$ begin end \$\$;\n-- ${'x'.repeat(CEILI
 // key without an index fails the target by name. A key is supported when some index on its table
 // leads with the key's columns (any order), whole or partial on one of them IS NOT NULL. The four
 // exemptions carry their reasons and are the same four 104's own block names; the contract test
-// holds the two lists equal.
+// holds the two lists equal. Each is keyed SCHEMA.TABLE.CONSTRAINT (blocker 186 item 18; Q0 F6 on
+// batch 125): keyed by name alone, an unindexed key on ANOTHER table named like an exempt one passed,
+// and the stale-exemption rule was satisfied as long as some key of that name existed anywhere.
 export const FK_SUPPORT_EXEMPTIONS = {
-  assets_current_version_scope_fk: 'assets_current_version_idx (workspace_id, business_profile_id, current_version_id) WHERE current_version_id IS NOT NULL finds every row a version delete checks; id is the asset\'s own key and adds nothing',
-  billing_invoices_subscription_scope_fk: 'billing_invoices_subscription_idx (billing_subscription_id): the subscription id is unique across workspaces, so the single column is the lookup',
-  billing_payments_invoice_mode_fk: 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
-  billing_payments_invoice_scope_fk: 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
+  'app.assets.assets_current_version_scope_fk': 'assets_current_version_idx (workspace_id, business_profile_id, current_version_id) WHERE current_version_id IS NOT NULL finds every row a version delete checks; id is the asset\'s own key and adds nothing',
+  'app.billing_invoices.billing_invoices_subscription_scope_fk': 'billing_invoices_subscription_idx (billing_subscription_id): the subscription id is unique across workspaces, so the single column is the lookup',
+  'app.billing_payments.billing_payments_invoice_mode_fk': 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
+  'app.billing_payments.billing_payments_invoice_scope_fk': 'billing_payments_invoice_idx leads with billing_invoice_id, unique across workspaces and modes',
 };
 export const FK_SUPPORT_PROBE_SQL = `do \$\$
 declare
@@ -85,8 +88,9 @@ declare
   exempt constant text[] := array[${Object.keys(FK_SUPPORT_EXEMPTIONS).map((k) => `'${k}'`).join(', ')}];
 begin
   with fk as (
-    select c.oid, c.conname, c.conrelid, c.conkey
+    select c.oid, c.conname, c.conrelid, c.conkey, format('%s.%s.%s', n.nspname, cl.relname, c.conname) as key
       from pg_catalog.pg_constraint c join pg_catalog.pg_namespace n on n.oid = c.connamespace
+      join pg_catalog.pg_class cl on cl.oid = c.conrelid
      where c.contype = 'f' and n.nspname in ('app', 'private')
   ), covered as (
     select distinct fk.oid from fk join pg_catalog.pg_index i on i.indrelid = fk.conrelid
@@ -97,8 +101,8 @@ begin
                         where pg_catalog.pg_get_expr(i.indpred, i.indrelid)
                             = '(' || quote_ident((select attname from pg_catalog.pg_attribute where attrelid = fk.conrelid and attnum = k)) || ' IS NOT NULL)'))
   )
-  select string_agg(fk.conrelid::regclass::text || '.' || fk.conname, ', ' order by fk.conname) into offending
-    from fk where fk.oid not in (select oid from covered) and not (fk.conname = any (exempt));
+  select string_agg(fk.key, ', ' order by fk.key) into offending
+    from fk where fk.oid not in (select oid from covered) and not (fk.key = any (exempt));
   if offending is not null then
     raise exception 'foreign key(s) with no supporting index and no named exemption: %', offending;
   end if;
@@ -106,7 +110,10 @@ begin
   -- here and not in 104's own block because three of the four are 130's and 131's keys, which sort
   -- after 104.
   select string_agg(e, ', ' order by e) into offending from unnest(exempt) e
-   where not exists (select 1 from pg_catalog.pg_constraint c where c.conname = e and c.contype = 'f');
+   where not exists (select 1 from pg_catalog.pg_constraint c
+                       join pg_catalog.pg_namespace n on n.oid = c.connamespace
+                       join pg_catalog.pg_class cl on cl.oid = c.conrelid
+                      where format('%s.%s.%s', n.nspname, cl.relname, c.conname) = e and c.contype = 'f');
   if offending is not null then
     raise exception 'exempted foreign key(s) do not exist: %', offending;
   end if;
@@ -246,7 +253,13 @@ end \$\$;
 export const PINNED_CHECKS = {
   'approval_requests.approval_requests_decision_has_a_decider': "CHECK (((status = ANY (ARRAY['approved'::text, 'changes_requested'::text])) = ((decided_at IS NOT NULL) AND (decided_by IS NOT NULL))))",
   'approval_requests.approval_requests_decider_is_a_pair': 'CHECK (((decided_at IS NULL) = (decided_by IS NULL)))',
+  // Batch 126 (blocker 186 item 17; A1 V5 on batch 125): a decision cannot predate its request.
+  'approval_requests.approval_requests_decided_after_created': 'CHECK ((decided_at >= created_at))',
 };
+// A CHECK is NULL, and so passes, when a column it reads is NULL. decided_at is NULL by design while a
+// request is pending (the pair CHECK says when); created_at must never be, or 126's order CHECK admits
+// anything (Q0 F8 on batch 126: `drop not null` on created_at passed every layer).
+export const PINNED_NOT_NULL = ['app.approval_requests.created_at'];
 export const PINNED_CHECK_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -260,6 +273,15 @@ begin
         and pg_catalog.pg_get_constraintdef(con.oid) = pin.def);
   if offending is not null then
     raise exception 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text: %', offending;
+  end if;
+  select string_agg(pin.k, ', ' order by pin.k) into offending
+    from unnest(array[${PINNED_NOT_NULL.map((k) => `'${k}'`).join(', ')}]) as pin(k)
+   where not exists (
+     select 1 from pg_catalog.pg_attribute a
+      where a.attrelid = to_regclass(split_part(pin.k, '.', 1) || '.' || split_part(pin.k, '.', 2))
+        and a.attname = split_part(pin.k, '.', 3) and a.attnum > 0 and not a.attisdropped and a.attnotnull);
+  if offending is not null then
+    raise exception 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing: %', offending;
   end if;
 end \$\$;
 `;
@@ -370,12 +392,23 @@ begin
   if offending is not null then
     raise exception 'trigger(s) not enabled: %', offending;
   end if;
-  if (select array_agg(pg_catalog.pg_get_triggerdef(t.oid) order by pg_catalog.pg_get_triggerdef(t.oid))
-        from pg_catalog.pg_trigger t
-        join pg_catalog.pg_proc p on p.oid = t.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
-       where not t.tgisinternal and pn.nspname = 'private' and p.proname = 'refuse_mutation')
-     is distinct from array[${[...REFUSE_MUTATION_TRIGGERS].sort().map((d) => `'${d}'`).join(', ')}] then
-    raise exception 'the private.refuse_mutation triggers are not exactly the four pinned definitions on audit_logs and security_events';
+  -- The refusal names what differs, missing or unpinned, so the verdict can tie it to the
+  -- definition its drift touched (blocker 186 item 11).
+  with found as (
+    select pg_catalog.pg_get_triggerdef(t.oid) as def
+      from pg_catalog.pg_trigger t
+      join pg_catalog.pg_proc p on p.oid = t.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
+     where not t.tgisinternal and pn.nspname = 'private' and p.proname = 'refuse_mutation'
+  ), pinned as (
+    select unnest(array[${[...REFUSE_MUTATION_TRIGGERS].sort().map((d) => `'${d}'`).join(', ')}]) as def
+  )
+  select string_agg(x, '; ' order by x) into offending from (
+    select 'missing: ' || def as x from pinned where def not in (select def from found)
+    union all
+    select 'unpinned: ' || def from found where def not in (select def from pinned)
+  ) d;
+  if offending is not null then
+    raise exception 'the private.refuse_mutation triggers are not exactly the four pinned definitions on audit_logs and security_events: %', offending;
   end if;
   -- No role or database may default session_replication_role, which stops every trigger and every FK
   -- trigger from firing; 140's block caught it only by accident, on a CHECK violation (Q0 F5).
@@ -398,6 +431,257 @@ begin
   if offending is not null then
     raise exception 'append-only table(s) partitioned, inherited from or inheriting: %', offending;
   end if;
+  -- No parameter ACL lets a non-superuser SET session_replication_role (blocker 186 item 14; A1 V3 on
+  -- batch 125). PostgreSQL 15+ grants a superuser-only parameter through pg_parameter_acl, which the
+  -- role-default rule above never read: A1 measured "grant set on parameter session_replication_role to
+  -- authenticated" in a later file passing every layer, after which a decider in replica mode recorded
+  -- a decision dated 2001 and an owner inserted a request pinned to a version that does not exist.
+  select string_agg(format('%s (%s)', coalesce(r.rolname, 'PUBLIC'), a.privilege_type), ', '
+                    order by coalesce(r.rolname, 'PUBLIC'), a.privilege_type) into offending
+    from pg_catalog.pg_parameter_acl p
+    cross join lateral pg_catalog.aclexplode(p.paracl) a
+    left join pg_catalog.pg_roles r on r.oid = a.grantee
+   where p.parname = 'session_replication_role' and not coalesce(r.rolsuper, false);
+  if offending is not null then
+    raise exception 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant by: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 5. EVERY TRIGGER ON A PINNED TABLE, BY DEFINITION, AND THE BODY OF EVERY FUNCTION THEY RUN (blocker 186
+// item 13; Q0 F3 and F8 on batch 125). decided_at is the database's only for the trigger that sets it:
+// PostgreSQL fires BEFORE ROW triggers in name order, and Q0 measured a later file adding
+// `set_decided_at_backfill`, sorting after it and taking decided_at from a session setting, backdate a
+// decision to 2001 with every layer green (M7); and an edit to 125's own body with its md5 recomputed
+// do the same (M6). set_decided_at is SECURITY INVOKER, so the definer probe never read it. Here every
+// non-internal trigger on a pinned table is compared by pg_get_triggerdef TEXT against an exact list,
+// and every function those triggers execute is compared against a pinned body digest, security and
+// empty search_path, with no EXECUTE for PUBLIC -- a second pin, in this file, beside 126's block.
+export const PINNED_TABLE_TRIGGERS = {
+  'app.approval_requests': [
+    'CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()',
+    'CREATE TRIGGER set_updated_at BEFORE UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()',
+  ],
+};
+// [function, security, body digest, owner]. The owner is pinned beside the digest (Q0 F8 on batch 126: a
+// later file handing set_decided_at to app_worker passed every layer, and an owner can drop the trigger).
+export const PINNED_TRIGGER_FUNCTIONS = [
+  ['private.set_decided_at()', 'invoker', '48bcd0d03295b86120ea89fa4dec7adf', 'migration owner'],
+  ['private.set_updated_at()', 'definer', SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[2],
+    SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[1]],
+];
+export const PINNED_TRIGGER_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with found as (
+    select format('%s.%s', n.nspname, c.relname) as tab, pg_catalog.pg_get_triggerdef(t.oid) as def
+      from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where not t.tgisinternal
+       and format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_TABLE_TRIGGERS).map((t) => `'${t}'`).join(', ')}])
+  ), pinned as (
+    select * from (values ${Object.entries(PINNED_TABLE_TRIGGERS).flatMap(([t, defs]) => defs.map((d) => `('${t}', '${d}')`)).join(', ')}) as v(tab, def)
+  )
+  select string_agg(x, '; ' order by x) into offending from (
+    select 'missing: ' || p.def as x from pinned p where not exists (select 1 from found f where f.tab = p.tab and f.def = p.def)
+    union all
+    select 'unpinned: ' || f.def from found f where not exists (select 1 from pinned p where p.tab = f.tab and p.def = f.def)
+  ) d;
+  if offending is not null then
+    raise exception 'trigger(s) on a pinned table not exactly its pinned definitions: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s.%s()%s%s%s%s%s', pn.nspname, p.proname,
+                  case when pin.fn is null then ' [not a pinned trigger function]' else '' end,
+                  case when pin.fn is not null and md5(p.prosrc) <> pin.digest then ' [body differs from the pinned digest]' else '' end,
+                  case when pin.fn is not null and p.prosecdef <> (pin.security = 'definer') then ' [not ' || pin.security || ']' else '' end,
+                  case when p.proconfig is distinct from array['search_path=""'] or pg_catalog.has_function_privilege('public', p.oid, 'EXECUTE')
+                       then ' [search_path is not exactly "" or PUBLIC can execute]' else '' end,
+                  case when pin.fn is not null
+                        and pg_catalog.pg_get_userbyid(p.proowner) <> case when pin.owner = 'migration owner' then current_user::text else pin.owner end
+                       then ' [owner is not the pinned owner]' else '' end) as x
+      from (select distinct t.tgfoid from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
+              join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+             where not t.tgisinternal
+               and format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_TABLE_TRIGGERS).map((t) => `'${t}'`).join(', ')}])) used
+      join pg_catalog.pg_proc p on p.oid = used.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
+      left join (values ${PINNED_TRIGGER_FUNCTIONS.map(([f, sec, d, o]) => `('${f}', '${sec}', '${d}', '${o}')`).join(', ')}) as pin(fn, security, digest, owner)
+        on pin.fn = format('%s.%s(%s)', pn.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid))
+  ) f
+   where x ~ '\\[';
+  if offending is not null then
+    raise exception 'trigger function(s) on a pinned table not in their pinned shape: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 6. THE GRANT SET ON A PINNED TABLE, BY ALLOWLIST, AT TABLE AND COLUMN LEVEL (batch 126; C0 H1, A1 R1
+// and R3 on batch 091's third round). 091's block item 6 names privileges a role must NOT hold, so a
+// grant it does not name passes every layer: C0 measured `grant insert (deleted_at)` on calendar_items
+// to authenticated -- a placement born deleted, dated by the client, since set_deleted_at fires on
+// UPDATE only -- and INSERT or UPDATE on created_at, and A1 TRUNCATE, TRIGGER, REFERENCES and MAINTAIN,
+// each green on migrate-clean and rls-smoke. Here every role that is neither a superuser nor a
+// predefined pg_* role (authenticated, anon, service_role and the app_* service roles on this cluster)
+// is read for its EFFECTIVE privileges, has_table_privilege and has_column_privilege, and the set found
+// must be exactly the set below: anything unlisted and anything missing is named. The list is 091's
+// grants as written; a batch that changes them changes this list in the same diff. 091's apply-time
+// block is integrated and is not rewritten: this is the forward assertion beside it.
+export const PINNED_GRANTS = {
+  'app.calendar_items': {
+    authenticated: {
+      table: [],
+      SELECT: ['id', 'workspace_id', 'business_profile_id', 'content_item_id', 'scheduled_local_date', 'timezone',
+        'display_status', 'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'],
+      INSERT: ['workspace_id', 'business_profile_id', 'content_item_id', 'scheduled_local_date', 'timezone',
+        'display_status', 'created_by'],
+      UPDATE: ['scheduled_local_date', 'timezone', 'display_status', 'updated_at', 'updated_by', 'deleted_at'],
+      REFERENCES: [],
+    },
+  },
+  'app.content_schedules': {
+    authenticated: {
+      table: [],
+      SELECT: ['id', 'workspace_id', 'business_profile_id', 'content_target_id', 'scheduled_for', 'timezone_snapshot',
+        'status', 'publish_intent_id', 'version', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+      INSERT: ['workspace_id', 'business_profile_id', 'content_target_id', 'scheduled_for', 'timezone_snapshot', 'created_by'],
+      UPDATE: ['scheduled_for', 'timezone_snapshot', 'status', 'updated_at', 'updated_by'],
+      REFERENCES: [],
+    },
+  },
+};
+const pinnedGrantRows = (level) => Object.entries(PINNED_GRANTS).flatMap(([table, roles]) => Object.entries(roles).flatMap(([role, privs]) =>
+  level === 'table' ? privs.table.map((p) => `${role} ${p} on ${table}`)
+    : Object.entries(privs).filter(([p]) => p !== 'table').flatMap(([p, cols]) => cols.map((c) => `${role} ${p} (${c}) on ${table}`))));
+const grantDiff = (found, rows) => `
+  ), pinned as (
+    select unnest(array[${rows.length ? rows.map((r) => `'${r}'`).join(', ') : ''}]::text[]) as g
+  )
+  select string_agg(x, '; ' order by x) into offending from (
+    select 'unlisted: ' || f.g as x from ${found} f where f.g not in (select g from pinned)
+    union all
+    select 'missing: ' || p.g from pinned p where p.g not in (select g from ${found})
+  ) d;`;
+// The review round on batch 126 added two things. The role set leaves superusers out, so the probe
+// ASSUMES each pinned table's owner is a superuser (C0 F5): that is now its first rule, not a silent
+// premise -- on a cluster where the owner is not one, the owner's implicit privileges would read as
+// unlisted, and the rule says why first. And each privilege is read WITH GRANT OPTION as well, a row
+// the allowlist never lists (C0 F3, A1 F3, Q0 F7: `... with grant option` passed every layer).
+export const PINNED_GRANT_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('%s (owner %s)', tabs.t, pg_catalog.pg_get_userbyid(c.relowner)), ', ' order by tabs.t) into offending
+    from unnest(array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]) as tabs(t)
+    join pg_catalog.pg_class c on c.oid = tabs.t::regclass
+   where not exists (select 1 from pg_catalog.pg_roles o where o.oid = c.relowner and o.rolsuper);
+  if offending is not null then
+    raise exception 'pinned table(s) owned by a role that is not a superuser, whose implicit privileges the allowlist would misread: %', offending;
+  end if;
+  with roles as (
+    select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
+  ), tabs as (
+    select unnest(array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}]) as t
+  ), tprivs as (
+    select unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
+                  || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
+  ), found as (
+    select format('%s %s%s on %s', roles.r, tprivs.p, go.opt, tabs.t) as g
+      from roles, tabs, tprivs, (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where pg_catalog.has_table_privilege(roles.r, tabs.t::regclass, tprivs.p || go.opt)${grantDiff('found', pinnedGrantRows('table'))}
+  if offending is not null then
+    raise exception 'table-level privilege(s) on a pinned table not exactly its allowlist: %', offending;
+  end if;
+  with roles as (
+    select rolname as r from pg_catalog.pg_roles where not rolsuper and rolname !~ '^pg_'
+  ), cols as (
+    select c.oid as rel, format('%s.%s', n.nspname, c.relname) as t, a.attnum, a.attname
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+     where format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'`).join(', ')}])
+  ), found as (
+    select format('%s %s%s (%s) on %s', roles.r, p.p, go.opt, cols.attname, cols.t) as g
+      from roles, cols, unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p), (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where pg_catalog.has_column_privilege(roles.r, cols.rel, cols.attnum, p.p || go.opt)${grantDiff('found', pinnedGrantRows('column'))}
+  if offending is not null then
+    raise exception 'column privilege(s) on a pinned table not exactly its allowlist: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 7. COLUMN DEFAULTS A DECISION FIXES, BY DEPARSE TEXT (batch 126; C0 H3 on batch 091's third round).
+// DEC-UX-06 makes Asia/Bangkok the product's zone, and 091 writes it as calendar_items.timezone's
+// default; C0 measured a later file setting it to 'UTC' with every layer green, because no block reads
+// a default. content_schedules.timezone_snapshot has no default (C0 P4), so it is not here.
+export const PINNED_DEFAULTS = {
+  'app.calendar_items.timezone': "'Asia/Bangkok'::text",
+};
+export const PINNED_DEFAULT_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(pin.k, ', ' order by pin.k) into offending
+    from (values ${Object.entries(PINNED_DEFAULTS).map(([k, def]) => `('${k}', '${def.replace(/'/g, "''")}')`).join(', ')}) as pin(k, def)
+   where not exists (
+     select 1 from pg_catalog.pg_attrdef d
+       join pg_catalog.pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum and not a.attisdropped
+      where d.adrelid = to_regclass(split_part(pin.k, '.', 1) || '.' || split_part(pin.k, '.', 2))
+        and a.attname = split_part(pin.k, '.', 3)
+        and pg_catalog.pg_get_expr(d.adbin, d.adrelid) = pin.def);
+  if offending is not null then
+    raise exception 'pinned column default(s) missing or not in their pinned text: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 8. NO REWRITE RULE ON A TABLE IN app OR private (batch 126's review round; Q0 F5). A rule rewrites a
+// write before any trigger or policy sees it, and its action runs as the table's owner: Q0 measured a
+// later file's `create rule ... on insert to app.approval_requests ... do also update ... set status =
+// 'approved', decided_by = new.created_by` let an editor approve their own request, and no probe read
+// rules. The only rule a relation here may carry is a view's (or materialized view's) _RETURN.
+export const REWRITE_RULE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('%s.%s.%s', n.nspname, c.relname, r.rulename), ', ' order by n.nspname, c.relname, r.rulename) into offending
+    from pg_catalog.pg_rewrite r join pg_catalog.pg_class c on c.oid = r.ev_class
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname in ('app', 'private')
+     and not (r.rulename = '_RETURN' and c.relkind in ('v', 'm'));
+  if offending is not null then
+    raise exception 'rewrite rule(s) on a relation in app or private, which rewrite a write past its triggers and policies: %', offending;
+  end if;
+end \$\$;
+`;
+
+// 9. NOTHING CREATED IN pg_catalog, checked in EVERY probe job after its drift and before its probe
+// (batch 126's review round; Q0 F3). The probes run with search_path pinned to pg_catalog, and a
+// superuser drift that ADDS a better-matching overload there -- Q0's `create function
+// pg_catalog.format(text, name, name)` raising a rule's own prefix and names -- had a silenced rule
+// counted as refusing its drift, with every layer green. (Replacing a built-in does not work: the
+// function manager dispatches a built-in OID to the compiled function, which is why plan §3's first
+// description of this limit was wrong.) Every object a migration or a drift creates has an OID at or
+// above 16384 (FirstNormalObjectId); the built-ins are below it. The decision is taken by EXISTS over
+// OID comparisons that are exact matches to built-in operators, which no overload can displace; only
+// the message's detail, written after the decision, calls anything a drift could shadow. It runs as
+// its own probe too, so its rule has a drift on every migrate-clean, and probeJobScript places it in
+// every job.
+export const PG_CATALOG_GUARD_SQL = `do \$\$
+declare
+  offending text;
+begin
+  if exists (select 1 from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid)
+     or exists (select 1 from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) then
+    select string_agg(x, ', ' order by x) into offending from (
+      select 'function ' || p.proname::text || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')' as x
+        from pg_catalog.pg_proc p where p.pronamespace = 11::pg_catalog.oid and p.oid >= 16384::pg_catalog.oid
+      union all
+      select 'operator ' || o.oprname::text from pg_catalog.pg_operator o where o.oprnamespace = 11::pg_catalog.oid and o.oid >= 16384::pg_catalog.oid
+      union all
+      select 'cast ' || k.oid::text from pg_catalog.pg_cast k where k.oid >= 16384::pg_catalog.oid) f;
+    raise exception 'object(s) created in pg_catalog, where a call in a probe could resolve to them: %', coalesce(offending, 'unnamed');
+  end if;
 end \$\$;
 `;
 // Each probe carries a DRIFT for EACH RULE it states, and the start of the raise that rule must answer
@@ -408,120 +692,283 @@ end \$\$;
 // their loop that passed every regex over this file (Q0 F2, the same class as its F1 on the
 // post-migrate pass), and Q0's test of 123 found rules that ran live beside a drift that never reached
 // them (F3), which is why a probe now has exactly as many drifts as raises.
+//
+// AND EACH DRIFT NAMES WHAT ITS REFUSAL MUST NAME (blocker 186 item 11; C0 F1 and Q0 F1 on batch 125).
+// A refusal counted on its P0001 prefix alone could be the drift's own: Q0 silenced the coverage rule
+// and gave it a drift that raised the rule's prefix itself, and the verdict read "refused its drift".
+// Now `names` lists the objects the rule's raise must name -- the drift's own target, as the probe
+// prints it -- and the executor's markers (probeJobScript) say the raise came after the drift, from the
+// probe, in the transaction the job opened.
 export const CATALOG_RULE_PROBES = [
   // The FK-support probe (batch 104) ran once before this list with no self-test and no digest pin, so
   // silenced it still printed its claim over a live unindexed key (C0's re-verification of 123, F6).
   { label: 'fk support probe', sql: FK_SUPPORT_PROBE_SQL,
-    claim: `every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by name`,
+    claim: `every foreign key in app and private has a supporting index, ${Object.keys(FK_SUPPORT_EXEMPTIONS).length} exempt by schema.table.constraint`,
     selfTests: [
-      { drift: 'drop index app.content_targets_social_scope_idx;',
-        raises: 'foreign key(s) with no supporting index and no named exemption' },
+      // Two inputs to one rule: a supporting index dropped, and an unindexed key on another table that
+      // borrows an exempt key's NAME (blocker 186 item 18; Q0 FS4b on batch 125 passed every layer).
+      { drift: 'drop index app.content_targets_social_scope_idx; create table app.probe_fk_namesake (workspace_id uuid, constraint billing_payments_invoice_mode_fk foreign key (workspace_id) references app.workspaces (id));',
+        raises: 'foreign key(s) with no supporting index and no named exemption',
+        names: ['app.content_targets.content_targets_social_scope_fk', 'app.probe_fk_namesake.billing_payments_invoice_mode_fk'] },
       { drift: 'alter table app.billing_invoices drop constraint billing_invoices_subscription_scope_fk;',
-        raises: 'exempted foreign key(s) do not exist' },
+        raises: 'exempted foreign key(s) do not exist',
+        names: ['app.billing_invoices.billing_invoices_subscription_scope_fk'] },
     ] },
   { label: 'fk action probe', sql: FK_ACTION_PROBE_SQL,
     claim: `every foreign key is NO ACTION on delete and update, not deferrable and validated, ${Object.keys(FK_ACTION_EXEMPTIONS).length} exempt by name`,
     selfTests: [
       { drift: 'alter table app.content_targets drop constraint content_targets_social_scope_fk; alter table app.content_targets add constraint content_targets_social_scope_fk foreign key (workspace_id, social_account_id) references app.social_accounts (workspace_id, id) on update cascade;',
-        raises: 'foreign key(s) with an action, deferrable or NOT VALID' },
+        raises: 'foreign key(s) with an action, deferrable or NOT VALID',
+        names: ['app.content_targets.content_targets_social_scope_fk (on delete a, on update c)'] },
       // The stale-exemption rule is written only when an exemption exists, and so is its drift.
       ...Object.keys(FK_ACTION_EXEMPTIONS).slice(0, 1).map((k) => ({
         drift: `alter table ${k.split('.').slice(0, 2).join('.')} drop constraint ${k.split('.')[2]};`,
-        raises: 'exempted foreign key(s) do not exist' })),
+        raises: 'exempted foreign key(s) do not exist', names: [k] })),
     ] },
   { label: 'updated_by insert closure probe', sql: UPDATED_BY_CLOSURE_PROBE_SQL,
     claim: `${UPDATED_BY_CLOSURES.length} updated_by INSERT closures in their exact text on their pinned tables`,
     selfTests: [{ drift: 'alter policy knowledge_items_updated_by_is_caller on app.knowledge_items with check (true);',
-      raises: 'updated_by_is_caller closure(s) not in their pinned shape' }] },
+      raises: 'updated_by_is_caller closure(s) not in their pinned shape', names: ['knowledge_items.knowledge_items_updated_by_is_caller'] }] },
   { label: 'requester closure probe', sql: REQUESTER_CLOSURE_PROBE_SQL,
     claim: `${REQUESTER_CLOSURES.length} requester closures in their exact text on their pinned tables`,
     selfTests: [{ drift: 'alter policy publish_intents_requester_is_caller on app.publish_intents with check (true);',
-      raises: 'requester_is_caller closure(s) not in their pinned shape' }] },
+      raises: 'requester_is_caller closure(s) not in their pinned shape', names: ['publish_intents.publish_intents_requester_is_caller'] }] },
   { label: 'updated_by update closure probe', sql: UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL,
     claim: `${UPDATED_BY_ON_UPDATE_CLOSURES.length} updated_by UPDATE closures in their exact text on their pinned tables`,
     selfTests: [{ drift: 'alter policy content_items_updated_by_on_update_is_caller on app.content_items with check (true);',
-      raises: 'updated_by_on_update_is_caller closure(s) not in their pinned shape' }] },
+      raises: 'updated_by_on_update_is_caller closure(s) not in their pinned shape', names: ['content_items.content_items_updated_by_on_update_is_caller'] }] },
   { label: 'decider closure probe', sql: DECIDER_CLOSURE_PROBE_SQL,
     claim: `${DECIDER_CLOSURES.length} decided_by UPDATE closure in its exact text on its pinned table`,
     selfTests: [{ drift: 'alter policy approval_requests_decided_by_on_update_is_caller on app.approval_requests with check (true);',
-      raises: 'decided_by_on_update_is_caller closure(s) not in their pinned shape' }] },
+      raises: 'decided_by_on_update_is_caller closure(s) not in their pinned shape', names: ['approval_requests.approval_requests_decided_by_on_update_is_caller'] }] },
   { label: 'closure coverage probe', sql: CLOSURE_COVERAGE_PROBE_SQL,
     claim: `every client-updatable *_by column is among the ${Object.values(ATTRIBUTION_UPDATE_CLOSURES).flat().length} with a pinned closure (${Object.keys(ATTRIBUTION_UPDATE_CLOSURES).join(', ')})`,
     selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
-      raises: 'client-updatable attribution column(s) with no pinned UPDATE closure' }] },
+      raises: 'client-updatable attribution column(s) with no pinned UPDATE closure', names: ['app.workspace_member_scopes.updated_by'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text`,
-    selfTests: [{ drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
-      raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text' }] },
+    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
+    selfTests: [
+      { drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
+        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider'] },
+      // Q0 T3 on batch 126.
+      { drift: 'alter table app.approval_requests alter column created_at drop not null;',
+        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at'] },
+    ] },
   { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policies that bound which rows a client may update or see, in their pinned text`,
     selfTests: [{ drift: 'alter policy approval_requests_settled_is_immutable on app.approval_requests using (true);',
-      raises: 'pinned restrictive policy(ies) missing or not in their pinned text' }] },
+      raises: 'pinned restrictive policy(ies) missing or not in their pinned text', names: ['approval_requests.approval_requests_settled_is_immutable'] }] },
   { label: 'security definer probe', sql: SECURITY_DEFINER_PROBE_SQL,
     claim: `the ${SECURITY_DEFINER_FUNCTIONS.length} SECURITY DEFINER functions are exactly the pinned ones, each with its owner, body, an empty search_path and no EXECUTE for PUBLIC`,
     selfTests: [
       { drift: 'alter function private.set_updated_at() reset search_path;',
-        raises: 'SECURITY DEFINER function(s) not in their pinned shape' },
+        raises: 'SECURITY DEFINER function(s) not in their pinned shape', names: ['private.set_updated_at() [proconfig is not exactly search_path=""]'] },
       // No longer a definer, so the first rule does not see it and only the second can.
       { drift: 'alter function private.set_updated_at() security invoker;',
-        raises: 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER' },
+        raises: 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER', names: ['private.set_updated_at()'] },
     ] },
   { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
-    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, and the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children`,
+    claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, and no parameter grant hands session_replication_role to a non-superuser`,
     // Each drift leaves the rules before its own intact, since the first raise ends the block.
     selfTests: [
       { drift: 'alter table app.security_events disable trigger refuse_mutation;',
-        raises: 'trigger(s) not enabled' },
+        raises: 'trigger(s) not enabled', names: ['app.security_events.refuse_mutation (tgenabled D)'] },
       { drift: 'drop trigger refuse_truncate on app.audit_logs;',
-        raises: 'the private.refuse_mutation triggers are not exactly the four pinned definitions' },
+        raises: 'the private.refuse_mutation triggers are not exactly the four pinned definitions',
+        names: ['missing: CREATE TRIGGER refuse_truncate BEFORE TRUNCATE ON app.audit_logs'] },
       { drift: "alter role authenticated set session_replication_role = 'replica';",
-        raises: 'session_replication_role is set as a default for' },
+        raises: 'session_replication_role is set as a default for', names: ['authenticated/<every database>'] },
       { drift: 'create table app.probe_child_of_security_events () inherits (app.security_events);',
-        raises: 'append-only table(s) partitioned, inherited from or inheriting' },
+        raises: 'append-only table(s) partitioned, inherited from or inheriting', names: ['app.security_events'] },
+      // Blocker 186 item 14 (A1 V3 on batch 125).
+      { drift: 'grant set on parameter session_replication_role to authenticated;',
+        raises: 'session_replication_role can be SET or ALTER SYSTEM-ed through a parameter grant', names: ['authenticated (SET)'] },
     ] },
+  // Blocker 186 item 13 (Q0 F3, F8 on batch 125).
+  { label: 'pinned trigger probe', sql: PINNED_TRIGGER_PROBE_SQL,
+    claim: `the ${Object.values(PINNED_TABLE_TRIGGERS).flat().length} triggers on ${Object.keys(PINNED_TABLE_TRIGGERS).join(', ')} are exactly their pinned definitions, and the ${PINNED_TRIGGER_FUNCTIONS.length} functions they run match their pinned bodies, security and empty search_path`,
+    selfTests: [
+      // Q0's M7: a second BEFORE UPDATE trigger sorting after set_decided_at.
+      { drift: 'create trigger set_decided_at_backfill before update on app.approval_requests for each row execute function private.set_updated_at();',
+        raises: 'trigger(s) on a pinned table not exactly its pinned definitions',
+        names: ['unpinned: CREATE TRIGGER set_decided_at_backfill BEFORE UPDATE ON app.approval_requests'] },
+      // Q0's M6: the body rewritten in place. A function body is a DO-free drift that holds `begin` and
+      // `end` inside its dollar quotes, which the statement-position rule admits (A1 V4).
+      // And Q0 T5 on batch 126: its owner changed as well.
+      { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$; alter function private.set_decided_at() owner to app_worker;",
+        raises: 'trigger function(s) on a pinned table not in their pinned shape',
+        names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]'] },
+    ] },
+  // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3).
+  { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
+    claim: `each of ${Object.keys(PINNED_GRANTS).join(', ')} is owned by a superuser, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned, none with grant option`,
+    selfTests: [
+      // A1's R1: a table-level privilege no item of 091's block names.
+      // C0 F5 on batch 126: the owner the role set leaves out must be a superuser.
+      { drift: 'create role probe_table_owner nologin; alter table app.calendar_items owner to probe_table_owner;',
+        raises: 'pinned table(s) owned by a role that is not a superuser',
+        names: ['app.calendar_items (owner probe_table_owner)'] },
+      // A1's R1, and the grant option (C0 F3, A1 F3, Q0 F7 on batch 126).
+      { drift: 'grant truncate on app.content_schedules to authenticated with grant option;',
+        raises: 'table-level privilege(s) on a pinned table not exactly its allowlist',
+        names: ['unlisted: authenticated TRUNCATE on app.content_schedules', 'unlisted: authenticated TRUNCATE WITH GRANT OPTION on app.content_schedules'] },
+      // C0's d3 and d11: a placement born deleted, and a creation time the client chooses; and a column
+      // for a service role, which a role list naming authenticated alone would miss (A1 R4).
+      { drift: 'grant insert (deleted_at) on app.calendar_items to authenticated; grant insert (created_at) on app.content_schedules to authenticated; grant select (id) on app.content_schedules to service_role; grant update (timezone) on app.calendar_items to authenticated with grant option;',
+        raises: 'column privilege(s) on a pinned table not exactly its allowlist',
+        names: ['unlisted: authenticated INSERT (deleted_at) on app.calendar_items', 'unlisted: authenticated INSERT (created_at) on app.content_schedules',
+          'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items'] },
+    ] },
+  // Batch 126, from batch 091's third round (C0 H3).
+  { label: 'pinned default probe', sql: PINNED_DEFAULT_PROBE_SQL,
+    claim: `the ${Object.keys(PINNED_DEFAULTS).length} column default(s) a decision fixes (${Object.keys(PINNED_DEFAULTS).join(', ')}) in their pinned text`,
+    selfTests: [{ drift: "alter table app.calendar_items alter column timezone set default 'UTC';",
+      raises: 'pinned column default(s) missing or not in their pinned text', names: ['app.calendar_items.timezone'] }] },
+  // Batch 126's review round (Q0 F5).
+  { label: 'rewrite rule probe', sql: REWRITE_RULE_PROBE_SQL,
+    claim: 'no relation in app or private carries a rewrite rule but a view\'s _RETURN',
+    selfTests: [{ drift: 'create rule probe_self_approve as on delete to app.approval_requests do instead nothing;',
+      raises: 'rewrite rule(s) on a relation in app or private', names: ['app.approval_requests.probe_self_approve'] }] },
+  // Batch 126's review round (Q0 F3). Also run inside every job by probeJobScript.
+  { label: 'pg_catalog guard probe', sql: PG_CATALOG_GUARD_SQL,
+    claim: 'nothing in pg_catalog was created after initdb (no function, operator or cast at or above OID 16384), checked here and in every probe job after its drift',
+    selfTests: [{ drift: "create function pg_catalog.probe_overload(integer) returns integer language sql as 'select 1';",
+      raises: 'object(s) created in pg_catalog', names: ['function probe_overload(integer)'] }] },
 ];
 
 // A drift runs inside the executor's `begin; ... rollback;`, so a drift that ends that transaction
 // makes itself permanent -- the role-default drift then persists cluster-wide -- and the run reported
-// green (Q0's re-test of 123's corrections, F3; A1's, N5). Two defences: a drift may not contain
-// transaction control, and after every drift has run each probe runs AS BUILT AGAIN, which fails on
-// any residue a drift left behind.
-export const TRANSACTION_CONTROL = /\b(begin|commit|rollback|end|abort|savepoint|release|start\s+transaction|prepare\s+transaction)\b/i;
+// green (Q0's re-test of 123's corrections, F3; A1's, N5). Three defences, the first two checked BEFORE
+// ANY JOB IS FED (blocker 186 item 12; C0 F4 on batch 125: the keyword rule ran in the verdict, after the
+// drifts had run):
+//   * no drift and no probe carries a psql meta-command, or a shape on which psql could lex it otherwise (psqlLex):
+//     `\gexec`, `\c`, `\set` and `\i` each ended the transaction past the keyword rule (Q0 TG1, TG2;
+//     A1 M2 committed a parameter grant with the verdict green);
+//   * no drift has a TOP-LEVEL STATEMENT that begins with transaction control. Statement position, not
+//     any word anywhere: the old rule refused every DO block and every function body through `end`
+//     (A1 V4), so a drift could never replace a body;
+//   * the job's markers carry the transaction id from before the drift and after it, and the verdict
+//     requires them equal: a transaction that did not survive the drift is a failed job, whatever the
+//     probe then said. And after every drift has run each probe runs AS BUILT AGAIN, which fails on any
+//     residue a probe can read.
+export const TRANSACTION_CONTROL = /^(begin|commit|rollback|end|abort|savepoint|release|start\s+transaction|prepare\s+transaction)\b/i;
+export function driftHazards(sql) {
+  const { metaCommands, statements } = psqlLex(sql);
+  return [
+    ...metaCommands.map((m) => `a psql meta-command at line ${m.line} (${m.text.slice(0, 20)})`),
+    ...statements.filter((s) => TRANSACTION_CONTROL.test(s.head)).map((s) => `transaction control at line ${s.line} (${s.head.slice(0, 20)})`),
+  ];
+}
+export function unsafeDrifts(probes) {
+  const failures = [];
+  for (const probe of probes) {
+    for (const hazard of psqlLex(probe.sql).metaCommands) failures.push(`${probe.label}: its SQL carries a psql meta-command at line ${hazard.line}, which psql would execute`);
+    for (const [i, { drift }] of (probe.selfTests ?? []).entries()) {
+      for (const hazard of driftHazards(drift)) failures.push(`${probe.label}: drift ${i + 1} holds ${hazard}, so it could outlive the rollback that contains it`);
+    }
+  }
+  return failures;
+}
 export function catalogProbeJobs(probes) {
   const jobs = [];
   for (const probe of probes) {
     jobs.push({ label: probe.label, kind: 'as built', sql: probe.sql });
-    (probe.selfTests ?? []).forEach(({ drift, raises }, i) => {
-      jobs.push({ label: probe.label, kind: `after drift ${i + 1}`, sql: `${drift}\n${probe.sql}`, raises });
+    (probe.selfTests ?? []).forEach(({ drift, raises, names }, i) => {
+      jobs.push({ label: probe.label, kind: `after drift ${i + 1}`, drift, sql: probe.sql, raises, names });
     });
   }
   for (const probe of probes) jobs.push({ label: probe.label, kind: 'as built, after every drift', sql: probe.sql });
   return jobs;
 }
+// What psql is fed for one job. The first marker is selected BEFORE the drift and carries the
+// transaction id; the second is selected AFTER the drift and carries a nonce the drift cannot know
+// (the executor draws one per job) and the transaction id again; then the search_path is pinned to
+// pg_catalog so nothing the drift created in another schema can shadow a function the probe calls;
+// then the pg_catalog guard (PG_CATALOG_GUARD_SQL), which refuses the job if the drift created anything
+// in pg_catalog itself, where the pinned search_path would find it (Q0 F3 on batch 126); then the
+// probe; and, only if the probe passes, a closing marker. A drift that raises the rule's prefix itself never
+// reaches the second marker, and a drift that ends the transaction changes the id.
+export const PROBE_TX_MARK = 'probe-tx:';
+export function probeJobScript(job, nonce) {
+  return ['begin;',
+    `select '${PROBE_TX_MARK}' || pg_catalog.txid_current() as probe;`,
+    ...(job.drift ? [job.drift] : []),
+    `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`,
+    'set local search_path = pg_catalog;',
+    PG_CATALOG_GUARD_SQL.trimEnd(),
+    job.sql,
+    `select '${nonce}:end:' || pg_catalog.txid_current() as probe;`,
+    'rollback;', ''].join('\n');
+}
+// What the transcript proves, read from stdout's marker lines. A line, not a substring: the probe
+// prints nothing on stdout, and a drift that printed a marker of its own makes a count other than one.
+export function probeMarkers(stdout, nonce) {
+  const lines = String(stdout ?? '').split('\n');
+  const values = (prefix) => lines.filter((l) => l.startsWith(prefix)).map((l) => l.slice(prefix.length));
+  const opened = values(PROBE_TX_MARK);
+  const marked = values(`${nonce}:mark:`);
+  const ended = values(`${nonce}:end:`);
+  const tx = opened.length === 1 && /^\d+$/.test(opened[0]) ? opened[0] : null;
+  return {
+    sameTransaction: tx !== null && marked.length === 1 && marked[0] === tx,
+    ended: tx !== null && ended.length === 1 && ended[0] === tx,
+    endedAtAll: ended.length > 0,
+  };
+}
 export function decideCatalogProbes(probes, outcomes) {
   const failures = [];
   for (const probe of probes) {
     if (!probe.selfTests?.length) failures.push(`${probe.label}: carries no self-test drift; a probe that cannot be shown to fail asserts nothing`);
-    for (const [i, { drift }] of (probe.selfTests ?? []).entries()) {
-      if (TRANSACTION_CONTROL.test(drift)) failures.push(`${probe.label}: drift ${i + 1} contains transaction control, so it could outlive the rollback that contains it`);
+    for (const [i, { names }] of (probe.selfTests ?? []).entries()) {
+      if (!Array.isArray(names) || names.length === 0 || names.some((n) => typeof n !== 'string' || n.length < 6)) {
+        failures.push(`${probe.label}: drift ${i + 1} names nothing its refusal must name, so a refusal cannot be tied to its object`);
+      }
     }
   }
+  failures.push(...unsafeDrifts(probes));
   const expected = catalogProbeJobs(probes);
   if (outcomes.length !== expected.length) failures.push(`${expected.length} probe run(s) were due and ${outcomes.length} came back`);
   const refused = new Map();
   for (const job of expected) {
-    const got = outcomes.find((o) => o.label === job.label && o.kind === job.kind && o.sql === job.sql);
+    const got = outcomes.find((o) => o.label === job.label && o.kind === job.kind && o.sql === job.sql && o.drift === job.drift);
     if (!got || !got.result) { failures.push(`${job.label}: not run ${job.kind}`); continue; }
+    if (typeof got.nonce !== 'string' || !/^[0-9a-f-]{32,}$/.test(got.nonce)) {
+      failures.push(`${job.label}: ${job.kind} ran with no nonce, so nothing ties its outcome to the probe`); continue;
+    }
     const error = got.result.error;
+    const markers = probeMarkers(got.result.stdout, got.nonce);
+    if (!markers.sameTransaction) {
+      failures.push(`${job.label}: ${job.kind}: the probe did not run after ${job.drift ? 'its drift ' : ''}in the transaction the job opened${error ? ` (${error.code ?? 'no code'}: ${error.message})` : ''} -- a drift that raised for itself, ended the transaction or printed a marker`);
+      continue;
+    }
     if (job.kind.startsWith('as built')) {
       if (error) failures.push(`${job.label}: ${job.kind}: ${error.message} (${error.code ?? 'no code'})`);
-    } else if (!error || error.code !== 'P0001' || !String(error.message).startsWith(job.raises)) {
-      failures.push(`${job.label}: its self-test ${job.kind} ${error ? `failed with ${error.code ?? 'no code'}: ${error.message}` : 'passed'} -- the probe must refuse it with P0001 beginning "${job.raises}"; a rule that cannot fail asserts nothing`);
-    } else {
+      else if (!markers.ended) failures.push(`${job.label}: ${job.kind}: the probe passed but the job's closing marker never printed`);
+      continue;
+    }
+    // Counted ONLY inside an explicit match (C0 F1 on batch 125): P0001, the rule's own prefix, every
+    // object the drift names, one ERROR line on stderr (a forged one would be a second), and no
+    // closing marker (the probe raised; it did not pass).
+    const message = String(error?.message ?? '');
+    const errorLines = (String(got.result.stderr ?? '').match(/ERROR:/g) ?? []).length;
+    const missing = (job.names ?? []).filter((n) => !message.includes(n));
+    if (error && error.code === 'P0001' && message.startsWith(job.raises) && missing.length === 0 && errorLines === 1 && !markers.endedAtAll) {
       refused.set(job.label, (refused.get(job.label) ?? 0) + 1);
+    } else {
+      const why = !error ? 'passed'
+        : error.code !== 'P0001' || !message.startsWith(job.raises) ? `failed with ${error.code ?? 'no code'}: ${message}`
+          : missing.length ? `was refused without naming ${missing.join(', ')}`
+            : errorLines !== 1 ? `left ${errorLines} ERROR line(s) on stderr where a refusal leaves one`
+              : 'printed the closing marker as well as a refusal';
+      failures.push(`${job.label}: its self-test ${job.kind} ${why} -- the probe must refuse it with P0001 beginning "${job.raises}" and naming ${(job.names ?? []).join(', ')}; a rule that cannot fail asserts nothing`);
     }
   }
-  // Each claim counts the drifts that were REFUSED, not the drifts declared (Q0's re-test, F1).
+  // Each claim counts the drifts that were REFUSED, and a probe whose refused count is not its declared
+  // count fails, whatever else the verdict found (C0 F1 on batch 125).
+  for (const p of probes) {
+    const n = refused.get(p.label) ?? 0;
+    if (n !== (p.selfTests ?? []).length) failures.push(`${p.label}: declares ${(p.selfTests ?? []).length} drift(s) and ${n} were refused`);
+  }
   return { ok: failures.length === 0, failures, claims: probes.map((p) => {
     const n = refused.get(p.label) ?? 0;
     return `${p.label}: ${p.claim} (self-test: refused ${n === 1 ? 'its drift' : `each of its ${n} drifts`}; clean again after every drift)`;
@@ -600,8 +1047,10 @@ export async function postMigratePlan(register = undefined) {
     if (inFile.length !== 1 || inFile[0].sql !== replacementSql) {
       throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} is not exactly one do-block and nothing else`);
     }
-    if (/^\s*\\/m.test(replacementSql)) {
-      throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} carries a line beginning with a backslash, which psql would execute as a meta-command`);
+    // ANYWHERE psql would execute one, not only at the start of a line (blocker 186 item 12).
+    const meta = psqlLex(replacementSql).metaCommands;
+    if (meta.length) {
+      throw new Error(`${SUPERSEDED}: ${entry.block}'s replacement ${entry.replacement} carries a backslash outside a literal, a body or a comment at line ${meta[0].line}, which psql would execute as a meta-command`);
     }
     byBlock.set(entry.block, { ...entry, replacementSql });
   }
@@ -661,6 +1110,15 @@ export function decidePostMigrate(plan, outcomes) {
     failures,
     summary: `${plan.length} apply-time blocks, ${plan.length - superseded} re-run as written, ${superseded} superseded and replaced`,
   };
+}
+
+// EVERY SCRIPT migrate-clean FEEDS psql ON STDIN, scanned before the first is applied (blocker 186 item
+// 12; Q0 F4 and A1 V4 on batch 125: `select 1; \\! touch <file>` appended to a migration ran a shell
+// command at migrate-clean, past a static rule that read only lines BEGINNING with a backslash). A
+// pure function over (name, sql) pairs, so a test can drive it without a database.
+export function metaCommandFindings(sources) {
+  return sources.flatMap(({ name, sql }) => psqlLex(sql).metaCommands
+    .map((m) => `${name} line ${m.line}: a psql meta-command psql would execute, or a shape on which psql could read the text otherwise (${m.text.slice(0, 60)})`));
 }
 
 export async function migrateCleanSteps() {
@@ -1761,7 +2219,10 @@ async function runLive(target) {
     // The prerequisite first, then every batch. It is applied here rather than assumed of the
     // caller for the reason the file itself gives: a prerequisite that lives in a workflow is a
     // prerequisite the command does not have.
-    for (const { name, sql } of await migrateCleanSteps()) {
+    const steps = await migrateCleanSteps();
+    const meta = metaCommandFindings(steps);
+    if (meta.length) { for (const m of meta) stderr.write(`  ${m}\n`); return 1; }
+    for (const { name, sql } of steps) {
       const out = await script(sql);
       if (out.error) { stderr.write(`  ${name}: ${out.error.message} (${out.error.code ?? 'no code'})\n`); return 1; }
       stdout.write(`  applied ${name}\n`);
@@ -1776,10 +2237,13 @@ async function runLive(target) {
     // THE FOREIGN-KEY SUPPORT PROBE (batch 104) is the first of the catalog-rule probes below, so it
     // is self-tested like the rest (C0's re-verification of 123, F6).
     // THE CATALOG-RULE PROBES: each as built and after its own drift, rolled back; the verdict is pure.
-    const { feed } = await import('./psql-driver.mjs');
+    const { feed, feedTranscript } = await import('./psql-driver.mjs');
     const rerun = (sql) => feed(`begin;\n${sql}\nrollback;\n`);
+    // Refused BEFORE ANY JOB IS FED, not after the drifts have run (C0 F4 on batch 125).
+    const unsafe = unsafeDrifts(CATALOG_RULE_PROBES);
+    if (unsafe.length) { for (const u of unsafe) stderr.write(`  ${u}\n`); return 1; }
     const probeOutcomes = [];
-    for (const job of catalogProbeJobs(CATALOG_RULE_PROBES)) probeOutcomes.push({ ...job, result: await rerun(job.sql) });
+    for (const job of catalogProbeJobs(CATALOG_RULE_PROBES)) { const nonce = randomUUID(); probeOutcomes.push({ ...job, nonce, result: await feedTranscript(probeJobScript(job, nonce)) }); }
     const probeVerdict = decideCatalogProbes(CATALOG_RULE_PROBES, probeOutcomes);
     for (const failure of probeVerdict.failures) stderr.write(`  ${failure}\n`);
     if (!probeVerdict.ok) return 1;

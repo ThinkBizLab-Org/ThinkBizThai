@@ -46,6 +46,7 @@
       "123_attribution_closures_everywhere.sql",
       "124_calendar_publish_intent_fk.sql",
       "125_approval_settled_is_immutable.sql",
+      "126_approval_decision_frozen_for_every_writer.sql",
       "130_billing.sql",
       "131_billing_projection.sql",
       "132_entitlement_resolution.sql",

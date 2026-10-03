@@ -13618,9 +13618,10 @@ export function buildCases(id) {
       params: [id('approval_request_a1'), '__SELF__', '2001-01-01 00:00:00+00'],
       expect: 'rows',
       why: 'BATCH 125 (A1 F4 and Q0 F7 on batch 123, the Owner\'s decision of 2026-09-28): the approver\'s '
-         + 'decision sends decided_at in 2001, and set_decided_at records the transaction\'s time instead. '
-         + 'The row comes back only if decided_at = now(), so a database that kept the decider\'s value '
-         + 'returns nothing and the case fails.',
+         + 'decision sends decided_at in 2001, and set_decided_at records the statement\'s time instead '
+         + '(batch 126, blocker 186 item 17: the transaction\'s, before). The row comes back only if '
+         + 'decided_at = statement_timestamp(), so a database that kept the decider\'s value, or went back '
+         + 'to the transaction\'s start, returns nothing and the case fails.',
     },
     {
       id: 'approver-a-cannot-postdate-a-decision',
@@ -13630,7 +13631,7 @@ export function buildCases(id) {
       params: [id('approval_request_a1'), '__SELF__', '2999-01-01 00:00:00+00'],
       expect: 'rows',
       why: 'BATCH 125: the other direction A1 measured, a decision dated 2999, which batch 160\'s retention '
-         + 'sweep would never reach. Recorded as the transaction\'s time.',
+         + 'sweep would never reach. Recorded as the statement\'s time (batch 126).',
     },
     {
       id: 'approver-a-cannot-decide-an-approval-request-naming-another-decider',
@@ -18020,11 +18021,12 @@ export const CONTENT_VERSION_OF_ITEM =
 export const CONTENT_VARIANT_BY_VERSION =
   'select id from app.content_variants where content_version_id = $1::uuid and platform = $2';
 // Batch 125's proof, the same shape: the decider sends a decision time and the database records its
-// own. The row is returned only when decided_at is the transaction's time, now().
+// own. The row is returned only when decided_at is the statement's time (batch 126 moved it from the
+// transaction's, now(), to statement_timestamp(); one statement, so the CTE and its outer select share it).
 export const APPROVAL_DECISION_TIME_IS_THE_DATABASES =
   "with decided as (update app.approval_requests set status = 'approved', decided_at = $3::timestamptz, "
   + 'decided_by = $2::uuid, updated_by = $2::uuid where id = $1::uuid returning decided_at) '
-  + 'select 1 as recorded_by_the_database from decided where decided_at = now()';
+  + 'select 1 as recorded_by_the_database from decided where decided_at = statement_timestamp()';
 // Batch 093's proof: a client write of updated_at in the past is overwritten by the trigger. A CTE
 // so that the case is a single statement with one result set; it is a write, rolled back with the
 // case, and it is asserted with `rows` because the row it returns is the evidence.
