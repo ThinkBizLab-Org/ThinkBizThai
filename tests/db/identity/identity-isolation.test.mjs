@@ -8027,20 +8027,23 @@ test('batch 132 adds no negative-control entry, and its cases say what holds the
 });
 
 test('the effective-limit projection is named as an allowlist candidate and not added, and the registry RFC-2026-021 asks for is not in the tree', async () => {
-  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?view\b/i,
+  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i,
     'no migration creates a view. RFC-2026-021 §7/3 keeps the client read allowlist empty and the batch '
     + 'that would create a first entry is NOT YET ASSIGNED; batch 132 does not become it by writing a '
     + 'projection for a caller that does not exist.');
 
   const lintFiles = await readdir(LINT_DIR_132);
-  assert.ok(!lintFiles.includes('read-allowlist.json'),
-    'db/foundation/lint/read-allowlist.json is not in this tree. THIS ASSERTION IS A FINDING RATHER THAN A '
-    + 'RULE, and it is written down so that it stops being one deliberately: RFC-2026-021 §8.1 requires that '
-    + 'file to exist "as an empty array on approval" and to be the only place the question "is this on the '
-    + 'allowlist" is answered, and §8.2 makes the lint read it in BOTH directions. Neither exists. The gap '
-    + "is RFC-2026-021 §8's and A0's, it is in this package's open blockers, and batch 132 records it "
-    + 'because it is one of the reasons a view was not available to this batch. When the file lands, this '
-    + 'assertion is the line the batch that lands it edits.');
+  // The batch 170 draft landed the file, and edits this line as batch 132 asked: until then it asserted the
+  // file's ABSENCE, as a finding written down so it would stop being one deliberately. The test's name
+  // still says "not in the tree"; renaming it moves this file's name digest, which is the Integration
+  // Owner's to accept, so the name is left and the stale wording is a finding in the draft record.
+  assert.ok(lintFiles.includes('read-allowlist.json'),
+    'db/foundation/lint/read-allowlist.json is in this tree: RFC-2026-021 §8.1 requires that file to exist '
+    + '"as an empty array on approval" and to be the only place the question "is this on the allowlist" is '
+    + 'answered, and §8.2 makes the lint read it in BOTH directions (the read allowlist probe in '
+    + 'scripts/db/run.mjs, with its known-exceptions block, since the batch 170 draft).');
+  assert.deepEqual(JSON.parse(await readFile(`${LINT_DIR_132}/read-allowlist.json`, 'utf8')), [],
+    'and it is still empty: batch 132 named the effective-limit projection as a candidate and did not add it');
 
   const snapshot = JSON.parse(await readFile('db/foundation/lint/catalog-snapshot.json', 'utf8'));
   assert.deepEqual(snapshot.catalog.exposed_views, [],
