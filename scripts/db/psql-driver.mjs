@@ -36,6 +36,17 @@ export const TEST_HOSTS = Object.freeze(['localhost', '127.0.0.1', '[::1]', 'pos
 const CONNECT_BY_PARAMS = new Set(['host', 'hostaddr', 'service', 'servicefile']);
 export function testHostRefusal(url) {
   const text = String(url ?? '');
+  // Batch 150-prereq's re-checks (C0 R-1, A1 R1, Q0 R-1): a WHATWG URL parser reads `#...` as a fragment,
+  // but libpq does not, so `...postgres#?host=elsewhere` passed the query-parameter check below while libpq
+  // connected by host=. Fail closed: refuse any `#`, and read the query parameters from the raw text, the
+  // way libpq does, not from the parser.
+  if (text.includes('#')) return 'it contains a #, which a URL parser and libpq read differently';
+  const rawQuery = text.includes('?') ? text.slice(text.indexOf('?') + 1) : '';
+  for (const pair of rawQuery.split('&')) {
+    let key = pair.split('=')[0];
+    try { key = decodeURIComponent(key); } catch { return 'its query string does not decode'; }
+    if (CONNECT_BY_PARAMS.has(key.trim().toLowerCase())) return `it carries a ${key.trim().toLowerCase()} parameter, which libpq would connect by instead of the host`;
+  }
   const authority = /^postgres(?:ql)?:\/\/([^/?#]*)/i.exec(text)?.[1];
   if (authority === undefined) return 'it is not a postgresql:// URL';
   if ((authority.match(/@/g) ?? []).length !== 1) return 'its authority does not name exactly one user@host';

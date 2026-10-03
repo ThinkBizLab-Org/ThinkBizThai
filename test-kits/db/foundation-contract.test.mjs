@@ -132,6 +132,9 @@ test('a target needing a database refuses without one, rather than reporting a p
     'postgresql://postgres@localhost.example.invalid:5432/x',
     'postgresql://postgres@127.0.0.1%2Cdb.example.invalid:5432/x',
     'mysql://postgres@localhost:5432/x',
+    'postgresql://postgres@127.0.0.1:5507/postgres#?host=db.example.invalid',
+    'postgresql://postgres@127.0.0.1:5507/postgres#x?hostaddr=192.0.2.1',
+    'postgresql://postgres@127.0.0.1:5507/postgres?%68ost=db.example.invalid',
   ];
   for (const url of crafted) assert.ok(testHostRefusal(url), `${url}: refused by the shared guard`);
   for (const url of ['postgresql://postgres@localhost:5432/thinkbizthai_test', 'postgresql://postgres@127.0.0.1:5507/postgres',

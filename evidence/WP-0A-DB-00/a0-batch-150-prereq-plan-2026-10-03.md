@@ -434,3 +434,38 @@ are in the handoff, run after the refresh commit.
 The cluster on 127.0.0.1:5507 was stopped and its data directory removed after every round, and at the
 end. Port 5507 is free. Ports 5432 and 5499, and every other run's port, were not touched.
 `140_audit.sql` is byte-identical to main's. The free space on `/System/Volumes/Data` was 10 GiB at the end.
+
+## 11. Re-checks of the review round, and the one fix they asked for (2026-10-04)
+
+C0, A1 and Q0 re-checked `00284c0`, whose code commit is `7717c81`. Their files are cherry-picked with `-x`:
+
+| Reviewer | Original commit | Cherry-picked as |
+|---|---|---|
+| C0 | `029b949` | `d975a6c` |
+| A1 | `48086e6` | `547105d` |
+| Q0 | `f597e95` | `65ff9d8` |
+
+None of the three reports a stop-the-line, and none reports anything that blocks the merge.
+
+**All three independently measured the same MEDIUM (C0 R-1, A1 R1, Q0 R-1).** The shared test-instance
+host guard `testHostRefusal` (`scripts/db/psql-driver.mjs`) is the one this batch's review round
+added. It read the query parameters through the WHATWG URL parser, which treats `#...` as a fragment;
+libpq does not. As a result, `...postgres#?host=elsewhere` passed the guard while libpq connected by
+`host=`. A1 and Q0 measured this live for both db-reset-test and the EXPLAIN harness.
+
+**A0 fixed it in this round.** The guard now fails closed in two ways:
+
+- it refuses any `#`;
+- it reads the query keys from the raw text, the way libpq does, decoding them first.
+
+Three crafted URLs join the guard's static refusal list: `#?host=`, `#x?hostaddr=`, and an encoded
+`?%68ost=`. `npm run check` passes (exit 0, 684/684), and the integrity manifest is regenerated. A
+narrow re-check of the fix follows this commit.
+
+What stays owed, on open_blockers[194]:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| The index-coverage rule reads neither collation nor opclass. Measured: an index `(user_id, status COLLATE "C")` passes every layer while the status predicate stops using it (Q0 R-2) | LOW | A0: compare indcollation and indclass with the column's defaults |
+| Blocker (1) still names Q150-d where the plan and disposition say Q150-e (C0 R-2). The guard's allowlist now admits `[::1]` for db-reset-test, which is loopback and recorded here (C0 R-3) | INFO | wording |
+| Rule 5 pins pg_get_triggerdef but not the trigger function, and the tables have no triggers today (A1 R2). "Once per cluster" is not enforced (A1 R3). The emptiness check sees every row only if the role bypasses RLS (A1 R4, read, not measured). The emptiness refusal's condition is not statically pinned (Q0 R-4). Rule 5's tgenabled comparison is vacuous today (Q0 R-3) | INFO | recorded |

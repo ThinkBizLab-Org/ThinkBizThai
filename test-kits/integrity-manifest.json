@@ -73,7 +73,7 @@
     "test-kits/contracts/shared-kernel-contract-catalog.test.mjs": "4090b6950957f4c13b23bb366bd919c85fb6833885653a934aa5f2226b8d0b6a",
     "test-kits/contracts/shared-kernel-envelope-contracts.test.mjs": "4c303b5f22885eda04975ccf135b3a2ec44879acc7b3b74fb6fbb652467fa555",
     "test-kits/contracts/shared-kernel-schema-conformance.test.mjs": "f195f1f862408bf6be2b6470944a0b6ceef8929e058be57a31764dd856f76a86",
-    "test-kits/db/foundation-contract.test.mjs": "8c1cbd980c8e3650f0ca1e599cfa454c34f74e6c19498a043dda8e01c32c7875",
+    "test-kits/db/foundation-contract.test.mjs": "c40cff70d54c340dddfe23c08ab45a68cd17b7aa202bdaed0282965a7cbbce7b",
     "test-kits/db/rls-assertions.test.mjs": "deea6741e6de5936d85e4315a1315ebf3a34e6341d024c95f1b694bcbc4079a6",
     "test-kits/handoff-conformance.test.mjs": "b76f0e5134e82dcd1ea56735530471b86277d6046eb858ca97f17526f9f48f17",
     "test-kits/integrity-manifest-rebuild.test.mjs": "dfca90589213bfcd9d74aeff1b2216be9bbde67a82cc85dd69ef22000b647143",
