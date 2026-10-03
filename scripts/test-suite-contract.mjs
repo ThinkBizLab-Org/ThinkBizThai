@@ -189,7 +189,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 633 to 720 with batch 160's preparation (2026-10-03, no migration): the retention map held against §5, §10
 // and the migration text, the §11.1 export manifest fixture and the §11.4 purge order, 87 assertions; three
 // tests added, so the test floor moves 77 to 80 and the name digest with it; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 720,
+// 720 to 747 with batch 160 preparation's review round (2026-10-04, no migration): the window guard reads
+// Thai, hyphenated and numeric windows and tests itself, the excluded classes not picked carry a reason,
+// partial covering indexes carry their predicate, set_decided_at is held both ways, schema-wide grants and
+// later drop/disable trigger are read, the WP citations are checked, and the purge order holds its key
+// names, its phases, its inversions, the tables no workspace owns and the conflicts' fields; no test is
+// added and none renamed, so the test floor and the name digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 747,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

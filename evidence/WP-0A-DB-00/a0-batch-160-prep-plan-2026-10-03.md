@@ -26,6 +26,7 @@ hardening chain at 129 and told A0 to do everything that needs no pending decisi
 | `159d43b` | packaging: branch slot, increment rationale, blockers 4, 77, 91, 105, 148, 150, 190 extended and 192 new, the retention map's `WP:` citations moved to this tree's lines, the integrity manifest. |
 | next | this plan (moved from the draft record) and the disposition. |
 | last, alone | `npm run refresh:handoff`, then the handoff's text fields. |
+| review round (§8) | the three reviews cherry-picked (`1c8b0e4`, `886b1a4`, `6e41fc8`); the fixes (tests, data, blockers, floor 720 → 747, integrity manifest); this record and the disposition; then the handoff, last and alone. |
 
 ### 0.1 Floors, digests, manifest, verification record, and what was measured here
 
@@ -77,7 +78,10 @@ What each test holds:
     a token or matched by a `X-*` glob. Anything else must be a `finding` row: no class, no row
     number, no behaviour, and a finding whose `class_as_written` is §5's cell.
   - **No row may contain a retention number**: a digit followed by day, month or year, in English or
-    Thai.
+    Thai. *As first committed this held for English only: `\b` after a Thai unit never matches (C0 G1,
+    A1 S1, Q0-F1). Since the review round (§8) the guard reads hour, day, week, month and year in
+    English and ชั่วโมง, วัน, สัปดาห์, เดือน and ปี in Thai, with or without a space or hyphen, tests
+    itself on §10's own forms, and refuses any numeric field of a row except its §5 line.*
   - Sweep columns exist. `covered_by` equals the indexes, re-derived from the text, whose leading
     columns cover the key.
   - Every anonymise column exists, and is held by exactly one named control.
@@ -99,7 +103,10 @@ What each test holds:
   - Each file checksum is recomputed from the stated synthetic recipe, and so is the package checksum.
   - Each table, included or omitted, is a retention-map row, and the two lists partition the map
     exactly.
-  - The five §11.1/5 exclusions are found by a property of the **map**, not by the fixture's own lists:
+  - The five §11.1/5 exclusions are found by a property of the **map**, not by the fixture's own lists
+    (*that property is a per-row pick; since the review round, §8, a class §5's cell carries and the row
+    does not pick carries a reason, and an exported table with one is exported only by a recorded
+    `export_allowed` judgement*):
     - SECRET-4 and SECURITY-4 by `section9_classes`;
     - INTERNAL-3 for internal job;
     - `/webhook/` in the table name for raw webhook;
@@ -259,6 +266,12 @@ higher (§0.1). The owner column is new: each finding is owed on the blocker nam
 | F160-14 | **12 retention conflicts.** A kept child holds a NO ACTION key to a purged parent. See the list below the table. | measured; ERD:589-600 | `open_blockers[192]` (10): **Q160-a** with **DATA-DEC-04/05** (A1 + Owner) |
 | F160-15 | The `assets` ↔ `asset_versions` cycle can only be broken by nulling `assets.current_version_id`. Only `app_worker` holds that grant, and no policy admits it. | measured | `open_blockers[192]` (11): **DATA-DEC-03** (A0+A1) and **Q160-d**; the actor gap is `[2]` |
 | F160-16 | §10 `HISTORY`'s data column names knowledge and content versions, which §5 files under `CONTENT-HISTORY`. Both purge, so no behaviour changes today. | ERD:490, :495, :205, :207 | `open_blockers[192]` (5): **A1 Data**, under Q160-c widened |
+| F160-17 (review round, C0 G2) | §5 gives `workspace_invitations` `TOKEN-SHORT` (purge), while §10 `AUTH-HISTORY`'s data column names "invitations history" (anonymise and retain). **The two disagree on the final behaviour.** The row keeps TOKEN-SHORT with an `also_claimed_by` pair. | ERD:201, :491, :492 | `open_blockers[192]` (13): **A1 Data**, under Q160-c widened |
+
+F160-13 and F160-14 as the review round left them: F160-13 has two more keys, covered only by a partial
+index whose predicate excludes the rows the sweep reads (`workspace_invitations.expires_at`, pending only;
+`billing_webhook_receipts.received_at`, unprocessed only; C0 G6), so fifteen in all. F160-14's twelve is a
+lower bound, because finding rows carry no behaviour and 21 non-self keys touch one (C0 N1).
 
 The 13 uncovered sweep keys (F160-13):
 
@@ -286,10 +299,12 @@ The 12 retention conflicts (F160-14):
 
 Findings about the plan and the process:
 
-- **P1. The plan's citations drift, and its list of undefined classes is wrong in two places.**
+- **P1. The plan's citations drift, and its list of undefined classes names two defined ones.**
   - "ERD:850 checklist" is ERD:852. ERD:850 is the RLS-matrix item.
   - `WEBHOOK-SHORT` and `PUSH-SECRET` are **defined** in §10 (ERD:502, :508; WP:257 says so in terms).
-    For PUSH-SECRET the gap is §5's assignment, and for WEBHOOK-SHORT it is the billing receipt.
+    For PUSH-SECRET the gap is §5's assignment, and for WEBHOOK-SHORT it is the billing receipt. The
+    phase plan's list is headed "Undefined **or mismatched**" (its line 149), and both are mismatches,
+    so the listing is not wrong; this item first said it was (C0 G9).
   - All other cited lines checked (ERD:279-282, 484, 526, 532-555, 571-600, 867-873; WS:576; DR:111,
     353; WP:255, 257, 266, 267, 274, 284, 330, 344, 358, 373, 401, 403; 010_identity.sql:156-157)
     were read and match.
@@ -316,7 +331,12 @@ Findings about the plan and the process:
   - `workspace_invitations` is omitted as token material. §11.1/5 says "secret", and the token hash
     is a stored bearer-token form (§9.3, ERD:473).
   - Nine tables outside §11.1's minimum domains (ERD:546-555) are listed as
-    `outside-minimum-domains`, "NOT decided here".
+    `outside-minimum-domains`, "NOT decided here". *Four of the nine are inside them (C0 G3):
+    `publish_jobs` and `performance_snapshots` (publish history, ERD:552), `quota_buckets` and
+    `usage_reservations` (usage, ERD:554). Since the review round they are in
+    `in-minimum-domain-projection-undecided`, five remain outside, `user_profiles` has its own
+    judgement (`user-scoped-profile`, C0 G4), and `security_events`' omission is labelled a judgement
+    (C0 N3).*
 
 ## 5. What this batch does NOT decide
 
@@ -373,8 +393,16 @@ it is measured above.
     frozen decision, 140's refusal, and §8.3's `N` for every role.
   - It rewrites the decision trail in place, so any later tamper evidence over these rows
     (Q141-c, WP:282 at `75c9274`, `open_blockers[29]`) has to treat anonymisation as an authorised mutation.
-  - It needs `app_maintenance` to exist as a working path, which waits on DATA-DEC-03.
-  - It anonymises free text (`comment`) by overwriting it, which is the one part that does work.
+  - It needs `app_maintenance` to exist as a working path, which waits on DATA-DEC-03. *Route B needs
+    the same executor (review round, C0 G5); this cost is shared, not Route A's alone.*
+- *Benefit* (added in the review round, C0 G5; each is the mirror of a Route B cost):
+  - The 175 `auth.uid()` closures and the five pinned closure families are untouched.
+  - No new SECURITY DEFINER helper, so no new entry in the pinned definer list or its probe.
+  - No alias writer, so nothing waits on RFC-2026-023.
+  - No comment side table: free text (`comment`) is anonymised by overwriting it in place.
+  - One family's migration (approval, plus audit's trigger), not a cross-family one.
+  - The cross-workspace link survives until the minimum retention ends, which a SECURITY investigation
+    under active investigation or legal hold (ERD:513) may need while the person is still identifiable.
 
 **Route B: mapping.** The actor columns stop holding the auth user id. They hold a **per-workspace
 actor alias** from a private mapping table (`alias → user_id`). Anonymisation is one UPDATE that nulls
@@ -393,6 +421,13 @@ mapping cannot anonymise prose.
   - It needs a side table for comments.
   - It is one cross-family forward migration, and it gets more expensive with every family that adds
     an `= auth.uid()` closure.
+  - *(review round, C0 G5)* Its "one UPDATE that nulls `user_id` in the mapping" needs a role with
+    UPDATE on the mapping and a policy that admits it. No service role has either today (measured: no
+    policy names one), so it waits on the same executor, DATA-DEC-03, as Route A.
+  - *(review round, C0 G5)* Per-workspace aliases also cut the cross-workspace link in security and
+    audit rows. §10 SECURITY keeps records for "active investigation/legal hold" (ERD:513), and an
+    investigator may need that link while the person is still identifiable. The benefit below is
+    also a cost.
 - *Benefit:*
   - No refusal trigger is weakened, and no "N for every role" cell gains an exception.
   - The decision row's bytes never change.
@@ -407,7 +442,9 @@ That is pseudonymisation, not anonymisation, and `workspace_members.user_id` wou
 rewrite under AUTH-HISTORY.
 
 **Recommendation: Route B**, as in the plan, with the comment moved to a purgeable reference. The
-main cost is the closure migration across about 19 tables plus one definer helper. It should be decided
+main cost is the closure migration across about 19 tables plus one definer helper, a comment side
+table and an alias writer that waits on RFC-2026-023; the executor (DATA-DEC-03) is needed by either
+route, and the investigation trade-off above is the Owner's to weigh. It should be decided
 **before** any further family adds an `auth.uid()` actor closure, and before G1 data exists, while every
 table is still empty and applied nowhere. This is a recommendation for Q160-b; it is not taken here.
 
@@ -429,4 +466,71 @@ Scratch only, not committed: the draft's `a0-160p/` (`gen.mjs`, the generator, h
 `catalog.sql` and `catalog.json`; `fktext.mjs`, `granttext.mjs`, `idxtext.mjs`; `mutate.mjs`; `round.sh`) and this
 branch's `a0-160-prepr/` (`count160.mjs`, the guard's own count; the manifest and plan edit scripts).
 
+Review round (§8): the same files again, plus the three review records; the assertion floor 720 → 747; scratch
+`a0-160-prepr2/` (`edit-data.mjs`, `edit-manifest.mjs`, `fk.mjs`, `mutate.mjs` and its log, `count.mjs`).
+
 Not touched: any migration; `docs/**` and `contract-catalog/**`; CI.
+
+## 8. Review round (2026-10-04)
+
+Written by a subagent of `/claude/a0_atlas`, on the branch name, from head `1706111`. It fixes and
+records; it approves nothing, decides none of Q160-a..d or DATA-DEC-03..10, and adds no migration, no
+policy, no grant and no retention number.
+
+### 8.1 Cherry-pick map
+
+| review | source commit (branch) | here |
+|---|---|---|
+| C0 contract review | `89d0994` (`review/c0-batch-160-prep`) | `1c8b0e4` (`-x`) |
+| A1 security review | `ddd9879` (`review/a1-batch-160-prep`) | `886b1a4` (`-x`) |
+| Q0 independent test | `b10e5f8` (`review/q0-batch-160-prep`) | `6e41fc8` (`-x`) |
+
+All three are clean picks (one new file each). The branch name is checked out in the Author's other
+worktree (`wf_5b1db44b-fe1-1`); its files were compared with head `1706111` by `diff -rq` (no
+difference, nothing uncommitted or untracked) before this worktree took the name with
+`--ignore-other-worktrees`.
+
+### 8.2 Finding → change → measured
+
+Every change is inside the three batch-160 tests (no test added or renamed), the three data files, the
+blockers and the records. "Probe" is the reviewer's surviving mutation, re-run by
+`a0-160-prepr2/mutate.mjs` (§8.3).
+
+| finding | change | measured |
+|---|---|---|
+| C0 G1, A1 S1, Q0-F1 (MEDIUM): the window guard missed Thai, hyphenated and numeric windows | `WINDOW160`: English units with `(?![A-Za-z])`, Thai units with no `\b`, `\s*-?\s*` between digit and unit, hour/week/ชั่วโมง/สัปดาห์ added; a self-test on §10's own forms and on four non-windows; every numeric leaf of a row other than `section5.line` refused; plan §1(a) and disposition §4 corrected | P1, P2, P3, A1's three Thai probes, "30วัน", "24 ชั่วโมง", RM-13 (`retention_days: 30`): all red; P4 control red. No row matches today. Five *finding* texts (F160-04, -09..-12) quote §10's windows as prose; the guard is per row by design and they are not values |
+| C0 G2 (MEDIUM): invitations TOKEN-SHORT vs AUTH-HISTORY unrecorded | F160-17 in `findings`; the row carries `also_claimed_by: AUTH-HISTORY` / `also_claimed_finding: F160-17`; `open_blockers[192]` (13), owed to A1 Data under Q160-c widened; plan §4 and disposition Q160-c row | the pairing removed: red. Nothing decided |
+| C0 G3 (MEDIUM): four export tables mislabelled outside the minimum domains | `publish_jobs`, `performance_snapshots`, `quota_buckets`, `usage_reservations` moved to `in-minimum-domain-projection-undecided` (ERD:552/:554); the test refuses a PUBLISH-HISTORY or FINANCE-HISTORY table in `outside-minimum-domains`; plan P4 corrected; handoff corrected in its refresh | publish_jobs put back: red |
+| C0 G4, A1 S5 (LOW/INFO): `user_profiles` called a global catalog row | own bucket `user-scoped-profile`, labelled a judgement (ERD:198, :549 undecided) | P8 (export it) stays **green, by design**: whether member profile fields are exported is undecided, not excluded; the reason, not the outcome, was the finding |
+| C0 G5 (MEDIUM): the design note unbalanced | §6: the executor (DATA-DEC-03) booked to both routes; a Benefit list for Route A; the investigation trade-off (ERD:513) as a Route B cost; disposition Q160-b row and `open_blockers[148]` list B's costs as §6 does. The recommendation stands | text, read against §6 |
+| C0 G6 (LOW): partial covering indexes counted | `indexes160` reads each partial predicate; each sweep carries `partial_predicates`; where every covering index is partial a `partial_cover` verdict is required (`serves-the-sweep` for `assets`, `research_snapshots`; `F160-13` for `workspace_invitations.expires_at`, `billing_webhook_receipts.received_at`); F160-13 is fifteen keys; `[192]` | predicate dropped: red; verdict dropped: red |
+| C0 G7, A1 S3, A1 S7 (LOW/MEDIUM): phases not §11.4, audit in 7, global tables in a workspace purge | `audit_logs` moved to phase 8 (no FK, placed before `security_events`); `audit_logs` and `security_events` carry `refused_by`; the six global catalogs and `user_profiles` are `outside_workspace_purge` with a reason (no `workspace_id`, no key to the root); `phase_inversions` names the four tables out of phase order and the conflicts that place them; `_phases._rule` and `_not_monotone`. The test holds root=9 alone, step-8 classes and kept rows = 8, other defined classes 6/7 one per class, findings 6-8, the inversions two-way, the outside mark two-way and `refused_by` against the map | P5, `security_events`→6, PO-08: red; outside mark dropped or added: red; `refused_by` dropped: red; an undeclared inversion: red |
+| C0 G8, Q0-F4 (LOW): fk names and conflict fields not held | `fkEdges160` reads each key's name (named constraint or PostgreSQL's `<table>_<cols>_fkey`) and compares `fk|child|parent`; conflicts' child, parent and behaviours checked against the edges and the map | text parse equals all 90 declared names (`fk.mjs`); P6/PO-09, P7, behaviour altered: red |
+| C0 G9, A1 S6 (LOW/INFO): small untruths | `[190]` `app.content_schedules`; `[105]` "batch 131 used WEBHOOK-SHORT for it"; `[91]` and P1 say "Undefined or mismatched"; every `WP:<n> (open_blockers[i])` in the map is checked against line n of the manifest | P10 and an off-by-one citation: red |
+| A1 S2 (LOW): `set_decided_at` not held both ways | the two-way trigger rule covers `private.refuse_mutation` and `private.set_decided_at`; on a table with anonymise columns, a trigger whose function is neither refusing nor a read stamping one (`set_updated_at`, `set_deleted_at`, read: they only stamp) fails | control dropped: red; an unnamed refusal trigger and an unread trigger function appended to 140: red |
+| A1 S4, Q0-F3, C0 N2 (LOW/note): exclusions rest on unjustified picks | `section9_not_picked: [{class, why}]` required, two-way, for every SECRET-4/SECURITY-4/INTERNAL-3 in a row's §5 cell that it does not pick (seven rows); an exported table with one is allowed only by `export_allowed: true` (audit_logs alone, ERD:555) | EX-07, EX-08 and A1's notifications/meta/ai_model_policies exports: red; a reason removed or emptied: red; P9: red |
+| Q0-F2 (LOW): schema-wide grants and later drop/disable trigger | `grants160` expands `on all tables in schema`; a trigger control fails if a `drop trigger` or `disable trigger` follows its last create | MD-02, MD-11, MD-06, MD-07: red in the static layer (live probes already held them, Q0 §2.5) |
+| C0 N1 | F160-14 and `_retention_conflicts` say twelve is a lower bound (21 non-self keys touch a finding row) | recomputed |
+| C0 N3 | `security_events`' omission labelled a judgement | text |
+| C0 N4 | `[150]` says `controls_on_every_row` names `no-deletion-manifest` | text |
+| Q0-F5 (INFO): an exit code recorded before it was observed | this round's handoff records the post-commit `check`/`check:handoff`/`verify` entry as pending and the PR body carries the observed exits | handoff |
+| Q0-F6 (INFO): cited scratch gone | stated here: the draft's `a0-160p/` (§1's 27 mutations, §2's `catalog.sql`, `fktext.mjs`, `granttext.mjs`, `idxtext.mjs`) **no longer exists**; Q0 re-measured the catalog-versus-text equality and C0 the FK names live at `1706111`. This round's scripts are kept in `a0-160-prepr2/` | `find` by Q0 |
+
+Nothing is owed from this round beyond what `[192]` (9), (10) and (13) record: no item needed more than a
+bounded change.
+
+### 8.3 Measured (Node `v24.20.0`, checked before each run; on the branch name)
+
+| command | exit | result |
+|---|---|---|
+| `node --test test-kits/db/foundation-contract.test.mjs` | 0 | tests 80, pass 80 |
+| `a0-160-prepr2/mutate.mjs`: 39 one-file edits (every surviving probe of C0, A1 and Q0, plus new ones), each restored and its sha256 compared | n/a | 37 red; 2 green: P8 (by design, above) and the control (an adjacent swap with no key between). Baseline green before and after |
+| the guard's own count (`a0-160-prepr2/count.mjs`) | n/a | 80 tests, **747** assertions (720 → 747), digest `8c35e631c28c0574` unchanged |
+| `make db-schema-lint`; `make db-contract-check` | 0; 0 | ok; ok |
+| `npm run regenerate:manifest` | 0 | 88 digests |
+| `npm run check` (before the commit) | 0 | tests 684, pass 684 |
+| `node scripts/verify-branch-scope.mjs c7fe264 WP-0A-DB-00` | 0 | all 15 changed paths declared |
+| live DB | not run | no input a database layer reads changed: no migration, and only `foundation-contract.test.mjs` names the three data files (grep over `scripts db Makefile .github test-kits tests`). No cluster was started on 5507 |
+
+`npm run check`, `npm run check:handoff` and `npm run verify` after the handoff refresh are recorded in
+the PR body, not here.

@@ -387,14 +387,14 @@
     {
       "id": "F160-13",
       "class_as_written": null,
-      "what": "Sweep keys with no covering index, measured: see every row whose sweeps[].covered_by is empty.",
+      "what": "Sweep keys with no covering index, measured: see every row whose sweeps[].covered_by is empty (13 keys). Two more are covered only by a partial index whose predicate excludes the rows the sweep reads (sweeps[].partial_cover.verdict = F160-13): workspace_invitations.expires_at (pending only) and billing_webhook_receipts.received_at (unprocessed only). Fifteen in all.",
       "source": "live catalog, this draft; WP:446 (open_blockers[192])",
       "decision": null
     },
     {
       "id": "F160-14",
       "class_as_written": null,
-      "what": "Rows §10 retains hold foreign keys to rows §10 purges (see purge-order.json retention_conflicts); with every FK NO ACTION, the parent cannot be purged while the retained child exists. In particular app.workspaces cannot be hard-deleted while FINANCE-HISTORY rows reference it.",
+      "what": "Rows §10 retains hold foreign keys to rows §10 purges (see purge-order.json retention_conflicts); with every FK NO ACTION, the parent cannot be purged while the retained child exists. In particular app.workspaces cannot be hard-deleted while FINANCE-HISTORY rows reference it. Twelve is a LOWER BOUND: the rule needs a behaviour on both ends of a key, finding rows have none, and 21 non-self keys touch a finding row (measured); the count can grow when Q160-c is answered.",
       "source": "live catalog FKs; ERD:589-600; WP:446 (open_blockers[192])",
       "decision": "Q160-a"
     },
@@ -411,6 +411,13 @@
       "what": "§10's `HISTORY` data column names knowledge and content versions, which §5 puts under `CONTENT-HISTORY`; both end in a purge, so the disagreement changes no behaviour today.",
       "source": "ERD:490; ERD:495; ERD:205; ERD:207; WP:446 (open_blockers[192])",
       "decision": null
+    },
+    {
+      "id": "F160-17",
+      "class_as_written": "TOKEN-SHORT",
+      "what": "§5 gives app.workspace_invitations TOKEN-SHORT (purge), while §10 AUTH-HISTORY's data column names \"invitations history\" (anonymise actor fields, retain a security minimum). The two classes disagree on the final behaviour; the map keeps §5's TOKEN-SHORT and decides nothing, in particular not whether accepted invitations are AUTH-HISTORY.",
+      "source": "ERD:201; ERD:491; ERD:492; WP:446 (open_blockers[192])",
+      "decision": null
     }
   ],
   "rows": [
@@ -425,6 +432,12 @@
       },
       "section9_classes": [
         "CONTENT-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's ai.gateway cell covers the whole family (model registry/policies/credential refs/generation runs); this row holds workspace_id, ai_model_id and actor ids, no secret. The family's SECRET-4 member is private.ai_credential_references, which is excluded."
+        }
       ],
       "section10_class": null,
       "class_status": "finding",
@@ -462,6 +475,12 @@
       },
       "section9_classes": [
         "CONTENT-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's ai.gateway cell covers the whole family; this global registry row holds provider, model_key and label, no secret. The family's SECRET-4 member is private.ai_credential_references, which is excluded."
+        }
       ],
       "section10_class": null,
       "class_status": "finding",
@@ -741,7 +760,11 @@
             "asset_versions_asset_version_key",
             "asset_versions_parent_idx",
             "asset_versions_unpurged_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "asset_versions_parent_idx": "parent_version_id is not null",
+            "asset_versions_unpurged_idx": "purged_at is null"
+          }
         }
       ],
       "final_behaviour": [
@@ -784,7 +807,14 @@
           "basis": "trash window",
           "covered_by": [
             "assets_trash_purge_due_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "assets_trash_purge_due_idx": "deleted_at is not null and purge_after is not null"
+          },
+          "partial_cover": {
+            "verdict": "serves-the-sweep",
+            "why": "The trash sweep reads exactly the rows the predicate admits: deleted rows with a purge_after set."
+          }
         }
       ],
       "final_behaviour": [
@@ -814,6 +844,13 @@
       },
       "section9_classes": [
         "AUTH-3"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECURITY-4",
+          "why": "A judgement. §5's audit.core cell covers audit logs and security events together; audit_logs carries no IP or user-agent column (140_audit.sql), and §11.1 names a \"Tenant-visible audit trail\" among the minimum export domains (ERD:555). SECURITY-4 detail sits on app.security_events, which is excluded. The export fixture includes audit_logs on that reading (export_allowed). Which audit rows are tenant-visible is NOT decided here.",
+          "export_allowed": true
+        }
       ],
       "section10_class": "AUDIT",
       "class_status": "defined",
@@ -1098,7 +1135,14 @@
           "basis": "receipt time",
           "covered_by": [
             "billing_webhook_receipts_unprocessed_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "billing_webhook_receipts_unprocessed_idx": "processed_at is null and dead_lettered_at is null"
+          },
+          "partial_cover": {
+            "verdict": "F160-13",
+            "why": "The only covering index admits unprocessed, not-dead-lettered receipts; a retention sweep reads processed and dead-lettered ones, so the sweep has no usable index (C0 G6)."
+          }
         }
       ],
       "final_behaviour": [],
@@ -1329,7 +1373,10 @@
             "content_asset_links_scope_key",
             "content_asset_links_variant_idx",
             "content_asset_links_version_order_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "content_asset_links_variant_idx": "content_variant_id is not null"
+          }
         }
       ],
       "final_behaviour": [],
@@ -1368,7 +1415,10 @@
             "content_ideas_client_request_idempotency",
             "content_ideas_page_scope_idx",
             "content_ideas_scope_key"
-          ]
+          ],
+          "partial_predicates": {
+            "content_ideas_client_request_idempotency": "client_request_id is not null"
+          }
         }
       ],
       "final_behaviour": [
@@ -1508,7 +1558,10 @@
             "content_targets_scope_key",
             "content_targets_social_scope_idx",
             "content_targets_variant_scope_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "content_targets_variant_scope_idx": "content_variant_id is not null"
+          }
         }
       ],
       "final_behaviour": [
@@ -1598,7 +1651,10 @@
             "content_versions_item_version_key",
             "content_versions_parent_idx",
             "content_versions_scope_key"
-          ]
+          ],
+          "partial_predicates": {
+            "content_versions_parent_idx": "parent_version_id is not null"
+          }
         }
       ],
       "final_behaviour": [
@@ -1845,6 +1901,12 @@
       "section9_classes": [
         "INTEGRATION-2"
       ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's connector.meta cell covers connections/accounts/bindings; this row holds display_name and revoked_at, no token. The family's SECRET-4 member is private.meta_credential_references, which is excluded."
+        }
+      ],
       "section10_class": null,
       "class_status": "finding",
       "section10_row": null,
@@ -1873,6 +1935,12 @@
       },
       "section9_classes": [
         "PII-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's notification.core cell covers notifications/preferences/push subscriptions; this row holds channel and enabled, no secret. The family's SECRET-4 member is private.push_subscription_references, which is excluded."
+        }
       ],
       "section10_class": null,
       "class_status": "finding",
@@ -1910,6 +1978,12 @@
       },
       "section9_classes": [
         "PII-2"
+      ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's notification.core cell covers the whole family; this row holds a message key, a deep-link reference and delivery state, no secret. The family's SECRET-4 member is private.push_subscription_references, which is excluded."
+        }
       ],
       "section10_class": "NOTIFICATION-INBOX",
       "class_status": "defined",
@@ -2582,7 +2656,14 @@
           "basis": "stated per capture",
           "covered_by": [
             "research_snapshots_unpurged_retention_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "research_snapshots_unpurged_retention_idx": "purged_at is null"
+          },
+          "partial_cover": {
+            "verdict": "serves-the-sweep",
+            "why": "The sweep reads unpurged snapshots by retention_until; a purged snapshot has nothing left to purge."
+          }
         }
       ],
       "final_behaviour": [
@@ -2779,6 +2860,12 @@
       "section9_classes": [
         "INTEGRATION-2"
       ],
+      "section9_not_picked": [
+        {
+          "class": "SECRET-4",
+          "why": "A judgement. §5's connector.meta cell covers connections/accounts/bindings; this row holds account_kind, display_name and an external account hash, no token. The family's SECRET-4 member is private.meta_credential_references, which is excluded."
+        }
+      ],
       "section10_class": null,
       "class_status": "finding",
       "section10_row": null,
@@ -2948,6 +3035,8 @@
       "section10_class": "TOKEN-SHORT",
       "class_status": "defined",
       "section10_row": "row 5 of 27 (ERD:492)",
+      "also_claimed_by": "AUTH-HISTORY",
+      "also_claimed_finding": "F160-17",
       "finding": null,
       "sweeps": [
         {
@@ -2957,7 +3046,14 @@
           "basis": "after expiry",
           "covered_by": [
             "workspace_invitations_expires_at_idx"
-          ]
+          ],
+          "partial_predicates": {
+            "workspace_invitations_expires_at_idx": "accepted_at is null and revoked_at is null"
+          },
+          "partial_cover": {
+            "verdict": "F160-13",
+            "why": "The only covering index admits pending invitations; TOKEN-SHORT also purges accepted and revoked ones, which the predicate excludes, so the sweep has no usable index for them (C0 G6)."
+          }
         }
       ],
       "final_behaviour": [

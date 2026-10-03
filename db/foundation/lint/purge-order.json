@@ -5,7 +5,9 @@
     "6": "§11.4 step 6: ephemeral, export, temp and raw payload first (ERD:596)",
     "7": "§11.4 step 7: tenant content, research, assets and connector data (ERD:597)",
     "8": "§11.4 step 8: finance, audit, security and other retained minimum records, anonymised or kept (ERD:598)",
-    "9": "the tenant root, last"
+    "9": "the tenant root, last",
+    "_rule": "Held by the test: the tenant root alone is 9; a class §11.4 step 8 names (FINANCE-HISTORY, AUDIT, SECURITY) or a row §10 keeps without a purge is 8; every other defined class is 6 or 7, one phase per class; a finding row's phase is a judgement within 6-8. A row marked outside_workspace_purge stays in the order for its keys only.",
+    "_not_monotone": "The order cannot be phase-monotone while F160-14 stands: a parent a kept child holds a key to must wait for that child. phase_inversions names each such table and the conflicts that place it. audit_logs and security_events also carry refused_by: refuse_mutation refuses every role's DELETE on them today."
   },
   "edges": [
     {
@@ -533,10 +535,6 @@
       "phase": 7
     },
     {
-      "table": "app.audit_logs",
-      "phase": 7
-    },
-    {
       "table": "app.business_profile_versions",
       "phase": 7
     },
@@ -646,7 +644,9 @@
     },
     {
       "table": "app.user_profiles",
-      "phase": 7
+      "phase": 7,
+      "outside_workspace_purge": true,
+      "why": "User-scoped (ERD:198), shared by every workspace the user belongs to: no workspace_id and no key to app.workspaces. ID-USER's deletion is the user's, not a workspace's."
     },
     {
       "table": "app.workspace_settings",
@@ -654,7 +654,9 @@
     },
     {
       "table": "app.ai_models",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global model registry row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.approval_events",
@@ -690,31 +692,53 @@
     },
     {
       "table": "app.industry_pack_versions",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global industry catalog row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.industry_packs",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global industry catalog row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.plan_entitlements",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global plan catalog row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.billing_plan_versions",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global plan catalog row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.billing_plans",
-      "phase": 8
+      "phase": 8,
+      "outside_workspace_purge": true,
+      "why": "A global plan catalog row: no workspace_id and no key to app.workspaces. A workspace deletion does not purge it."
     },
     {
       "table": "app.quota_buckets",
       "phase": 8
     },
     {
+      "table": "app.audit_logs",
+      "phase": 8,
+      "refused_by": [
+        "refuse_mutation",
+        "refuse_truncate"
+      ]
+    },
+    {
       "table": "app.security_events",
-      "phase": 8
+      "phase": 8,
+      "refused_by": [
+        "refuse_mutation",
+        "refuse_truncate"
+      ]
     },
     {
       "table": "app.usage_events",
@@ -745,7 +769,41 @@
       "phase": 9
     }
   ],
-  "_retention_conflicts": "A foreign key whose child §10 keeps (final behaviour retain, no purge) and whose parent §10 purges. With NO ACTION the parent cannot be deleted while the child exists, so either the parent is anonymised and kept, or the child is detached first. Not decided here (F160-14).",
+  "phase_inversions": [
+    {
+      "table": "app.content_versions",
+      "phase": 7,
+      "because": [
+        "approval_requests_pinned_version_fk"
+      ]
+    },
+    {
+      "table": "app.content_items",
+      "phase": 7,
+      "because": [
+        "approval_requests_item_scope_fk"
+      ]
+    },
+    {
+      "table": "app.page_context_profiles",
+      "phase": 7,
+      "because": [
+        "approval_policies_page_scope_fk",
+        "workspace_member_scopes_page_fk"
+      ]
+    },
+    {
+      "table": "app.business_profiles",
+      "phase": 7,
+      "because": [
+        "approval_policies_business_scope_fk",
+        "quota_buckets_business_scope_fk",
+        "usage_reservations_business_scope_fk",
+        "workspace_member_scopes_business_fk"
+      ]
+    }
+  ],
+  "_retention_conflicts": "A foreign key whose child §10 keeps (final behaviour retain, no purge) and whose parent §10 purges. With NO ACTION the parent cannot be deleted while the child exists, so either the parent is anonymised and kept, or the child is detached first. Not decided here (F160-14). Twelve is a lower bound: finding rows carry no behaviour, and 21 non-self keys touch one (C0 N1).",
   "retention_conflicts": [
     {
       "fk": "approval_policies_business_scope_fk",

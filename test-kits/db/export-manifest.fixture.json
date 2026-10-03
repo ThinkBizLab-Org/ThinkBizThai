@@ -277,7 +277,7 @@
       },
       {
         "class": "SECURITY-detail",
-        "reason": "§11.1/5: no security investigative detail (ERD:540)",
+        "reason": "§11.1/5: no security investigative detail (ERD:540). A judgement, recorded as one: the whole table is omitted, though §11.1 names a \"Tenant-visible audit trail\" (ERD:555); which security events, if any, are tenant-visible is NOT decided here.",
         "tables": [
           "app.security_events"
         ]
@@ -291,15 +291,14 @@
       },
       {
         "class": "not-workspace-data",
-        "reason": "§11.1/4: only Workspace/Business/Page data the requester may export; a global catalog row belongs to no workspace",
+        "reason": "§11.1/4: only Workspace/Business/Page data the requester may export; a global catalog row (no workspace_id, no key to a workspace) belongs to no workspace",
         "tables": [
           "app.ai_models",
           "app.billing_plan_versions",
           "app.billing_plans",
           "app.industry_pack_versions",
           "app.industry_packs",
-          "app.plan_entitlements",
-          "app.user_profiles"
+          "app.plan_entitlements"
         ]
       },
       {
@@ -310,6 +309,23 @@
         ]
       },
       {
+        "class": "user-scoped-profile",
+        "reason": "A judgement, recorded as one: app.user_profiles is user-scoped PII (ERD:198, scope user), not workspace data, and is shared with every workspace the user belongs to. Whether member profile fields belong to §11.1's \"Members/roles/scopes\" domain (ERD:549) is NOT decided here.",
+        "tables": [
+          "app.user_profiles"
+        ]
+      },
+      {
+        "class": "in-minimum-domain-projection-undecided",
+        "reason": "In §11.1's minimum export domains: publish history (ERD:552) for publish_jobs and performance_snapshots, usage (ERD:554) for quota_buckets and usage_reservations. Which rows and fields are exportable is NOT decided here, so the fixture omits them rather than inventing a projection.",
+        "tables": [
+          "app.performance_snapshots",
+          "app.publish_jobs",
+          "app.quota_buckets",
+          "app.usage_reservations"
+        ]
+      },
+      {
         "class": "outside-minimum-domains",
         "reason": "Not in §11.1's minimum export domains (ERD:546-555) and not excluded by §11.1/5; whether to include it is NOT decided here.",
         "tables": [
@@ -317,11 +333,7 @@
           "app.meta_connections",
           "app.notification_preferences",
           "app.notifications",
-          "app.performance_snapshots",
-          "app.publish_jobs",
-          "app.quota_buckets",
-          "app.social_accounts",
-          "app.usage_reservations"
+          "app.social_accounts"
         ]
       }
     ],
