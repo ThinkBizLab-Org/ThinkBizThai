@@ -181,3 +181,26 @@ handoff and the PR body, because this file is committed before that commit.
 Q141-a, Q141-b and Q141-c are UNANSWERED. RFC-2026-025 §5's points and the Integration Owner's
 evidence remain owed, as the disposition says. `open_blockers[191]` now holds (1) to (9), and
 `open_blockers[33]` holds F1-F6 and F15.
+
+## 8. Re-checks of the review round (2026-10-04)
+
+C0, A1 and Q0 re-checked `9be87ca` (code `cc00ccc`). Their files are cherry-picked with `-x`:
+
+| Reviewer | Original commit | Cherry-picked as |
+|---|---|---|
+| C0 | `ded2a16` | `50950e6` |
+| A1 | `0e5b87e` | `2d94009` |
+| Q0 | `8886401` | `0ce283d` |
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is
+green on `9be87ca` (run 37138227949). A1 reports R1-R6 resolved or recorded as asked. A0 changes no
+code in this round. Everything that stays owed is recorded on open_blockers[191]:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| Q141-b is still presented with the pre-round "F1-F4" in disposition :76-77 and :86, plan :106 and the handoff's open_risks/reviewer_instructions (C0 H1) | LOW | A0, wording, at the next refresh of those files |
+| Two null-category rows carry `support.` ids (`support.manual_replay`, `support.service_health_banner`), which reads as if a category had been chosen. `_shape.source` does not cover every source (C0 H2) | LOW | A0, with Q141-a's answer |
+| Two documents this batch already cites name audited actions the map has no row for: credential rotation and expiry (ERD §9.2 :469), FP-005 flag edits, and the ERD:399 approval trail (A1 N1; C0 N2) | LOW | A0 and A1, in the document sweep owed under [191] (5) |
+| The coverage map's closed key set is built from `_shape` itself (Q0 R1). No test holds the new `_shape.batch` text or the A1 R1 sentence (Q0 R3, R4; C0 N4) | LOW | A0, static pins |
+| The tripwire reads only `create policy` and `alter table` on the audit tables. A later GRANT, CREATE TRIGGER, ALTER POLICY, or drop-and-recreate with new columns is held only by the generic new-migration snapshot test, and [191] (9) overstates what that test checks (Q0 R2; C0 N3; A1 N2, N3) | LOW | A0, widen the tripwire and correct (9) |
+| Plan :76 wording; ERD-slice and column-parsing edge cases (C0 N1; Q0 R5) | INFO | recorded |
