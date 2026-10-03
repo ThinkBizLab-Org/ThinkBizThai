@@ -320,19 +320,23 @@ export async function feedTranscript(sql, options = {}) {
 //     a `.` -- `1.e'\'` is one junk token and a plain literal to psql 15+ (A1 L1), and is now a plain
 //     literal whose closing quote follows one backslash, refused above.
 //   * A CHANGE OF CLIENT ENCODING, by any mention of client_encoding (SET, set_config, ALTER ... SET,
-//     a comment) and by a statement that begins `set [session|local] names` (batch 127, from C0 R2 on
-//     batch 126). psql re-reads the client encoding after every statement, and in a multibyte client
-//     encoding (SJIS, BIG5, GBK, UHC, GB18030) it masks the byte or bytes after a high byte before it
+//     a comment) and by the token sequence `set [session|local] names` ANYWHERE in the text, its words
+//     separated by whitespace or comments (batch 127, from C0 R2 on batch 126). The first version read
+//     it only at a statement head, and C0 measured `execute 'set names ''SJIS'''` inside a DO body
+//     reaching psql unrefused and moving its encoding (C0 F6 on batch 127): a literal, a dollar body and
+//     a comment are read now, as client_encoding always was. psql re-reads the client encoding after
+//     every statement, and in a multibyte client encoding (SJIS, BIG5, GBK, UHC, GB18030) it masks the byte or bytes after a high byte before it
 //     lexes, so a quote, a backslash, a `-` or a newline after any non-ASCII character can vanish for
 //     psql while this lexer reads it. `\encoding` is a backslash and is refused above with the rest.
-//     WHAT THIS DOES NOT REACH, and why it is not a byte rule: a name psql never sees spelled out --
-//     set_config('client_' || 'encoding', ...), or EXECUTE of a computed SET inside a DO body -- still
-//     changes it. The fail-closed answer for standard_conforming_strings was a rule on the one place the
-//     two readings part (a quote after an odd run of backslashes); for an encoding they part after
+//     WHAT THIS DOES NOT REACH, and why it is not a byte rule: a name or statement psql never sees
+//     spelled out -- set_config('client_' || 'encoding', ...), or EXECUTE of a SET whose words are
+//     computed ('set ' || 'names ...') inside a DO body -- still changes it. The fail-closed answer for
+//     standard_conforming_strings was a rule on the one place the two readings part (a quote after an odd run of backslashes); for an encoding they part after
 //     EVERY non-ASCII character, and measured on the sources fed at batch 127 that is 4,611 places in 77
 //     of 86 files, most of them `§` before a digit in a comment, in integrated migrations that are never
 //     edited. So the computed-name case stays outside this list, named here and in the batch 127 record.
 // The claim is the shapes measured and this list, not "anywhere psql would execute one".
+export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
 export function psqlLex(sql) {
   const text = String(sql);
   const metaCommands = [];
@@ -348,6 +352,9 @@ export function psqlLex(sql) {
     }
     for (const found of text.matchAll(/client_encoding/gi)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'client_encoding, which changes how psql splits the bytes that follow' });
+    }
+    for (const found of text.matchAll(SET_NAMES)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'set names, which changes the client encoding psql splits bytes by' });
     }
   }
   let head = '';
@@ -423,9 +430,6 @@ export function psqlLex(sql) {
     head += ch;
   }
   endStatement();
-  for (const s of statements) {
-    if (/^set\s+(?:(?:session|local)\s+)?names\b/i.test(s.head)) metaCommands.push({ line: s.line, text: 'set names, which changes the client encoding psql splits bytes by' });
-  }
   metaCommands.sort((a, b) => a.line - b.line);
   return { metaCommands, statements };
 }

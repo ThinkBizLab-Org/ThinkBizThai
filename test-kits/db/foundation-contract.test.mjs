@@ -2181,7 +2181,14 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     ["set client_encoding = 'SJIS';\nselect 1;", 1], ["select pg_catalog.set_config('client_encoding', 'BIG5', false);", 1],
     ["alter role app_worker set client_encoding = 'GBK';", 1], ['-- client_encoding, in a comment\nselect 1;', 1],
     ["SET NAMES 'SJIS';", 1], ["set session names 'UHC';\nselect 1;", 1], ["/* c */ set local names 'GB18030';", 1],
-    ['\\encoding SJIS', 1], ["select 'set names' as names, 1 as set_names;", 0]]) {
+    ['\\encoding SJIS', 1],
+    // Batch 127's review round (C0 F6): the SET NAMES words anywhere, not at a statement head alone. C0
+    // measured the first shape below passing the head-only rule and moving psql's encoding to SJIS. A
+    // literal, a dollar body and a comment between the words are read; a word that merely contains
+    // "names" or "set" is not.
+    ["do $$ begin execute 'set names ''SJIS'''; end $$;", 1], ["select 'set names' as a;", 1],
+    ["set/* c */names 'BIG5';", 1], ["select $b$ set local\n names 'GBK' $b$;", 1],
+    ["select 'names' as names, 1 as set_names, 2 as offset_names;", 0]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2472,10 +2479,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL,
-      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
-      m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
+      m.CREATED_BY_CLOSURE_PROBE_SQL, m.INSERT_CLOSURE_COVERAGE_PROBE_SQL, m.PERMISSIVE_POLICY_PROBE_SQL, m.CLIENT_PRIVILEGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
+      m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.POLICY_HELPER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
       m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL, m.REWRITE_RULE_PROBE_SQL, m.PG_CATALOG_GUARD_SQL],
-    'all nineteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03)');
+    'all twenty-one, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3); the rewrite rule and pg_catalog guard probes are batch 126\'s review round (Q0 F5, F3); the created_by closure and INSERT coverage probes are batch 127 (blocker 186\'s created_by class; A1 F5 on 123), and so is the permissive policy probe (the Owner\'s answer to A0\'s recommendation (3), 2026-10-03); the client privilege and policy helper probes are batch 127\'s review round (C0 F1, F4; A1 F1, F2; Q0 F1)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
@@ -2582,6 +2589,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // (Q0 F5, F3).
   // Batch 127: the created_by INSERT closure, INSERT coverage and permissive policy probes are new; the
   // last carries the 74 pinned permissive policies, so any change to one of them moves its digest.
+  // Batch 127's review round: the client privilege and policy helper probes are new (C0 F1, F4; A1 F1, F2;
+  // Q0 F1); pinned policy 8d249faed4de9d73 to a7be93780c68245a (the other thirty-one member-scope
+  // narrowings pinned by exact deparse, C0 F3).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2593,9 +2603,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
     'permissive policy probe': '2fd449e14cd8900f',
+    'client privilege probe': '9050ddad1ecc37bc',
     'pinned check probe': '9fbe921cb30965f5',
-    'pinned policy probe': '8d249faed4de9d73',
+    'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '890866dd704c458b',
+    'policy helper probe': '148d38b00e422888',
     'trigger probe': '9f3dc969be47bd74',
     'pinned trigger probe': 'f136765c6beb5dbf',
     'pinned grant probe': '2e3ef3743a2ca6ad',
@@ -2680,6 +2692,39 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.equal(Object.values(m.PERMISSIVE_POLICIES).filter((p) => p.cmd === 'a').length, 24, 'the twenty-four permissive INSERT policies batch 127 measured');
   assert.deepEqual([...new Set(Object.entries(m.PERMISSIVE_POLICIES).filter(([, p]) => p.cmd === 'a' && p.check.startsWith('((created_by = ( SELECT auth.uid() AS uid))')).map(([k]) => k.split('.')[0]))].sort(),
     m.CREATED_BY_CLOSURES, 'the nineteen created_by tables are exactly the tables whose permissive INSERT policies bind created_by');
+  // WHAT REACHES PAST EVERY POLICY, FAIL-CLOSED (batch 127's review round: C0 F1, A1 F1 and F2, Q0 F1). Its
+  // reading predicates are pinned here, so one dropped or narrowed fails before a database.
+  const clientPriv = m.CLIENT_PRIVILEGE_PROBE_SQL;
+  assert.deepEqual(m.CLIENT_ROLES, ['anon', 'authenticated', 'public'], 'the client roles, PUBLIC included, which both inherit');
+  assert.deepEqual([m.CLIENT_VIEWS, m.CLIENT_NON_APP_TABLES], [{}, {}], 'both allowlists empty, measured at batch 127: a pin is an RFC-sized decision, in the same diff as its reason');
+  assert.equal((clientPriv.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 3, 'every rule reads every client role');
+  assert.match(clientPriv, /where n\.nspname in \('app', 'private', 'public'\) and c\.relkind in \('r', 'p', 'v', 'm', 'f'\)\n[\s\S]*select unnest\(array\['TRUNCATE', 'TRIGGER', 'REFERENCES'\]\n\s+\|\| case when pg_catalog\.current_setting\('server_version_num'\)::integer >= 170000 then array\['MAINTAIN'\]/,
+    'rule 1: every relation kind in the three schemas, the four privileges no policy governs (C0 F1, X6)');
+  assert.match(clientPriv, /where case when privs\.p = 'REFERENCES' then pg_catalog\.has_any_column_privilege\(cr\.r, rels\.oid, privs\.p\)\n\s+else pg_catalog\.has_table_privilege\(cr\.r, rels\.oid, privs\.p\) end;/, 'REFERENCES on any column');
+  assert.match(clientPriv, /where n\.nspname in \('app', 'private', 'public'\) and c\.relkind in \('v', 'm', 'f'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\) and c\.relkind = 'v'\n\s+and exists \(select 1 from pg_catalog\.pg_options_to_table\(c\.reloptions\) o\n\s+where o\.option_name = 'security_invoker'/,
+    'rule 2: any client privilege on a view, materialized view or foreign table, unless pinned AND security_invoker (A1 F1, Q0 F1)');
+  assert.match(clientPriv, /where n\.nspname in \('private', 'public'\) and c\.relkind in \('r', 'p'\)\n\s+and \(pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'SELECT'\) or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'INSERT'\)\n\s+or pg_catalog\.has_any_column_privilege\(cr\.r, c\.oid, 'UPDATE'\) or pg_catalog\.has_table_privilege\(cr\.r, c\.oid, 'DELETE'\)\)\n\s+and not \(format\('%s\.%s', n\.nspname, c\.relname\) = any \(array\[\]::text\[\]\)\);/,
+    'rule 3: any client privilege on a table in private or public, unless pinned (A1 F2; A1 F6 on 123)');
+  assert.equal((clientPriv.match(/\bselect\b/g) ?? []).length, 6, 'six selects, counted at batch 127\'s review round: no reading clause added unseen');
+  // THE HELPERS THE POLICIES CALL, BY BODY (C0 F4): pinned like the definer functions, and every function a
+  // policy depends on is pinned somewhere.
+  assert.match(m.POLICY_HELPER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (C0 X1)');
+  assert.match(m.POLICY_HELPER_PROBE_SQL, /where d\.classid = 'pg_catalog\.pg_policy'::pg_catalog\.regclass and d\.refclassid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass\n\s+and n\.nspname not in \('pg_catalog', 'information_schema'\)\n/,
+    'every function any policy depends on, in every schema but the system ones');
+  assert.deepEqual(m.POLICY_HELPER_FUNCTIONS.map(([f]) => f.split('(')[0]),
+    ['app.member_scope_admits_business', 'app.member_scope_admits_page', 'app.member_scope_covers_business', 'app.member_scope_covers_page', 'app.member_scope_is_narrowed'],
+    'the four helpers the policies call and the one two of them call, measured at batch 127\'s review round');
+  assert.deepEqual(m.POLICY_PLATFORM_FUNCTIONS, ['auth.uid()'], 'the platform\'s one function the policies call');
+  // THE MEMBER-SCOPE NARROWINGS, BY EXACT DEPARSE (C0 F3): all thirty-three, not only 091's two.
+  const narrowings = Object.keys(m.PINNED_POLICIES).filter((k) => /_scope_narrow/.test(k));
+  assert.equal(narrowings.length, 33, 'thirty-three member-scope narrowings, measured from the catalog at batch 127\'s review round');
+  for (const k of narrowings) {
+    const p = m.PINNED_POLICIES[k];
+    assert.equal(p.cmd, '*', `${k}: FOR ALL`);
+    assert.equal(p.using, p.check, `${k}: both halves the same text, as measured`);
+    assert.match(p.using, /app\.member_scope_admits_(business|page)\(|FROM app\.[a-z_]+ /,
+      `${k}: it calls a pinned helper, or reads a parent table whose own narrowing applies under its row level security`);
+  }
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
   assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
     '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');

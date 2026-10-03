@@ -158,7 +158,10 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 418 to 464 with batch 127 (2026-10-03): the created_by closure, INSERT coverage and permissive policy
 // probes, the odd-run and client-encoding lexer shapes, and 127's pin test; one test added (127's pin
 // test), so the test floor moves 72 to 73 and the name digest with it; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 464,
+// 464 to 480 with batch 127's review round (2026-10-03): the client privilege and policy helper probes'
+// reading predicates, the thirty-three pinned member-scope narrowings and the SET NAMES shapes anywhere;
+// no test is added and none renamed, so the test floor and the name digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 480,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

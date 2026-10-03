@@ -3456,6 +3456,32 @@ export function buildCases(id) {
          + 'locking a suspended person out of their own PII-2 record and so out of any path to '
          + 'appeal or export it — fails a test instead of shipping.',
     },
+    // BATCH 127'S REVIEW ROUND (C0 F5, Q0 F2): another user's profile cannot be rewritten. §8.1 marks the
+    // profile `O` (own row) for every role. A WHERE that names user B's id, or a RETURNING that reads a
+    // column, applies user_profiles_select_own as well and hides B's row whatever the UPDATE policy says,
+    // so the statement is a BARE update returning a constant: the only gate on which rows it writes is
+    // user_profiles_update_own's USING. It writes the caller's own row (legitimately, and rolled back) and
+    // must write no other: `having count(*) > 1` returns a row exactly when it wrote a second. Q0 measured
+    // that policy widened to `using (true)` with every layer green and user A rewriting user B's profile.
+    {
+      id: 'user-a-cannot-update-user-b-profile',
+      covers: ['§8.6/5', '§12.6/1'],
+      as: ownerA,
+      sql: 'with written as (update app.user_profiles set display_name = $1 returning 1 as one)'
+         + ' select count(*) as rows_written from written having count(*) > 1',
+      params: ['renamed by another user'],
+      expect: 'no-effect',
+      witness: {
+        as: ownerB,
+        sql: 'select display_name from app.user_profiles where user_id = $1',
+        params: [id('user_owner_b')],
+        column: 'display_name',
+        equals: 'fixture owner b',
+      },
+      why: '§8.1 Own user profile UPDATE is `O` for every role: user A may write user A\'s profile and no other. '
+         + 'A bare UPDATE is gated by the UPDATE policy\'s USING alone, so this is the case that fails when '
+         + 'user_profiles_update_own is widened in place (Q0 F2; C0 F5 on batch 127; plan D7).',
+    },
     {
       id: 'suspended-a-cannot-mutate',
       covers: ['§12.6/5', '§8.6/6'],

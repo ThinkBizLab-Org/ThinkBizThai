@@ -319,11 +319,11 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts eleven families of rules over all of `app` and
-`private`, in nineteen probes (sixteen before batch 127). The first is the FK-support probe (batch 104): every foreign key has a
+After the ceiling probe, `make db-migrate-clean` asserts thirteen families of rules over all of `app` and
+`private` (and, for rule 11, `public`), in twenty-one probes (nineteen at batch 127, sixteen before it). The first is the FK-support probe (batch 104): every foreign key has a
 supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
 `schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
-exempt (batch 126; Q0 F6 on batch 125). The other ten are
+exempt (batch 126; Q0 F6 on batch 125). The other twelve are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -340,8 +340,9 @@ break it silently:
    `UPDATED_BY_CLOSURES`, `REQUESTER_CLOSURES` or `UPDATED_BY_ON_UPDATE_CLOSURES`. **An `app` table that
    grants UPDATE on `updated_by` without the closure fails twice:** once in the probe, which reads
    the grant live, and once in batch 123's block, which requires the exact closure. Both read schema `app`
-   and role `authenticated` only: a table in `public`, or a policy for another role, is seen by neither
-   (A1's review of batch 123, F6; recorded as owed).
+   and role `authenticated` only: a policy for another role is seen by neither (A1's review of batch 123,
+   F6). A client privilege on a table in `public` or `private` is refused outright by rule 11 since batch
+   127's review round.
 
    105's first general rule only checked that some policy *contained* the binding, so a looser
    permissive sibling could reopen the forgery. 123 closed that: a restrictive policy ANDs with
@@ -362,7 +363,8 @@ break it silently:
    CHECK. At 127 that is 74 policies on 25 tables. **A batch that adds, drops or rewrites a permissive
    policy on a client-writable table updates `PERMISSIVE_POLICIES` in the same change**, which puts
    every widening in front of a reviewer. Before 127, only 081's and 091's replacements pinned a
-   permissive count, on two tables. Schema `app` only, as every probe here.
+   permissive count, on two tables. Schema `app` only: a view, and a table in `public` or `private`, are
+   refused any client privilege by rule 11 instead (batch 127's review round).
 
    **Who decided an approval request is held the same way.** `approval_requests_decided_by_on_update_is_caller`
    (batch 123) is restrictive, UPDATE, TO authenticated: `decided_by` is NULL or the caller, and its text
@@ -389,6 +391,12 @@ break it silently:
    can delete a settled request and insert it again as anything (C0 F2, A1 F2 on batch 126), which is
    owed with that role, by giving it no DELETE or by a BEFORE DELETE refusal then. 126's own block, and 125's replacement, pin the trigger's definition and
    the md5 of the function body; the pinned trigger probe (rule 6) pins both again.
+
+   **The member-scope narrowings are pinned the same way (batch 127's review round, C0 F3).** All
+   thirty-three restrictive `*_scope_narrow*` policies are in `PINNED_POLICIES` by the exact deparse of
+   both halves, not only 091's two: the apply-time replacements read them for tokens, so `... or true`
+   passed migrate-clean on `industry_assignments` and `content_items` and only rls-smoke held it. The
+   functions they call are rule 12's.
 3. **Every client-updatable `*_by` column has a pinned closure for its column:** `updated_by` in
    `UPDATED_BY_ON_UPDATE_CLOSURES`, `decided_by` in `DECIDER_CLOSURES`. A new attribution column that
    clients can update fails the coverage probe by name, until the batch that grants it adds its
@@ -429,6 +437,19 @@ break it silently:
    16384. The probes run with `search_path` pinned to `pg_catalog`, so an overload there could answer a
    probe's call; Q0 F3 on batch 126 forged a refusal that way. This guard runs as its own probe and
    inside every probe job, after the drift and before the probe.
+11. **No client role holds what no policy governs (batch 127's review round).** `anon`, `authenticated`
+   and `PUBLIC` hold no TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in `app`, `private` or
+   `public` (C0 F1: TRUNCATE skips row level security, and C0 X6 emptied another workspace's rows); no
+   privilege on a view, materialized view or foreign table there unless it is pinned in `CLIENT_VIEWS`
+   and `security_invoker` (A1 F1, Q0 F1: a view runs as its owner, and A1 R5b forged `created_by` and
+   crossed workspaces through one switched off by ALTER VIEW); and no privilege on a table in `private`
+   or `public` unless it is pinned in `CLIENT_NON_APP_TABLES` (A1 F2; A1 F6 on batch 123). Both
+   allowlists are empty: fail closed, and a pin is a reviewed change.
+12. **The invoker helpers the policies call match their pinned body** (`POLICY_HELPER_FUNCTIONS`: owner,
+   md5 of the body, `search_path=""`), and every function a policy calls (read from `pg_depend`) is one of
+   them, a pinned SECURITY DEFINER function or `auth.uid()` (batch 127's review round, C0 F4: replacing
+   `member_scope_covers_business` with `select true` left every deparse unchanged and passed
+   migrate-clean).
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule
@@ -446,9 +467,11 @@ outside a literal, a dollar-quoted body, a quoted identifier or a comment, nor a
 which psql could read the text otherwise: a bare carriage return, any mention of
 `standard_conforming_strings`, a quote after an odd run of backslashes in a plain literal (tested at
 runs of one, three and five since batch 127, Q0 F1 on 126's re-check), or a change of client encoding
-by any mention of `client_encoding` or a `set names` statement (batch 127, C0 R2 on 126's re-check).
+by any mention of `client_encoding` or the words `set [session|local] names` anywhere, a literal, a
+dollar-quoted body or a comment between them included (batch 127, C0 R2 on 126's re-check; anywhere
+since 127's review round, C0 F6, where a literal `execute 'set names ...'` in a DO body had passed).
 A client encoding changed through a name psql never sees spelled out (a concatenated `set_config`, a
-computed `EXECUTE`) stays outside the list: the two readings could part after any non-ASCII
+`EXECUTE` of a SET whose words are computed) stays outside the list: the two readings could part after any non-ASCII
 character, which the integrated migrations carry thousands of times. That
 is a claim about the shapes measured and that list, not about every way psql could lex a file
 (batch 126's review round: A1 F1, Q0 F1). Statement position, not any word: a DO block or a function body is
