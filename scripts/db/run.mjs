@@ -216,6 +216,18 @@ export const UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL = closureProbe(closureRule('
 export const DECIDER_CLOSURES = ['approval_requests'];
 export const DECIDER_CHECK_TEXT = '((decided_by IS NULL) OR (decided_by = ( SELECT auth.uid() AS uid)))';
 export const DECIDER_CLOSURE_PROBE_SQL = closureProbe(closureRule('decided_by_on_update_is_caller', DECIDER_CLOSURES, DECIDER_CHECK_TEXT, 'w'));
+// Batch 127's created_by INSERT closures (blocker 186; A1 F5 on batch 123, A1 F3 on batch 091). Every
+// table that grants authenticated INSERT on created_by, measured from the catalog on the clean set
+// through 126: nineteen, where created_by was bound only inside twenty-four permissive INSERT policies,
+// so a looser permissive sibling reopened the forgery with every layer green. Equality, as 105's: every
+// permissive INSERT policy on these tables already required it.
+export const CREATED_BY_CLOSURES = ['approval_policies', 'approval_requests', 'asset_rights', 'assets',
+  'business_profile_versions', 'business_profiles', 'calendar_items', 'content_ideas', 'content_items',
+  'content_schedules', 'content_targets', 'industry_assignments', 'knowledge_item_versions', 'knowledge_items',
+  'page_context_profile_versions', 'page_context_profiles', 'publish_intents', 'workspace_invitations',
+  'workspace_member_scopes'];
+export const CREATED_BY_CHECK_TEXT = '(created_by = ( SELECT auth.uid() AS uid))';
+export const CREATED_BY_CLOSURE_PROBE_SQL = closureProbe(closureRule('created_by_is_caller', CREATED_BY_CLOSURES, CREATED_BY_CHECK_TEXT));
 
 // 2b. COVERAGE of the attribution UPDATE closures, as its own probe so it has its own self-test drift
 // (Q0's test of 105, F3; C0's review of 123, F5: folded into the closure probe, it could be silenced
@@ -242,6 +254,227 @@ begin
      and not (format('%s.%s', c.relname, a.attname) = any (array[${Object.entries(ATTRIBUTION_UPDATE_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ')}]));
   if offending is not null then
     raise exception 'client-updatable attribution column(s) with no pinned UPDATE closure: %', offending;
+  end if;
+end \$\$;
+`;
+// 2b'. THE SAME COVERAGE AT INSERT (batch 127). The UPDATE probe above reads only UPDATE, so a later
+// table granting authenticated INSERT on created_by -- or on any `*_by` column -- with no closure passed
+// every probe; only 127's own apply-time block, for created_by alone, would have refused it. At INSERT
+// the set is bounded and measured: created_by on nineteen tables, updated_by on fourteen (102 and 120)
+// and requested_by on two (094 and 120), each held by a restrictive INSERT closure pinned by exact text
+// in its own probe. A (table, column) client-insertable and not pinned fails by name. Its own probe, so
+// it has its own drift (C0 on 123, F5).
+export const ATTRIBUTION_INSERT_CLOSURES = {
+  created_by: CREATED_BY_CLOSURES,
+  requested_by: REQUESTER_CLOSURES,
+  updated_by: UPDATED_BY_CLOSURES,
+};
+export const INSERT_CLOSURE_COVERAGE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(format('app.%s.%s', c.relname, a.attname), ', ' order by c.relname, a.attname) into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+   where n.nspname = 'app' and c.relkind in ('r', 'p')
+     and a.attname like '%\\_by'
+     and pg_catalog.has_column_privilege('authenticated', c.oid, a.attnum, 'INSERT')
+     and not (format('%s.%s', c.relname, a.attname) = any (array[${Object.entries(ATTRIBUTION_INSERT_CLOSURES).flatMap(([col, tables]) => tables.map((t) => `'${t}.${col}'`)).join(', ')}]));
+  if offending is not null then
+    raise exception 'client-insertable attribution column(s) with no pinned INSERT closure: %', offending;
+  end if;
+end \$\$;
+`;
+// 2b''. EVERY CLIENT-WRITABLE TABLE'S PERMISSIVE POLICIES, EXACTLY (batch 127; the Owner's answer of
+// 2026-10-03 to A0's recommendation (3)). A restrictive closure holds one column against any permissive
+// policy, but a looser permissive sibling under a NEW name still widens everything else the permissive
+// set decides -- who may insert at all, which rows an UPDATE reaches, which rows a SELECT shows -- and
+// before this probe only 081's and 091's replacements pinned a permissive COUNT, on two tables: batch
+// 127's draft measured a looser INSERT sibling beside each of the 24 permissive INSERT policies passing
+// migrate-clean on the other seventeen created_by tables (its D1). Here every app table a client can
+// write -- INSERT or UPDATE on any column, or DELETE, held by anon or authenticated -- has its permissive
+// policies read and compared with this list by (table, name), command, roles and the EXACT deparse of
+// both halves (search_path pinned to pg_catalog, as every probe job runs). Anything unlisted, missing or
+// changed is named. Measured on the clean set through 127: 74 permissive policies on 25 tables, all
+// TO authenticated, none FOR ALL or DELETE. A batch that adds, drops or rewrites a permissive policy on
+// a client-writable table changes this list in the same diff, which puts every widening in front of a
+// reviewer. Read from schema app, tables only: a view, and a table in public or private, are refused any client
+// privilege outright by the client privilege probe below (batch 127's review round; A1 F6 on batch 123).
+export const PERMISSIVE_POLICIES = {
+  'approval_policies.approval_policies_insert_manager': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'approval_policies.approval_policies_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'approval_policies.approval_policies_update_manager': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'approval_requests.approval_requests_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'approval_requests.approval_requests_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'approval_requests.approval_requests_update_cancel_writer': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (status = 'pending'::text))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (status = 'cancelled'::text))" },
+  'approval_requests.approval_requests_update_decide_approver': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'approver'::text])) AND (status = 'pending'::text))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (decided_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'approver'::text])) AND (status = ANY (ARRAY['approved'::text, 'changes_requested'::text])))" },
+  'asset_rights.asset_rights_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'asset_rights.asset_rights_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'asset_rights.asset_rights_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'assets.assets_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'assets.assets_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'assets.assets_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'business_profile_versions.business_profile_versions_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'business_profile_versions.business_profile_versions_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))" },
+  'business_profile_versions.business_profile_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'business_profiles.business_profiles_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'business_profiles.business_profiles_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))" },
+  'business_profiles.business_profiles_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'business_profiles.business_profiles_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'business_profiles.business_profiles_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, id))" },
+  'calendar_items.calendar_items_insert_scheduler': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'calendar_items.calendar_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'calendar_items.calendar_items_update_scheduler': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'content_ideas.content_ideas_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_ideas.content_ideas_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_ideas.content_ideas_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_items.content_items_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_items.content_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_items.content_items_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_schedules.content_schedules_insert_scheduler': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = 'draft'::text) AND (publish_intent_id IS NULL) AND (version = 1))" },
+  'content_schedules.content_schedules_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_schedules.content_schedules_update_scheduler': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = ANY (ARRAY['draft'::text, 'armed'::text])))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (status = ANY (ARRAY['draft'::text, 'cancelled'::text])))" },
+  'content_targets.content_targets_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'content_targets.content_targets_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'content_targets.content_targets_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'industry_assignments.industry_assignments_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = industry_assignments.workspace_id) AND (b.id = industry_assignments.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'industry_assignments.industry_assignments_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = industry_assignments.workspace_id) AND (b.id = industry_assignments.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'industry_assignments.industry_assignments_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'industry_assignments.industry_assignments_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'industry_assignments.industry_assignments_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_business(workspace_id, business_profile_id))" },
+  'knowledge_item_versions.knowledge_item_versions_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'knowledge_item_versions.knowledge_item_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'knowledge_items.knowledge_items_insert_writer': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = knowledge_items.workspace_id) AND (b.id = knowledge_items.business_profile_id) AND (b.archived_at IS NULL)))) AND ((page_context_profile_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM app.page_context_profiles p\n  WHERE ((p.workspace_id = knowledge_items.workspace_id) AND (p.business_profile_id = knowledge_items.business_profile_id) AND (p.id = knowledge_items.page_context_profile_id) AND (p.archived_at IS NULL))))))" },
+  'knowledge_items.knowledge_items_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'knowledge_items.knowledge_items_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))" },
+  'notifications.notifications_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
+  'notifications.notifications_update_own_read_state': { cmd: 'w', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))" },
+  'page_context_profile_versions.page_context_profile_versions_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'page_context_profile_versions.page_context_profile_versions_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, page_context_profile_id))" },
+  'page_context_profile_versions.page_context_profile_versions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'page_context_profiles.page_context_profiles_insert_owner_or_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = page_context_profiles.workspace_id) AND (b.id = page_context_profiles.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'page_context_profiles.page_context_profiles_insert_scoped_editor': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id) AND (EXISTS ( SELECT 1\n   FROM app.business_profiles b\n  WHERE ((b.workspace_id = page_context_profiles.workspace_id) AND (b.id = page_context_profiles.business_profile_id) AND (b.archived_at IS NULL)))))" },
+  'page_context_profiles.page_context_profiles_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'page_context_profiles.page_context_profiles_update_owner_or_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))" },
+  'page_context_profiles.page_context_profiles_update_scoped_editor': { cmd: 'w', roles: 'authenticated', using: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id))", check: "((app.workspace_member_role(workspace_id) = 'editor'::text) AND app.member_scope_covers_page(workspace_id, business_profile_id, id))" },
+  'publish_intents.publish_intents_insert_owner_admin': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'publish_intents.publish_intents_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'publish_intents.publish_intents_update_owner_admin': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text])))" },
+  'research_runs.research_runs_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'research_runs.research_runs_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'research_suggestions.research_suggestions_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'research_suggestions.research_suggestions_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
+  'user_profiles.user_profiles_select_own': { cmd: 'r', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: null },
+  'user_profiles.user_profiles_update_own': { cmd: 'w', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: "(user_id = ( SELECT auth.uid() AS uid))" },
+  'workspace_invitations.workspace_invitations_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))" },
+  'workspace_invitations.workspace_invitations_select_owner': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: null },
+  'workspace_invitations.workspace_invitations_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspace_member_scopes.workspace_member_scopes_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'owner'::text))" },
+  'workspace_member_scopes.workspace_member_scopes_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
+  'workspace_settings.workspace_settings_select_active_member': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))", check: null },
+  'workspace_settings.workspace_settings_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspaces.workspaces_select_active_member': { cmd: 'r', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text)))))", check: null },
+  'workspaces.workspaces_update_owner': { cmd: 'w', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+};
+export const PERMISSIVE_POLICY_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with writable as (
+    select c.oid, c.relname
+      from pg_catalog.pg_class c
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'app' and c.relkind in ('r', 'p')
+       and exists (select 1 from unnest(array['anon', 'authenticated']) as cr(r)
+                    where pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
+                       or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE')
+                       or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
+  ), found as (
+    select format('%s.%s', w.relname, pol.polname) as k, pol.polcmd::text as cmd,
+           (select string_agg(rn, ',' order by rn) from (
+              select case when ro.oid = 0 then 'public' else pg_catalog.pg_get_userbyid(ro.oid)::text end as rn
+                from unnest(pol.polroles) as ro(oid)) rs) as roles,
+           pg_catalog.pg_get_expr(pol.polqual, pol.polrelid) as using_text,
+           pg_catalog.pg_get_expr(pol.polwithcheck, pol.polrelid) as check_text
+      from writable w join pg_catalog.pg_policy pol on pol.polrelid = w.oid
+     where pol.polpermissive
+  ), pinned as (
+    select * from (values ${Object.entries(PERMISSIVE_POLICIES).map(([k, p]) => `('${k}', '${p.cmd}', '${p.roles}', ${p.using === null ? 'null' : `'${p.using.replace(/'/g, "''")}'`}, ${p.check === null ? 'null' : `'${p.check.replace(/'/g, "''")}'`})`).join(',\n      ')}) as pin(k, cmd, roles, using_text, check_text)
+  )
+  select string_agg(x, '; ' order by x) into offending from (
+    select 'unlisted or changed: app.' || f.k as x from found f
+     where not exists (select 1 from pinned p where p.k = f.k and p.cmd = f.cmd and p.roles = f.roles
+                          and p.using_text is not distinct from f.using_text and p.check_text is not distinct from f.check_text)
+    union all
+    select 'missing or changed: app.' || p.k from pinned p
+     where not exists (select 1 from found f where f.k = p.k and f.cmd = p.cmd and f.roles = p.roles
+                          and f.using_text is not distinct from p.using_text and f.check_text is not distinct from p.check_text)
+  ) d;
+  if offending is not null then
+    raise exception 'permissive policy set of a client-writable app table not exactly its pinned list: %', offending;
+  end if;
+end \$\$;
+`;
+// 2b'''. WHAT A CLIENT MAY HOLD THAT NO POLICY GOVERNS (batch 127's review round). Every probe above reads
+// tables of relkind r and p in schema app, through their policies. Three privileges reach past all of them,
+// each measured passing every layer by a reviewer of 127:
+//   * TRUNCATE (and TRIGGER, REFERENCES, MAINTAIN) is not subject to row level security: C0 X6 granted
+//     TRUNCATE on an app table to authenticated, and workspace B's owner emptied workspace A's rows (C0 F1);
+//   * a VIEW runs as its owner, the migrating superuser, unless it is security_invoker: A1 R5b created one
+//     invoker, switched it off with ALTER VIEW and granted SELECT and INSERT; a client then forged created_by
+//     and read and wrote another workspace through it (A1 F1, Q0 F1);
+//   * a table in schema public, where clients hold USAGE, is read by no probe: A1 R6 inserted another
+//     user's and another workspace's row through one (A1 F2; A1 F6 on 123, Q0 F6, owed on blocker 186).
+// The rule is FAIL-CLOSED: no client role (anon, authenticated, or PUBLIC, which both inherit) holds any
+// of them, unless the relation is pinned here, and a pinned view must be security_invoker. Measured on the
+// clean set through 127: app, private and public hold no view, materialized view or foreign table; public
+// holds no relation; no client role holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in the
+// three schemas, or any privilege on a table in private. Both allowlists are empty. Sequences are not
+// read: no client role holds any privilege on one (measured), and a sequence carries no tenant row.
+export const CLIENT_ROLES = ['anon', 'authenticated', 'public'];
+export const CLIENT_VIEWS = {};
+export const CLIENT_NON_APP_TABLES = {};
+const clientRoles = `unnest(array[${CLIENT_ROLES.map((r) => `'${r}'`).join(', ')}]) as cr(r)`;
+const pinnedArray = (o) => `array[${Object.keys(o).map((k) => `'${k}'`).join(', ')}]::text[]`;
+export const CLIENT_PRIVILEGE_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  with rels as (
+    select c.oid, format('%s.%s', n.nspname, c.relname) as t
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname in ('app', 'private', 'public') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+  ), privs as (
+    select unnest(array['TRUNCATE', 'TRIGGER', 'REFERENCES']
+                  || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p
+  )
+  select string_agg(format('%s %s on %s', cr.r, privs.p, rels.t), ', ' order by rels.t, cr.r, privs.p) into offending
+    from rels, privs, ${clientRoles}
+   where case when privs.p = 'REFERENCES' then pg_catalog.has_any_column_privilege(cr.r, rels.oid, privs.p)
+              else pg_catalog.has_table_privilege(cr.r, rels.oid, privs.p) end;
+  if offending is not null then
+    raise exception 'client role(s) hold TRUNCATE, TRIGGER, REFERENCES or MAINTAIN, which no policy governs: %', offending;
+  end if;
+  select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
+    from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
+   where n.nspname in ('app', 'private', 'public') and c.relkind in ('v', 'm', 'f')
+     and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
+          or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
+     and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_VIEWS)}) and c.relkind = 'v'
+              and exists (select 1 from pg_catalog.pg_options_to_table(c.reloptions) o
+                           where o.option_name = 'security_invoker' and lower(o.option_value) in ('true', 'on', '1', 'yes')));
+  if offending is not null then
+    raise exception 'view(s), materialized view(s) or foreign table(s) a client role can use, not pinned or not security_invoker: %', offending;
+  end if;
+  select string_agg(distinct format('%s.%s', n.nspname, c.relname), ', ' order by format('%s.%s', n.nspname, c.relname)) into offending
+    from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace, ${clientRoles}
+   where n.nspname in ('private', 'public') and c.relkind in ('r', 'p')
+     and (pg_catalog.has_any_column_privilege(cr.r, c.oid, 'SELECT') or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'INSERT')
+          or pg_catalog.has_any_column_privilege(cr.r, c.oid, 'UPDATE') or pg_catalog.has_table_privilege(cr.r, c.oid, 'DELETE'))
+     and not (format('%s.%s', n.nspname, c.relname) = any (${pinnedArray(CLIENT_NON_APP_TABLES)}));
+  if offending is not null then
+    raise exception 'table(s) in private or public a client role can read or write, which no probe reads: %', offending;
   end if;
 end \$\$;
 `;
@@ -298,6 +531,42 @@ export const PINNED_POLICIES = {
   "calendar_items.calendar_items_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = calendar_items.workspace_id) AND (i.business_profile_id = calendar_items.business_profile_id) AND (i.id = calendar_items.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = calendar_items.workspace_id) AND (i.business_profile_id = calendar_items.business_profile_id) AND (i.id = calendar_items.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
   "content_schedules.content_schedules_client_transition_is_bounded": { cmd: "w", using: "(status = ANY (ARRAY['draft'::text, 'armed'::text]))", check: "(status = ANY (ARRAY['draft'::text, 'cancelled'::text]))" },
   "content_schedules.content_schedules_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.content_targets t\n     JOIN app.content_items i ON (((i.workspace_id = t.workspace_id) AND (i.business_profile_id = t.business_profile_id) AND (i.id = t.content_item_id))))\n  WHERE ((t.workspace_id = content_schedules.workspace_id) AND (t.business_profile_id = content_schedules.business_profile_id) AND (t.id = content_schedules.content_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.content_targets t\n     JOIN app.content_items i ON (((i.workspace_id = t.workspace_id) AND (i.business_profile_id = t.business_profile_id) AND (i.id = t.content_item_id))))\n  WHERE ((t.workspace_id = content_schedules.workspace_id) AND (t.business_profile_id = content_schedules.business_profile_id) AND (t.id = content_schedules.content_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  // Batch 127's review round (C0 F3): every other member-scope narrowing, both halves by exact deparse. The
+  // apply-time replacements read these for TOKENS, so `... or true` kept the tokens and passed migrate-clean
+  // (C0 X2b on industry_assignments, X2c on content_items), held by rls-smoke alone. Measured from the catalog
+  // on the clean set: 33 restrictive policies named *_scope_narrow*, all FOR ALL, TO authenticated, with both
+  // halves; 091's two were pinned already, and these are the other thirty-one.
+  "approval_events.approval_events_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.approval_requests r\n     JOIN app.content_items i ON (((i.workspace_id = r.workspace_id) AND (i.business_profile_id = r.business_profile_id) AND (i.id = r.content_item_id))))\n  WHERE ((r.workspace_id = approval_events.workspace_id) AND (r.business_profile_id = approval_events.business_profile_id) AND (r.id = approval_events.approval_request_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.approval_requests r\n     JOIN app.content_items i ON (((i.workspace_id = r.workspace_id) AND (i.business_profile_id = r.business_profile_id) AND (i.id = r.content_item_id))))\n  WHERE ((r.workspace_id = approval_events.workspace_id) AND (r.business_profile_id = approval_events.business_profile_id) AND (r.id = approval_events.approval_request_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "approval_policies.approval_policies_scope_narrowing": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "approval_requests.approval_requests_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = approval_requests.workspace_id) AND (i.business_profile_id = approval_requests.business_profile_id) AND (i.id = approval_requests.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = approval_requests.workspace_id) AND (i.business_profile_id = approval_requests.business_profile_id) AND (i.id = approval_requests.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "asset_rights.asset_rights_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = asset_rights.workspace_id) AND (a.business_profile_id = asset_rights.business_profile_id) AND (a.id = asset_rights.asset_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = asset_rights.workspace_id) AND (a.business_profile_id = asset_rights.business_profile_id) AND (a.id = asset_rights.asset_id))))" },
+  "asset_versions.asset_versions_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = asset_versions.workspace_id) AND (a.business_profile_id = asset_versions.business_profile_id) AND (a.id = asset_versions.asset_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = asset_versions.workspace_id) AND (a.business_profile_id = asset_versions.business_profile_id) AND (a.id = asset_versions.asset_id))))" },
+  "assets.assets_scope_narrows_member": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "business_profile_versions.business_profile_versions_scope_narrows_member": { cmd: "*", using: "app.member_scope_admits_business(workspace_id, business_profile_id)", check: "app.member_scope_admits_business(workspace_id, business_profile_id)" },
+  "business_profiles.business_profiles_scope_narrows_member": { cmd: "*", using: "app.member_scope_admits_business(workspace_id, id)", check: "app.member_scope_admits_business(workspace_id, id)" },
+  "content_asset_links.content_asset_links_scope_narrows_member": { cmd: "*", using: "((EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = content_asset_links.workspace_id) AND (a.business_profile_id = content_asset_links.business_profile_id) AND (a.id = content_asset_links.asset_id)))) AND (EXISTS ( SELECT 1\n   FROM app.content_versions v\n  WHERE ((v.workspace_id = content_asset_links.workspace_id) AND (v.business_profile_id = content_asset_links.business_profile_id) AND (v.id = content_asset_links.content_version_id)))))", check: "((EXISTS ( SELECT 1\n   FROM app.assets a\n  WHERE ((a.workspace_id = content_asset_links.workspace_id) AND (a.business_profile_id = content_asset_links.business_profile_id) AND (a.id = content_asset_links.asset_id)))) AND (EXISTS ( SELECT 1\n   FROM app.content_versions v\n  WHERE ((v.workspace_id = content_asset_links.workspace_id) AND (v.business_profile_id = content_asset_links.business_profile_id) AND (v.id = content_asset_links.content_version_id)))))" },
+  "content_ideas.content_ideas_scope_narrowing": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "content_items.content_items_scope_narrowing": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "content_targets.content_targets_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = content_targets.workspace_id) AND (i.business_profile_id = content_targets.business_profile_id) AND (i.id = content_targets.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = content_targets.workspace_id) AND (i.business_profile_id = content_targets.business_profile_id) AND (i.id = content_targets.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "content_variants.content_variants_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.content_versions v\n     JOIN app.content_items i ON (((i.workspace_id = v.workspace_id) AND (i.business_profile_id = v.business_profile_id) AND (i.id = v.content_item_id))))\n  WHERE ((v.workspace_id = content_variants.workspace_id) AND (v.business_profile_id = content_variants.business_profile_id) AND (v.id = content_variants.content_version_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.content_versions v\n     JOIN app.content_items i ON (((i.workspace_id = v.workspace_id) AND (i.business_profile_id = v.business_profile_id) AND (i.id = v.content_item_id))))\n  WHERE ((v.workspace_id = content_variants.workspace_id) AND (v.business_profile_id = content_variants.business_profile_id) AND (v.id = content_variants.content_version_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "content_versions.content_versions_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = content_versions.workspace_id) AND (i.business_profile_id = content_versions.business_profile_id) AND (i.id = content_versions.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = content_versions.workspace_id) AND (i.business_profile_id = content_versions.business_profile_id) AND (i.id = content_versions.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "industry_assignments.industry_assignments_scope_narrows_member": { cmd: "*", using: "app.member_scope_admits_business(workspace_id, business_profile_id)", check: "app.member_scope_admits_business(workspace_id, business_profile_id)" },
+  "knowledge_item_versions.knowledge_item_versions_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.knowledge_items i\n  WHERE ((i.workspace_id = knowledge_item_versions.workspace_id) AND (i.business_profile_id = knowledge_item_versions.business_profile_id) AND (i.id = knowledge_item_versions.knowledge_item_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.knowledge_items i\n  WHERE ((i.workspace_id = knowledge_item_versions.workspace_id) AND (i.business_profile_id = knowledge_item_versions.business_profile_id) AND (i.id = knowledge_item_versions.knowledge_item_id))))" },
+  "knowledge_items.knowledge_items_scope_narrows_member": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "page_context_profile_versions.page_context_profile_versions_scope_narrows_member": { cmd: "*", using: "app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)", check: "app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)" },
+  "page_context_profiles.page_context_profiles_scope_narrows_member": { cmd: "*", using: "app.member_scope_admits_page(workspace_id, business_profile_id, id)", check: "app.member_scope_admits_page(workspace_id, business_profile_id, id)" },
+  "performance_snapshots.performance_snapshots_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (((app.published_posts p\n     JOIN app.publish_targets t ON (((t.workspace_id = p.workspace_id) AND (t.business_profile_id = p.business_profile_id) AND (t.id = p.publish_target_id))))\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((p.workspace_id = performance_snapshots.workspace_id) AND (p.business_profile_id = performance_snapshots.business_profile_id) AND (p.id = performance_snapshots.published_post_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (((app.published_posts p\n     JOIN app.publish_targets t ON (((t.workspace_id = p.workspace_id) AND (t.business_profile_id = p.business_profile_id) AND (t.id = p.publish_target_id))))\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((p.workspace_id = performance_snapshots.workspace_id) AND (p.business_profile_id = performance_snapshots.business_profile_id) AND (p.id = performance_snapshots.published_post_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "publish_intents.publish_intents_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = publish_intents.workspace_id) AND (i.business_profile_id = publish_intents.business_profile_id) AND (i.id = publish_intents.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM app.content_items i\n  WHERE ((i.workspace_id = publish_intents.workspace_id) AND (i.business_profile_id = publish_intents.business_profile_id) AND (i.id = publish_intents.content_item_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "publish_jobs.publish_jobs_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = publish_jobs.workspace_id) AND (t.business_profile_id = publish_jobs.business_profile_id) AND (t.id = publish_jobs.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = publish_jobs.workspace_id) AND (t.business_profile_id = publish_jobs.business_profile_id) AND (t.id = publish_jobs.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "publish_target_assets.publish_target_assets_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = publish_target_assets.workspace_id) AND (t.business_profile_id = publish_target_assets.business_profile_id) AND (t.id = publish_target_assets.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = publish_target_assets.workspace_id) AND (t.business_profile_id = publish_target_assets.business_profile_id) AND (t.id = publish_target_assets.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "publish_targets.publish_targets_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.publish_intents pi\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((pi.workspace_id = publish_targets.workspace_id) AND (pi.business_profile_id = publish_targets.business_profile_id) AND (pi.id = publish_targets.publish_intent_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.publish_intents pi\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((pi.workspace_id = publish_targets.workspace_id) AND (pi.business_profile_id = publish_targets.business_profile_id) AND (pi.id = publish_targets.publish_intent_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "published_posts.published_posts_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = published_posts.workspace_id) AND (t.business_profile_id = published_posts.business_profile_id) AND (t.id = published_posts.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM ((app.publish_targets t\n     JOIN app.publish_intents pi ON (((pi.workspace_id = t.workspace_id) AND (pi.business_profile_id = t.business_profile_id) AND (pi.id = t.publish_intent_id))))\n     JOIN app.content_items i ON (((i.workspace_id = pi.workspace_id) AND (i.business_profile_id = pi.business_profile_id) AND (i.id = pi.content_item_id))))\n  WHERE ((t.workspace_id = published_posts.workspace_id) AND (t.business_profile_id = published_posts.business_profile_id) AND (t.id = published_posts.publish_target_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "quality_reviews.quality_reviews_scope_narrowing": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM (app.content_versions v\n     JOIN app.content_items i ON (((i.workspace_id = v.workspace_id) AND (i.business_profile_id = v.business_profile_id) AND (i.id = v.content_item_id))))\n  WHERE ((v.workspace_id = quality_reviews.workspace_id) AND (v.business_profile_id = quality_reviews.business_profile_id) AND (v.id = quality_reviews.content_version_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))", check: "(EXISTS ( SELECT 1\n   FROM (app.content_versions v\n     JOIN app.content_items i ON (((i.workspace_id = v.workspace_id) AND (i.business_profile_id = v.business_profile_id) AND (i.id = v.content_item_id))))\n  WHERE ((v.workspace_id = quality_reviews.workspace_id) AND (v.business_profile_id = quality_reviews.business_profile_id) AND (v.id = quality_reviews.content_version_id) AND\n        CASE\n            WHEN (i.page_context_profile_id IS NULL) THEN app.member_scope_admits_business(i.workspace_id, i.business_profile_id)\n            ELSE app.member_scope_admits_page(i.workspace_id, i.business_profile_id, i.page_context_profile_id)\n        END)))" },
+  "quota_buckets.quota_buckets_scope_narrows_member": { cmd: "*", using: "((business_profile_id IS NULL) OR app.member_scope_admits_business(workspace_id, business_profile_id))", check: "((business_profile_id IS NULL) OR app.member_scope_admits_business(workspace_id, business_profile_id))" },
+  "research_evidence.research_evidence_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.research_sources s\n  WHERE ((s.workspace_id = research_evidence.workspace_id) AND (s.business_profile_id = research_evidence.business_profile_id) AND (s.id = research_evidence.research_source_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.research_sources s\n  WHERE ((s.workspace_id = research_evidence.workspace_id) AND (s.business_profile_id = research_evidence.business_profile_id) AND (s.id = research_evidence.research_source_id))))" },
+  "research_runs.research_runs_scope_narrows_member": { cmd: "*", using: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND", check: "\nCASE\n    WHEN (page_context_profile_id IS NULL) THEN app.member_scope_admits_business(workspace_id, business_profile_id)\n    ELSE app.member_scope_admits_page(workspace_id, business_profile_id, page_context_profile_id)\nEND" },
+  "research_sources.research_sources_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.research_runs r\n  WHERE ((r.workspace_id = research_sources.workspace_id) AND (r.business_profile_id = research_sources.business_profile_id) AND (r.id = research_sources.research_run_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.research_runs r\n  WHERE ((r.workspace_id = research_sources.workspace_id) AND (r.business_profile_id = research_sources.business_profile_id) AND (r.id = research_sources.research_run_id))))" },
+  "research_suggestions.research_suggestions_scope_narrows_member": { cmd: "*", using: "(EXISTS ( SELECT 1\n   FROM app.research_runs r\n  WHERE ((r.workspace_id = research_suggestions.workspace_id) AND (r.business_profile_id = research_suggestions.business_profile_id) AND (r.id = research_suggestions.research_run_id))))", check: "(EXISTS ( SELECT 1\n   FROM app.research_runs r\n  WHERE ((r.workspace_id = research_suggestions.workspace_id) AND (r.business_profile_id = research_suggestions.business_profile_id) AND (r.id = research_suggestions.research_run_id))))" },
 };
 export const PINNED_POLICY_PROBE_SQL = `do \$\$
 declare
@@ -363,6 +632,54 @@ begin
                       where p.prosecdef and format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) = pin.fn);
   if offending is not null then
     raise exception 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER: %', offending;
+  end if;
+end \$\$;
+`;
+// 3'. THE INVOKER HELPERS THE POLICIES CALL, BY BODY (batch 127's review round; C0 F4). The permissive and
+// restrictive pins compare a policy's DEPARSE, and a deparse names a function without its body: C0 X1
+// replaced member_scope_covers_business and member_scope_admits_business with `select true` and migrate-clean
+// passed, held by rls-smoke alone (40 cases). Measured on the clean set through 127: policies call exactly
+// auth.uid(), the two pinned SECURITY DEFINER lookups, and four invoker helpers; two of those call
+// member_scope_is_narrowed and the other two. These five are pinned here by owner, body digest and an empty
+// search_path, and every function any policy calls must be one of them, a pinned SECURITY DEFINER function or
+// the platform's auth.uid(): a policy that starts calling an unpinned function fails by that function's name.
+export const POLICY_HELPER_FUNCTIONS = [
+  ['app.member_scope_admits_business(workspace uuid, business uuid)', 'migration owner', '1887136915f293e7a8b8a97cfb99f855'],
+  ['app.member_scope_admits_page(workspace uuid, business uuid, page_context uuid)', 'migration owner', '91f9821a8f333293e4d143a37637355d'],
+  ['app.member_scope_covers_business(workspace uuid, business uuid)', 'migration owner', '786d81cc03c67608c0f69f44d52bc0df'],
+  ['app.member_scope_covers_page(workspace uuid, business uuid, page_context uuid)', 'migration owner', '63aaa2293bd43d74743a3f93b6217e05'],
+  ['app.member_scope_is_narrowed(workspace uuid)', 'migration owner', '6c54d6ea9adc9233be6e416f9d3ce204'],
+];
+export const POLICY_PLATFORM_FUNCTIONS = ['auth.uid()'];
+export const POLICY_HELPER_PROBE_SQL = `do \$\$
+declare
+  offending text;
+begin
+  select string_agg(x, ', ' order by x) into offending from (
+    select pin.fn || case when p.oid is null then ' [missing]' else
+             case when p.prosecdef then ' [SECURITY DEFINER]' else '' end
+             || case when p.proconfig is distinct from array['search_path=""'] then ' [proconfig is not exactly search_path=""]' else '' end
+             || case when pg_catalog.pg_get_userbyid(p.proowner) <> case when pin.owner = 'migration owner' then current_user::text else pin.owner end
+                     then ' [owner is not the pinned owner]' else '' end
+             || case when md5(p.prosrc) <> pin.digest then ' [body differs from the pinned digest]' else '' end end as x
+      from (values ${POLICY_HELPER_FUNCTIONS.map(([f, o, d]) => `('${f}', '${o}', '${d}')`).join(', ')}) as pin(fn, owner, digest)
+      left join (pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace)
+        on format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) = pin.fn
+  ) f
+   where x ~ '\\[';
+  if offending is not null then
+    raise exception 'policy helper function(s) not in their pinned shape: %', offending;
+  end if;
+  select string_agg(distinct called.fn, ', ' order by called.fn) into offending from (
+    select format('%s.%s(%s)', n.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)) as fn
+      from pg_catalog.pg_depend d join pg_catalog.pg_proc p on p.oid = d.refobjid
+      join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+     where d.classid = 'pg_catalog.pg_policy'::pg_catalog.regclass and d.refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass
+       and n.nspname not in ('pg_catalog', 'information_schema')
+  ) called
+   where not (called.fn = any (array[${[...POLICY_HELPER_FUNCTIONS.map(([f]) => f), ...SECURITY_DEFINER_FUNCTIONS.map(([f]) => f), ...POLICY_PLATFORM_FUNCTIONS].map((f) => `'${f}'`).join(', ')}]));
+  if offending is not null then
+    raise exception 'function(s) a policy calls that are not pinned by body: %', offending;
   end if;
 end \$\$;
 `;
@@ -745,6 +1062,41 @@ export const CATALOG_RULE_PROBES = [
     claim: `every client-updatable *_by column is among the ${Object.values(ATTRIBUTION_UPDATE_CLOSURES).flat().length} with a pinned closure (${Object.keys(ATTRIBUTION_UPDATE_CLOSURES).join(', ')})`,
     selfTests: [{ drift: 'grant update (updated_by) on app.workspace_member_scopes to authenticated;',
       raises: 'client-updatable attribution column(s) with no pinned UPDATE closure', names: ['app.workspace_member_scopes.updated_by'] }] },
+  // Batch 127 (blocker 186's created_by class; A1 F5 on 123, A1 F3 on 091).
+  { label: 'created_by insert closure probe', sql: CREATED_BY_CLOSURE_PROBE_SQL,
+    claim: `${CREATED_BY_CLOSURES.length} created_by INSERT closures in their exact text on their pinned tables`,
+    selfTests: [{ drift: 'alter policy content_schedules_created_by_is_caller on app.content_schedules with check (true);',
+      raises: 'created_by_is_caller closure(s) not in their pinned shape', names: ['content_schedules.content_schedules_created_by_is_caller'] }] },
+  { label: 'insert closure coverage probe', sql: INSERT_CLOSURE_COVERAGE_PROBE_SQL,
+    claim: `every client-insertable *_by column is among the ${Object.values(ATTRIBUTION_INSERT_CLOSURES).flat().length} with a pinned INSERT closure (${Object.keys(ATTRIBUTION_INSERT_CLOSURES).join(', ')})`,
+    selfTests: [{ drift: 'grant insert (created_by) on app.content_versions to authenticated;',
+      raises: 'client-insertable attribution column(s) with no pinned INSERT closure', names: ['app.content_versions.created_by'] }] },
+  // Batch 127, item (3) of A0's message the Owner answered on 2026-10-03: a looser permissive sibling
+  // under a new name, and a permissive policy widened in place, each fail by name. One rule, one drift
+  // with both inputs (the fk support probe's shape).
+  { label: 'permissive policy probe', sql: PERMISSIVE_POLICY_PROBE_SQL,
+    claim: `the ${Object.keys(PERMISSIVE_POLICIES).length} permissive policies on the ${new Set(Object.keys(PERMISSIVE_POLICIES).map((k) => k.split('.')[0])).size} client-writable app tables, exactly, by name, command, roles and deparse`,
+    selfTests: [{ drift: 'create policy content_ideas_insert_looser on app.content_ideas for insert to authenticated with check (true); alter policy content_items_select_active_member on app.content_items using (true);',
+      raises: 'permissive policy set of a client-writable app table not exactly its pinned list',
+      names: ['app.content_ideas.content_ideas_insert_looser', 'app.content_items.content_items_select_active_member'] }] },
+  // Batch 127's review round: what reaches past every policy (C0 F1; A1 F1 and F2; Q0 F1). Each drift
+  // leaves the rules before its own intact, since the first raise ends the block.
+  { label: 'client privilege probe', sql: CLIENT_PRIVILEGE_PROBE_SQL,
+    claim: `no client role (${CLIENT_ROLES.join(', ')}) holds TRUNCATE, TRIGGER, REFERENCES or MAINTAIN on any relation in app, private or public; any privilege on a view, materialized view or foreign table there (${Object.keys(CLIENT_VIEWS).length} pinned, each security_invoker); or any privilege on a table in private or public (${Object.keys(CLIENT_NON_APP_TABLES).length} pinned)`,
+    selfTests: [
+      // C0 X6: TRUNCATE skips row level security. And the other three, each on its own table.
+      { drift: 'grant truncate on app.notifications to authenticated; grant references (id) on app.workspaces to anon; grant trigger on app.content_items to public;',
+        raises: 'client role(s) hold TRUNCATE, TRIGGER, REFERENCES or MAINTAIN',
+        names: ['authenticated TRUNCATE on app.notifications', 'anon REFERENCES on app.workspaces', 'public TRIGGER on app.content_items'] },
+      // A1 R5b (invoker switched off by ALTER VIEW), Q0's plain view, and a materialized view in private.
+      { drift: 'create view app.probe_invoker_off_v with (security_invoker = true) as select id, workspace_id, created_by from app.content_ideas; alter view app.probe_invoker_off_v set (security_invoker = false); grant select, insert on app.probe_invoker_off_v to authenticated; create view public.probe_plain_v as select id from app.workspaces; grant select on public.probe_plain_v to anon; create materialized view private.probe_mv as select id from app.workspaces with no data; grant select on private.probe_mv to public;',
+        raises: 'view(s), materialized view(s) or foreign table(s) a client role can use',
+        names: ['app.probe_invoker_off_v', 'private.probe_mv', 'public.probe_plain_v'] },
+      // A1 R6: an allow-everything table in public; and a grant on a private table.
+      { drift: 'create table public.probe_pub (id uuid primary key, workspace_id uuid, created_by uuid); alter table public.probe_pub enable row level security; create policy probe_pub_any on public.probe_pub for insert to authenticated with check (true); grant insert on public.probe_pub to authenticated; grant select on private.ai_credential_references to authenticated;',
+        raises: 'table(s) in private or public a client role can read or write',
+        names: ['private.ai_credential_references', 'public.probe_pub'] },
+    ] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
@@ -766,6 +1118,18 @@ export const CATALOG_RULE_PROBES = [
       // No longer a definer, so the first rule does not see it and only the second can.
       { drift: 'alter function private.set_updated_at() security invoker;',
         raises: 'pinned SECURITY DEFINER function(s) missing or no longer SECURITY DEFINER', names: ['private.set_updated_at()'] },
+    ] },
+  // Batch 127's review round (C0 F4).
+  { label: 'policy helper probe', sql: POLICY_HELPER_PROBE_SQL,
+    claim: `the ${POLICY_HELPER_FUNCTIONS.length} invoker helpers the policies call match their pinned owner, body and empty search_path, and every function a policy calls is one of them, a pinned SECURITY DEFINER function or ${POLICY_PLATFORM_FUNCTIONS.join(', ')}`,
+    selfTests: [
+      // C0 X1: the body replaced by `select true`, the deparse of every policy unchanged.
+      { drift: "create or replace function app.member_scope_covers_business(workspace uuid, business uuid) returns boolean language sql stable security invoker set search_path = '' as $f$ select true $f$;",
+        raises: 'policy helper function(s) not in their pinned shape',
+        names: ['app.member_scope_covers_business(workspace uuid, business uuid) [body differs from the pinned digest]'] },
+      { drift: "create function app.probe_helper(workspace uuid) returns boolean language sql stable as $f$ select true $f$; create policy probe_helper_narrowing on app.content_versions as restrictive for select to authenticated using (app.probe_helper(workspace_id));",
+        raises: 'function(s) a policy calls that are not pinned by body',
+        names: ['app.probe_helper(workspace uuid)'] },
     ] },
   { label: 'trigger probe', sql: TRIGGER_PROBE_SQL,
     claim: `every trigger outside the system schemas is enabled, internal ones included, no role or database defaults session_replication_role, the ${REFUSE_MUTATION_TRIGGERS.length} append-only triggers match their pinned definitions on two plain tables with no children, and no parameter grant hands session_replication_role to a non-superuser`,

@@ -107,18 +107,20 @@ begin
   -- `industry_assignments_service_path_closed`, 102 added `industry_assignments_updated_by_is_caller`
   -- and 105 added `industry_assignments_updated_by_on_update_is_caller`,
   -- all three restrictive and each asserted by its own batch's block, which this pass also re-runs.
-  -- The final-state form pins the whole set by name, so a fifth restrictive policy still fails here
+  -- SUPERSEDED BY 127 as well: `industry_assignments_created_by_is_caller`, restrictive, INSERT.
+  -- The final-state form pins the whole set by name, so a sixth restrictive policy still fails here
   -- exactly as a second one failed 030's original, and 030's own policy is still counted as one.
   if (select array_agg(pol.polname::text order by pol.polname)
         from pg_catalog.pg_policy pol
         join pg_catalog.pg_class c on c.oid = pol.polrelid
         join pg_catalog.pg_namespace n on n.oid = c.relnamespace
        where n.nspname = 'app' and c.relname = 'industry_assignments' and not pol.polpermissive)
-     is distinct from array['industry_assignments_scope_narrows_member',
+     is distinct from array['industry_assignments_created_by_is_caller',  -- SUPERSEDED BY 127: its INSERT closure
+                            'industry_assignments_scope_narrows_member',
                             'industry_assignments_service_path_closed',
                             'industry_assignments_updated_by_is_caller',
                             'industry_assignments_updated_by_on_update_is_caller'] then  -- SUPERSEDED BY 105: its UPDATE closure
-    raise exception 'app.industry_assignments restrictive policies are not exactly 030''s narrowing, 031''s closure and 102''s and 105''s updated_by closures';
+    raise exception 'app.industry_assignments restrictive policies are not exactly 030''s narrowing, 031''s closure, 102''s and 105''s updated_by closures and 127''s created_by closure';
   end if;
   select count(*) into count_of
     from pg_catalog.pg_policy pol
@@ -128,7 +130,8 @@ begin
      and c.relname = 'industry_assignments'
      and not pol.polpermissive
      and pol.polname not in ('industry_assignments_service_path_closed', 'industry_assignments_updated_by_is_caller',
-                             'industry_assignments_updated_by_on_update_is_caller');  -- SUPERSEDED BY 105: its UPDATE closure
+                             'industry_assignments_updated_by_on_update_is_caller',  -- SUPERSEDED BY 105: its UPDATE closure
+                             'industry_assignments_created_by_is_caller');  -- SUPERSEDED BY 127: its INSERT closure
   if count_of <> 1 then
     raise exception 'app.industry_assignments carries % restrictive policies and batch 030 writes exactly one', count_of
       using hint = 'The member-scope narrowing is the only thing on this table that must AND rather '

@@ -81,8 +81,8 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // fourth, the verdict driven by synthetic outcomes: 66 to 67. The catalog-rule probes added one
 // more (2026-09-27): 67 to 68, and Q0's F2 on that head a sixth, the probe verdict: 68 to 69. Batch
 // 105's pin test: 69 to 70. Batch 123's pin test: 70 to 71. Its corrections renamed two and added none.
-// Batch 125's pin test: 71 to 72.
-  'test-kits/db/foundation-contract.test.mjs': 72,
+// Batch 125's pin test: 71 to 72. Batch 127's pin test: 72 to 73.
+  'test-kits/db/foundation-contract.test.mjs': 73,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -93,8 +93,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // (Q0's test of 123, F4), the guard's own counts. Batch 125: 302 to 303 tests and 2141 to 2144
 // assertions, the runCases test of `violates` (Q0's re-test of 123's corrections, F5). Batch 091's
 // corrections: 303 to 304 tests and 2144 to 2150 assertions, the static hold on its two CI control
-// entries (C0's review of 091, F11), the guard's own counts.
-  'tests/db/identity/identity-isolation.test.mjs': 304,
+// entries (C0's review of 091, F11), the guard's own counts. Batch 127: 304 to 305 tests and 2152 to
+// 2166 assertions, the hold on its created_by-alone family (A1 F5 on 123), the guard's own counts.
+  'tests/db/identity/identity-isolation.test.mjs': 305,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -154,11 +155,18 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // 365 to 418 with batch 126 (2026-10-03): the verdict driven every wrong way the reviews of 125 named,
 // the psql lexer, the pinned trigger, grant and default probes and 126's pin test; no test is added and
 // none renamed, so the test floor and the name digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 418,
+// 418 to 464 with batch 127 (2026-10-03): the created_by closure, INSERT coverage and permissive policy
+// probes, the odd-run and client-encoding lexer shapes, and 127's pin test; one test added (127's pin
+// test), so the test floor moves 72 to 73 and the name digest with it; the guard's own count.
+// 464 to 480 with batch 127's review round (2026-10-03): the client privilege and policy helper probes'
+// reading predicates, the thirty-three pinned member-scope narrowings and the SET NAMES shapes anywhere;
+// no test is added and none renamed, so the test floor and the name digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 480,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
-  'tests/db/identity/identity-isolation.test.mjs': 2152,
+  // Batch 127: 2152 to 2166, the created_by-alone family hold, the guard's own count.
+  'tests/db/identity/identity-isolation.test.mjs': 2166,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,
@@ -193,9 +201,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'd9abfb6c722f5bc2',
+  'test-kits/db/foundation-contract.test.mjs': 'c125bbd792fa8a92',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': '508aa725e218649f',
+  'tests/db/identity/identity-isolation.test.mjs': '1f31de81782c9104',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',
