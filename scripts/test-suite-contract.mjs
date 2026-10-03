@@ -151,7 +151,10 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // pinned checks (2026-09-28), the guard's own count.
 // 342 to 365 with batch 125: the job list and verdict against the real probes, every raise spelling,
 // transaction control, and 125's pin test (2026-09-28), the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 365,
+// 365 to 418 with batch 126 (2026-10-03): the verdict driven every wrong way the reviews of 125 named,
+// the psql lexer, the pinned trigger, grant and default probes and 126's pin test; no test is added and
+// none renamed, so the test floor and the name digest stay; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 418,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

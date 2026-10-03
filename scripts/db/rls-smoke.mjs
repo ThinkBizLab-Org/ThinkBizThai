@@ -14,7 +14,7 @@
 import { readFile } from 'node:fs/promises';
 import { argv, env, exit, stdout, stderr } from 'node:process';
 
-import { query, queryFinal, connectionString, openSession, feed } from './psql-driver.mjs';
+import { query, queryFinal, connectionString, openSession, feed, psqlLex } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
 
@@ -184,6 +184,15 @@ async function main() {
   // failure folded into the assertion phase would have read as "the identity was denied", which is
   // what a passing isolation suite looks like from the outside.
   const helpers = await readFile('db/foundation/test-helpers/auth-context.sql', 'utf8');
+  // Every script this target feeds on stdin is scanned before the first is fed: psql executes a
+  // backslash anywhere outside a literal, a body or a comment (blocker 186 item 12).
+  const fed = [['db/foundation/test-helpers/auth-context.sql', helpers]];
+  for (const path of FIXTURE_SQL_FILES) fed.push([path, await readFile(path, 'utf8')]);
+  const meta = fed.flatMap(([path, sql]) => psqlLex(sql).metaCommands.map((m) => `${path} line ${m.line}`));
+  if (meta.length) {
+    stderr.write(`db-rls-smoke: a psql meta-command outside any literal, body or comment, which psql would execute: ${meta.join(', ')}\n`);
+    return 1;
+  }
   const installed = await feed(helpers);
   if (installed.error) {
     stderr.write(`db-rls-smoke: the auth-context helpers did not install: ${installed.error.message}\n`

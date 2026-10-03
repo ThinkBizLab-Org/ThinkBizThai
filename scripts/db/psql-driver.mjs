@@ -144,7 +144,7 @@ function runWithInput(file, args, input, options) {
 
 // The raw invocation: either the text psql printed, or a classified error. Everything above it
 // decides what the text MEANS; nothing below it does.
-async function invoke(sql, { env = process.env, url = null, viaStdin = false } = {}) {
+async function invoke(sql, { env = process.env, url = null, viaStdin = false, transcript = false } = {}) {
   const connection = url ?? connectionString(env);
   const args = [
     connection,
@@ -156,10 +156,10 @@ async function invoke(sql, { env = process.env, url = null, viaStdin = false } =
     env: { ...env, LC_ALL: 'C', TZ: 'UTC', PGTZ: 'UTC', PGOPTIONS: '-c client_min_messages=warning' },
   };
   try {
-    const { stdout } = viaStdin
+    const { stdout, stderr } = viaStdin
       ? await runWithInput('psql', args, sql, options)
       : await run('psql', [...args, '--command', sql], options);
-    return { stdout };
+    return transcript ? { stdout, stderr: redactConnection(String(stderr ?? ''), connection) } : { stdout };
   } catch (failure) {
     // A missing psql is not a database refusal, and must never be classified as one.
     if (failure.code === 'ENOENT') {
@@ -167,7 +167,10 @@ async function invoke(sql, { env = process.env, url = null, viaStdin = false } =
       error.code = 'NO_PSQL';
       throw error;
     }
-    return { error: parseError(redactConnection(String(failure.stderr ?? failure.message ?? ''), connection)) };
+    const stderr = redactConnection(String(failure.stderr ?? failure.message ?? ''), connection);
+    return transcript
+      ? { error: parseError(stderr), stdout: String(failure.stdout ?? ''), stderr }
+      : { error: parseError(stderr) };
   }
 }
 
@@ -277,6 +280,101 @@ export async function script(sql, options = {}) {
 // a static rule holds every fixture and helper to carrying none.
 export async function feed(sql, options = {}) {
   return query(sql, { ...options, viaStdin: true });
+}
+
+// A script fed on stdin, as `feed` does, that keeps psql's whole TRANSCRIPT: stdout and stderr on
+// success and on failure alike. The catalog-rule executor needs both (blocker 186 item 11): stdout
+// carries the markers that say the probe, not the drift, raised, and stderr is where a forged
+// `ERROR:` line would sit beside the real one. Nothing else uses it; `feed` keeps its shape.
+export async function feedTranscript(sql, options = {}) {
+  return invoke(sql, { ...options, viaStdin: true, transcript: true });
+}
+
+// WHAT psql WOULD EXECUTE AS A META-COMMAND, AND WHERE EACH TOP-LEVEL STATEMENT BEGINS (blocker 186
+// item 12; Q0 F2 and F4, A1 V4, C0 F4 on batch 125). On stdin psql executes an unquoted backslash
+// ANYWHERE on a line -- `select 1; \! touch f` ran a shell command out of a migration (Q0 MC1) -- and
+// the rule that held migrations read only a line BEGINNING with one. This is a lexer in psql's own
+// terms: outside single-quoted literals (E'' with its backslash escapes), dollar-quoted bodies,
+// double-quoted identifiers and comments (`--` to the end of the line, `/* */` nested), a backslash
+// is a meta-command. Inside them it is text, which is why the coverage probe's `'%\_by'` passes.
+// Statements split on `;` at parenthesis depth zero, as psql splits them, and each statement's HEAD
+// is its text with comments removed and whitespace collapsed, so a rule can read the statement's
+// first words rather than any word anywhere (A1 V4: the keyword rule refused every DO block).
+// Known over-refusal, which fails closed: a SQL-standard `begin atomic ... end` body is split at its
+// inner `;`, so its `end` reads as a statement head.
+export function psqlLex(sql) {
+  const text = String(sql);
+  const metaCommands = [];
+  const statements = [];
+  let head = '';
+  let headLine = 1;
+  let line = 1;
+  let depth = 0;
+  const isIdent = (ch) => ch !== undefined && /[A-Za-z0-9_$\u0080-\uffff]/.test(ch);
+  const endStatement = () => {
+    const h = head.replace(/\s+/g, ' ').trim();
+    if (h) statements.push({ line: headLine, head: h });
+    head = '';
+  };
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (ch === '\n') { line += 1; head += ' '; continue; }
+    if (!head.trim()) headLine = line;
+    if (ch === '-' && next === '-') {
+      while (i < text.length && text[i] !== '\n') i += 1;
+      i -= 1; head += ' '; continue;
+    }
+    if (ch === '/' && next === '*') {
+      let nest = 1; i += 2;
+      while (i < text.length && nest > 0) {
+        if (text[i] === '\n') line += 1;
+        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; continue; }
+        if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; continue; }
+        i += 1;
+      }
+      i -= 1; head += ' '; continue;
+    }
+    if (ch === "'") {
+      const escapes = /[eE]/.test(text[i - 1] ?? '') && !isIdent(text[i - 2]);
+      let j = i + 1;
+      for (; j < text.length; j += 1) {
+        if (text[j] === '\n') line += 1;
+        if (escapes && text[j] === '\\') { j += 1; continue; }
+        if (text[j] === "'") { if (text[j + 1] === "'") { j += 1; continue; } break; }
+      }
+      head += text.slice(i, j + 1); i = j; continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      for (; j < text.length; j += 1) {
+        if (text[j] === '\n') line += 1;
+        if (text[j] === '"') { if (text[j + 1] === '"') { j += 1; continue; } break; }
+      }
+      head += text.slice(i, j + 1); i = j; continue;
+    }
+    if (ch === '$' && !isIdent(text[i - 1])) {
+      const tag = text.slice(i).match(/^\$([A-Za-z_\u0080-\uffff][A-Za-z0-9_\u0080-\uffff]*)?\$/);
+      if (tag) {
+        const close = text.indexOf(tag[0], i + tag[0].length);
+        const end = close === -1 ? text.length : close + tag[0].length;
+        const body = text.slice(i, end);
+        line += body.split('\n').length - 1;
+        head += body; i = end - 1; continue;
+      }
+    }
+    if (ch === '\\') {
+      const eol = text.indexOf('\n', i);
+      metaCommands.push({ line, text: text.slice(i, eol === -1 ? text.length : eol) });
+      head += ch; continue;
+    }
+    if (ch === '(') depth += 1;
+    if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === ';' && depth === 0) { endStatement(); continue; }
+    head += ch;
+  }
+  endStatement();
+  return { metaCommands, statements };
 }
 
 // The identity helpers, as SQL the driver issues rather than as functions in the database. They

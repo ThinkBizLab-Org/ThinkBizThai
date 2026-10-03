@@ -319,9 +319,11 @@ name** still misses a change to what the constraint **says**.
 
 ## The catalog-rule probes, and what a new batch must keep true
 
-After the ceiling probe, `make db-migrate-clean` asserts six families of rules over all of `app` and
-`private`, in eleven probes. The first is the FK-support probe (batch 104): every foreign key has a
-supporting index, and each of its four exemptions names a key that exists. The other five are
+After the ceiling probe, `make db-migrate-clean` asserts eight families of rules over all of `app` and
+`private`, in fourteen probes. The first is the FK-support probe (batch 104): every foreign key has a
+supporting index, and each of its four exemptions names a key that exists. An exemption is keyed
+`schema.table.constraint`, so a key on another table that borrows an exempt key's name is not
+exempt (batch 126; Q0 F6 on batch 125). The other seven are
 numbered below. Each rule is enforced by a probe in `scripts/db/run.mjs`, so a later file cannot
 break it silently:
 
@@ -358,12 +360,16 @@ break it silently:
    `USING (status = 'pending') WITH CHECK (true)`. It is pinned in `PINNED_POLICIES`, because
    `closureRule` requires no USING. The WITH CHECK is `true` on purpose: with USING alone, the new row
    would have to be pending too, and every cancel and decide would be refused. The invoker trigger
-   `private.set_decided_at()` sets `decided_at` to `now()` when `decided_by` is first set, whatever
-   the client sent. It refuses any later change to either column, for every writer that fires
-   triggers. The trigger never reads `status`. For a client, the settled-row closure freezes the
-   outcome; for any other writer nothing does, and the trigger does not cover INSERT. Both are owed
-   (A1's review of batch 125, V1). 125's own
-   block pins the trigger's definition and the md5 of the function body.
+   `private.set_decided_at()` sets `decided_at` to the statement's time when `decided_by` is first
+   set, whatever the client sent (`statement_timestamp()` since batch 126; 125 used `now()`, the
+   transaction's start). Since batch 126 it is BEFORE INSERT OR UPDATE: an INSERT that names a
+   decider is timed the same way, and once a request is not `pending` its `status`, `decided_by` and
+   `decided_at` are refused any change by every writer that fires triggers (A1's review of batch 125,
+   V1). `approval_requests_decided_after_created` (CHECK `decided_at >= created_at`) is pinned in
+   `PINNED_CHECKS`. The 090 fixture's loader, a non-client writer, is shown refused on every
+   rls-smoke run. Still owed: the settled-row closure for an RFC-2026-023 command role, once that RFC
+   says which role it is. 126's own block, and 125's replacement, pin the trigger's definition and
+   the md5 of the function body; the pinned trigger probe (rule 6) pins both again.
 3. **Every client-updatable `*_by` column has a pinned closure for its column:** `updated_by` in
    `UPDATED_BY_ON_UPDATE_CLOSURES`, `decided_by` in `DECIDER_CLOSURES`. A new attribution column that
    clients can update fails the coverage probe by name, until the batch that grants it adds its
@@ -377,7 +383,22 @@ break it silently:
    that enforce foreign keys. The `private.refuse_mutation` triggers are exactly four pinned
    `pg_get_triggerdef` definitions on `audit_logs` and `security_events`, so a `WHEN` clause or an
    `UPDATE OF` list fails too. Neither table may be partitioned, have a child table, or inherit from
-   another table.
+   another table. No role or database defaults `session_replication_role`, and no parameter grant
+   (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125).
+6. **Every trigger on `app.approval_requests` is exactly its pinned `pg_get_triggerdef` text, and every
+   function those triggers run matches its pinned body digest, security and empty `search_path`**
+   (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125). A second
+   BEFORE UPDATE trigger sorting after `set_decided_at`, or a rewritten body, fails by name.
+7. **The privileges every non-superuser role holds on `app.calendar_items` and `app.content_schedules`
+   are exactly an allowlist** (`PINNED_GRANTS`; batch 126, C0 H1 and A1 R1, R3 on batch 091's third
+   round). Every role that is neither a superuser nor a predefined `pg_*` role is read for its
+   effective table privileges (MAINTAIN included on PostgreSQL 17) and its effective column privileges,
+   and the set must equal the pinned one, both ways: an unlisted grant and a missing one are each named.
+   091's block lists privileges a role must NOT hold, so a grant it did not name, such as INSERT on
+   `deleted_at`, passed every layer. A batch that changes these grants changes `PINNED_GRANTS` in the same
+   change; the static test holds the list to 091's grant statements.
+8. **Column defaults a decision fixes are pinned by deparse text** (`PINNED_DEFAULTS`): today only
+   `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
 
 **Every catalog-rule probe's rules are shown able to fail on every run.** Each probe carries one
 self-test drift per rule
@@ -388,8 +409,17 @@ the suite. A rule no drift reaches runs live and is never shown able to fire. Q0
 two such rules in the closure probe, and applying the same check to every probe found six more.
 
 After every drift has run, each probe runs **as built again**, so a drift that outlived its rollback
-fails the target. A drift may not contain transaction control (`begin`, `commit`, `rollback`, `end`,
-`savepoint`, `release`, `abort`, `start transaction`, `prepare transaction`). The contract test
+fails the target. Before any job is fed, no drift may hold a top-level statement that begins with
+transaction control (`begin`, `commit`, `rollback`, `end`, `savepoint`, `release`, `abort`,
+`start transaction`, `prepare transaction`), and no drift or probe may hold a psql meta-command
+anywhere psql would execute one. Statement position, not any word: a DO block or a function body is
+admitted (batch 126; A1 V4, Q0 F1-F2 on batch 125). Each drift also NAMES the objects its refusal
+must name, and each job prints a marker with the transaction id before its drift and a per-job nonce
+with the same id after it: a refusal counts only if it is P0001, carries the rule's prefix and every
+named object, leaves one ERROR line, and comes after the second marker in the same transaction. A
+probe whose refused count differs from its declared count fails (C0 F1, Q0 F1 on batch 125). The
+same meta-command scan (`psqlLex` in `scripts/db/psql-driver.mjs`) runs, live and statically, over
+every migration, the prerequisite, every replacement, every fixture and the auth-context helper. The contract test
 derives the whole job list independently and compares it with `catalogProbeJobs`. It drives the
 verdict with outcomes built from the real probes, and it counts every spelling of `raise`. Each claim
 line counts the drifts that were refused, not the drifts declared (Q0's re-test of batch 123's

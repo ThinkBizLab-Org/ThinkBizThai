@@ -364,6 +364,8 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '124_calendar_publish_intent_fk.sql',
   // Batch 125: one restrictive policy on 090's approval_requests, after 123's closures beside it.
   '125_approval_settled_is_immutable.sql',
+  // Batch 126: 125's function replaced and one CHECK on 090's approval_requests, after 125.
+  '126_approval_decision_frozen_for_every_writer.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
   '140_audit.sql'];
 
@@ -2138,12 +2140,29 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   // line in one running on the host), so they are held to the same rule.
   const replacements = (await readdir('db/foundation/invariants')).filter((n) => n.endsWith('.sql')).map((n) => `db/foundation/invariants/${n}`);
   assert.ok(replacements.length >= 10, 'the replacements are read by this rule');
+  // ANYWHERE ON A LINE, not only at its start (blocker 186 item 12; Q0 F4 on batch 125: `select 1; \\! touch
+  // <file>` appended to a migration ran a shell command at migrate-clean while this rule read the line
+  // as clean). psqlLex reads the text as psql does: a backslash inside a literal, a dollar-quoted body,
+  // a quoted identifier or a comment is text, and anywhere else it is a command psql executes.
+  const { psqlLex } = await import('../../scripts/db/psql-driver.mjs');
   for (const name of [...names, 'db/foundation/prerequisites.sql', ...replacements]) {
     const text = await readFile(name.includes('/') ? name : `${dir}/${name}`, 'utf8');
-    const meta = text.split('\n').findIndex((line) => /^\s*\\/.test(line));
-    assert.equal(meta, -1,
-      `${name} line ${meta + 1} begins with a backslash. Under stdin psql executes that as a meta-command -- \\! runs a shell command -- where --command would have refused it as syntax. A migration is SQL and nothing else.`);
+    const meta = psqlLex(text).metaCommands;
+    assert.deepEqual(meta, [],
+      `${name} line ${meta[0]?.line} carries a backslash outside any literal, body or comment. Under stdin psql executes that as a meta-command -- \\! runs a shell command -- where --command would have refused it as syntax. A migration is SQL and nothing else.`);
   }
+  // The lexer, on the shapes the reviews measured and the shapes it must leave alone.
+  for (const [sql, n] of [['select 1; \\! touch f', 1], ['select 1 \\gexec', 1], ['\\c other', 1], ['select 1;\n  \\set a COM', 1],
+    ["select E'\\'' as a; \\gexec", 1], ["select '%\\_by';", 0], ["select '\\!' as a;", 0], ['select $$ \\! $$;', 0], ['select $t$ \\! $t$;', 0],
+    ['-- \\! a comment\nselect 1;', 0], ['/* \\! /* nested */ */ select 1;', 0], ['select "a\\b" from t;', 0]]) {
+    assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
+  }
+  const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
+  assert.match(metaCommandFindings([{ name: '999_x.sql', sql: 'select 1; \\! touch f' }]).join(''), /999_x\.sql line 1: a psql meta-command/,
+    'migrate-clean refuses it live, before the first script is applied');
+  assert.deepEqual(metaCommandFindings([{ name: '999_x.sql', sql: "select '\\!';" }]), []);
+  assert.match(runner, /const meta = metaCommandFindings\(steps\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n\s*for \(const \{ name, sql \} of steps\) \{/,
+    'and the scan runs before the loop that applies them');
 });
 
 // updated_at IS THE DATABASE'S TO WRITE, ON EVERY TABLE THAT HANDS THE COLUMN TO A CLIENT.
@@ -2256,6 +2275,37 @@ test('the forward fix 125 keeps its settled-row closure, the database-owned deci
   const body = code.match(/as \$\$([\s\S]*?)\$\$;/)[1];
   const { createHash } = await import('node:crypto');
   assert.ok(code.includes(`md5(p.prosrc) = '${createHash('md5').update(body).digest('hex')}'`), 'and the pinned digest is the body written above it');
+  // BATCH 126, the forward fix to 125 (blocker 186 items 13, 15 and 17), held in the same test so the
+  // suite's names, and so its digest, do not move.
+  const next = (await readFile('db/foundation/migrations/126_approval_decision_frozen_for_every_writer.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  assert.match(next, /create or replace function private\.set_decided_at\(\)\s+returns trigger\s+language plpgsql\s+security invoker\s+set search_path = ''/,
+    '126 keeps the invoker function, its name and its empty search_path');
+  assert.match(next, /if tg_op = 'INSERT' then\s+if new\.decided_by is not null then\s+new\.decided_at := pg_catalog\.statement_timestamp\(\);/,
+    'an INSERT that names a decider is timed by the database (item 15)');
+  assert.match(next, /elsif old\.status <> 'pending'\s+and \(new\.status is distinct from old\.status\s+or new\.decided_by is distinct from old\.decided_by\s+or new\.decided_at is distinct from old\.decided_at\) then\s+raise exception 'a settled approval request keeps its status, decided_by and decided_at'/,
+    'a settled request keeps its outcome for every writer that fires triggers (item 15)');
+  assert.match(next, /elsif old\.decided_by is null and new\.decided_by is not null then\s+new\.decided_at := pg_catalog\.statement_timestamp\(\);/,
+    "the statement's time, not the transaction's (item 17)");
+  assert.doesNotMatch(next, /pg_catalog\.now\(\)/, 'and now() is gone from the body');
+  assert.match(next, /revoke all on function private\.set_decided_at\(\) from public;/);
+  assert.match(next, /drop trigger set_decided_at on app\.approval_requests;\s+create trigger set_decided_at before insert or update on app\.approval_requests\s+for each row execute function private\.set_decided_at\(\);/);
+  assert.match(next, /add constraint approval_requests_decided_after_created check \(decided_at >= created_at\);/, 'a decision cannot predate its request (item 17)');
+  const nextBody = next.match(/as \$\$([\s\S]*?)\$\$;/)[1];
+  const nextDigest = createHash('md5').update(nextBody).digest('hex');
+  assert.ok(next.includes(`md5(p.prosrc) = '${nextDigest}'`), "126's block pins the body written above it");
+  const replacement = await readFile('db/foundation/invariants/125_approval_settled_is_immutable.1.sql', 'utf8');
+  assert.ok(replacement.includes(`md5(p.prosrc) = '${nextDigest}'`), "125's replacement pins 126's body");
+  assert.ok(replacement.includes('BEFORE INSERT OR UPDATE ON app.approval_requests'), "and 126's trigger definition");
+  const { PINNED_TRIGGER_FUNCTIONS, PINNED_TABLE_TRIGGERS, PINNED_CHECKS: CHECKS } = await import('../../scripts/db/run.mjs');
+  assert.deepEqual(PINNED_TRIGGER_FUNCTIONS.find(([f]) => f === 'private.set_decided_at()'), ['private.set_decided_at()', 'invoker', nextDigest],
+    'and the pinned trigger probe pins the same body, a second pin in another file (item 13)');
+  assert.ok(PINNED_TABLE_TRIGGERS['app.approval_requests'].includes('CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()'));
+  assert.equal(CHECKS['approval_requests.approval_requests_decided_after_created'], 'CHECK ((decided_at >= created_at))');
+  // The non-client writer is shown refused on every rls-smoke run, by the loader itself (item 15).
+  const fixture = await readFile('tests/db/identity/fixtures/090-approval-fixture.sql', 'utf8');
+  assert.match(fixture, /the loader overturned a settled approval request/);
+  assert.match(fixture, /the loader turned a cancelled approval request into a decision/);
+  assert.match(fixture, /kept the decision time the loader sent/);
 });
 
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
@@ -2304,10 +2354,14 @@ test('no fixture or test helper carries a psql meta-command, because the loader 
   const files = (await readdir(dir)).filter((n) => n.endsWith('.sql')).map((n) => `${dir}/${n}`);
   files.push('db/foundation/test-helpers/auth-context.sql');
   assert.ok(files.length >= 10, 'the fixtures were found');
+  // Anywhere psql would execute one (blocker 186 item 12), and the smoke target refuses it live too.
+  const { psqlLex } = await import('../../scripts/db/psql-driver.mjs');
   for (const file of files) {
-    const meta = (await readFile(file, 'utf8')).split('\n').findIndex((line) => /^\s*\\/.test(line));
-    assert.equal(meta, -1, `${file} line ${meta + 1} begins with a backslash: on stdin psql executes that as a meta-command`);
+    const meta = psqlLex(await readFile(file, 'utf8')).metaCommands;
+    assert.deepEqual(meta, [], `${file} line ${meta[0]?.line} carries a backslash outside any literal, body or comment: on stdin psql executes that as a meta-command`);
   }
+  assert.match(smoke, /psqlLex\(sql\)\.metaCommands[\s\S]*return 1;\n  \}\n  const installed = await feed\(helpers\);/,
+    'rls-smoke scans the helper and every fixture before it feeds the first');
 });
 
 // EVERY FOREIGN KEY HAS A SUPPORTING INDEX, AND THE RULE IS LIVE (batch 104, C0-111 M1). run.mjs said
@@ -2329,12 +2383,17 @@ test('every foreign key has a supporting index, asserted live after every migrat
   assert.match(FK_SUPPORT_PROBE_SQL, /IS NOT NULL\)'/, 'and accepts a partial index on one of the key\'s own columns IS NOT NULL');
   for (const [key, reason] of Object.entries(FK_SUPPORT_EXEMPTIONS)) {
     assert.ok(reason.length > 40, `exemption ${key} carries a reason`);
-    assert.match(FK_SUPPORT_PROBE_SQL, new RegExp(`'${key}'`), `the probe exempts ${key}`);
+    // Keyed schema.table.constraint (blocker 186 item 18; Q0 F6 on batch 125): by name alone, a key on
+    // another table named like an exempt one passed.
+    assert.match(key, /^[a-z_]+\.[a-z_]+\.[a-z_]+_fk$/, `exemption ${key} is keyed schema.table.constraint`);
+    assert.match(FK_SUPPORT_PROBE_SQL, new RegExp(`'${key.replace(/\./g, '\\.')}'`), `the probe exempts ${key}`);
   }
+  assert.match(FK_SUPPORT_PROBE_SQL, /not \(fk\.key = any \(exempt\)\)/, 'the exemption is matched on the qualified key, not on the name');
+  assert.match(FK_SUPPORT_PROBE_SQL, /format\('%s\.%s\.%s', n\.nspname, cl\.relname, c\.conname\) = e/, 'and so is a stale exemption');
   const migration = await readFile('db/foundation/migrations/104_fk_supporting_indexes.sql', 'utf8');
   const code = migration.replace(/--[^\n]*/g, '');
   const listed = [...code.matchAll(/'([a-z_]+_fk)'/g)].map((m) => m[1]).sort();
-  assert.deepEqual(listed, Object.keys(FK_SUPPORT_EXEMPTIONS).sort(), '104\'s block and run.mjs exempt the same keys');
+  assert.deepEqual(listed, Object.keys(FK_SUPPORT_EXEMPTIONS).map((k) => k.split('.')[2]).sort(), '104\'s block and run.mjs exempt the same keys');
   assert.equal([...code.matchAll(/create index if not exists/g)].length, 11, '104 creates the eleven indexes it says it does');
 });
 
@@ -2345,67 +2404,107 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Comments stripped first: a `return 1` moved into a comment must not satisfy a text match.
   const runner = (await readFile('scripts/db/run.mjs', 'utf8')).replace(/\/\/[^\n]*/g, '');
   const ceiling = runner.indexOf('const probe = await script(CEILING_PROBE_SQL);');
-  const loop = runner.indexOf('const probeOutcomes = [];');
+  const loop = runner.indexOf('const unsafe = unsafeDrifts(CATALOG_RULE_PROBES);');
   const pass = runner.indexOf('plan = await postMigratePlan();');
   assert.ok(ceiling > 0 && loop > ceiling && pass > loop, 'after the ceiling probe and before the post-migrate pass');
   // The FK-support probe is one of the list now, self-tested like the rest (C0 on 123's corrections, F6).
   assert.doesNotMatch(runner, /await script\(FK_SUPPORT_PROBE_SQL\)/, 'no untested run of the FK-support probe outside the list');
-  // The executor, whole: every job the pure planner names, run as named, nothing between it and the verdict.
+  // The executor, whole: every drift checked BEFORE any job is fed (blocker 186 item 12; C0 F4 on 125),
+  // then every job the pure planner names, each with its own nonce and its whole transcript, nothing
+  // between it and the verdict.
   assert.match(runner.slice(loop, pass).replace(/\n\s*\n/g, '\n'),
-    /^const probeOutcomes = \[\];\n\s*for \(const job of catalogProbeJobs\(CATALOG_RULE_PROBES\)\) probeOutcomes\.push\(\{ \.\.\.job, result: await rerun\(job\.sql\) \}\);\n\s*const probeVerdict = decideCatalogProbes\(CATALOG_RULE_PROBES, probeOutcomes\);\n\s*for \(const failure of probeVerdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!probeVerdict\.ok\) return 1;\n\s*for \(const claim of probeVerdict\.claims\) stdout\.write\([^\n]*\);\n\s*let plan;\n\s*try \{ $/,
-    'the executor is exactly: run every job, decide, fail on a failing verdict -- no skip, no substitute, no early return');
+    /^const unsafe = unsafeDrifts\(CATALOG_RULE_PROBES\);\n\s*if \(unsafe\.length\) \{ for \(const u of unsafe\) stderr\.write\([^\n]*\); return 1; \}\n\s*const probeOutcomes = \[\];\n\s*for \(const job of catalogProbeJobs\(CATALOG_RULE_PROBES\)\) \{ const nonce = randomUUID\(\); probeOutcomes\.push\(\{ \.\.\.job, nonce, result: await feedTranscript\(probeJobScript\(job, nonce\)\) \}\); \}\n\s*const probeVerdict = decideCatalogProbes\(CATALOG_RULE_PROBES, probeOutcomes\);\n\s*for \(const failure of probeVerdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!probeVerdict\.ok\) return 1;\n\s*for \(const claim of probeVerdict\.claims\) stdout\.write\([^\n]*\);\n\s*let plan;\n\s*try \{ $/,
+    'the executor is exactly: refuse an unsafe drift, run every job with a fresh nonce, decide, fail on a failing verdict -- no skip, no substitute, no early return');
   const m = await import('../../scripts/db/run.mjs');
   assert.deepEqual(m.CATALOG_RULE_PROBES.map((p) => p.sql),
     [m.FK_SUPPORT_PROBE_SQL, m.FK_ACTION_PROBE_SQL, m.UPDATED_BY_CLOSURE_PROBE_SQL, m.REQUESTER_CLOSURE_PROBE_SQL,
       m.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL, m.DECIDER_CLOSURE_PROBE_SQL, m.CLOSURE_COVERAGE_PROBE_SQL, m.PINNED_CHECK_PROBE_SQL,
-      m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL],
-    'all eleven, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6)');
+      m.PINNED_POLICY_PROBE_SQL, m.SECURITY_DEFINER_PROBE_SQL, m.TRIGGER_PROBE_SQL, m.PINNED_TRIGGER_PROBE_SQL,
+      m.PINNED_GRANT_PROBE_SQL, m.PINNED_DEFAULT_PROBE_SQL],
+    'all fourteen, in order: one rule per probe or one drift per rule (C0 on 123, F5; Q0 on 123, F3; C0 on its corrections, F6); the pinned trigger probe is blocker 186 item 13; the pinned grant and default probes are batch 091\'s third round (C0 H1, H3; A1 R1, R3)');
   // AS MANY DRIFTS AS RULES (Q0 on 123, F3): each raise is a rule, and each is answered by its own
   // drift, in order, so a rule its probe's drifts never reach cannot be added unnoticed. EVERY spelling
   // of a raise counts, and each must be the one spelling whose prefix can be read (Q0's re-test of the
   // corrections, F2: `raise '...'` or `raise exception using message` needed no drift); each prefix is
-  // non-empty and distinct within its probe (C0's re-verification, F5).
+  // non-empty and distinct within its probe (C0's re-verification, F5). And each drift NAMES what its
+  // refusal must name (blocker 186 item 11).
   for (const { label, sql, selfTests } of m.CATALOG_RULE_PROBES) {
     const every = [...sql.matchAll(/\braise\b(?!\s+(?:notice|warning|info|debug|log)\b)/gi)].length;
     const raises = [...sql.matchAll(/\braise exception '([^']*)/g)].map((r) => r[1]);
     assert.equal(every, raises.length, `${label}: every raise is \`raise exception '<literal>...'\`, so its prefix can be read`);
     assert.equal(selfTests.length, raises.length, `${label}: ${raises.length} rule(s) and ${selfTests.length} self-test(s)`);
-    selfTests.forEach(({ raises: prefix }, i) => {
+    selfTests.forEach(({ raises: prefix, names }, i) => {
       assert.ok(prefix.length >= 12, `${label}: self-test ${i + 1}'s prefix says which rule it answers`);
       assert.ok(raises[i].startsWith(prefix), `${label}: self-test ${i + 1} answers rule ${i + 1} ("${prefix}")`);
       raises.forEach((other, j) => { if (j !== i) assert.ok(!other.startsWith(prefix), `${label}: self-test ${i + 1}'s prefix also matches rule ${j + 1}`); });
+      assert.ok(Array.isArray(names) && names.length > 0 && names.every((n) => n.length >= 6), `${label}: self-test ${i + 1} names the object its refusal must name`);
+      assert.match(raises[i], /: %$/, `${label}: rule ${i + 1} prints what it found, so a refusal can be tied to its object`);
     });
-    for (const [i, { drift }] of selfTests.entries()) assert.doesNotMatch(drift, m.TRANSACTION_CONTROL, `${label}: drift ${i + 1} holds no transaction control (Q0 F3, A1 N5)`);
   }
+  // No drift and no probe holds a psql meta-command or a top-level transaction-control statement, and
+  // the rule reads statement position: a function body is admitted (blocker 186 item 12; A1 V4).
+  assert.deepEqual(m.unsafeDrifts(m.CATALOG_RULE_PROBES), [], 'no shipped drift is unsafe');
+  assert.ok(m.CATALOG_RULE_PROBES.some((p) => p.selfTests.some((t) => /\$f\$ begin return new; end \$f\$/.test(t.drift))),
+    'a drift that rewrites a function body ships, which the keyword rule would have refused');
   // THE JOB LIST, DERIVED HERE INDEPENDENTLY AND COMPARED WHOLE (Q0's re-test, F1: a one-line filter in
   // catalogProbeJobs skipped a drift, and the verdict, built from the same function, agreed with it).
   const derived = [];
   for (const p of m.CATALOG_RULE_PROBES) {
     derived.push({ label: p.label, kind: 'as built', sql: p.sql });
-    p.selfTests.forEach((t, i) => derived.push({ label: p.label, kind: `after drift ${i + 1}`, sql: `${t.drift}\n${p.sql}`, raises: t.raises }));
+    p.selfTests.forEach((t, i) => derived.push({ label: p.label, kind: `after drift ${i + 1}`, drift: t.drift, sql: p.sql, raises: t.raises, names: t.names }));
   }
   for (const p of m.CATALOG_RULE_PROBES) derived.push({ label: p.label, kind: 'as built, after every drift', sql: p.sql });
   assert.deepEqual(m.catalogProbeJobs(m.CATALOG_RULE_PROBES), derived, 'every probe as built, after each of its drifts, and again at the end');
   assert.equal(derived.length, 2 * m.CATALOG_RULE_PROBES.length + m.CATALOG_RULE_PROBES.reduce((n, p) => n + p.selfTests.length, 0));
-  // AND THE VERDICT, DRIVEN BY OUTCOMES BUILT FROM THE REAL PROBES: the right ones pass, each claim counts
-  // the drifts refused, and each drift answered by any other rule's raise fails.
-  const right = derived.map((j) => ({ ...j, result: j.raises ? { error: { code: 'P0001', message: `${j.raises}: x` } } : { rows: [] } }));
+  // AND THE VERDICT, DRIVEN BY OUTCOMES BUILT FROM THE REAL PROBES, transcripts included: the right ones
+  // pass and each claim counts the drifts refused. Then each real drift job is answered every wrong way
+  // the reviews named (C0 F1, Q0 F1 on batch 125), one at a time, and each must fail the verdict.
+  const nonce = '0b7c5a1e-0000-4000-8000-00000000c0de';
+  const marks = (tx = '7', end = false) => `probe\n${m.PROBE_TX_MARK}7\nprobe\n${nonce}:mark:${tx}\n${end ? `probe\n${nonce}:end:${tx}\n` : ''}`;
+  const passed = (j) => ({ ...j, nonce, result: { stdout: marks('7', true), stderr: '' } });
+  const raised = (j, message, code = 'P0001', extra = {}) => ({ ...j, nonce,
+    result: { error: { code, message }, stdout: marks(), stderr: `ERROR:  ${code}: ${message}\nCONTEXT:  PL/pgSQL function inline_code_block\n`, ...extra } });
+  const right = derived.map((j) => (j.raises ? raised(j, `${j.raises}: ${j.names.join(', ')}`) : passed(j)));
   const verdict = m.decideCatalogProbes(m.CATALOG_RULE_PROBES, right);
   assert.equal(verdict.ok, true, verdict.failures.join('; '));
   m.CATALOG_RULE_PROBES.forEach((p, i) => assert.match(verdict.claims[i], p.selfTests.length === 1 ? /refused its drift/ : new RegExp(`refused each of its ${p.selfTests.length} drifts`)));
   const allRaises = m.CATALOG_RULE_PROBES.flatMap((p) => p.selfTests.map((t) => t.raises));
+  const fails = (k, outcome, why) => {
+    const outcomes = right.map((o, n) => (n === k ? outcome : o));
+    const v = m.decideCatalogProbes(m.CATALOG_RULE_PROBES, outcomes);
+    assert.equal(v.ok, false, `${derived[k].label} ${derived[k].kind}: ${why} must fail`);
+    assert.match(v.failures.join('\n'), new RegExp(`declares \\d+ drift\\(s\\) and \\d+ were refused|${derived[k].kind}`), `${derived[k].label}: and say which job`);
+  };
   for (const [k, job] of derived.entries()) {
-    if (!job.raises) continue;
-    for (const other of allRaises.filter((r) => r !== job.raises)) {
-      const outcomes = right.map((o, n) => (n === k ? { ...o, result: { error: { code: 'P0001', message: `${other}: y` } } } : o));
-      assert.equal(m.decideCatalogProbes(m.CATALOG_RULE_PROBES, outcomes).ok, false, `${job.label} ${job.kind} answered by "${other}" must fail`);
+    if (!job.raises) {
+      fails(k, { ...passed(job), result: { stdout: marks('7', false), stderr: '' } }, 'a pass whose closing marker never printed');
+      fails(k, { ...passed(job), result: { stdout: marks('8', true), stderr: '' } }, 'a pass in another transaction');
+      continue;
     }
+    const message = `${job.raises}: ${job.names.join(', ')}`;
+    for (const other of allRaises.filter((r) => r !== job.raises)) fails(k, raised(job, `${other}: ${job.names.join(', ')}`), `answered by "${other}"`);
+    fails(k, passed(job), 'a pass');
+    fails(k, raised(job, message, '42601'), 'a non-P0001 error carrying the right text');
+    fails(k, raised(job, message, 'P0004'), 'an assert');
+    fails(k, raised(job, `${job.raises}: something else`), 'a refusal that does not name the drift\'s object');
+    fails(k, raised(job, message, 'P0001', { stdout: `probe\n${m.PROBE_TX_MARK}7\n` }), 'a refusal raised before the probe ran (the drift raised it)');
+    fails(k, raised(job, message, 'P0001', { stdout: marks('9') }), 'a refusal after the drift ended the transaction');
+    fails(k, raised(job, message, 'P0001', { stderr: `WARNING:  01000: x\nERROR:  P0001: ${message}\nERROR:  22012: division by zero\n` }), 'a forged ERROR line beside the real one');
+    fails(k, raised(job, message, 'P0001', { stdout: marks('7', true) }), 'a refusal that also printed the closing marker');
+    fails(k, { ...raised(job, message), nonce: undefined }, 'an outcome with no nonce');
   }
+  // THE JOB SCRIPT, in order: the transaction id before the drift, the drift, the nonce and the id after
+  // it, the search_path pinned, the probe, the closing marker, rollback.
+  const script = m.probeJobScript({ drift: 'D;', sql: 'S' }, nonce).split('\n');
+  assert.deepEqual(script, ['begin;', `select '${m.PROBE_TX_MARK}' || pg_catalog.txid_current() as probe;`, 'D;',
+    `select '${nonce}:mark:' || pg_catalog.txid_current() as probe;`, 'set local search_path = pg_catalog;', 'S',
+    `select '${nonce}:end:' || pg_catalog.txid_current() as probe;`, 'rollback;', '']);
   // THE PROBES AND THEIR PINS, BY DIGEST (Q0 F2: no test pinned the values). A change to a probe, its
-  // pinned lists, its drift or its raise changes one of these, in the same diff as the reason for it.
+  // pinned lists, its drift, its raise or the objects it names changes one of these, in the same diff as
+  // the reason for it.
   const { createHash } = await import('node:crypto');
   const digests = Object.fromEntries(m.CATALOG_RULE_PROBES.map((p) => [p.label,
-    createHash('sha256').update([p.sql, ...p.selfTests.flatMap((t) => [t.drift, t.raises])].join('\u0000')).digest('hex').slice(0, 16)]));
+    createHash('sha256').update([p.sql, ...p.selfTests.flatMap((t) => [t.drift, t.raises, ...t.names])].join('\u0000')).digest('hex').slice(0, 16)]));
   // Batch 123's corrections gave every rule its own drift (Q0 on 123, F3). A probe with one drift keeps
   // its digest's form; fk action (its stale-exemption rule is written only when an exemption exists)
   // d5454eaec7997fd7 to d73a065f573244b3, security definer 11591f0ab317753e to 46a6b919f897b53f and
@@ -2413,28 +2512,28 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Batch 125: the FK-support probe joins the list with two drifts (C0 on 123's corrections, F6) and its
   // stale-exemption list is ordered; the coverage probe reads every *_by column (A1 N3):
   // f42eb9fea5983fb7 to 15309262269afd58; the pinned policy probe is new.
+  // Batch 126 (the hardening batch, blocker 186 items 11-14 and 17-19) moved EVERY digest once, because
+  // each drift's `names` joined the digested text (item 11). Besides that: fk support keys its exemptions
+  // by schema.table.constraint and its first drift adds a namesake key (item 18); pinned check pins
+  // approval_requests_decided_after_created (item 17); trigger prints what differs in its second rule
+  // and gains the parameter-grant rule and drift (items 11, 14); pinned trigger probe is new (item 13);
+  // pinned grant and pinned default probes are new (batch 091's third round: C0 H1 and H3, A1 R1 and R3).
   assert.deepEqual(digests, {
-    'fk support probe': 'c537f5e36d4aa7f4',
-    'fk action probe': 'd73a065f573244b3',
-    // Batch 105 added its seven UPDATE closures to the pinned sets: 0b4597c5c092ed35 to 76a9037be80cf0bf.
-    // Batch 123: its ten closures, and the live coverage rule: 76a9037be80cf0bf to caec5674e583d3cc.
-    // Batch 123's corrections moved the coverage rule into its own probe: caec5674e583d3cc to 0f9f006bf3c26bd2;
-    // then split what was left into one probe per rule (Q0 on 123, F3), so the three below replace it.
-    'updated_by insert closure probe': '5fd640a3e261fa4c',
-    'requester closure probe': '85ca653329a540a6',
-    // Batch 091 added calendar_items and content_schedules to the pinned UPDATE closures:
-    // a0ec08b58ae6db06 to e62e90908b0348b6.
-    'updated_by update closure probe': 'e62e90908b0348b6',
-    'decider closure probe': 'e93e1cc95122a8ea',
-    // Batch 091's two tables join the coverage list: 15309262269afd58 to 70785bd2b648f6c5.
-    'closure coverage probe': '70785bd2b648f6c5',
-    'pinned check probe': 'e42a2631d4abb36e',
-    // Batch 091's corrections pin its two narrowings and its two row-bounding closures: 8d0a6ed657dc1038
-    // to ac16fa955db04fc1.
-    'pinned policy probe': 'ac16fa955db04fc1',
-    'security definer probe': '46a6b919f897b53f',
-    'trigger probe': 'f182e8b44bddb963',
-  }, 'a probe, a pinned list, a drift or a raise changed: update this digest in the same change, saying why');
+    'fk support probe': '1510c7eb5f686b44',
+    'fk action probe': '14d32b2acc3908ca',
+    'updated_by insert closure probe': 'a15274e9fa49639c',
+    'requester closure probe': '17130eb51d94ff25',
+    'updated_by update closure probe': '024492df9c6413be',
+    'decider closure probe': '84bd3a00310d26af',
+    'closure coverage probe': '1a626907571ffb7e',
+    'pinned check probe': '9160fbd1a4c57d58',
+    'pinned policy probe': '8d249faed4de9d73',
+    'security definer probe': '890866dd704c458b',
+    'trigger probe': '9f3dc969be47bd74',
+    'pinned trigger probe': '24fef9153a8b1c5c',
+    'pinned grant probe': 'd7e4ecebf95f0fae',
+    'pinned default probe': '570796093410bc0a',
+  }, 'a probe, a pinned list, a drift, a raise or a named object changed: update this digest in the same change, saying why');
   // What each probe must READ, stated as intent beside the digest (the digest says THAT it changed;
   // these say WHAT must survive a change). Each names the finding that made it necessary.
   assert.match(m.FK_ACTION_PROBE_SQL, /confdeltype <> 'a' or c\.confupdtype <> 'a' or c\.condeferrable or not c\.convalidated/, 'actions, deferrable and NOT VALID (Q0 F4)');
@@ -2444,17 +2543,49 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.match(sql, /pg_get_expr\(pol\.polwithcheck, pol\.polrelid\) = '/, `${suffix}: closures compared by TEXT, not tokens (A1 F3)`);
     assert.match(sql, new RegExp(`has no %s_${suffix}[\\s\\S]*where not exists`), `${suffix}: a dropped closure is caught (C0 LOW 3)`);
   }
+  // The coverage probe's generality is ONE predicate (blocker 186 item 19; Q0 F5 on batch 125: reverted to
+  // `attname = 'updated_by'` with the digest refreshed, a client-writable decided_by passed every layer).
+  assert.match(m.CLOSURE_COVERAGE_PROBE_SQL, /and a\.attname like '%\\_by'\n/, 'every column named *_by, by one LIKE (A1 N3)');
+  assert.doesNotMatch(m.CLOSURE_COVERAGE_PROBE_SQL, /attname\s*(=|in\b|~)/, 'and no single column, list or regex narrows it');
+  assert.match(m.CLOSURE_COVERAGE_PROBE_SQL, /has_column_privilege\('authenticated', c\.oid, a\.attnum, 'UPDATE'\)/, 'client-updatable, read from the catalog');
   assert.match(m.PINNED_CHECK_PROBE_SQL, /con\.convalidated\s+and pg_catalog\.pg_get_constraintdef\(con\.oid\) = pin\.def/, 'CHECKs compared by TEXT and validated (Q0 on 123, F1)');
-  assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
-    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider');
+  assert.deepEqual(Object.keys(m.PINNED_CHECKS).sort(), ['approval_requests.approval_requests_decided_after_created', 'approval_requests.approval_requests_decider_is_a_pair', 'approval_requests.approval_requests_decision_has_a_decider'],
+    '090\'s equivalence and 123\'s pair, which together make a cancelled, pending or expired request name no decider, and 126\'s order of creation and decision');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /where p\.prosecdef and n\.nspname not in \('pg_catalog', 'information_schema'\)/, 'every schema (A1 F3, Q0 F3)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'body digests (A1 F2)');
   assert.match(m.SECURITY_DEFINER_PROBE_SQL, /has_function_privilege\('public', p\.oid, 'EXECUTE'\)/, 'no EXECUTE for PUBLIC (A1 F3)');
   assert.doesNotMatch(m.SECURITY_DEFINER_PROBE_SQL, /array_to_string\(p\.proconfig/, 'settings compared, never printed (A1 F5)');
   assert.match(m.TRIGGER_PROBE_SQL, /where n\.nspname not in \('pg_catalog', 'information_schema'\) and t\.tgenabled <> 'O';/, 'internal triggers included (C0 M2)');
-  assert.match(m.TRIGGER_PROBE_SQL, /array_agg\(pg_catalog\.pg_get_triggerdef\(t\.oid\) order by/, 'definitions by TEXT (C0 M1)');
+  assert.match(m.TRIGGER_PROBE_SQL, /pg_catalog\.pg_get_triggerdef\(t\.oid\) as def/, 'definitions by TEXT (C0 M1)');
   assert.match(m.TRIGGER_PROBE_SQL, /session_replication_role=%/, 'no default session_replication_role (Q0 F5)');
   assert.match(m.TRIGGER_PROBE_SQL, /pg_inherits i where i\.inhparent = c\.oid or i\.inhrelid = c\.oid/, 'no child, no partitions (A1 F2)');
+  assert.match(m.TRIGGER_PROBE_SQL, /from pg_catalog\.pg_parameter_acl p\s+cross join lateral pg_catalog\.aclexplode\(p\.paracl\) a[\s\S]*where p\.parname = 'session_replication_role' and not coalesce\(r\.rolsuper, false\);/,
+    'no parameter grant of session_replication_role to a non-superuser (blocker 186 item 14; A1 V3 on 125)');
+  assert.match(m.PINNED_TRIGGER_PROBE_SQL, /where not t\.tgisinternal[\s\S]*'unpinned: ' \|\| f\.def/, 'every non-internal trigger on a pinned table, an unpinned one by name (Q0 F3 on 125)');
+  assert.match(m.PINNED_TRIGGER_PROBE_SQL, /md5\(p\.prosrc\) <> pin\.digest/, 'the functions they run, by body digest (Q0 F3, F8 on 125)');
+  assert.deepEqual(Object.keys(m.PINNED_TABLE_TRIGGERS), ['app.approval_requests'], 'the table whose decision time is the database\'s');
+  // The grant probe is an ALLOWLIST read from the catalog (C0 H1, A1 R3 on 091's third round): every
+  // non-superuser role, every table privilege MAINTAIN included on 17+, every column privilege, each
+  // compared both ways against the pinned set.
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_roles where not rolsuper and rolname !~ '\^pg_'/, 'every role but superusers and predefined roles, not a named list');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'\][\s\S]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+ (A1 R1)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p\)/, 'every column, by the effective privilege');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 2, 'an unlisted grant named at both levels');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 2, 'and a missing one');
+  assert.deepEqual(Object.keys(m.PINNED_GRANTS), ['app.calendar_items', 'app.content_schedules'], 'batch 091\'s two tables');
+  {
+    const migration = await readFile('db/foundation/migrations/091_calendar.sql', 'utf8');
+    for (const [table, { authenticated }] of Object.entries(m.PINNED_GRANTS)) {
+      for (const priv of ['SELECT', 'INSERT', 'UPDATE']) {
+        const written = migration.match(new RegExp(`grant ${priv.toLowerCase()} \\(([^)]*)\\)\\s+on ${table.replace('.', '\\.')} to authenticated;`));
+        assert.ok(written, `091 writes one ${priv} grant on ${table}`);
+        assert.deepEqual(authenticated[priv], written[1].split(',').map((c) => c.trim()), `the pinned ${priv} columns on ${table} are 091's grant as written`);
+      }
+      assert.deepEqual([authenticated.table, authenticated.REFERENCES], [[], []], `no table-level grant and no REFERENCES on ${table}`);
+    }
+  }
+  assert.deepEqual(m.PINNED_DEFAULTS, { 'app.calendar_items.timezone': "'Asia/Bangkok'::text" }, 'DEC-UX-06 (C0 H3 on 091\'s third round)');
+  assert.match(m.PINNED_DEFAULT_PROBE_SQL, /pg_catalog\.pg_get_expr\(d\.adbin, d\.adrelid\) = pin\.def/, 'defaults compared by TEXT');
   for (const [key, reason] of Object.entries(m.FK_ACTION_EXEMPTIONS)) {
     assert.match(key, /^[a-z_]+\.[a-z_]+\.[a-z_]+$/, `FK action exemption ${key} is keyed schema.table.constraint`);
     assert.ok(reason.length > 40, `FK action exemption ${key} carries a reason`);
@@ -2466,30 +2597,41 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
 });
 
 test('the catalog-probe verdict fails on every way the outcomes can be wrong, and passes only on the right ones', async () => {
-  const { decideCatalogProbes, catalogProbeJobs } = await import('../../scripts/db/run.mjs');
-  const probes = [{ label: 'p', sql: 'S', claim: 'holds', selfTests: [{ drift: 'D;', raises: 'p refused' }, { drift: 'E;', raises: 'p also' }] }];
-  assert.deepEqual(catalogProbeJobs(probes).map((j) => `${j.kind}:${j.sql}`), ['as built:S', 'after drift 1:D;\nS', 'after drift 2:E;\nS', 'as built, after every drift:S']);
+  const { decideCatalogProbes, catalogProbeJobs, unsafeDrifts, PROBE_TX_MARK } = await import('../../scripts/db/run.mjs');
+  const probes = [{ label: 'p', sql: 'S', claim: 'holds', selfTests: [{ drift: 'D;', raises: 'p refused', names: ['object d'] }, { drift: 'E;', raises: 'p also', names: ['object e'] }] }];
+  assert.deepEqual(catalogProbeJobs(probes).map((j) => `${j.kind}:${j.drift ?? ''}:${j.sql}`), ['as built::S', 'after drift 1:D;:S', 'after drift 2:E;:S', 'as built, after every drift::S']);
+  const nonce = '0b7c5a1e-0000-4000-8000-00000000c0de';
+  const out = (end) => `probe\n${PROBE_TX_MARK}41\nprobe\n${nonce}:mark:41\n${end ? `probe\n${nonce}:end:41\n` : ''}`;
+  const refusal = (message) => ({ error: { code: 'P0001', message }, stdout: out(false), stderr: `ERROR:  P0001: ${message}\n` });
   const good = () => [
-    { label: 'p', kind: 'as built', sql: 'S', result: { rows: [] } },
-    { label: 'p', kind: 'after drift 1', sql: 'D;\nS', result: { error: { code: 'P0001', message: 'p refused: x' } } },
-    { label: 'p', kind: 'after drift 2', sql: 'E;\nS', result: { error: { code: 'P0001', message: 'p also: y' } } },
-    { label: 'p', kind: 'as built, after every drift', sql: 'S', result: { rows: [] } },
+    { label: 'p', kind: 'as built', sql: 'S', nonce, result: { stdout: out(true), stderr: '' } },
+    { label: 'p', kind: 'after drift 1', drift: 'D;', sql: 'S', nonce, result: refusal('p refused: object d') },
+    { label: 'p', kind: 'after drift 2', drift: 'E;', sql: 'S', nonce, result: refusal('p also: object e') },
+    { label: 'p', kind: 'as built, after every drift', sql: 'S', nonce, result: { stdout: out(true), stderr: '' } },
   ];
   const control = decideCatalogProbes(probes, good());
   assert.equal(control.ok, true, `control: the right outcomes pass (${control.failures.join('; ')})`);
   const wrong = [
-    ['the probe fails as built', (o) => { o[0].result = { error: { code: 'P0001', message: 'p refused: y' } }; }, /p: as built: p refused/],
-    ['the probe passes after its drift', (o) => { o[1].result = { rows: [] }; }, /self-test after drift 1 passed/],
-    ['the drift fails with a syntax error', (o) => { o[1].result = { error: { code: '42601', message: 'syntax' } }; }, /failed with 42601/],
-    ['the drift trips another raise', (o) => { o[1].result = { error: { code: 'P0001', message: 'something else' } }; }, /must refuse it/],
-    ['the second drift trips the first rule', (o) => { o[2].result = { error: { code: 'P0001', message: 'p refused: z' } }; }, /after drift 2 failed with P0001: p refused/],
+    ['the probe fails as built', (o) => { o[0].result = refusal('p refused: y'); o[0].result.stdout = out(false); }, /p: as built: p refused/],
+    ['the probe passes after its drift', (o) => { o[1].result = { stdout: out(true), stderr: '' }; }, /self-test after drift 1 passed/],
+    ['the drift fails with a syntax error', (o) => { o[1].result = { ...refusal('syntax'), error: { code: '42601', message: 'syntax' } }; }, /failed with 42601/],
+    ['the drift trips another raise', (o) => { o[1].result = refusal('something else: object d'); }, /must refuse it/],
+    ['the second drift trips the first rule', (o) => { o[2].result = refusal('p refused: object e'); }, /after drift 2 failed with P0001: p refused/],
+    ['the refusal does not name the drift\'s object', (o) => { o[1].result = refusal('p refused: something else'); }, /refused without naming object d/],
+    ['the drift raised the prefix itself, before the probe', (o) => { o[1].result.stdout = `probe\n${PROBE_TX_MARK}41\n`; }, /did not run after its drift/],
+    ['the drift ended the transaction', (o) => { o[1].result.stdout = out(false).replace(`${nonce}:mark:41`, `${nonce}:mark:42`); }, /did not run after its drift/],
+    ['a drift printed a marker of its own', (o) => { o[1].result.stdout = `${out(false)}${PROBE_TX_MARK}41\n`; }, /did not run after its drift/],
+    ['a forged ERROR line sits beside the real one', (o) => { o[1].result.stderr = 'WARNING:  01000: \nERROR:  P0001: p refused: object d\nERROR:  P0001: p refused: object d\n'; }, /left 2 ERROR line/],
+    ['the outcome carries no nonce', (o) => { delete o[1].nonce; }, /ran with no nonce/],
     ['the self-test was skipped', (o) => o.splice(1, 1), /not run after drift 1/],
     ['only the second self-test was skipped', (o) => o.splice(2, 1), /not run after drift 2/],
     ['the probe was fed something else', (o) => { o[0].sql = 'select 1'; }, /not run as built/],
+    ['a drift job was fed another drift', (o) => { o[1].drift = 'E;'; }, /not run after drift 1/],
     ['nothing was run', (o) => o.splice(0), /4 probe run\(s\) were due and 0/],
-    ['a drift left residue, so the probe fails again at the end', (o) => { o[3].result = { error: { code: 'P0001', message: 'p refused: left behind' } }; }, /as built, after every drift: p refused: left behind/],
+    ['a drift left residue, so the probe fails again at the end', (o) => { o[3].result = refusal('p refused: left behind'); }, /as built, after every drift: p refused: left behind/],
     ['the clean-again round was skipped', (o) => o.splice(3, 1), /not run as built, after every drift/],
     ['an outcome has no result', (o) => { delete o[0].result; }, /not run as built/],
+    ['as built passed but never closed', (o) => { o[0].result.stdout = out(false); }, /closing marker never printed/],
   ];
   for (const [label, mutate, pattern] of wrong) {
     const outcomes = good(); mutate(outcomes);
@@ -2497,17 +2639,35 @@ test('the catalog-probe verdict fails on every way the outcomes can be wrong, an
     assert.equal(verdict.ok, false, `${label}: the verdict must fail`);
     assert.match(verdict.failures.join('\n'), pattern, `${label}: and say why`);
   }
-  // A drift holding transaction control is refused before anything runs (Q0 F3, A1 N5 on 123's corrections).
-  for (const control of ['commit;', 'begin; select 1;', 'rollback;', 'end;', 'savepoint s;', 'start transaction;']) {
-    const tx = [{ label: 't', sql: 'S', claim: 'holds', selfTests: [{ drift: `alter table x add y int; ${control}`, raises: 't refused' }] }];
-    const outcomes = catalogProbeJobs(tx).map((j) => ({ ...j, result: j.raises ? { error: { code: 'P0001', message: 't refused: x' } } : { rows: [] } }));
-    assert.match(decideCatalogProbes(tx, outcomes).failures.join('\n'), /drift 1 contains transaction control/, `a drift ending "${control}" is refused`);
+  // A drift the verdict did not count is a declared drift not refused, and that alone fails it (C0 F1 on 125).
+  const short = good(); short[1].result = { stdout: out(true), stderr: '' };
+  assert.match(decideCatalogProbes(probes, short).failures.join('\n'), /p: declares 2 drift\(s\) and 1 were refused/);
+  // Transaction control at STATEMENT POSITION, and any psql meta-command, are refused before anything runs
+  // (blocker 186 item 12; Q0 F3, A1 N5 on 123's corrections; A1 V4, Q0 TG1/TG2 on 125).
+  for (const control of ['commit;', 'begin; select 1;', 'rollback;', 'end;', 'savepoint s;', 'start transaction;', '/* x */ COMMIT;',
+    "select 'com' || 'mit' \\gexec", '\\c other', 'select 1; \\set AUTOCOMMIT off', '\\i f.sql']) {
+    const tx = [{ label: 't', sql: 'S', claim: 'holds', selfTests: [{ drift: `alter table x add y int; ${control}`, raises: 't refused', names: ['object t'] }] }];
+    assert.match(unsafeDrifts(tx).join('\n'), /drift 1 holds (transaction control|a psql meta-command)/, `a drift ending "${control}" is refused before any job is fed`);
+    const outcomes = catalogProbeJobs(tx).map((j) => ({ ...j, nonce, result: j.raises ? refusal('t refused: object t') : { stdout: out(true), stderr: '' } }));
+    assert.equal(decideCatalogProbes(tx, outcomes).ok, false, `and the verdict refuses it too ("${control}")`);
   }
+  // And what is NOT transaction control at statement position is admitted: a DO block, a function body,
+  // a literal and a comment (A1 V4: the keyword rule refused every one of these).
+  for (const admitted of ['do $$ begin perform 1; end $$;', "create function pg_temp.f() returns int language plpgsql as $f$ begin return 1; end $f$;",
+    "select 'commit';", '-- commit\nselect 1;', 'alter table x add column "end" int;']) {
+    const tx = [{ label: 't', sql: 'S', claim: 'holds', selfTests: [{ drift: admitted, raises: 't refused', names: ['object t'] }] }];
+    assert.deepEqual(unsafeDrifts(tx), [], `"${admitted}" holds no transaction control at statement position`);
+  }
+  // A probe whose own SQL carries a meta-command is refused too.
+  assert.match(unsafeDrifts([{ label: 'q', sql: 'select 1; \\! touch f', claim: 'x', selfTests: [] }]).join(''), /its SQL carries a psql meta-command/);
   // A probe with no self-test fails even when everything that was due came back right.
   const bare = [{ label: 'q', sql: 'S', claim: 'holds', selfTests: [] }];
-  const unproven = decideCatalogProbes(bare, [{ label: 'q', kind: 'as built', sql: 'S', result: { rows: [] } }, { label: 'q', kind: 'as built, after every drift', sql: 'S', result: { rows: [] } }]);
+  const unproven = decideCatalogProbes(bare, [{ label: 'q', kind: 'as built', sql: 'S', nonce, result: { stdout: out(true) } }, { label: 'q', kind: 'as built, after every drift', sql: 'S', nonce, result: { stdout: out(true) } }]);
   assert.equal(unproven.ok, false, 'a probe that cannot be shown to fail');
   assert.match(unproven.failures.join('\n'), /q: carries no self-test drift/);
+  // A drift that names nothing cannot be tied to its object.
+  const nameless = [{ label: 'n', sql: 'S', claim: 'holds', selfTests: [{ drift: 'D;', raises: 'n refused' }] }];
+  assert.match(decideCatalogProbes(nameless, []).failures.join('\n'), /drift 1 names nothing/);
 });
 
 // AN APPLY-TIME BLOCK CANNOT BE SILENCED FROM INSIDE ITS OWN PREDICATE. Q0-080 Q1, Q0-081 F4,
@@ -2644,7 +2804,10 @@ test('the post-migrate plan covers every do-block of every migration, and each s
     // argument is built by string_agg in an order Postgres does not fix: 120's first entry included
     // the first of two policy names, and main's CI run 36311266393 received them the other way round
     // and failed the pass on an entry that was not stale.
-    const raises = [...block.sql.matchAll(/raise exception '((?:[^']|'')*)'\s*,\s*([a-z_]+)/g)];
+    // A raise with no argument is matched too, its doubled quotes read as the message prints them:
+    // 125's block is the first superseded block whose raises carry no argument (batch 126).
+    const raises = [...block.sql.matchAll(/raise exception '((?:[^']|'')*)'(?:\s*,\s*([a-z_]+))?/g)]
+      .map(([all, literal, argument]) => [all, literal.replace(/''/g, "'"), argument]);
     const raise = raises.find(([, literal]) => block.superseded.fails_with.startsWith(literal.split('%')[0]));
     assert.ok(raise, `${block.id}'s fails_with matches none of its block's raises`);
     const [, literal, argument] = raise;

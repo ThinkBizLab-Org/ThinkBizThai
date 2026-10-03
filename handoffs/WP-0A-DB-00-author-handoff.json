@@ -4,65 +4,35 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "86f55d207bb0996211626d1491b772b63c015ad2",
-  "head_revision_or_patch_checksum": "5cb649c59c6b28a95329bfc93459cc8dd1ebecf4",
+  "base_revision": "e5380b04a7f243b925182ec3d6f97ee166749a13",
+  "head_revision_or_patch_checksum": "e5380b04a7f243b925182ec3d6f97ee166749a13",
   "task_ids": [],
-  "files_added": [
-    "db/foundation/migrations/091_calendar.sql",
-    "db/foundation/migrations/124_calendar_publish_intent_fk.sql",
-    "evidence/WP-0A-DB-00/a0-batch-091-integration-2026-09-28.md",
-    "evidence/WP-0A-DB-00/a0-batch-091-plan-2026-09-28.md",
-    "evidence/WP-0A-DB-00/a1-batch-091-corrections-reverify-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-091-round3-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-091-security-review-2026-09-28.md",
-    "evidence/WP-0A-DB-00/c0-batch-091-contract-review-2026-09-28.md",
-    "evidence/WP-0A-DB-00/c0-batch-091-corrections-reverify-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-091-round3-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-09-28-batch-091.md",
-    "evidence/WP-0A-DB-00/q0-batch-091-round3-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-091-test-review-2026-10-03.md",
-    "tests/db/identity/fixtures/091-calendar-fixture.sql"
-  ],
-  "files_modified": [
-    ".github/workflows/ci.yml",
-    "db/foundation/lint/catalog-snapshot.json",
-    "db/foundation/seeds/fixture-catalog.json",
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
-    "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
-    "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
-    "tests/db/identity/isolation-cases.mjs",
-    "tests/db/identity/run-isolation.mjs",
-    "work-packages/WP-0A-DB-00.json"
-  ],
+  "files_added": [],
+  "files_modified": [],
   "files_deleted": [],
   "decisions_consumed": [],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 091, calendar.core, which §6 gives A5 Calendar: the Owner decided on 2026-09-28 that A0 writes it (the one-page summary's item 5) and that C0, Q0 and A1 review it with A5's review of the schedule states owed (`ค ตามที่แนะนำ`); plan a0-batch-091-plan-2026-09-28.md, disposition product-owner-disposition-2026-09-28-batch-091.md.",
-    "Where the documents are silent A0 chose the conservative reading (the plan's §3): a client creates a draft, edits or disarms it, and cancels; it never arms, dispatches, completes or fails a schedule, and nothing writes publish_intent_id. Those are recorded as owed, not decided.",
-    "The PR changes .github/workflows/ci.yml (two negative-control entries), so it is a governance change under RFC-2026-025 §5 item 6."
+    "THIS INCREMENT IS BATCH 126, the hardening batch A0's batch-125 record recommended after 091: blocker 186 items (11)-(15) and (17)-(19), and the two items batch 091's third-round re-checks left owed to A0 (the grant set by allowlist, C0 H1 / A1 R1, R3; the pinned default zone, C0 H3). Written under the Owner's `งานอะไรกระจายทำได้ทำเลยนะครับ` (2026-10-03); plan a0-batch-126-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-126.md.",
+    "The batch is written on A0's recommendation for each of the Owner's four open decisions (O1 migration number 126 in MOD-120's range; O2 keep CHECK (decided_at >= created_at); O3 the INSERT branch overwrites an inserted decided_at; O4 cancelled and expired final for every trigger-firing writer). All four are UNANSWERED; any other answer is a forward change.",
+    "091 is integrated, so its apply-time block is not rewritten: the allowlist and the default are forward assertions, two self-tested catalog-rule probes."
   ],
   "acceptance_results": [
     {
-      "criterion": "The two tables exist with §4.7's columns, §8.3's access, scope pinning and the attribution closures from birth",
+      "criterion": "Blocker 186 items (11)-(14), (15) except its command-role half, and (17)-(19) are closed, each shown by a drift, mutation or case",
       "result": "met",
-      "evidence": "091's apply-time block (ten numbered checks: since the second round all six permissive policies by command and exact text, one per table per command, column and table privileges of the service roles, every NOT NULL, and the zone, value and key constraints by text) and the post-migrate pass; the updated_by update closure and coverage probes pin both tables (17 -> 19); rls-smoke: 68 cases of batch 091, 1058 in all"
+      "evidence": "plan section 2 and 6: D12, D13a, D14, D15a, D17, D18 each fail migrate-clean (D15a also rls-smoke, on the 090 fixture's loader); M-Q1, M-TG1, M-TCK, M-J3, M-MARK, M-CV1, M-CV1d each fail the static suite"
     },
     {
-      "criterion": "No client can arm, dispatch, complete or fail a schedule, or link it to an intent",
+      "criterion": "The grant set on app.calendar_items and app.content_schedules is an allowlist at table and column level for every non-superuser role",
       "result": "met",
-      "evidence": "owner-a-cannot-create-a-schedule-already-armed, owner-a-cannot-arm-a-draft-schedule, owner-a-cannot-mark-a-schedule-dispatched, owner-a-cannot-link-a-schedule-to-an-intent, and the restrictive content_schedules_client_transition_is_bounded (reopen, revive, rewrite and cancel-dispatched cases)"
+      "evidence": "pinned grant probe, two self-test drifts; G1 (INSERT deleted_at), G2 (TRUNCATE/TRIGGER/REFERENCES/MAINTAIN), G3 (INSERT/UPDATE created_at), G5 (service_role) each fail migrate-clean by name with rls-smoke green; G4 (a pinned grant revoked) fails too; M-GRC, M-GRR, M-GRM fail static"
     },
     {
-      "criterion": "Each family is detectable on its own in the negative control",
+      "criterion": "calendar_items.timezone's default 'Asia/Bangkok' (DEC-UX-06) is pinned",
       "result": "met",
-      "evidence": "with row level security off on calendar_items, 15 cases fail and all 15 match its pattern; on content_schedules, 21 fail and all 21 match its pattern; none matches the other (measured on bae8d91, here 5523f6d); a static test holds every one of 091's 68 cases to exactly one of the two CI control entries"
+      "evidence": "pinned default probe; TZ (default 'UTC' in a later file) fails migrate-clean, rls-smoke green; M-DEF fails static and migrate-clean"
     }
   ],
   "tests": [
@@ -74,37 +44,34 @@
     {
       "command": "make db-migrate-clean + db-rls-smoke (fresh private cluster)",
       "exit_code": 0,
-      "result": "47 blocks, 37 as written, 10 replaced; eleven catalog probes, each refused each of its drifts and was clean again; rls-smoke 1058 cases ok, and again on the same database 1058 ok; migrate-clean and rls-smoke also exit 0 under PGDATESTYLE 'SQL, DMY' and 'German'"
-    },
-    {
-      "command": "per-table negative control (private cluster)",
-      "exit_code": 0,
-      "result": "calendar_items: 15 of 1058 fail, 15 of its own pattern; content_schedules: 21 of 1058, 21 of its own pattern"
+      "result": "see the last commit"
     }
   ],
-  "security_privacy_cost_impact": "Two tenant tables under the schema's full shape: forced row level security, active-member reads, owner/admin writes, the Business/Page narrowing through the content item, restrictive updated_by closures, row-bounding closures (the schedule transitions; a deleted placement is final for clients) and service-path closures from birth. No grant of any kind, table or column, to app_worker or anon. Zones are IANA-shaped and recognised. No secret or customer data.",
-  "migration_and_data_impact": "TWO MIGRATIONS: 091_calendar.sql (two tables, policies, closures, triggers, grants, apply-time block) and 124_calendar_publish_intent_fk.sql (the deferred scope foreign key to publish_intents). Both declared in the snapshot's not-applied tail. No existing table changes.",
-  "compatibility_impact": "Additive. Cases 990 -> 1058. Batch 123's pin test now counts 19 UPDATE closures. The identity-isolation assertion floor 2144 -> 2152.",
+  "security_privacy_cost_impact": "Tightens only. A settled approval request's status, decided_by and decided_at are now frozen for every writer that fires triggers, and an INSERT that names a decider is timed by the database. Probes added or hardened: the verdict ties each refusal to its object and its transaction, psql meta-commands are refused in every SQL source before anything runs, every trigger on approval_requests and the functions they run are pinned, a parameter grant of session_replication_role is refused, and every non-superuser role's privileges on the two calendar tables are held to an allowlist. No grant is added. No secret or customer data.",
+  "migration_and_data_impact": "ONE MIGRATION: 126_approval_decision_frozen_for_every_writer.sql (replaces private.set_decided_at()'s body, recreates its trigger BEFORE INSERT OR UPDATE, adds CHECK (decided_at >= created_at), apply-time block). 125's block superseded by a final-state replacement in db/foundation/invariants/. Declared in the snapshot's not-applied tail. The CHECK applies over no rows: no environment holds approval data before G0.",
+  "compatibility_impact": "Additive and forward. Cases stay 1058; tests stay 675; the foundation-contract assertion floor 365 -> 418. Probes 12 -> 14. A writer that inserts a decided approval request no longer keeps the decided_at it sent (O3), and no writer that fires triggers can move a request out of a non-pending state (O4).",
   "known_limitations": [
-    "A5's review of the schedule states is owed (the Owner's choice ค); A5 may narrow the disarm a client may make.",
-    "No writer can arm, dispatch, complete or fail a schedule, or set publish_intent_id (the no-writer class).",
-    "The zone rule is shape + timezone(); whether to pin an explicit IANA allowlist instead, and what a restore onto older tzdata does to a stored name, are A5's (blocker 191 (h)).",
-    "The editor's and the service's `P` are refused; display_status is unenumerated; §11.3 archiving and SCHEDULE-HISTORY retention are owed.",
-    "Blocker 186 items 11-15 and 17-19 (the hardening batch) are still owed."
+    "Blocker 186 (15)'s command-role half: the settled-row closure for an RFC-2026-023 command role waits on that RFC.",
+    "Blocker 186 (16), the anonymisation route batch 160 needs, which must now also account for status; (20), INFO, except the transaction-control check now running before the drifts.",
+    "A superuser still bypasses the trigger with session_replication_role or DISABLE TRIGGER (caught in a later file by the trigger probe); ALTER SYSTEM is not covered. A hostile superuser drift can still forge in ways no verdict sees.",
+    "psqlLex over-refuses a SQL-standard `begin atomic ... end` body (fails closed; no drift uses one).",
+    "The grant allowlist covers the two calendar tables only; the general version over every RLS table in app is not attempted. C0 H1's optional case owner-a-cannot-place-an-item-already-deleted is not added.",
+    "A5's (h): zone-name case variants and Etc/UTC."
   ],
   "open_risks_or_blockers": [
-    "Count 191: one new blocker records what batch 091 leaves open, (a) to (h), updated by the second round (soft-deleted visibility and recovery, scheduled_for in the past, deleted_at trustworthy for client writes only, the zone choice).",
-    "FOR THE OWNER: the merge (a governance change: it touches CI); and one sentence on whether A0 presses a merge when the Owner writes 'merge #N แล้ว ทำต่อได้เลย'."
+    "FOR THE OWNER: O1-O4 in product-owner-disposition-2026-10-03-batch-126.md, all UNANSWERED.",
+    "The RFC-2026-025 section 5 points remain open.",
+    "Role runs (C0, Q0, A1) on this branch follow; the PR stays a Draft until they report."
   ],
-  "rollback_or_forward_fix": "Before merge: close PR #164. After merge: a reviewed revert PR of the merge removes 091 and 124 with their fixture, cases, CI control entries, probe pins and records; no other migration's SQL references app.calendar_items or app.content_schedules (081 and 120 name them in comments only), and no persistent database has applied them (G0 has not passed; CI clusters are ephemeral), so the revert diverges no database. If one ever has applied them, a forward-fix migration is required instead, because an integrated migration is never rewritten. NEVER a force-push.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. 126 is additive and forward: it replaces one function body, recreates one trigger and adds one CHECK on approval_requests, and no persistent database has applied it (G0 has not passed; CI clusters are ephemeral), so the revert diverges no database; the probes and the static test are code. If one ever has applied 126, a forward-fix migration is required instead, because an integrated migration is never rewritten. NEVER a force-push.",
   "recommended_next_work_packages": [
-    "The hardening batch for blocker 186 items 11-15 and 17-19.",
+    "The role runs on batch 126 (C0, Q0, A1).",
     "created_by at INSERT in 102's shape, with the coverage probe's INSERT half.",
-    "A5's review of 091's schedule states, when an A5 run exists."
+    "A5's review of 091's schedule states and (h), when an A5 run exists."
   ],
   "reviewer_instructions": [
-    "Read 091 and 124 and their blocks; reproduce the per-table negative control (row level security off on each table: 15 and 21 cases, each matched by its own pattern, none by the other) and the no-writer refusals.",
-    "Check that the closures, narrowing and service-path closures match batches 105/123/122 exactly, and that the fixture writes only 091's two tables.",
+    "Read 126 and its block, 125's replacement, the 090 fixture's DO block, and the plan's section 2 table; reproduce D15a (125's body put back: rls-smoke fails on the fixture's loader) and D13a (a second trigger: migrate-clean fails, rls-smoke green).",
+    "Reproduce the grant probe's drifts G1-G5 and TZ as later files, and check that PINNED_GRANTS equals 091's grant statements.",
     "MEASURE ON THE BRANCH NAME, NEVER DETACHED."
   ],
   "superseded_by": null

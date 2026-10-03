@@ -278,4 +278,54 @@ insert into app.approval_events
    'fixture-request-b1', 'fixture-correlation-b1', 'fixture-idempotency-b1')
 on conflict on constraint approval_events_action_idempotency_key do nothing;
 
+-- ---------------------------------------------------------------------------------------------
+-- BATCH 126: WHAT THE LOADER ITSELF CANNOT DO (blocker 186 items 15 and 17).
+-- ---------------------------------------------------------------------------------------------
+--
+-- This file is loaded by a role that bypasses row level security and fires triggers -- the writer
+-- class the settled-row closure does not bind, and the only such writer a test run has. So it is
+-- where the trigger's freeze is shown to bind a non-client writer, on every rls-smoke run:
+--   * the two decided rows above SEND 2026-09-11 times and the INSERT branch records the statement's
+--     time instead, so neither keeps the literal and neither predates its own created_at;
+--   * the loader cannot overturn the settled request (approved to changes_requested, keeping the
+--     approver's name and time -- A1's N4);
+--   * the loader cannot turn a cancelled request into a decision (A1's N11): cancel a pending row,
+--     then approve it, inside a subtransaction that is rolled back whatever happens.
+-- Each refusal is read by its own message, because 090's CHECKs raise the same SQLSTATE.
+do $$
+declare
+  refusal text;
+begin
+  if exists (select 1 from app.approval_requests
+              where id in ('87f78e21-66e3-5ceb-ba08-68f2cef543a6', '5e21cefe-72d1-5d06-b9ec-fac821aaf57f')
+                and (decided_at in ('2026-09-11 04:00:00+00', '2026-09-11 05:00:00+00') or decided_at < created_at)) then
+    raise exception 'the batch 090 fixture''s decided rows kept the decision time the loader sent';
+  end if;
+  refusal := null;
+  begin
+    update app.approval_requests set status = 'changes_requested' where id = '87f78e21-66e3-5ceb-ba08-68f2cef543a6';
+  exception when check_violation then refusal := sqlerrm;
+  end;
+  if refusal is distinct from 'a settled approval request keeps its status, decided_by and decided_at' then
+    raise exception 'the loader overturned a settled approval request (%)', coalesce(refusal, 'no refusal');
+  end if;
+  refusal := null;
+  begin
+    update app.approval_requests set status = 'cancelled' where id = '7dc995ee-d568-5d97-8afd-bd3f57608b11';
+    begin
+      update app.approval_requests set status = 'approved', decided_by = '5c460eb8-0710-557a-b423-f9b12c76834f'
+       where id = '7dc995ee-d568-5d97-8afd-bd3f57608b11';
+    exception when check_violation then refusal := sqlerrm;
+    end;
+    raise exception using errcode = 'TB126', message = 'roll the cancellation back';
+  exception when sqlstate 'TB126' then null;
+  end;
+  if refusal is distinct from 'a settled approval request keeps its status, decided_by and decided_at' then
+    raise exception 'the loader turned a cancelled approval request into a decision (%)', coalesce(refusal, 'no refusal');
+  end if;
+  if (select status from app.approval_requests where id = '7dc995ee-d568-5d97-8afd-bd3f57608b11') <> 'pending' then
+    raise exception 'the batch 090 fixture''s pending request did not survive the check above';
+  end if;
+end $$;
+
 commit;
