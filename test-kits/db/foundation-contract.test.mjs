@@ -3660,3 +3660,352 @@ test('batch 141 prep: CTR-AUD-001 fixtures validate as declared, and every valid
       `${entry.name} now describes the security event; write its store conformance`);
   }
 });
+
+// ---------------------------------------------------------------------------------------------------
+// BATCH 160 PREPARATION: THE RETENTION MAP, THE §11.1 EXPORT MANIFEST FIXTURE AND THE §11.4 PURGE ORDER.
+// Data only, no migration (the plan for 141-170, "Batch 160 -- 3. Can do now"). Each file was measured on
+// a clean migrate-clean and is held here against what the MIGRATION TEXT says, re-derived on every run:
+// the table set, the columns, the UPDATE/DELETE grants, the policies, the triggers, the indexes and the
+// foreign keys. A file that described a schema that no longer exists fails here, not in batch 160.
+// ---------------------------------------------------------------------------------------------------
+const RETENTION_MAP = 'db/foundation/lint/retention-map.json';
+const PURGE_ORDER = 'db/foundation/lint/purge-order.json';
+const EXPORT_FIXTURE = 'test-kits/db/export-manifest.fixture.json';
+const ERD = 'docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md';
+
+async function migrationText160() {
+  const names = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort();
+  return Promise.all(names.map(async (n) => ({ name: n,
+    sql: (await readFile(`db/foundation/migrations/${n}`, 'utf8')).replace(/--[^\n]*/g, '') })));
+}
+
+// The bodies of every `create table`, by table, read with the parenthesis depth so a CHECK or a
+// default with parentheses inside does not end the body early.
+function tableBodies160(files) {
+  const bodies = new Map();
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?((?:app|private)\.(\w+))\s*\(/gi)) {
+      let depth = 1; let i = m.index + m[0].length;
+      for (; i < sql.length && depth; i++) { if (sql[i] === '(') depth++; else if (sql[i] === ')') depth--; }
+      bodies.set(m[1].toLowerCase(), { short: m[2], body: sql.slice(m.index + m[0].length, i - 1) });
+    }
+  }
+  return bodies;
+}
+
+function columnsOf160(files, bodies, table) {
+  const cols = new Set();
+  const { body } = bodies.get(table);
+  for (const line of body.split(/,\s*\n/)) {
+    const m = line.trim().match(/^([a-z_][a-z0-9_]*)\s+(?!key\b|\()/i);
+    if (m && !/^(constraint|primary|unique|check|foreign|exclude)$/i.test(m[1])) cols.add(m[1].toLowerCase());
+  }
+  const esc = table.replace('.', '\\.');
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(new RegExp(`alter\\s+table\\s+(?:only\\s+)?${esc}\\s+([^;]*);`, 'gi'))) {
+      for (const a of m[1].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?([a-z_][a-z0-9_]*)/gi)) cols.add(a[1].toLowerCase());
+    }
+  }
+  return cols;
+}
+
+// UPDATE grants as `table|role:column`, DELETE/TRUNCATE grants as `table|role`, replayed in file order
+// with revokes. Measured equal to the live catalog at 75c9274: 216 UPDATE pairs, no DELETE or TRUNCATE.
+function grants160(files, columnsByTable) {
+  const update = new Set(); const remove = new Set();
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(/\b(grant|revoke)\s+([^;]*?)\s+on\s+(?:table\s+)?((?:(?:app|private)\.\w+\s*,?\s*)+)\s+(to|from)\s+([^;]+);/gi)) {
+      const grant = m[1].toLowerCase() === 'grant';
+      const objects = m[3].split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+      const roles = m[5].split(',').map((s) => s.trim().toLowerCase().replace(/\s+with\s+grant\s+option$/, ''));
+      for (const o of objects) for (const r of roles) {
+        for (const item of m[2].split(/,(?![^()]*\))/).map((s) => s.trim().toLowerCase())) {
+          const cols = item.match(/^update\s*\(([^)]*)\)$/);
+          const touch = (k) => (grant ? update.add(k) : update.delete(k));
+          if (cols) for (const c of cols[1].split(',')) touch(`${o}|${r}:${c.trim()}`);
+          else if (['update', 'all', 'all privileges'].includes(item)) for (const c of columnsByTable(o)) touch(`${o}|${r}:${c}`);
+          if (['delete', 'truncate', 'all', 'all privileges'].includes(item)) (grant ? remove.add(`${o}|${r}`) : remove.delete(`${o}|${r}`));
+        }
+      }
+    }
+  }
+  return { update, remove };
+}
+
+// Index names and their column lists: `create index` statements, named PRIMARY KEY / UNIQUE constraints
+// and inline primary keys. Measured equal to the live catalog at 75c9274: all 269 indexes, by name and
+// leading column.
+function indexes160(files, bodies) {
+  const idx = new Map();
+  const list = (s) => s.split(',').map((c) => c.trim().split(/\s+/)[0].toLowerCase());
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(/create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?(\w+)\s+on\s+(?:only\s+)?((?:app|private)\.\w+)(?:\s+using\s+\w+)?\s*\(([^)]*)\)/gi)) {
+      idx.set(m[1], { table: m[2].toLowerCase(), cols: list(m[3]) });
+    }
+    for (const m of sql.matchAll(/alter\s+table\s+(?:only\s+)?((?:app|private)\.\w+)\s+add\s+constraint\s+(\w+)\s+(?:primary\s+key|unique(?:\s+nulls\s+not\s+distinct)?)\s*\(([^)]*)\)/gi)) {
+      idx.set(m[2], { table: m[1].toLowerCase(), cols: list(m[3]) });
+    }
+    for (const m of sql.matchAll(/drop\s+index\s+(?:if\s+exists\s+)?(?:(?:app|private)\.)?(\w+)/gi)) idx.delete(m[1]);
+  }
+  for (const [table, { short, body }] of bodies) {
+    for (const c of body.matchAll(/constraint\s+(\w+)\s+(?:primary\s+key|unique(?:\s+nulls\s+not\s+distinct)?)\s*\(([^)]*)\)/gi)) idx.set(c[1], { table, cols: list(c[2]) });
+    for (const c of body.matchAll(/^\s*(?!constraint\b)([a-z_]+)\s+[a-z0-9_ ()]+?\bprimary\s+key\b/gim)) idx.set(`${short}_pkey`, { table, cols: [c[1].toLowerCase()] });
+    for (const c of body.matchAll(/^\s*primary\s+key\s*\(([^)]*)\)/gim)) idx.set(`${short}_pkey`, { table, cols: list(c[1]) });
+  }
+  return idx;
+}
+
+const covering160 = (idx, table, key) => [...idx].filter(([, v]) => v.table === table && v.cols.length >= key.length
+  && key.every((k) => v.cols.slice(0, key.length).includes(k))).map(([n]) => n).sort();
+
+// Foreign-key edges child -> parent from the migration text: inline `references` in a create-table body
+// and `alter table ... add constraint ... references`. Measured equal to the live catalog at 75c9274:
+// 90 keys over 87 distinct edges.
+function fkEdges160(files, bodies) {
+  const edges = [];
+  for (const [table, { body }] of bodies) {
+    for (const r of body.matchAll(/references\s+((?:app|private)\.\w+)/gi)) edges.push(`${table}>${r[1].toLowerCase()}`);
+  }
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(/alter\s+table\s+(?:only\s+)?((?:app|private)\.\w+)([^;]*?)references\s+((?:app|private)\.\w+)/gi)) {
+      if (/add\s+constraint|add\s+column|foreign\s+key/i.test(m[2])) edges.push(`${m[1].toLowerCase()}>${m[3].toLowerCase()}`);
+    }
+  }
+  return edges.sort();
+}
+
+// §5 and §10 read from the document itself, so a class this map calls defined is one the document defines.
+function erdTable160(lines, from, to) {
+  const start = lines.findIndex((l) => l.startsWith(from));
+  const end = lines.findIndex((l, i) => i > start && l.startsWith(to));
+  assert.ok(start >= 0 && end > start, `the ERD still has ${from} before ${to}`);
+  const rows = [];
+  for (let i = start; i < end; i++) {
+    if (!lines[i].startsWith('| `')) continue;
+    rows.push({ line: i + 1, cells: lines[i].split('|').map((s) => s.trim()).slice(1, -1) });
+  }
+  return rows;
+}
+const reaches160 = (cell, cls) => cell.split('/').some((tok) => tok === cls || (tok.endsWith('*') && cls.startsWith(tok.slice(0, -1))));
+
+test('the retention map has one row per table, every class is one §10 defines and §5 reaches or a finding, and every blocking control it names holds in the migrations', async () => {
+  const map = JSON.parse(await readFile(RETENTION_MAP, 'utf8'));
+  const { tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const tables = await tablesCreatedByMigrations();
+  const files = await migrationText160();
+  const bodies = tableBodies160(files);
+  const cols = (t) => columnsOf160(files, bodies, t);
+  const { update, remove } = grants160(files, cols);
+  const idx = indexes160(files, bodies);
+  const all = files.map((f) => f.sql).join('\n');
+  const lines = (await readFile(ERD, 'utf8')).split('\n');
+
+  // EXACTLY ONE ROW PER TABLE, AND NO ROW FOR A TABLE NO MIGRATION CREATES.
+  const named = map.rows.map((r) => r.table);
+  assert.equal(new Set(named).size, named.length, 'no table has two rows');
+  assert.deepEqual([...named].sort(), [...tables].sort(), 'the rows are exactly the tables the migrations create, in app and private');
+  assert.ok(tables.size >= 66, `the table set was derived (measured 66 at 75c9274), got ${tables.size}`);
+
+  // §10, READ FROM THE DOCUMENT: the 27 classes, their row numbers and their final behaviour verbatim.
+  const s10 = erdTable160(lines, '## 10. Retention Baseline', '### Retention precedence');
+  assert.equal(s10.length, 27, '§10 defines 27 classes');
+  assert.deepEqual(Object.keys(map.section10_classes), s10.map((r) => r.cells[0].replace(/`/g, '')), 'the map carries §10\'s classes, in §10\'s order, and no other');
+  s10.forEach((r, i) => {
+    const c = map.section10_classes[r.cells[0].replace(/`/g, '')];
+    assert.equal(c.row, i + 1); assert.equal(c.line, r.line);
+    assert.equal(c.final_behaviour_as_written, r.cells[4], `${r.cells[0]}'s final behaviour is quoted, not paraphrased`);
+    assert.ok(c.final_behaviour.length && c.final_behaviour.every((b) => ['purge', 'anonymise', 'retain'].includes(b)));
+  });
+  const s5 = new Map(erdTable160(lines, '## 5. Canonical Data Dictionary Summary', '### Required field-level dictionary template').map((r) => [r.line, r.cells]));
+
+  const findings = new Map(map.findings.map((f) => [f.id, f]));
+  assert.equal(findings.size, map.findings.length, 'finding ids are unique');
+  const DECISIONS = ['DATA-DEC-03', 'DATA-DEC-04', 'DATA-DEC-05', 'DATA-DEC-06', 'DATA-DEC-07', 'DATA-DEC-08', 'DATA-DEC-09', 'DATA-DEC-10', 'Q160-a', 'Q160-b', 'Q160-c', 'Q160-d'];
+  const KINDS = ['no-delete-grant', 'no-update-grant', 'client-only-update', 'grant-without-policy', 'trigger', 'no-schema-usage'];
+  const policyTo = (table, role) => new RegExp(`create\\s+policy[^;]*\\bon\\s+${table.replace('.', '\\.')}\\b[^;]*\\bto\\s+[^;]*\\b${role}\\b`, 'i').test(all);
+  const holders = (t, c) => [...update].filter((k) => k.startsWith(`${t}|`) && k.endsWith(`:${c}`)).map((k) => k.slice(t.length + 1).split(':')[0]);
+  const used = new Set();
+
+  for (const r of map.rows) {
+    const at = r.table;
+    const row5 = s5.get(r.section5.line);
+    assert.ok(row5, `${at}: §5 line ${r.section5.line} is a row of §5`);
+    assert.deepEqual([r.section5.module, r.section5.family, r.section5.sensitivity, r.section5.retention],
+      [row5[0].replace(/`/g, ''), row5[1], row5[4], row5[5]], `${at}: the §5 cells are verbatim`);
+    for (const k of r.section9_classes) assert.ok(r.section5.sensitivity.split('/').includes(k), `${at}: ${k} is picked from §5's sensitivity cell, not invented`);
+
+    if (r.class_status === 'defined') {
+      const c = map.section10_classes[r.section10_class];
+      assert.ok(c, `${at}: ${r.section10_class} is a class §10 defines`);
+      assert.ok(reaches160(r.section5.retention, r.section10_class), `${at}: §5's cell ${r.section5.retention} reaches ${r.section10_class}; a class §5 does not reach is a finding, not a definition`);
+      assert.equal(r.section10_row, `row ${c.row} of 27 (ERD:${c.line})`);
+      assert.deepEqual(r.final_behaviour, c.final_behaviour, `${at}: the behaviour is the class's`);
+      assert.ok(r.decisions.includes('Q160-a'), `${at}: a defined class still needs §10's numbers approved (Q160-a)`);
+      for (const extra of r.section10_classes_by_row ?? []) { assert.ok(map.section10_classes[extra] && reaches160(r.section5.retention, extra)); used.add(extra); }
+      if (r.also_claimed_by) { assert.ok(map.section10_classes[r.also_claimed_by] && findings.has(r.also_claimed_finding)); used.add(r.also_claimed_by); }
+      used.add(r.section10_class);
+    } else {
+      assert.equal(r.class_status, 'finding', `${at}: a class is defined or it is a finding`);
+      assert.equal(r.section10_class, null); assert.equal(r.section10_row, null);
+      assert.deepEqual(r.final_behaviour, [], `${at}: a finding row is given no behaviour`);
+      const f = findings.get(r.finding);
+      assert.ok(f, `${at}: its finding ${r.finding} is recorded`);
+      assert.equal(f.class_as_written, r.section5.retention, `${at}: the finding is about the class §5 wrote for it`);
+    }
+    // NEVER A NUMBER: no row states a window, defined or not. §10's numbers are unapproved (ERD:484).
+    assert.doesNotMatch(JSON.stringify(r), /\d+\s*(day|days|month|months|year|years|วัน|เดือน|ปี)\b/i, `${at}: no row carries a retention number`);
+
+    const columns = cols(at);
+    for (const s of r.sweeps) {
+      for (const k of s.key) assert.ok(columns.has(k), `${at}: the sweep column ${k} exists`);
+      assert.deepEqual(s.covered_by, covering160(idx, at, s.key), `${at}: the indexes covering ${s.key} are what the migrations create`);
+    }
+    if (r.sweep_finding) assert.ok(findings.has(r.sweep_finding));
+    if (!r.sweeps.length && r.class_status === 'defined' && !['app.billing_plans', 'app.billing_plan_versions', 'app.plan_entitlements'].includes(at)) {
+      assert.ok(r.sweep_finding, `${at}: a defined class with nothing to sweep on is a finding`);
+    }
+    for (const c of r.anonymise_columns) assert.ok(columns.has(c), `${at}: the anonymise column ${c} exists`);
+    if (!r.final_behaviour.includes('anonymise')) assert.deepEqual(r.anonymise_columns, []);
+    for (const d of r.decisions) assert.ok(DECISIONS.includes(d), `${at}: ${d} is an open decision id`);
+    if (['F160-01', 'F160-02', 'F160-03'].includes(r.finding)) assert.ok(r.decisions.includes('Q160-c'));
+
+    // EVERY CONTROL NAMED HOLDS, AND THE ONES THAT MUST BE NAMED ARE.
+    const kinds = r.blocking_controls.map((c) => c.kind);
+    assert.ok(kinds.every((k) => KINDS.includes(k)), `${at}: every control is of a known kind`);
+    assert.ok(kinds.includes('no-delete-grant'), `${at}: no role may purge it, and the map says so`);
+    assert.equal(kinds.includes('no-schema-usage'), at.startsWith('private.'));
+    const anonCovered = [];
+    for (const c of r.blocking_controls) {
+      if (c.kind === 'no-delete-grant') {
+        assert.ok(![...remove].some((k) => k.startsWith(`${at}|`)), `${at}: no migration grants DELETE or TRUNCATE on it`);
+      } else if (c.kind === 'no-update-grant') {
+        for (const col of c.columns) assert.deepEqual(holders(at, col), [], `${at}.${col}: no role holds UPDATE on it`);
+        anonCovered.push(...c.columns);
+      } else if (c.kind === 'client-only-update') {
+        for (const col of c.columns) assert.deepEqual(holders(at, col), ['authenticated'], `${at}.${col}: only the client role holds UPDATE; a sweep is not a client`);
+        anonCovered.push(...c.columns);
+      } else if (c.kind === 'grant-without-policy') {
+        for (const col of c.columns) assert.ok(holders(at, col).includes(c.role), `${at}.${col}: ${c.role} holds UPDATE`);
+        assert.ok(!policyTo(at, c.role), `${at}: and no policy admits ${c.role}`);
+        anonCovered.push(...c.columns);
+      } else if (c.kind === 'trigger') {
+        const esc = (s) => s.replace('.', '\\.');
+        assert.match(all, new RegExp(`create\\s+trigger\\s+${c.trigger}\\s[^;]*\\bon\\s+${esc(at)}\\b[^;]*execute\\s+(?:function|procedure)\\s+${esc(c.function)}\\s*\\(`, 'i'), `${at}: trigger ${c.trigger} runs ${c.function}`);
+        assert.match(all, new RegExp(`create\\s+(?:or\\s+replace\\s+)?function\\s+${esc(c.function)}\\s*\\(`, 'i'), `${c.function} exists`);
+      } else if (c.kind === 'no-schema-usage') {
+        assert.doesNotMatch(all, /grant\s+[^;]*\busage\b[^;]*\bon\s+schema\s+private\b/i, 'no migration grants USAGE on private');
+      }
+    }
+    assert.deepEqual([...anonCovered].sort(), [...r.anonymise_columns].sort(), `${at}: every anonymise column is held by exactly one named control`);
+    for (const m of all.matchAll(new RegExp(`create\\s+trigger\\s+(\\w+)\\s[^;]*\\bon\\s+${at.replace('.', '\\.')}\\b[^;]*execute\\s+function\\s+private\\.refuse_mutation\\s*\\(`, 'gi'))) {
+      assert.ok(r.blocking_controls.some((c) => c.kind === 'trigger' && c.trigger === m[1]), `${at}: the refusal trigger ${m[1]} is named`);
+    }
+  }
+
+  // THE CONTROLS ON EVERY ROW HOLD: no policy names a non-client role, and app_maintenance holds nothing.
+  assert.deepEqual(map.controls_on_every_row.map((c) => c.kind), ['no-executor', 'no-legal-hold-table', 'no-deletion-manifest']);
+  assert.doesNotMatch(all, /create\s+policy[^;]*\bto\s+[^;]*\b(app_worker|app_maintenance|app_command|service_role)\b/i, 'no policy admits a service role (RFC-2026-022 not in effect)');
+  assert.doesNotMatch(all, /\bgrant\s+[^;]*\bto\s+[^;]*\bapp_maintenance\b/i, 'app_maintenance holds no grant');
+  assert.ok(![...tables].some((t) => /hold/.test(t)), 'no legal-hold table exists yet; when one does, this row changes in a diff');
+
+  // TWO-WAY: a §10 class no row uses is listed, with a reason, and nothing else is.
+  const unused = Object.keys(map.section10_classes).filter((c) => !used.has(c));
+  assert.deepEqual(map.section10_classes_without_a_row.map((w) => w.class), unused);
+  for (const w of map.section10_classes_without_a_row) assert.ok(w.why.length > 10, `${w.class}: the absence has a reason`);
+  for (const f of map.findings) assert.ok(f.what && f.source, `${f.id}: says what and where`);
+});
+
+test('the §11.1 export manifest fixture never carries an excluded class, every table is in the retention map, and its checksums recompute', async () => {
+  const { createHash } = await import('node:crypto');
+  const map = JSON.parse(await readFile(RETENTION_MAP, 'utf8'));
+  const { manifest } = JSON.parse(await readFile(EXPORT_FIXTURE, 'utf8'));
+  const catalog = JSON.parse(await readFile('db/foundation/seeds/fixture-catalog.json', 'utf8'));
+  const byTable = new Map(map.rows.map((r) => [r.table, r]));
+
+  // §11.1/6's fields, and §11.1/3's snapshot: fixture identities, never generated here.
+  assert.equal(manifest.schema_version, 'export-manifest/0.1-draft');
+  assert.match(manifest.generated_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.equal(manifest.workspace_id, catalog.identities.workspace_a.uuid);
+  assert.equal(manifest.requested_scope.workspace_id, manifest.workspace_id);
+  assert.equal(manifest.requester, catalog.identities.user_owner_a.uuid);
+  assert.ok(manifest.policy_version);
+
+  // CHECKSUMS RECOMPUTE: each synthetic body by the recipe, then the package over the files in order.
+  const sha = (s) => createHash('sha256').update(s).digest('hex');
+  for (const f of manifest.files) {
+    assert.ok(Number.isInteger(f.rows) && f.rows > 0, `${f.table}: a count`);
+    assert.equal(f.path, `${f.table.replace('.', '/')}.jsonl`);
+    const body = Array.from({ length: f.rows }, (_, k) => `${JSON.stringify({ fixture_row: k + 1, table: f.table })}\n`).join('');
+    assert.equal(f.sha256, sha(body), `${f.table}: the checksum is the body's`);
+  }
+  assert.equal(manifest.package_sha256, sha(manifest.files.map((f) => `${f.path}\t${f.rows}\t${f.sha256}\n`).join('')), 'the package checksum recomputes');
+
+  // EVERY TABLE IS IN THE MAP, AND THE MAP IS PARTITIONED: each row is exported or omitted with a reason, once.
+  const included = manifest.files.map((f) => f.table);
+  const omitted = manifest.omitted.flatMap((o) => o.tables);
+  for (const t of [...included, ...omitted]) assert.ok(byTable.has(t), `${t} is a row of the retention map`);
+  assert.deepEqual([...included, ...omitted].sort(), map.rows.map((r) => r.table).sort(), 'every table is exported or omitted, exactly once');
+  for (const o of manifest.omitted) assert.ok(o.reason.length > 20 && o.tables.length, `${o.class}: omitted with a reason`);
+
+  // §11.1/5's EXCLUSIONS, each by a property of the map rather than by the fixture's own list, and each
+  // matching at least one table so the rule cannot pass by matching nothing.
+  const excluded = {
+    'SECRET-4': (r) => r.section9_classes.includes('SECRET-4'),
+    'raw webhook': (r) => /webhook/.test(r.table),
+    'internal job': (r) => r.section9_classes.includes('INTERNAL-3'),
+    'SECURITY detail': (r) => r.section9_classes.includes('SECURITY-4'),
+    'research snapshot': (r) => r.section10_class === 'RESEARCH-SNAPSHOT',
+  };
+  for (const [what, match] of Object.entries(excluded)) {
+    const hits = map.rows.filter(match).map((r) => r.table);
+    assert.ok(hits.length >= 1, `${what} matches at least one table`);
+    for (const t of hits) assert.ok(!included.includes(t), `${t} (${what}) never appears in an export`);
+  }
+  for (const t of ['private.ai_credential_references', 'private.meta_credential_references', 'private.push_subscription_references',
+    'private.meta_webhook_inbox', 'app.billing_webhook_receipts', 'app.jobs', 'app.outbox_events', 'app.consumer_ledger',
+    'app.security_events', 'app.research_snapshots']) assert.ok(omitted.includes(t), `${t} is omitted by name too`);
+  assert.ok(!included.some((t) => t.startsWith('private.')), 'nothing in private is exported');
+});
+
+test('the §11.4 purge order is a topological order of the foreign keys the migrations create, children first, covering every table', async () => {
+  const purge = JSON.parse(await readFile(PURGE_ORDER, 'utf8'));
+  const map = JSON.parse(await readFile(RETENTION_MAP, 'utf8'));
+  const { tablesCreatedByMigrations } = await import('../../scripts/db/run.mjs');
+  const tables = await tablesCreatedByMigrations();
+  const files = await migrationText160();
+  const bodies = tableBodies160(files);
+
+  // THE EDGES ARE THE MIGRATIONS' FOREIGN KEYS, as a multiset: a key added, dropped or re-pointed fails here.
+  assert.deepEqual(purge.edges.map((e) => `${e.child}>${e.parent}`).sort(), fkEdges160(files, bodies), 'the declared edges are the foreign keys the migrations create');
+  assert.ok(purge.edges.length >= 90, `measured 90 keys at 75c9274, got ${purge.edges.length}`);
+  assert.equal(new Set(purge.edges.map((e) => e.fk)).size, purge.edges.length, 'each key once');
+
+  // EVERY TABLE EXACTLY ONCE.
+  const order = purge.order.map((o) => o.table);
+  assert.equal(new Set(order).size, order.length);
+  assert.deepEqual([...order].sort(), [...tables].sort(), 'the order covers every table');
+  assert.equal(order[order.length - 1], 'app.workspaces', 'the tenant root goes last');
+  for (const o of purge.order) assert.ok([6, 7, 8, 9].includes(o.phase), `${o.table}: a §11.4 phase`);
+
+  // CHILDREN BEFORE PARENTS, for every key that is neither a self-reference nor a declared cycle break.
+  const pos = new Map(order.map((t, i) => [t, i]));
+  const breaks = new Set(purge.cycle_breaks.map((b) => b.fk));
+  for (const b of purge.cycle_breaks) {
+    const e = purge.edges.find((x) => x.fk === b.fk);
+    assert.ok(e && e.child === b.child && e.parent === b.parent, `${b.fk} is a declared key`);
+    assert.ok(purge.edges.some((x) => x.child === b.parent && x.parent === b.child), `${b.fk} breaks a real cycle: the reverse key exists`);
+    assert.ok(b.how.length > 20);
+  }
+  for (const e of purge.edges) {
+    if (e.child === e.parent || breaks.has(e.fk)) continue;
+    assert.ok(pos.get(e.child) < pos.get(e.parent), `${e.fk}: ${e.child} is purged before ${e.parent}`);
+  }
+  assert.deepEqual(purge.self_references.map((s) => s.fk).sort(), purge.edges.filter((e) => e.child === e.parent).map((e) => e.fk).sort(), 'every self-reference is declared');
+
+  // THE CONFLICTS RECOMPUTE: a key whose child §10 keeps and whose parent §10 purges.
+  const beh = new Map(map.rows.map((r) => [r.table, r.final_behaviour]));
+  const kept = (t) => beh.get(t).includes('retain') && !beh.get(t).includes('purge');
+  const conflicts = purge.edges.filter((e) => e.child !== e.parent && kept(e.child) && beh.get(e.parent).includes('purge')).map((e) => e.fk).sort();
+  assert.deepEqual(purge.retention_conflicts.map((c) => c.fk).sort(), conflicts, 'every retention conflict is declared, and only those');
+  assert.ok(conflicts.length >= 1, 'measured 12 at 75c9274; the finding is F160-14');
+});

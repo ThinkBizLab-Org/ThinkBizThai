@@ -1,0 +1,330 @@
+{
+  "_what": "A synthetic §11.1 export manifest (ERD:532-555), as a fixture: schema version, generated_at, workspace_id, requested scope and policy version, counts, omitted classes with reasons, checksums. No row content, no real identity: the ids are the fixture catalog's uuid5 identities and every file body is the synthetic one the recipe below names.",
+  "_checksum_recipe": "Each file body is rows lines of JSON.stringify({fixture_row: k, table}) + \"\\n\" for k = 1..rows; sha256 is its hex digest. package_sha256 is the sha256 of the concatenation of `${path}\\t${rows}\\t${sha256}\\n` over files in order. The static test recomputes all of them.",
+  "_not_decided": "Encryption, the 7-day expiry, the download URL and step-up (§11.1/2, /7, /8) are behaviour, not manifest fields, and are not modelled. Field projection inside an included table (for example which audit rows are tenant-visible) is not decided here.",
+  "manifest": {
+    "schema_version": "export-manifest/0.1-draft",
+    "generated_at": "2026-10-03T00:00:00Z",
+    "workspace_id": "c4840acc-0323-5e13-b1d3-c18d7eb615cb",
+    "requested_scope": {
+      "workspace_id": "c4840acc-0323-5e13-b1d3-c18d7eb615cb",
+      "business_profile_ids": "all-the-requester-may-export"
+    },
+    "requester": "5c460eb8-0710-557a-b423-f9b12c76834f",
+    "policy_version": "retention-baseline-v0.1-unapproved",
+    "files": [
+      {
+        "table": "app.approval_events",
+        "path": "app/approval_events.jsonl",
+        "rows": 5,
+        "sha256": "8361eb5a5d89090b7dbcdd9ee5446750b89eaab5a4c05df2af12d80787a07b56"
+      },
+      {
+        "table": "app.approval_policies",
+        "path": "app/approval_policies.jsonl",
+        "rows": 2,
+        "sha256": "656f2beebc0e23e7d9180ae0ec5a2ed97463c12c3e6adf0587be25b7952c9812"
+      },
+      {
+        "table": "app.approval_requests",
+        "path": "app/approval_requests.jsonl",
+        "rows": 2,
+        "sha256": "6f96d7aeecb9f3b24748237ec0fb00bcfa34324100883d4a063fcab38aecb3bb"
+      },
+      {
+        "table": "app.asset_rights",
+        "path": "app/asset_rights.jsonl",
+        "rows": 2,
+        "sha256": "24d8d3f645a20b61145fd298216b3d724ec86896df7fcfeedb57cf0f37c1b893"
+      },
+      {
+        "table": "app.asset_versions",
+        "path": "app/asset_versions.jsonl",
+        "rows": 4,
+        "sha256": "92746791110d4c7ae8b578889319647e510facc2640d192674df7576a66e33e4"
+      },
+      {
+        "table": "app.assets",
+        "path": "app/assets.jsonl",
+        "rows": 1,
+        "sha256": "7321e2c2dc28c3aef5a1ee7c19cb3dbe49a0e8f7be74419ec7fbed455fffffde"
+      },
+      {
+        "table": "app.audit_logs",
+        "path": "app/audit_logs.jsonl",
+        "rows": 5,
+        "sha256": "600595967a8519c7d23ba68fd32aa656994d3578a30799e61c1bbdcd9396b9b4"
+      },
+      {
+        "table": "app.billing_invoices",
+        "path": "app/billing_invoices.jsonl",
+        "rows": 1,
+        "sha256": "32c77c9227424b4f0ef3e6187dd3a69f32cfe259ebdddf999148a46744a30f6c"
+      },
+      {
+        "table": "app.billing_payments",
+        "path": "app/billing_payments.jsonl",
+        "rows": 1,
+        "sha256": "9c47cf1e3cdecc1b5d04255bcbddfae78084af634c69de45dcd808089a745b7c"
+      },
+      {
+        "table": "app.billing_subscriptions",
+        "path": "app/billing_subscriptions.jsonl",
+        "rows": 1,
+        "sha256": "46d9cd530f54f62d7adf33357d1502c92a9f5f76a24edbb83306f1fb0ece833a"
+      },
+      {
+        "table": "app.business_profile_versions",
+        "path": "app/business_profile_versions.jsonl",
+        "rows": 5,
+        "sha256": "239b1d966839b2f6fc285c2b79adc97c124f152880e6dcc687365a9a10177596"
+      },
+      {
+        "table": "app.business_profiles",
+        "path": "app/business_profiles.jsonl",
+        "rows": 2,
+        "sha256": "03db635530ca8488f48da77db58a6964a6d89085ba39ad77f9e69ba370d2b626"
+      },
+      {
+        "table": "app.calendar_items",
+        "path": "app/calendar_items.jsonl",
+        "rows": 4,
+        "sha256": "375a5be0e323bc32496c01c527ca8358602942982be7ae55cd5ebfcf6a945d64"
+      },
+      {
+        "table": "app.content_asset_links",
+        "path": "app/content_asset_links.jsonl",
+        "rows": 4,
+        "sha256": "399fe0dec8ba17813ba22cdec291c222765b54a71a8a0c920384c843a519c75f"
+      },
+      {
+        "table": "app.content_ideas",
+        "path": "app/content_ideas.jsonl",
+        "rows": 3,
+        "sha256": "28047d9802ac873b9b9b95b7c3a4f7660e426ff46f1fdb33192ec5ff65d0966e"
+      },
+      {
+        "table": "app.content_items",
+        "path": "app/content_items.jsonl",
+        "rows": 3,
+        "sha256": "3552ff55ed154bacf730cead93560bac08b8863df608f97a4da986022f9bc2f5"
+      },
+      {
+        "table": "app.content_schedules",
+        "path": "app/content_schedules.jsonl",
+        "rows": 2,
+        "sha256": "bc8cba29b3fec7d2b98c586d89712fdf7abf71746a43b8a70c687784fd5b7a2e"
+      },
+      {
+        "table": "app.content_targets",
+        "path": "app/content_targets.jsonl",
+        "rows": 5,
+        "sha256": "4892a006d6b866401918c07236853cdc0cc7d3e51f48c8046ee6b2e44fd339ea"
+      },
+      {
+        "table": "app.content_variants",
+        "path": "app/content_variants.jsonl",
+        "rows": 1,
+        "sha256": "bee5b4a5ae71ea4ada0d882d8098b7cb674ce68f7e84b8238cd7fc62a910cfd8"
+      },
+      {
+        "table": "app.content_versions",
+        "path": "app/content_versions.jsonl",
+        "rows": 1,
+        "sha256": "0b829fea37f07ee89e7a7cbab45a833da3fe3ff8a39e5cf013598825f949d715"
+      },
+      {
+        "table": "app.industry_assignments",
+        "path": "app/industry_assignments.jsonl",
+        "rows": 5,
+        "sha256": "02a63068bede9cefbfdb8e7ac94b7c03e7976d468d9a6456c6cb4fe2ee9cabef"
+      },
+      {
+        "table": "app.knowledge_item_versions",
+        "path": "app/knowledge_item_versions.jsonl",
+        "rows": 3,
+        "sha256": "7f71c3ea9cb2379a16081e32445fb1652e89e7aedbc3b1d6a2541b625574b973"
+      },
+      {
+        "table": "app.knowledge_items",
+        "path": "app/knowledge_items.jsonl",
+        "rows": 5,
+        "sha256": "c9841f3acfcd105c6cb7c53b6a33eb61d402c2712a81e01f4cd8541fa41e98b9"
+      },
+      {
+        "table": "app.page_context_profile_versions",
+        "path": "app/page_context_profile_versions.jsonl",
+        "rows": 4,
+        "sha256": "2dd129591bb99f77eb4d0915f8317451ddd1cdeb99eadf777f7d7df83fd7b2ac"
+      },
+      {
+        "table": "app.page_context_profiles",
+        "path": "app/page_context_profiles.jsonl",
+        "rows": 1,
+        "sha256": "bd5129c701ed09a3ee5a34bda041a452717c9bd2544230133a8064c6545b285d"
+      },
+      {
+        "table": "app.publish_intents",
+        "path": "app/publish_intents.jsonl",
+        "rows": 5,
+        "sha256": "3b37aa0c31321e9b8db4fb9a5f99f012c40d54bbde7d75b7137764c4e18a621a"
+      },
+      {
+        "table": "app.publish_target_assets",
+        "path": "app/publish_target_assets.jsonl",
+        "rows": 1,
+        "sha256": "23b73e1e5d38a95d7eb6f699902c8c3e26a0cd3f1e06a8156db5867c91811bd5"
+      },
+      {
+        "table": "app.publish_targets",
+        "path": "app/publish_targets.jsonl",
+        "rows": 5,
+        "sha256": "7ecbee8142e9b9f7a21ede5639443224ea6ce9117eb5e886cc79421b62964c3d"
+      },
+      {
+        "table": "app.published_posts",
+        "path": "app/published_posts.jsonl",
+        "rows": 5,
+        "sha256": "5d7e56d9b5793a8288a804fd2c4fec16db2d461a91aad3fb308b62d0258ed6cc"
+      },
+      {
+        "table": "app.quality_reviews",
+        "path": "app/quality_reviews.jsonl",
+        "rows": 5,
+        "sha256": "36b8151df2fa69b65e5799bc3505f011f0f1ea397750a7ff48d6a7b114f97a2b"
+      },
+      {
+        "table": "app.research_evidence",
+        "path": "app/research_evidence.jsonl",
+        "rows": 2,
+        "sha256": "4c815f07becc26fd5da742d53fc328a118f882d2675d7467acb34106f20c7294"
+      },
+      {
+        "table": "app.research_runs",
+        "path": "app/research_runs.jsonl",
+        "rows": 3,
+        "sha256": "a30e7a34b1f6cdcd9dd9ae590ceb1af3708bc3c5bcb0aef08d4e5a8842b14a28"
+      },
+      {
+        "table": "app.research_sources",
+        "path": "app/research_sources.jsonl",
+        "rows": 1,
+        "sha256": "7afb87c959f0a050a359f362bd333495583d9e34c4e3d10e14308a97df27734b"
+      },
+      {
+        "table": "app.research_suggestions",
+        "path": "app/research_suggestions.jsonl",
+        "rows": 5,
+        "sha256": "722260f55824ee7298c9449e006144a2062f919b9281a430037468c9de78ba15"
+      },
+      {
+        "table": "app.usage_events",
+        "path": "app/usage_events.jsonl",
+        "rows": 2,
+        "sha256": "787e432cfdfbdd79324649123c5965e88d527d204b7e957cc8a68dffac9879f6"
+      },
+      {
+        "table": "app.workspace_member_scopes",
+        "path": "app/workspace_member_scopes.jsonl",
+        "rows": 3,
+        "sha256": "34e5802be58351c3a90eaed9b911c40114b073938f1ee21577b434f579e67da0"
+      },
+      {
+        "table": "app.workspace_members",
+        "path": "app/workspace_members.jsonl",
+        "rows": 2,
+        "sha256": "220b86639b683925c3ac2e52e0601cd2667b8f4797d2219a1bf3c02702bb0d2b"
+      },
+      {
+        "table": "app.workspace_settings",
+        "path": "app/workspace_settings.jsonl",
+        "rows": 1,
+        "sha256": "9ab2cb5d340d70b0031a4c2d112cb50e1cd355750b9cde4c76f05ce17f4c986b"
+      },
+      {
+        "table": "app.workspaces",
+        "path": "app/workspaces.jsonl",
+        "rows": 1,
+        "sha256": "3217cacf0abbcc1bebaac39f3fc1af0a55b69d95a288f88d496b4c6a6eae6588"
+      }
+    ],
+    "omitted": [
+      {
+        "class": "SECRET-4",
+        "reason": "§11.1/5: no secret or provider credential (ERD:540)",
+        "tables": [
+          "private.ai_credential_references",
+          "private.meta_credential_references",
+          "private.meta_webhook_inbox",
+          "private.push_subscription_references"
+        ]
+      },
+      {
+        "class": "raw-webhook",
+        "reason": "§11.1/5: no raw webhook (ERD:540)",
+        "tables": [
+          "app.billing_webhook_receipts"
+        ]
+      },
+      {
+        "class": "internal-job",
+        "reason": "§11.1/5: no internal job/DLQ (ERD:540)",
+        "tables": [
+          "app.consumer_ledger",
+          "app.jobs",
+          "app.outbox_events"
+        ]
+      },
+      {
+        "class": "SECURITY-detail",
+        "reason": "§11.1/5: no security investigative detail (ERD:540)",
+        "tables": [
+          "app.security_events"
+        ]
+      },
+      {
+        "class": "research-snapshot",
+        "reason": "§11.1/5: no copyrighted raw snapshot (ERD:540)",
+        "tables": [
+          "app.research_snapshots"
+        ]
+      },
+      {
+        "class": "not-workspace-data",
+        "reason": "§11.1/4: only Workspace/Business/Page data the requester may export; a global catalog row belongs to no workspace",
+        "tables": [
+          "app.ai_models",
+          "app.billing_plan_versions",
+          "app.billing_plans",
+          "app.industry_pack_versions",
+          "app.industry_packs",
+          "app.plan_entitlements",
+          "app.user_profiles"
+        ]
+      },
+      {
+        "class": "token-material",
+        "reason": "§11.1/5 \"secret\", read conservatively: token_hash is the stored form of a bearer invitation token (§9.3, ERD:473). A judgement, recorded as one.",
+        "tables": [
+          "app.workspace_invitations"
+        ]
+      },
+      {
+        "class": "outside-minimum-domains",
+        "reason": "Not in §11.1's minimum export domains (ERD:546-555) and not excluded by §11.1/5; whether to include it is NOT decided here.",
+        "tables": [
+          "app.ai_model_policies",
+          "app.meta_connections",
+          "app.notification_preferences",
+          "app.notifications",
+          "app.performance_snapshots",
+          "app.publish_jobs",
+          "app.quota_buckets",
+          "app.social_accounts",
+          "app.usage_reservations"
+        ]
+      }
+    ],
+    "package_sha256": "f282594f4a4a2b7ad8954eeeac1f7e3b3dc6d8e45f53c920a1200af1ea3f47c1"
+  }
+}

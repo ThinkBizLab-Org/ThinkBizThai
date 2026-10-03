@@ -1,0 +1,905 @@
+{
+  "_what": "§11.4's purge order as data, derived from the foreign keys: a child is purged before its parent. Every FK in app and private is NO ACTION (measured: 90 of 90), so nothing cascades and the order is the only thing that lets a parent go.",
+  "_measured": "Edges were read from pg_constraint on a clean migrate at 75c9274 and are re-derived from the migration text by the static test; the test fails if an edge is added, removed or re-pointed without this file changing.",
+  "_phases": {
+    "6": "§11.4 step 6: ephemeral, export, temp and raw payload first (ERD:596)",
+    "7": "§11.4 step 7: tenant content, research, assets and connector data (ERD:597)",
+    "8": "§11.4 step 8: finance, audit, security and other retained minimum records, anonymised or kept (ERD:598)",
+    "9": "the tenant root, last"
+  },
+  "edges": [
+    {
+      "child": "app.ai_model_policies",
+      "parent": "app.ai_models",
+      "fk": "ai_model_policies_ai_model_id_fkey"
+    },
+    {
+      "child": "app.ai_model_policies",
+      "parent": "app.workspaces",
+      "fk": "ai_model_policies_workspace_id_fkey"
+    },
+    {
+      "child": "app.approval_events",
+      "parent": "app.approval_requests",
+      "fk": "approval_events_request_scope_fk"
+    },
+    {
+      "child": "app.approval_policies",
+      "parent": "app.business_profiles",
+      "fk": "approval_policies_business_scope_fk"
+    },
+    {
+      "child": "app.approval_policies",
+      "parent": "app.page_context_profiles",
+      "fk": "approval_policies_page_scope_fk"
+    },
+    {
+      "child": "app.approval_requests",
+      "parent": "app.content_items",
+      "fk": "approval_requests_item_scope_fk"
+    },
+    {
+      "child": "app.approval_requests",
+      "parent": "app.content_versions",
+      "fk": "approval_requests_pinned_version_fk"
+    },
+    {
+      "child": "app.approval_requests",
+      "parent": "app.approval_policies",
+      "fk": "approval_requests_policy_scope_fk"
+    },
+    {
+      "child": "app.asset_rights",
+      "parent": "app.assets",
+      "fk": "asset_rights_asset_scope_fk"
+    },
+    {
+      "child": "app.asset_rights",
+      "parent": "app.assets",
+      "fk": "asset_rights_proof_asset_scope_fk"
+    },
+    {
+      "child": "app.asset_versions",
+      "parent": "app.assets",
+      "fk": "asset_versions_asset_scope_fk"
+    },
+    {
+      "child": "app.asset_versions",
+      "parent": "app.asset_versions",
+      "fk": "asset_versions_parent_scope_fk"
+    },
+    {
+      "child": "app.assets",
+      "parent": "app.business_profiles",
+      "fk": "assets_business_scope_fk"
+    },
+    {
+      "child": "app.assets",
+      "parent": "app.asset_versions",
+      "fk": "assets_current_version_scope_fk"
+    },
+    {
+      "child": "app.assets",
+      "parent": "app.page_context_profiles",
+      "fk": "assets_page_scope_fk"
+    },
+    {
+      "child": "app.billing_invoices",
+      "parent": "app.billing_subscriptions",
+      "fk": "billing_invoices_subscription_scope_fk"
+    },
+    {
+      "child": "app.billing_payments",
+      "parent": "app.billing_invoices",
+      "fk": "billing_payments_invoice_mode_fk"
+    },
+    {
+      "child": "app.billing_payments",
+      "parent": "app.billing_invoices",
+      "fk": "billing_payments_invoice_scope_fk"
+    },
+    {
+      "child": "app.billing_plan_versions",
+      "parent": "app.billing_plans",
+      "fk": "billing_plan_versions_billing_plan_id_fkey"
+    },
+    {
+      "child": "app.billing_subscriptions",
+      "parent": "app.billing_plan_versions",
+      "fk": "billing_subscriptions_billing_plan_version_id_fkey"
+    },
+    {
+      "child": "app.billing_subscriptions",
+      "parent": "app.workspaces",
+      "fk": "billing_subscriptions_workspace_id_fkey"
+    },
+    {
+      "child": "app.billing_webhook_receipts",
+      "parent": "app.workspaces",
+      "fk": "billing_webhook_receipts_correlation_workspace_id_fkey"
+    },
+    {
+      "child": "app.business_profile_versions",
+      "parent": "app.business_profiles",
+      "fk": "business_profile_versions_scope_fk"
+    },
+    {
+      "child": "app.business_profiles",
+      "parent": "app.workspaces",
+      "fk": "business_profiles_workspace_id_fkey"
+    },
+    {
+      "child": "app.calendar_items",
+      "parent": "app.content_items",
+      "fk": "calendar_items_item_scope_fk"
+    },
+    {
+      "child": "app.consumer_ledger",
+      "parent": "app.workspaces",
+      "fk": "consumer_ledger_workspace_id_fkey"
+    },
+    {
+      "child": "app.content_asset_links",
+      "parent": "app.asset_versions",
+      "fk": "content_asset_links_asset_version_scope_fk"
+    },
+    {
+      "child": "app.content_asset_links",
+      "parent": "app.content_variants",
+      "fk": "content_asset_links_variant_scope_fk"
+    },
+    {
+      "child": "app.content_asset_links",
+      "parent": "app.content_versions",
+      "fk": "content_asset_links_version_scope_fk"
+    },
+    {
+      "child": "app.content_ideas",
+      "parent": "app.business_profiles",
+      "fk": "content_ideas_business_scope_fk"
+    },
+    {
+      "child": "app.content_ideas",
+      "parent": "app.page_context_profiles",
+      "fk": "content_ideas_page_scope_fk"
+    },
+    {
+      "child": "app.content_ideas",
+      "parent": "app.research_suggestions",
+      "fk": "content_ideas_research_suggestion_fk"
+    },
+    {
+      "child": "app.content_items",
+      "parent": "app.business_profiles",
+      "fk": "content_items_business_scope_fk"
+    },
+    {
+      "child": "app.content_items",
+      "parent": "app.page_context_profiles",
+      "fk": "content_items_page_scope_fk"
+    },
+    {
+      "child": "app.content_schedules",
+      "parent": "app.publish_intents",
+      "fk": "content_schedules_intent_scope_fk"
+    },
+    {
+      "child": "app.content_schedules",
+      "parent": "app.content_targets",
+      "fk": "content_schedules_target_scope_fk"
+    },
+    {
+      "child": "app.content_targets",
+      "parent": "app.content_items",
+      "fk": "content_targets_item_scope_fk"
+    },
+    {
+      "child": "app.content_targets",
+      "parent": "app.social_accounts",
+      "fk": "content_targets_social_scope_fk"
+    },
+    {
+      "child": "app.content_targets",
+      "parent": "app.content_variants",
+      "fk": "content_targets_variant_scope_fk"
+    },
+    {
+      "child": "app.content_variants",
+      "parent": "app.content_versions",
+      "fk": "content_variants_version_scope_fk"
+    },
+    {
+      "child": "app.content_versions",
+      "parent": "app.content_items",
+      "fk": "content_versions_item_scope_fk"
+    },
+    {
+      "child": "app.content_versions",
+      "parent": "app.content_versions",
+      "fk": "content_versions_parent_scope_fk"
+    },
+    {
+      "child": "app.industry_assignments",
+      "parent": "app.industry_pack_versions",
+      "fk": "industry_assignments_industry_pack_version_id_fkey"
+    },
+    {
+      "child": "app.industry_assignments",
+      "parent": "app.business_profiles",
+      "fk": "industry_assignments_scope_fk"
+    },
+    {
+      "child": "app.industry_pack_versions",
+      "parent": "app.industry_packs",
+      "fk": "industry_pack_versions_industry_pack_id_fkey"
+    },
+    {
+      "child": "app.jobs",
+      "parent": "app.workspaces",
+      "fk": "jobs_workspace_id_fkey"
+    },
+    {
+      "child": "app.knowledge_item_versions",
+      "parent": "app.knowledge_items",
+      "fk": "knowledge_item_versions_scope_fk"
+    },
+    {
+      "child": "app.knowledge_items",
+      "parent": "app.business_profiles",
+      "fk": "knowledge_items_business_scope_fk"
+    },
+    {
+      "child": "app.knowledge_items",
+      "parent": "app.page_context_profiles",
+      "fk": "knowledge_items_page_scope_fk"
+    },
+    {
+      "child": "app.meta_connections",
+      "parent": "app.workspaces",
+      "fk": "meta_connections_workspace_id_fkey"
+    },
+    {
+      "child": "app.notification_preferences",
+      "parent": "app.workspaces",
+      "fk": "notification_preferences_workspace_id_fkey"
+    },
+    {
+      "child": "app.notifications",
+      "parent": "app.workspaces",
+      "fk": "notifications_workspace_id_fkey"
+    },
+    {
+      "child": "app.outbox_events",
+      "parent": "app.workspaces",
+      "fk": "outbox_events_workspace_id_fkey"
+    },
+    {
+      "child": "app.page_context_profile_versions",
+      "parent": "app.page_context_profiles",
+      "fk": "page_context_profile_versions_scope_fk"
+    },
+    {
+      "child": "app.page_context_profiles",
+      "parent": "app.business_profiles",
+      "fk": "page_context_profiles_scope_fk"
+    },
+    {
+      "child": "app.performance_snapshots",
+      "parent": "app.published_posts",
+      "fk": "performance_snapshots_post_scope_fk"
+    },
+    {
+      "child": "app.plan_entitlements",
+      "parent": "app.billing_plan_versions",
+      "fk": "plan_entitlements_plan_scope_fk"
+    },
+    {
+      "child": "app.publish_intents",
+      "parent": "app.content_items",
+      "fk": "publish_intents_item_scope_fk"
+    },
+    {
+      "child": "app.publish_intents",
+      "parent": "app.content_versions",
+      "fk": "publish_intents_pinned_version_fk"
+    },
+    {
+      "child": "app.publish_jobs",
+      "parent": "app.publish_targets",
+      "fk": "publish_jobs_target_scope_fk"
+    },
+    {
+      "child": "app.publish_target_assets",
+      "parent": "app.asset_versions",
+      "fk": "publish_target_assets_asset_version_scope_fk"
+    },
+    {
+      "child": "app.publish_target_assets",
+      "parent": "app.publish_targets",
+      "fk": "publish_target_assets_target_scope_fk"
+    },
+    {
+      "child": "app.publish_targets",
+      "parent": "app.content_targets",
+      "fk": "publish_targets_content_target_fk"
+    },
+    {
+      "child": "app.publish_targets",
+      "parent": "app.publish_intents",
+      "fk": "publish_targets_intent_scope_fk"
+    },
+    {
+      "child": "app.publish_targets",
+      "parent": "app.social_accounts",
+      "fk": "publish_targets_social_scope_fk"
+    },
+    {
+      "child": "app.publish_targets",
+      "parent": "app.content_variants",
+      "fk": "publish_targets_variant_scope_fk"
+    },
+    {
+      "child": "app.published_posts",
+      "parent": "app.publish_targets",
+      "fk": "published_posts_target_destination_fk"
+    },
+    {
+      "child": "app.published_posts",
+      "parent": "app.publish_targets",
+      "fk": "published_posts_target_scope_fk"
+    },
+    {
+      "child": "app.quality_reviews",
+      "parent": "app.content_versions",
+      "fk": "quality_reviews_version_scope_fk"
+    },
+    {
+      "child": "app.quota_buckets",
+      "parent": "app.business_profiles",
+      "fk": "quota_buckets_business_scope_fk"
+    },
+    {
+      "child": "app.quota_buckets",
+      "parent": "app.workspaces",
+      "fk": "quota_buckets_workspace_id_fkey"
+    },
+    {
+      "child": "app.research_evidence",
+      "parent": "app.research_sources",
+      "fk": "research_evidence_source_scope_fk"
+    },
+    {
+      "child": "app.research_runs",
+      "parent": "app.business_profiles",
+      "fk": "research_runs_business_scope_fk"
+    },
+    {
+      "child": "app.research_runs",
+      "parent": "app.page_context_profiles",
+      "fk": "research_runs_page_scope_fk"
+    },
+    {
+      "child": "app.research_snapshots",
+      "parent": "app.research_sources",
+      "fk": "research_snapshots_source_scope_fk"
+    },
+    {
+      "child": "app.research_sources",
+      "parent": "app.research_runs",
+      "fk": "research_sources_run_scope_fk"
+    },
+    {
+      "child": "app.research_suggestions",
+      "parent": "app.research_runs",
+      "fk": "research_suggestions_run_scope_fk"
+    },
+    {
+      "child": "app.social_accounts",
+      "parent": "app.meta_connections",
+      "fk": "social_accounts_scope_fk"
+    },
+    {
+      "child": "app.usage_reservations",
+      "parent": "app.business_profiles",
+      "fk": "usage_reservations_business_scope_fk"
+    },
+    {
+      "child": "app.usage_reservations",
+      "parent": "app.workspaces",
+      "fk": "usage_reservations_workspace_id_fkey"
+    },
+    {
+      "child": "app.workspace_invitations",
+      "parent": "app.workspaces",
+      "fk": "workspace_invitations_workspace_id_fkey"
+    },
+    {
+      "child": "app.workspace_member_scopes",
+      "parent": "app.business_profiles",
+      "fk": "workspace_member_scopes_business_fk"
+    },
+    {
+      "child": "app.workspace_member_scopes",
+      "parent": "app.workspace_members",
+      "fk": "workspace_member_scopes_member_fk"
+    },
+    {
+      "child": "app.workspace_member_scopes",
+      "parent": "app.page_context_profiles",
+      "fk": "workspace_member_scopes_page_fk"
+    },
+    {
+      "child": "app.workspace_members",
+      "parent": "app.workspaces",
+      "fk": "workspace_members_workspace_id_fkey"
+    },
+    {
+      "child": "app.workspace_settings",
+      "parent": "app.workspaces",
+      "fk": "workspace_settings_workspace_id_fkey"
+    },
+    {
+      "child": "private.ai_credential_references",
+      "parent": "app.workspaces",
+      "fk": "ai_credential_references_workspace_id_fkey"
+    },
+    {
+      "child": "private.meta_credential_references",
+      "parent": "app.meta_connections",
+      "fk": "meta_credential_references_scope_fk"
+    },
+    {
+      "child": "private.meta_webhook_inbox",
+      "parent": "app.workspaces",
+      "fk": "meta_webhook_inbox_workspace_id_fkey"
+    },
+    {
+      "child": "private.push_subscription_references",
+      "parent": "app.workspaces",
+      "fk": "push_subscription_references_workspace_id_fkey"
+    }
+  ],
+  "self_references": [
+    {
+      "fk": "asset_versions_parent_scope_fk",
+      "table": "app.asset_versions",
+      "how": "delete every version of one parent in a single statement; a NO ACTION check runs at the end of the statement"
+    },
+    {
+      "fk": "content_versions_parent_scope_fk",
+      "table": "app.content_versions",
+      "how": "delete every version of one parent in a single statement; a NO ACTION check runs at the end of the statement"
+    }
+  ],
+  "cycle_breaks": [
+    {
+      "fk": "assets_current_version_scope_fk",
+      "child": "app.assets",
+      "parent": "app.asset_versions",
+      "how": "set app.assets.current_version_id to null for the rows being purged before deleting their versions; the column is nullable (measured) and the FK is MATCH SIMPLE, so a null is not checked. Blocked today: app_worker holds the UPDATE grant and no policy admits it (F160-15)."
+    }
+  ],
+  "order": [
+    {
+      "table": "app.billing_webhook_receipts",
+      "phase": 6
+    },
+    {
+      "table": "app.consumer_ledger",
+      "phase": 6
+    },
+    {
+      "table": "app.jobs",
+      "phase": 6
+    },
+    {
+      "table": "app.notifications",
+      "phase": 6
+    },
+    {
+      "table": "app.outbox_events",
+      "phase": 6
+    },
+    {
+      "table": "app.research_snapshots",
+      "phase": 6
+    },
+    {
+      "table": "app.workspace_invitations",
+      "phase": 6
+    },
+    {
+      "table": "private.ai_credential_references",
+      "phase": 6
+    },
+    {
+      "table": "private.meta_credential_references",
+      "phase": 6
+    },
+    {
+      "table": "private.meta_webhook_inbox",
+      "phase": 6
+    },
+    {
+      "table": "private.push_subscription_references",
+      "phase": 6
+    },
+    {
+      "table": "app.ai_model_policies",
+      "phase": 7
+    },
+    {
+      "table": "app.asset_rights",
+      "phase": 7
+    },
+    {
+      "table": "app.audit_logs",
+      "phase": 7
+    },
+    {
+      "table": "app.business_profile_versions",
+      "phase": 7
+    },
+    {
+      "table": "app.calendar_items",
+      "phase": 7
+    },
+    {
+      "table": "app.content_asset_links",
+      "phase": 7
+    },
+    {
+      "table": "app.content_ideas",
+      "phase": 7
+    },
+    {
+      "table": "app.content_schedules",
+      "phase": 7
+    },
+    {
+      "table": "app.industry_assignments",
+      "phase": 7
+    },
+    {
+      "table": "app.knowledge_item_versions",
+      "phase": 7
+    },
+    {
+      "table": "app.knowledge_items",
+      "phase": 7
+    },
+    {
+      "table": "app.notification_preferences",
+      "phase": 7
+    },
+    {
+      "table": "app.page_context_profile_versions",
+      "phase": 7
+    },
+    {
+      "table": "app.performance_snapshots",
+      "phase": 7
+    },
+    {
+      "table": "app.publish_jobs",
+      "phase": 7
+    },
+    {
+      "table": "app.publish_target_assets",
+      "phase": 7
+    },
+    {
+      "table": "app.asset_versions",
+      "phase": 7
+    },
+    {
+      "table": "app.assets",
+      "phase": 7
+    },
+    {
+      "table": "app.published_posts",
+      "phase": 7
+    },
+    {
+      "table": "app.publish_targets",
+      "phase": 7
+    },
+    {
+      "table": "app.content_targets",
+      "phase": 7
+    },
+    {
+      "table": "app.content_variants",
+      "phase": 7
+    },
+    {
+      "table": "app.publish_intents",
+      "phase": 7
+    },
+    {
+      "table": "app.quality_reviews",
+      "phase": 7
+    },
+    {
+      "table": "app.research_evidence",
+      "phase": 7
+    },
+    {
+      "table": "app.research_sources",
+      "phase": 7
+    },
+    {
+      "table": "app.research_suggestions",
+      "phase": 7
+    },
+    {
+      "table": "app.research_runs",
+      "phase": 7
+    },
+    {
+      "table": "app.social_accounts",
+      "phase": 7
+    },
+    {
+      "table": "app.meta_connections",
+      "phase": 7
+    },
+    {
+      "table": "app.user_profiles",
+      "phase": 7
+    },
+    {
+      "table": "app.workspace_settings",
+      "phase": 7
+    },
+    {
+      "table": "app.ai_models",
+      "phase": 8
+    },
+    {
+      "table": "app.approval_events",
+      "phase": 8
+    },
+    {
+      "table": "app.approval_requests",
+      "phase": 8
+    },
+    {
+      "table": "app.content_versions",
+      "phase": 7
+    },
+    {
+      "table": "app.content_items",
+      "phase": 7
+    },
+    {
+      "table": "app.approval_policies",
+      "phase": 8
+    },
+    {
+      "table": "app.billing_payments",
+      "phase": 8
+    },
+    {
+      "table": "app.billing_invoices",
+      "phase": 8
+    },
+    {
+      "table": "app.billing_subscriptions",
+      "phase": 8
+    },
+    {
+      "table": "app.industry_pack_versions",
+      "phase": 8
+    },
+    {
+      "table": "app.industry_packs",
+      "phase": 8
+    },
+    {
+      "table": "app.plan_entitlements",
+      "phase": 8
+    },
+    {
+      "table": "app.billing_plan_versions",
+      "phase": 8
+    },
+    {
+      "table": "app.billing_plans",
+      "phase": 8
+    },
+    {
+      "table": "app.quota_buckets",
+      "phase": 8
+    },
+    {
+      "table": "app.security_events",
+      "phase": 8
+    },
+    {
+      "table": "app.usage_events",
+      "phase": 8
+    },
+    {
+      "table": "app.usage_reservations",
+      "phase": 8
+    },
+    {
+      "table": "app.workspace_member_scopes",
+      "phase": 8
+    },
+    {
+      "table": "app.page_context_profiles",
+      "phase": 7
+    },
+    {
+      "table": "app.business_profiles",
+      "phase": 7
+    },
+    {
+      "table": "app.workspace_members",
+      "phase": 8
+    },
+    {
+      "table": "app.workspaces",
+      "phase": 9
+    }
+  ],
+  "_retention_conflicts": "A foreign key whose child §10 keeps (final behaviour retain, no purge) and whose parent §10 purges. With NO ACTION the parent cannot be deleted while the child exists, so either the parent is anonymised and kept, or the child is detached first. Not decided here (F160-14).",
+  "retention_conflicts": [
+    {
+      "fk": "approval_policies_business_scope_fk",
+      "child": "app.approval_policies",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.business_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "approval_policies_page_scope_fk",
+      "child": "app.approval_policies",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.page_context_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "approval_requests_item_scope_fk",
+      "child": "app.approval_requests",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.content_items",
+      "parent_behaviour": [
+        "purge"
+      ]
+    },
+    {
+      "fk": "approval_requests_pinned_version_fk",
+      "child": "app.approval_requests",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.content_versions",
+      "parent_behaviour": [
+        "purge"
+      ]
+    },
+    {
+      "fk": "billing_subscriptions_workspace_id_fkey",
+      "child": "app.billing_subscriptions",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.workspaces",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "quota_buckets_business_scope_fk",
+      "child": "app.quota_buckets",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.business_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "quota_buckets_workspace_id_fkey",
+      "child": "app.quota_buckets",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.workspaces",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "usage_reservations_business_scope_fk",
+      "child": "app.usage_reservations",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.business_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "usage_reservations_workspace_id_fkey",
+      "child": "app.usage_reservations",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.workspaces",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "workspace_member_scopes_business_fk",
+      "child": "app.workspace_member_scopes",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.business_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "workspace_member_scopes_page_fk",
+      "child": "app.workspace_member_scopes",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.page_context_profiles",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    },
+    {
+      "fk": "workspace_members_workspace_id_fkey",
+      "child": "app.workspace_members",
+      "child_behaviour": [
+        "anonymise",
+        "retain"
+      ],
+      "parent": "app.workspaces",
+      "parent_behaviour": [
+        "purge",
+        "anonymise"
+      ]
+    }
+  ]
+}
