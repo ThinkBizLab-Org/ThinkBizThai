@@ -418,3 +418,70 @@ nothing listens on 5507.
 
 Private artefacts: `a0-try-itr2/` in the run's scratchpad (`round.sh`, `probes.mjs`, `space.sh`, `mutate.mjs`, each
 log).
+
+## Fix after the re-checks (2026-10-04)
+
+Written by a subagent of `/claude/a0_atlas` (the Author). It fixes what the three re-checks asked for before the
+merge, because try-it runs on the Owner's own Mac, and approves nothing; the PR stays a Draft. No migration, no
+dependency, no decision, no new test. Nothing above this heading is rewritten: where it is wrong, the correction is
+here and on `open_blockers[196]`.
+
+### Cherry-pick map
+
+| Re-check | Branch, commit | Here, `cherry-pick -x` |
+|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `recheck/c0-batch-try-it` `be76256` | `b0dc60f` |
+| A1 `/claude/a1_bastion` | `recheck/a1-batch-try-it` `e77da51` | `60e77eb` |
+| Q0 `/claude/q0_sentinel` | `recheck/q0-batch-try-it` `33214e2` | `e71308f` |
+
+All three: no stop-the-line, nothing blocks the merge in their reading. The code of this fix is `3b64fd3`.
+
+### Finding -> change -> measured
+
+| Finding | Change (`3b64fd3`) | Measured |
+|---|---|---|
+| **A1 R-F1** (MEDIUM, carried from F1 (b)): trust on loopback is the superuser while a cluster is up | `up` draws `newPassword()` (32 random bytes, base64url, 43 characters), writes `<dir>/pgpass` (`127.0.0.1:<port>:*:postgres:<password>`, libpq's password file) and `<dir>/initdb.pwfile`, both `{ mode: 0o600, flag: 'wx' }` (no link followed, no file reused), runs `initdb --auth=scram-sha-256 --pwfile=<that file>`, then removes the pwfile. `useClusterPassword(dir)` sets `PGPASSFILE` and drops an inherited `PGPASSWORD` before every connection (`up`, `attached()` for demo and psql, `down`), so the children (`run.mjs migrate-clean`, the fixture loader, the demo session, `down`'s `data_directory` question) read it from the file. The URL carries no password. `up` prints `PGPASSFILE=<dir>/pgpass DB_TEST_URL=<url>`; `psql` prints `PGPASSFILE=<dir>/pgpass psql "<url>"`. Both names are in `OWNED_ENTRIES`, so `down` refuses a link there and deletes them. TRY-IT.md steps 1 and 6, the db-rls-smoke sentence, "Poking at it yourself" and Safety say so; Safety keeps what the password does not cover | Live, try-it's own port 55420: `pg_hba.conf` is `scram-sha-256` on every line; psql with no password: exit 2, `fe_sendauth: no password supplied`; with a wrong `PGPASSWORD`: exit 2, `FATAL:  password authentication failed for user "postgres"`; with the cluster's `pgpass`: `postgres`, verifier `SCRAM-SHA-256`. `demo` with a wrong `PGPASSWORD` value inherited: exit 0, 13 of 13. The printed psql line, run as printed (plus `-Atc`): `postgres thinkbizthai_try`. `make db-rls-smoke` with the printed settings in front: exit 0, 1087 cases, 6 claims. The password (43 characters) is in `pgpass` alone: 0 hits in the `up`, `demo`, `psql` and that rls-smoke output, in `migrate-clean.log` and in `postgres.log`. Half-made (initdb not on `PATH`): `pgpass` and the marker left, the pwfile already gone, the printed `down` deletes them. Static: M-trust, M-mode, M-pgpassword, M-psql-line red |
+| **C0-TIR-1** (LOW) = **A1 R1** (INFO): `pathToFileURL(argv[1])` skips `main()` for a script named through a symlink | `run.mjs`, `rls-smoke.mjs`, `authz-proofs.mjs`, `run-isolation.mjs`, `try-it.mjs` and `generate-pinned-grants.mjs` (the sixth used the same line) compare `realpathSync(argv[1])` with `realpathSync(fileURLToPath(import.meta.url))`, the repository's idiom. The contract test asserts the idiom in all six, asserts that no `.mjs`/`.js` under `scripts/` or `tests/` compares the bare URL except the Integration Owner's `verify-clean-run.mjs` and `refresh-author-handoff.mjs`, and runs `try-it.mjs`, `run.mjs migrate-clean` and `rls-smoke.mjs` through a symlink to the repository | Through `<P>/repolink` (a link to the worktree), no `DB_TEST_URL`: `try-it psql` on the live cluster exit 0, 1773 bytes; `try-it down --dir <none>` named through `/tmp/...` and the link: exit 1, "holds no marker"; `run.mjs migrate-clean` 1, `rls-smoke.mjs` 1, `authz-proofs.mjs` 1, `generate-pinned-grants.mjs --check` 2, `run-isolation.mjs` 1, each with its own refusal (C0 R9 and A1 E2/E4 measured exit 0, 0 bytes before). Static: M-entry-tryit, M-entry-runner red |
+| **C0-TIR-2** (INFO): a dangling link into the repository passes `insideRepo`; TRY-IT.md's sentence was broader than the check | TRY-IT.md now says "a symlink that resolves into the repository", and that `mkdir` through a dangling one fails before anything is written. The uncaught `ENOTDIR` stays: a stated limit on `[196]` | read (C0 R14) |
+| **C0-TIR-3** (INFO): `attached()` checks that something answers, not that it serves this directory | Not changed. With the password per cluster, another try-it cluster on the marker's port refuses this directory's password, so `demo` cannot run against it; recorded on `[196]` as a stated limit | read, not measured |
+| **Q0-TIR-1** (INFO): the review round's scope row said "all 16 changed path(s)" on the "working tree" | The scope guard reads `base..HEAD` (commits only), so that count was of the commits up to `dfb524a`. At `20623f2` it is 19, and after this fix 23, all declared (below) | measured |
+| **Q0-TIR-2** (INFO): `[196]` (7) still read "owed" after Q0 measured it | Appended to `[196]`: (7) was measured by Q0 on `dd11a35` (55477 and 55420), and again here on `3b64fd3`; closed | measured (below) |
+
+Every mutation (private `mutate.mjs`) weakens one fix in place, runs the one test, and restores the file (sha256
+compared): M-trust (`--auth=trust` back), M-mode (`0o644`, no `wx`), M-pgpassword (the `delete` removed),
+M-psql-line (the bare `psql "<url>"` line back), M-entry-tryit and M-entry-runner (a `file://` comparison back in
+`try-it.mjs` and `rls-smoke.mjs`): each **red** with the assertion that names it, each restored, `git status` clean.
+
+The 0600 file options are named `PRIVATE_FILE_OPTIONS`: the first name, `SECRET_FILE`, assigned an `Object.freeze` call and matched the secret scan's
+`secret-named-assignment` rule (measured, `npm run check` exit 70), which is right to look at that shape.
+
+### Measured on this fix (Node `v24.20.0`, `node -v` checked; PostgreSQL 17.11 Homebrew; macOS Darwin 25.6; branch name `agent/claude/WP-0A-DB-00-batch-try-it`; private dir `<scratch>/a0-tryit-fix/`)
+
+| Command | Where | Exit | Output |
+|---|---|---|---|
+| `npm run check` | working tree that became `3b64fd3` | 0 | tests 685, pass 685, fail 0 |
+| `node scripts/commit-when-clean.mjs` -> `3b64fd3` | branch name | 0 | "clean: exit 0 — tests 685, pass 685, fail 0" |
+| `node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00` | `3b64fd3` | 0 | "all 23 changed path(s) are declared, and every amendment explains one" |
+| foundation-contract assertions, the guard's own rule (`stripNonCode`, `\bassert\.\w+\(`) | `3b64fd3` | -- | 1119 (1101 + 18); the floor moves 1101 -> 1119; 81 tests, unchanged |
+| `try-it up` (no `--port`: it chose 55420), `demo`, `psql`, `down`, `--dir <P>/cluster` (the probes in the A1 R-F1 row ran on this one) | the working tree before the constant's rename and the test edits (try-it's behaviour as `3b64fd3`) | 0, 0, 0, 0 | 54 scripts applied, `db-migrate-clean: ok in 5646ms`, 21 fixture files, `[6/6] ready`; 13 of 13; the PGPASSFILE-prefixed line; "stopping the cluster on port 55420", "deleted"; nothing listens on 55420 |
+| the same end to end again, `--dir <P>/cluster3`, with the three authentication probes and the password grep | `3b64fd3` committed, clean tree | 0, 0, 0, 0 | `ok in 5666ms`, 54; `pgpass` mode 600, 43 characters, no pwfile left; demo 13 of 13 with a wrong `PGPASSWORD` value inherited; no password exit 2, wrong one exit 2 `FATAL`, the file `SCRAM-SHA-256`; 0 hits for the password in the up, demo, psql and down output, `migrate-clean.log`, `postgres.log`; "deleted"; nothing listens on 55420 |
+| a second cluster on 55420: `up`, `pg_ctl stop`, `demo`; the saved `postmaster.pid` put back, `demo`, `down` | `3b64fd3` committed | 0, 0, 1, 1, 0 | "is not running"; "does not answer on 127.0.0.1:55420"; "nothing answers ... nothing is signalled", "deleted" |
+| round 1 on 127.0.0.1:5507 (fresh `initdb --locale=C -A trust -U postgres`, TCP only, `LC_ALL=C`, the CI shim first): `make db-migrate-clean`, `make db-rls-smoke` | the working tree before the rename (runners as `3b64fd3`) | 0, 0 | 54 applied, `ok in 4980ms`; 1087 isolation cases passed, 6 claims discharged, `ok in 1210ms` |
+| round 2, re-initdb | same | 0, 0 | 54, `ok in 5026ms`; 1087, 6, `ok in 1223ms` |
+| rounds 3 and 4, re-initdb each | `3b64fd3` committed | 0, 0; 0, 0 | 54, `ok in 5123ms`; 1087, 6, `ok in 1248ms`; then 54, `ok in 5148ms`; 1087, 6, `ok in 1244ms` |
+
+The 5507 rounds use trust because they are the repository's measurement clusters, not try-it's (try-it refuses
+5507). `run.mjs` and `rls-smoke.mjs` changed only in how `main()` is entered; both printed their own summaries.
+No migration text or migration-reading rule changed, so no drift was appended and `140_audit.sql` was not touched.
+Every cluster is stopped and removed; nothing listens on 5507 or 55420 (`lsof` exit 1 for each).
+
+### Still owed (recorded on `open_blockers[196]`)
+
+- `scripts/verify-clean-run.mjs:75` and `scripts/refresh-author-handoff.mjs:373` keep `file://${process.argv[1]}`:
+  outside this package's ownership; the Integration Owner. The contract test names them as the only two left.
+- (1) a make/npm entry point, a request to the Integration Owner; the password it waited on is done.
+- C0-TIR-2's uncaught `ENOTDIR` and C0-TIR-3's `attached()` check: stated limits, owner A0.
+- (3) Linux unmeasured; (8) the residual for a postmaster alive but not listening. Unchanged.
+
+Private artefacts: `a0-tryit-fix/` in the run's scratchpad (`auth-probe.sh`, `printed-probe.sh`, `link-probe.sh`,
+`stale-probe.sh`, `e2e.sh`, `live5507.sh`, `mutate.mjs`, each log).
