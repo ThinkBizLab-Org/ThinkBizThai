@@ -749,7 +749,31 @@ with the same id after it: a refusal counts only if it is P0001, carries the rul
 named object, leaves one ERROR line, and comes after the second marker in the same transaction. A
 probe whose refused count differs from its declared count fails (C0 F1, Q0 F1 on batch 125). The
 same meta-command scan (`psqlLex` in `scripts/db/psql-driver.mjs`) runs, live and statically, over
-every migration, the prerequisite, every replacement, every fixture and the auth-context helper. The contract test
+every migration, the prerequisite, every replacement, every fixture and the auth-context helper.
+
+**One lexer for every static reader (the sql-lexer batch, 2026-10-04).** Every review round from batch 125 to
+the owed-tooling batch found a spelling one of the static readers read otherwise than PostgreSQL does, and every
+pattern fix was followed by the next spelling. The Owner accepted A0's recommendation of one real lexer over a
+parser RFC (a parser would be a dependency). `scripts/db/sql-lexer.mjs` (Node built-ins only) follows
+PostgreSQL's lexical rules -- standard and `E''` strings with `standard_conforming_strings` on, `U&''` and `U&""`
+with `UESCAPE`, `B''`, `X''`, `N''`, string continuation across a newline, dollar quotes with tags, nested block
+comments, `--` comments ended by LF or a bare CR, quoted identifiers, numbers with the PostgreSQL 15+ junk rule --
+plus psql's meta-commands and variable references, splits statements where psql does, and **refuses** anything it
+cannot classify. psqlLex, the COPY and server-file rules, the do-block counter, the 170 do-block allowlist, the
+comment and literal strippers (`text.replace(SQL_LINE_COMMENTS, '')`), the audit-table tripwires and the view
+scans all read through it. psqlLex's token rules run at every level -- the top level and every literal's and
+dollar body's text read again as SQL, as `EXECUTE` or a DO body would -- and refuse: COPY to or from anything but
+`STDIN`/`STDOUT`, whatever the target's quoting (`COPY ... TO $p$path$p$`, `copy (select ';') to 'f'`), and
+`PROGRAM`; a server-file function called by name or by the internal symbol it is built on (`pg_read_file_all`,
+`be_lo_export`); `LANGUAGE internal` or `LANGUAGE c` (either can alias any built-in); `CREATE EXTENSION` of
+anything but `pgcrypto` (the one extension 000 and the prerequisite create -- a blanket refusal would have
+refused them, so the rule is an allowlist and says so); foreign tables, wrappers, servers and user mappings
+(file_fdw's `options (program ...)`). The differential is measured, not argued: every source fed to psql was fed
+on PostgreSQL 17.11 with `log_statement = all`, and the queries psql sent equal the lexer's statements, source
+for source (`test-kits/db/sql-lexer-differential.json`, re-checked by sha256 in the static suite). What no lexer
+decides -- what a statement means, and text computed at run time -- stays with the live catalog probes.
+
+The contract test
 derives the whole job list independently and compares it with `catalogProbeJobs`. It drives the
 verdict with outcomes built from the real probes, and it counts every spelling of `raise`. Each claim
 line counts the drifts that were refused, not the drifts declared (Q0's re-test of batch 123's

@@ -21,6 +21,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
+import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 
 const MIGRATIONS = 'db/foundation/migrations';
@@ -2595,6 +2596,20 @@ export const SUPERSEDED = `${INVARIANTS}/superseded.json`;
 // how every migration in this repository writes them. A block written any other way (`DO $body$`, an
 // inline `do $$ begin ... end $$;`) would escape the pass silently, so it is refused rather than
 // skipped: the count of anything that opens a do-block must equal the count extracted.
+export function doBlockOpeners(name, sql) {
+  const { tokens, refusals } = lexSql(sql);
+  if (refusals.length) throw new Error(`${name}: the SQL lexer cannot classify line ${refusals[0].line} (${refusals[0].reason}), so its do-blocks cannot be counted`);
+  const sig = tokens.filter((t) => !['space', 'line_comment', 'block_comment'].includes(t.kind));
+  let openers = 0;
+  sig.forEach((t, k) => {
+    if (keyword(t) === 'do') {
+      const j = keyword(sig[k + 1]) === 'language' ? k + 3 : k + 1;
+      if (sig[j] && ['dollar', 'string', 'estring', 'ustring'].includes(sig[j].kind)) openers += 1;
+    }
+    if (t.kind === 'dollar' && lexSql(t.value).refusals.length === 0) openers += doBlockOpeners(name, t.value);
+  });
+  return openers;
+}
 export function applyTimeBlocks(name, sql) {
   const lines = sql.split('\n');
   const blocks = [];
@@ -2612,8 +2627,11 @@ export function applyTimeBlocks(name, sql) {
   // mentions `do $$` is not a block.
   // Literals are stripped line by line: a pattern allowed to cross a newline pairs an apostrophe in
   // one statement with one in another and swallows whole blocks (measured on 050).
-  const code = sql.replace(/--[^\n]*/g, '').replace(/'(?:[^'\n]|'')*'/g, "''");
-  const openers = (code.match(/\bdo\b(?:\s+language\s+\w+)?\s*\$|^\s*do\s*$/gim) ?? []).length;
+  // Since the sql-lexer batch they are counted by token, through the one lexer (scripts/db/sql-lexer.mjs): DO, an
+  // optional LANGUAGE and its name, then a literal or a dollar-quoted body, at the top level and inside every
+  // dollar-quoted body that lexes; a comment or a literal that only mentions `do $$` holds no DO token, and a text
+  // the lexer cannot classify is refused rather than counted.
+  const openers = doBlockOpeners(name, sql);
   if (openers !== blocks.length) {
     throw new Error(`${name}: ${openers} line(s) open a do-block and ${blocks.length} are in the form the post-migrate pass extracts; write each as a line "do $$" ... a line "end $$;"`);
   }
@@ -2740,7 +2758,7 @@ export async function schemaLint(files) {
   const problems = [];
   const all = files ?? await migrationFiles();
   for (const { name, sql } of all) {
-    const stripped = sql.replace(/--[^\n]*/g, '');
+    const stripped = sql.replace(SQL_LINE_COMMENTS, '');
     // §3.1 forbids creating or altering an OBJECT in a Supabase-managed schema.
     //
     // The first version of this rule matched any `create|alter|drop` within 200 characters of
@@ -2836,7 +2854,7 @@ export function identityExpressionLint(files) {
   const problems = [];
   const counts = new Map();
   for (const { name, sql } of files) {
-    const stripped = sql.replace(/--[^\n]*/g, '');
+    const stripped = sql.replace(SQL_LINE_COMMENTS, '');
     const occurrences = stripped.split(AUTHZ_IDENTITY_SQL).length - 1;
     if (occurrences > 0) counts.set(name, occurrences);
   }
@@ -3235,7 +3253,7 @@ export async function pendingDeclarationLint(snap, files) {
 export function tenantTablesInMigrations(files) {
   const tables = new Set();
   for (const { sql } of files ?? []) {
-    const stripped = String(sql).replace(/--[^\n]*/g, '');
+    const stripped = String(sql).replace(SQL_LINE_COMMENTS, '');
     for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?app\.(\w+)/gi)) {
       tables.add(m[1]);
     }
@@ -3356,7 +3374,7 @@ export async function tablesCreatedByMigrations(files) {
   const all = files ?? await migrationFiles();
   const tables = new Set();
   for (const { sql } of all) {
-    const stripped = sql.replace(/--[^\n]*/g, '');
+    const stripped = sql.replace(SQL_LINE_COMMENTS, '');
     for (const m of stripped.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(app|private)\.(\w+)/gi)) {
       tables.add(`${m[1].toLowerCase()}.${m[2]}`);
     }

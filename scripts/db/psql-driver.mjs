@@ -16,6 +16,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
+import { NESTED_DEPTH, keyword, splitStatements, walkLevels, word } from './sql-lexer.mjs';
 
 const run = promisify(execFile);
 
@@ -380,272 +381,173 @@ export async function feedTranscript(sql, options = {}) {
   return invoke(sql, { ...options, viaStdin: true, transcript: true });
 }
 
-// WHAT psql WOULD EXECUTE AS A META-COMMAND, AND WHERE EACH TOP-LEVEL STATEMENT BEGINS (blocker 186
-// item 12; Q0 F2 and F4, A1 V4, C0 F4 on batch 125). On stdin psql executes an unquoted backslash
-// ANYWHERE on a line -- `select 1; \! touch f` ran a shell command out of a migration (Q0 MC1) -- and
-// the rule that held migrations read only a line BEGINNING with one. This is a lexer in psql's own
-// terms: outside single-quoted literals (E'' with its backslash escapes), dollar-quoted bodies,
-// double-quoted identifiers and comments (`--` to the end of the line, `/* */` nested), a backslash
-// is a meta-command. Inside them it is text, which is why the coverage probe's `'%\_by'` passes.
-// Statements split on `;` at parenthesis depth zero, as psql splits them, and each statement's HEAD
-// is its text with comments removed and whitespace collapsed, so a rule can read the statement's
-// first words rather than any word anywhere (A1 V4: the keyword rule refused every DO block).
-// Known over-refusal, which fails closed: a SQL-standard `begin atomic ... end` body is split at its
-// inner `;`, so its `end` reads as a statement head.
+// WHAT psql WOULD EXECUTE AS A META-COMMAND, WHERE EACH TOP-LEVEL STATEMENT BEGINS, AND WHAT A FED SOURCE MAY
+// NOT SAY (blocker 186 item 12 and every batch after it). Since the sql-lexer batch this reads the text through
+// ONE tokenizer, scripts/db/sql-lexer.mjs, which follows PostgreSQL's lexical rules (and psql's two additions, the
+// meta-command and the variable reference) and fails closed on anything it cannot classify. The regexes and the
+// hand scanner that stood here -- SET_NAMES, COPY_PROGRAM, COPY_SERVER_FILE, SERVER_FILE_CALL, escapeSpellings
+// -- and the scanner of psqlLex itself -- are gone: each review round since batch 125 found a spelling one of them
+// read otherwise than PostgreSQL does (blocker 186's OWED-TOOLING sentence), and the Owner accepted A0's
+// recommendation of one real lexer over another round of patterns (2026-10-04, `ลุยต่อเลย เอาตามแนะนำ`).
 //
-// WHERE psql'S LEXER COULD PART FROM THIS ONE, REFUSED RATHER THAN MODELLED (batch 126's review round:
-// A1 F1, Q0 F1). This is not psql's lexer, and A1 and Q0 each ran a shell command out of a migration past
-// every scan through a place the two disagree. So the scan reports, as a finding in `metaCommands`
-// beside the backslashes, every shape on which they could disagree, and the caller refuses the source:
-//   * a carriage return not followed by a line feed: psql ends a `--` comment at a bare CR (A1 L3);
-//   * any mention of standard_conforming_strings, in any statement, literal or comment: with it off,
-//     psql reads a backslash in a plain literal as an escape (A1 L2, Q0 X1);
-//   * a quote inside or closing a PLAIN literal that follows an ODD run of backslashes. With the setting
-//     off, psql reads `\x` as one escaped character, so a quote is escaped exactly when an odd run of
-//     backslashes precedes it, and that is the only place the two readings of a plain literal can
-//     part. With none, the setting cannot move where a plain literal ends, whatever spelling turns it
-//     off (set_config of a concatenated name included). A backslash elsewhere in a plain literal (the
-//     regexes in 030, 050, 070, 140 and others, which are integrated and are not edited) is admitted;
-//   * `e'` opens an E-string only where psql's would: not after an identifier character and not after
-//     a `.` -- `1.e'\'` is one junk token and a plain literal to psql 15+ (A1 L1), and is now a plain
-//     literal whose closing quote follows one backslash, refused above.
-//   * A CHANGE OF CLIENT ENCODING, by any mention of client_encoding (SET, set_config, ALTER ... SET,
-//     a comment) and by the token sequence `set [session|local] names` ANYWHERE in the text, its words
-//     separated by whitespace or comments (batch 127, from C0 R2 on batch 126). The first version read
-//     it only at a statement head, and C0 measured `execute 'set names ''SJIS'''` inside a DO body
-//     reaching psql unrefused and moving its encoding (C0 F6 on batch 127): a literal, a dollar body and
-//     a comment are read now, as client_encoding always was. psql re-reads the client encoding after
-//     every statement, and in a multibyte client encoding (SJIS, BIG5, GBK, UHC, GB18030) it masks the byte or bytes after a high byte before it
-//     lexes, so a quote, a backslash, a `-` or a newline after any non-ASCII character can vanish for
-//     psql while this lexer reads it. `\encoding` is a backslash and is refused above with the rest.
-//   * A U& OR E'' ESCAPE SPELLING, anywhere the server could lex one (batch 128; C0 N2, A1 N4, Q0 N7 on
-//     127's re-check). The two rules above read the NAMES as written, and an escape spells them past
-//     that: `set U&"client\005fencoding" to 'SJIS'`, `execute E'set\x20names ...'` in a DO body and
-//     `set U&"standard\005fconforming\005fstrings" to off` each passed this lexer and, measured, moved
-//     psql's encoding or turned the setting off. So `U&"`, `U&'` and `E'` (any case, not after an
-//     identifier character) are refused wherever they open a token: at top level, and inside every
-//     plain literal and dollar-quoted body, read again as SQL (with '' undoubled) to a depth of eight,
-//     past which a text that could hold one is refused, because EXECUTE runs a literal's text and a DO
-//     body is SQL. Not in a comment or a quoted
-//     identifier, which nothing executes. Measured at batch 128: no .sql file under db/ or tests/ (87),
-//     no replacement, fixture or helper, and no probe or drift carries either, so nothing integrated is
-//     refused. This also refuses an E'' string that spells nothing at all: fail closed, since a reader
-//     cannot tell from the text what its escapes spell. `1.e'...'` is refused with them (psql reads
-//     it as a plain literal; it is junk either way).
-//     WHAT THIS DOES NOT REACH, and why it is not a byte rule: a name or SET whose words are COMPUTED at
-//     run time -- set_config('client_' || 'encoding', ...), EXECUTE of 'set ' || 'names ...', chr(95),
-//     format('%s', ...), convert_from(...), or any other expression that BUILDS the text psql never sees
-//     spelled out -- still changes it. Escapes were the static spellings of that class, and are refused
-//     above; what remains is computation. The fail-closed answer for
-//     standard_conforming_strings was a rule on the one place the two readings part (a quote after an odd run of backslashes); for an encoding they part after
-//     EVERY non-ASCII character, and measured on the sources fed at batch 127 that is 4,611 places in 77
-//     of 86 files, most of them `§` before a digit in a comment, in integrated migrations that are never
-//     edited. So the computed-name case stays outside this list, named here and in the batch 127 and 128
-//     records.
-//     ONE LAYER FOR THE RULE'S OWN CODE (batch 128's review round; Q0 F2). migrate-clean refuses an escape
-//     spelling through this same function, so a weakened escapeSpellings (its E'' or U& arm removed) is
-//     caught by the static lexer shapes in foundation-contract alone: Q0 measured QESC1 and QESC2 with a
-//     reviewer drift in a later file, static 1, migrate-clean 0, rls-smoke 0. That is the shape of every
-//     lexer rule here, and is stated rather than doubled.
-// The claim is the shapes measured and this list, not "anywhere psql would execute one".
-export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
-export const COPY_PROGRAM = /\b(?:to|from)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+program\b/gi;
-// COPY ... TO/FROM '<server file>' and the server-file functions (the owed-tooling batch's review round; C0-OT-2,
-// Q0-OT-3): without PROGRAM, `copy (select ...) to '<path>'` still had the server write a file on the database
-// host as its own OS user, and a rollback does not remove it -- measured with every layer green. COPY with a
-// table name (optionally qualified, quoted, with a column list) or a parenthesised query, then TO or FROM, then a
-// quoted literal (a plain, E'' or U&'' one); STDIN and STDOUT stay admitted. And a CALL of a function that reads,
-// lists or writes a server file by path -- lo_import, lo_export, pg_read_file, pg_read_binary_file, pg_stat_file,
-// the pg_ls_*dir family and adminpack's pg_file_* -- quoted or not, whitespace or comments before its `(`; a
-// name after FUNCTION (a GRANT, ALTER or COMMENT ON FUNCTION, as the system object fingerprint probe's own drift
-// writes) is not a call and is admitted. Words computed at run time are not read: the limit stated above.
-const SQL_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)`;
-export const COPY_SERVER_FILE = new RegExp(String.raw`\bcopy(?:${SQL_GAP}+(?:binary${SQL_GAP}+)?[\w."$]+(?:${SQL_GAP}*\([^;)]*\))?|${SQL_GAP}*\([^;]*?\))${SQL_GAP}*\b(?:to|from)${SQL_GAP}+(?:[eE]?'|[uU]&')`, 'gi');
+// Every finding goes into `metaCommands` ({ line, text }), and every caller refuses the source on any:
+//   * at the top level, as psql reads it: every place the lexer cannot classify (an unterminated literal,
+//     identifier, dollar body or comment, a number with trailing junk, a `$` or a character no token holds, a
+//     psql variable reference psql would substitute); every META-COMMAND (a backslash outside every literal,
+//     body, identifier and comment -- `\!` runs a shell command); a quote inside or closing a PLAIN literal
+//     after an ODD run of backslashes (where turning standard_conforming_strings off by a computed name would
+//     move the literal's end; batch 126/127); a `BEGIN ATOMIC` body, which psql 15+ keeps whole and this
+//     splitter would not; a statement that begins with COPY whose shape the COPY rule below cannot read;
+//   * ANY MENTION, in any statement, literal or comment, of standard_conforming_strings, client_encoding or
+//     allow_system_table_mods (batches 126-128): these stay raw-text rules, the most a static reader can refuse;
+//   * at EVERY LEVEL -- the top level, and the text of every literal and dollar body read again as SQL, as
+//     EXECUTE, a DO block or a function body would read it, to a depth of eight (past which a text that could
+//     hold another level is refused) -- by token, never by pattern over the raw text:
+//       - an E'', U&'' or U&"" token: an escape can spell any name the rules here read as written (batch 128);
+//         and a nested text that does not lex is still read for one by its raw spelling, fail closed;
+//       - SET [SESSION|LOCAL] NAMES, a change of client encoding (batch 127);
+//       - COPY: after COPY [BINARY], a parenthesised query (whatever it holds -- `copy (select ';') to 'f'`) or a
+//         name with an optional column list, then TO or FROM, then a target. STDIN and STDOUT are admitted;
+//         PROGRAM is refused (the server runs a shell command; C0 G1 on 129); ANY OTHER target, whatever its
+//         quoting -- a plain, E'', U&'' or dollar-quoted literal (`COPY ... TO $p$path$p$`, C0-OTR-2, A1-RC-1,
+//         Q0-OT2-1) -- is a server file and is refused (C0-OT-2, Q0-OT-3);
+//       - a server-file function CALLED, matched as an identifier token (quoted or not, comments allowed before
+//         its parenthesis) followed by `(`, unless FUNCTION precedes it (a GRANT, ALTER or COMMENT ON FUNCTION
+//         names it and calls nothing). The list is the functions by name and, measured on PostgreSQL 17.11, the
+//         internal symbols they are built on (pg_read_file_all, be_lo_export, ...): a call by either name;
+//       - LANGUAGE internal or LANGUAGE c, by keyword or literal: a function so defined can alias ANY built-in
+//         under a name no list holds (`create function f(text) ... language internal as 'pg_read_file_all'`,
+//         A1-RC-2), so no fed source may define one;
+//       - CREATE EXTENSION of anything but the extensions the migrations already create (APPROVED_EXTENSIONS,
+//         pgcrypto: 000_foundation.sql:24 and prerequisites.sql:48 create it, so a blanket refusal would have
+//         refused two integrated sources and is not what this rule is); CREATE or ALTER FOREIGN TABLE, FOREIGN
+//         DATA WRAPPER or SERVER, CREATE or ALTER USER MAPPING and IMPORT FOREIGN SCHEMA: file_fdw's
+//         `options (program ...)` ran a shell command at apply time (Q0-OT2-2).
+// Statements split on `;` outside parentheses, as psql splits them, and each statement's HEAD is its text with
+// comments removed and whitespace collapsed (the transaction-control rule reads its first words).
+//
+// WHAT THIS DOES NOT REACH, and why no lexer can: a statement whose words are COMPUTED at run time --
+// set_config('client_' || 'encoding', ...), EXECUTE of 'copy t to ' || quote_literal(p), format(), chr(),
+// convert_from() -- is text the source never spells. And what a statement MEANS (which function a name
+// resolves to through search_path, what a trigger does) is the parser's and the catalog's. Those stay held by
+// the live catalog probes in run.mjs; this is the early-warning layer in front of them.
 export const SERVER_FILE_FUNCTIONS = ['lo_import', 'lo_export', 'pg_read_file', 'pg_read_binary_file', 'pg_stat_file', 'pg_ls_dir', 'pg_ls_logdir',
   'pg_ls_waldir', 'pg_ls_tmpdir', 'pg_ls_archive_statusdir', 'pg_ls_logicalsnapdir', 'pg_ls_logicalmapdir', 'pg_ls_replslotdir',
-  'pg_file_write', 'pg_file_sync', 'pg_file_rename', 'pg_file_unlink'];
-export const SERVER_FILE_CALL = new RegExp(String.raw`(?<!\bfunction${SQL_GAP}+(?:"?pg_catalog"?${SQL_GAP}*\.${SQL_GAP}*)?)(?<![\w$"])"?(?:${SERVER_FILE_FUNCTIONS.join('|')})"?${SQL_GAP}*\(`, 'gi');
-// Every place a U& or E'' token opens, at top level and inside every literal and dollar body read again as
-// SQL (batch 128). Returns the offset in `text` of each, or of the outermost literal or body that holds it.
-export const ESCAPE_SPELLING_DEPTH = 8;
-export function escapeSpellings(text, depth = 0, base = null, out = []) {
-  const IDENT = /[A-Za-z0-9_$\u0080-\uffff]/;
-  const isIdent = (ch) => ch !== undefined && IDENT.test(ch);
-  const TAG = /\$([A-Za-z_\u0080-\uffff][A-Za-z0-9_\u0080-\uffff]*)?\$/y;
-  const at = (i) => (base === null ? i : base);
-  // Sound as a shortcut: a token at any depth is spelled in the raw text with these characters (a literal
-  // inside a literal only doubles its quotes), so a text with none of them holds none.
-  if (!/[uU]&["']|[eE]'/.test(text)) return out;
-  // Past the depth this scan reads, a text that could hold one is refused rather than skipped: fail closed.
-  if (depth > ESCAPE_SPELLING_DEPTH) { out.push({ at: at(0), kind: "U& or E'' (nested past the depth this scan reads)" }); return out; }
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    const next = text[i + 1];
-    if (ch === '-' && next === '-') { const eol = text.indexOf('\n', i); i = eol === -1 ? text.length : eol; continue; }
-    if (ch === '/' && next === '*') {
-      let nest = 1; i += 2;
-      while (i < text.length && nest > 0) {
-        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; continue; }
-        if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; continue; }
-        i += 1;
-      }
-      i -= 1; continue;
+  'pg_file_write', 'pg_file_sync', 'pg_file_rename', 'pg_file_unlink', 'pg_logdir_ls',
+  // The internal symbols the functions above are built on (pg_proc.prosrc where it differs from proname),
+  // measured on PostgreSQL 17.11 in the sql-lexer batch.
+  'be_lo_export', 'be_lo_import', 'be_lo_import_with_oid', 'pg_ls_dir_1arg', 'pg_ls_tmpdir_1arg', 'pg_ls_tmpdir_noargs',
+  'pg_read_binary_file_all', 'pg_read_binary_file_all_missing', 'pg_read_binary_file_off_len', 'pg_read_binary_file_off_len_missing',
+  'pg_read_file_all', 'pg_read_file_all_missing', 'pg_read_file_off_len', 'pg_read_file_off_len_missing', 'pg_stat_file_1arg'];
+export const APPROVED_EXTENSIONS = ['pgcrypto'];
+const REFUSED_LANGUAGES = ['internal', 'c'];
+const ESCAPE_RAW = /(?<![A-Za-z0-9_$\u0080-￿])(?:[uU]&["']|[eE]')/;
+
+// The token rules read at every level, over one statement's significant tokens. Each finding is { at, text },
+// `at` an offset in the text the tokens came from.
+function statementFindings(sig, { top }) {
+  const out = [];
+  const kw = (k) => keyword(sig[k]);
+  const punct = (k, p) => sig[k]?.kind === 'punct' && sig[k].text === p;
+  const closeParen = (k) => { let d = 0; for (let j = k; j < sig.length; j += 1) { if (punct(j, '(')) d += 1; if (punct(j, ')')) { d -= 1; if (d === 0) return j; } } return sig.length; };
+  for (let k = 0; k < sig.length; k += 1) {
+    const at = sig[k].start;
+    // SET [SESSION|LOCAL] NAMES.
+    if (word(sig[k]) === 'set') {
+      const n = ['session', 'local'].includes(word(sig[k + 1])) ? k + 2 : k + 1;
+      if (word(sig[n]) === 'names') out.push({ at, text: 'set names, which changes the client encoding psql splits bytes by' });
     }
-    if ((ch === 'u' || ch === 'U') && next === '&' && (text[i + 2] === '"' || text[i + 2] === "'") && !isIdent(text[i - 1])) { out.push({ at: at(i), kind: 'U&' }); continue; }
-    if ((ch === 'e' || ch === 'E') && next === "'" && !isIdent(text[i - 1])) { out.push({ at: at(i), kind: "E''" }); continue; }
-    if (ch === '"') {
-      let j = i + 1;
-      for (; j < text.length; j += 1) { if (text[j] === '"') { if (text[j + 1] === '"') { j += 1; continue; } break; } }
-      i = j; continue;
+    // COPY.
+    if (kw(k) === 'copy' && !punct(k - 1, '.')) {
+      let j = k + 1;
+      if (kw(j) === 'binary') j += 1;
+      let shaped = true;
+      if (punct(j, '(')) j = closeParen(j) + 1;
+      else if (word(sig[j]) !== null) {
+        j += 1;
+        while (punct(j, '.') && word(sig[j + 1]) !== null) j += 2;
+        if (punct(j, '(')) j = closeParen(j) + 1;
+      } else shaped = false;
+      if (shaped && ['to', 'from'].includes(kw(j))) {
+        const target = kw(j + 1);
+        if (target === 'program') out.push({ at, text: 'COPY ... TO/FROM PROGRAM, which runs a shell command on the database server' });
+        else if (target !== 'stdin' && target !== 'stdout') out.push({ at, text: 'COPY ... TO/FROM a server file, which reads or writes a file on the database host' });
+      } else if (top && k === 0) out.push({ at, text: 'a COPY statement whose target this lexer cannot read, refused rather than guessed' });
     }
-    if (ch === "'") {
-      const escapes = (text[i - 1] === 'e' || text[i - 1] === 'E') && !isIdent(text[i - 2]);
-      let j = i + 1;
-      for (; j < text.length; j += 1) {
-        if (escapes && text[j] === '\\') { j += 1; continue; }
-        if (text[j] === "'") { if (text[j + 1] === "'") { j += 1; continue; } break; }
-      }
-      if (j > i + 1) escapeSpellings(text.slice(i + 1, j).replace(/''/g, "'"), depth + 1, at(i), out);
-      i = j; continue;
+    // A server-file function, called.
+    const name = word(sig[k]);
+    if (name !== null && SERVER_FILE_FUNCTIONS.includes(name.toLowerCase()) && punct(k + 1, '(')) {
+      const before = punct(k - 1, '.') ? k - 3 : k - 1;
+      if (kw(before) !== 'function') out.push({ at, text: 'a server-file function call, which reads, lists or writes a file on the database host' });
     }
-    if (ch === '$' && !isIdent(text[i - 1])) {
-      TAG.lastIndex = i;
-      const tag = TAG.exec(text);
-      if (tag) {
-        const close = text.indexOf(tag[0], i + tag[0].length);
-        const end = close === -1 ? text.length : close;
-        escapeSpellings(text.slice(i + tag[0].length, end), depth + 1, at(i), out);
-        i = (close === -1 ? text.length : close + tag[0].length) - 1; continue;
+    // LANGUAGE internal / c.
+    if (kw(k) === 'language') {
+      const t = sig[k + 1];
+      const lang = word(t) ?? (t && ['string', 'dollar'].includes(t.kind) ? t.value : null);
+      if (lang !== null && REFUSED_LANGUAGES.includes(String(lang).toLowerCase())) {
+        out.push({ at, text: `a LANGUAGE ${String(lang).toLowerCase()} function, which can alias any built-in (a server-file function included) under a name no list holds` });
       }
+    }
+    // CREATE EXTENSION outside the approved set; the foreign-data statements.
+    if (kw(k) === 'create' && kw(k + 1) === 'extension') {
+      let n = k + 2;
+      if (kw(n) === 'if' && kw(n + 1) === 'not' && kw(n + 2) === 'exists') n += 3;
+      const ext = word(sig[n]);
+      if (ext === null || !APPROVED_EXTENSIONS.includes(ext)) out.push({ at, text: `CREATE EXTENSION ${ext ?? '(unread)'}, which is not one the migrations create (${APPROVED_EXTENSIONS.join(', ')})` });
+    }
+    const verb = kw(k) === 'create' || kw(k) === 'alter';
+    const orReplace = kw(k + 1) === 'or' && kw(k + 2) === 'replace' ? 2 : 0;
+    if ((verb && kw(k + 1 + orReplace) === 'foreign' && ['table', 'data'].includes(kw(k + 2 + orReplace)))
+      || (verb && kw(k + 1) === 'server')
+      || (verb && kw(k + 1) === 'user' && kw(k + 2) === 'mapping')
+      || (kw(k) === 'import' && kw(k + 1) === 'foreign' && kw(k + 2) === 'schema')) {
+      out.push({ at, text: 'a foreign table, foreign data wrapper, server or user mapping, which can read a file or run a program on the database host (file_fdw)' });
     }
   }
   return out;
 }
+
 export function psqlLex(sql) {
   const text = String(sql);
   const metaCommands = [];
-  const statements = [];
-  {
-    let at = 1;
-    for (let k = 0; k < text.length; k += 1) {
-      if (text[k] === '\n') at += 1;
-      else if (text[k] === '\r' && text[k + 1] !== '\n') metaCommands.push({ line: at, text: '\\r: a bare carriage return, which ends a -- comment for psql' });
-    }
-    for (const found of text.matchAll(/standard_conforming_strings/gi)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'standard_conforming_strings, which changes how psql reads a backslash' });
-    }
-    for (const found of text.matchAll(/client_encoding/gi)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'client_encoding, which changes how psql splits the bytes that follow' });
-    }
-    for (const found of text.matchAll(SET_NAMES)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'set names, which changes the client encoding psql splits bytes by' });
-    }
-    // Not a place psql's lexer parts from this one, but the one scan every fed script passes before it is
-    // applied (batch 128's review round; C0 F1): allow_system_table_mods lets the migration owner, a
-    // superuser, create a schema named pg_* and write pg_catalog, where C0 X2 and X2b put a definer-rights
-    // view a client could read every tenant through. The catalog rules read such an object by its OID
-    // now and the pg_catalog guard refuses it; this names the switch itself. Any mention, as with
-    // client_encoding; an escape spelling of it is refused below; a name computed at run time is not read
-    // here and is left to those two for what it MAKES, and to the system object fingerprint probe for what
-    // initdb made and it REDEFINES in place (batch 129; C0 G1 on 128's re-check: OID readings miss that).
-    for (const found of text.matchAll(/allow_system_table_mods/gi)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
-    }
-    // COPY ... TO PROGRAM / FROM PROGRAM (the owed-tooling batch; C0 G1 on batch 129's re-check): the server runs
-    // the command as its own OS user, so a migration, replacement, fixture, helper, probe or drift carrying one
-    // runs a shell command on the database host at migrate-clean or rls-smoke -- the server-side twin of `\!`,
-    // and no layer read it. Any mention of TO or FROM followed by PROGRAM, whitespace or comments between them,
-    // anywhere in the text (a literal or dollar body included, since EXECUTE runs a literal), as with
-    // client_encoding. None of the sources fed at this batch carries one (measured). Its U&/E'' spellings are
-    // refused below as escape spellings; a statement whose words are COMPUTED at run time is not read here,
-    // the limit stated for client_encoding above.
-    for (const found of text.matchAll(COPY_PROGRAM)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'COPY ... TO/FROM PROGRAM, which runs a shell command on the database server' });
-    }
-    for (const found of text.matchAll(COPY_SERVER_FILE)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'COPY ... TO/FROM a server file, which reads or writes a file on the database host' });
-    }
-    for (const found of text.matchAll(SERVER_FILE_CALL)) {
-      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'a server-file function call, which reads, lists or writes a file on the database host' });
-    }
-    for (const found of escapeSpellings(text)) {
-      metaCommands.push({ line: text.slice(0, found.at).split('\n').length,
-        text: `a ${found.kind} escape spelling, which can spell client_encoding, set names or standard_conforming_strings past the rules that read them` });
-    }
+  const lineOf = (pos) => text.slice(0, pos).split('\n').length;
+  for (const found of text.matchAll(/standard_conforming_strings/gi)) {
+    metaCommands.push({ line: lineOf(found.index), text: 'standard_conforming_strings, which changes how psql reads a backslash' });
   }
-  let head = '';
-  let headLine = 1;
-  let line = 1;
-  let depth = 0;
-  const isIdent = (ch) => ch !== undefined && /[A-Za-z0-9_$\u0080-\uffff]/.test(ch);
-  const endStatement = () => {
-    const h = head.replace(/\s+/g, ' ').trim();
-    if (h) statements.push({ line: headLine, head: h });
-    head = '';
-  };
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    const next = text[i + 1];
-    if (ch === '\n') { line += 1; head += ' '; continue; }
-    if (!head.trim()) headLine = line;
-    if (ch === '-' && next === '-') {
-      while (i < text.length && text[i] !== '\n') i += 1;
-      i -= 1; head += ' '; continue;
-    }
-    if (ch === '/' && next === '*') {
-      let nest = 1; i += 2;
-      while (i < text.length && nest > 0) {
-        if (text[i] === '\n') line += 1;
-        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; continue; }
-        if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; continue; }
-        i += 1;
+  for (const found of text.matchAll(/client_encoding/gi)) {
+    metaCommands.push({ line: lineOf(found.index), text: 'client_encoding, which changes how psql splits the bytes that follow' });
+  }
+  for (const found of text.matchAll(/allow_system_table_mods/gi)) {
+    metaCommands.push({ line: lineOf(found.index), text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
+  }
+  let top = [];
+  walkLevels(text, ({ tokens, refusals, depth, at, text: level }) => {
+    const where = (pos) => lineOf(at === null ? pos : at);
+    if (depth === 0) {
+      top = tokens;
+      for (const r of refusals) metaCommands.push({ line: r.line, text: `${r.reason}, which this lexer cannot classify, so the text is refused` });
+      for (const t of tokens) {
+        if (t.kind === 'meta') metaCommands.push({ line: t.line, text: t.text });
+        if (t.kind === 'string' && t.odd) metaCommands.push({ line: t.line, text: "\\' inside a plain literal, which ends elsewhere for psql when standard_conforming_strings is off" });
       }
-      i -= 1; head += ' '; continue;
+    } else if (refusals.length && ESCAPE_RAW.test(level)) {
+      metaCommands.push({ line: where(0), text: "a U& or E'' escape spelling in a literal or body that does not lex, read by its raw spelling (fail closed)" });
     }
-    if (ch === "'") {
-      const escapes = /[eE]/.test(text[i - 1] ?? '') && !isIdent(text[i - 2]) && text[i - 2] !== '.';
-      let j = i + 1;
-      for (; j < text.length; j += 1) {
-        if (text[j] === '\n') line += 1;
-        if (escapes && text[j] === '\\') { j += 1; continue; }
-        if (!escapes && text[j] === "'") {
-          let run = 0;
-          while (j - 1 - run > i && text[j - 1 - run] === '\\') run += 1;
-          if (run % 2 === 1) metaCommands.push({ line, text: "\\' inside a plain literal, which ends elsewhere for psql when standard_conforming_strings is off" });
+    for (const t of tokens) {
+      if (t.kind === 'estring' || t.kind === 'ustring' || t.kind === 'uident') {
+        metaCommands.push({ line: where(t.start), text: `a ${t.kind === 'estring' ? "E''" : 'U&'} escape spelling, which can spell client_encoding, set names or standard_conforming_strings past the rules that read them` });
+      }
+    }
+    for (const s of splitStatements(tokens)) {
+      if (depth === 0) {
+        for (let k = 0; k + 1 < s.tokens.length; k += 1) {
+          if (keyword(s.tokens[k]) === 'begin' && keyword(s.tokens[k + 1]) === 'atomic') metaCommands.push({ line: s.tokens[k].line, text: 'a BEGIN ATOMIC body, which psql keeps whole where this splitter would not' });
         }
-        if (text[j] === "'") { if (text[j + 1] === "'") { j += 1; continue; } break; }
       }
-      head += text.slice(i, j + 1); i = j; continue;
+      for (const f of statementFindings(s.tokens, { top: depth === 0 })) metaCommands.push({ line: where(f.at), text: f.text });
     }
-    if (ch === '"') {
-      let j = i + 1;
-      for (; j < text.length; j += 1) {
-        if (text[j] === '\n') line += 1;
-        if (text[j] === '"') { if (text[j + 1] === '"') { j += 1; continue; } break; }
-      }
-      head += text.slice(i, j + 1); i = j; continue;
-    }
-    if (ch === '$' && !isIdent(text[i - 1])) {
-      const tag = text.slice(i).match(/^\$([A-Za-z_\u0080-\uffff][A-Za-z0-9_\u0080-\uffff]*)?\$/);
-      if (tag) {
-        const close = text.indexOf(tag[0], i + tag[0].length);
-        const end = close === -1 ? text.length : close + tag[0].length;
-        const body = text.slice(i, end);
-        line += body.split('\n').length - 1;
-        head += body; i = end - 1; continue;
-      }
-    }
-    if (ch === '\\') {
-      const eol = text.indexOf('\n', i);
-      metaCommands.push({ line, text: text.slice(i, eol === -1 ? text.length : eol) });
-      head += ch; continue;
-    }
-    if (ch === '(') depth += 1;
-    if (ch === ')') depth = Math.max(0, depth - 1);
-    if (ch === ';' && depth === 0) { endStatement(); continue; }
-    head += ch;
-  }
-  endStatement();
+  }, { psql: true, beyond: ({ at }) => metaCommands.push({ line: lineOf(at), text: `a literal or body nested past the depth this scan reads (${NESTED_DEPTH}), refused rather than skipped` }) });
+  const statements = splitStatements(top).map((s) => ({ line: s.line, head: s.head }));
   metaCommands.sort((a, b) => a.line - b.line);
   return { metaCommands, statements };
 }

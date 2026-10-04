@@ -85,8 +85,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // (2026-10-03, no migration): four tests -- the §8.4 audit cell in the service-policy map, the audit
 // coverage map, the store's reading of CTR-AUD-001 and its fixtures -- 73 to 77. Batch 160's preparation
 // (2026-10-03, no migration): the retention map, the §11.1 export manifest fixture and the §11.4 purge order,
-// three tests: 77 to 80.
-  'test-kits/db/foundation-contract.test.mjs': 80,
+// three tests: 77 to 80. The sql-lexer batch (2026-10-04, no migration): one test, the one lexer's golden corpus,
+// fail-closed refusals and measured statement split: 80 to 81.
+  'test-kits/db/foundation-contract.test.mjs': 81,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -234,7 +235,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // the COPY-to-file and server-file lexer shapes, the authority redaction cases, every omitted export bucket and
 // the eleven classes tied to their ERD lines, one blocker per quote, and the tripwire's comment, rule and rename
 // spellings; no test added or renamed; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1014,
+// 1014 to 1044 with the sql-lexer batch (2026-10-04, no migration): the one lexer's golden corpus, fail-closed
+// refusals, the measured statement split and the readers built on it (one test added, so the test floor moves 80 to
+// 81 and the name digest with it), the do-block allowlist's dollar and `'a--'` drifts, the tripwires' lexer-read
+// spellings and the do-block counter's refusal of a text that is not SQL; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1044,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
@@ -278,7 +283,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '8c35e631c28c0574',
+  'test-kits/db/foundation-contract.test.mjs': '1442ddffee8e0203',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '1f31de81782c9104',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
