@@ -5,18 +5,22 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "9a074599ccd50ba55a43556e36f9324e4d3ddce6",
-  "head_revision_or_patch_checksum": "e7f9c2c14bb6e82f52e1567c3b23aef26b51a67e",
+  "head_revision_or_patch_checksum": "f728eca189cc3b4193211643f420359b5a92e89f",
   "task_ids": [],
   "files_added": [
     "db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql",
     "evidence/WP-0A-DB-00/a0-batch-170-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170.md"
+    "evidence/WP-0A-DB-00/a1-batch-170-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-170-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170.md",
+    "evidence/WP-0A-DB-00/q0-batch-170-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
     "db/foundation/lint/catalog-snapshot.json",
     "db/foundation/lint/pinned-grants.json",
     "db/foundation/lint/retention-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
@@ -26,7 +30,7 @@
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8), which answered Q-026-5 / Q-027-5 as A0 recommended -- revoke the client UPDATE of workspaces.lifecycle_state in the first of batch 170's migrations -- and Q-027-6 -- the next free number in 170's range. A1's and the Integration Owner's own acceptance stays owed (open_blockers[195]).",
+    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8), which answered Q-026-5 / Q-027-5 as A0 recommended -- revoke the client UPDATE of workspaces.lifecycle_state in the first of batch 170's migrations, which is where the number 170 comes from (§7 row). Q-027-6 numbers RFC-2026-027's gate migration; this batch does not implement it and it stays the Integration Owner's to assign (review round, Q0-F1). A1's and the Integration Owner's own acceptance stays owed (open_blockers[195]).",
     "The Owner's phase direction `เอาตามที่แนะนำเลย ลุยต่อ` and goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03; product-owner-disposition-2026-10-03-batch-129.md §1); no new Owner words since 2026-10-04.",
     "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #174 at its reviewed head c307d1d (bootstrap run 37177130592 green; merge 9a07459, 2026-10-04T04:35:58Z). Recorded in product-owner-disposition-2026-10-03-batch-170.md §3.",
     "RFC-2026-026 and RFC-2026-027 stay Proposed; this batch depends on neither (C0-8 on the RFC batch)."
@@ -41,9 +45,9 @@
   ],
   "acceptance_results": [
     {
-      "criterion": "Q-026-5 / Q-027-5: the client UPDATE of workspaces.lifecycle_state revoked in the first of batch 170's migrations, at the number Q-027-6 gives",
+      "criterion": "Q-026-5 / Q-027-5: the client UPDATE of workspaces.lifecycle_state revoked in the first of batch 170's migrations",
       "result": "met",
-      "evidence": "170_workspace_lifecycle_not_client_writable.sql, one revoke statement; 170 is the first number in the range and no 17x file existed."
+      "evidence": "170_workspace_lifecycle_not_client_writable.sql, one revoke statement; 170 is the first number in the range and no 17x file existed. Q-027-6 (the gate migration's number) is not this batch's (review round, Q0-F1)."
     },
     {
       "criterion": "No other column grant or policy touched; the owner still updates the name",
@@ -74,6 +78,11 @@
       "criterion": "The finding part of open_blockers[195] closed; what remains said plainly",
       "result": "met",
       "evidence": "open_blockers[195] (8) closes the finding; (9) records that nothing on a request path writes lifecycle_state until RFC-2026-023's step-up command or DATA-DEC-03's worker, cross-referenced to [21] and [113]."
+    },
+    {
+      "criterion": "Review round: every LOW finding fixed or recorded owed, INFO wording corrected, no rule weakened",
+      "result": "met",
+      "evidence": "plan §9: A1 F170-2 fixed (170's code held to the revoke, the comment and one do-block; five mutations each red); Q0-F1 / C0-170-2 records corrected and open_blockers[195] (10) appended; Q0-F2, C0-170-1 / A1 F170-1 comment lines; pinned-grants.json `_how_measured` owed to the generator's next batch."
     }
   ],
   "tests": [
@@ -146,16 +155,52 @@
       "command": "node scripts/commit-when-clean.mjs (evidence commit)",
       "exit_code": 0,
       "result": "e7f9c2c; clean: tests 684, pass 684"
+    },
+    {
+      "command": "git cherry-pick -x 49bcb9b 96caa2c 6af2fb0 (C0, A1, Q0 reviews)",
+      "exit_code": 0,
+      "result": "996e24e, a18670e, 323baf7"
+    },
+    {
+      "command": "node --test test-kits/db/foundation-contract.test.mjs with 170 mutated (create or replace function / create view / create rule / alter default privileges appended; execute inside the block), restored each time",
+      "exit_code": 1,
+      "result": "each of the five fails on a new review-round assertion; 170's sha256 prefix 9a2dbb97718920f8 before and after; unmutated 80/80"
+    },
+    {
+      "command": "review round r1: fresh initdb on 5507, shim, make db-migrate-clean, make db-rls-smoke",
+      "exit_code": 0,
+      "result": "migrate-clean 0 (51 blocks, 39 as written, 12 replaced); rls-smoke 0, 1087 cases"
+    },
+    {
+      "command": "review round r2: the same, fresh cluster",
+      "exit_code": 0,
+      "result": "migrate-clean 0; rls-smoke 0, 1087 cases"
+    },
+    {
+      "command": "npm run check (review round, before its commit)",
+      "exit_code": 0,
+      "result": "tests 684, pass 684"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 9a07459 WP-0A-DB-00 (review round)",
+      "exit_code": 0,
+      "result": "all 17 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round commit)",
+      "exit_code": 0,
+      "result": "f728eca; clean: tests 684, pass 684"
     }
   ],
   "security_privacy_cost_impact": "Security: closes open_blockers[195]'s finding (MEDIUM, not stop-the-line): a workspace's own active owner could move every workspace they own into any §11.4 state with one client UPDATE that reads no column, skipping step-up, the recovery window and audit. After 170 no client role can write lifecycle_state; every measured form is refused at the privilege layer. Cost of the change: nothing on a request path writes the state until RFC-2026-023's step-up command or DATA-DEC-03's worker exists, so an owner can neither request closing nor cancel it from a client. Privacy: none (synthetic ids only). Cost: none.",
   "migration_and_data_impact": "One forward migration, 170_workspace_lifecycle_not_client_writable.sql: a column-level REVOKE and a column comment; no table rewrite, no data change. 010 is not edited and has no apply-time block, so no superseded.json entry. Declared not applied to the provisioned instance (appended to catalog-snapshot.json's tail).",
-  "compatibility_impact": "A client that sets lifecycle_state now gets 42501 (permission denied for table workspaces) for every form; a client that updates name or updated_by is unaffected. Tests stay 684 (none added or renamed); foundation-contract's assertion floor 932 -> 942; rls-smoke cases 1079 -> 1087. The manifest's amendment paths go from four to three, so every open_blockers line pin moves from 256+i to 255+i (52 pins re-derived).",
+  "compatibility_impact": "A client that sets lifecycle_state now gets 42501 (permission denied for table workspaces) for every form; a client that updates name or updated_by is unaffected. Tests stay 684 (none added or renamed); foundation-contract's assertion floor 932 -> 942 -> 946 (the review round's four, A1 F170-2); rls-smoke cases 1079 -> 1087. The manifest's amendment paths go from four to three, so every open_blockers line pin moves from 256+i to 255+i (52 pins re-derived).",
   "known_limitations": [
     "Nothing on a request path writes lifecycle_state until §11.4's step-up command (RFC-2026-023, with RFC-2026-026's producer for its audit row) or DATA-DEC-03's worker exists; open_blockers[195] (9).",
     "app_worker still holds table-level UPDATE on app.workspaces with no policy; its only member is postgres (RFC-2026-022 §5/8, not in effect; open_blockers[113]).",
-    "pinned-grants.json's _how_measured prose still says the list was generated through 140; the generator keeps the header (plan §6 F4, INFO).",
-    "The pre-170 leg of the cases was measured by restoring the old grant by hand on a live database, not by checking out main with the cases; the forms were measured on main itself."
+    "pinned-grants.json's _how_measured prose still says the list was generated through 140; scripts/db/generate-pinned-grants.mjs writes that header, so it is owed to the next batch that touches the generator (C0-170-3, A1 F170-3, Q0-F5; INFO; open_blockers[195] (10)).",
+    "The pre-170 leg of the cases was measured by A0 by restoring the old grant by hand on a live database; Q0 also measured it on a schema built by migrations through 150 (q0 review §1.3), with the same seven failures.",
+    "170's block does not see a NOINHERIT role membership (grant app_worker to authenticated); the client membership probe and the pinned grant probe hold it (C0-170-1, A1 F170-1), now said in 170's comment."
   ],
   "open_risks_or_blockers": [
     "open_blockers[195] stays open for (6), (7), the named roles' acceptance of the fifteen RFC answers (A1, A6, the Integration Owner), both RFCs' approval, and the two items owed before RFC approval; its finding is closed here.",
@@ -163,11 +208,12 @@
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit, or a forward migration `grant update (lifecycle_state) on app.workspaces to authenticated` that restores the old privilege exactly (and reopens the finding); nothing else depends on the client holding it. Nothing is applied to any instance.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 role runs on this branch: the migration and its block, the eight cases (each against the pre-170 privilege), the pin, and plan §2's forms; then the merge under the standing delegation if the bar of 127 §6 is met.",
-    "RFC-2026-027's gate migration, now without the revoke it would otherwise have had to carry, after the RFC leaves Proposed.",
+    "Re-check of this review round by C0, A1 and Q0 (plan §9: the new static assertions and their mutations, the corrected Q-027-6 records), then the merge under the standing delegation if the bar of 127 §6 is met.",
+    "RFC-2026-027's gate migration, now without the revoke it would otherwise have had to carry, after the RFC leaves Proposed; its number (Q-027-6) is the Integration Owner's to assign.",
     "The §11.4 step-up transition command, after RFC-2026-023 leaves In review."
   ],
   "reviewer_instructions": [
+    "Review round first: plan §9, then git diff 323baf7..f728eca (170's comment lines only, foundation-contract's batch 170 block, the floor, the records).",
     "Read plan §1 and §2 first; then git diff 9a07459..03dbd30 -- db/ tests/ test-kits/db/.",
     "Re-run lifecycle-forms.sql's forms (plan §2) on main and on this branch: the column-free forms are the ones that matter (A1 F1-a); a targeted form to a blocked state was already refused by the policy layer before 170.",
     "Re-run the cases against the pre-170 privilege (grant the column back by hand on a migrated database): the seven refusals must fail and the rename positive pass.",
