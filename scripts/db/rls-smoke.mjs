@@ -17,6 +17,8 @@ import { argv, env, exit, stdout, stderr } from 'node:process';
 import { query, queryFinal, connectionString, openSession, feed, psqlLex } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // Statements are accumulated and flushed as one psql invocation per case, because a transaction
 // cannot survive psql exiting. `begin` opens a buffer; `exec` appends and, for the statement whose
@@ -168,12 +170,11 @@ export function sessionDriver(session) {
   };
 }
 
-async function main() {
-  try { connectionString(); } catch (failure) {
-    stderr.write(`db-rls-smoke: ${failure.message}\n`);
-    return 1;
-  }
-
+// The auth-context helpers and the identity fixtures, scanned, installed and loaded IN ORDER on the
+// database DB_TEST_URL names. Returns 0, or 1 after saying on stderr which file failed. Lifted out of
+// main() unchanged so the try-it tool (scripts/db/try-it.mjs) loads a throwaway cluster the way this
+// target loads CI's, with one copy of the sequence rather than two.
+export async function loadHelpersAndFixtures() {
   // The auth-context helpers are TEST scaffolding, not a migration: they exist so a test can assume
   // an identity, and shipping them in db/foundation/migrations would put test-only functions in
   // every deployed database. So the smoke target applies them, and db-migrate-clean does not.
@@ -213,6 +214,18 @@ async function main() {
       return 1;
     }
   }
+  return 0;
+}
+
+async function main() {
+  try { connectionString(); } catch (failure) {
+    stderr.write(`db-rls-smoke: ${failure.message}\n`);
+    return 1;
+  }
+
+  // The helpers and the fixtures, in one exported function so `scripts/db/try-it.mjs` loads them
+  // exactly as this target does rather than through a second copy of the same sequence.
+  if (await loadHelpersAndFixtures() !== 0) return 1;
 
   const resolve = await fixtureResolver();
   const cases = buildCases(resolve);
@@ -278,4 +291,7 @@ function reportCoverage() {
   for (const [k, v] of owed) stdout.write(`    ${k}: ${v.note}\n`);
 }
 
-if (import.meta.url === `file://${argv[1]}`) exit(await main());
+// Real paths on both sides, the repository's runner idiom: `file://${argv[1]}` never matched in a clone whose path
+// holds a space or a percent sign, and `pathToFileURL(argv[1])` never matched a script named through a symlink
+// (/tmp is one on macOS; C0-TIR-1, A1 R1), so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) exit(await main());

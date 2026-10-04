@@ -26,10 +26,10 @@
 // The gate is the pinned grant and read allowlist probes in migrate-clean, which read the catalog against the
 // committed files on every run; this script only says what the catalog holds (batch 170's review round: C0
 // F7, Q0 Q-6).
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { argv, env, exit, stderr, stdout } from 'node:process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { SQL_LINE_COMMENTS } from './sql-lexer.mjs';
 
 const GRANTS = 'db/foundation/lint/pinned-grants.json';
@@ -172,5 +172,6 @@ function main() {
   if (check && differs) exit(1);
 }
 
-// Run only as a script, so foundation-contract can import lastMigration, measuredOn and the two docs.
-if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) main();
+// Run only as a script, so foundation-contract can import lastMigration, measuredOn and the two docs. Real paths on
+// both sides, so a script named through a symlink still runs main() (C0-TIR-1, A1 R1).
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main();

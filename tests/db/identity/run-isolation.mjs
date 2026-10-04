@@ -25,6 +25,8 @@ import {
   expectDenied, expectDeniedBy, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
 import { NOT_A_CONSTRAINT_CODE } from './isolation-cases.mjs';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 export const FIXTURE_CATALOG = 'db/foundation/seeds/fixture-catalog.json';
 
@@ -449,7 +451,10 @@ export function formatReport(report) {
 // Executed directly, this refuses, in the shape scripts/db/run.mjs established: a target that
 // cannot do its job exits non-zero and names what is missing, rather than reporting a pass it did
 // not earn. There is no no-database mode.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Real paths on both sides, the repository's runner idiom: `file://${argv[1]}` never matched in a clone whose path
+// holds a space or a percent sign, and `pathToFileURL(argv[1])` never matched a script named through a symlink
+// (/tmp is one on macOS; C0-TIR-1, A1 R1), so main() was skipped and the process exited 0 having run nothing.
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   process.stderr.write(
     'tests/db/identity/run-isolation.mjs is a library, not a command.\n'
     + '  It needs a driver — { begin, rollback, exec } — and the repository declares no Postgres\n'
