@@ -25,7 +25,8 @@
 // fresh cluster, and remove the cluster afterwards. It has no free-space guard (open_blockers[194] (12)).
 //
 // What it does NOT do, by decision of the plan: it asserts no p95 or any other timing (the SLO is Q150-d,
-// undecided), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
+// answered 2026-10-04: A0 drafted PROPOSED values in a0-batch-150-plan-2026-10-03.md §5, unratified and asserted
+// nowhere), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
 // the Integration Owner), and it changes no schema. A Seq Scan on a membership-class query is REPORTED; it
 // fails the run only under --fail-on-seq-scan, because at a small scale the planner may rightly prefer one.
 //
@@ -75,8 +76,19 @@ const pp1 = "md5('ws905:pp:1')::uuid";
 export const NAMED_QUERIES = Object.freeze([
   { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:913; app.workspace_member_role',
     sql: `select m.role from app.workspace_members m where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' limit 1` },
-  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:913; workspaces_select_active_member',
-    sql: 'select w.id, w.name from app.workspaces w order by w.name limit 50' },
+  // Batch 150 (Q150-e, answered 2026-10-04 as A0 recommended): the list is read FROM the caller's active
+  // memberships and joined to workspaces, so the plan starts on workspace_members_user_id_status_idx and reaches
+  // each workspace by its key. Read from workspaces outward (the batch 150 prerequisites' text,
+  // `select w.id, w.name from app.workspaces w order by w.name limit 50`) it seq-scanned app.workspaces at the
+  // 0.2 scale (F2, open_blockers[194] (1)). The policies are unchanged. The caller's id is a LITERAL here because
+  // a client role on the shim can neither call app.jwt_subject() nor name schema auth. NOTHING BINDS THAT LITERAL
+  // TO THE SESSION (review round, C0-3 and A1 F150-5, measured): workspace_members_select_workspace_roster lets an
+  // owner or admin read co-members' rows, so with a co-member's id the query returns that co-member's workspaces
+  // the caller can also see (workspaces_select_active_member still limits every row to the caller's own). The BFF
+  // that issues this list MUST bind m.user_id to the authenticated subject ((select auth.uid())), never to a
+  // client-supplied id; owed with the BFF, open_blockers[194] (1).
+  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:913; workspace_members, then workspaces_select_active_member',
+    sql: `select w.id, w.name from app.workspace_members m join app.workspaces w on w.id = m.workspace_id where m.user_id = ${fixtureIds.owner(1)} and m.status = 'active' order by w.name limit 50` },
   { name: 'content first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
     sql: `select c.id, c.title, c.status, c.created_at from app.content_items c where c.workspace_id = ${ws1} and c.business_profile_id = ${bp1} and c.deleted_at is null order by c.created_at desc, c.id desc limit 50` },
   { name: 'calendar first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
@@ -85,7 +97,7 @@ export const NAMED_QUERIES = Object.freeze([
     sql: `select a.id, a.title, a.kind, a.created_at from app.assets a where a.workspace_id = ${ws1} and a.business_profile_id = ${bp1} and a.deleted_at is null order by a.created_at desc, a.id desc limit 50` },
   { name: 'worker claim', klass: 'worker', role: null, source: 'WS:915; no worker role exists yet (DATA-DEC-03)',
     sql: 'select j.id from app.jobs j where j.available_at <= now() and j.lease_expires_at is null and j.cancel_requested_at is null order by j.available_at limit 10 for update skip locked' },
-  { name: 'metrics per post', klass: 'batch 150 table', role: 'authenticated', source: 'performance_snapshots, the table Q150-a would rebuild',
+  { name: 'metrics per post', klass: 'batch 150 table', role: 'authenticated', source: 'performance_snapshots, re-keyed in place by batch 150 (Q150-a)',
     sql: `select s.metric_time, s.metrics from app.performance_snapshots s where s.workspace_id = ${ws1} and s.business_profile_id = ${bp1} and s.published_post_id = ${pp1} order by s.metric_time desc limit 30` },
   { name: 'usage recompute', klass: 'batch 150 table', role: null, source: 'usage_events, 1M rows at WS:911',
     sql: `select u.dimension, sum(u.quantity_amount) from app.usage_events u where u.workspace_id = ${ws1} and u.business_profile_id = ${bp1} and u.dimension = 'ai_tokens' and u.occurred_at >= timestamptz '2026-09-01 00:00:00+00' and u.occurred_at < timestamptz '2026-09-02 00:00:00+00' group by u.dimension` },

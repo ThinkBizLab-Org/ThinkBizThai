@@ -424,7 +424,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   // Batch 127: nineteen restrictive INSERT policies on tables batches 010-120 made, after 126.
   '127_created_by_on_insert_is_caller.sql',
   '130_billing.sql', '131_billing_projection.sql', '132_entitlement_resolution.sql',
-  '140_audit.sql'];
+  '140_audit.sql',
+  // Batch 150: performance_snapshots (121's, not on the instance) re-keyed to (id, metric_time); APPENDED after
+  // 140, its numeric place, so the declaration stays a TAIL.
+  '150_performance_snapshots_key.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -2712,6 +2715,13 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // drift, Q0 Q-3), index coverage 7e53a75a9931e962 to ae187b635c0ae0f4 (btree only and the NULLS order, C0-1,
   // Q0 Q-1; drifts for HASH, BRIN, NULLS LAST, a column behind a non-predicate column and a table-qualified
   // column, Q0 Q-2). The vocabulary check probe and every older digest stay.
+  // Batch 150: pinned shape b54ae8e9c8c7f6ce to 11ba1271ffc00d70 (Q150-a: performance_snapshots_pkey and its
+  // index pinned as (id, metric_time), the text the probe embeds); data classification 42c77e0015f12eaf to
+  // 77b41feaee177714 (Q170-d: SECRET-4 keeps no client privilege; PROVIDER-3, INTERNAL-3 and the twelve open
+  // tables are held to db/foundation/lint/safe-projections.json both ways, two new rules and two new drifts;
+  // the SECRET-4 drift moved to private tables). Every other digest stays.
+  // Batch 150's review round: data classification 77b41feaee177714 to a848ca33af3460e3 (Q0 Q-3: the widen drift
+  // also grants a column UPDATE and INSERT and a table TRUNCATE and TRIGGER on the classed tables, each named).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2735,8 +2745,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'pinned trigger probe': 'f136765c6beb5dbf',
     'pinned grant probe': 'baa6379790cb8733',
     'read allowlist probe': 'a97a58b338e52627',
-    'data classification probe': '42c77e0015f12eaf',
-    'pinned shape probe': 'b54ae8e9c8c7f6ce',
+    'data classification probe': 'a848ca33af3460e3',
+    'pinned shape probe': '11ba1271ffc00d70',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
     'policy set probe': '3c643bfe1fcfb040',
     'index coverage probe': 'ae187b635c0ae0f4',
@@ -3172,9 +3182,61 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /case when p\.p in \('SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\) then pg_catalog\.has_any_column_privilege\(cr\.r, t\.t::regclass, p\.p\)\n\s+else pg_catalog\.has_table_privilege\(cr\.r, t\.t::regclass, p\.p\) end/,
       'any privilege, by any column or table-wide');
     assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /'SELECT', 'INSERT', 'UPDATE', 'REFERENCES', 'DELETE', 'TRUNCATE', 'TRIGGER'\]\n\s+\|\| case when [^\n]*then array\['MAINTAIN'\]/, 'every table privilege, MAINTAIN on 17+');
-    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 2, 'the three client roles, at table and at column level');
-    assert.ok(m.DATA_CLASSIFICATION_PROBE_SQL.includes(`from unnest(array[${m.REFUSED_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `),
-      'the SQL refuses every one of the eight tables, as the registry gives them (Q0 Q-5 on the batch 170 draft: one dropped from the SQL passed with the digest refreshed)');
+    // Rule 2 at table and column level (2), and rule 3's three found-sets written twice, once per direction (6).
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\)/g) ?? []).length, 8, 'the three client roles, at table and at column level, in every rule');
+    // Batch 150 (Q170-d, answered 2026-10-04 as A0 recommended): the eight refused tables split in two, both
+    // halves computed from the registry. SECRET-4 keeps "no client privilege"; PROVIDER-3 and INTERNAL-3 get a
+    // pinned safe projection.
+    assert.deepEqual(m.NO_PRIVILEGE_TABLES, ['private.ai_credential_references', 'private.meta_credential_references', 'private.meta_webhook_inbox', 'private.push_subscription_references'],
+      'the four SECRET-4 tables (meta_webhook_inbox by its PROVIDER-3/SECRET-4 row): no client privilege of any kind');
+    assert.deepEqual(m.PROJECTION_TABLES, ['app.billing_webhook_receipts', 'app.consumer_ledger', 'app.jobs', 'app.outbox_events'], 'the four PROVIDER-3 or INTERNAL-3 tables: a pinned safe projection');
+    assert.deepEqual([...m.NO_PRIVILEGE_TABLES, ...m.PROJECTION_TABLES].sort(), [...m.REFUSED_CLASS_TABLES].sort(), 'the two halves are the eight, with nothing lost between them');
+    assert.ok(m.DATA_CLASSIFICATION_PROBE_SQL.includes(`from unnest(array[${m.NO_PRIVILEGE_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `),
+      'the SQL refuses every SECRET-4 table, as the registry gives them (Q0 Q-5 on the batch 170 draft: one dropped from the SQL passed with the digest refreshed)');
+    assert.equal(m.DATA_CLASSIFICATION_PROBE_SQL.split(`from unnest(array[${m.PROJECTION_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `).length - 1, 4,
+      'and reads every PROVIDER-3 or INTERNAL-3 table at column and table level, both ways');
+    assert.equal(m.DATA_CLASSIFICATION_PROBE_SQL.split(`from unnest(array[${m.OPEN_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), `).length - 1, 2,
+      'and every open table, both ways');
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/raise exception/g) ?? []).length, 4, 'four rules: the registry, SECRET-4, outside the projection, a projection column no client reads');
+    assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /pg_catalog\.has_column_privilege\(cr\.r, t\.t::regclass, a\.attnum, p\.p\)/, 'each column of a projection table, for every column privilege');
+    // The review round (Q0 Q-3, mutant M5ab): rule 3's two privilege lists, pinned by text in both directions,
+    // MAINTAIN included (no drift can grant MAINTAIN on a server before 17, so the text holds it).
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\]\) as p\(p\), pg_catalog\.pg_attribute a\n/g) ?? []).length, 2,
+      'rule 3 reads SELECT, INSERT, UPDATE and REFERENCES per column of a projection table, both ways');
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['DELETE', 'TRUNCATE', 'TRIGGER'\]\n\s+\|\| case when pg_catalog\.current_setting\('server_version_num'\)::integer >= 170000 then array\['MAINTAIN'\] else array\[\]::text\[\] end\) as p\(p\)\n\s+where pg_catalog\.has_table_privilege\(cr\.r, t\.t::regclass, p\.p\)/g) ?? []).length, 2,
+      'and DELETE, TRUNCATE, TRIGGER and MAINTAIN per projection table, both ways');
+  }
+  // THE PINNED SAFE PROJECTIONS (batch 150; Q170-d). The file's tables are the registry's, its rows are today's
+  // client column reads from pinned-grants.json, and every column it flags is a finding with an owner.
+  {
+    const file = JSON.parse(await readFile(m.SAFE_PROJECTIONS_FILE, 'utf8'));
+    assert.deepEqual(m.SAFE_PROJECTIONS, file, 'the probe reads the lint file and nothing else');
+    assert.deepEqual(Object.keys(file.tables), m.PROJECTION_TABLES, 'the classed tables are exactly the PROVIDER-3 and INTERNAL-3 ones, in registry order');
+    assert.deepEqual(Object.keys(file.open_tables), m.OPEN_CLASS_TABLES, 'the open tables are exactly the registry\'s twelve findings, in registry order');
+    for (const [t, e] of Object.entries(file.tables)) {
+      assert.ok(m.PROJECTION_CLASSES.includes(e.class) && e.class === m.DATA_CLASSIFICATION.tables[t].class, `${t}: its class is the registry's, PROVIDER-3 or INTERNAL-3`);
+    }
+    for (const [t, e] of Object.entries(file.open_tables)) assert.deepEqual(e.erd_classes, m.DATA_CLASSIFICATION.tables[t].erd_classes, `${t}: its §5 classes are the registry's`);
+    for (const [part, entries] of [['tables', file.tables], ['open_tables', file.open_tables]]) {
+      for (const [t, e] of Object.entries(entries)) {
+        assert.ok(typeof e.review === 'string' && e.review.length > 20, `${part} ${t}: reviewed against §9.1`);
+        const client = Object.fromEntries(Object.entries(m.PINNED_GRANTS[t]).filter(([r]) => m.CLIENT_ROLES.includes(r)).map(([r, g]) => [r, g.SELECT ?? []]).filter(([, cols]) => cols.length));
+        assert.deepEqual(e.projection, client, `${part} ${t}: the projection is pinned-grants.json's client SELECT columns, in attnum order`);
+        if (part === 'tables') {
+          for (const [r, g] of Object.entries(m.PINNED_GRANTS[t]).filter(([r]) => m.CLIENT_ROLES.includes(r))) {
+            assert.deepEqual(Object.keys(g).filter((k) => k !== 'SELECT'), [], `${t}: ${r} holds no privilege but a column read (rule 3 refuses every other)`);
+          }
+        }
+      }
+    }
+    assert.equal(m.SAFE_PROJECTION_ROWS.length, 71, 'seventy-one client column reads, on seven open tables; none on a classed one');
+    // SP-4 since the review round (A1 F150-1): deep_link_target_ref's form admits a provider-id and a token shape.
+    assert.deepEqual(file.findings.map((f) => f.id), ['SP-1', 'SP-2', 'SP-3', 'SP-4'], 'four columns read as unsafe or unproven, recorded and kept');
+    for (const f of file.findings) {
+      const [s, t, c] = f.column.split('.');
+      assert.ok((file.open_tables[`${s}.${t}`] ?? file.tables[`${s}.${t}`])?.projection.authenticated?.includes(c), `${f.id}: names a column the projection pins, so it is kept, not dropped`);
+      assert.ok(['LOW', 'INFO', 'MEDIUM'].includes(f.severity) && f.finding.length > 60 && f.owner.length > 2, `${f.id}: a severity, a finding and an owner`);
+    }
   }
   // THE PINNED SHAPES (the batch 150 prerequisite draft; survey §6 item 5). The probe reads the lint file;
   // its tables exist in the migrations; 121's constraints are every one 121 names, by text now and not by
@@ -3213,6 +3275,24 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'unlisted or changed: ' \|\| f\.k as x from found f/g) ?? []).length, 4, 'rules 2-5 name what is found and not pinned');
     assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/select 'missing or changed: ' \|\| p\.k from pinned p/g) ?? []).length, 4, 'and what is pinned and not found');
     assert.equal((m.PINNED_SHAPE_PROBE_SQL.match(/ and [pf]\.roles is not distinct from [pf]\.roles/g) ?? []).length, 2, 'rule 4 compares roles both ways (Q0 Q-3, mutant C2)');
+    // Batch 150 (Q150-a, answered 2026-10-04 as A0 recommended): the key is (id, metric_time), written by a
+    // forward migration and pinned in the same diff; no `partition by` (Q150-b); 121 is not edited.
+    const ps = m.PINNED_SHAPES['app.performance_snapshots'];
+    assert.deepEqual(ps.constraints.performance_snapshots_pkey, { type: 'p', def: 'PRIMARY KEY (id, metric_time)' }, 'the key carries the partition column');
+    assert.equal(ps.indexes.performance_snapshots_pkey, 'CREATE UNIQUE INDEX performance_snapshots_pkey ON app.performance_snapshots USING btree (id, metric_time)', 'and so does its index');
+    for (const [k, c] of Object.entries(ps.constraints).filter(([, c]) => ['p', 'u'].includes(c.type))) assert.match(c.def, /\bmetric_time\b/, `${k}: every unique carries metric_time (partition-ready)`);
+    const m150 = await readFile('db/foundation/migrations/150_performance_snapshots_key.sql', 'utf8');
+    const m150code = m150.replace(/--[^\n]*/g, '');
+    assert.match(m150code, /alter table app\.performance_snapshots drop constraint performance_snapshots_pkey;\nalter table app\.performance_snapshots add constraint performance_snapshots_pkey primary key \(id, metric_time\);/, '150 re-keys the table in two statements');
+    assert.match(m150code, /set lock_timeout = '5s';\nset statement_timeout = '60s';\n\n[\s\S]*?\nset lock_timeout = default;\nset statement_timeout = default;/, 'risky DDL under both timeouts, reset after (migration invariant 3)');
+    assert.doesNotMatch(m150code, /\bpartition\s+by\b|attach\s+partition|create\s+(unique\s+)?index/i, 'no partitioning and no index (Q150-b)');
+    assert.match(m150code, /if offending is distinct from 'PRIMARY KEY \(id, metric_time\)' then/, 'its block asserts the key by text');
+    assert.match(m150code, /con\.contype = 'f' and con\.confrelid = 'app\.performance_snapshots'::regclass/, 'and that nothing references the table');
+    // The review round (C0-6, A1 F150-3): check 2 reads every unique INDEX too, by its key columns, so a bare
+    // unique index on (id) fails 150 and not only the pinned shape probe.
+    assert.match(m150code, /from pg_catalog\.pg_index i join pg_catalog\.pg_class ic on ic\.oid = i\.indexrelid\n\s+where i\.indrelid = 'app\.performance_snapshots'::regclass and i\.indisunique\n[\s\S]*?a\.attnum = any \(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) and a\.attname = 'metric_time'/,
+      'every unique index carries metric_time among its key columns');
+    assert.match(m121, /id\s+bigint generated always as identity primary key,/, '121 is not edited (migration invariant 1)');
   }
   // THE VOCABULARY CHECKS (survey §6 item 6). Each pinned text is of the selector's shape and named by a
   // migration; a vocabulary shared by several homes is one text in each, so the rewrite of every home alike
@@ -3357,6 +3437,13 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.deepEqual(h.NAMED_QUERIES.slice(0, 6).map((q) => q.name), ['membership check', 'workspace list', 'content first page', 'calendar first page', 'library first page', 'worker claim'],
       'WS:909-917\'s named queries, in its order');
     assert.deepEqual(h.NAMED_QUERIES.filter((q) => q.klass === 'membership').map((q) => q.name), ['membership check', 'workspace list'], 'the two the seq scan budget reads');
+    // Batch 150 (Q150-e, answered 2026-10-04 as A0 recommended): the workspace list is read from the caller's
+    // active memberships and joined to workspaces, the query text alone; no policy and no index changed for it.
+    const list = h.NAMED_QUERIES.find((q) => q.name === 'workspace list');
+    assert.equal(list.role, 'authenticated', 'still read as the client, through every policy');
+    assert.match(list.sql, /^select w\.id, w\.name from app\.workspace_members m join app\.workspaces w on w\.id = m\.workspace_id where m\.user_id = md5\('ws905:user:' \|\| \(\(1 - 1\) \* 4 \+ 1\)::text\)::uuid and m\.status = 'active' order by w\.name limit 50$/,
+      'from workspace_members (the caller\'s active rows), then workspaces by key (F2, open_blockers[194] (1))');
+    assert.doesNotMatch(list.sql, /^select w\.id, w\.name from app\.workspaces w /, 'and no longer from workspaces outward');
     const seq = h.summarisePlan([{ Plan: { 'Node Type': 'Limit', 'Total Cost': 9, Plans: [{ 'Node Type': 'Sort', 'Sort Key': ['x'], Plans: [{ 'Node Type': 'Seq Scan', 'Relation Name': 'workspace_members' }] }] } }]);
     assert.deepEqual([seq.seqScans, seq.sorts, seq.totalCost], [['workspace_members'], ['x'], 9], 'a Seq Scan and a Sort are read from the plan JSON');
     assert.deepEqual(h.verdict([{ name: 'membership check', klass: 'membership', summary: seq }, { name: 'worker claim', klass: 'worker', summary: seq }]).flagged,

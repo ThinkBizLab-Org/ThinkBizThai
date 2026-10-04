@@ -599,19 +599,35 @@ break it silently:
    §3's five objects: not the base table's SELECT policy, schema USAGE, or that the granted columns equal
    the entry's `columns` (C0 F3; inert while the allowlist is empty, owed on blocker 115 before the first
    entry lands).
-17. **No client privilege on a TABLE classed SECRET-4, PROVIDER-3 or INTERNAL-3; the column half is empty
-   until the ERD classes columns** (the batch 170 draft; ERD §9.1; heading narrowed in its review round,
-   A1 R5: the registry's `columns` map is `{}`, so a new client column on one of the twelve open tables,
-   six of which pair SECRET-4 with another class, is named by rule 7 alone). `db/foundation/lint/data-classification.json` gives every table in `app` and
-   `private` its ERD §5 family and that row's §9.1 classes, verbatim, and a class only where §5 gives one
-   or where §9.1/§9.2 names the table's own content as an example of a refused class (a push token, an API
+17. **No client privilege on a TABLE classed SECRET-4; only a pinned safe projection of a table classed
+   PROVIDER-3 or INTERNAL-3, or left open; the column half is empty until the ERD classes columns** (the
+   batch 170 draft; ERD §9.1; heading narrowed in its review round, A1 R5; rule 3 is batch 150's, Q170-d
+   answered 2026-10-04 as A0 recommended). `db/foundation/lint/data-classification.json` gives every table in
+   `app` and `private` its ERD §5 family and that row's §9.1 classes, verbatim, and a class only where §5 gives
+   one or where §9.1/§9.2 names the table's own content as an example of a refused class (a push token, an API
    key, an OAuth token, a webhook). A table left between a refused class and another is a FINDING in the
    file, never a guess: twelve at the draft, seven of them read by `authenticated` today (the publisher
    family and notifications). Rule 1 holds the registry to the catalog both ways; rule 2 names any client
-   privilege, table or column level, on the eight refused tables (jobs, outbox_events, consumer_ledger,
-   billing_webhook_receipts, and the four in `private`) or on a refused column (none: the ERD classes no
-   column).
-18. **The tables batch 150 will rebuild are pinned whole, by text** (batch 150's prerequisites;
+   privilege, table or column level, on the four SECRET-4 tables (the four in `private`, `meta_webhook_inbox`
+   by its PROVIDER-3/SECRET-4 row) or on a refused column (none: the ERD classes no column). Rule 3 replaces
+   "no client privilege" for PROVIDER-3 and INTERNAL-3 with §9.1's own words, "safe projection only" and
+   "redacted status only": `db/foundation/lint/safe-projections.json` pins, per table and client role, the
+   exact columns a client may read. On the four classed tables (`billing_webhook_receipts`, `consumer_ledger`,
+   `jobs`, `outbox_events`) every client privilege found (SELECT, INSERT, UPDATE and REFERENCES per column;
+   DELETE, TRUNCATE, TRIGGER and MAINTAIN per table) must be a pinned column read, and every pinned read must
+   be held: both ways, and today all four projections are empty. On the twelve open tables the client SELECT
+   columns are held to the pinned set both ways (A1 R5), 71 column reads on seven tables; their other client
+   privileges are rule 7's. Both table lists are computed from the registry, never from the projection file.
+   Each pinned column was reviewed against §9.1; four that read as unsafe or unproven are findings in the
+   file (SP-1 `performance_snapshots.metrics`, SP-2 `publish_targets.failure_class`, SP-3
+   `publish_jobs.attempt_count`, and SP-4 `notifications.deep_link_target_ref`, whose form admits a provider
+   id and a token shape, added in the review round from A1 F150-1), kept as measured and owed on
+   `open_blockers[193]`. The rule's "exactly the N column reads" is a claim about table and column
+   privileges only (A1 F150-4): a view over a withheld column is held by the client privilege, pinned grant
+   and read allowlist probes, a role reached by SET ROLE by the client membership and pinned grant probes,
+   and a SECURITY DEFINER function or a copying trigger by no grant probe. Rule 17 alone is not the read
+   boundary.
+18. **The tables batch 150 re-keyed or rests on are pinned whole, by text** (batch 150's prerequisites;
    weak-assertion survey §6 item 5). `db/foundation/lint/pinned-shapes.json` holds `app.performance_snapshots`,
    `app.published_posts` and `app.usage_events`: row level security enabled AND forced (rule 1; FORCE was
    asserted nowhere, Q0 D30), every constraint by type, `pg_get_constraintdef` and validation (rule 2), every
@@ -620,7 +636,15 @@ break it silently:
    today; a BEFORE INSERT trigger passed every layer before it, A1 S4 and C0-8 on the review round), each set
    compared both ways. 121's block held these by name, a quoted-token set and a `LIKE`. No column is pinned
    (type, NOT NULL, default, identity: F7, `open_blockers[194]` (4)). A batch that rebuilds one of them
-   (Q150-a, undecided) rewrites the file in the same diff.
+   rewrites the file in the same diff, as batch 150 did: Q150-a, answered 2026-10-04, made
+   `performance_snapshots_pkey` `PRIMARY KEY (id, metric_time)` (`150_performance_snapshots_key.sql`), and
+   both its constraint and its index are pinned in that text; the table is not partitioned (Q150-b). Since
+   that key, `id` alone is unique by no constraint, only by its ALWAYS identity and by no application role
+   holding INSERT or UPDATE on it (superusers, the owner and pg_write_all_data excepted; measured on the CI
+   shim), an accepted property (review round, C0-5, A1 F150-2, Q0 Q-4). The later
+   partition is NOT "create a parent and attach this table": PostgreSQL 17.11 refuses to attach a table
+   with an identity column, so that batch drops the identity, attaches, and restarts the parent's identity
+   above max(id) (C0-1, measured; `open_blockers[179]`).
 19. **Every vocabulary CHECK is pinned by its fixed text** (survey §6 item 6).
    `db/foundation/lint/vocabulary-checks.json` holds the 60 CHECKs in `app` and `private` whose deparse
    carries a literal array (`ARRAY['`) or is the single-column `CHECK ((col = 'value'::text))`; the probe
@@ -646,7 +670,8 @@ break it silently:
    review round (C0-1, Q0 Q-1: a HASH worker-claim index, a BRIN workspace-switch index and a `DESC NULLS
    LAST` audit keyset each passed every layer while its query lost the index). "Served" means an index of
    that shape exists; whether the query plans through it is the harness's to show (F2: the workspace list
-   seq-scans `workspaces` while its membership lookup is green). Rule 3: every exemption names a column rule
+   seq-scanned `workspaces` while its membership lookup was green, until batch 150 wrote the list from
+   `workspace_members`, Q150-e). Rule 3: every exemption names a column rule
    1 finds uncovered. The content list's first page
    has NO serving index today; it is a finding in the file (IC-1), not a lookup, since the index is a migration
    (Q150-b).
@@ -713,7 +738,9 @@ db-migrate-clean` built and nothing has written to since -- run it before `make 
 rows -- in one transaction, checks the row counts, runs ANALYZE, captures the plan of each named query
 (membership check, workspace list, content, calendar and library first page, worker claim, and three reads
 of the tables batch 150 concerns) under the role that runs it, prints each plan's Seq Scans, indexes and
-sorts, and rolls back:
+sorts, and rolls back. Since batch 150 (Q150-e) the workspace list is read from the caller's active rows of
+`workspace_members`, joined to `workspaces` by key; read from `workspaces` outward it seq-scanned that table at
+the 0.2 scale, and the query text is the only change (no policy, no index):
 
     DB_TEST_URL=postgresql://postgres@127.0.0.1:<port>/postgres node scripts/db/explain-harness.mjs --scale 0.2
 
@@ -730,7 +757,8 @@ repeat runs while the plan shapes held (A1 S2, Q0 Q-5). Run it once per fresh cl
 afterwards. The full scale needs about 2 GB of free disk while it runs; the harness has no free-space guard
 (`open_blockers[194]` (12)).
 
-It asserts no timing: the p95 budget is the SLO the team has not set (Q150-d). A Seq Scan on a
+It asserts no timing: the p95 budget is Q150-d's, whose values A0 drafted as PROPOSED in
+`a0-batch-150-plan-2026-10-03.md` §5 and the Owner has not ratified. A Seq Scan on a
 membership-class query is reported, and fails the run only under `--fail-on-seq-scan`. It refuses without
 `DB_TEST_URL`, and refuses a URL the shared test-instance guard refuses (`testHostRefusal` in
 `scripts/db/psql-driver.mjs`, which `db-reset-test` uses too): the URL is parsed, its host must be exactly

@@ -211,7 +211,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // guard (A1 S1, Q0 Q-4, C0-9), the harness's emptiness refusal (A1 S3, C0-4, Q0 Q-6), the pinned shape
 // trigger set (A1 S4, C0-8), the roles comparisons (Q0 Q-3), the index coverage run, qualified column,
 // btree and NULLS readings (C0-1, Q0 Q-1, Q-2) and the 16-table count (C0-5); no test added or renamed.
-  'test-kits/db/foundation-contract.test.mjs': 898,
+// 898 to 929 with batch 150 (2026-10-04, migration 150_performance_snapshots_key.sql): the key pinned as
+// (id, metric_time) and 150's statements, timeouts and block read (Q150-a, Q150-b), the workspace list read
+// from workspace_members (Q150-e), and rule 17's SECRET-4 / safe-projection split and the projection file
+// (Q170-d); no test added or renamed, so the test floor and the name digest stay; the guard's own count.
+// 929 to 932 with batch 150's review round: rule 17's two privilege lists pinned by text (Q0 Q-3) and 150's
+// check 2 reading every unique index (C0-6, A1 F150-3); no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 932,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

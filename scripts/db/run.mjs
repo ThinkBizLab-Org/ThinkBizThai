@@ -1420,25 +1420,67 @@ begin
 end \$\$;
 `;
 
-// 6c. NO CLIENT PRIVILEGE ON A SECRET-4, PROVIDER-3 OR INTERNAL-3 TABLE OR COLUMN (the batch 170 draft;
-// plan "Batch 170 -- Can do now" (c); ERD §9.1, WS:803's "no credential, raw webhook, DLQ payload or
-// internal billing payload" exposure). The classes come from db/foundation/lint/data-classification.json,
-// which reads every table's class from the ERD's §5 family row and §9.1/§9.2 text and nowhere else: a
-// table whose §5 row mixes a refused class with others and that the ERD does not resolve is a FINDING in
-// that file, not a guess. Rule 1 holds the registry to the catalog both ways (every table in app and
-// private is classified, every classified table exists), so a new table cannot arrive unclassified. Rule
-// 2: no client role (anon, authenticated, PUBLIC) holds any privilege, at table or column level, on a
-// refused table, or on a column the registry classes with a refused class (none: the ERD names no
-// column). Measured on the clean set at the draft: 8 refused tables (jobs, outbox_events, consumer_ledger,
-// billing_webhook_receipts, and the four in private), no client privilege on any.
+// 6c. NO CLIENT PRIVILEGE ON A SECRET-4 TABLE OR COLUMN, AND ONLY A PINNED SAFE PROJECTION OF A PROVIDER-3 OR
+// INTERNAL-3 ONE (the batch 170 draft; plan "Batch 170 -- Can do now" (c); ERD §9.1, WS:803's "no credential,
+// raw webhook, DLQ payload or internal billing payload" exposure; batch 150 for Q170-d). The classes come from
+// db/foundation/lint/data-classification.json, which reads every table's class from the ERD's §5 family row
+// and §9.1/§9.2 text and nowhere else: a table whose §5 row mixes a refused class with others and that the
+// ERD does not resolve is a FINDING in that file, not a guess. Rule 1 holds the registry to the catalog both
+// ways (every table in app and private is classified, every classified table exists), so a new table cannot
+// arrive unclassified. Rule 2: no client role (anon, authenticated, PUBLIC) holds any privilege, at table or
+// column level, on a table classed SECRET-4 (or left by §5 only between refused classes one of which is
+// SECRET-4), or on a column the registry classes with a refused class (none: the ERD names no column). Rule 3
+// (batch 150; Q170-d answered 2026-10-04 as A0 recommended: "only a pinned safe projection", which replaced
+// "no client privilege" for these two classes): on a table classed PROVIDER-3 or INTERNAL-3, the client
+// privileges found -- SELECT, INSERT, UPDATE and REFERENCES per column, DELETE, TRUNCATE, TRIGGER and MAINTAIN
+// per table -- are exactly the SELECT columns db/foundation/lint/safe-projections.json pins for each client
+// role, both ways; and on each of the twelve tables the registry leaves open, the client SELECT columns found
+// are exactly the pinned set, both ways (A1 R5 on batch 170-assert), their other client privileges being rule
+// 7's. Both table lists are computed from the registry, never read from the projection file, so a table the
+// file forgets is held to an empty projection and a SECRET-4 table the file names is still rule 2's. Measured
+// on the clean set of batch 150: 4 SECRET-4 tables and 4 PROVIDER-3 or INTERNAL-3 tables, no client privilege
+// on any of the eight; 7 of the 12 open tables hold the client SELECT columns the file pins. Its "exactly the
+// N column reads" is a claim about TABLE AND COLUMN PRIVILEGES only (review round, A1 F150-4, measured): a view
+// over a withheld column is the client privilege probe's, the pinned grant probe's and the read allowlist
+// probe's; a role a client reaches by SET ROLE is the client membership probe's and the pinned grant probe's;
+// a SECURITY DEFINER function, or a trigger that copies a withheld value into a pinned column, is outside every
+// grant probe. Rule 17 alone is not the whole read boundary.
 export const DATA_CLASSIFICATION_FILE = 'db/foundation/lint/data-classification.json';
 export const DATA_CLASSIFICATION = lintData('data-classification.json');
+export const SAFE_PROJECTIONS_FILE = 'db/foundation/lint/safe-projections.json';
+export const SAFE_PROJECTIONS = lintData('safe-projections.json');
 export const REFUSED_CLASSES = ['SECRET-4', 'PROVIDER-3', 'INTERNAL-3'];
+export const PROJECTION_CLASSES = ['PROVIDER-3', 'INTERNAL-3'];
 export const REFUSED_CLASS_TABLES = Object.entries(DATA_CLASSIFICATION.tables)
   .filter(([, e]) => REFUSED_CLASSES.includes(e.class) || (e.class === null && e.erd_classes.every((c) => REFUSED_CLASSES.includes(c))))
   .map(([t]) => t);
+export const NO_PRIVILEGE_TABLES = REFUSED_CLASS_TABLES
+  .filter((t) => { const e = DATA_CLASSIFICATION.tables[t]; return e.class === 'SECRET-4' || (e.class === null && e.erd_classes.includes('SECRET-4')); });
+export const PROJECTION_TABLES = REFUSED_CLASS_TABLES.filter((t) => !NO_PRIVILEGE_TABLES.includes(t));
+export const OPEN_CLASS_TABLES = Object.entries(DATA_CLASSIFICATION.tables).filter(([, e]) => e.class === null && typeof e.finding === 'string').map(([t]) => t);
 export const REFUSED_CLASS_COLUMNS = Object.entries(DATA_CLASSIFICATION.columns).filter(([, c]) => REFUSED_CLASSES.includes(c)).map(([k]) => k);
+const projectionRows = (tables, part) => tables.flatMap((t) => Object.entries(SAFE_PROJECTIONS[part]?.[t]?.projection ?? {})
+  .flatMap(([role, cols]) => cols.map((c) => `${role} SELECT (${c}) on ${t}`)));
+export const SAFE_PROJECTION_ROWS = [...projectionRows(PROJECTION_TABLES, 'tables'), ...projectionRows(OPEN_CLASS_TABLES, 'open_tables')];
 const classifiedTables = `array[${Object.keys(DATA_CLASSIFICATION.tables).map((t) => `'${t}'`).join(', ')}]::text[]`;
+const textArray = (xs) => `array[${xs.map((x) => `'${x}'`).join(', ')}]::text[]`;
+const projectionFound = `select format('%s %s (%s) on %s', cr.r, p.p, a.attname, t.t) as x
+      from unnest(${textArray(PROJECTION_TABLES)}) as t(t), ${clientRoles},
+           unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p), pg_catalog.pg_attribute a
+     where a.attrelid = t.t::regclass and a.attnum > 0 and not a.attisdropped
+       and pg_catalog.has_column_privilege(cr.r, t.t::regclass, a.attnum, p.p)
+    union all
+    select format('%s %s on %s', cr.r, p.p, t.t)
+      from unnest(${textArray(PROJECTION_TABLES)}) as t(t), ${clientRoles},
+           unnest(array['DELETE', 'TRUNCATE', 'TRIGGER']
+                  || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p(p)
+     where pg_catalog.has_table_privilege(cr.r, t.t::regclass, p.p)
+    union all
+    select format('%s SELECT (%s) on %s', cr.r, a.attname, t.t)
+      from unnest(${textArray(OPEN_CLASS_TABLES)}) as t(t), ${clientRoles}, pg_catalog.pg_attribute a
+     where a.attrelid = t.t::regclass and a.attnum > 0 and not a.attisdropped
+       and pg_catalog.has_column_privilege(cr.r, t.t::regclass, a.attnum, 'SELECT')`;
+const projectionPinned = `select x from unnest(${textArray(SAFE_PROJECTION_ROWS)}) as x`;
 export const DATA_CLASSIFICATION_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1458,19 +1500,32 @@ begin
   end if;
   select string_agg(x, ', ' order by x) into offending from (
     select format('%s %s on %s', cr.r, p.p, t.t) as x
-      from unnest(array[${REFUSED_CLASS_TABLES.map((t) => `'${t}'`).join(', ')}]::text[]) as t(t), ${clientRoles},
+      from unnest(${textArray(NO_PRIVILEGE_TABLES)}) as t(t), ${clientRoles},
            unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES', 'DELETE', 'TRUNCATE', 'TRIGGER']
                   || case when pg_catalog.current_setting('server_version_num')::integer >= 170000 then array['MAINTAIN'] else array[]::text[] end) as p(p)
      where case when p.p in ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES') then pg_catalog.has_any_column_privilege(cr.r, t.t::regclass, p.p)
                 else pg_catalog.has_table_privilege(cr.r, t.t::regclass, p.p) end
     union all
     select format('%s %s (%s) on %s.%s', cr.r, p.p, split_part(k.k, '.', 3), split_part(k.k, '.', 1), split_part(k.k, '.', 2))
-      from unnest(array[${REFUSED_CLASS_COLUMNS.map((k) => `'${k}'`).join(', ')}]::text[]) as k(k), ${clientRoles},
+      from unnest(${textArray(REFUSED_CLASS_COLUMNS)}) as k(k), ${clientRoles},
            unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as p(p)
      where pg_catalog.has_column_privilege(cr.r, (split_part(k.k, '.', 1) || '.' || split_part(k.k, '.', 2))::regclass, split_part(k.k, '.', 3), p.p)
   ) f;
   if offending is not null then
-    raise exception 'client privilege(s) on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3: %', offending;
+    raise exception 'client privilege(s) on a table classed SECRET-4 or a column classed SECRET-4, PROVIDER-3 or INTERNAL-3: %', offending;
+  end if;
+  select string_agg(f.x, ', ' order by f.x) into offending from (
+    ${projectionFound}
+  ) f where not exists (select 1 from (${projectionPinned}) p where p.x = f.x);
+  if offending is not null then
+    raise exception 'client privilege(s) outside the pinned safe projection of a PROVIDER-3, INTERNAL-3 or open table: %', offending;
+  end if;
+  select string_agg(p.x, ', ' order by p.x) into offending from (${projectionPinned}) p
+   where not exists (select 1 from (
+    ${projectionFound}
+   ) f where f.x = p.x);
+  if offending is not null then
+    raise exception 'pinned safe projection column(s) no client role reads: %', offending;
   end if;
 end \$\$;
 `;
@@ -1490,7 +1545,8 @@ end \$\$;
 // (121), published_posts (121 added the scope key its foreign key references) and usage_events (survey item 6:
 // usage_events_dedupe_key_unique had no probe). Measured on the clean set at 1319042: 32 constraints, 18
 // indexes and 4 policies. A batch that rebuilds one of them changes the file in the same diff, which is what
-// puts the rebuild (Q150-a, undecided) in front of a reviewer as a text difference rather than a name match.
+// puts the rebuild in front of a reviewer as a text difference rather than a name match (batch 150's re-key of
+// performance_snapshots, Q150-a answered 2026-10-04, did exactly that: the key and its index moved in this file).
 export const PINNED_SHAPES_FILE = 'db/foundation/lint/pinned-shapes.json';
 export const PINNED_SHAPES = lintData('pinned-shapes.json').tables;
 const sqlText = (s) => (s === null ? 'null' : `'${String(s).replace(/'/g, "''")}'`);
@@ -2114,16 +2170,30 @@ export const CATALOG_RULE_PROBES = [
     ] },
   // The batch 170 draft (plan (c); ERD §5, §9.1): classification, and no client reach into a refused class.
   { label: 'data classification probe', sql: DATA_CLASSIFICATION_PROBE_SQL,
-    claim: `the ${Object.keys(DATA_CLASSIFICATION.tables).length} tables in app and private are exactly those ${DATA_CLASSIFICATION_FILE} classifies, and no client role holds any privilege on the ${REFUSED_CLASS_TABLES.length} tables or ${REFUSED_CLASS_COLUMNS.length} columns classed ${REFUSED_CLASSES.join(', ')}`,
+    claim: `the ${Object.keys(DATA_CLASSIFICATION.tables).length} tables in app and private are exactly those ${DATA_CLASSIFICATION_FILE} classifies; no client role holds any privilege on the ${NO_PRIVILEGE_TABLES.length} SECRET-4 tables or the ${REFUSED_CLASS_COLUMNS.length} columns classed ${REFUSED_CLASSES.join(', ')}; and on the ${PROJECTION_TABLES.length} ${PROJECTION_CLASSES.join(' or ')} tables and the ${OPEN_CLASS_TABLES.length} open ones a client holds exactly the ${SAFE_PROJECTION_ROWS.length} column reads ${SAFE_PROJECTIONS_FILE} pins`,
     selfTests: [
       { drift: 'create table app.probe_unclassified (id uuid); alter table app.consumer_ledger rename to probe_ledger_renamed;',
         raises: 'app or private table(s) not exactly the classification registry',
         names: ['unclassified: app.probe_unclassified', 'unclassified: app.probe_ledger_renamed', 'classified but absent: app.consumer_ledger'] },
-      // The plan's drift: SELECT on a refused table's column to authenticated; and INSERT for anon and a
-      // PUBLIC grant on a SECRET-4 table (which every client inherits).
-      { drift: 'grant select (input_ref) on app.jobs to authenticated; grant insert (id) on app.outbox_events to anon; grant select (id) on private.ai_credential_references to public;',
-        raises: 'client privilege(s) on a table or column classed SECRET-4, PROVIDER-3 or INTERNAL-3',
-        names: ['authenticated SELECT on app.jobs', 'anon INSERT on app.outbox_events', 'public SELECT on private.ai_credential_references', 'authenticated SELECT on private.ai_credential_references'] },
+      // A SECRET-4 table: INSERT for anon, and a PUBLIC grant (which every client inherits).
+      { drift: 'grant insert (workspace_id) on private.meta_webhook_inbox to anon; grant select (id) on private.ai_credential_references to public;',
+        raises: 'client privilege(s) on a table classed SECRET-4 or a column classed SECRET-4, PROVIDER-3 or INTERNAL-3',
+        names: ['anon INSERT on private.meta_webhook_inbox', 'public SELECT on private.ai_credential_references', 'authenticated SELECT on private.ai_credential_references'] },
+      // Batch 150 (Q170-d), widened: a read of a PROVIDER-3 or INTERNAL-3 column no projection pins, a privilege
+      // other than SELECT on such a table (column and table level), a new client column on an open table, and a
+      // PUBLIC read of an open table with an empty projection.
+      // The review round (Q0 Q-3: mutant M5ab dropped INSERT and UPDATE from the column list and TRUNCATE and
+      // TRIGGER from the table list, digests refreshed, and survived) drives every privilege of both lists but
+      // MAINTAIN, which a static regex holds: a column UPDATE and INSERT, a table TRUNCATE and TRIGGER.
+      { drift: 'grant select (input_ref, last_error_code) on app.jobs to authenticated; grant delete on app.consumer_ledger to anon; grant references (provider) on app.billing_webhook_receipts to authenticated; grant select (provider_request_key) on app.publish_jobs to authenticated; grant select (id) on app.social_accounts to public; grant update (progress_stage) on app.jobs to authenticated; grant insert (id) on app.outbox_events to anon; grant truncate on app.consumer_ledger to authenticated; grant trigger on app.billing_webhook_receipts to authenticated;',
+        raises: 'client privilege(s) outside the pinned safe projection of a PROVIDER-3, INTERNAL-3 or open table',
+        names: ['authenticated SELECT (input_ref) on app.jobs', 'authenticated SELECT (last_error_code) on app.jobs', 'anon DELETE on app.consumer_ledger',
+          'authenticated REFERENCES (provider) on app.billing_webhook_receipts', 'authenticated SELECT (provider_request_key) on app.publish_jobs', 'public SELECT (id) on app.social_accounts',
+          'authenticated UPDATE (progress_stage) on app.jobs', 'anon INSERT (id) on app.outbox_events', 'authenticated TRUNCATE on app.consumer_ledger', 'authenticated TRIGGER on app.billing_webhook_receipts'] },
+      // And narrowed: a pinned column no client reads any more, so the projection would be documentation.
+      { drift: 'revoke select (failure_class) on app.publish_targets from authenticated; revoke select (metrics) on app.performance_snapshots from authenticated;',
+        raises: 'pinned safe projection column(s) no client role reads',
+        names: ['authenticated SELECT (failure_class) on app.publish_targets', 'authenticated SELECT (metrics) on app.performance_snapshots'] },
     ] },
   // The batch 150 prerequisite draft (survey §6 item 5): the tables batch 150 will rebuild, whole.
   { label: 'pinned shape probe', sql: PINNED_SHAPE_PROBE_SQL,
