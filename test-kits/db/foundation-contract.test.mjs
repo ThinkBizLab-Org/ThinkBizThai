@@ -145,7 +145,39 @@ test('a target needing a database refuses without one, rather than reporting a p
     'psql never inherits a host, address or service the URL left out');
   assert.equal(redactConnection('could not connect to db.internal.invalid', 'postgresql://postgres@127.0.0.1:5507/postgres?host=db.internal.invalid'), 'could not connect to [redacted]',
     'a query parameter\'s value is redacted too (A1 S6)');
-  for (const url of crafted.slice(0, 10)) {
+  // EACH HALF OF THE FRAGMENT FIX HOLDS ON ITS OWN (the owed-tooling batch; Q0 G-1 on the guard fix: M1, the `#`
+  // refusal removed, and M2, the raw-text query loop removed, each passed this test, because every crafted URL
+  // was refused by both). `#frag` with no query is refused only by the `#` rule; ` host` (a percent-encoded
+  // space before the key, which the WHATWG parser keeps and libpq trims) only by the raw loop's trim.
+  assert.match(testHostRefusal('postgresql://postgres@127.0.0.1:5507/postgres#frag') ?? '', /contains a #/, 'the # rule alone refuses a bare fragment');
+  assert.match(testHostRefusal('postgresql://postgres@127.0.0.1:5507/postgres?%20host=db.example.invalid') ?? '', /carries a host parameter/, 'the raw-text loop alone refuses a key the parser reads as " host"');
+  assert.equal(new URL('postgresql://postgres@127.0.0.1:5507/postgres?%20host=x').searchParams.has('host'), false, 'measured: the parser does not read that key as host');
+  // REDACTION READS THE RAW QUERY TOO (Q0 G-2 on the guard fix: db-migrate-clean, which the guard does not
+  // cover, printed a fragment-carried host unredacted), and the bracket-less form of an IPv6 host.
+  assert.equal(redactConnection('could not translate host name "q0-probe.invalid" to address', 'postgresql://postgres@127.0.0.1:5507/postgres#?host=q0-probe.invalid'),
+    'could not translate host name "[redacted]" to address', 'a host carried past a # is redacted (G-2)');
+  assert.equal(redactConnection('could not connect to db.example.invalid', 'postgresql://postgres@127.0.0.1:5507/postgres?%20host=db.example.invalid'),
+    'could not connect to [redacted]', 'and a value under a key the parser misreads');
+  assert.equal(redactConnection('connection to server at "::1", port 5507 failed', 'postgres://postgres@[::1]:5507/x'), 'connection to server at "[redacted]", port [redacted] failed',
+    'an IPv6 host as psql prints it, without brackets');
+  // AND THE AUTHORITY AND PATH FROM THE RAW TEXT, AS WRITTEN AND DECODED (the owed-tooling batch's review round;
+  // A1-OT-4: each of the first five printed through db-migrate-clean and db-rls-smoke; Q0-OT-7: the raw query's
+  // `&`-only split and its decoding were each removable with every test green). What psql printed, measured.
+  for (const [message, url, secret] of [
+    ['role "a1secretuser" does not exist', 'postgresql://a1sec%72etuser@127.0.0.1:5501/postgres', 'a1secretuser'],
+    ['database "a1secretdb" does not exist', 'postgresql://postgres@127.0.0.1:5501/a1sec%72etdb', 'a1secretdb'],
+    ['could not translate host name "a1-encoded.invalid" to address', 'postgresql://postgres@%61%31-encoded.invalid:5501/postgres', 'a1-encoded'],
+    ['could not translate host name "a1-hostone.invalid"; could not translate host name "a1-hosttwo.invalid"', 'postgresql://postgres@a1-hostone.invalid:5501,a1-hosttwo.invalid:5502/postgres', 'a1-host'],
+    ['could not translate host name "a1-tail#x.invalid" to address', 'postgresql://postgres@127.0.0.1:5501/postgres?host=a1-tail#x.invalid', 'x.invalid'],
+    ['connection to server at "fe80::1%lo0", port 5501 failed', 'postgresql://postgres@[fe80::1%25lo0]:5501/postgres', 'fe80'],
+    ['could not translate host name "q0-probe.invalid" to address', 'postgresql://postgres@127.0.0.1:5501/postgres?host=%71%30-probe.invalid', 'q0-probe'],
+  ]) {
+    const out = redactConnection(message, url);
+    assert.ok(!out.includes(secret) && out.includes('[redacted]'), `${url}: "${secret}" survives redaction in ${JSON.stringify(out)}`);
+  }
+  // EVERY crafted URL through both real tools (Q0 G-1: the loop ran the first ten only, so the three the fix
+  // added were asserted at the function alone), and the two half-pins with them.
+  for (const url of [...crafted, 'postgresql://postgres@127.0.0.1:5507/postgres#frag', 'postgresql://postgres@127.0.0.1:5507/postgres?%20host=db.example.invalid']) {
     for (const [file, args, code] of [['explain-harness', ['scripts/db/explain-harness.mjs'], 2], ['db-reset-test', ['scripts/db/run.mjs', 'reset-test'], 1]]) {
       const result = await run('node', args, { env: { ...env, DB_TEST_URL: url } }).then(
         (ok) => ({ code: 0, ...ok }),
@@ -2269,13 +2301,35 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     // U& spelling is an escape spelling and is refused as one. C0 X2 and X2b used it to make a schema named
     // pg_c0api and a view in pg_catalog, past every rule that read by schema name.
     ['set allow_system_table_mods = on;', 1], ["select pg_catalog.set_config('allow_system_table_mods', 'on', true);", 1],
-    ['set U&"allow\\005fsystem\\005ftable\\005fmods" = on;', 1]]) {
+    ['set U&"allow\\005fsystem\\005ftable\\005fmods" = on;', 1],
+    // The owed-tooling batch (C0 G1 on batch 129's re-check): COPY ... TO/FROM PROGRAM runs a shell command as
+    // the server's OS user, the server-side twin of `\!`, and no layer read it. Any spelling with whitespace or
+    // comments between the words, at top level or in a literal or dollar body EXECUTE would run; not COPY to a
+    // file or to STDOUT, and not the word "program" elsewhere.
+    ["copy app.jobs to program 'touch /tmp/x';", 1], ["COPY app.jobs FROM PROGRAM 'cat /etc/passwd';", 1],
+    ["copy (select 1) to /* c */ program 'x';", 1], ["copy t from\n-- c\nprogram 'x';", 1],
+    ["do $$ begin execute 'copy app.jobs to program ''touch x'''; end $$;", 1], ["do $f$ begin execute $q$copy t from program 'x'$q$; end $f$;", 1],
+    ['copy app.jobs to stdout;', 0], ["select 'the program to run' as note;", 0],
+    // The owed-tooling batch's review round (C0-OT-2, Q0-OT-3): COPY TO or FROM a server file wrote a file on the
+    // host with every layer green, and G1's remedy named the server-file functions too. Each spelling refused;
+    // STDIN and STDOUT, the word "copy" in prose, and a function NAMED after FUNCTION (not called) admitted.
+    ["copy app.jobs from '/tmp/x';", 1], ["copy (select 'q0c') to '/tmp/x';", 1], ["COPY \"app\".\"jobs\" (id, kind) TO '/tmp/x';", 1],
+    ["copy(select (1)) to /* c */ '/tmp/x';", 1], ["copy binary t from '/tmp/x';", 1], ["do $$ begin execute 'copy (select 1) to ''/tmp/x'''; end $$;", 1],
+    ["select pg_read_file('/etc/hosts');", 1], ["select pg_catalog.\"pg_read_file\"('/etc/hosts');", 1], ["select lo_export(1, '/tmp/x');", 1],
+    ["select lo_import('/tmp/x');", 1], ["select count(*) from pg_ls_dir /* c */ ('.');", 1], ["select pg_stat_file('postgresql.conf');", 1],
+    ['copy app.jobs from stdin;', 0], ["select 'a nullable copy of the item''s page could not be held equal to ' || 'x';", 0],
+    ['grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;', 0], ['alter function pg_catalog.pg_read_file(text) rename to probe_x;', 0]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
   assert.match(metaCommandFindings([{ name: '999_x.sql', sql: 'select 1; \\! touch f' }]).join(''), /999_x\.sql line 1: a psql meta-command/,
     'migrate-clean refuses it live, before the first script is applied');
   assert.deepEqual(metaCommandFindings([{ name: '999_x.sql', sql: "select '\\!';" }]), []);
+  assert.match(metaCommandFindings([{ name: '999_x.sql', sql: "select 1;\ncopy app.jobs to program 'touch f';" }]).join(''), /999_x\.sql line 2: [^\n]*COPY \.\.\. TO\/FROM PROGRAM/,
+    'and a COPY ... TO PROGRAM in a migration, before the first script is applied (C0 G1 on 129)');
+  assert.match(metaCommandFindings([{ name: '999_x.sql', sql: "select 1;\ncopy (select 'x') to '/tmp/x';\nselect pg_read_file('/etc/hosts');" }]).join('\n'),
+    /999_x\.sql line 2: [^\n]*COPY \.\.\. TO\/FROM a server file[\s\S]*999_x\.sql line 3: [^\n]*a server-file function call/,
+    'and a COPY to a server file and a server-file function call, each by line (C0-OT-2, Q0-OT-3)');
   // Since batch 129 the system object fingerprint is scanned with them and taken first (C0 G1, Q0 F1 on 128's
   // re-check), then the loop.
   assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query, feed: readRows \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
@@ -2728,6 +2782,16 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // Batch 170 (Q-026-5 / Q-027-5, revoke): pinned grant baa6379790cb8733 to eb5ecbffb7f4f3cf (the pinned list the
   // probe embeds loses authenticated UPDATE (lifecycle_state) on app.workspaces; no rule and no drift changed).
   // Every other digest stays.
+  // The owed-tooling batch (2026-10-04, no migration): pinned trigger f136765c6beb5dbf to 6c73217f9ce9e45f (every
+  // table in app and private, 51 triggers and four functions, its two drifts widened: A1 R-2 on 170's re-check);
+  // pinned grant eb5ecbffb7f4f3cf to 06c68d76dce9d29a (rules 7 and 8, the schemas' owner and privileges and every
+  // non-superuser role's attributes and default ACLs, a drift each: A1 S1, S3, Q0 R-2 on 170-assert's re-check;
+  // the probe also embeds pinned-grants.json, whose _how_measured line moved, C0-170-3, though the probe reads
+  // only its tables); index coverage ae187b635c0ae0f4 to 2d47460e43a5c68e (a key's collation and operator class,
+  // and their drifts: Q0 R-2 on 150-prereq's re-check). Every other digest stays.
+  // The owed-tooling batch's review round: pinned trigger 6c73217f9ce9e45f to 8412a302b7f190a7 (a third rule: every
+  // internal trigger on a table in app or private is one of its table's FK checks, and its drift, a trigger hidden
+  // by tgisinternal and an FK trigger re-pointed at RI_FKey_cascade_del: A1-OT-1). Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2748,14 +2812,14 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'security definer probe': '42d056bde20ea854',
     'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '7ebb13f1c66bd33a',
-    'pinned trigger probe': 'f136765c6beb5dbf',
-    'pinned grant probe': 'eb5ecbffb7f4f3cf',
+    'pinned trigger probe': '8412a302b7f190a7',
+    'pinned grant probe': '06c68d76dce9d29a',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
     'policy set probe': '3c643bfe1fcfb040',
-    'index coverage probe': 'ae187b635c0ae0f4',
+    'index coverage probe': '2d47460e43a5c68e',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
     'pg_catalog guard probe': '75f034a2f40a686e',
@@ -3059,7 +3123,39 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_CHECK_PROBE_SQL, /and a\.attname = split_part\(pin\.k, '\.', 3\) and a\.attnum > 0 and not a\.attisdropped and a\.attnotnull\);/, 'read from attnotnull');
   assert.match(m.REWRITE_RULE_PROBE_SQL, /where n\.nspname in \('app', 'private'\)\n\s+and not \(r\.rulename = '_RETURN' and c\.relkind in \('v', 'm'\)\);/,
     'no rewrite rule in app or private but a view\'s _RETURN (Q0 F5 on 126)');
-  assert.deepEqual(Object.keys(m.PINNED_TABLE_TRIGGERS), ['app.approval_requests'], 'the table whose decision time is the database\'s');
+  // EVERY TABLE IN app AND private SINCE THE OWED-TOOLING BATCH (A1 R-2 on batch 170's re-check: a BEFORE UPDATE
+  // trigger on app.workspaces writing NEW.lifecycle_state passed every layer while only approval_requests was
+  // read). The probe reads every non-internal trigger on a table in those two schemas, not a pinned table list.
+  assert.equal((m.PINNED_TRIGGER_PROBE_SQL.match(/where not t\.tgisinternal\n\s+and n\.nspname in \('app', 'private'\)/g) ?? []).length, 2,
+    'both rules read every table in app and private: the trigger set, and the functions those triggers run');
+  assert.doesNotMatch(m.PINNED_TRIGGER_PROBE_SQL, /= any \(array\['app\.approval_requests'\]\)/, 'and no longer a list of pinned tables');
+  assert.match(m.PINNED_TRIGGER_PROBE_SQL, /where t\.tgisinternal\n\s+and n\.nspname in \('app', 'private'\)\n\s+and not \(pn\.nspname = 'pg_catalog' and con\.contype = 'f'\n\s+and \(\(con\.conrelid = t\.tgrelid and p\.proname in \('RI_FKey_check_ins', 'RI_FKey_check_upd'\)\)\n\s+or \(con\.confrelid = t\.tgrelid and p\.proname in \('RI_FKey_noaction_del', 'RI_FKey_noaction_upd'\)\)\)\);/,
+    'and every INTERNAL trigger there is one of its table\'s FK checks, so a trigger marked internal in pg_catalog is named (A1-OT-1)');
+  assert.ok(m.PINNED_TABLE_TRIGGERS['app.approval_requests'].includes('CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()'),
+    'the table whose decision time is the database\'s is still pinned');
+  assert.deepEqual(m.PINNED_TABLE_TRIGGERS['app.workspaces'], ['CREATE TRIGGER set_updated_at BEFORE UPDATE ON app.workspaces FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()'],
+    'app.workspaces carries set_updated_at and nothing else: no trigger writes lifecycle_state');
+  assert.deepEqual(m.PINNED_TRIGGER_FUNCTIONS.map(([f]) => f), ['private.refuse_mutation()', 'private.set_decided_at()', 'private.set_deleted_at()', 'private.set_updated_at()'],
+    'the four functions the 51 triggers run, each pinned');
+  for (const [f, security, digest, owner] of m.PINNED_TRIGGER_FUNCTIONS.filter(([, s]) => s === 'definer')) {
+    assert.deepEqual([f, owner, digest], m.SECURITY_DEFINER_FUNCTIONS.find(([g]) => g === f), `${f}: its definer pin is the security definer probe's, one text`);
+  }
+  // The pinned list, re-derived from the migration text: every `create trigger <name> ... on <table>` in app or
+  // private, by (table, name), is exactly the pinned set, so a trigger a migration adds without its pin fails
+  // here before a database (and the probe names it at migrate-clean).
+  {
+    const fromText = new Set();
+    for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
+      const code = (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '');
+      for (const t of code.matchAll(/create\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+(\w+)\s+(?:before|after|instead\s+of)[^;]*?\bon\s+((?:app|private)\.\w+)/gi)) fromText.add(`${t[2]}:${t[1]}`);
+    }
+    const pinned = Object.entries(m.PINNED_TABLE_TRIGGERS).flatMap(([t, defs]) => defs.map((d) => `${t}:${d.split(' ')[2]}`));
+    assert.deepEqual([...fromText].sort(), [...pinned].sort(), 'the triggers the migrations create are exactly the pinned ones, by table and name');
+    assert.equal(pinned.length, 51, 'fifty-one, measured on the clean set through 170');
+    for (const [t, defs] of Object.entries(m.PINNED_TABLE_TRIGGERS)) {
+      for (const d of defs) assert.match(d, new RegExp(`^CREATE TRIGGER \\w+ (?:BEFORE|AFTER) [A-Z ]+ ON ${t.replace('.', '\\.')} FOR EACH (?:ROW|STATEMENT) EXECUTE FUNCTION private\\.\\w+\\(\\)$`), `${t}: a pg_get_triggerdef text`);
+    }
+  }
   // The grant probe is an ALLOWLIST read from the catalog (C0 H1, A1 R3 on 091's third round): every
   // non-superuser role, every table privilege MAINTAIN included on 17+, every column privilege, each
   // compared both ways against the pinned set.
@@ -3078,7 +3174,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'its second rule: the owner the role set leaves out is a superuser, stated rather than assumed (C0 F5 on 126)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /where pg_catalog\.has_column_privilege\(roles\.r, cols\.rel, cols\.attnum, p\.p \|\| go\.opt\)\n\s+and not pg_catalog\.has_table_privilege\(roles\.r, cols\.rel, p\.p \|\| go\.opt\)\n\s+\), pinned as/,
     'a column privilege is read unless a table-level privilege, with the same grant option, already implies it (the table-level rule reads that one)');
-  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 2, 'an unlisted grant named at both levels');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'unlisted: ' \|\| f\.g/g) ?? []).length, 3, 'an unlisted grant named at both levels, and an unlisted schema privilege (rule 7, the owed-tooling batch)');
   // Batch 170's review round (A1 R1, R2; Q0 Q-1, Q-2, Q-5): the three premises of the reading are rules.
   assert.match(m.PINNED_GRANT_PROBE_SQL, /union all\n    select 'not a table: ' \|\| format\('%s\.%s \(relkind %s\)', n\.nspname, c\.relname, c\.relkind\)\n\s+from pg_catalog\.pg_class c join pg_catalog\.pg_namespace n on n\.oid = c\.relnamespace\n\s+where n\.nspname in \('app', 'private'\) and c\.relkind in \('v', 'm', 'f'\)\n  \) d;\n  if offending is not null then\n    raise exception 'app or private table\(s\) not exactly the pinned grant table list: %'/,
     'the first rule also names every view, materialized view and foreign table in app and private (A1 R2 d05b, d06; Q0 Q-2 T07)');
@@ -3087,12 +3183,37 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.match(m.PINNED_GRANT_PROBE_SQL, /with recursive reach\(member, roleid\) as \(\n\s+select r\.rolname::text, m\.roleid\n\s+from pg_catalog\.pg_roles r join pg_catalog\.pg_auth_members m on m\.member = r\.oid\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_'\n\s+union\n\s+select reach\.member, m\.roleid\n\s+from reach join pg_catalog\.pg_auth_members m on m\.member = reach\.roleid\n\s+\)[\s\S]*?where not \(x = any \(array\[\]::text\[\]\)\);\n  if offending is not null then\n    raise exception 'role membership\(s\) of a non-superuser role not pinned/,
     'every non-superuser, non-pg_* role\'s memberships, recursively and whatever the option, none pinned (A1 R1 d03, d04b; Q0 G17, Q-1)');
   assert.deepEqual(m.PINNED_ROLE_MEMBERSHIPS, [], 'no non-superuser role is a member of another, measured in batch 170\'s review round');
-  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 2, 'and a missing one');
+  // The owed-tooling batch (A1 S1, Q0 R-2, A1 S3 on batch 170-assert's re-check): the schemas' owner and every
+  // non-superuser role's USAGE and CREATE on them (rule 7), and every non-superuser role's attributes and every
+  // default privilege entry (rule 8).
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /from unnest\(array\['app', 'private'\]\) as s\(s\) left join pg_catalog\.pg_namespace n on n\.nspname = s\.s\n\s+where n\.oid is null or n\.nspowner <> \(select o\.oid from pg_catalog\.pg_roles o where o\.rolname = session_user\)/,
+    'rule 7: app and private exist and are owned by the migration owner (A1 S1: `alter schema private owner to app_command` passed every layer)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /unnest\(array\['USAGE', 'CREATE'\]\) as p\(p\),\n\s+\(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and pg_catalog\.has_schema_privilege\(r\.rolname, s\.s, p\.p \|\| go\.opt\)\) f/,
+    'rule 7: every non-superuser role\'s USAGE and CREATE on both, with and without grant option');
+  assert.deepEqual(m.PINNED_SCHEMA_PRIVILEGES, ['app_authz USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'], 'measured on the clean set through 170: USAGE on app for three roles, nothing on private, no CREATE');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /\(values \('rolbypassrls', r\.rolbypassrls\), \('rolcanlogin', r\.rolcanlogin\), \('rolcreatedb', r\.rolcreatedb\),\n\s+\('rolcreaterole', r\.rolcreaterole\), \('rolinherit', r\.rolinherit\), \('rolreplication', r\.rolreplication\)\) as a\(a, v\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and a\.v/,
+    'rule 8: the six attributes of every non-superuser, non-pg_* role, each pinned false (Q0 R-2, A1 S3: app_worker BYPASSRLS was held by rls-smoke alone)');
+  assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_default_acl d left join pg_catalog\.pg_namespace n on n\.oid = d\.defaclnamespace\n\s+\) d;\n  if offending is not null then\n    raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists/,
+    'rule 8: and no default privilege entry at all, whoever it grants to (A1 S3)');
+  assert.equal((m.PINNED_GRANT_PROBE_SQL.match(/'missing: ' \|\| p\.g/g) ?? []).length, 3, 'and a missing one, at both levels and on a schema');
   // EVERY TABLE AND EVERY ROLE, AS DATA (the batch 170 draft; plan (a)). The pinned list is the lint file,
   // one entry per table, and its tables are exactly the tables the migrations create in app and private.
   {
     const file = JSON.parse(await readFile(m.PINNED_GRANTS_FILE, 'utf8'));
     assert.deepEqual(m.PINNED_GRANTS, file.tables, 'the probe reads the lint file and nothing else');
+    // WHAT IT WAS MEASURED ON (the owed-tooling batch; C0-170-3, A1 F170-3, Q0-F5 on batch 170: the text said
+    // "through 140" after 150 and 170 had changed the grants). The generator now writes the last migration's
+    // name and the server version it read; both files carry exactly that text over the CURRENT last migration,
+    // so a batch that adds a migration without regenerating them fails here, by name.
+    const gen = await import('../../scripts/db/generate-pinned-grants.mjs');
+    const exceptionsFile = JSON.parse(await readFile(m.READ_ALLOWLIST_EXCEPTIONS_FILE, 'utf8'));
+    const last = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort().at(-1);
+    assert.equal(gen.lastMigration(), last, 'the generator names the last migration in the directory');
+    const version = file._how_measured.match(/, PostgreSQL (\d+\.\d+)\)/)?.[1];
+    assert.ok(version, 'and the server version it measured on');
+    assert.equal(file._how_measured, gen.grantsDoc(gen.measuredOn(last, version))._how_measured, `pinned-grants.json says it was measured through ${last}`);
+    assert.equal(exceptionsFile._how_measured, gen.exceptionsDoc(gen.measuredOn(last, version))._how_measured, `and so does the known-exceptions file`);
+    assert.doesNotMatch(await readFile('scripts/db/generate-pinned-grants.mjs', 'utf8'), /through 1[0-9]0\b/, 'the generator carries no migration number of its own');
     const created = new Set();
     for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
       for (const t of (await readFile(`db/foundation/migrations/${name}`, 'utf8')).matchAll(/^create table if not exists ((?:app|private)\.[a-z_]+)/gm)) created.add(t[1]);
@@ -3328,8 +3449,77 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.deepEqual(m170code.replace(m170do[0], '').split(';').map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).slice(0, 3).join(' ')),
       ['revoke update (lifecycle_state)', 'comment on column'], 'and outside it only the revoke and the column comment, in that order');
     assert.match(m170code, /^comment on column app\.workspaces\.lifecycle_state is(\s+'(?:[^']|'')*')+;$/m, 'the comment statement is string literals and nothing else');
-    assert.doesNotMatch(m170do[0].replace(/'(?:[^']|'')*'/g, "''"), /\b(create|alter|drop|grant|revoke|truncate|execute|copy|insert|update|delete|merge|comment|call|perform|set|reset)\b/i,
-      'and the do-block, literals blanked, runs no DDL, DML, dynamic SQL or setting');
+    // The owed-tooling batch (C0-170R-1, A1 R-1, Q0R-F1 on 170's re-check): that was a keyword DENYLIST, and a
+    // side-effecting call inside `select ... into offending` -- set_config, or any function -- passed it. The
+    // do-block is now held to an ALLOWLIST of 170's own shapes, literals blanked: `declare offending text;
+    // begin ... end $$;` around statements each of which is `select string_agg(...) into offending from ...`,
+    // `if ... then raise exception '', ...` or `end if`; every call one of six catalog-reading functions; every
+    // FROM source pg_catalog.pg_attribute or unnest(...). Each shape is shown to refuse its drift below. Since
+    // the review round no double-quoted identifier and no block comment either, so "every call" means every call
+    // however it is spelled; a call whose name is COMPUTED (an EXECUTE, refused by shape) is the only kind not read.
+    const doBlockShapeProblems = (block) => {
+      const blank = block.replace(/'(?:[^']|'')*'/g, "''");
+      const body = blank.match(/^do \$\$\ndeclare\n {2}offending text;\nbegin\n([\s\S]*)\nend \$\$;$/);
+      if (!body) return ['not `do $$ declare offending text; begin ... end $$;`'];
+      const problems = [];
+      // The owed-tooling batch's review round (C0-OT-1, A1-OT-2, Q0-OT-1): the scans below read bare names, so a
+      // double-quoted identifier (`"set_config"(`, `pg_catalog."set_config"(`, `from "app"."jobs"`) or a block
+      // comment between a name and its `(` or after FROM (`set_config/**/(`) passed every one of them, and
+      // PostgreSQL 17.11 executes each. 170's block, literals blanked and line comments stripped, holds neither,
+      // so either one is refused outright rather than read past.
+      if (body[1].includes('"')) problems.push('a double-quoted identifier, which the name scans do not read');
+      if (body[1].includes('/*')) problems.push('a block comment, which the name scans do not read past');
+      const SHAPES = [/^select string_agg\(.*\) into offending from (?:pg_catalog\.pg_attribute a|unnest\(array\[[^\]]*\]\) as cr\(r\), unnest\(array\[[^\]]*\]\) as p\(p\)) where .+$/,
+        /^if .+ then raise exception '', .+$/, /^end if$/];
+      for (const stmt of body[1].split(';').map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean)) {
+        if (!SHAPES.some((r) => r.test(stmt))) problems.push(`statement of no allowed shape: ${stmt.slice(0, 40)}`);
+      }
+      const CALLS = ['string_agg', 'format', 'unnest', 'coalesce', 'pg_catalog.has_column_privilege', 'pg_catalog.has_table_privilege'];
+      const KEYWORDS = ['and', 'or', 'not', 'in', 'any', 'all', 'exists', 'then'];
+      for (const c of body[1].matchAll(/(\bas\s+)?\b([a-z_][a-z0-9_$]*(?:\s*\.\s*[a-z_][a-z0-9_$]*)*)\s*\(/gi)) {
+        const name = c[2].replace(/\s+/g, '').toLowerCase();
+        if (!c[1] && !CALLS.includes(name) && !KEYWORDS.includes(name)) problems.push(`call outside the allowlist: ${name}`);
+      }
+      for (const f of body[1].matchAll(/\bfrom\s+([a-z_][\w.]*)/gi)) {
+        if (!['pg_catalog.pg_attribute', 'unnest'].includes(f[1].toLowerCase())) problems.push(`FROM source outside the allowlist: ${f[1]}`);
+      }
+      if (/\bjoin\b/i.test(body[1])) problems.push('a JOIN, a source outside the allowlist');
+      for (const r of body[1].matchAll(/\b([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\b(?!\s*\()/gi)) {
+        if (!['cr', 'p', 'a'].includes(r[1].toLowerCase()) && `${r[1]}.${r[2]}`.toLowerCase() !== 'pg_catalog.pg_attribute') problems.push(`relation outside the allowlist: ${r[1]}.${r[2]}`);
+      }
+      return problems;
+    };
+    assert.deepEqual(doBlockShapeProblems(m170do[0]), [], '170\'s do-block is of the allowed shapes, calls and sources only');
+    const before = (extra) => m170do[0].replace(/\nend \$\$;$/, () => `\n${extra}\nend $$;`);
+    for (const [extra, problem] of [
+      ["  select pg_catalog.set_config('role', 'app_worker', false) into offending;", /statement of no allowed shape|call outside the allowlist: pg_catalog\.set_config/],
+      ["  select string_agg(x, ', ') into offending from (select app.jwt_subject()::text as x) s;", /call outside the allowlist: app\.jwt_subject/],
+      ["  select string_agg(w.name, ', ') into offending from app.workspaces w;", /FROM source outside the allowlist: app\.workspaces/],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from app.jobs);", /FROM source outside the allowlist: app\.jobs/],
+      ["  select string_agg(format('%s %s', cr.r, p.p), ', ') into offending from unnest(array['anon']) as cr(r), unnest(array['UPDATE']) as p(p), private.meta_credential_references where true;", /statement of no allowed shape|relation outside the allowlist: private\.meta_credential_references/],
+      ['  perform pg_catalog.pg_sleep(0);', /statement of no allowed shape: perform/],
+      ['  if true then update app.workspaces set name = name; end if;', /statement of no allowed shape/],
+      ["  if offending is null then raise exception 'x: %', pg_catalog.set_config('role', 'anon', false); end if;", /call outside the allowlist: pg_catalog\.set_config/],
+      ["  execute 'select 1';", /statement of no allowed shape: execute/],
+      // The review round's spellings (C0 M-C1, A1 §3.1, Q0 Q1a/Q1b), each in an allowed statement shape.
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where \"set_config\"('role', 'app_worker', false) is not null;", /a double-quoted identifier/],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where pg_catalog.\"set_config\"('role', 'app_worker', false) is not null;", /a double-quoted identifier/],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where set_config/**/('role', 'app_worker', false) is not null;", /a block comment/],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from \"app\".\"workspaces\" for update);", /a double-quoted identifier/],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from/**/app/**/./**/jobs);", /a block comment/],
+    ]) {
+      assert.match(doBlockShapeProblems(before(extra)).join('; '), problem, `the allowlist refuses: ${extra.trim()}`);
+    }
+    // EACH OF THE JOIN AND RELATION RULES REFUSES A DRIFT NO OTHER RULE DOES (Q0-OT-1: removing either left every
+    // test green). An unqualified relation reached through a JOIN, which the FROM and relation scans do not read;
+    // and a qualified relation after a comma in a subquery's FROM list, which the FROM scan (first source only)
+    // does not read. Each drift draws exactly one problem, so each rule is shown to be the one that refuses it.
+    for (const [extra, only] of [
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from pg_catalog.pg_attribute b join jobs on true);", 'a JOIN, a source outside the allowlist'],
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from pg_catalog.pg_attribute b, app.jobs);", 'relation outside the allowlist: app.jobs'],
+    ]) {
+      assert.deepEqual(doBlockShapeProblems(before(extra)), [only], `exactly one rule refuses: ${extra.trim()}`);
+    }
     assert.match(m170code, /pg_catalog\.has_column_privilege\(cr\.r, 'app\.workspaces', 'lifecycle_state', p\.p\)/, 'its block reads every client role against the column');
     assert.match(m170code, /unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\),\s+unnest\(array\['UPDATE', 'INSERT', 'UPDATE WITH GRANT OPTION', 'INSERT WITH GRANT OPTION'\]\) as p\(p\)/, 'for UPDATE and INSERT, with and without grant option');
     assert.match(m170code, /if offending is distinct from 'name, updated_by'/, 'and holds the owner\'s other UPDATE columns to name and updated_by');
@@ -3424,8 +3614,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     // carries an index with its predicate column behind such a column); a column the USING deparse qualifies by
     // its own table counts (C9; drift 1's probe_ic_q); rule 2 reads only valid btree indexes (C10, which an
     // ordinary migration cannot drive, so it is held here), and compares the NULLS order (C0-1).
-    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where k\.ord <= coalesce\(\(select min\(v\.ord\) - 1 from unnest\(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) with ordinality as v\(k, ord\)\n\s+where not \(v\.k = any \(s\.cols\)\)\), i\.indnkeyatts\)\) as run/,
-      'rule 1: the run is the key columns up to the first one no policy reads (C8)');
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where k\.ord <= coalesce\(\(select min\(v\.ord\) - 1 from unnest\(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) with ordinality as v\(k, ord\)\n\s+where not \(v\.k = any \(s\.cols\)\) or \(\(i\.indcollation::pg_catalog\.oid\[\]\)\[v\.ord - 1\] is distinct from[\s\S]*?\), i\.indnkeyatts\)\) as run/,
+      'rule 1: the run is the key columns up to the first one no policy reads, or the first under another collation or operator class (C8; Q0 R-2 on 150-prereq)');
+    // The owed-tooling batch (Q0 R-2 on 150-prereq's re-check: (user_id, status COLLATE "C") passed every layer):
+    // a key column counts only under its column's own collation and its access method's default operator class,
+    // in rule 1's run (both copies of its CTE) and in rule 2's column text.
+    for (const alias of ['v', 'k']) {
+      const reads = new RegExp(`\\(\\(i\\.indcollation::pg_catalog\\.oid\\[\\]\\)\\[${alias}\\.ord - 1\\] is distinct from \\(select ca\\.attcollation from pg_catalog\\.pg_attribute ca where ca\\.attrelid = i\\.indrelid and ca\\.attnum = ${alias}\\.k\\)\\n\\s+or not coalesce\\(\\(select oc\\.opcdefault from pg_catalog\\.pg_opclass oc where oc\\.oid = \\(i\\.indclass::pg_catalog\\.oid\\[\\]\\)\\[${alias}\\.ord - 1\\]\\), false\\)\\)`, 'g');
+      assert.equal((m.INDEX_COVERAGE_PROBE_SQL.match(reads) ?? []).length, alias === 'v' ? 2 : 1, `the key's collation and operator class read through ${alias} (${alias === 'v' ? 'rule 1 and the exemption rule, one copy of the CTE each' : 'rule 2'})`);
+    }
+    assert.match(m.INDEX_COVERAGE_PROBE_SQL, /\|\| case when \(\(i\.indcollation[\s\S]*?then ' \(non-default collation or operator class\)' else '' end end order by k\.ord\)/,
+      'rule 2 marks a key under another collation or operator class, so it never equals the lookup\'s column');
     assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where pol\.using_text ~ \('\(\^\|\[\^\.a-z0-9_\]\)' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n\s+or pol\.using_text ~ \('\[\[:<:\]\]' \|\| c\.relname \|\| '\[\.\]' \|\| a\.attname \|\| '\[\[:>:\]\]'\)\n/,
       'rule 1: a column named unqualified, or qualified by its own table (C9)');
     assert.match(m.INDEX_COVERAGE_PROBE_SQL, /where i\.indisvalid and am\.amname = 'btree' and n\.nspname in \('app', 'private'\)\n/, 'rule 2 reads valid btree indexes only (C10; C0-1)');
@@ -3804,6 +4003,31 @@ const WP_FILE = 'work-packages/WP-0A-DB-00.json';
 const AUDIT_TABLE_REF = String.raw`(?:"?app"?\s*\.\s*)?"?(?:audit_logs|security_events)"?(?![\w"])`;
 const AUDIT_TABLE_POLICY = new RegExp(String.raw`create\s+policy[^;]*\bon\s+(?:only\s+)?${AUDIT_TABLE_REF}`, 'i');
 const AUDIT_TABLE_ALTER = new RegExp(String.raw`alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?${AUDIT_TABLE_REF}`, 'i');
+// A migration's text with its comments made whitespace, for the later-migration tripwires (the owed-tooling batch's
+// review round; A1-OT-3, Q0-OT-8: the scans stripped `--` comments only, so `grant insert on /* x */ app.audit_logs`
+// and `alter table /* x */ app.audit_logs ...` passed them). Line comments and NESTED block comments, outside
+// single-quoted literals and double-quoted identifiers, each become one space; nothing else changes.
+const sqlWithoutComments = (text) => {
+  let out = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '-' && text[i + 1] === '-') { while (i < text.length && text[i] !== '\n') i += 1; out += ' '; i -= 1; continue; }
+    if (ch === '/' && text[i + 1] === '*') {
+      let nest = 1; i += 2;
+      while (i < text.length && nest > 0) {
+        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; } else if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; } else i += 1;
+      }
+      out += ' '; i -= 1; continue;
+    }
+    if (ch === "'" || ch === '"') {
+      let j = i + 1;
+      while (j < text.length && !(text[j] === ch && text[j + 1] !== ch)) j += text[j] === ch ? 2 : 1;
+      out += text.slice(i, j + 1); i = j; continue;
+    }
+    out += ch;
+  }
+  return out;
+};
 
 // The body of one `create table` in 140, read from the file with line comments stripped: its
 // columns (name, type, not null) and its constraint text.
@@ -3838,7 +4062,15 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
     assert.match(row.cell, /^§8\.4 Audit\/security INSERT \| N \| N \| N \| N \| N \| S\b/,
       `app.${table}: the cell is quoted from §8.4's row`);
     assert.match(row.why, /Q141-a/, `app.${table}: the row says the producer is undecided rather than implying one`);
+    // The owed-tooling batch (Q0 R4 on 141-prep's re-check, A1 R1's sentence: dropping it passed every test).
+    assert.match(row.why, /RE-CONFIRMED WHEN Q141-a IS ANSWERED/, `app.${table}: the CARRIED row is re-confirmed when Q141-a is answered`);
+    assert.match(row.why, /open_blockers\[32\]/, `app.${table}: and owes the scope-path check open_blockers[32] assigns to the producer`);
   }
+  // _shape.batch's reading (the owed-tooling batch; Q0 R3 on 141-prep's re-check, C0 G4's change: restoring the
+  // old "the migration batch that classified it" alone passed every test). Held with its blocker, [191] (8).
+  assert.match(map._shape.batch, /where a cell was classified with no migration \(the two §8\.4 rows, batch 141 prep\), the migration batch that owns the cell in RFC-2026-022 §3's table and §6's registry/,
+    '_shape.batch names the owning batch where no migration classified the cell');
+  assert.match(map._shape.batch, /open_blockers\[191\] \(8\)$/, 'and cites the blocker that owes the reading to A1');
   // NO POLICY AT ALL on either table, which is stronger than "no service policy" and true today:
   // RFC-2026-022 is approved and NOT IN EFFECT, and 140 writes no client policy either.
   const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
@@ -3849,7 +4081,7 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
   // catalog is what decides, and 140's own block refuses only a service or anonymous role's policy, so a
   // catalog assertion for every role is owed with batch 141's migration (open_blockers[191] (9)).
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(/--[^\n]*/g, '');
+    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
     assert.doesNotMatch(text, AUDIT_TABLE_POLICY,
       `${later} writes a policy on an audit table while RFC-2026-022 is not in effect and Q141-a is open`);
   }
@@ -3889,7 +4121,13 @@ test('batch 141 prep: the audit coverage map names real tables, real §8 rows, l
   assert.ok(section8.length > 1000 && section8.includes('| Audit/security INSERT |'), "the ERD's §8 slice was read");
   // A CLOSED KEY SET per row (batch 141 prep review, Q0-F4): `_shape`'s keys and the three notes it
   // declares, so a row cannot grow a `producer` -- which would be Q141-a decided in a lint file.
-  const rowKeys = new Set([...Object.keys(map._shape), 'tables_note', 'category_note', 'section8_note']);
+  // The owed-tooling batch (Q0 R1 on 141-prep's re-check, N07: `producer` added to `_shape` and to a row in one
+  // file passed, because the set was read from `_shape` itself). The nine keys are a literal here, `_shape`
+  // must be exactly them, and the map's own top-level keys are closed too.
+  const SHAPE_KEYS = ['id', 'action', 'source', 'category', 'tables', 'producer_path', 'producer_decision', 'section8_cell', 'blockers'];
+  assert.deepEqual(Object.keys(map._shape), SHAPE_KEYS, "_shape declares exactly the nine row keys, in order");
+  assert.deepEqual(Object.keys(map), ['_what', '_written_by', '_sources', '_shape', '_undecided', 'actions'], 'and the map has no field beyond its six');
+  const rowKeys = new Set([...SHAPE_KEYS, 'tables_note', 'category_note', 'section8_note']);
   const ids = map.actions.map((a) => a.id);
   assert.equal(new Set(ids).size, ids.length, 'every action id is unique');
   for (const a of map.actions) {
@@ -3926,6 +4164,25 @@ test('batch 141 prep: the audit coverage map names real tables, real §8 rows, l
         `${a.id}: open_blockers[${b.index}] is not on ${WP_FILE}:${b.line}`);
     }
   }
+  // A `source` that cites a blocker quotes it too (the owed-tooling batch; plan D3 and C0-7 on the RFC batch:
+  // two prose `(line N)` numbers here were pinned by no test, and one had gone stale when 170 moved every
+  // blocker up a line). No `(line N)`; each `open_blockers[i]` carries `("<quote>")` that blocker i says.
+  const sourceProblems = (actions) => actions.flatMap((a) => {
+    const out = /\(line \d+\)/.test(a.source ?? '') ? [`${a.id}: a line number in its source`] : [];
+    for (const c of (a.source ?? '').matchAll(/open_blockers\[(\d+)\]( \("((?:[^"\\]|\\.)+)"\))?/g)) {
+      if (!c[2]) out.push(`${a.id}: open_blockers[${c[1]}] carries no quote`);
+      else if (!blockers[Number(c[1])]?.includes(c[3])) out.push(`${a.id}: open_blockers[${c[1]}] does not say "${c[3]}"`);
+      else if (blockers.filter((b) => b.includes(c[3])).length !== 1) out.push(`${a.id}: "${c[3]}" is said by more than one blocker`);
+    }
+    return out;
+  });
+  assert.deepEqual(sourceProblems(map.actions), [], 'every blocker a source cites still says its quote');
+  assert.equal(map.actions.filter((a) => /open_blockers\[\d+\] \("/.test(a.source ?? '')).length, 2, 'the two sources that cite a blocker (rights change, schedule history)');
+  const drifted = JSON.parse(JSON.stringify(map.actions));
+  drifted.find((a) => a.id === 'owed.asset_rights_change').source = 'WP-0A-DB-00 open_blockers[157] ("Owed to the command surface, to A1 Security/Audit and to batch 141")';
+  drifted.find((a) => a.id === 'owed.schedule_transition_history').source = 'WP-0A-DB-00 open_blockers[190] (line 445), item (f)';
+  assert.deepEqual(sourceProblems(drifted), ['owed.asset_rights_change: open_blockers[157] does not say "Owed to the command surface, to A1 Security/Audit and to batch 141"',
+    'owed.schedule_transition_history: a line number in its source', 'owed.schedule_transition_history: open_blockers[190] carries no quote'], 'and a moved citation or a line number fails');
 
   // SEC-009's six action classes, read from the document rather than typed here, each have a row.
   const sec009 = (await readFile(SEC_DOC, 'utf8')).split('\n').find((l) => l.startsWith('| SEC-009 |'));
@@ -4094,7 +4351,7 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
   // forward fix to this family arrives with its own conformance update; this makes that a failure here
   // rather than an omission. Like the policy scan above, a tripwire and not the catalog.
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(/--[^\n]*/g, '');
+    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
     assert.doesNotMatch(text, AUDIT_TABLE_ALTER,
       `${later} alters an audit table: update store-conformance.json and this test with it`);
   }
@@ -4102,7 +4359,68 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
     'alter table audit_logs add column y bigint']) {
     assert.match(spelling, AUDIT_TABLE_ALTER, `the later-migration ALTER scan misses: ${spelling}`);
   }
+  // AND EVERY OTHER WAY A LATER MIGRATION CHANGES WHO CAN WRITE OR WHAT IS STORED (the owed-tooling batch; Q0 R2,
+  // C0 N3, A1 N2 and N3 on 141-prep's re-check: a later GRANT, CREATE TRIGGER, ALTER POLICY or a drop-and-recreate
+  // of either table passed the two scans above and was caught only because any new migration fails the
+  // generic not-applied snapshot test, which sees THAT a file was added, not what it writes). Still a tripwire,
+  // a text scan of the spellings pinned below and no more: a dynamic EXECUTE, a statement on another relation
+  // that reaches these (a function a trigger runs, rewritten -- the pinned trigger probe holds that body), and
+  // any spelling not pinned here are not read; the live probes (pinned grant, trigger, pinned trigger, rewrite
+  // rule) hold the catalog, and the catalog assertion for every role is owed with batch 141's migration
+  // (open_blockers[191] (9)). Since the review round (A1-OT-3) comments are read as whitespace, and CREATE RULE
+  // and a rename onto either name are read too.
+  for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
+    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    for (const [what, pattern] of AUDIT_TABLE_TOUCH) assert.doesNotMatch(text, pattern, `${later}: ${what} on an audit table`);
+  }
+  for (const [spelling, what] of [
+    ['grant insert on app.audit_logs to authenticated', 'a GRANT or REVOKE'], ['GRANT SELECT ON TABLE "app"."security_events" TO app_worker', 'a GRANT or REVOKE'],
+    ['grant select on app.jobs, app.audit_logs to app_command', 'a GRANT or REVOKE'], ['revoke all on audit_logs from app_worker', 'a GRANT or REVOKE'],
+    ['grant update on all tables in schema app to app_worker', 'a GRANT or REVOKE on every table in app'],
+    ['create trigger t before insert on app.audit_logs for each row execute function private.f()', 'a trigger'],
+    ['CREATE OR REPLACE TRIGGER t AFTER INSERT ON "app"."security_events" FOR EACH ROW EXECUTE FUNCTION f()', 'a trigger'],
+    ['drop trigger refuse_mutation on app.audit_logs', 'a trigger'], ['alter trigger refuse_truncate on app.security_events rename to x', 'a trigger'],
+    ['alter policy p on app.audit_logs using (true)', 'a policy changed or dropped'], ['drop policy if exists p on security_events', 'a policy changed or dropped'],
+    ['drop table app.audit_logs', 'a table dropped or created'], ['drop table if exists app.jobs, app.security_events cascade', 'a table dropped or created'],
+    ['create table app.audit_logs (id uuid primary key, details jsonb)', 'a table dropped or created'],
+    ['create unlogged table if not exists "app"."security_events" (id uuid)', 'a table dropped or created'],
+    // The review round (A1-OT-3, Q0-OT-8): comments between the words, a rewrite rule, and a rename onto the name.
+    ['grant insert on /* x */ app.audit_logs to authenticated', 'a GRANT or REVOKE'], ['grant insert on table/**/app.audit_logs to authenticated', 'a GRANT or REVOKE'],
+    ['create trigger t before insert on/* a /* nested */ b */app.audit_logs for each row execute function f()', 'a trigger'],
+    ['create /* c */ trigger t before insert on app.security_events for each row execute function f()', 'a trigger'],
+    ['drop policy p on /* c */ app.security_events', 'a policy changed or dropped'], ['drop /* c */ table app.audit_logs', 'a table dropped or created'],
+    ['create rule r as on insert to app.audit_logs do instead nothing', 'a rewrite rule'],
+    ['CREATE OR REPLACE RULE "r" AS ON UPDATE TO "app"."security_events" DO INSTEAD NOTHING', 'a rewrite rule'],
+    ['alter table app.audit_logs_new rename to audit_logs', 'a table renamed onto either name'],
+    ['ALTER TABLE IF EXISTS app.x RENAME TO "security_events"', 'a table renamed onto either name'],
+  ]) {
+    assert.ok(AUDIT_TABLE_TOUCH.some(([w, p]) => w === what && p.test(sqlWithoutComments(spelling))), `the later-migration scan reads ${what}: ${spelling}`);
+  }
+  assert.match(sqlWithoutComments('alter table /* x */ app.audit_logs disable trigger refuse_mutation'), AUDIT_TABLE_ALTER, 'the older ALTER scan reads past a comment too');
+  assert.match(sqlWithoutComments('create policy p on /* x */ app.audit_logs for insert'), AUDIT_TABLE_POLICY, 'and the older POLICY scan');
+  assert.equal(sqlWithoutComments("select '/* not a comment */', \"--x\" -- gone\n/* a /* b */ c */ from t"), "select '/* not a comment */', \"--x\"  \n  from t",
+    'a comment inside a literal or a quoted identifier is kept; a nested one is removed whole');
+  for (const other of ['grant select on app.audit_logs_archive to app_worker', 'create trigger t before insert on app.my_security_events for each row execute function f()',
+    'drop table app.audit_logs_old', 'revoke update (lifecycle_state) on app.workspaces from authenticated',
+    'create rule r as on insert to app.audit_logs_archive do instead nothing', 'alter table app.jobs rename to jobs_old', 'alter table app.audit_logs_old rename column x to audit_logs']) {
+    assert.ok(!AUDIT_TABLE_TOUCH.some(([, p]) => p.test(other)), `and names the two audit tables, not another: ${other}`);
+  }
 });
+
+// The later-migration scan's other spellings (the owed-tooling batch). Each table reference is bounded on both
+// sides, so a name that merely contains `audit_logs` is not read as it.
+const AUDIT_TABLE_REF_BOUNDED = String.raw`(?<![\w."])${AUDIT_TABLE_REF}`;
+const AUDIT_TABLE_TOUCH = [
+  ['a GRANT or REVOKE', new RegExp(String.raw`\b(?:grant|revoke)\b[^;]*\bon\s+(?:table\s+)?(?:[^;]*?,\s*)?${AUDIT_TABLE_REF_BOUNDED}`, 'i')],
+  ['a GRANT or REVOKE on every table in app', /\b(?:grant|revoke)\b[^;]*\bon\s+all\s+tables\s+in\s+schema\s+[^;]*(?<![\w"])"?app"?(?![\w"])/i],
+  ['a trigger', new RegExp(String.raw`\b(?:create\s+(?:or\s+replace\s+)?(?:constraint\s+)?|drop\s+|alter\s+)trigger\b[^;]*\bon\s+(?:only\s+)?${AUDIT_TABLE_REF_BOUNDED}`, 'i')],
+  ['a policy changed or dropped', new RegExp(String.raw`\b(?:alter|drop)\s+policy\b[^;]*\bon\s+(?:only\s+)?${AUDIT_TABLE_REF_BOUNDED}`, 'i')],
+  ['a table dropped or created', new RegExp(String.raw`\b(?:drop\s+table\b[^;]*|create\s+(?:(?:global\s+|local\s+)?(?:temp|temporary)\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?)${AUDIT_TABLE_REF_BOUNDED}`, 'i')],
+  // The review round (A1-OT-3): a rewrite rule on either table (DO INSTEAD NOTHING drops every audit write), and a
+  // table renamed onto either name (a create-then-rename swap; only the rename's target names the table).
+  ['a rewrite rule', new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?rule\b[^;]*\bon\s+(?:select|insert|update|delete)\s+to\s+${AUDIT_TABLE_REF_BOUNDED}`, 'i')],
+  ['a table renamed onto either name', /\balter\s+table\b[^;]*\brename\s+to\s+"?(?:audit_logs|security_events)"?(?![\w"])/i],
+];
 
 test('batch 141 prep: CTR-AUD-001 fixtures validate as declared, and every valid one fits the store', async () => {
   const { validate } = await import('../contracts/json-schema-subset.mjs');
@@ -4486,17 +4804,108 @@ test('the retention map has one row per table, every class is one §10 defines a
   for (const w of map.section10_classes_without_a_row) assert.ok(w.why.length > 10, `${w.class}: the absence has a reason`);
   for (const f of map.findings) assert.ok(f.what && f.source, `${f.id}: says what and where`);
 
-  // EVERY `WP:<line> (open_blockers[i])` CITATION IN THE MAP IS TRUE: line <line> of the manifest is that
-  // blocker (the review round, C0 G9: P10 survived; all were true, nothing kept them so).
-  const wpText = await readFile('work-packages/WP-0A-DB-00.json', 'utf8');
-  const wpLines = wpText.split('\n'); const blockers = JSON.parse(wpText).open_blockers;
-  const cites = [...JSON.stringify(map).matchAll(/WP:(\d+) \(open_blockers\[(\d+)\]\)/g)];
-  assert.ok(cites.length >= 16, `the map cites its blockers by line (measured 16 findings and three controls), got ${cites.length}`);
-  for (const [, n, i] of cites) {
-    assert.ok(blockers[Number(i)], `open_blockers[${i}] exists`);
-    assert.equal(wpLines[Number(n) - 1].trim().replace(/,$/, ''), JSON.stringify(blockers[Number(i)]), `WP:${n} is open_blockers[${i}]`);
-  }
+  // EVERY open_blockers[i] CITATION IN THE MAP CARRIES A QUOTE ITS BLOCKER STILL SAYS (the owed-tooling batch;
+  // Q0-F9 and C0-7 on the RFC batch, open_blockers[195] (6)). Until this batch a citation read
+  // `WP:<line> (open_blockers[i])` and the test checked that line <line> is blocker i, so a consistent move of
+  // line and index together to the WRONG blocker stayed green (Q0's Q2, measured exit 0), and every citation
+  // had to move whenever the manifest above the list grew a line. Now each reads `open_blockers[i] ("<quote>")`:
+  // no line number, and the quote -- the finding's own id where its blocker names it -- must be in blocker i.
+  const blockers = JSON.parse(await readFile('work-packages/WP-0A-DB-00.json', 'utf8')).open_blockers;
+  assert.deepEqual(retentionCitationProblems(map, blockers), [], 'every citation\'s blocker says its quote');
+  const cites = [...JSON.stringify(map).matchAll(/open_blockers\[\d+\]/g)];
+  assert.ok(cites.length >= 19, `the map cites its blockers (measured 17 findings and two controls), got ${cites.length}`);
+  // Its own drifts: a citation moved to the wrong blocker, a quote dropped, and a line number put back.
+  const moved = JSON.parse(JSON.stringify(map));
+  moved.findings[0].source = moved.findings[0].source.replace('open_blockers[4]', 'open_blockers[5]');
+  assert.match(retentionCitationProblems(moved, blockers).join('; '), /F160-01: open_blockers\[5\] does not say "DEFINES NO SUCH CLASS"/, 'a citation moved to the wrong blocker fails');
+  const bare = JSON.parse(JSON.stringify(map));
+  bare.controls_on_every_row[1].what = bare.controls_on_every_row[1].what.replace(/ \("no legal-hold table"\)/, '');
+  assert.match(retentionCitationProblems(bare, blockers).join('; '), /no-legal-hold-table: open_blockers\[120\] carries no quote/, 'a citation with no quote fails');
+  const lined = JSON.parse(JSON.stringify(map));
+  lined.findings[3].source = `${lined.findings[3].source}; WP:447`;
+  assert.match(retentionCitationProblems(lined, blockers).join('; '), /F160-04: a manifest line number/, 'a line-number citation fails');
+  // A QUOTE IS SAID BY ONE BLOCKER ONLY (the owed-tooling batch's review round; Q0-OT-4, C0-OT-4: three quotes were
+  // in two blockers each, and F160-04's citation moved from [192] to [91] with its quote stayed green). The three
+  // were lengthened to text their own blocker alone says; a short quote two blockers share fails, moved or not.
+  const shared = JSON.parse(JSON.stringify(map));
+  shared.findings[3].source = shared.findings[3].source.replace(/open_blockers\[192\] \("[^"]*"\)/, 'open_blockers[91] ("F160-04")');
+  assert.match(retentionCitationProblems(shared, blockers).join('; '), /F160-04: "F160-04" is said by more than one blocker/, 'Q0\'s Q4: the citation moved to the other carrier fails');
+
+  // THE RECORDS THE REVIEW ROUND WROTE ARE HELD (the owed-tooling batch; C0 R1 on 160-prep's re-check: the
+  // pairing was checked only IF present, so removing it from the invitations row, or the F160-17 finding
+  // whole, stayed green while open_blockers[192] (13) and the disposition still cited it). The finding set is
+  // exactly F160-01..F160-17, every F160 id blocker 192 names is one of them, and the also_claimed_by pairs
+  // are exactly the three the map records.
+  const ids = map.findings.map((f) => f.id);
+  assert.deepEqual(ids, Array.from({ length: 17 }, (_, k) => `F160-${String(k + 1).padStart(2, '0')}`), 'the findings are F160-01 to F160-17, in order');
+  for (const id of new Set(blockers[192].match(/F160-\d\d/g))) assert.ok(ids.includes(id), `${id}, which open_blockers[192] names, is a finding in the map`);
+  assert.deepEqual(Object.fromEntries(map.rows.filter((r) => r.also_claimed_by || r.also_claimed_finding).map((r) => [r.table, [r.also_claimed_by, r.also_claimed_finding]])), {
+    'app.content_versions': ['HISTORY', 'F160-16'],
+    'app.knowledge_item_versions': ['HISTORY', 'F160-16'],
+    'app.workspace_invitations': ['AUTH-HISTORY', 'F160-17'],
+  }, 'the three also_claimed_by pairs, F160-17 on the invitations row among them');
+  const f17 = map.findings.find((f) => f.id === 'F160-17');
+  assert.deepEqual([f17.class_as_written, f17.decision], ['TOKEN-SHORT', null], 'F160-17 is about §5\'s TOKEN-SHORT and decides nothing');
+  assert.match(f17.what, /AUTH-HISTORY's data column names "invitations history"/, 'and records the disagreement with §10 AUTH-HISTORY');
+  assert.equal(map.rows.find((r) => r.table === 'app.workspace_invitations').section10_class, 'TOKEN-SHORT', 'the map keeps §5\'s class on the row');
+  assert.match(blockers[192], /\(13\) F160-17: /, 'and blocker 192 (13) still holds it');
 });
+
+// §11.1's minimum export domains (ERD:546-555) by the §10 classes that hold them: settings (TENANT-LIFE and the
+// profile versions' HISTORY), members/roles/scopes (AUTH-HISTORY), knowledge and content with their versions,
+// variants, quality, approval, calendar and publish history (CONTENT-, APPROVAL-, SCHEDULE-, PUBLISH-HISTORY),
+// research citations and evidence (RESEARCH-RUN), asset metadata and originals (ASSET-ORIGINAL), usage and
+// billing (FINANCE-HISTORY) and the tenant-visible audit trail (AUDIT). The owed-tooling batch (C0 R2, Q0 R-5).
+const MINIMUM_DOMAIN_CLASSES = ['TENANT-LIFE', 'HISTORY', 'AUTH-HISTORY', 'CONTENT-HISTORY', 'APPROVAL-HISTORY', 'SCHEDULE-HISTORY',
+  'PUBLISH-HISTORY', 'RESEARCH-RUN', 'ASSET-ORIGINAL', 'FINANCE-HISTORY', 'AUDIT'];
+function exportLabelProblems(map, manifest, outsideWorkspace) {
+  const byTable = new Map(map.rows.map((r) => [r.table, r]));
+  const problems = [];
+  // Every omitted bucket, not `outside-minimum-domains` alone (the owed-tooling batch's review round; C0-OT-3:
+  // content_items moved into `internal-job` stayed green). A table of a minimum domain's class may be omitted only
+  // as `in-minimum-domain-projection-undecided` (its projection owed) or as `not-workspace-data`, whose membership
+  // is derived below from the purge order; in any other bucket it is named with the bucket.
+  for (const o of manifest.omitted.filter((b) => !['in-minimum-domain-projection-undecided', 'not-workspace-data'].includes(b.class))) {
+    for (const t of o.tables) {
+      const c = byTable.get(t)?.section10_class;
+      if (MINIMUM_DOMAIN_CLASSES.includes(c)) problems.push(`${t}: ${c} is a minimum export domain's class, labelled ${o.class === 'outside-minimum-domains' ? 'outside them' : `omitted as ${o.class}`}`);
+    }
+  }
+  const nwd = manifest.omitted.filter((o) => o.class === 'not-workspace-data').flatMap((o) => o.tables).sort();
+  const expected = outsideWorkspace.filter((t) => t !== 'app.user_profiles').sort();
+  if (JSON.stringify(nwd) !== JSON.stringify(expected)) problems.push(`not-workspace-data is not exactly the tables outside any workspace's purge: ${nwd.join(', ')}`);
+  return problems;
+}
+// Export is never allowed from a §5 cell carrying SECRET-4 or from a table with a token, secret, credential or
+// password column (A1 R1, R2; Q0 R-3 on 160-prep's re-check). A `*_redacted` flag names no material (audit_logs'
+// secret_redacted boolean says a value WAS redacted); measured, the material columns are credential_reference (x3)
+// and token_hash.
+const exportForbidden = (row, columns) => row.section5.sensitivity.split('/').includes('SECRET-4')
+  || [...columns].some((c) => /(^|_)(token|secret|credential|password)s?(_|$)/.test(c) && !/_redacted$/.test(c));
+function exportAllowedProblems(map, included, forbidden) {
+  const problems = [];
+  for (const t of forbidden) {
+    if (included.includes(t)) problems.push(`${t}: exported from a SECRET-4 cell or with token or credential columns`);
+    if ((map.rows.find((r) => r.table === t).section9_not_picked ?? []).some((n) => n.export_allowed === true)) problems.push(`${t}: export_allowed on a SECRET-4 cell or token-bearing table`);
+  }
+  return problems;
+}
+
+// The retention map's blocker citations: `open_blockers[i] ("<quote>")`, the quote in blocker i, and no
+// `WP:<line>` (the owed-tooling batch; Q0-F9, C0-7).
+function retentionCitationProblems(map, blockers) {
+  const problems = [];
+  const texts = [...map.controls_on_every_row.map((c) => [c.kind, c.what]), ...map.findings.map((f) => [f.id, f.source])];
+  for (const [where, text] of texts) {
+    if (/\bWP:\d/.test(text)) problems.push(`${where}: a manifest line number`);
+    for (const c of text.matchAll(/open_blockers\[(\d+)\]( \("((?:[^"\\]|\\.)+)"\))?/g)) {
+      if (!c[2]) { problems.push(`${where}: open_blockers[${c[1]}] carries no quote`); continue; }
+      if (!blockers[Number(c[1])]?.includes(c[3])) problems.push(`${where}: open_blockers[${c[1]}] does not say "${c[3]}"`);
+      else if (blockers.filter((b) => b.includes(c[3])).length !== 1) problems.push(`${where}: "${c[3]}" is said by more than one blocker`);
+    }
+  }
+  return problems;
+}
 
 test('the §11.1 export manifest fixture never carries an excluded class, every table is in the retention map, and its checksums recompute', async () => {
   const { createHash } = await import('node:crypto');
@@ -4531,8 +4940,61 @@ test('the §11.1 export manifest fixture never carries an excluded class, every 
   for (const o of manifest.omitted) assert.ok(o.reason.length > 20 && o.tables.length, `${o.class}: omitted with a reason`);
   // A table whose class §11.1's minimum domains name -- publish history (ERD:552), usage and billing
   // (ERD:554) -- is never labelled as outside them (the review round, C0 G3: four were).
-  const outside = manifest.omitted.filter((o) => o.class === 'outside-minimum-domains').flatMap((o) => o.tables);
-  for (const t of outside) assert.ok(!['PUBLISH-HISTORY', 'FINANCE-HISTORY'].includes(byTable.get(t).section10_class), `${t} is in a minimum export domain, not outside them`);
+  // Since the owed-tooling batch every §11.1 domain, not today's two (C0 R2, Q0 R-5 on 160-prep's re-check: N10
+  // moved content_items to outside-minimum-domains and EX-14 moved publish_jobs to not-workspace-data, each
+  // green). The declared rule, as exportLabelProblems reads it: no table of a class a minimum domain names is
+  // labelled outside them, and not-workspace-data is exactly the tables the purge order holds as outside any
+  // workspace's purge, less user_profiles (its own user-scoped bucket).
+  const purgeOrder = JSON.parse(await readFile(PURGE_ORDER, 'utf8'));
+  const outsideWorkspace = purgeOrder.order.filter((o) => o.outside_workspace_purge).map((o) => o.table);
+  assert.deepEqual(exportLabelProblems(map, manifest, outsideWorkspace), [], 'every omitted bucket holds the declared rule: no minimum-domain table outside the two buckets that may hold one, and not-workspace-data derived');
+  const relabel = (from, to, table) => {
+    const copy = JSON.parse(JSON.stringify(manifest));
+    copy.omitted.find((o) => o.class === from).tables = copy.omitted.find((o) => o.class === from).tables.filter((t) => t !== table);
+    copy.files = copy.files.filter((f) => f.table !== table);
+    (copy.omitted.find((o) => o.class === to).tables).push(table);
+    return copy;
+  };
+  for (const [table, from, to, problem] of [
+    ['app.content_items', null, 'outside-minimum-domains', /app\.content_items: CONTENT-HISTORY is a minimum export domain's class/],
+    ['app.workspace_settings', null, 'outside-minimum-domains', /app\.workspace_settings: TENANT-LIFE is a minimum export domain's class/],
+    ['app.audit_logs', null, 'outside-minimum-domains', /app\.audit_logs: AUDIT is a minimum export domain's class/],
+    ['app.publish_jobs', 'in-minimum-domain-projection-undecided', 'not-workspace-data', /not-workspace-data is not exactly the tables outside any workspace's purge/],
+  ]) {
+    const copy = from ? relabel(from, to, table) : (() => { const c = JSON.parse(JSON.stringify(manifest)); c.files = c.files.filter((f) => f.table !== table); c.omitted.find((o) => o.class === to).tables.push(table); return c; })();
+    assert.match(exportLabelProblems(map, copy, outsideWorkspace).join('; '), problem, `${table} relabelled ${to} fails`);
+  }
+  // The review round (C0-OT-3, C0 M-C2): the same omission through another bucket. And Q0-OT-5: the eleven
+  // classes are a literal, each tied to the ERD §11.1 line that names its domain, and each class is held by a
+  // drift of its own -- one exported table of that class moved to outside-minimum-domains must fail by name -- so
+  // cutting a class from the list turns its drift green and this test red.
+  {
+    const c = JSON.parse(JSON.stringify(manifest));
+    c.files = c.files.filter((f) => f.table !== 'app.content_items');
+    c.omitted.find((o) => o.class === 'internal-job').tables.push('app.content_items');
+    assert.match(exportLabelProblems(map, c, outsideWorkspace).join('; '), /app\.content_items: CONTENT-HISTORY is a minimum export domain's class, labelled omitted as internal-job/,
+      'a minimum-domain table omitted as an internal job fails (M-C2)');
+  }
+  const erd = (await readFile(ERD_DOC, 'utf8')).split('\n');
+  const DOMAIN_LINES = {
+    'TENANT-LIFE': [548, 'Workspace/business/page settings'], HISTORY: [548, 'Workspace/business/page settings'],
+    'AUTH-HISTORY': [549, 'Members/roles/scopes'], 'CONTENT-HISTORY': [552, 'Content/version/variant/quality'],
+    'APPROVAL-HISTORY': [552, 'approval'], 'SCHEDULE-HISTORY': [552, 'calendar'], 'PUBLISH-HISTORY': [552, 'publish history'],
+    'RESEARCH-RUN': [551, 'Research citation/evidence metadata'], 'ASSET-ORIGINAL': [553, 'Asset metadata/rights + originals'],
+    'FINANCE-HISTORY': [554, 'Usage/billing invoices'], AUDIT: [555, 'Tenant-visible audit trail'],
+  };
+  assert.deepEqual(MINIMUM_DOMAIN_CLASSES, Object.keys(DOMAIN_LINES), 'the eleven minimum-domain classes, a literal (Q0-OT-5)');
+  assert.equal(erd[545], 'Minimum export domains:', 'ERD:546 still opens the §11.1 minimum domain list');
+  for (const [cls, [line, words]] of Object.entries(DOMAIN_LINES)) {
+    assert.ok(erd[line - 1].startsWith('- ') && erd[line - 1].includes(words), `${cls}: ERD:${line} names its domain ("${words}")`);
+    const table = included.find((t) => byTable.get(t).section10_class === cls);
+    assert.ok(table, `${cls}: at least one exported table carries the class`);
+    const c = JSON.parse(JSON.stringify(manifest));
+    c.files = c.files.filter((f) => f.table !== table);
+    c.omitted.find((o) => o.class === 'outside-minimum-domains').tables.push(table);
+    assert.match(exportLabelProblems(map, c, outsideWorkspace).join('; '), new RegExp(`${table.replace('.', '\\.')}: ${cls} is a minimum export domain's class`),
+      `${cls}: ${table} labelled outside the minimum domains fails`);
+  }
 
   // §11.1/5's EXCLUSIONS, each by a property of the map rather than by the fixture's own list, and each
   // matching at least one table so the rule cannot pass by matching nothing.
@@ -4560,6 +5022,25 @@ test('the §11.1 export manifest fixture never carries an excluded class, every 
   for (const t of ['private.ai_credential_references', 'private.meta_credential_references', 'private.push_subscription_references',
     'private.meta_webhook_inbox', 'app.billing_webhook_receipts', 'app.jobs', 'app.outbox_events', 'app.consumer_ledger',
     'app.security_events', 'app.research_snapshots']) assert.ok(omitted.includes(t), `${t} is omitted by name too`);
+  // EXPORT IS NEVER ALLOWED FROM A SECRET-4 CELL OR A TABLE HOLDING TOKEN OR CREDENTIAL MATERIAL, DERIVED AND
+  // PINNED (the owed-tooling batch; A1 R1, R2 and Q0 R-3 on 160-prep's re-check: writing export_allowed: true on
+  // meta_connections' SECRET-4 entry and exporting it stayed green, and workspace_invitations' token_hash was
+  // excluded only by the fixture's own list). The set is derived from §5's whole cell and from the column
+  // names the migrations create, and pinned by name, so a new member is a reviewed change to this list.
+  const files160 = await migrationText160();
+  const bodies = tableBodies160(files160);
+  const forbidden = map.rows.filter((r) => exportForbidden(r, columnsOf160(files160, bodies, r.table))).map((r) => r.table);
+  assert.deepEqual(forbidden, ['app.ai_model_policies', 'app.ai_models', 'app.meta_connections', 'app.notification_preferences', 'app.notifications',
+    'app.social_accounts', 'app.workspace_invitations', 'private.ai_credential_references', 'private.meta_credential_references',
+    'private.meta_webhook_inbox', 'private.push_subscription_references'], 'every SECRET-4-cell or token/credential-bearing table, derived, pinned');
+  assert.deepEqual(exportAllowedProblems(map, included, forbidden), [], 'none is exported, and none carries export_allowed');
+  assert.deepEqual(map.rows.filter((r) => (r.section9_not_picked ?? []).some((n) => n.export_allowed === true)).map((r) => r.table), ['app.audit_logs'],
+    'export_allowed is the audit trail\'s alone (A1 R2), a judgement recorded once');
+  const opened = JSON.parse(JSON.stringify(map));
+  opened.rows.find((r) => r.table === 'app.meta_connections').section9_not_picked[0].export_allowed = true;
+  assert.deepEqual(exportAllowedProblems(opened, [...included, 'app.meta_connections', 'app.workspace_invitations'], forbidden),
+    ['app.meta_connections: exported from a SECRET-4 cell or with token or credential columns', 'app.meta_connections: export_allowed on a SECRET-4 cell or token-bearing table',
+      'app.workspace_invitations: exported from a SECRET-4 cell or with token or credential columns'], 'Q0 EX-11 and A1 R1 each fail by name');
   assert.ok(!included.some((t) => t.startsWith('private.')), 'nothing in private is exported');
 });
 

@@ -21,14 +21,14 @@
     },
     {
       "kind": "no-legal-hold-table",
-      "what": "§10's precedence puts a hold first (ERD:516-526) and no hold table exists (WP:375 (open_blockers[120])).",
+      "what": "§10's precedence puts a hold first (ERD:516-526) and no hold table exists (open_blockers[120] (\"no legal-hold table\")).",
       "decisions": [
         "Q160-a"
       ]
     },
     {
       "kind": "no-deletion-manifest",
-      "what": "The immutable object-deletion manifest has no home or owner (WP:405 (open_blockers[150]); CONTRIBUTING_AGENTS.md:47).",
+      "what": "The immutable object-deletion manifest has no home or owner (open_blockers[150] (\"HAS NO HOME IN THIS REPOSITORY\"); CONTRIBUTING_AGENTS.md:47).",
       "decisions": [
         "Q160-d"
       ]
@@ -304,119 +304,119 @@
       "id": "F160-01",
       "class_as_written": "CONNECTION-HISTORY",
       "what": "§5 assigns connector.meta `CONNECTION-HISTORY`; §10 defines no such class.",
-      "source": "ERD:211; ERD:488-514; WP:259 (open_blockers[4])",
+      "source": "ERD:211; ERD:488-514; open_blockers[4] (\"DEFINES NO SUCH CLASS\")",
       "decision": "Q160-c"
     },
     {
       "id": "F160-02",
       "class_as_written": "CATALOG/HISTORY",
       "what": "§5 assigns industry.core `CATALOG/HISTORY`; §10 defines no `CATALOG`, and `HISTORY` (\"immutable ... versions\", \"อายุ Workspace + lineage\") cannot describe a global catalog row, nor a mutable business assignment.",
-      "source": "ERD:204; ERD:490; WP:332 (open_blockers[77])",
+      "source": "ERD:204; ERD:490; open_blockers[77] (\"§10 DEFINES NO `CATALOG` CLASS**. Its table has twenty-seven rows\")",
       "decision": "Q160-c"
     },
     {
       "id": "F160-03",
       "class_as_written": "NOTIFICATION-*",
       "what": "§5's glob `NOTIFICATION-*` does not reach §10's `PUSH-SECRET`, the class written for this table. The class is DEFINED in §10 (row 21); the finding is the assignment, not the definition.",
-      "source": "ERD:215; ERD:508; WP:346 (open_blockers[91])",
+      "source": "ERD:215; ERD:508; open_blockers[91] (\"DOES NOT REACH `PUSH-SECRET`\")",
       "decision": "Q160-c"
     },
     {
       "id": "F160-04",
       "class_as_written": "NOTIFICATION-*",
       "what": "The glob reaches only `NOTIFICATION-INBOX` (\"user notifications\", 180 days, purge), which does not describe a preference row; no §10 class does.",
-      "source": "ERD:215; ERD:507; WP:447 (open_blockers[192])",
+      "source": "ERD:215; ERD:507; open_blockers[192] (\"(1) F160-04: §5's NOTIFICATION-* reaches only NOTIFICATION-INBOX\")",
       "decision": null
     },
     {
       "id": "F160-05",
       "class_as_written": "JOB-SHORT/LEDGER",
       "what": "§10 defines no `LEDGER`; it defines `OUTBOX-SHORT` and `CONSUMER-LEDGER`, which §5 does not name. Batch 050 recorded it and encoded nothing.",
-      "source": "ERD:214; ERD:505-506; 050_async_kernel.sql:373-379; WP:447 (open_blockers[192])",
+      "source": "ERD:214; ERD:505-506; 050_async_kernel.sql:373-379; open_blockers[192] (\"F160-05\")",
       "decision": null
     },
     {
       "id": "F160-06",
       "class_as_written": "AI-RUN-*",
       "what": "The glob `AI-RUN-*` matches no §10 class literally (§10 has `AI-RUN` and `AI-RAW`), both describe runs, and no generation-run table exists; neither describes the global model registry, a workspace model policy or a credential reference.",
-      "source": "ERD:216; ERD:509-510; 060_ai_gateway.sql:162-170; WP:447 (open_blockers[192])",
+      "source": "ERD:216; ERD:509-510; 060_ai_gateway.sql:162-170; open_blockers[192] (\"F160-06\")",
       "decision": null
     },
     {
       "id": "F160-07",
       "class_as_written": "ASSET-*",
       "what": "The glob `ASSET-*` reaches `ASSET-ORIGINAL` and `ASSET-DERIVATIVE` only. Batch 100 reads it as also covering `RIGHTS-PROOF` and `UPLOAD-TEMP` (100_asset.sql:421-423), which the glob does not match; and no §10 class describes a content-asset link row.",
-      "source": "ERD:210; ERD:498-501; 100_asset.sql:421-423; WP:447 (open_blockers[192])",
+      "source": "ERD:210; ERD:498-501; 100_asset.sql:421-423; open_blockers[192] (\"F160-07\")",
       "decision": null
     },
     {
       "id": "F160-08",
       "class_as_written": "FINANCE-HISTORY",
       "what": "§5 puts billing.core under `FINANCE-HISTORY`, while §10's `WEBHOOK-SHORT` names the \"raw Meta/payment webhook inbox\" in its data column. Batch 131 read the receipt as WEBHOOK-SHORT; the two documents disagree about this table, and WEBHOOK-SHORT's two-speed behaviour degenerates because the receipt stores no payload.",
-      "source": "ERD:218; ERD:502; WP:360 (open_blockers[105])",
+      "source": "ERD:218; ERD:502; open_blockers[105] (\"BATCH 131 ENCODES NEITHER NUMBER\")",
       "decision": null
     },
     {
       "id": "F160-09",
       "class_as_written": null,
       "what": "app.workspaces carries lifecycle_state and no timestamp of entering a state, so the 30-day recovery window (DATA-DEC-04) has no column to measure from; updated_at moves on any update.",
-      "source": "010_identity.sql:156-157; ERD:571-600; WP:447 (open_blockers[192])",
+      "source": "010_identity.sql:156-157; ERD:571-600; open_blockers[192] (\"F160-09\")",
       "decision": "DATA-DEC-04"
     },
     {
       "id": "F160-10",
       "class_as_written": null,
       "what": "app.jobs has no terminal-state column or timestamp, so JOB-SHORT's \"30 วัน success; 90 วัน failed/DLQ\" split cannot be swept; there is no attempts or DLQ table.",
-      "source": "ERD:504; ERD:214; WP:447 (open_blockers[192])",
+      "source": "ERD:504; ERD:214; open_blockers[192] (\"F160-10\")",
       "decision": null
     },
     {
       "id": "F160-11",
       "class_as_written": null,
       "what": "SCHEDULE-HISTORY is \"12 เดือนหลัง final state\" and neither app.calendar_items nor app.content_schedules records when a final state was reached.",
-      "source": "ERD:497; 091_calendar.sql:59; WP:445 (open_blockers[190])",
+      "source": "ERD:497; 091_calendar.sql:59; open_blockers[190] (\"records WHEN its final state was reached\")",
       "decision": null
     },
     {
       "id": "F160-12",
       "class_as_written": null,
       "what": "RESEARCH-RUN is \"12 เดือนหลัง last use\" and app.research_runs has no last-use column (used_at is on suggestions only); completed_at is the nearest column and it is not indexed.",
-      "source": "ERD:493; 070_research.sql:478; WP:447 (open_blockers[192])",
+      "source": "ERD:493; 070_research.sql:478; open_blockers[192] (\"F160-12\")",
       "decision": null
     },
     {
       "id": "F160-13",
       "class_as_written": null,
       "what": "Sweep keys with no covering index, measured: see every row whose sweeps[].covered_by is empty (13 keys). Two more are covered only by a partial index whose predicate excludes the rows the sweep reads (sweeps[].partial_cover.verdict = F160-13): workspace_invitations.expires_at (pending only) and billing_webhook_receipts.received_at (unprocessed only). Fifteen in all.",
-      "source": "live catalog, this draft; WP:447 (open_blockers[192])",
+      "source": "live catalog, this draft; open_blockers[192] (\"F160-13\")",
       "decision": null
     },
     {
       "id": "F160-14",
       "class_as_written": null,
       "what": "Rows §10 retains hold foreign keys to rows §10 purges (see purge-order.json retention_conflicts); with every FK NO ACTION, the parent cannot be purged while the retained child exists. In particular app.workspaces cannot be hard-deleted while FINANCE-HISTORY rows reference it. Twelve is a LOWER BOUND: the rule needs a behaviour on both ends of a key, finding rows have none, and 21 non-self keys touch a finding row (measured); the count can grow when Q160-c is answered.",
-      "source": "live catalog FKs; ERD:589-600; WP:447 (open_blockers[192])",
+      "source": "live catalog FKs; ERD:589-600; open_blockers[192] (\"F160-14\")",
       "decision": "Q160-a"
     },
     {
       "id": "F160-15",
       "class_as_written": null,
       "what": "app.assets and app.asset_versions reference each other (assets_current_version_scope_fk and asset_versions_asset_scope_fk); the purge must null assets.current_version_id first, an UPDATE only app_worker holds a grant for and no policy admits.",
-      "source": "live catalog FKs; WP:447 (open_blockers[192])",
+      "source": "live catalog FKs; open_blockers[192] (\"(11) F160-15: the app.assets <-> app.asset_versions cycle\")",
       "decision": "Q160-d"
     },
     {
       "id": "F160-16",
       "class_as_written": "CONTENT-HISTORY",
       "what": "§10's `HISTORY` data column names knowledge and content versions, which §5 puts under `CONTENT-HISTORY`; both end in a purge, so the disagreement changes no behaviour today.",
-      "source": "ERD:490; ERD:495; ERD:205; ERD:207; WP:447 (open_blockers[192])",
+      "source": "ERD:490; ERD:495; ERD:205; ERD:207; open_blockers[192] (\"F160-16\")",
       "decision": null
     },
     {
       "id": "F160-17",
       "class_as_written": "TOKEN-SHORT",
       "what": "§5 gives app.workspace_invitations TOKEN-SHORT (purge), while §10 AUTH-HISTORY's data column names \"invitations history\" (anonymise actor fields, retain a security minimum). The two classes disagree on the final behaviour; the map keeps §5's TOKEN-SHORT and decides nothing, in particular not whether accepted invitations are AUTH-HISTORY.",
-      "source": "ERD:201; ERD:491; ERD:492; WP:447 (open_blockers[192])",
+      "source": "ERD:201; ERD:491; ERD:492; open_blockers[192] (\"F160-17\")",
       "decision": null
     }
   ],

@@ -223,14 +223,27 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // the guard's own count. 942 to 946 with batch 170's review round (A1 F170-2): 170's code held to exactly the
 // revoke, the column comment and one do-block that runs no statement of its own; no test added or renamed;
 // the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 946,
+// 946 to 1000 with the owed-tooling batch (2026-10-04, no migration): 170's do-block held to an allowlist with
+// its drifts, every trigger on app and private pinned and re-derived from the migration text, the pinned grant
+// probe's schema and role-attribute rules, the index coverage key's collation and operator class, the
+// generator's measured-on text, quoted blocker citations in the two maps, the export rules derived over every
+// §11.1 domain and the F160-17 record, the 141-prep pins and audit-table tripwire, the host guard's halves and
+// raw-query redaction, and COPY ... PROGRAM in the lexer; no test added or renamed, so the test floor and the
+// name digest stay; the guard's own count. 1000 to 1014 with that batch's review round: the do-block's quoted
+// and commented spellings and a drift each for its JOIN and relation rules, the internal-trigger rule's text,
+// the COPY-to-file and server-file lexer shapes, the authority redaction cases, every omitted export bucket and
+// the eleven classes tied to their ERD lines, one blocker per quote, and the tripwire's comment, rule and rename
+// spellings; no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1014,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
   // Batch 127: 2152 to 2166, the created_by-alone family hold, the guard's own count.
   // Batch 170: 2166 to 2167, batch 132's absence assertion turned into presence and emptiness of
   // read-allowlist.json, the line 132 said the landing batch would edit; the guard's own count.
-  'tests/db/identity/identity-isolation.test.mjs': 2167,
+  // The owed-tooling batch: 2167 to 2169, the view scan's own spellings (recursive and temporary views; A1 S2,
+  // Q0 R-5 on 170-assert's re-check), the guard's own count.
+  'tests/db/identity/identity-isolation.test.mjs': 2169,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 11,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 25,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 15,

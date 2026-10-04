@@ -86,10 +86,53 @@ export function redactConnection(text, url) {
     for (const part of [parsed.hostname, parsed.username, parsed.password, parsed.port, parsed.pathname.replace(/^\//, '')]) {
       if (part && part.length > 2) parts.add(part);
     }
-    // And every query parameter's value (A1 S6 on batch 150-prereq: a `?host=` value was printed).
-    for (const value of parsed.searchParams.values()) if (value && value.length > 2) parts.add(value);
+    // A bracketed IPv6 host is printed by psql without its brackets (Q0 G-2 on the guard fix: `::1`).
+    if (parsed.hostname.startsWith('[') && parsed.hostname.length > 4) parts.add(parsed.hostname.slice(1, -1));
   } catch { /* an unparseable URL still gets the scheme rule above */ }
-  for (const part of parts) {
+  // And every query parameter's value (A1 S6 on batch 150-prereq: a `?host=` value was printed), read from the
+  // RAW text after the first `?`, not from the WHATWG parser: Q0 G-2 on the guard fix measured
+  // `.../postgres#?host=q0-probe.invalid` at db-migrate-clean (a target the guard does not cover) printing the
+  // fragment-carried host unredacted, because a parser reads `#...` as a fragment. Split on `&` only, as
+  // testHostRefusal splits it (the owed-tooling batch's review round, A1-OT-4: a split on `#` too printed the
+  // tail of `?host=a1-tail#x.invalid`).
+  //
+  // AND THE AUTHORITY AND PATH FROM THE RAW TEXT AS WELL (A1-OT-4). The parser above keeps percent-encoding in
+  // the user, host and path of a non-special scheme, which psql prints decoded (`a1sec%72etuser` printed as
+  // `a1secretuser`), and it throws on a host list or an IPv6 zone id, after which no authority part was
+  // redacted at all. So the authority is also split by hand -- user and password before the last `@`, then
+  // every host of a `,` list with its brackets and `:port` taken off -- and the database is the path up to the
+  // first `?`; every part is redacted both as written and percent-decoded. This is not libpq's parser: it reads
+  // more pieces than libpq would connect by, never fewer, and a piece of two characters or less is left alone,
+  // as before.
+  const raw = String(url);
+  const add = (v) => {
+    if (!v) return;
+    let decoded = v;
+    try { decoded = decodeURIComponent(v); } catch { /* the undecoded text is redacted as written */ }
+    for (const x of [v, decoded]) if (x && x.length > 2) parts.add(x);
+  };
+  const rawQuery = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  for (const pair of rawQuery.split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq >= 0) add(pair.slice(eq + 1));
+  }
+  const auth = /^postgres(?:ql)?:\/\/([^/?]*)([^?]*)/i.exec(raw);
+  if (auth) {
+    const at = auth[1].lastIndexOf('@');
+    const userinfo = at >= 0 ? auth[1].slice(0, at) : '';
+    const colon = userinfo.indexOf(':');
+    add(colon >= 0 ? userinfo.slice(0, colon) : userinfo);
+    if (colon >= 0) add(userinfo.slice(colon + 1));
+    for (const hostport of auth[1].slice(at + 1).split(',')) {
+      const m = /^\[([^\]]*)\](?::(.*))?$/.exec(hostport) ?? /^([^:]*)(?::(.*))?$/.exec(hostport);
+      if (!m) { add(hostport); continue; }
+      add(m[1]);
+      add(m[2]);
+    }
+    add(auth[2].replace(/^\//, ''));
+  }
+  // Longest first, so a part that contains another is redacted whole rather than leaving its remainder.
+  for (const part of [...parts].sort((a, b) => b.length - a.length)) {
     out = out.split(part).join('[redacted]');
   }
   return out;
@@ -406,6 +449,22 @@ export async function feedTranscript(sql, options = {}) {
 //     lexer rule here, and is stated rather than doubled.
 // The claim is the shapes measured and this list, not "anywhere psql would execute one".
 export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
+export const COPY_PROGRAM = /\b(?:to|from)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+program\b/gi;
+// COPY ... TO/FROM '<server file>' and the server-file functions (the owed-tooling batch's review round; C0-OT-2,
+// Q0-OT-3): without PROGRAM, `copy (select ...) to '<path>'` still had the server write a file on the database
+// host as its own OS user, and a rollback does not remove it -- measured with every layer green. COPY with a
+// table name (optionally qualified, quoted, with a column list) or a parenthesised query, then TO or FROM, then a
+// quoted literal (a plain, E'' or U&'' one); STDIN and STDOUT stay admitted. And a CALL of a function that reads,
+// lists or writes a server file by path -- lo_import, lo_export, pg_read_file, pg_read_binary_file, pg_stat_file,
+// the pg_ls_*dir family and adminpack's pg_file_* -- quoted or not, whitespace or comments before its `(`; a
+// name after FUNCTION (a GRANT, ALTER or COMMENT ON FUNCTION, as the system object fingerprint probe's own drift
+// writes) is not a call and is admitted. Words computed at run time are not read: the limit stated above.
+const SQL_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)`;
+export const COPY_SERVER_FILE = new RegExp(String.raw`\bcopy(?:${SQL_GAP}+(?:binary${SQL_GAP}+)?[\w."$]+(?:${SQL_GAP}*\([^;)]*\))?|${SQL_GAP}*\([^;]*?\))${SQL_GAP}*\b(?:to|from)${SQL_GAP}+(?:[eE]?'|[uU]&')`, 'gi');
+export const SERVER_FILE_FUNCTIONS = ['lo_import', 'lo_export', 'pg_read_file', 'pg_read_binary_file', 'pg_stat_file', 'pg_ls_dir', 'pg_ls_logdir',
+  'pg_ls_waldir', 'pg_ls_tmpdir', 'pg_ls_archive_statusdir', 'pg_ls_logicalsnapdir', 'pg_ls_logicalmapdir', 'pg_ls_replslotdir',
+  'pg_file_write', 'pg_file_sync', 'pg_file_rename', 'pg_file_unlink'];
+export const SERVER_FILE_CALL = new RegExp(String.raw`(?<!\bfunction${SQL_GAP}+(?:"?pg_catalog"?${SQL_GAP}*\.${SQL_GAP}*)?)(?<![\w$"])"?(?:${SERVER_FILE_FUNCTIONS.join('|')})"?${SQL_GAP}*\(`, 'gi');
 // Every place a U& or E'' token opens, at top level and inside every literal and dollar body read again as
 // SQL (batch 128). Returns the offset in `text` of each, or of the outermost literal or body that holds it.
 export const ESCAPE_SPELLING_DEPTH = 8;
@@ -491,6 +550,23 @@ export function psqlLex(sql) {
     // initdb made and it REDEFINES in place (batch 129; C0 G1 on 128's re-check: OID readings miss that).
     for (const found of text.matchAll(/allow_system_table_mods/gi)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
+    }
+    // COPY ... TO PROGRAM / FROM PROGRAM (the owed-tooling batch; C0 G1 on batch 129's re-check): the server runs
+    // the command as its own OS user, so a migration, replacement, fixture, helper, probe or drift carrying one
+    // runs a shell command on the database host at migrate-clean or rls-smoke -- the server-side twin of `\!`,
+    // and no layer read it. Any mention of TO or FROM followed by PROGRAM, whitespace or comments between them,
+    // anywhere in the text (a literal or dollar body included, since EXECUTE runs a literal), as with
+    // client_encoding. None of the sources fed at this batch carries one (measured). Its U&/E'' spellings are
+    // refused below as escape spellings; a statement whose words are COMPUTED at run time is not read here,
+    // the limit stated for client_encoding above.
+    for (const found of text.matchAll(COPY_PROGRAM)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'COPY ... TO/FROM PROGRAM, which runs a shell command on the database server' });
+    }
+    for (const found of text.matchAll(COPY_SERVER_FILE)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'COPY ... TO/FROM a server file, which reads or writes a file on the database host' });
+    }
+    for (const found of text.matchAll(SERVER_FILE_CALL)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'a server-file function call, which reads, lists or writes a file on the database host' });
     }
     for (const found of escapeSpellings(text)) {
       metaCommands.push({ line: text.slice(0, found.at).split('\n').length,

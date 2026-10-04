@@ -127,7 +127,7 @@
     {
       "id": "owed.asset_rights_change",
       "action": "Change an asset's rights or sharing (asset design §6.2: \"Change rights/share | ... | Audit ทุกครั้ง\")",
-      "source": "WP-0A-DB-00 open_blockers[156] (line 412)",
+      "source": "WP-0A-DB-00 open_blockers[156] (\"Owed to the command surface, to A1 Security/Audit and to batch 141\")",
       "category": null,
       "category_note": "FINDING: none of SEC-009's six categories is a rights change, and CTR-AUD-001's action.category enum and 140's audit_logs_action_category_known CHECK admit only those six, so a rights-change record cannot be stored until someone maps it to a category or widens the enum. Which is the contract owners' (A0+A6) to say, beside Q141-b; this map does not choose.",
       "tables": ["app.asset_rights"],
@@ -141,7 +141,7 @@
     {
       "id": "owed.schedule_transition_history",
       "action": "A schedule's status transitions (arm, disarm, dispatch, complete, fail) and placement deletes, kept as history: today updated_by is overwritten, so who disarmed a schedule is lost at the next edit",
-      "source": "WP-0A-DB-00 open_blockers[190] (line 446), item (f)",
+      "source": "WP-0A-DB-00 open_blockers[190] (\"(f) ARCHIVING AND RETENTION\")",
       "category": null,
       "category_note": "FINDING: a schedule transition is not one of SEC-009's six categories -- \"publish\" is the nearest and is not the same act (disarming publishes nothing). Same consequence as the rights row: CTR-AUD-001 and 140's CHECK cannot store it until it is mapped or the enum widens. Not chosen here.",
       "tables": ["app.content_schedules", "app.calendar_items"],

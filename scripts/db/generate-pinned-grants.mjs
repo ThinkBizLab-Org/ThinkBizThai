@@ -29,6 +29,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { argv, env, exit, stderr, stdout } from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 const GRANTS = 'db/foundation/lint/pinned-grants.json';
 const EXCEPTIONS = 'db/foundation/lint/read-allowlist-known-exceptions.json';
@@ -46,25 +47,35 @@ cl as (select cols.t, roles.r, p.p || go.opt as p, cols.attnum, cols.attname fro
 select json_build_object(
   'table', (select json_agg(json_build_array(t, r, p) order by t, r, p) from tl),
   'column', (select json_agg(json_build_array(t, r, p, attname) order by t, r, p, attnum) from cl),
-  'tables', (select json_agg(t order by t) from tabs));
+  'tables', (select json_agg(t order by t) from tabs),
+  'version', split_part(current_setting('server_version'), ' ', 1));
 `;
 
 const q = JSON.stringify;
 const TP = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN'];
 const ORDER = ['table', 'SELECT', 'INSERT', 'UPDATE', 'REFERENCES'];
 
-const GRANTS_DOC = {
+// WHAT THE FILES SAY THEY WERE MEASURED ON (the owed-tooling batch; C0-170-3, A1 F170-3, Q0-F5 on batch 170):
+// the text named the 140 batch as the last measured after 150 and 170 had changed the grants it describes, because it was a constant
+// here. It now names the LAST migration in the directory and the server version the measurement read, both
+// taken at run time; foundation-contract holds the committed files to this text over the current last
+// migration, so a batch that adds a migration regenerates them (or fails there, by name).
+export function lastMigration(dir = MIGRATIONS) {
+  return readdirSync(dir).filter((n) => n.endsWith('.sql')).sort().at(-1);
+}
+export const measuredOn = (migration, version) => `the shim, then every migration through ${migration}, PostgreSQL ${version}`;
+export const grantsDoc = (on) => ({
   _what: 'The closed list of every effective privilege every non-superuser, non-pg_* role holds on every table in schemas app and private (batch 170\'s assertion-only part, plan "Batch 170 -- Can do now" (a); read by PINNED_GRANT_PROBE_SQL in scripts/db/run.mjs).',
-  _how_measured: 'Generated from a live catalog read on the clean set (the shim, then every migration through 140, PostgreSQL 17.11) with has_table_privilege and has_column_privilege, then committed as reviewed data. A column privilege a table-level privilege already implies is not listed: the table-level row carries it. No privilege is held WITH GRANT OPTION, and none is ever pinned with one.',
+  _how_measured: `Generated from a live catalog read on the clean set (${on}) with has_table_privilege and has_column_privilege, then committed as reviewed data. A column privilege a table-level privilege already implies is not listed: the table-level row carries it. No privilege is held WITH GRANT OPTION, and none is ever pinned with one.`,
   _shape: 'tables: { "<schema>.<table>": { "<role>": { "table": [table-level privileges], "SELECT" | "INSERT" | "UPDATE" | "REFERENCES": [columns, in attnum order] } } }. A table no role holds anything on is an empty object, so the TABLE list is closed too. A batch that grants, revokes or adds a table changes this file in the same diff.',
-};
-const EXCEPTIONS_DOC = {
+});
+export const exceptionsDoc = (on) => ({
   _what: 'RFC-2026-021 §8.5: the inherited client base-table SELECT grants, named in one place as exceptions rather than as silence. CLOSED: it lists exactly the grants that exist today, measured, and any new one fails the read allowlist probe (scripts/db/run.mjs) unless it is a read-allowlist.json entry. Closing the list (converting these to allowlist views, or keeping them for Pilot) is owed to batch 170 and is Q170-b, undecided. "Inherited" is READ, not given: §8.5 names the inherited grants as those of 010, 020 and 021, and only 10 of the 41 rows come from them (010 x5, 020 x4, 021 x1); the other 31 come from 13 later migrations (030, 040, 051, 061, 070, 080, 081, 090, 091, 100, 120, 121, 130). Closing the list at 41 reads §8.5\'s "the grants that exist today" as batch 170\'s day, and so ACCEPTS those 31 as §8.5 exceptions; whether they count as inherited is for A1 (RFC-2026-021\'s owner) and the Owner, with Q170-b (review round: C0 F1, A1 R4).',
-  _how_measured: 'Generated from a live catalog read on the clean set (the shim, then every migration through 140, PostgreSQL 17.11): every (client role, base table) where has_any_column_privilege(role, table, \'SELECT\'). Measured: authenticated only, by column grants only (no table-wide SELECT anywhere); anon and PUBLIC hold none. granted_by is read from the migration text and is documentation; the probe reads role, relation and level.',
+  _how_measured: `Generated from a live catalog read on the clean set (${on}): every (client role, base table) where has_any_column_privilege(role, table, 'SELECT'). Measured: authenticated only, by column grants only (no table-wide SELECT anywhere); anon and PUBLIC hold none. granted_by is read from the migration text and is documentation; the probe reads role, relation and level.`,
   _shape: '{ "role": "anon | authenticated | public", "relation": "<schema>.<table>", "level": "columns (SELECT by column grants only) | table (a table-wide SELECT)", "granted_by": ["the migration(s) whose GRANT SELECT names it"] }',
-};
+});
 
-function renderGrants(m) {
+export function renderGrants(m, on = measuredOn(lastMigration(), m.version)) {
   const g = {};
   for (const t of m.tables) g[t] = {};
   for (const [t, r, p] of m.table ?? []) { g[t][r] ??= {}; (g[t][r].table ??= []).push(p); }
@@ -72,7 +83,7 @@ function renderGrants(m) {
   for (const t of Object.keys(g)) for (const r of Object.keys(g[t])) g[t][r].table?.sort((a, b) => TP.indexOf(a) - TP.indexOf(b));
   const roleLine = (privs) => `{ ${ORDER.filter((k) => privs[k]).map((k) => `${q(k)}: ${q(privs[k]).replace(/","/g, '", "')}`).join(', ')} }`;
   let out = '{\n';
-  for (const [k, v] of Object.entries(GRANTS_DOC)) out += `  ${q(k)}: ${q(v)},\n`;
+  for (const [k, v] of Object.entries(grantsDoc(on))) out += `  ${q(k)}: ${q(v)},\n`;
   out += '  "tables": {\n';
   const tnames = Object.keys(g).sort();
   tnames.forEach((t, i) => {
@@ -92,7 +103,7 @@ class Refusal extends Error {}
 // Every client role. PUBLIC has no pg_roles row: a PUBLIC grant reads as each of these holding it.
 const CLIENT_ROLES = ['anon', 'authenticated'];
 
-function renderExceptions(g, tables, migrationsDir = MIGRATIONS) {
+export function renderExceptions(g, tables, on, migrationsDir = MIGRATIONS) {
   const src = {};
   for (const f of readdirSync(migrationsDir).filter((n) => n.endsWith('.sql')).sort()) {
     const s = readFileSync(`${migrationsDir}/${f}`, 'utf8').replace(/--[^\n]*/g, '');
@@ -122,7 +133,7 @@ function renderExceptions(g, tables, migrationsDir = MIGRATIONS) {
     }
   }
   let out = '{\n';
-  for (const [k, v] of Object.entries(EXCEPTIONS_DOC)) out += `  ${q(k)}: ${q(v)},\n`;
+  for (const [k, v] of Object.entries(exceptionsDoc(on))) out += `  ${q(k)}: ${q(v)},\n`;
   out += '  "exceptions": [\n';
   exc.forEach((e, i) => { out += `    { "role": ${q(e.role)}, "relation": ${q(e.relation)}, "level": ${q(e.level)}, "granted_by": ${q(e.granted_by).replace(/","/g, '", "')} }${i < exc.length - 1 ? ',' : ''}\n`; });
   out += '  ]\n}\n';
@@ -137,9 +148,10 @@ function main() {
   const r = spawnSync('psql', ['-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-d', url, '-f', '-'], { input: MEASURE_SQL, encoding: 'utf8' });
   if (r.status !== 0) { stderr.write(`generate-pinned-grants: psql exited ${r.status}: ${r.stderr}`); exit(2); }
   const measured = JSON.parse(r.stdout.trim());
-  const grants = renderGrants(measured);
+  const on = measuredOn(lastMigration(), measured.version);
+  const grants = renderGrants(measured, on);
   let exceptions;
-  try { exceptions = renderExceptions(grants.grants, grants.tables); } catch (e) {
+  try { exceptions = renderExceptions(grants.grants, grants.tables, on); } catch (e) {
     if (!(e instanceof Refusal)) throw e;
     stderr.write(`generate-pinned-grants: REFUSED, nothing written: ${e.message}\n`);
     exit(3);
@@ -157,4 +169,5 @@ function main() {
   if (check && differs) exit(1);
 }
 
-main();
+// Run only as a script, so foundation-contract can import lastMigration, measuredOn and the two docs.
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) main();

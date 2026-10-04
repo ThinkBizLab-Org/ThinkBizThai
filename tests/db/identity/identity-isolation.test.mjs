@@ -38,6 +38,16 @@ import { ASSERTION_FOR, ROLE_FOR_HELPER, assertRejectedWith, assumeIdentity, fix
 // that tables which plainly exist do not, and the seventh sat inside a `doesNotMatch` where it
 // composed a pattern nothing can match and passed by asking about a table that has never existed.
 import { schemaLint, tablesCreatedByMigrations } from '../../../scripts/db/run.mjs';
+
+// A view, in every spelling CREATE VIEW takes: OR REPLACE, TEMP or TEMPORARY, RECURSIVE, MATERIALIZED (the
+// owed-tooling batch; A1 S2 and Q0 R-5 on batch 170-assert's re-check: the three scans below read
+// `create (or replace)? (materialized)? view`, so `create recursive view` -- n15, a definer recursive view over a
+// SECRET-4 table that app_command read -- and a temporary view passed them). One pattern, used by all three.
+// Since the owed-tooling batch's review round (Q0-OT-8) a block comment between the words is read as the
+// whitespace it is (`create /* c */ view`), a nested one included: the lazy comment match extends to a later `*/`
+// when the words after the first one do not follow.
+const VIEW_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/)+`;
+const CREATE_VIEW = new RegExp(String.raw`create${VIEW_GAP}(?:or${VIEW_GAP}replace${VIEW_GAP})?(?:(?:temp|temporary)${VIEW_GAP})?(?:recursive${VIEW_GAP}|materialized${VIEW_GAP})?view\b`, 'i');
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -2408,7 +2418,7 @@ test('batch 041 creates one function and no table, no view and no policy', () =>
     'exactly one function, and it is the one the header argues for');
   for (const [kind, pattern] of [
     ['table', /create\s+table\b/i],
-    ['view', /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i],
+    ['view', CREATE_VIEW],
     ['policy', /create\s+policy\b/i],
     ['index', /create\s+index\b/i],
     ['trigger', /create\s+trigger\b/i],
@@ -7813,7 +7823,7 @@ test("batch 132 creates nothing, and the set that claim is checked against is th
     + 'family the data dictionary does not describe.');
 
   for (const [kind, pattern] of [
-    ['view', /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i],
+    ['view', CREATE_VIEW],
     ['function', /create\s+(?:or\s+replace\s+)?function\b/i],
     ['policy', /create\s+policy\b/i],
     ['index', /create\s+(?:unique\s+)?index\b/i],
@@ -8027,10 +8037,19 @@ test('batch 132 adds no negative-control entry, and its cases say what holds the
 });
 
 test('the effective-limit projection is named as an allowlist candidate and not added, and the registry RFC-2026-021 asks for is not in the tree', async () => {
-  assert.doesNotMatch(migrationText, /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?view\b/i,
+  assert.doesNotMatch(migrationText, CREATE_VIEW,
     'no migration creates a view. RFC-2026-021 §7/3 keeps the client read allowlist empty and the batch '
     + 'that would create a first entry is NOT YET ASSIGNED; batch 132 does not become it by writing a '
     + 'projection for a caller that does not exist.');
+  // The pattern's own spellings (the owed-tooling batch; A1 S2, Q0 R-5), so a narrowed pattern fails here.
+  for (const spelling of ['create view app.v as select 1', 'CREATE OR REPLACE VIEW app.v AS SELECT 1', 'create materialized view app.m as select 1',
+    'create recursive view public.probe_rv (id) as select 1', 'create temp view v as select 1', 'CREATE OR REPLACE TEMPORARY RECURSIVE VIEW v (n) AS SELECT 1',
+    'create /* c */ view v as select 1', 'create or/**/replace /* a /* b */ c */ materialized view m as select 1']) {
+    assert.match(spelling, CREATE_VIEW, `the view scan reads: ${spelling}`);
+  }
+  for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'']) {
+    assert.doesNotMatch(other, CREATE_VIEW, `and not: ${other}`);
+  }
 
   const lintFiles = await readdir(LINT_DIR_132);
   // The batch 170 draft landed the file, and edits this line as batch 132 asked: until then it asserted the
