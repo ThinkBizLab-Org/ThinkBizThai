@@ -88,3 +88,68 @@ on the branch name are recorded in the handoff and the PR body, which come after
 
 Under the scratchpad directory `a0-rfc-textr/`: the manifest edit script and the texts it appended, the manifest
 backup, the drift script and its logs, the check and commit-when-clean logs. No cluster, no port used.
+
+## 6. Review round (appended 2026-10-05; nothing above is rewritten)
+
+Written by a subagent of `/claude/a0_atlas`, in its own worktree, on the branch NAME
+(`git branch --show-current` printed `agent/claude/WP-0A-DB-00-batch-rfc-text` before every commit and every
+measured run). It fixes; it approves nothing. **No migration; nothing a database layer reads changed; neither RFC
+is approved; no question is answered** — one is re-opened (Q-026-10).
+
+### 6.1 Cherry-pick map
+
+| role | review branch | review commit | here (`cherry-pick -x`) | file |
+|---|---|---|---|---|
+| C0 | `review/c0-batch-rfc-text` | `42cdab1` | `98cc81c` | `c0-batch-rfc-text-contract-review-2026-10-03.md` |
+| A1 | `review/a1-batch-rfc-text` | `89ee445` | `3720c85` | `a1-batch-rfc-text-security-review-2026-10-03.md` |
+| Q0 | `review/q0-batch-rfc-text` | `8edc15a` | `ba4c654` | `q0-batch-rfc-text-test-review-2026-10-03.md` |
+
+The fixes are the code commit `a35a619` (the two RFCs, `open_blockers[195]`'s append, the integrity manifest);
+this section is the commit after it; the handoff refresh is last and alone. None of the three reviews found a
+stop-the-line.
+
+### 6.2 Finding → change → measured
+
+| finding | grade | change | measured / read |
+|---|---|---|---|
+| C0-RT-1, A1 F1 | MEDIUM | RFC-026 §3.3/4, §3.4, §3.7 and §10.1: "not recorded" for a refusal about an unreachable workspace is now recorded as **A0's reconciliation**, not the Owner's answer; the conflict between the accepted Q-026-1 route (to `security_events`) and Q-026-9's accepted predicate is stated; Q-026-4's row no longer names that class; the half is re-opened as **Q-026-10** (A1 and the Owner; options (i) a command event in a workspace the actor can reach, (ii) a platform-scope store, (iii) an explicit new gap class). Remedy (ii) of C0-RT-1, the one A1's F1 asks for; writing route (i) would decide a question, which this batch does not | read; `[195]` appended |
+| C0-RT-2, A1 F2, Q0 F2, Q0 F3 | MEDIUM/LOW | §8.1/1 reads every function in a non-system schema or at OID ≥ 16384 (`userObject`), extension members excepted; a name counts whatever qualifies it; (e) added: no trigger on any table, in any schema, runs a function (a) or (b) selects | **r1/r2 on 5507** (below): the revised scope selects `public.a0r_x1_public` and the unqualified `app.a0r_x3_unqualified`; the merged (a) selected neither |
+| C0-RT-3 | LOW | (c) defined as any unquoted identifier token `execute` at any level of the definition, false positives to the exemption list (fail closed); `return query execute` named as a drift | r2: a `return query execute` function selected by (c)'s approximation |
+| Q0 F1 | MEDIUM | §8.1/1 tokenises `pg_get_functiondef(oid)`, not `prosrc`; X2 named as drift 4. The driver change (refuse `BEGIN ATOMIC` at every nesting level) is **owed**, recorded in §9/4 and `[195]`: `scripts/db/psql-driver.mjs` is outside this batch's ownership and is a tooling change, not text | r2: the `BEGIN ATOMIC` function made through `EXECUTE` in a `DO` block migrated clean (exit 0), has `prosqlbody`, and is selected through the full definition |
+| Q0 F4 | LOW | (d) stated as held by `PINNED_TABLE_TRIGGERS`; drifts for (a)/(b)/(c)/(e) written without a trigger on a table in `app`/`private`; each self-test asserts the rule's own refusal text; the "r3 passed at exit 0" wording corrected | read `scripts/db/run.mjs` (`PINNED_TRIGGER_PROBE_SQL`, `nspname in ('app', 'private')`) |
+| Q0 F7 | INFO | (a) gains a pinned reader list, empty today | read |
+| A1 F3 | LOW | §3.3/3: the policy refuses another tenant's page only for a page-scoped member; §8.2/17 covers a `business`-scoped member naming another tenant's page | read (A1's G7) |
+| A1 F4 | INFO | §3.3/2 qualified by §3.3/1's claims assumption | read |
+| C0-RT-4 | INFO | §3.3/2: a command moving its own workspace into a blocked state cannot write its `succeeded` row after the move; decided by whichever batch gives such a transition to a command | read |
+| C0-RT-6 | INFO | the "replay anomaly" citation names the ERD (`sprint-0a-core-erd-rls-retention-th.md:455`) | read |
+| Q0 F6 | INFO | §8.2/21 gains the unset `app.workspace_id` arm | read |
+| Q0 F5 | LOW | RFC-027 §5/6: the second direction asserted as owner or admin with another active member, pre-asserted in `active` | read (Q0's r8) |
+| Q0 F9 | INFO | `[195]`'s append says the questions are sixteen (Q-026-10 new) and that the entry's head says fourteen | read |
+| C0-RT-5 | INFO | (a) §3's last sentence above is wrong: the handoff's `tests` did not carry `check:handoff`, `verify-branch-scope` at the head or `verify`; the PR body did. This round's handoff refresh records them. (b) The earlier run summary's "no repoint" was wrong (the refresh repointed `head_revision` to `6489596`); it is not repeated | — |
+| A1 F5, A1 F6, C0-RT-7, Q0 F8 | INFO | none in the text: F5 is A1's decision with the worker half (held on `[195]`); F6 is consistent with §8.2/19; C0-RT-7 is the merge bar (a green run on the reviewed head); F8 needs no repository change | — |
+
+### 6.3 Live database rounds (port 5507, private dir `a0-rfc-textr2/`)
+
+Node `v24.20.0`; PostgreSQL from `/opt/homebrew/bin`; `initdb --locale=C -A trust -U postgres` every round, TCP only on
+127.0.0.1 (`unix_socket_directories=''`), `LC_ALL=C`, the shim first. Drifts appended to `140_audit.sql` and restored
+from a copy; sha256 `2ac596bb950e8dfb…` before and after every round. The rule (§8.1/1) does not exist; it was
+approximated by a regular expression over `pg_get_functiondef` (`rule.sql`), which is not the lexer.
+
+| round | tree | `migrate-clean` | `rls-smoke` | approximation |
+|---|---|---|---|---|
+| r1 | clean | 0 ("51 apply-time blocks, 39 re-run, 12 superseded") | 0 (1087 cases, 6 authz proofs) | 18 functions in scope (`app`, `private`, `auth`; the 36 in `extensions` are extension members); (a), (c) select nothing |
+| r2 | four drifts, none with a trigger: Q0 X2 (`BEGIN ATOMIC` via `EXECUTE` in a `DO` block), Q0 X3 (unqualified, `search_path = app`), X1 in `public`, `return query execute` | 0 ("52 … 40 re-run") | not run | revised (a) selects all three writers; merged (a) selects none; (c) selects the fourth; `prosqlbody` set on X2 only |
+| r3 | as r2, with the full function listing | 0 | not run | as r2 |
+| r4 | clean, with the listing | 0 | 0 | as r1 (the four `private.as_*` functions in the listing are `rls-smoke`'s, made after the rule's read point) |
+
+### 6.4 Commands (exit codes in the handoff)
+
+`npm run regenerate:manifest` (90 digests); `npm run check` before the code commit (exit 0, 685/685); the code commit
+through `node scripts/commit-when-clean.mjs`; `node scripts/verify-branch-scope.mjs 88a6670 WP-0A-DB-00` at `a35a619` (exit 0, "all 12 changed path(s) are declared"); this commit
+through commit-when-clean; then `npm run refresh:handoff` last and alone, `npm run check:handoff` and `npm run verify`
+on the branch name.
+
+### 6.5 Still owed (held on `open_blockers[195]`)
+
+Q-026-10's answer (A1, the Owner) before RFC-026 is approved; the rule itself and its eight drifts, with the command
+half; the driver's nested `BEGIN ATOMIC` refusal; approval of both RFCs and every named role's acceptance, as before.
