@@ -4,25 +4,25 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5558b2660456be63ab35376e6484201e56a5f721",
-  "head_revision_or_patch_checksum": "0e65e7c14ffc9e3773d9a858008a7e8fb542c74f",
+  "base_revision": "5bde893136cbe17a222e3a6abd83dcd4a1433f26",
+  "head_revision_or_patch_checksum": "fb6c720072e825f56485737ec7d652ba230349db",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-owed-tooling-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-owed-tooling-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-owed-tooling-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-owed-tooling-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-owed-tooling.md",
-    "evidence/WP-0A-DB-00/q0-batch-owed-tooling-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-owed-tooling-test-review-2026-10-03.md"
+    "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-sql-lexer-recheck-2026-10-04.md",
+    "evidence/WP-0A-DB-00/a1-batch-sql-lexer-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-sql-lexer-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-sql-lexer-recheck-2026-10-04.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-sql-lexer.md",
+    "evidence/WP-0A-DB-00/q0-batch-sql-lexer-recheck-2026-10-04.md",
+    "evidence/WP-0A-DB-00/q0-batch-sql-lexer-test-review-2026-10-03.md",
+    "scripts/db/sql-lexer.mjs",
+    "test-kits/db/sql-lexer-differential.json"
   ],
   "files_modified": [
     "db/foundation/README.md",
     "db/foundation/lint/audit-coverage-map.json",
-    "db/foundation/lint/pinned-grants.json",
-    "db/foundation/lint/read-allowlist-known-exceptions.json",
-    "db/foundation/lint/retention-map.json",
+    "evidence/VERIFICATION.md",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/generate-pinned-grants.mjs",
     "scripts/db/psql-driver.mjs",
@@ -36,79 +36,48 @@
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-owed-tooling.md §1), answering A0's summary that recommended, as the one item needing nobody, a small batch clearing the owed LOW tooling items. A0's reading (§2): write that batch now; nothing else is answered -- RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, Q170-c's instance measurement and DATA-DEC-03 stay open.",
-    "The Owner's phase direction `เอาตามที่แนะนำเลย ลุยต่อ` and goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03; product-owner-disposition-2026-10-03-batch-129.md §1).",
-    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #175 at its reviewed head ab7db39 (merge 5558b26, CI run 37181470982 green); A0 executed it, it did not decide the merge."
+    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-sql-lexer.md §1), answering A0's summary whose item 5 recommended one real lexer shared by every static reader over an RFC for PostgreSQL's own parser (a dependency). A0 recommended nothing on items 1-4 (RFC approval, SLO ratification, instance access, DATA-DEC-03/RFC-2026-023), which stay unanswered. A0's reading, which a correction from the Owner replaces.",
+    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #176 at its reviewed head 84ed650 (merge 5bde893, 2026-10-04T09:07:34Z, bootstrap run 37190663121 green); A0 executed it and did not decide it.",
+    "RFC-2026-001: Node built-ins only, no dependency added."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS THE OWED-TOOLING BATCH WITH ITS REVIEW ROUND: assertion and tooling only, NO MIGRATION, so no migration number is needed. Plan a0-batch-owed-tooling-plan-2026-10-03.md (with its \"Review round\" section) and disposition product-owner-disposition-2026-10-03-batch-owed-tooling.md in evidence/WP-0A-DB-00/, beside the cherry-picked C0, A1 and Q0 reviews (571980a, bf984f9, a071703 from 1cc4857, c35e0a5, dee14ef).",
-    "All eleven owed items named for the batch were bounded and are closed; none is recorded as owed in place of being done. What each leaves owed, and the items outside the list that stay owed, are on open_blockers[185] and [191]-[195] with their owners (plan §6).",
-    "The rules added to migrate-clean (the pinned trigger probe over every app and private table, the pinned grant probe rules 7 and 8, the index coverage key collation and operator class) hold the clean set as measured on PostgreSQL 17.11; like rules 2-4 of the pinned grant probe, rules 7 and 8 fail by design on a provisioned platform instance until Q170-c measures its roles.",
-    "The static suites gain assertions only: no test is added or renamed, so the suite count (684), the test floors, the name digest and evidence/VERIFICATION.md hold.",
-    "Every review-round finding (C0-OT-1..6, A1-OT-1..4 and I1..I3, Q0-OT-1..10) was bounded and is changed or stated as a limit in this round; none needed a migration or a decision, and none is recorded as owed in place of being done (plan, \"Review round\")."
+    "THIS INCREMENT IS THE SQL-LEXER BATCH: tooling and static tests only, NO MIGRATION and NO DEPENDENCY, so no migration number and no RFC is needed. Plan a0-batch-sql-lexer-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-sql-lexer.md. It decides nothing beyond the recommendation the Owner accepted and approves no RFC.",
+    "The lexer follows PostgreSQL 17 lexical rules with standard_conforming_strings on; any mention of that setting stays refused by psqlLex, so the other reading never applies to a fed source.",
+    "A text EXECUTE, a DO block or a function body runs WHOLE is valid SQL or runs nothing (a syntax error stops it before execution), so reading every literal and dollar body as SQL, at every level to depth 8, reads every statically spelled statement a fed source can run; text computed at run time is outside, as stated.",
+    "THE REVIEW ROUND (2026-10-04, commit 286770f): the C0, A1 and Q0 role runs are cherry-picked with -x (ab3ce38, b5203b8, c39f703) and each finding is acted on in evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\". Still no migration, no dependency, no decision; nothing is approved."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) 170's do-block assertion is an allowlist of its statement shapes (C0-170R-1, A1 R-1, Q0R-F1)",
+      "criterion": "(1) One SQL tokenizer following PostgreSQL's lexical rules, with kinds and positions, failing closed",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md §1 row 1: nine in-test drifts refused; M1 (set_config into 170's block, which the old denylist passes) and M1b red."
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §1 row 1: scripts/db/sql-lexer.mjs; the golden test's tokenization table, statement split and 15 fail-closed inputs; M3 red"
     },
     {
-      "criterion": "(2) a trigger on app.workspaces writing NEW.lifecycle_state is refused; every app/private table's trigger set pinned (A1 R-2)",
+      "criterion": "(2) Every static reader rewired onto it",
       "result": "met",
-      "evidence": "pinned trigger probe: 51 triggers on 47 tables, four functions; the drift appended to 140 fails migrate-clean by name; M2 migrate-clean 2."
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §1 rows 2-7: psqlLex and its refusals, COPY (any target, PROGRAM), server-file calls by token with the internal symbols, LANGUAGE internal/c, the do-block counter and allowlist, every comment and literal stripper, sqlWithoutComments, the tripwires, the view scans, file_fdw / foreign / extension; drifts D1-D4 migrate-clean 2 where origin/main's psqlLex found 0; M1-M9 red"
     },
     {
-      "criterion": "(3) the generator writes the last migration's name into _how_measured (C0-170-3)",
+      "criterion": "(3) A golden corpus and a differential against what PostgreSQL executes",
       "result": "met",
-      "evidence": "both files regenerated (one line each); --check exit 0; M3 red."
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §2: 221 fed sources, 1897 queries psql sent = 1897 lexer statements, every one equal in canonical text; test-kits/db/sql-lexer-differential.json re-checked by sha256 in the new foundation-contract test"
     },
     {
-      "criterion": "(4) the (line N) citations in the two lint maps pinned by quote (D3, C0-7, Q0-F9)",
+      "criterion": "(4) The OWED items on blocker 186 closed with evidence, and what a lexer cannot decide stated",
       "result": "met",
-      "evidence": "19 + 2 citations quote their blocker; moved citation and line number put back each red (M4, M4b)."
+      "evidence": "open_blockers[185]'s appended \"THE SQL-LEXER BATCH\" sentence; evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §6"
     },
     {
-      "criterion": "(5) 160-prep: export_allowed derived and pinned; F160-17 pinned; the export-label guard over every §11.1 domain (A1 R1, R2; Q0 R-3, R-5; C0 R1, R2)",
+      "criterion": "No integrated migration or fed source newly refused",
       "result": "met",
-      "evidence": "EX-11, exporting workspace_invitations, N10, EX-14 and N8 each red (in-test drifts, M5, M5b). C0 R2's other two guards stay owed on open_blockers[192]."
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §2: 0 findings over 221 sources; the CREATE EXTENSION rule is an allowlist of pgcrypto because a blanket rule would refuse 000_foundation.sql:24 and prerequisites.sql:48, recorded rather than narrowed silently"
     },
     {
-      "criterion": "(6) 141-prep static pins; tripwire widened; [191] (9) corrected (Q0 R1-R4, C0 N3, A1 N2, N3)",
+      "criterion": "Review round: every LOW-or-higher finding of C0, A1 and Q0 acted on or recorded as owed",
       "result": "met",
-      "evidence": "M6 (N36) and M6b (a later GRANT on audit_logs) red; [191] appended with the correction."
-    },
-    {
-      "criterion": "(7) every crafted URL through both tools, a pin per half, redaction from the raw query (G-1, G-2)",
-      "result": "met",
-      "evidence": "M7a and M7b each red alone; M7c red; db-migrate-clean with .../postgres#?host=q0-probe.invalid prints \"[redacted]\"."
-    },
-    {
-      "criterion": "(8) index coverage compares collation and operator class (Q0 R-2)",
-      "result": "met",
-      "evidence": "(user_id, status COLLATE \"C\") appended to 140 fails migrate-clean by name; M8 migrate-clean 2."
-    },
-    {
-      "criterion": "(9) COPY ... TO/FROM PROGRAM refused in fed sources (C0 G1 on 129)",
-      "result": "met",
-      "evidence": "appended to 140: migrate-clean 2 and rls-smoke 2 before anything applied; M9b red."
-    },
-    {
-      "criterion": "(10) schema owners and non-client role attributes pinned (A1 S1, S3; Q0 R-2)",
-      "result": "met",
-      "evidence": "alter schema private owner to app_command and alter role app_worker bypassrls each fail migrate-clean by name; M10c migrate-clean 2."
-    },
-    {
-      "criterion": "(11) the static view regex catches recursive and temporary views (A1 S2, Q0 R-5)",
-      "result": "met",
-      "evidence": "M11 red on create recursive view."
-    },
-    {
-      "criterion": "Review round: every LOW and INFO finding of the C0, A1 and Q0 reviews changed, measured, or stated as a limit",
-      "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md \"Review round\": the quoted and commented do-block spellings and a JOIN-only and relation-only drift; the internal-trigger rule (A1's hidden trigger appended to 140: migrate-clean 2 by name); COPY to a server file and server-file calls in the lexer (C0's and Q0's file-writing drift: migrate-clean 2, no file written); every omitted export bucket and the eleven classes tied to ERD lines; one blocker per quote; the tripwire's comments, CREATE RULE and rename; raw-authority redaction with seven cases; every weakening of a new rule red in its layer"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\": C0-SL-1 remedy (a) (server-file names refused by token position outside GRANT/REVOKE/COMMENT; D-op and D-ren live exit 2, no marker); C0-SL-2/Q0-SL-4/A1 F1 (view scan pinned, M-view red); C0-SL-3 (psql's held semicolons refused, S-begin exit 2); C0-SL-4 (generate-pinned-grants through the lexer, M-grants red); C0-SL-5 (18 and 15, corrected by append); C0-SL-6 (this handoff's tests); Q0-SL-1 (VT golden case, L14 red); Q0-SL-2 (canonical form pinned)"
     }
   ],
   "tests": [
@@ -118,113 +87,132 @@
       "result": "v24.20.0 (/Users/bank/.local/node-v24.20.0/bin, ahead of the PATH Node 26)"
     },
     {
-      "command": "f1 on 70ab5ca, branch name: fresh initdb (5507, TCP only), shim, make db-migrate-clean, make db-rls-smoke twice",
+      "command": "r1, working tree before b2193ad: fresh initdb (127.0.0.1:5507, TCP only, --locale=C, -A trust), shim, make db-migrate-clean, make db-rls-smoke twice",
       "exit_code": 0,
-      "result": "migrate-clean 0 (30 probes, each refusing every drift and clean again; 3753 initdb objects fingerprinted; 51 apply-time blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 of 1087 each"
+      "result": "migrate-clean 0 (30 probes each refusing its drifts and clean again; post-migrate pass 51 apply-time blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 isolation cases each"
     },
     {
-      "command": "f2 on 70ab5ca: a second fresh cluster, the same",
+      "command": "r2 on b2193ad, branch name, a second fresh cluster: the same three",
       "exit_code": 0,
-      "result": "migrate-clean 0; rls-smoke 0 and 0, 1087 of 1087 each"
+      "result": "migrate-clean 0; rls-smoke 0 and 0, 1087 cases each"
     },
     {
-      "command": "DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs --check (f2)",
+      "command": "the differential (private differential.mjs): every fed source on stdin to psql 17.11, log_statement = all",
       "exit_code": 0,
-      "result": "both files match the catalog; 66 tables"
+      "result": "221 sources, 221 agree; 1897 queries sent, 1897 lexer statements"
     },
     {
-      "command": "five drifts appended to 140_audit.sql, each on a fresh cluster, restored byte for byte",
+      "command": "drifts D1-D4 appended to 140_audit.sql (private drifts.mjs), fresh cluster each, 140 restored by sha256",
       "exit_code": 2,
-      "result": "each fails migrate-clean by name (plan §3); rls-smoke 2 for the workspaces trigger, COPY PROGRAM and BYPASSRLS, 0 for COLLATE \"C\" and the schema owner"
+      "result": "each migrate-clean 2 by line before anything applied, no file written; origin/main psqlLex 0 findings on each"
     },
     {
-      "command": "seventeen mutations of code or data, each restored byte for byte (plan §4)",
+      "command": "mutations M1-M9 (private mutate.mjs), static",
       "exit_code": 1,
-      "result": "every one red in its layer (static exit 1, migrate-clean exit 2)"
+      "result": "each red by name; every file restored by sha256"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (code commit)",
+      "command": "npm run test:bootstrap on the tree that became b2193ad",
       "exit_code": 1,
-      "result": "refused, 2 failures, both the not-yet-refreshed handoff guard; 70ab5ca is a plain commit for that reason alone"
+      "result": "685 tests, 683 pass; the two failures are the handoff guard alone (not yet refreshed), so b2193ad is a plain commit"
     },
     {
-      "command": "npm run test:bootstrap on 70ab5ca",
+      "command": "node scripts/commit-when-clean.mjs (98d0f2f)",
       "exit_code": 0,
-      "result": "684 of 684"
+      "result": "clean: 685 of 685"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 5558b26 WP-0A-DB-00",
+      "command": "node scripts/verify-branch-scope.mjs 5bde893 WP-0A-DB-00",
       "exit_code": 0,
-      "result": "all 14 changed path(s) are declared, and every amendment explains one (on 70ab5ca)"
+      "result": "all 13 changed path(s) are declared, and every amendment explains one (at b2193ad)"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (plan and disposition, 3dd930e)",
+      "command": "C0 R1-R3 on 45893d9, branch name (read from the C0 record, not re-run here): verify-branch-scope 5bde893, npm run check:handoff, npm run verify",
       "exit_code": 0,
-      "result": "clean: 684 of 684"
+      "result": "all 16 changed paths declared; describes the branch; clean 685/685 (C0-SL-6: the previous refresh did not record these)"
     },
     {
-      "command": "review round: f1 on the final code (before commit) and f2 on 84e10f7, branch name, each a fresh initdb (5507, TCP only), shim, make db-migrate-clean, make db-rls-smoke twice",
+      "command": "review round: every fed source through the new psqlLex (private scan.mjs; every *.sql in git, every probe and drift, every exported run.mjs script) and unsafeDrifts(CATALOG_RULE_PROBES)",
       "exit_code": 0,
-      "result": "migrate-clean 0 (30 probes; the pinned trigger probe refused each of its 3 drifts; 51 apply-time blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 of 1087 each, both rounds"
+      "result": "219 sources, 0 with findings; unsafeDrifts []"
     },
     {
-      "command": "review round: DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs --check (f2)",
+      "command": "review round: the changed fingerprint drift fed alone on stdin to psql 17.11, log_statement = all (private diffdrift.mjs)",
       "exit_code": 0,
-      "result": "both files match the catalog; 66 tables"
+      "result": "psql sent 6, the lexer split 6; recorded sha256 8c0033d6f408..."
     },
     {
-      "command": "review round: four live drifts and mutations appended to 140_audit.sql or applied to run.mjs, each on a fresh cluster, restored byte for byte",
+      "command": "review round r1, working tree: fresh initdb (127.0.0.1:5507, TCP only), shim, make db-migrate-clean, make db-rls-smoke twice",
+      "exit_code": 0,
+      "result": "migrate-clean 0 (30 probe self-tests refused their drifts and were clean again, the fingerprint probe with its pg_sleep rename included; post-migrate pass 51 blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 cases each"
+    },
+    {
+      "command": "review round: C0's D-op and D-ren and S-begin appended to 140_audit.sql, fresh cluster each, 140 restored by sha256 2ac596bb950e8dfb (private drifts.mjs)",
       "exit_code": 2,
-      "result": "COPY to a server file: migrate-clean 2 by line, no file written; pg_stat_file call: migrate-clean 2 by line; a trigger hidden as internal: migrate-clean 2 by name (rls-smoke 0 and 0); the internal-trigger rule unable to fire: migrate-clean 2 through its self-test"
+      "result": "each migrate-clean 2 at '140_audit.sql line 1019' before anything applied; no marker file written (C0 had measured both markers written on 45893d9)"
     },
     {
-      "command": "review round: eighteen static mutations, each restored byte for byte",
+      "command": "review round mutations (private mutate.mjs): M-view, L14, M-name, M-naming-only, M-held, M-held-parens, M-grants",
       "exit_code": 1,
-      "result": "every one red (static exit 1); one first aimed at the guard's identical split line passed and was re-aimed at redaction's own line, red"
+      "result": "each red by name; every file restored by sha256"
     },
     {
-      "command": "review round: npm run check; node scripts/verify-branch-scope.mjs 5558b26 WP-0A-DB-00",
+      "command": "npm run check, working tree before 286770f",
       "exit_code": 0,
-      "result": "684 of 684; all 20 changed path(s) declared, every amendment explains one"
+      "result": "685 tests, 685 pass (coverage floor, toolchain, secrets, protocol, suite)"
     },
     {
-      "command": "review round: node scripts/commit-when-clean.mjs (84e10f7)",
+      "command": "node scripts/verify-branch-scope.mjs 5bde893 WP-0A-DB-00, before 286770f",
       "exit_code": 0,
-      "result": "clean: 684 of 684"
+      "result": "all 19 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "npm run check:handoff and npm run verify on the branch name, with this handoff refreshed",
+      "command": "node scripts/commit-when-clean.mjs (286770f)",
       "exit_code": 0,
-      "result": "recorded in the PR body (run after this file was written)"
+      "result": "clean: exit 0 -- tests 685, pass 685, fail 0"
+    },
+    {
+      "command": "review round r2 on 286770f, branch name, a second fresh cluster: the same three",
+      "exit_code": 0,
+      "result": "migrate-clean 0 (30 self-tests; 51 blocks); rls-smoke 0 and 0, 1087 cases each; cluster stopped and removed"
+    },
+    {
+      "command": "npm run check:handoff and npm run verify on the branch name after this handoff commit",
+      "exit_code": 0,
+      "result": "recorded in the PR body and the Author run's structured result; a handoff cannot record the guard run on the commit that contains it"
     }
   ],
-  "security_privacy_cost_impact": "Security: assertion and tooling only; no grant, policy, role or schema changes. Each closure refuses a later migration that weakens an unread guarantee, none reachable by a client on the clean set: a trigger on any app or private table (A1 R-2, the lifecycle_state writer among them), a schema owner or a non-client role attribute changed (A1 S1, S3; Q0 R-2), an index whose collation or operator class does not serve its predicate (Q0 R-2), a COPY ... PROGRAM in a migration (a server shell command, C0 G1), and test-reach gaps in the static suites. Redaction now covers a fragment-carried host (G-2). Cost: the pinned grant probe runs two more drift jobs (eight in all); migrate-clean stays about 5 s of probe time on this host. Review round: a trigger hidden by marking it internal in pg_catalog (A1-OT-1), COPY to or from a server file and the server-file function calls (C0-OT-2, Q0-OT-3), and quoted or commented spellings past 170's do-block allowlist (C0-OT-1) are refused; redaction also covers a percent-encoded user, database and host, a host list and an IPv6 zone id (A1-OT-4). The pinned trigger probe runs one more drift job (three).",
-  "migration_and_data_impact": "None. No migration file is added or edited. Two lint files change one _how_measured line each (regenerated on the clean set), and the retention and audit coverage maps change only their blocker citations (line numbers to quotes; three retention-map quotes lengthened in the review round so each is said by one blocker only).",
-  "compatibility_impact": "Tests stay 684 (none added or renamed); foundation-contract's assertion floor 946 -> 1000 -> 1014 (the review round) and identity-isolation's 2167 -> 2169, the guard's own count; rls-smoke cases unchanged at 1087. Probe digests move for the pinned trigger (twice), pinned grant and index coverage probes only. A later batch that adds a migration must regenerate pinned-grants.json and the known exceptions (their _how_measured names the last migration), one that adds a trigger must pin it, and a migration may no longer carry COPY to or from a server file or call a server-file function. The amendment paths stay three, so no open_blockers line pin moves.",
+  "security_privacy_cost_impact": "Security: tooling and static tests only; no grant, policy, role or schema change. Every static reader now reads SQL as PostgreSQL does, and psqlLex refuses in every fed source, at every level of literal and dollar body: COPY to or from any target but STDIN/STDOUT whatever its quoting (C0-OTR-2, A1-RC-1, Q0-OT2-1), a server-file function called by name or internal symbol, LANGUAGE internal or c (A1-RC-2), CREATE EXTENSION outside pgcrypto and the foreign-data statements (Q0-OT2-2). Each was reachable only by a reviewed migration author; the live catalog probes still hold the guarantees. Privacy: no data. Cost: none; no dependency. Review round: a server-file function is refused as ANY identifier token outside GRANT, REVOKE or COMMENT (C0-SL-1: an operator over lo_export and a rename of it each wrote a host file with every layer green before), and every `;` psql would hold inside CREATE FUNCTION/PROCEDURE is refused (C0-SL-3).",
+  "migration_and_data_impact": "None. No migration file is added or edited. db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (+1 each: the manifest's amendment list grew by one line; indexes and quotes unchanged). No integrated migration or fed source is newly refused (measured over all 221). Review round: still no migration; the fingerprint probe's rename drift moves from pg_read_file to pg_sleep (same shape, digest moved); 0 new refusals over 219 fed sources.",
+  "compatibility_impact": "Tests 684 -> 685 (one added to foundation-contract: test floor 80 -> 81, its name digest, assertion floor 1014 -> 1044; identity-isolation stays 2169), evidence/VERIFICATION.md 685. rls-smoke cases unchanged at 1087. The removed exports of psql-driver.mjs (SET_NAMES, COPY_PROGRAM, COPY_SERVER_FILE, SERVER_FILE_CALL, escapeSpellings, ESCAPE_SPELLING_DEPTH) had no other user; SERVER_FILE_FUNCTIONS grows from 17 to 33 names and APPROVED_EXTENSIONS is new. Three existing lexer shapes gain a fail-closed finding (each commented). Review round: no test added (685 stays), assertions added to existing tests; the owed-tooling shape `alter function pg_catalog.pg_read_file(text) rename to probe_x` is now refused (1, was 0); psqlHeldSemicolons is a new export of sql-lexer.mjs.",
   "known_limitations": [
-    "The pinned trigger probe reads tables in app and private only; a trigger on a table in another schema, such as a child in public, is read by no rule here (A1-OT-I2, Q0-OT-9).",
-    "The export rule's token/credential half reads column NAMES (token, secret, credential, password; a *_redacted flag excepted); a material column named otherwise is the §5 cell's to class.",
-    "The audit-table tripwire is a text scan of the spellings its test pins, comments read as whitespace: a dynamic EXECUTE, a function a trigger runs rewritten in place (held by the pinned trigger probe's digest) and any spelling not pinned are not read by it; the live probes hold the catalog, and the catalog assertion for every role on either audit table stays owed with batch 141's migration (open_blockers[191] (9)).",
-    "Words or names computed at run time (a COPY, a server-file call or an encoding name built by EXECUTE or a wrapper) are not read by the lexer, as for client_encoding; rls-smoke reads no migration text, so a migration carrying a refused shape is refused by migrate-clean.",
-    "The pinned grant probe's rules 7 and 8, like 2-4, fail by design on a provisioned platform instance until Q170-c measures its roles, schema owners and default ACLs.",
-    "The grant files' measured-on version is read from the file it checks, and generate-pinned-grants.mjs --check runs in no make target or CI workflow (Q0-OT-6): it is held by a manual --check only.",
-    "redactConnection is not libpq's parser: it reads more URL pieces than libpq connects by, never fewer, and leaves a piece of two characters or less unredacted.",
-    "Left owed, outside this batch's list: C0 R2's other two guards and Q0 R-2 on 160-prep ([192]); Q0 R-1 and C0 R-1 on 170-assert ([193]); C0 N4's lint message ([191] (8)); A1 R3, R4 on 150-prereq ([194]); everything else those blockers and [185] hold."
+    "Semantics are not lexical: which function a name resolves to, what a body does at run time, whether a grant widens anything. The live catalog probes hold these.",
+    "Text computed at run time (EXECUTE of a concatenation, format(), chr(), set_config of a built name, 'pro' || 'gram') is not read by any lexer.",
+    "The word rules over the lexer's output (the tripwire and view patterns, the migration-text pins) are still patterns, over normalised text, and read the spellings pinned.",
+    "The differential is re-checked statically only for sources whose sha256 it recorded; a new fed source needs the measurement re-run (owed to A0 on open_blockers[185]).",
+    "A psql variable reference named by a digit (b[1:2]) is admitted: psql sets none and nothing fed can set one.",
+    "evidence/VERIFICATION.md was written with record-verification.mjs's own render at 685/685/0, because record:verification refuses while the handoff guard is red and the handoff commit is last and alone; verification-record.test.mjs checks it against a live run.",
+    "A literal holding only a server-file name (`where proname = 'lo_export'`) is refused, because a literal's text is read as SQL at the next level: an over-refusal, fail closed, that no fed source meets today.",
+    "A `;` psql's begin_depth heuristic would hold is refused, not modelled: modelling the merge would hide a later statement's head from the transaction-control rule.",
+    "Word rules over raw or stripped text remain in rls-assertions.test.mjs (set_config over the helper) and the §8.5 rules of run.mjs (C0-SL-I2), within the stated word-rule limit."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[185] and [191]-[195] each record what this batch and its review round closed and what stays owed, with owners; none is stop-the-line, and no review found one.",
-    "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, Q170-c's instance measurement and DATA-DEC-03 stay open; this batch answers none of them."
+    "open_blockers[185] records what this batch closed, its review round's corrections (A1-RC-2 was closed for LANGUAGE internal/c only and is now closed by token position; the counts are 18 and 15; the psql split), and what stays owed with owners (A1-RC-4, the INFO items of the owed-tooling re-checks, re-running the differential for new fed sources); none is stop-the-line.",
+    "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, the provisioned-instance measurement (Q170-c) and DATA-DEC-03 stay unanswered; this batch does not decide them.",
+    "RFC-2026-025 §5: Integration Owner evidence is still owed for every merge A0 presses."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved, so a revert restores the previous assertions exactly.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved, so a revert restores the previous readers exactly.",
   "recommended_next_work_packages": [
-    "Re-checks of this review round by C0, Q0 and A1 (plan \"Review round\": each change, its drift and its mutation), then the merge under the standing delegation if the bar of 127 §6 is met.",
-    "The decisions the Owner's summary named as needing words or access: RFC approvals, the SLO ratification, Q170-c's measurement, DATA-DEC-03 / RFC-2026-023."
+    "Re-checks of this review round by the C0, A1 and Q0 role runs (in particular C0-SL-1's remedy (a) and the begin_depth refusal). Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
+    "The decisions the Owner's summary named as needing words or access (items 1-4), unchanged."
   ],
   "reviewer_instructions": [
-    "Read plan \"Review round\" (finding -> change -> measured) first; then git diff af394fa..84e10f7 -- scripts/db test-kits/db tests/db db/foundation work-packages.",
-    "Re-run the review round's live drifts by appending each to 140_audit.sql on a fresh cluster (restore it byte for byte): COPY to a server file and a pg_stat_file call must fail migrate-clean by line with no file written; a trigger on app.workspaces marked tgisinternal must fail migrate-clean by name.",
-    "Re-run the reviewers' own static drifts (C0 M-C1, M-C2; A1 §3.1-§3.4; Q0 Q1a, Q1b, Q1c, Q1d, Q4, Q5, Q7a, Q7b) and confirm each now turns its layer red.",
-    "Judge whether the stated limits (computed words; app and private only; a text tripwire; a manual --check for the measured-on version) are stated truthfully and narrowly enough."
+    "Read evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\" first (cherry-pick map; finding -> change -> measured); then git diff 45893d9..286770f.",
+    "Re-run C0's D-op and D-ren appended to 140_audit.sql on a fresh cluster (shim first; restore byte for byte): each should now be migrate-clean 2 with no marker file. Re-run S-begin likewise.",
+    "Re-run M-view (viewScanText = (text) => text) and L14 (VT removed from SPACE): each should now be red.",
+    "Read scripts/db/sql-lexer.mjs against the PostgreSQL 17 documentation (sql-syntax-lexical) and src/backend/parser/scan.l: comments ended by CR, nested comments, continuation in the E state, UESCAPE, dollar-tag matching, the numeric junk rule, the operator cut.",
+    "Re-run the drifts by appending each of plan §3 to 140_audit.sql on a fresh cluster (shim first) and restoring the file byte for byte; re-run the differential with log_statement = all and compare the queries psql sent with psqlLex(sql).statements.",
+    "Try to find a spelling a reader still reads otherwise than PostgreSQL: every finding of that kind is now a lexer bug, fixed once for every reader."
   ],
   "superseded_by": null
 }

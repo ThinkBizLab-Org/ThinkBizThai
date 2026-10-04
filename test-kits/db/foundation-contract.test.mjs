@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import test from 'node:test';
+import { SQL_LINE_COMMENTS, SQL_LITERALS, canonicalStatements, lexSql, stripComments, walkLevels } from '../../scripts/db/sql-lexer.mjs';
 
 import { LIVE, ORDER, contractCheck, schemaLint } from '../../scripts/db/run.mjs';
 
@@ -1920,7 +1921,7 @@ test('every entry in the map names a table a migration creates, and none of them
     'the file says so where an author reads it, so an entry cannot be mistaken for an authorisation');
   for (const cell of map.cells) {
     const migration = await readFile(`${dir}/${cell.batch}`, 'utf8');
-    const code = migration.replace(/--[^\n]*/g, '');
+    const code = migration.replace(SQL_LINE_COMMENTS, '');
     // `cell.table` may be schema-qualified since batch 110 -- its own cell is on a table in
     // `private` -- so the schema is taken from the name when it carries one and defaults to `app`
     // when it does not, which is what the rule itself does. Hard-coding `app.` here would have
@@ -2260,8 +2261,11 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     // plain literal read as an E-string, and a dollar tag after an identifier character, would each
     // hide the \\! (Q0 M-LEX-E, M-LEX-DQ).
     ['select 1 as one; -- a comment\r \\! touch f\n', 1], ["set standard_conforming_strings = off;\nselect 'x';", 1],
-    ["select set_config('standard_' || 'conforming_strings', 'off', false);\nselect 'x\\' as a, ' \\! f\nas b;", 1],
-    ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 3],
+    // The sql-lexer batch: this one also leaves its last literal unterminated, which the one lexer refuses (fail
+    // closed) where the old scanner read it to the end: 1 -> 2. And `1.e'` is trailing junk after a number to
+    // PostgreSQL 15+, refused as such besides its other findings: 3 -> 4.
+    ["select set_config('standard_' || 'conforming_strings', 'off', false);\nselect 'x\\' as a, ' \\! f\nas b;", 2],
+    ["set standard_conforming_strings = off;\nselect '\\''; \\! touch f\n-- '", 2], ["select 1.e'\\' \\! touch f\n';", 4],
     ["select '\\'; \\! x\n-- '", 2], ['select 1 as x$a$; \\! x\n-- $a$', 1],
     ["select 'a\\\\';", 0], ['select 1;\r\nselect 2;\r\n', 0], ["select e'\\'' as a;", 1],
     // Batch 127 (Q0 F1 on batch 126's re-check): the odd-run rule at runs of three and five, not one alone.
@@ -2293,7 +2297,8 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     ["set U&\"client\\005fencoding\" to 'SJIS';", 1], ["set U&\"client!005fencoding\" UESCAPE '!' to 'SJIS';", 1],
     ["select set_config(U&'client\\005fencoding', 'SJIS', false);", 1], ["select set_config(E'client\\137encoding', 'GBK', false);", 1],
     ["do $$ begin execute 'set U&\"client\\005fencoding\" to ''SJIS'''; end $$;", 1],
-    ["do $$ begin execute E'set\\x20names ''SJIS'''; end $$;", 1], ["do $$ begin execute E'set client\\x5fencoding to ''BIG5'''; end $$;", 1],
+    // The sql-lexer batch: the E'' literal is decoded and its text read as SQL, so its `set names` is read too: 1 -> 2.
+    ["do $$ begin execute E'set\\x20names ''SJIS'''; end $$;", 2], ["do $$ begin execute E'set client\\x5fencoding to ''BIG5'''; end $$;", 1],
     ["set U&\"standard\\005fconforming\\005fstrings\" to off;", 1], ["do $$ begin execute 'select E''x'''; end $$;", 1],
     ["select 'e' as e, date'2026-10-03' as d, menu&'x' as m;", 0], ["select d.deptype = 'e' from pg_depend d;", 0],
     ["-- U&\"x\" and E'y' in a comment\nselect \"U&'\" from t;", 0],
@@ -2312,13 +2317,15 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     ['copy app.jobs to stdout;', 0], ["select 'the program to run' as note;", 0],
     // The owed-tooling batch's review round (C0-OT-2, Q0-OT-3): COPY TO or FROM a server file wrote a file on the
     // host with every layer green, and G1's remedy named the server-file functions too. Each spelling refused;
-    // STDIN and STDOUT, the word "copy" in prose, and a function NAMED after FUNCTION (not called) admitted.
+    // STDIN and STDOUT, the word "copy" in prose, and a function NAMED in a GRANT admitted. Since the sql-lexer
+    // batch's review round (C0-SL-1) a rename of one is refused too: a rename of lo_export, then a call by the new
+    // name, wrote a host file.
     ["copy app.jobs from '/tmp/x';", 1], ["copy (select 'q0c') to '/tmp/x';", 1], ["COPY \"app\".\"jobs\" (id, kind) TO '/tmp/x';", 1],
     ["copy(select (1)) to /* c */ '/tmp/x';", 1], ["copy binary t from '/tmp/x';", 1], ["do $$ begin execute 'copy (select 1) to ''/tmp/x'''; end $$;", 1],
     ["select pg_read_file('/etc/hosts');", 1], ["select pg_catalog.\"pg_read_file\"('/etc/hosts');", 1], ["select lo_export(1, '/tmp/x');", 1],
     ["select lo_import('/tmp/x');", 1], ["select count(*) from pg_ls_dir /* c */ ('.');", 1], ["select pg_stat_file('postgresql.conf');", 1],
     ['copy app.jobs from stdin;', 0], ["select 'a nullable copy of the item''s page could not be held equal to ' || 'x';", 0],
-    ['grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;', 0], ['alter function pg_catalog.pg_read_file(text) rename to probe_x;', 0]]) {
+    ['grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;', 0], ['alter function pg_catalog.pg_read_file(text) rename to probe_x;', 1]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2334,6 +2341,168 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
   // re-check), then the loop.
   assert.match(runner, /const meta = metaCommandFindings\(\[\{ name: 'the system object fingerprint', sql: SYSTEM_FINGERPRINT_SNAPSHOT_SQL \}, \.\.\.steps\]\);\n\s*if \(meta\.length\) \{[^\n]*return 1; \}\n(?:\s*\/\/[^\n]*\n)*\s*const \{ query, feed: readRows \} = await import\('\.\/psql-driver\.mjs'\);\n\s*const taken = await script\(SYSTEM_FINGERPRINT_SNAPSHOT_SQL\);\n[\s\S]*?\n\s*for \(const \{ name, sql \} of steps\) \{/,
     'and the scan runs before the fingerprint and the loop that applies them');
+});
+
+// ONE SQL LEXER FOR EVERY STATIC READER (the sql-lexer batch; the Owner's `ลุยต่อเลย เอาตามแนะนำ`, 2026-10-04, accepting
+// A0's recommendation over a parser RFC). scripts/db/sql-lexer.mjs follows PostgreSQL's lexical rules and psql's two
+// additions, and every static reader reads through it: psqlLex and its refusals, the COPY and server-file rules, the
+// do-block counter and allowlist, the comment and literal strippers, the audit tripwires and the view scans. This test
+// holds (1) the golden corpus: each spelling the review rounds measured, tokenized as PostgreSQL does or refused;
+// (2) fail closed: a text the lexer cannot classify is refused, never read past; (3) the differential: for every
+// script the repository feeds psql, the lexer's statement split is the split psql SENT, measured on PostgreSQL 17.11
+// (log_statement = all, one entry per query psql sent) and recorded with each source's sha256; and (4) the readers
+// built on it. What no lexer decides -- what a statement means, and text computed at run time -- stays held by the
+// live catalog probes (blocker 186's sql-lexer sentence).
+test('one SQL lexer reads every fed source as PostgreSQL and psql do: the golden corpus, the fail-closed refusals and the measured statement split', async () => {
+  const L = await import('../../scripts/db/sql-lexer.mjs');
+  const { psqlLex, SERVER_FILE_FUNCTIONS, APPROVED_EXTENSIONS } = await import('../../scripts/db/psql-driver.mjs');
+  const sig = (sql, options) => L.lexSql(sql, options).tokens.filter((t) => !L.isTrivia(t)).map((t) => [t.kind, t.value ?? t.text]);
+  // (1) Tokenized as PostgreSQL does. Every token's text concatenates back to the input.
+  for (const [sql, want, options] of [
+    // A quote inside a dollar body, `--` inside a literal, `/*` inside a dollar body (C0-OTR-1, A1-RC-3, A1-RC-I1).
+    ["select $q$'$q$, 'a--', $q$/*$q$", [['ident', 'select'], ['dollar', "'"], ['punct', ','], ['string', 'a--'], ['punct', ','], ['dollar', '/*']]],
+    // A `--` comment ends at a bare CR as well as at LF (scan.l: non_newline is [^\n\r]), so psql reads the backslash after it.
+    ['select 1 -- c\r\\! touch f\n', [['ident', 'select'], ['number', '1'], ['meta', '\\! touch f']], { psql: true }],
+    ['select 1 -- c\r\n', [['ident', 'select'], ['number', '1']]],
+    // Nested block comments; a quoted identifier with a doubled quote; case folding.
+    ['/* a /* b */ c */ SELECT "x""Y" FROM T', [['ident', 'select'], ['qident', 'x"Y'], ['ident', 'from'], ['ident', 't']]],
+    // Dollar quotes: a different tag inside is body text; a `$` after an identifier character continues the identifier.
+    ['select $a$ $b$ x $b$ $a$, a$b$c', [['ident', 'select'], ['dollar', ' $b$ x $b$ '], ['punct', ','], ['ident', 'a$b$c']]],
+    ['select $_1$x$_1$, $1', [['ident', 'select'], ['dollar', 'x'], ['punct', ','], ['param', '$1']]],
+    // String continuation across a newline (comments allowed after it), and in the E'' state the first segment opened.
+    ["select 'a'\n  -- c\n'b', E'x'\n'\\''", [['ident', 'select'], ['string', 'ab'], ['punct', ','], ['estring', "x'"]]],
+    ["select 'a' 'b'", [['ident', 'select'], ['string', 'a'], ['string', 'b']]],
+    // E'', U&'' with UESCAPE, U&"" decoded; B'', X'', N''; `ex'` is an identifier then a plain literal.
+    ["select E'\\x20\\101\\u0042', U&'d!0061t!+000061' UESCAPE '!', U&\"client\\005fencoding\"", [['ident', 'select'], ['estring', ' AB'], ['punct', ','], ['ustring', 'data'], ['punct', ','], ['uident', 'client_encoding']]],
+    ["select B'101', X'1F', N'n', ex'y'", [['ident', 'select'], ['bstring', '101'], ['punct', ','], ['xstring', '1F'], ['punct', ','], ['string', 'n'], ['punct', ','], ['ident', 'ex'], ['string', 'y']]],
+    // Operators cut before an embedded comment; casts; the trailing +/- rule.
+    ['select 1+/*c*/2, a::text, 3*-4', [['ident', 'select'], ['number', '1'], ['op', '+'], ['number', '2'], ['punct', ','], ['ident', 'a'], ['punct', '::'], ['ident', 'text'], ['punct', ','], ['number', '3'], ['op', '*'], ['op', '-'], ['number', '4']]],
+    ['select 1.5e3, .5, 1_000, 0x1F', [['ident', 'select'], ['number', '1.5e3'], ['punct', ','], ['number', '.5'], ['punct', ','], ['number', '1_000'], ['punct', ','], ['number', '0x1F']]],
+    // VT is whitespace (PostgreSQL 16+), so `select<VT>1` is two tokens (Q0-SL-1: no golden case held one).
+    ['select\v1\vfrom\vt', [['ident', 'select'], ['number', '1'], ['ident', 'from'], ['ident', 't']]],
+  ]) {
+    assert.deepEqual(sig(sql, options), want, `tokenized as PostgreSQL does: ${JSON.stringify(sql)}`);
+    const { tokens, refusals } = L.lexSql(sql, options);
+    assert.deepEqual(refusals, [], `and classified whole: ${JSON.stringify(sql)}`);
+    assert.equal(tokens.map((t) => t.text).join(''), sql, 'the tokens are the text');
+  }
+  // Statements split where psql splits them: at `;` outside parentheses, whatever a literal, body or name holds.
+  assert.deepEqual(L.splitStatements(L.lexSql("select 1;; select (2;3); select ';', $$;$$, \"a;b\" -- ;\n;").tokens).map((s) => s.head),
+    ['select 1', 'select (2;3)', "select ';', $$;$$, \"a;b\""]);
+  // The canonical form: an unquoted identifier folded, a quoted one that is a plain lower-case name written bare, any
+  // other quoted one `"?"`, every literal and body `''` (Q0-SL-2: the quoted-identifier rule was pinned only elsewhere).
+  assert.equal(L.canonical(L.lexSql('SELECT "app"."X y", "t;x", $b$x$b$ FROM "t" -- c\n').tokens), 'select app . "?" , "?" , \'\' from t');
+  // Where psql's begin_depth heuristic holds a `;` (psqlscan.l), which this splitter would not (C0-SL-3, measured on
+  // psql 17.11: one query sent where the split made three). Each is refused by psqlLex; a begin ... end that closes
+  // before the `;`, a body in dollar quotes, and a `begin` outside CREATE FUNCTION/PROCEDURE split as psql splits them.
+  const held = (sql) => L.psqlHeldSemicolons(L.lexSql(sql).tokens).length;
+  assert.equal(held("create function public.c0_f() returns int language sql set search_path = begin as 'select 1'; select 2; select 3;"), 3);
+  assert.equal(held('create or replace procedure p() language sql begin atomic select 1; end;'), 1);
+  assert.equal(held('CREATE PROCEDURE p() BEGIN ATOMIC SELECT CASE WHEN true THEN 1 END; SELECT 2; END;'), 2);
+  assert.equal(held("create function f() returns int as $$ begin return 1; end $$ language plpgsql; begin; select 1; commit;"), 0);
+  assert.equal(held("create function f(begin int) returns int language sql return 1; select 2;"), 0, 'a begin inside parentheses is not counted');
+  assert.equal(held("create table begin_t (x int); create function \"begin\"() returns int language sql return 1; select 2;"), 0, 'nor a quoted one');
+  assert.match(psqlLex("create function public.c0_f() returns int language sql set search_path = begin as 'select 1'; select 2;").metaCommands.map((x) => x.text).join(' | '), /a `;` psql would not end a statement at/);
+  // (2) Fail closed: what the lexer cannot classify is a refusal, never a token read past.
+  for (const [sql, reason, options] of [
+    ["select 'abc", /unterminated quoted string/], ['select $x$ abc', /unterminated dollar-quoted/], ['/* open /* nested */', /unterminated \/\* comment/],
+    ['select "x', /unterminated quoted identifier/], ['select ""', /zero-length/], ["select 1.e'\\''", /trailing junk/], ['select 1x', /trailing junk/],
+    ['select {}', /no SQL token holds/], ['select \u0001', /no SQL token holds/], ['select $ 1', /opens no dollar quote/],
+    ["select E'\\u12'", /malformed escape/], ["select U&'\\00zz'", /malformed escape/], ["select X'zz'", /hex digits/],
+    ['select x[1:n]', /psql variable/, { psql: true }], ["select :'v'", /psql variable/, { psql: true }],
+  ]) {
+    assert.match(L.lexSql(sql, options).refusals.map((r) => r.reason).join('; '), reason, `refused: ${JSON.stringify(sql)}`);
+    assert.ok(psqlLex(sql).metaCommands.length > 0, `and psqlLex refuses it: ${JSON.stringify(sql)}`);
+  }
+  assert.deepEqual(L.lexSql('select x[1:n], a::int', {}).refusals, [], 'outside psql a slice is a slice');
+  // The spellings the review rounds measured, through psqlLex: each refused, by what it is.
+  const refusedBy = (sql) => psqlLex(sql).metaCommands.map((m) => m.text).join(' | ');
+  for (const [sql, why] of [
+    ['copy app.jobs to $p$/tmp/x$p$;', /COPY \.\.\. TO\/FROM a server file/], ["copy (select ';') to '/tmp/x';", /COPY \.\.\. TO\/FROM a server file/],
+    ["COPY \"app\".\"jobs\" (id) TO U&'/tmp/x';", /COPY \.\.\. TO\/FROM a server file/], ['copy t from $$/etc/passwd$$;', /server file/], ['copy t to x;', /server file/],
+    ["copy t to program 'id';", /PROGRAM/], ["do $$ begin execute $q$copy t from program 'id'$q$; end $$;", /PROGRAM/], ['copy;', /COPY statement whose target this lexer cannot read/],
+    ["select be_lo_export(1, '/tmp/x');", /server-file function call/], ["select pg_read_file_all('/etc/hosts');", /server-file function call/],
+    ["select \"pg_read_file\" /* c */ ('/etc/hosts');", /server-file function call/],
+    ["create function public.f(text) returns text language internal strict as 'pg_read_file_all';", /LANGUAGE internal/],
+    ["create function public.g(oid, text) returns integer as 'be_lo_export' language 'internal';", /LANGUAGE internal/],
+    ["create function public.h() returns int as '$libdir/x', 'y' language C;", /LANGUAGE c/],
+    ["do $$ begin execute 'create function public.f(text) returns text language internal as ''pg_read_file_all'''; end $$;", /LANGUAGE internal/],
+    ['set U&"client\\005fencoding" to \'SJIS\';', /U& escape spelling/], ["select E'\\x20';", /E'' escape spelling/],
+    ["do $$ begin set names 'SJIS'; end $$;", /set names/], ["do $$ begin execute 'set local names ''SJIS'''; end $$;", /set names/],
+    ['select 1; -- c\r\\! touch f\n', /\\! touch f/], ['set standard_conforming_strings = off;', /standard_conforming_strings/],
+    ['create extension file_fdw;', /CREATE EXTENSION file_fdw/], ['CREATE EXTENSION IF NOT EXISTS "dblink";', /CREATE EXTENSION dblink/],
+    ["create server s foreign data wrapper file_fdw;", /foreign table, foreign data wrapper, server/],
+    ["create foreign table t (x text) server s options (program 'id');", /foreign table, foreign data wrapper, server/],
+    ['import foreign schema x from server s into y;', /foreign table/], ['create user mapping for public server s;', /user mapping/],
+    ['create function f() returns int language sql begin atomic select 1; end;', /BEGIN ATOMIC/],
+    // A server-file function reached under another name (C0-SL-1, measured: the operator and the rename each wrote a
+    // host file with migrate-clean green before the review round): named anywhere but in GRANT, REVOKE or COMMENT.
+    ['create operator public.### (leftarg = oid, rightarg = text, function = pg_catalog.lo_export);', /server-file function named outside/],
+    ['create cast (text as bytea) with function pg_catalog.pg_read_binary_file(text);', /server-file function named outside/],
+    ['create aggregate public.agg(text) (sfunc = pg_catalog.pg_read_file, stype = text);', /server-file function named outside/],
+    ['alter function pg_catalog.lo_export(oid, text) rename to c0_lx;', /server-file function named outside/],
+    ['alter function pg_catalog.pg_read_file(text) set schema public;', /server-file function named outside/],
+    ['alter function pg_catalog."lo_export"(oid, text) owner to authenticated;', /server-file function named outside/],
+    ['create function public.lo_export(oid, text) returns int language sql return 1;', /server-file function named outside/],
+    ["do $$ begin execute 'create operator public.### (leftarg = oid, rightarg = text, function = lo_export)'; end $$;", /server-file function named outside/],
+  ]) {
+    assert.match(refusedBy(sql), why, `refused: ${JSON.stringify(sql)}`);
+  }
+  for (const sql of ['copy app.jobs to stdout;', 'copy t (a, b) from stdin with (format csv);', 'create extension if not exists pgcrypto with schema extensions;',
+    'alter table t add constraint f foreign key (a) references u (a);', "select 'view(s), materialized view(s) or foreign table(s)' as m;",
+    'grant execute on function pg_catalog.pg_read_file(text) to authenticated;', 'revoke all on function pg_catalog.lo_export(oid, text), pg_catalog.lo_import(text) from public;',
+    "comment on function pg_catalog.pg_read_file(text) is 'reads a server file';", 'select x.copy from t as x;', "select 'a copy of the item' as c;",
+    "select 'x' as y where z = 'begin atomic';", 'select a::text, b[1:2] from t;', "create function f() returns int language sql return 2;"]) {
+    assert.deepEqual(psqlLex(sql).metaCommands, [], `admitted: ${sql}`);
+  }
+  assert.deepEqual(APPROVED_EXTENSIONS, ['pgcrypto'], 'the one extension the migrations create (000_foundation.sql, prerequisites.sql)');
+  for (const name of ['pg_read_file', 'lo_export', 'pg_read_file_all', 'be_lo_export', 'be_lo_import', 'pg_stat_file_1arg']) assert.ok(SERVER_FILE_FUNCTIONS.includes(name), `${name} is read`);
+  // EVERY name in the list, called, is refused (Q0-OT2-5: twelve of the then seventeen were pinned by nothing), and
+  // named in a COMMENT it reaches nothing. The counts: eighteen by name and fifteen internal symbols (C0-SL-5 measured
+  // 15 distinct `prosrc <> proname` on 17.11; the plan and [185] had said sixteen and seventeen).
+  assert.equal(SERVER_FILE_FUNCTIONS.length, 33, 'the eighteen by name and the fifteen internal symbols measured on 17.11');
+  assert.equal(SERVER_FILE_FUNCTIONS.indexOf('be_lo_export'), 18, 'eighteen names, then the fifteen symbols');
+  for (const name of SERVER_FILE_FUNCTIONS) {
+    assert.match(refusedBy(`select pg_catalog.${name}('x');`), /server-file function call/, `${name}(...) is refused`);
+    assert.deepEqual(psqlLex(`comment on function pg_catalog.${name}(text) is 'x';`).metaCommands.filter((x) => /server-file/.test(x.text)), [], `${name} after FUNCTION is not a call`);
+  }
+  // The depth the nested reading goes to, and past it, refused.
+  let deep = "select 'set names'";
+  for (let k = 0; k < L.NESTED_DEPTH; k += 1) deep = `select '${deep.replace(/'/g, "''")}'`;
+  assert.match(refusedBy(deep), /nested past the depth/, 'a literal nested past the depth read is refused');
+  // (3) The differential, measured on a live cluster and recorded (test-kits/db/sql-lexer-differential.json): every
+  // source the repository feeds psql -- prerequisites, migrations, replacements, the CI shim, the helper, the
+  // fixtures, every probe and drift in run.mjs, the WS:911 fixture and the EXPLAIN harness -- split by the lexer into
+  // exactly the queries psql sent. A source whose text has not changed since is checked again here, by sha256.
+  const recorded = JSON.parse(await readFile('test-kits/db/sql-lexer-differential.json', 'utf8'));
+  assert.ok(recorded.sources.length >= 200, `the differential covers every fed source (${recorded.sources.length})`);
+  assert.deepEqual(recorded.sources.filter((s) => !s.same || s.lexer !== s.psql), [], 'and on every one the lexer split what psql sent');
+  const { createHash } = await import('node:crypto');
+  const m = await import('../../scripts/db/run.mjs');
+  const current = new Map();
+  for (const s of recorded.sources) {
+    if (s.source.startsWith('db/') || s.source.startsWith('tests/')) current.set(s.source, await readFile(s.source, 'utf8').catch(() => null));
+  }
+  for (const p of m.CATALOG_RULE_PROBES) { current.set(`probe ${p.label}`, p.sql); (p.selfTests ?? []).forEach((t, i) => current.set(`drift ${p.label} #${i + 1}`, t.drift)); }
+  let rechecked = 0;
+  for (const s of recorded.sources) {
+    const sql = current.get(s.source);
+    if (typeof sql !== 'string' || createHash('sha256').update(sql).digest('hex') !== s.sha256) continue;
+    rechecked += 1;
+    assert.equal(psqlLex(sql).statements.length, s.psql, `${s.source}: the lexer splits it into the ${s.psql} queries psql sent`);
+  }
+  const migrations = recorded.sources.filter((s) => s.source.startsWith('db/foundation/migrations/'));
+  assert.ok(migrations.length >= 40 && migrations.every((s) => createHash('sha256').update(current.get(s.source) ?? '').digest('hex') === s.sha256),
+    'every recorded migration is unchanged (an integrated migration is never rewritten), so each is re-checked');
+  assert.ok(rechecked >= 150, `re-checked here: ${rechecked}`);
+  // (4) The readers built on it.
+  assert.equal("select 'a--' x -- c\n".replace(L.SQL_LINE_COMMENTS, ''), "select 'a--' x \n", 'a `--` inside a literal is not a comment');
+  assert.equal('select $f$ begin -- c\n end $f$ /* k */'.replace(L.SQL_LINE_COMMENTS, ''), 'select $f$ begin \n end $f$ /* k */', 'a body is code; a block comment is kept by the line-comment reader');
+  assert.equal("select $q$'$q$, 'b' -- '\n".replace(L.SQL_LITERALS, "''"), "select $q$'$q$, '' -- '\n", 'a quote inside a dollar body or a comment opens no literal');
+  assert.throws(() => "select 'open".replace(L.SQL_LINE_COMMENTS, ''), /cannot classify/, 'a reader over a text that does not lex fails closed');
+  assert.deepEqual(L.canonicalStatements("do $$ begin execute 'grant insert on \"app\".audit_logs to anon'; end $$;").map((s) => s.text),
+    ["do ''", "begin execute ''", 'end', 'grant insert on app . audit_logs to anon'], 'every level, canonical');
+  assert.equal(m.doBlockOpeners('x.sql', "do $$ begin end $$;\n-- do $$\nselect 'do $$';\nDO LANGUAGE plpgsql $b$ begin end $b$;\ndo\n'begin end';"), 3, 'the do-block counter reads DO tokens only');
 });
 
 // updated_at IS THE DATABASE'S TO WRITE, ON EVERY TABLE THAT HANDS THE COLUMN TO A CLIENT.
@@ -2354,12 +2523,12 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
 // 111 were read by nothing. This pins each file's statements and the messages its block raises,
 // so deleting the block -- or the statement it guards -- fails here, by name, before a database.
 test('the forward fixes 094 and 111 keep their statements and their apply-time blocks', async () => {
-  const requestedBy = (await readFile('db/foundation/migrations/094_approval_requested_by.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const requestedBy = (await readFile('db/foundation/migrations/094_approval_requested_by.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   assert.match(requestedBy, /create policy approval_requests_requester_is_caller on app\.approval_requests\s+as restrictive\s+for insert to authenticated\s+with check \(requested_by = \(select auth\.uid\(\)\)\);/,
     '094: one RESTRICTIVE INSERT policy, requested_by = auth.uid(), TO authenticated');
   assert.match(requestedBy, /did not write approval_requests_requester_is_caller as a RESTRICTIVE INSERT policy/, '094 asserts its own policy at apply time');
   assert.match(requestedBy, /requested_by became updatable by authenticated/, '094 asserts the column stays out of the UPDATE grant');
-  const socialKey = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const socialKey = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   assert.match(socialKey, /alter table app\.social_accounts\s+add constraint social_accounts_scope_key unique \(workspace_id, id\);/, '111: the scope key on social_accounts');
   assert.match(socialKey, /create index if not exists content_targets_social_scope_idx\s+on app\.content_targets \(workspace_id, social_account_id\);/, '111: the supporting index');
   assert.match(socialKey, /add constraint content_targets_social_scope_fk\s+foreign key \(workspace_id, social_account_id\)\s+references app\.social_accounts \(workspace_id, id\)\s+not valid;/, '111: the key, NOT VALID first');
@@ -2373,7 +2542,7 @@ test('the forward fixes 094 and 111 keep their statements and their apply-time b
 // updated_by to the caller where the column was client-updatable and bound nowhere. Pinned here so an
 // emptied file fails before a database, as Q0-111 F1 showed a forward fix otherwise can.
 test('the forward fix 105 keeps its seven UPDATE closures and its apply-time block', async () => {
-  const code = (await readFile('db/foundation/migrations/105_updated_by_on_update_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile('db/foundation/migrations/105_updated_by_on_update_is_caller.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   // 105's own seven; batch 123 added the other ten to the probe's list (its own test is below).
   const SEVEN = ['business_profiles', 'industry_assignments', 'knowledge_items', 'page_context_profiles',
     'workspace_invitations', 'workspace_settings', 'workspaces'];
@@ -2395,7 +2564,7 @@ test('the forward fix 105 keeps its seven UPDATE closures and its apply-time blo
 // on the ten remaining updated_by tables, the general rule made EXACT, and decided_by as a pair with
 // decided_at. Pinned here so an emptied file fails before a database.
 test('the forward fix 123 keeps its ten UPDATE closures, its decider closure and pair, and its exact general rule', async () => {
-  const code = (await readFile('db/foundation/migrations/123_attribution_closures_everywhere.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile('db/foundation/migrations/123_attribution_closures_everywhere.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const { UPDATED_BY_ON_UPDATE_CLOSURES } = await import('../../scripts/db/run.mjs');
   const TEN = ['approval_policies', 'approval_requests', 'asset_rights', 'assets', 'content_ideas', 'content_items',
     'content_targets', 'publish_intents', 'research_runs', 'research_suggestions'];
@@ -2426,7 +2595,7 @@ test('the forward fix 123 keeps its ten UPDATE closures, its decider closure and
 // bound by a restrictive closure on every table that hands it to a client. Pinned here so an emptied
 // file fails before a database.
 test('the forward fix 127 keeps its nineteen created_by INSERT closures and its exact general rule', async () => {
-  const code = (await readFile('db/foundation/migrations/127_created_by_on_insert_is_caller.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile('db/foundation/migrations/127_created_by_on_insert_is_caller.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const { CREATED_BY_CLOSURES, CREATED_BY_CHECK_TEXT } = await import('../../scripts/db/run.mjs');
   for (const t of CREATED_BY_CLOSURES) {
     assert.match(code, new RegExp(`create policy ${t}_created_by_is_caller on app\\.${t}\\s+as restrictive for insert to authenticated\\s+with check \\(created_by = \\(select auth\\.uid\\(\\)\\)\\);`),
@@ -2448,7 +2617,7 @@ test('the forward fix 127 keeps its nineteen created_by INSERT closures and its 
 // BATCH 125 (A1 N1 and C0 F2 on batch 123's corrections): a settled approval request cannot be updated by
 // a client, whichever permissive policy would admit it. Pinned here so an emptied file fails before a database.
 test('the forward fix 125 keeps its settled-row closure, the database-owned decision time, its apply-time block and its pins', async () => {
-  const code = (await readFile('db/foundation/migrations/125_approval_settled_is_immutable.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile('db/foundation/migrations/125_approval_settled_is_immutable.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   assert.match(code, /create policy approval_requests_settled_is_immutable on app\.approval_requests\s+as restrictive for update to authenticated\s+using \(status = 'pending'\)\s+with check \(true\);/,
     "125: restrictive, UPDATE, TO authenticated, USING status = 'pending', WITH CHECK true (USING alone would refuse every transition)");
   assert.equal([...code.matchAll(/create policy/g)].length, 1, '125 creates exactly one policy');
@@ -2471,7 +2640,7 @@ test('the forward fix 125 keeps its settled-row closure, the database-owned deci
   assert.ok(code.includes(`md5(p.prosrc) = '${createHash('md5').update(body).digest('hex')}'`), 'and the pinned digest is the body written above it');
   // BATCH 126, the forward fix to 125 (blocker 186 items 13, 15 and 17), held in the same test so the
   // suite's names, and so its digest, do not move.
-  const next = (await readFile('db/foundation/migrations/126_approval_decision_frozen_for_every_writer.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const next = (await readFile('db/foundation/migrations/126_approval_decision_frozen_for_every_writer.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   assert.match(next, /create or replace function private\.set_decided_at\(\)\s+returns trigger\s+language plpgsql\s+security invoker\s+set search_path = ''/,
     '126 keeps the invoker function, its name and its empty search_path');
   assert.match(next, /if tg_op = 'INSERT' then\s+if new\.decided_by is not null then\s+new\.decided_at := pg_catalog\.statement_timestamp\(\);/,
@@ -2508,7 +2677,7 @@ test('the forward fix 125 keeps its settled-row closure, the database-owned deci
 test('every table that grants updated_at to a role also has the database maintain it', async () => {
   const dir = 'db/foundation/migrations';
   const names = (await readdir(dir)).filter((n) => n.endsWith('.sql')).sort();
-  const texts = await Promise.all(names.map(async (n) => [n, (await readFile(`${dir}/${n}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+  const texts = await Promise.all(names.map(async (n) => [n, (await readFile(`${dir}/${n}`, 'utf8')).replace(SQL_LINE_COMMENTS, '')]));
   const triggered = new Set();
   for (const [, code] of texts) {
     for (const m of code.matchAll(/create trigger set_updated_at before update on (app\.\w+)/g)) triggered.add(m[1]);
@@ -2588,7 +2757,7 @@ test('every foreign key has a supporting index, asserted live after every migrat
   assert.match(FK_SUPPORT_PROBE_SQL, /not \(fk\.key = any \(exempt\)\)/, 'the exemption is matched on the qualified key, not on the name');
   assert.match(FK_SUPPORT_PROBE_SQL, /format\('%s\.%s\.%s', n\.nspname, cl\.relname, c\.conname\) = e/, 'and so is a stale exemption');
   const migration = await readFile('db/foundation/migrations/104_fk_supporting_indexes.sql', 'utf8');
-  const code = migration.replace(/--[^\n]*/g, '');
+  const code = migration.replace(SQL_LINE_COMMENTS, '');
   const listed = [...code.matchAll(/'([a-z_]+_fk)'/g)].map((m) => m[1]).sort();
   assert.deepEqual(listed, Object.keys(FK_SUPPORT_EXEMPTIONS).map((k) => k.split('.')[2]).sort(), '104\'s block and run.mjs exempt the same keys');
   assert.equal([...code.matchAll(/create index if not exists/g)].length, 11, '104 creates the eleven indexes it says it does');
@@ -2792,6 +2961,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // The owed-tooling batch's review round: pinned trigger 6c73217f9ce9e45f to 8412a302b7f190a7 (a third rule: every
   // internal trigger on a table in app or private is one of its table's FK checks, and its drift, a trigger hidden
   // by tgisinternal and an FK trigger re-pointed at RI_FKey_cascade_del: A1-OT-1). Every other digest stays.
+  // The sql-lexer batch's review round (no migration): system object fingerprint 6a533b62eacf2022 to f75c1e00bd908cd5
+  // (its drift renames pg_catalog.pg_sleep(double precision) in place of pg_read_file(text), which psqlLex now
+  // refuses as a server-file function named outside GRANT, REVOKE or COMMENT, C0-SL-1; the rename shape and the
+  // rule are unchanged). Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2806,7 +2979,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'd82a36c9fbe730c6',
-    'system object fingerprint probe': '6a533b62eacf2022',
+    'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '42d056bde20ea854',
@@ -3000,7 +3173,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // The drift carries each shape the reviews named, so a narrowing of what is read fails at migrate-clean too.
   const fpDrift = m.CATALOG_RULE_PROBES.find((p) => p.label === 'system object fingerprint probe').selfTests[0];
   for (const shape of [/create or replace view information_schema\./, /security definer;/, /grant execute on function pg_catalog\./,
-    /create or replace function information_schema\.\w+\([^)]*\) returns integer language sql immutable parallel safe strict return /, / rename to probe_renamed_read_file;/, /alter table information_schema\.\w+ rename to /]) {
+    /create or replace function information_schema\.\w+\([^)]*\) returns integer language sql immutable parallel safe strict return /, /alter function pg_catalog\.\w+\([^)]*\) rename to probe_renamed_\w+;/, /alter table information_schema\.\w+ rename to /]) {
     assert.match(fpDrift.drift, shape, `the fingerprint's drift holds ${shape}`);
   }
   assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /if differing > 0 then\n\s+raise exception/, 'and any one of them refuses');
@@ -3146,7 +3319,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   {
     const fromText = new Set();
     for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
-      const code = (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '');
+      const code = (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(SQL_LINE_COMMENTS, '');
       for (const t of code.matchAll(/create\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+(\w+)\s+(?:before|after|instead\s+of)[^;]*?\bon\s+((?:app|private)\.\w+)/gi)) fromText.add(`${t[2]}:${t[1]}`);
     }
     const pinned = Object.entries(m.PINNED_TABLE_TRIGGERS).flatMap(([t, defs]) => defs.map((d) => `${t}:${d.split(' ')[2]}`));
@@ -3214,6 +3387,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(file._how_measured, gen.grantsDoc(gen.measuredOn(last, version))._how_measured, `pinned-grants.json says it was measured through ${last}`);
     assert.equal(exceptionsFile._how_measured, gen.exceptionsDoc(gen.measuredOn(last, version))._how_measured, `and so does the known-exceptions file`);
     assert.doesNotMatch(await readFile('scripts/db/generate-pinned-grants.mjs', 'utf8'), /through 1[0-9]0\b/, 'the generator carries no migration number of its own');
+    // It reads the migrations' comments through the one SQL lexer (the sql-lexer batch's review round, C0-SL-4).
+    assert.match(await readFile('scripts/db/generate-pinned-grants.mjs', 'utf8'), /readFileSync\(`\$\{migrationsDir\}\/\$\{f\}`, 'utf8'\)\.replace\(SQL_LINE_COMMENTS, ''\)/,
+      'the generator strips comments through the lexer, not a `--` regex');
     const created = new Set();
     for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
       for (const t of (await readFile(`db/foundation/migrations/${name}`, 'utf8')).matchAll(/^create table if not exists ((?:app|private)\.[a-z_]+)/gm)) created.add(t[1]);
@@ -3265,7 +3441,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       assert.deepEqual([e.role, e.level], ['authenticated', 'columns'], `${e.relation}: authenticated, by column grants (no table-wide SELECT, §8.4)`);
       assert.ok(e.granted_by.length > 0, `${e.relation}: names the migration that grants it`);
       for (const f of e.granted_by) {
-        const sql = (await readFile(`db/foundation/migrations/${f}`, 'utf8')).replace(/--[^\n]*/g, '');
+        const sql = (await readFile(`db/foundation/migrations/${f}`, 'utf8')).replace(SQL_LINE_COMMENTS, '');
         assert.match(sql, new RegExp(`grant\\s+[^;]*select[^;]*\\s+on\\s+(?:table\\s+)?${e.relation.replace('.', '\\.')}\\s+to\\s+[^;]*authenticated`, 'i'), `${e.relation}: ${f} grants it SELECT`);
       }
     }
@@ -3386,7 +3562,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       // Batch 150-prereq's review round (A1 S4, C0-8): the trigger set is pinned too, and is empty today.
       assert.deepEqual(s.triggers, {}, `${t}: no non-internal trigger, pinned as an empty set (rule 5)`);
     }
-    const m121 = (await readFile('db/foundation/migrations/121_publisher_metrics.sql', 'utf8')).replace(/--[^\n]*/g, '');
+    const m121 = (await readFile('db/foundation/migrations/121_publisher_metrics.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
     const named = [...m121.matchAll(/constraint (performance_snapshots_[a-z_]+)\s*\n?\s*(?:check|unique|foreign|primary)/g)].map((x) => x[1]);
     assert.ok(named.length >= 9, 'measured: 121 names its performance_snapshots constraints');
     for (const n of named) assert.ok(m.PINNED_SHAPES['app.performance_snapshots'].constraints[n], `${n}: every constraint 121 names is pinned by text`);
@@ -3409,7 +3585,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(ps.indexes.performance_snapshots_pkey, 'CREATE UNIQUE INDEX performance_snapshots_pkey ON app.performance_snapshots USING btree (id, metric_time)', 'and so does its index');
     for (const [k, c] of Object.entries(ps.constraints).filter(([, c]) => ['p', 'u'].includes(c.type))) assert.match(c.def, /\bmetric_time\b/, `${k}: every unique carries metric_time (partition-ready)`);
     const m150 = await readFile('db/foundation/migrations/150_performance_snapshots_key.sql', 'utf8');
-    const m150code = m150.replace(/--[^\n]*/g, '');
+    const m150code = m150.replace(SQL_LINE_COMMENTS, '');
     assert.match(m150code, /alter table app\.performance_snapshots drop constraint performance_snapshots_pkey;\nalter table app\.performance_snapshots add constraint performance_snapshots_pkey primary key \(id, metric_time\);/, '150 re-keys the table in two statements');
     assert.match(m150code, /set lock_timeout = '5s';\nset statement_timeout = '60s';\n\n[\s\S]*?\nset lock_timeout = default;\nset statement_timeout = default;/, 'risky DDL under both timeouts, reset after (migration invariant 3)');
     assert.doesNotMatch(m150code, /\bpartition\s+by\b|attach\s+partition|create\s+(unique\s+)?index/i, 'no partitioning and no index (Q150-b)');
@@ -3437,7 +3613,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       }
     }
     const m170 = await readFile('db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql', 'utf8');
-    const m170code = m170.replace(/--[^\n]*/g, '');
+    const m170code = m170.replace(SQL_LINE_COMMENTS, '');
     assert.equal((m170code.match(/^revoke [^\n]*$/gm) ?? []).join('\n'), 'revoke update (lifecycle_state) on app.workspaces from authenticated;', '170 revokes exactly one column from one role');
     assert.doesNotMatch(m170code, /^\s*grant\b|\b(create|alter|drop)\s+(policy|table|function|trigger|index)\b/im, 'and grants nothing and creates, alters or drops no policy, table, function, trigger or index');
     // The review round (A1 F170-2): the keyword list above does not see `create or replace function`, a view,
@@ -3458,7 +3634,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     // the review round no double-quoted identifier and no block comment either, so "every call" means every call
     // however it is spelled; a call whose name is COMPUTED (an EXECUTE, refused by shape) is the only kind not read.
     const doBlockShapeProblems = (block) => {
-      const blank = block.replace(/'(?:[^']|'')*'/g, "''");
+      const blank = block.replace(SQL_LITERALS, "''");
       const body = blank.match(/^do \$\$\ndeclare\n {2}offending text;\nbegin\n([\s\S]*)\nend \$\$;$/);
       if (!body) return ['not `do $$ declare offending text; begin ... end $$;`'];
       const problems = [];
@@ -3469,6 +3645,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       // so either one is refused outright rather than read past.
       if (body[1].includes('"')) problems.push('a double-quoted identifier, which the name scans do not read');
       if (body[1].includes('/*')) problems.push('a block comment, which the name scans do not read past');
+      // The sql-lexer batch (C0-OTR-1, A1-RC-3 on the owed-tooling review round): the block's literals are blanked
+      // and its comments stripped by the one lexer now (scripts/db/sql-lexer.mjs), so a `'` inside a dollar-quoted
+      // literal or a `--` inside a plain one no longer moves where a literal or a comment ends. 170's block holds
+      // no dollar-quoted literal, so one is refused outright, as a quoted name and a block comment are.
+      if (body[1].includes('$')) problems.push('a dollar-quoted literal or parameter, which the name scans do not read');
       const SHAPES = [/^select string_agg\(.*\) into offending from (?:pg_catalog\.pg_attribute a|unnest\(array\[[^\]]*\]\) as cr\(r\), unnest\(array\[[^\]]*\]\) as p\(p\)) where .+$/,
         /^if .+ then raise exception '', .+$/, /^end if$/];
       for (const stmt of body[1].split(';').map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean)) {
@@ -3507,6 +3688,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where set_config/**/('role', 'app_worker', false) is not null;", /a block comment/],
       ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from \"app\".\"workspaces\" for update);", /a double-quoted identifier/],
       ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where exists (select 1 from/**/app/**/./**/jobs);", /a block comment/],
+      // The sql-lexer batch (C0-OTR-1, A1-RC-3): a `'` inside a dollar-quoted literal desynced the old blanker, which
+      // paired it with the next quote and blanked the call between; and `'a--'` was cut at its `--` by the old comment
+      // strip, taking the rest of the line with it. Read by the lexer, each call is seen and refused.
+      ["  select string_agg(a.attname, ', ') into offending from pg_catalog.pg_attribute a where $q$'$q$ = '' and pg_catalog.set_config('role', 'app_worker', false) is not null and '' = '';", /a dollar-quoted literal[\s\S]*call outside the allowlist: pg_catalog\.set_config/],
+      ["  select string_agg(a.attname, 'a--') into offending from pg_catalog.pg_attribute a where pg_catalog.set_config('role', 'app_worker', false) is not null;", /call outside the allowlist: pg_catalog\.set_config/],
     ]) {
       assert.match(doBlockShapeProblems(before(extra)).join('; '), problem, `the allowlist refuses: ${extra.trim()}`);
     }
@@ -3809,7 +3995,7 @@ test('no apply-time block in any migration is silenced from inside its own predi
     const raw = await readFile(`${dir}/${name}`, 'utf8');
     // comments first, then string literals ('...' with '' inside), so a message that SAYS "false and"
     // (131_billing_projection.sql:1295 does) is not a predicate that IS.
-    const code = raw.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
+    const code = raw.replace(SQL_LINE_COMMENTS, '').replace(SQL_LITERALS, "''");
     for (const block of code.matchAll(/do \$\$[\s\S]*?end \$\$;/g)) {
       blocks += 1;
       for (const [label, pattern] of SILENCERS) {
@@ -3901,7 +4087,7 @@ test('the post-migrate plan covers every do-block of every migration, and each s
     for (const later of block.superseded.superseded_by) {
       assert.match(text, new RegExp(`SUPERSEDED BY [^\\n]*\\b${later.slice(0, 3)}\\b`), `${block.superseded.replacement} says where ${later} changed it`);
     }
-    const code = text.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
+    const code = text.replace(SQL_LINE_COMMENTS, '').replace(SQL_LITERALS, "''");
     // One block and nothing else, and nothing that could end the pass's transaction from inside it:
     // C0 found `end $$; commit; ...` satisfied the shape rule above and would commit past the rollback.
     assert.equal(code.split('end $$;').length - 1, 1, `${block.superseded.replacement} closes exactly one block`);
@@ -3952,7 +4138,11 @@ test('a do-block the pass cannot extract is refused, and a register that lies ab
   assert.throws(() => applyTimeBlocks('x.sql', 'do language plpgsql $$\nbegin\nend $$;\n'), /open a do-block/, 'and a block naming its language first (C0)');
   assert.throws(() => applyTimeBlocks('x.sql', 'do\n$$\nbegin\nend $$;\n'), /open a do-block/, 'and one with its $$ on the next line (C0)');
   assert.throws(() => applyTimeBlocks('x.sql', 'select 1; do $$\nbegin\nend $$;\n'), /open a do-block/, 'and one opened mid-line (Q0 X3)');
-  assert.equal(applyTimeBlocks('x.sql', "do $$\nbegin\n  raise exception 'we do $$ here';\nend $$;\n").length, 1, 'control: a message that mentions do $$ is not a block');
+  // The sql-lexer batch: the do-block counter reads DO tokens through the one lexer. The control that stood here, a
+  // `$$` body whose message says `do $$`, is not SQL -- PostgreSQL ends that body at the `$$` in the message and the
+  // rest is an unterminated literal -- so the lexer refuses it (fail closed); the message is now spelled with another tag.
+  assert.equal(applyTimeBlocks('x.sql', "do $$\nbegin\n  raise exception 'we do $b$ here';\nend $$;\n").length, 1, 'control: a message that mentions do $b$ is not a block');
+  assert.throws(() => applyTimeBlocks('x.sql', "do $$\nbegin\n  raise exception 'we do $$ here';\nend $$;\n"), /cannot classify/, 'and a text that is not SQL is refused, not counted');
   const entry = { block: '030_industry.sql#1', superseded_by: ['031_industry_service_path_closed.sql'], replacement: '030_industry.1.sql', fails_with: 'app.industry_assignments carries 3 restrictive policies', why: 'a control entry for this test' };
   await postMigratePlan({ entries: [entry] }); // control: a true entry is accepted
   const lies = [
@@ -3972,14 +4162,14 @@ test('a do-block the pass cannot extract is refused, and a register that lies ab
 // default. A later batch that adds CASCADE or SET NULL here is changing that decision, and this rule
 // makes it do so in a diff that says so rather than in a clause nobody reads.
 test('content_targets_social_scope_fk carries no ON DELETE action, by the Owner\'s decision of 2026-09-15', async () => {
-  const code = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile('db/foundation/migrations/111_social_fk.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const key = code.match(/add constraint content_targets_social_scope_fk[\s\S]*?;/);
   assert.ok(key, '111 adds the key');
   assert.doesNotMatch(key[0], /on\s+(delete|update)/i, 'the key names no ON DELETE or ON UPDATE action: a social account row is never hard-deleted (disposition 2026-09-15 §5), so there is nothing to cascade, null or restrict');
   const readme = await readFile('db/foundation/README.md', 'utf8');
   assert.match(readme, /The key carries no ON DELETE action, by decision/, 'and the README records the decision beside the key');
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '111_social_fk.sql')) {
-    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(/--[^\n]*/g, '');
+    const text = (await readFile(`db/foundation/migrations/${later}`, 'utf8')).replace(SQL_LINE_COMMENTS, '');
     assert.doesNotMatch(text, /content_targets_social_scope_fk[\s\S]{0,300}on\s+delete/i, `${later} does not give the social key an ON DELETE action without changing the decision first`);
   }
 });
@@ -4007,27 +4197,14 @@ const AUDIT_TABLE_ALTER = new RegExp(String.raw`alter\s+table\s+(?:if\s+exists\s
 // review round; A1-OT-3, Q0-OT-8: the scans stripped `--` comments only, so `grant insert on /* x */ app.audit_logs`
 // and `alter table /* x */ app.audit_logs ...` passed them). Line comments and NESTED block comments, outside
 // single-quoted literals and double-quoted identifiers, each become one space; nothing else changes.
-const sqlWithoutComments = (text) => {
-  let out = '';
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (ch === '-' && text[i + 1] === '-') { while (i < text.length && text[i] !== '\n') i += 1; out += ' '; i -= 1; continue; }
-    if (ch === '/' && text[i + 1] === '*') {
-      let nest = 1; i += 2;
-      while (i < text.length && nest > 0) {
-        if (text[i] === '/' && text[i + 1] === '*') { nest += 1; i += 2; } else if (text[i] === '*' && text[i + 1] === '/') { nest -= 1; i += 2; } else i += 1;
-      }
-      out += ' '; i -= 1; continue;
-    }
-    if (ch === "'" || ch === '"') {
-      let j = i + 1;
-      while (j < text.length && !(text[j] === ch && text[j + 1] !== ch)) j += text[j] === ch ? 2 : 1;
-      out += text.slice(i, j + 1); i = j; continue;
-    }
-    out += ch;
-  }
-  return out;
-};
+const sqlWithoutComments = (text) => stripComments(text);
+// Since the sql-lexer batch the tripwires read every statement at every level -- the top level, and the text of every
+// literal and dollar body read again as SQL, as EXECUTE or a DO body would -- in the lexer's canonical form: comments
+// gone, words single-spaced, `"app"` written app, literals blanked to '' (their text is a level of its own), each
+// statement ended by its own `;`. So a `;` inside a quoted name or a literal no longer ends a `[^;]*` early, a `--`
+// inside a dollar body no longer eats the statement after it (A1-RC-I1, Q0-OT2-7), and a GRANT a DO block EXECUTEs
+// from a literal is read as a statement. What a statement COMPUTES at run time is still not read.
+const auditScanText = (text) => canonicalStatements(text).map((st) => `${st.text};`).join('\n');
 
 // The body of one `create table` in 140, read from the file with line comments stripped: its
 // columns (name, type, not null) and its constraint text.
@@ -4073,7 +4250,7 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
   assert.match(map._shape.batch, /open_blockers\[191\] \(8\)$/, 'and cites the blocker that owes the reading to A1');
   // NO POLICY AT ALL on either table, which is stronger than "no service policy" and true today:
   // RFC-2026-022 is approved and NOT IN EFFECT, and 140 writes no client policy either.
-  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  const code = auditScanText(await readFile(AUDIT_MIGRATION_140, 'utf8'));
   assert.doesNotMatch(code, /create\s+policy/i, '140 writes no policy; a classification authorises none');
   // A TRIPWIRE, NOT THE AUTHORITY (batch 141 prep review, A1 R4 and Q0-F6). The text scan accepts the
   // schema-qualified, quoted and unqualified spellings (`app.audit_logs`, `"app"."audit_logs"`,
@@ -4081,7 +4258,7 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
   // catalog is what decides, and 140's own block refuses only a service or anonymous role's policy, so a
   // catalog assertion for every role is owed with batch 141's migration (open_blockers[191] (9)).
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    const text = auditScanText(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
     assert.doesNotMatch(text, AUDIT_TABLE_POLICY,
       `${later} writes a policy on an audit table while RFC-2026-022 is not in effect and Q141-a is open`);
   }
@@ -4102,7 +4279,7 @@ test('batch 141 prep: the audit coverage map names real tables, real §8 rows, l
   const wpLines = wpText.split('\n');
   const blockers = JSON.parse(wpText).open_blockers;
   const erd = await readFile(ERD_DOC, 'utf8');
-  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const vocabulary = [...code.match(/audit_logs_action_category_known\s+check \(action_category in \(([^)]*)\)\)/)[1]
     .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
   assert.equal(vocabulary.length, 6, "140's category CHECK was read");
@@ -4248,7 +4425,7 @@ const contractLeaves = async () => {
 
 test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with every divergence pinned', async () => {
   const conformance = JSON.parse(await readFile(`${AUD_FIXTURES}/store-conformance.json`, 'utf8'));
-  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(/--[^\n]*/g, '');
+  const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const body = tableBodyOf(code, 'app.audit_logs');
   const columns = columnsOf(body);
   const { leaves } = await contractLeaves();
@@ -4351,7 +4528,7 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
   // forward fix to this family arrives with its own conformance update; this makes that a failure here
   // rather than an omission. Like the policy scan above, a tripwire and not the catalog.
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    const text = auditScanText(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
     assert.doesNotMatch(text, AUDIT_TABLE_ALTER,
       `${later} alters an audit table: update store-conformance.json and this test with it`);
   }
@@ -4370,7 +4547,7 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
   // (open_blockers[191] (9)). Since the review round (A1-OT-3) comments are read as whitespace, and CREATE RULE
   // and a rename onto either name are read too.
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = sqlWithoutComments(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    const text = auditScanText(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
     for (const [what, pattern] of AUDIT_TABLE_TOUCH) assert.doesNotMatch(text, pattern, `${later}: ${what} on an audit table`);
   }
   for (const [spelling, what] of [
@@ -4394,12 +4571,26 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
     ['alter table app.audit_logs_new rename to audit_logs', 'a table renamed onto either name'],
     ['ALTER TABLE IF EXISTS app.x RENAME TO "security_events"', 'a table renamed onto either name'],
   ]) {
-    assert.ok(AUDIT_TABLE_TOUCH.some(([w, p]) => w === what && p.test(sqlWithoutComments(spelling))), `the later-migration scan reads ${what}: ${spelling}`);
+    assert.ok(AUDIT_TABLE_TOUCH.some(([w, p]) => w === what && p.test(auditScanText(spelling))), `the later-migration scan reads ${what}: ${spelling}`);
   }
   assert.match(sqlWithoutComments('alter table /* x */ app.audit_logs disable trigger refuse_mutation'), AUDIT_TABLE_ALTER, 'the older ALTER scan reads past a comment too');
   assert.match(sqlWithoutComments('create policy p on /* x */ app.audit_logs for insert'), AUDIT_TABLE_POLICY, 'and the older POLICY scan');
   assert.equal(sqlWithoutComments("select '/* not a comment */', \"--x\" -- gone\n/* a /* b */ c */ from t"), "select '/* not a comment */', \"--x\"  \n  from t",
     'a comment inside a literal or a quoted identifier is kept; a nested one is removed whole');
+  // The sql-lexer batch (A1-RC-I1, Q0-OT2-7): a `--` inside a dollar-quoted string is not a comment, so the statement
+  // after it on the line is read; a `;` inside a quoted name or a literal does not end the statement; a GRANT that a
+  // DO block EXECUTEs from a literal is read as the statement it is.
+  assert.equal(sqlWithoutComments("select $q$ -- not a comment $q$; grant x -- gone"), "select $q$ -- not a comment $q$; grant x  ", 'a dollar body is kept whole');
+  for (const [spelling, what] of [
+    ['select $$--$$; grant insert on app.audit_logs to anon;', 'a GRANT or REVOKE'],
+    ['create trigger "t;x" before insert on app.audit_logs for each row execute function f();', 'a trigger'],
+    ["alter policy p on app.audit_logs using (x <> ';');", 'a policy changed or dropped'],
+    ["do $$ begin execute 'grant insert on app.audit_logs to anon'; end $$;", 'a GRANT or REVOKE'],
+    ["do $d$ begin execute $g$drop table app.security_events$g$; end $d$;", 'a table dropped or created'],
+  ]) {
+    assert.ok(AUDIT_TABLE_TOUCH.some(([w, p]) => w === what && p.test(auditScanText(spelling))), `the lexer-read scan reads ${what}: ${spelling}`);
+  }
+  assert.match(auditScanText('create policy "a;b" on app.audit_logs for insert;'), AUDIT_TABLE_POLICY, 'and the POLICY scan past a `;` in a quoted name');
   for (const other of ['grant select on app.audit_logs_archive to app_worker', 'create trigger t before insert on app.my_security_events for each row execute function f()',
     'drop table app.audit_logs_old', 'revoke update (lifecycle_state) on app.workspaces from authenticated',
     'create rule r as on insert to app.audit_logs_archive do instead nothing', 'alter table app.jobs rename to jobs_old', 'alter table app.audit_logs_old rename column x to audit_logs']) {
@@ -4500,7 +4691,7 @@ const ERD = 'docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md';
 async function migrationText160() {
   const names = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort();
   return Promise.all(names.map(async (n) => ({ name: n,
-    sql: (await readFile(`db/foundation/migrations/${n}`, 'utf8')).replace(/--[^\n]*/g, '') })));
+    sql: (await readFile(`db/foundation/migrations/${n}`, 'utf8')).replace(SQL_LINE_COMMENTS, '') })));
 }
 
 // The bodies of every `create table`, by table, read with the parenthesis depth so a CHECK or a

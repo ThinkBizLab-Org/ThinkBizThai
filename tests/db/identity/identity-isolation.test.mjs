@@ -22,6 +22,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
+import { SQL_LINE_COMMENTS, canonicalStatements } from '../../../scripts/db/sql-lexer.mjs';
 
 import {
   AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SERVICE_PATH_CLOSURE_ON, SMOKE_COVERAGE,
@@ -48,6 +49,12 @@ import { schemaLint, tablesCreatedByMigrations } from '../../../scripts/db/run.m
 // when the words after the first one do not follow.
 const VIEW_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/)+`;
 const CREATE_VIEW = new RegExp(String.raw`create${VIEW_GAP}(?:or${VIEW_GAP}replace${VIEW_GAP})?(?:(?:temp|temporary)${VIEW_GAP})?(?:recursive${VIEW_GAP}|materialized${VIEW_GAP})?view\b`, 'i');
+// Since the sql-lexer batch the three scans read the text through the one lexer (scripts/db/sql-lexer.mjs): every
+// statement at every level -- the top level, and every literal's and dollar body's text read again as SQL, as
+// EXECUTE or a DO body would -- in canonical form (comments gone, words single-spaced, literals blanked, each
+// statement on its own). A view written in a literal a DO block EXECUTEs is read; one whose words are computed at
+// run time is not, and the client privilege probes hold the catalog.
+const viewScanText = (text) => canonicalStatements(text).map((st) => st.text).join(';\n');
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -63,7 +70,7 @@ const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g
 const TABLES = ['user_profiles', 'workspaces', 'workspace_settings', 'workspace_members', 'workspace_invitations'];
 
 const migration = await readFile(MIGRATION, 'utf8');
-const migrationCode = migration.replace(/--[^\n]*/g, '');
+const migrationCode = migration.replace(SQL_LINE_COMMENTS, '');
 const id = await fixtureResolver(CATALOG);
 const cases = buildCases(id);
 
@@ -75,7 +82,7 @@ const MIGRATIONS_DIR = 'db/foundation/migrations';
 const migrationNamesInOrder = (await readdir(MIGRATIONS_DIR)).filter((n) => n.endsWith('.sql')).sort();
 const migrationText = (await Promise.all(
   migrationNamesInOrder.map((n) => readFile(`${MIGRATIONS_DIR}/${n}`, 'utf8')),
-)).join('\n').replace(/--[^\n]*/g, '');
+)).join('\n').replace(SQL_LINE_COMMENTS, '');
 
 test('every case identity and every row id is read from the fixture catalog, never generated', async () => {
   const source = await readFile(CASES_FILE, 'utf8');
@@ -101,7 +108,7 @@ test('every case identity and every row id is read from the fixture catalog, nev
 
 test('the fixture materialises exactly the catalog identities and invents no other row id', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load identities');
   for (const value of used) {
@@ -245,7 +252,7 @@ test('a rejected case names a SQLSTATE, and never the one that means a policy re
 test('a rejected case that names the constraint it proves names one a migration creates, and the runner reads it', async () => {
   const dir = 'db/foundation/migrations';
   const sql = (await Promise.all((await readdir(dir)).filter((n) => n.endsWith('.sql'))
-    .map((n) => readFile(`${dir}/${n}`, 'utf8')))).join('\n').replace(/--[^\n]*/g, '');
+    .map((n) => readFile(`${dir}/${n}`, 'utf8')))).join('\n').replace(SQL_LINE_COMMENTS, '');
   const naming = cases.filter((c) => c.violates !== undefined);
   assert.ok(naming.length >= 3, 'batch 123 names the pair and 090\'s equivalence in its cancellation cases');
   for (const testCase of naming) {
@@ -370,7 +377,7 @@ test('the invitation token digest is writable and not readable, and no plaintext
 
 test('the batch 020 fixture writes only catalog identities, and loads both sides of the boundary', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(BUSINESS_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(BUSINESS_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -408,7 +415,7 @@ test('the batch 020 fixture writes only catalog identities, and loads both sides
 // migration text is read from it, and the live half runs in CI through `make db-rls-smoke`.
 
 const business = await readFile(BUSINESS_MIGRATION, 'utf8');
-const businessCode = business.replace(/--[^\n]*/g, '');
+const businessCode = business.replace(SQL_LINE_COMMENTS, '');
 const BUSINESS_TABLES = ['business_profiles', 'business_profile_versions',
   'page_context_profiles', 'page_context_profile_versions'];
 const VERSION_TABLES = ['business_profile_versions', 'page_context_profile_versions'];
@@ -756,7 +763,7 @@ test('every identity helper the cases use has a role the runner can check', asyn
 
 const AUTHZ_MIGRATION_FILE = 'db/foundation/migrations/011_authorization_helpers.sql';
 const authz = await readFile(AUTHZ_MIGRATION_FILE, 'utf8');
-const authzCode = authz.replace(/--[^\n]*/g, '');
+const authzCode = authz.replace(SQL_LINE_COMMENTS, '');
 const IDENTITY_EXPRESSION =
   "(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid";
 
@@ -876,7 +883,7 @@ const SCOPE_FIXTURE = 'tests/db/identity/fixtures/021-member-scope-fixture.sql';
 const CI_WORKFLOW = '.github/workflows/ci.yml';
 
 const scope = await readFile(SCOPE_MIGRATION, 'utf8');
-const scopeCode = scope.replace(/--[^\n]*/g, '');
+const scopeCode = scope.replace(SQL_LINE_COMMENTS, '');
 const SCOPE_TABLE = 'workspace_member_scopes';
 const NARROWED_TABLES = ['business_profiles', 'business_profile_versions',
   'page_context_profiles', 'page_context_profile_versions'];
@@ -1141,7 +1148,7 @@ test('the deferred foreign key §6 reserves in this batch is refused, and the re
 
 test('the batch 021 fixture writes only catalog identities and carries both scope states', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(SCOPE_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(SCOPE_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -1219,7 +1226,7 @@ test('the table batch 021 adds has its own entry in the CI negative control', as
   const migrations = await Promise.all(migrationNames
     .map((name) => readFile(`db/foundation/migrations/${name}`, 'utf8')));
   const created = new Set(migrations.flatMap((sql) =>
-    [...sql.replace(/--[^\n]*/g, '').matchAll(/create table (?:if not exists )?app\.(\w+)/g)].map((m) => m[1])));
+    [...sql.replace(SQL_LINE_COMMENTS, '').matchAll(/create table (?:if not exists )?app\.(\w+)/g)].map((m) => m[1])));
   for (const [, table] of controls) {
     assert.ok(created.has(table), `the negative control disables row level security on app.${table}, which `
       + 'no migration creates — so that entry runs against nothing and its "the suite failed" is about '
@@ -1279,7 +1286,7 @@ test('the case that asserted the un-narrowed state is gone and its replacement a
 const INDUSTRY_MIGRATION = 'db/foundation/migrations/030_industry.sql';
 const INDUSTRY_FIXTURE = 'tests/db/identity/fixtures/030-industry-fixture.sql';
 const industry = await readFile(INDUSTRY_MIGRATION, 'utf8');
-const industryCode = industry.replace(/--[^\n]*/g, '');
+const industryCode = industry.replace(SQL_LINE_COMMENTS, '');
 // The two that belong to no workspace, and the one that does. Almost every assertion below splits
 // on that line, which is the whole reason this batch needed its own block.
 const GLOBAL_TABLES = ['industry_packs', 'industry_pack_versions'];
@@ -1345,7 +1352,7 @@ test('every table batch 030 creates carries RLS, FORCE, a primary key and an own
 test('the industry pack catalog is not on the client read allowlist, and no migration puts it there', async () => {
   const files = await readdir('db/foundation/migrations');
   const migrations = await Promise.all(files.filter((n) => n.endsWith('.sql')).sort()
-    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(SQL_LINE_COMMENTS, '')]));
   assert.ok(migrations.length >= 9, 'the whole migration set is read, not one file');
 
   for (const [name, sql] of migrations) {
@@ -1593,7 +1600,7 @@ test('batch 030 adds to the merged batches and rewrites none of them', () => {
 
 test('the batch 030 fixture writes only catalog identities and pins two tenants to one global row', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(INDUSTRY_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(INDUSTRY_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -1776,7 +1783,7 @@ test('the coverage map records what batch 030 could carry and what a global row 
 const KNOWLEDGE_MIGRATION = 'db/foundation/migrations/040_knowledge.sql';
 const KNOWLEDGE_FIXTURE = 'tests/db/identity/fixtures/040-knowledge-fixture.sql';
 const knowledge = await readFile(KNOWLEDGE_MIGRATION, 'utf8');
-const knowledgeCode = knowledge.replace(/--[^\n]*/g, '');
+const knowledgeCode = knowledge.replace(SQL_LINE_COMMENTS, '');
 const KNOWLEDGE_ITEMS = 'knowledge_items';
 const KNOWLEDGE_VERSIONS = 'knowledge_item_versions';
 const KNOWLEDGE_TABLES = [KNOWLEDGE_ITEMS, KNOWLEDGE_VERSIONS];
@@ -2233,7 +2240,7 @@ test('__SELF__ is refused for an identity that has no subject to be', () => {
 
 test('the batch 040 fixture writes only catalog identities and carries both scope shapes', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(KNOWLEDGE_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(KNOWLEDGE_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -2396,7 +2403,7 @@ test('the coverage map pays the knowledge half of §12.6/3 and names the batch t
 // a line anywhere saying so. So the tests below hold the REFUSALS as tightly as the code.
 const RESOLUTION_MIGRATION = 'db/foundation/migrations/041_knowledge_resolution.sql';
 const resolution = await readFile(RESOLUTION_MIGRATION, 'utf8');
-const resolutionCode = resolution.replace(/--[^\n]*/g, '');
+const resolutionCode = resolution.replace(SQL_LINE_COMMENTS, '');
 const RESOLUTION_FUNCTION = 'knowledge_scope_applies';
 // The predicate, pinned character for character after whitespace is collapsed. This is the whole
 // content of the batch, so a test that checked anything less than the expression would be checking
@@ -2423,7 +2430,7 @@ test('batch 041 creates one function and no table, no view and no policy', () =>
     ['index', /create\s+index\b/i],
     ['trigger', /create\s+trigger\b/i],
   ]) {
-    assert.doesNotMatch(resolutionCode, pattern,
+    assert.doesNotMatch(kind === 'view' ? viewScanText(resolutionCode) : resolutionCode, pattern,
       `batch 041 creates a ${kind}. It creates one function and nothing else: a VIEW in particular is `
       + 'the allowlist entry RFC-2026-021 §3 reserves to an RFC — five objects and a registry row, '
       + 'against criteria whose C1 ("a named caller exists, and it is a client") fails here because '
@@ -2869,7 +2876,7 @@ test('every line batch 041 cites is the line that says what the batch says it sa
 const ASYNC_MIGRATION = 'db/foundation/migrations/050_async_kernel.sql';
 const ASYNC_FIXTURE = 'tests/db/identity/fixtures/050-async-kernel-fixture.sql';
 const asyncKernel = await readFile(ASYNC_MIGRATION, 'utf8');
-const asyncCode = asyncKernel.replace(/--[^\n]*/g, '');
+const asyncCode = asyncKernel.replace(SQL_LINE_COMMENTS, '');
 const JOBS = 'jobs';
 const OUTBOX = 'outbox_events';
 const LEDGER = 'consumer_ledger';
@@ -2918,7 +2925,7 @@ test('every table batch 050 creates carries RLS, FORCE, a primary key and an own
 test('the job status projection is not on the client read allowlist, and no migration puts it there', async () => {
   const files = await readdir('db/foundation/migrations');
   const migrations = await Promise.all(files.filter((n) => n.endsWith('.sql')).sort()
-    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+    .map(async (name) => [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(SQL_LINE_COMMENTS, '')]));
   assert.ok(migrations.length >= 12, 'the whole migration set is read, not one file');
 
   for (const [name, sql] of migrations) {
@@ -3289,7 +3296,7 @@ test('batch 050 adds to the merged batches and rewrites none of them', () => {
 
 test('the batch 050 fixture writes only catalog identities and loads rows no identity can read', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(ASYNC_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(ASYNC_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -3435,7 +3442,7 @@ test('the coverage map records what a family with no reader cannot carry', () =>
 const AI_MIGRATION = 'db/foundation/migrations/060_ai_gateway.sql';
 const AI_FIXTURE = 'tests/db/identity/fixtures/060-ai-gateway-fixture.sql';
 const ai = await readFile(AI_MIGRATION, 'utf8');
-const aiCode = ai.replace(/--[^\n]*/g, '');
+const aiCode = ai.replace(SQL_LINE_COMMENTS, '');
 const AI_MODELS = 'ai_models';
 const AI_POLICIES = 'ai_model_policies';
 // Named for what the table HOLDS -- a reference -- rather than for the thing it deliberately does
@@ -3703,7 +3710,7 @@ test('the schema lint holds a private table to the same rules, and that changes 
     .filter((n) => n < '050')
     .map(async (n) => ({ name: n, sql: await readFile(`${MIGRATIONS_DIR}/${n}`, 'utf8') })));
   assert.deepEqual(beforeTheWidening.flatMap(({ sql }) =>
-    [...sql.replace(/--[^\n]*/g, '').matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
+    [...sql.replace(SQL_LINE_COMMENTS, '').matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?private\.(\w+)/gi)]
       .map((m) => m[1])), [],
   'no migration up to 040 creates a table outside `app`, so widening the lint to reach `private` '
     + 'changed no verdict for any batch merged before it');
@@ -3817,7 +3824,7 @@ test('the two app tables batch 060 adds have control entries, and the private on
 
 test('the batch 060 fixture writes only catalog identities and loads a row into private', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(AI_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(AI_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -3915,7 +3922,7 @@ test('the coverage map records what batch 060 could carry and what a table with 
 const BILLING_MIGRATION = 'db/foundation/migrations/130_billing.sql';
 const BILLING_FIXTURE = 'tests/db/identity/fixtures/130-billing-fixture.sql';
 const billing = await readFile(BILLING_MIGRATION, 'utf8');
-const billingCode = billing.replace(/--[^\n]*/g, '');
+const billingCode = billing.replace(SQL_LINE_COMMENTS, '');
 const SUBSCRIPTION_TABLE = 'billing_subscriptions';
 const BILLING_GLOBAL_TABLES = ['billing_plans', 'billing_plan_versions', 'plan_entitlements'];
 const BILLING_TABLES = [...BILLING_GLOBAL_TABLES, SUBSCRIPTION_TABLE];
@@ -3936,7 +3943,7 @@ const billingTableBodies = [...billingCode.matchAll(/create table if not exists 
 const allMigrations = async () => {
   const files = (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql')).sort();
   return Promise.all(files.map(async (name) =>
-    [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(/--[^\n]*/g, '')]));
+    [name, (await readFile(`db/foundation/migrations/${name}`, 'utf8')).replace(SQL_LINE_COMMENTS, '')]));
 };
 
 test('every batch 130 table carries RLS, FORCE, a primary key and an owner comment', () => {
@@ -4343,7 +4350,7 @@ test('a workspace holds at most one live subscription, as a partial unique index
 
 test('the batch 130 fixture writes only catalog identities and subscribes both tenants to one revision', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(BILLING_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(BILLING_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -4525,7 +4532,7 @@ test('the coverage map records what batch 130 could carry and what a workspace r
 const AUDIT_MIGRATION = 'db/foundation/migrations/140_audit.sql';
 const AUDIT_FIXTURE = 'tests/db/identity/fixtures/140-audit-fixture.sql';
 const audit = await readFile(AUDIT_MIGRATION, 'utf8');
-const auditCode = audit.replace(/--[^\n]*/g, '');
+const auditCode = audit.replace(SQL_LINE_COMMENTS, '');
 const AUDIT_LOGS = 'audit_logs';
 const SECURITY_EVENTS = 'security_events';
 const AUDIT_TABLES = [AUDIT_LOGS, SECURITY_EVENTS];
@@ -4994,7 +5001,7 @@ test('the tables batch 140 adds have their own entries in the CI negative contro
 
 test('the batch 140 fixture writes only catalog identities and exercises both branches', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(AUDIT_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(AUDIT_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -5101,7 +5108,7 @@ test('the coverage map records what a table nobody can read can and cannot carry
 const CONNECTOR_MIGRATION = 'db/foundation/migrations/110_meta_connector.sql';
 const CONNECTOR_FIXTURE = 'tests/db/identity/fixtures/110-meta-connector-fixture.sql';
 const connector = await readFile(CONNECTOR_MIGRATION, 'utf8');
-const connectorCode = connector.replace(/--[^\n]*/g, '');
+const connectorCode = connector.replace(SQL_LINE_COMMENTS, '');
 const META_CONNECTIONS = 'meta_connections';
 const SOCIAL_ACCOUNTS = 'social_accounts';
 // Spelled without the word the repository's own secret scanner looks for. Its
@@ -5578,7 +5585,7 @@ test('no batch 110 case id can satisfy another control entry, and none enlarges 
 
 test('the batch 110 fixture writes only catalog identities and loads both inbox states', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(CONNECTOR_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(CONNECTOR_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   for (const found of new Set([...fixture.matchAll(UUID)].map((m) => m[0]))) {
     assert.ok(known.has(found), `the batch 110 fixture writes ${found}, which is not a catalog identity`);
   }
@@ -5707,7 +5714,7 @@ const USAGE_CONTRACT = 'contract-catalog/shared-kernel/ctr-usg-001/schema.json';
 // because the whole of the next test is about the gap between them.
 const USAGE_MANIFEST = 'contract-catalog/shared-kernel/ctr-usg-001/manifest.json';
 const metering = await readFile(METERING_MIGRATION, 'utf8');
-const meteringCode = metering.replace(/--[^\n]*/g, '');
+const meteringCode = metering.replace(SQL_LINE_COMMENTS, '');
 const USAGE_EVENTS = 'usage_events';
 const USAGE_RESERVATIONS = 'usage_reservations';
 const QUOTA_BUCKETS = 'quota_buckets';
@@ -6110,7 +6117,7 @@ test('batch 061 adds to the merged batches and rewrites none of them', () => {
 
 test('the batch 061 fixture writes only catalog identities and composes the dedupe key from its row', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(METERING_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(METERING_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -6312,7 +6319,7 @@ test('neither coverage map carries a duplicated key', async () => {
 const NOTIFICATION_MIGRATION = 'db/foundation/migrations/051_notification.sql';
 const NOTIFICATION_FIXTURE = 'tests/db/identity/fixtures/051-notification-fixture.sql';
 const notification = await readFile(NOTIFICATION_MIGRATION, 'utf8');
-const notificationCode = notification.replace(/--[^\n]*/g, '');
+const notificationCode = notification.replace(SQL_LINE_COMMENTS, '');
 const NOTIFICATIONS = 'notifications';
 const NOTIFICATION_PREFERENCES = 'notification_preferences';
 const PUSH_REFERENCES = 'push_subscription_references';
@@ -6942,7 +6949,7 @@ test('the tables batch 051 adds have their own entries in the CI negative contro
 
 test('the batch 051 fixture writes only catalog identities and carries both halves of the scope', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(NOTIFICATION_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(NOTIFICATION_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -7215,7 +7222,7 @@ const PROJECTION_FIXTURE = 'tests/db/identity/fixtures/131-billing-projection-fi
 // renaming around; a second `const` at module scope is a parse error, so the redeclaration is
 // dropped rather than the constant.
 const projection = await readFile(PROJECTION_MIGRATION, 'utf8');
-const projectionCode = projection.replace(/--[^\n]*/g, '');
+const projectionCode = projection.replace(SQL_LINE_COMMENTS, '');
 const RECEIPT_TABLE = 'billing_webhook_receipts';
 const INVOICE_TABLE = 'billing_invoices';
 const PAYMENT_TABLE = 'billing_payments';
@@ -7583,7 +7590,7 @@ test("batch 131 grants no writer on batch 130's tables, and says which decision 
 
 test('the batch 131 fixture writes only catalog identities and carries no card and no raw provider id', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(PROJECTION_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(PROJECTION_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -7807,7 +7814,7 @@ const ENTITLEMENT_CASE_IDS = [
 ];
 
 const entitlementMigration = await readFile(ENTITLEMENT_MIGRATION, 'utf8');
-const entitlementCode = entitlementMigration.replace(/--[^\n]*/g, '');
+const entitlementCode = entitlementMigration.replace(SQL_LINE_COMMENTS, '');
 // Comment prose with the `--` markers and the line wrapping removed, so a sentence this batch quotes
 // from another migration can be matched as a sentence rather than as whatever the wrap produced.
 const flatten132 = (text) => text.replace(/^[ \t]*--[ \t]?/gm, '').replace(/\s+/g, ' ');
@@ -7833,7 +7840,7 @@ test("batch 132 creates nothing, and the set that claim is checked against is th
     ['alter table', /\balter\s+table\b/i],
     ['drop', /\bdrop\b/i],
   ]) {
-    assert.doesNotMatch(entitlementCode, pattern,
+    assert.doesNotMatch(kind === 'view' ? viewScanText(entitlementCode) : entitlementCode, pattern,
       `batch 132 writes no ${kind}. Read from the STATEMENT text with comments stripped, because the `
       + 'header argues about grants, policies and views at length and a rule over the raw file would be '
       + 'a rule about how much this batch explains itself.');
@@ -7857,7 +7864,7 @@ test('the two keys an effective limit would join live in different migrations, s
   const withColumn = async (column) => {
     const found = [];
     for (const name of migrationNamesInOrder) {
-      const code = (await readFile(`${MIGRATIONS_DIR}/${name}`, 'utf8')).replace(/--[^\n]*/g, '');
+      const code = (await readFile(`${MIGRATIONS_DIR}/${name}`, 'utf8')).replace(SQL_LINE_COMMENTS, '');
       if (new RegExp(`\\b${column}\\b`).test(code)) found.push(name);
     }
     return found;
@@ -7874,14 +7881,14 @@ test('the two keys an effective limit would join live in different migrations, s
   // The vocabularies themselves, READ from the two batches rather than copied into this file. Batch
   // 061 fixes the dimension list in a CHECK; batch 130 refuses to fix a feature-key list at all, so
   // the keys come from the fixture, which is the only place any of them is written down.
-  const metering = (await readFile(METERING_MIGRATION_132, 'utf8')).replace(/--[^\n]*/g, '');
+  const metering = (await readFile(METERING_MIGRATION_132, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const check = metering.match(/constraint quota_buckets_dimension_known\s*check \(dimension in \(([^)]*)\)\)/);
   assert.ok(check, 'batch 061 fixes the dimension vocabulary in a named CHECK');
   const dimensions = [...check[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
   assert.equal(dimensions.length, 6, 'CTR-USG-001 enumerates six dimensions');
 
   const billingFixture = (await readFile('tests/db/identity/fixtures/130-billing-fixture.sql', 'utf8'))
-    .replace(/--[^\n]*/g, '');
+    .replace(SQL_LINE_COMMENTS, '');
   const entitlements = billingFixture.match(/insert into app\.plan_entitlements[\s\S]*?on conflict/);
   assert.ok(entitlements, "batch 130's fixture loads plan entitlements");
   const featureKeys = [...entitlements[0].matchAll(/'([a-z_]+)',\s*'(?:limit|value)'/g)].map((m) => m[1]);
@@ -8037,18 +8044,26 @@ test('batch 132 adds no negative-control entry, and its cases say what holds the
 });
 
 test('the effective-limit projection is named as an allowlist candidate and not added, and the registry RFC-2026-021 asks for is not in the tree', async () => {
-  assert.doesNotMatch(migrationText, CREATE_VIEW,
+  assert.doesNotMatch(viewScanText(migrationText), CREATE_VIEW,
     'no migration creates a view. RFC-2026-021 §7/3 keeps the client read allowlist empty and the batch '
     + 'that would create a first entry is NOT YET ASSIGNED; batch 132 does not become it by writing a '
     + 'projection for a caller that does not exist.');
   // The pattern's own spellings (the owed-tooling batch; A1 S2, Q0 R-5), so a narrowed pattern fails here.
   for (const spelling of ['create view app.v as select 1', 'CREATE OR REPLACE VIEW app.v AS SELECT 1', 'create materialized view app.m as select 1',
     'create recursive view public.probe_rv (id) as select 1', 'create temp view v as select 1', 'CREATE OR REPLACE TEMPORARY RECURSIVE VIEW v (n) AS SELECT 1',
-    'create /* c */ view v as select 1', 'create or/**/replace /* a /* b */ c */ materialized view m as select 1']) {
-    assert.match(spelling, CREATE_VIEW, `the view scan reads: ${spelling}`);
+    'create /* c */ view v as select 1', 'create or/**/replace /* a /* b */ c */ materialized view m as select 1',
+    // The sql-lexer batch: a view a DO block EXECUTEs from a literal or from a dollar body, read by the lexer.
+    "do $$ begin execute 'create view app.v as select 1'; end $$", "do $d$ begin execute $v$CREATE /* x */ VIEW v AS SELECT 1$v$; end $d$",
+    // The sql-lexer batch's review round (C0-SL-2, Q0-SL-4, A1 F1): a spelling only the lexer reads -- VIEW_GAP does
+    // not span a `--` comment on the raw text -- so a scan put back to the raw text fails here.
+    'create -- c\nview v as select 1', 'create --\r or replace view v as select 1']) {
+    assert.match(viewScanText(spelling), CREATE_VIEW, `the view scan reads: ${spelling}`);
   }
-  for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'']) {
-    assert.doesNotMatch(other, CREATE_VIEW, `and not: ${other}`);
+  for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'',
+    // And what only the lexer clears: the words in a comment, and in a quoted identifier (C0-SL-2). (A literal is not
+    // one: its text is read again as SQL, as EXECUTE would read it, so `'create view'` is read as the statement it spells.)
+    'select 1 -- create view v\n', 'create table "create view" (x int)']) {
+    assert.doesNotMatch(viewScanText(other), CREATE_VIEW, `and not: ${other}`);
   }
 
   const lintFiles = await readdir(LINT_DIR_132);
@@ -8171,7 +8186,7 @@ test('batch 132 writes no ordinal claim about the schema it is describing', asyn
 const RESEARCH_MIGRATION = 'db/foundation/migrations/070_research.sql';
 const RESEARCH_FIXTURE = 'tests/db/identity/fixtures/070-research-fixture.sql';
 const research = await readFile(RESEARCH_MIGRATION, 'utf8');
-const researchCode = research.replace(/--[^\n]*/g, '');
+const researchCode = research.replace(SQL_LINE_COMMENTS, '');
 const RESEARCH_RUNS = 'research_runs';
 const RESEARCH_SOURCES = 'research_sources';
 const RESEARCH_SNAPSHOTS = 'research_snapshots';
@@ -8651,7 +8666,7 @@ test('batch 070 adds to the merged batches and rewrites none of them', () => {
 
 test('the batch 070 fixture writes only catalog identities and carries no captured material', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(RESEARCH_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(RESEARCH_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -8824,7 +8839,7 @@ test('the coverage map records what a COPYRIGHT-3 table cannot carry and what th
 const CONTENT_MIGRATION = 'db/foundation/migrations/080_content.sql';
 const CONTENT_FIXTURE = 'tests/db/identity/fixtures/080-content-fixture.sql';
 const content = await readFile(CONTENT_MIGRATION, 'utf8');
-const contentCode = content.replace(/--[^\n]*/g, '');
+const contentCode = content.replace(SQL_LINE_COMMENTS, '');
 const CONTENT_IDEAS = 'content_ideas';
 const CONTENT_ITEMS = 'content_items';
 const CONTENT_VERSIONS = 'content_versions';
@@ -9129,7 +9144,7 @@ test('the generation-run columns carry no foreign key, and the disposition they 
 
 test('the batch 080 fixture writes only catalog identities and pins the rows its cases need', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(CONTENT_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(CONTENT_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -9262,7 +9277,7 @@ test('the coverage map records what batch 080 pays, including the one row it fli
 const TARGET_MIGRATION = 'db/foundation/migrations/081_content_targets.sql';
 const TARGET_FIXTURE = 'tests/db/identity/fixtures/081-content-targets-fixture.sql';
 const targetSql = await readFile(TARGET_MIGRATION, 'utf8');
-const targetCode = targetSql.replace(/--[^\n]*/g, '');
+const targetCode = targetSql.replace(SQL_LINE_COMMENTS, '');
 const CONTENT_TARGETS = 'content_targets';
 const targetBody = [...targetCode.matchAll(/create table if not exists app\.\w+ \([\s\S]*?\n\);/g)]
   .map((m) => m[0])
@@ -9508,7 +9523,7 @@ test('no batch 081 policy names a role but authenticated, and the service has no
 
 test('the batch 081 fixture writes only catalog identities and states what each destination is not', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(TARGET_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(TARGET_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -9667,7 +9682,7 @@ test('every batch 081 case declares an outcome, a reason and a layer where it cl
 // isolation cases, and the apply-time block in 082 itself.
 const SERVICE_PATH_MIGRATION = 'db/foundation/migrations/082_content_service_path_closed.sql';
 const servicePath = await readFile(SERVICE_PATH_MIGRATION, 'utf8');
-const servicePathCode = servicePath.replace(/--[^\n]*/g, '');
+const servicePathCode = servicePath.replace(SQL_LINE_COMMENTS, '');
 
 test('batch 082 writes one closure per content table, RESTRICTIVE, FOR ALL, naming no role', () => {
   const closures = [...servicePathCode.matchAll(
@@ -9787,7 +9802,7 @@ test('every service-path closure on disk is declared, and every declared closure
     'a closure file with no declared table list, or a declared list with no file, is a closure nobody checks');
   for (const [file, tables] of Object.entries(SERVICE_PATH_CLOSURES)) {
     const raw = await readFile(`${MIGRATIONS_DIR}/${file}`, 'utf8');
-    const code = raw.replace(/--[^\n]*/g, '');
+    const code = raw.replace(SQL_LINE_COMMENTS, '');
     const closures = [...code.matchAll(
       /create policy (\w+)_service_path_closed on app\.(\w+)\s*\n\s*as restrictive\s*\n\s*for all\s*\n\s*using \(([^)]*)\)\s*\n\s*with check \(([^)]*)\);/g)];
     assert.deepEqual(closures.map((m) => m[2]).sort(), [...tables].sort(),
@@ -9832,7 +9847,7 @@ test('every service-path closure on disk is declared, and every declared closure
 const APPROVAL_MIGRATION = 'db/foundation/migrations/090_approval.sql';
 const APPROVAL_FIXTURE = 'tests/db/identity/fixtures/090-approval-fixture.sql';
 const approval = await readFile(APPROVAL_MIGRATION, 'utf8');
-const approvalCode = approval.replace(/--[^\n]*/g, '');
+const approvalCode = approval.replace(SQL_LINE_COMMENTS, '');
 const APPROVAL_POLICIES = 'approval_policies';
 const APPROVAL_REQUESTS = 'approval_requests';
 const APPROVAL_EVENTS = 'approval_events';
@@ -10197,7 +10212,7 @@ test('the approval request pins its content version over the item scope path', (
 
 test('the batch 090 fixture writes only catalog identities and pins the rows its cases need', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(APPROVAL_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(APPROVAL_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -10376,7 +10391,7 @@ const ASSET_MIGRATION = 'db/foundation/migrations/100_asset.sql';
 const ASSET_FIXTURE = 'tests/db/identity/fixtures/100-asset-fixture.sql';
 const SERVICE_POLICY_MAP = 'db/foundation/lint/service-policy-map.json';
 const asset = await readFile(ASSET_MIGRATION, 'utf8');
-const assetCode = asset.replace(/--[^\n]*/g, '');
+const assetCode = asset.replace(SQL_LINE_COMMENTS, '');
 const ASSETS = 'assets';
 const ASSET_VERSIONS = 'asset_versions';
 const ASSET_RIGHTS = 'asset_rights';
@@ -10857,7 +10872,7 @@ test('no batch 100 policy predicate names the membership tables, and the helpers
 
 test('the batch 100 fixture writes only catalog identities and pins the rows its cases need', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
-  const fixture = (await readFile(ASSET_FIXTURE, 'utf8')).replace(/--[^\n]*/g, '');
+  const fixture = (await readFile(ASSET_FIXTURE, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -11094,7 +11109,7 @@ const PUBLISHER_MIGRATION = 'db/foundation/migrations/120_publisher.sql';
 const PUBLISHER_CLOSURE = 'db/foundation/migrations/122_publisher_service_path_closed.sql';
 const PUBLISHER_FIXTURE = 'tests/db/identity/fixtures/120-publisher-fixture.sql';
 const publisher = await readFile(PUBLISHER_MIGRATION, 'utf8');
-const publisherCode = publisher.replace(/--[^\n]*/g, '');
+const publisherCode = publisher.replace(SQL_LINE_COMMENTS, '');
 const PUBLISH_INTENTS = 'publish_intents';
 const PUBLISH_TARGETS = 'publish_targets';
 const PUBLISH_TARGET_ASSETS = 'publish_target_assets';
@@ -11533,7 +11548,7 @@ test('the batch 120 fixture writes only catalog identities and loads the absence
   // strings this test is about. Ids are read from the stripped text (a uuid in a comment is not a
   // row); the assertions are read from the raw.
   const fixtureRaw = await readFile(PUBLISHER_FIXTURE, 'utf8');
-  const fixture = fixtureRaw.replace(/--[^\n]*/g, '');
+  const fixture = fixtureRaw.replace(SQL_LINE_COMMENTS, '');
   const used = new Set([...fixture.matchAll(UUID)].map((m) => m[0]));
   assert.ok(used.size > 0, 'the fixture must actually load rows');
   for (const value of used) {
@@ -11700,7 +11715,7 @@ test('no batch 121 case id can satisfy another control entry, and no other can s
 test('the batch 121 fixture writes only catalog identities, and into one table', async () => {
   const known = new Set(Object.values(JSON.parse(await readFile(CATALOG, 'utf8')).identities).map((e) => e.uuid));
   const raw = await readFile(METRICS_FIXTURE, 'utf8');
-  const stripped = raw.replace(/--[^\n]*/g, '');
+  const stripped = raw.replace(SQL_LINE_COMMENTS, '');
   const ids = [...stripped.matchAll(/'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'/g)]
     .map((m) => m[1]);
   assert.ok(ids.length > 0, 'the fixture writes ids and this test read none, which means the pattern broke');

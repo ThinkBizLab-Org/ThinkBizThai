@@ -1,0 +1,1552 @@
+{
+ "_how_measured": "The sql-lexer batch (2026-10-04): each source fed on stdin to psql 17.11 (Homebrew) (-X -q, no ON_ERROR_STOP), in the order prerequisites, migrations, replacements, the helper, the fixtures, the rest, the CI shim, against PostgreSQL 17.11 (Homebrew) with log_statement = all; \"psql\" counts the queries psql sent (one \"statement:\" entry per query, a query that failed to parse counted by its error), \"lexer\" is psqlLex's statement count, and \"same\" says every sent query's canonical text equals the lexer's statement's. \"sha256\" is of the source text measured.",
+ "sources": [
+  {
+   "source": "db/foundation/prerequisites.sql",
+   "sha256": "31726fe4d1e4b599c6c6f7ec0a2db3524687f97a048333c38dc62e84ea5b7d7c",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/000_foundation.sql",
+   "sha256": "f2e9e6fa0b862a2a65cd6a062e1eb6b9169f7e6b581239ef63ec16b1ae787455",
+   "lexer": 10,
+   "psql": 10,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/001_service_roles.sql",
+   "sha256": "09761718eafd54b21f6b943fbe40bbe9c290042b8662db708445245346170a3f",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/002_service_role_assumption.sql",
+   "sha256": "4383e405762b589704cbad3e769f0033f4d97ab7d7799b7da36c1345e18b4a24",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/003_service_role_no_ambient_inherit.sql",
+   "sha256": "5b3dc171aaf9d1e5306a88ca2950fa63e4d3bf7d969f3f6ad693161212544acc",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/004_correct_the_batch_000_record.sql",
+   "sha256": "155dc9accf920a61dc4dd1520274af6db30bc03c5b8bb160c50340ef34b53cc7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/010_identity.sql",
+   "sha256": "8dd1decac8fbac77656c02d31d5ab606c0ea06ce9a000f1eddad60983e3d6422",
+   "lexer": 87,
+   "psql": 87,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/011_authorization_helpers.sql",
+   "sha256": "f3ba908980e9d88165ffea51ec3b7afbccee7e2abae638172d388bc0071e721e",
+   "lexer": 25,
+   "psql": 25,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/020_business.sql",
+   "sha256": "af0170e7eecd4ab158d2335688bba6c5771c02110b931fa96df81cdb42b54066",
+   "lexer": 68,
+   "psql": 68,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/021_member_scope.sql",
+   "sha256": "787de45f3a8fdbc3b6c1865afb2ad99fa24cf7b74e652b73f3c8e63ed69bdbe0",
+   "lexer": 62,
+   "psql": 62,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/022_business_service_path_closed.sql",
+   "sha256": "1d1702366e8b954415924928e9ced18b01f0a3ae7323074cd0b2c8882cc2227b",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/030_industry.sql",
+   "sha256": "1dc5ba1a8da095952cd969d35848ab9c1dd318c848393dc2609821499daf06b0",
+   "lexer": 49,
+   "psql": 49,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/031_industry_service_path_closed.sql",
+   "sha256": "41178d0d84f99c44e606e579835ef5243659d7c49b9718ec48ac562bae0b2101",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/040_knowledge.sql",
+   "sha256": "d5509d8543a377d871be6392571ced9b18c86e5fa2426a361a2c4b5e92afc521",
+   "lexer": 46,
+   "psql": 46,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/041_knowledge_resolution.sql",
+   "sha256": "f226c2e64eebafb8edff93c955968a23ba6651799b4d9857724fdb9764675d62",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/042_knowledge_service_path_closed.sql",
+   "sha256": "78d0b84c989396ab6de769711dc287c34d80e20e10f8e84b7aa4d85b15e34454",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/050_async_kernel.sql",
+   "sha256": "e9bd7e3ee3ef2ac3b2ee5761bf00b9ae088fff921c0e6e3d12c052a329b0168f",
+   "lexer": 46,
+   "psql": 46,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/051_notification.sql",
+   "sha256": "c0d412b92f08c90a0e4124263bb7a4e75190ad580399dd2c9082021e5b00f792",
+   "lexer": 58,
+   "psql": 58,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/060_ai_gateway.sql",
+   "sha256": "659cb17e75552b0f35114237a2c13c4a503e0287eb1d2db025ee9085f2a48748",
+   "lexer": 40,
+   "psql": 40,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/061_metering.sql",
+   "sha256": "dbfbdee1cf01ef41842ecdfbfcf95dcfc7cb78c0c160e8e6914317b820d9ae29",
+   "lexer": 54,
+   "psql": 54,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/062_metering_service_path_closed.sql",
+   "sha256": "923cf85a1401ef1712e449293c0d2bd78d87734176cb4109d8739740b2b06054",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/070_research.sql",
+   "sha256": "84f3fe839a5a656456a1a71a56f9ca09e1c6fecb6af8e75a28b3972c19f52cc1",
+   "lexer": 91,
+   "psql": 91,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/071_research_service_path_closed.sql",
+   "sha256": "9efdfd33329fa887033d6f8234419d0f503b07a830615cb21ed98d013832c4d2",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/080_content.sql",
+   "sha256": "47a69ddda46c0f4190cf18ee4c266805def548435e92c3811a914d5bab3178a8",
+   "lexer": 51,
+   "psql": 51,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/081_content_targets.sql",
+   "sha256": "fbf4cc1adf6dcdb7aa379cb34ac011d86eddb0c36911ca005d73022170419fab",
+   "lexer": 15,
+   "psql": 15,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/082_content_service_path_closed.sql",
+   "sha256": "c1ef17da3081e3aad9ed6b25bdf938dd6fc1a5608bece4aa2a8534a4b64e6887",
+   "lexer": 11,
+   "psql": 11,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/083_content_targets_service_path_closed.sql",
+   "sha256": "7b5f8fcc1bd589093a66fb0ccfd2d00fc18e4655e422378004b9fbd06adf9cfa",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/090_approval.sql",
+   "sha256": "85d98aa0ba394e98115771ad0f3730df6ef10cc363340a6099438f9efa425764",
+   "lexer": 36,
+   "psql": 36,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/091_calendar.sql",
+   "sha256": "10d61b612fd794684b3a561852b45ea72ef4e4f2c4feb3fb75eb3a851473a45b",
+   "lexer": 41,
+   "psql": 41,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/092_approval_service_path_closed.sql",
+   "sha256": "89e908cf821c698bfe8216a2014ac31fe34dd944221b3c5fbeda418a175a160c",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/093_updated_at_triggers.sql",
+   "sha256": "c65807e20da8cca6c8962ba14987121e97ad5fa8935cd19d1c4bfcd053a326f1",
+   "lexer": 11,
+   "psql": 11,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/094_approval_requested_by.sql",
+   "sha256": "adc55f669f98bab69dad5e2fce13fbe270ed69e9716c80f451536aea3c544322",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/100_asset.sql",
+   "sha256": "eee3ab82011e7d93190257f49cb938c14d18938c3ace6f8c4132c69f286474ef",
+   "lexer": 100,
+   "psql": 100,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/101_asset_service_path_closed.sql",
+   "sha256": "d619d3abff4065385eae9f63430bab263f86e0f322d64eff1fdb0ab529269500",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/102_updated_by_is_caller.sql",
+   "sha256": "8a438dc26404a4c21ee87edac5d103839f2f516a661c1e7f51fa7277b276ad56",
+   "lexer": 14,
+   "psql": 14,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/103_asset_original_filename_withheld.sql",
+   "sha256": "95872e0e4bbebc0c41e4d6ad26c3350ff1c85bd867de64d5424436268160c274",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/104_fk_supporting_indexes.sql",
+   "sha256": "ef449a99f08bd6db8797f67dcf2a9d391d724428e82a286fdc23a90a20a2e0f7",
+   "lexer": 12,
+   "psql": 12,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/105_updated_by_on_update_is_caller.sql",
+   "sha256": "bca5c4976b491fed5cc5302b48e6c0695e2ac59dcfb5dccadb139c206acaa6b5",
+   "lexer": 8,
+   "psql": 8,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/110_meta_connector.sql",
+   "sha256": "9f613c01d1252026c7e6984946ea4bc7421bf09d6bd929719cc6323be5ed064b",
+   "lexer": 62,
+   "psql": 62,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/111_social_fk.sql",
+   "sha256": "1d8d636b913ff7cc2a56a6f32f024ffc881ab4f2f5a4df74d55b7603cc0b311d",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/120_publisher.sql",
+   "sha256": "09b6c889ca7e26cd8f4100bee9185b5f1609a017958411da89d1338df4c4c587",
+   "lexer": 90,
+   "psql": 90,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/121_publisher_metrics.sql",
+   "sha256": "b140c8566db7c54dc372a6f2c28cacb29ee2a2f3ed65aed993b7597aa6e17f01",
+   "lexer": 19,
+   "psql": 19,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/122_publisher_service_path_closed.sql",
+   "sha256": "97714227fdf5b8633bccf1aaf31a78b700dd7975a33e9c75b7c6dfafacd4b023",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/123_attribution_closures_everywhere.sql",
+   "sha256": "2ff65b5a0d8fe0665ef5c47eb821ebfcc9943256e4d94208e0e8846272ad27a8",
+   "lexer": 15,
+   "psql": 15,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/124_calendar_publish_intent_fk.sql",
+   "sha256": "2cdbd1837a6374803805a950e599d6f308058c8871d4749cbebb74e75d39bff2",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/125_approval_settled_is_immutable.sql",
+   "sha256": "ed09f1e5e8eaf7093889de1605e5a912f13da3d7dcb183495fa8139d7ce225b8",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/126_approval_decision_frozen_for_every_writer.sql",
+   "sha256": "390e92ded0d9768cd1d223e05eb8303124091cc09fcd3d55e3b53c9c0a78ff25",
+   "lexer": 8,
+   "psql": 8,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/127_created_by_on_insert_is_caller.sql",
+   "sha256": "862711ff6b632c044fff35f3296cf793799756e8bd546aa04329c98ea992495f",
+   "lexer": 20,
+   "psql": 20,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/130_billing.sql",
+   "sha256": "32672fe00bc025841cd59ff5ff6e68873b852ef301b00f91f4c56bf0251761a4",
+   "lexer": 49,
+   "psql": 49,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/131_billing_projection.sql",
+   "sha256": "fdbe54b9f7f222b01538a6f2d8c5c444dc806f01b67ee1616d66c191ba20401c",
+   "lexer": 56,
+   "psql": 56,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/132_entitlement_resolution.sql",
+   "sha256": "1dddb4f765aead64976c719cee55bbaac0982f5f220d4cc1dfef6c9d58be5979",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/140_audit.sql",
+   "sha256": "2ac596bb950e8dfb11d9e45172f24305698ecddb4d3e8380114e2bfc1ad37149",
+   "lexer": 39,
+   "psql": 39,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/150_performance_snapshots_key.sql",
+   "sha256": "b907a5116ea59a340c6f8ff048b92cdf536b59e2803e6d855e2f61a7e5b633a3",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql",
+   "sha256": "9a2dbb97718920f894d69c1db2609ba8d5877434d965e6ec72c3a816c577e833",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/030_industry.1.sql",
+   "sha256": "62ddd821f5d0999d9a15960f6866f531b5b58fed154f3fee2fddcf5884f438d7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/040_knowledge.1.sql",
+   "sha256": "b6fbdd56e413265aab987bc14b22cdefe3e05cc7f14c2d04d1ed0e88bc05149b",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/070_research.1.sql",
+   "sha256": "b7f325f4d8e3670a6fd1fbd2f0ad539d4912d17a567667f2e3d7ece728d42d83",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/080_content.1.sql",
+   "sha256": "b2400601c743adb7279cd09629304aeb0cfe9ce3cc2578c44be38b9c11a70c97",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/081_content_targets.1.sql",
+   "sha256": "030fd0621766995bb17ab0beb2b8fed4ae92608c2ec85ac9aa4a2b216567d2f7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/090_approval.1.sql",
+   "sha256": "1e74db2febb117d6832f041218452f30c7b7f2137c61d75e92d98431bfa18512",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/091_calendar.1.sql",
+   "sha256": "31e20be7579f002f6b908c1db0a56d0154c2ebf470b6ba115cf453e052a3c537",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/100_asset.1.sql",
+   "sha256": "518aabd97615a7acb432ea86b75be06cd37465b5556cbf812abd078696ce73b7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/102_updated_by_is_caller.1.sql",
+   "sha256": "0bff6d3c60ce5c1aae3d85529b280daf50f006bfe858157aadb3439e88519ae7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/110_meta_connector.1.sql",
+   "sha256": "5bcfde7bb067978b62ca9f5029e20277dfdc172b1683acb2b59e9e3b0ba6483f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/120_publisher.1.sql",
+   "sha256": "5d1634358bda7cd815689d3b2f368b03dee241cdab68bfb1fabf692b6986bf54",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/invariants/125_approval_settled_is_immutable.1.sql",
+   "sha256": "711bd474bfc8baf09610fd586a4aeacf233d4f5bd69b3abb0173115fb653f131",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "db/foundation/test-helpers/auth-context.sql",
+   "sha256": "96215eeb59c700647bb5472c7d43207f65b7a019409fa6d99ae20996925555d0",
+   "lexer": 8,
+   "psql": 8,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/010-identity-fixture.sql",
+   "sha256": "db5bca8033aee22df9b2429766938d5f2cf1f4c58f483f889228159247d68874",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/020-business-fixture.sql",
+   "sha256": "17ceaebcd94d59cfafe157054b893461406e95891048dddf1971b76c4f3182a1",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/021-member-scope-fixture.sql",
+   "sha256": "799b361f4269778384373b8d29c851ead1c3007cc34928fcbe1f0fc4daa038d9",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/030-industry-fixture.sql",
+   "sha256": "04e0cc98942e0843860f34c04e0b27d7c5e3ddf955c7c57be16a6d2e39ffbc9a",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/040-knowledge-fixture.sql",
+   "sha256": "797fd32e08084d2aed1194881036f86e6e0d76345b9b5403e862a583cd6f3926",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/050-async-kernel-fixture.sql",
+   "sha256": "41b233ce1539ca6b80852088263751b786f31ca919165d40c9a9f56ec887523f",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/051-notification-fixture.sql",
+   "sha256": "111e6c49533f9e52a850b1f86a50950fc77dbbdc695208d5db511e877659e8a1",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/060-ai-gateway-fixture.sql",
+   "sha256": "98930758574948a9cfdb6ebf742372a5d973d8cdcf6dd0113974cdbcc11f4ffc",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/061-metering-fixture.sql",
+   "sha256": "81fb226bc969a8cfe973254f377423d4bc1c2c3cfa1c9f1e677dab7de101c782",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/070-research-fixture.sql",
+   "sha256": "d1d5a1ed9a15211ab767964eacbf0d061d52622d8d17ec7eba6eb8aff57b5542",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/080-content-fixture.sql",
+   "sha256": "122577ee95b588b4a78aa7a10ba65072167b542ab5c3f2243ec9b4a6b5b61cdd",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/081-content-targets-fixture.sql",
+   "sha256": "f85ce2e08dcf2df5e3ab1a3788e36df28fd9481d15856ca586f4401d9e9f01ba",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/090-approval-fixture.sql",
+   "sha256": "55349f196d40d1e624099bd063f8a79f25c4fcdca5ad49fb8f4140daf638254d",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/091-calendar-fixture.sql",
+   "sha256": "67736a2e55e3df5045090f89b74381419960d437754bff5dea5b8ed5c3bf2f7b",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/100-asset-fixture.sql",
+   "sha256": "403de88260d917e28a3f58f6f4ce1d4900df700c924c91986f66f08c11778c05",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/110-meta-connector-fixture.sql",
+   "sha256": "41eafdc802dc817c362ae1a9075949c24accff53e5e25c04321152fe8a0bce57",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/120-publisher-fixture.sql",
+   "sha256": "ab096b470d2d834b38a4aab0f810978fb7e2d9866ee9d05464e93ca5cb086ae8",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/121-publisher-metrics-fixture.sql",
+   "sha256": "7ae9f3be78575023adf71d8d3ae47801c540759371a9a7e16df0e5fcc89b7227",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/130-billing-fixture.sql",
+   "sha256": "a58fb7b814a70e379b8caa0bfa17b5d4f7e1d68db3fbc18222e06c955577a129",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/131-billing-projection-fixture.sql",
+   "sha256": "c702825cb9d4447460dbf73deda4421d8ea3c41cb7ee7027e10fd86ec4b79a82",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "tests/db/identity/fixtures/140-audit-fixture.sql",
+   "sha256": "36680946f957ed8ebb905350564db7788736e595af76497c2c3acc9812d7bfaa",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "drift client membership probe #1",
+   "sha256": "e5235a7e5a9772947886d50f114f402b294cf4790f4b3a76384ba144f16d12c2",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "drift client membership probe #2",
+   "sha256": "d4d9b51d6cf5639febbe7fbf349daa637c436e45c01f828074d16b4734a4c01b",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift client membership probe #3",
+   "sha256": "0d2acfbdcdab3a922de6adb469628b76cc54092d5f052c6f8e213c71dafcf125",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift client privilege probe #1",
+   "sha256": "83978e113213176b15af0d61f23e433ea188cd3b131f762fdf2af2ca17587aa0",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "drift client privilege probe #2",
+   "sha256": "641d961aa9e6946b57aea22413a0aca11edbe1f4ddc05cfbd07e1cb698d4a931",
+   "lexer": 16,
+   "psql": 16,
+   "same": true
+  },
+  {
+   "source": "drift client privilege probe #3",
+   "sha256": "7c7b20b76daf9dd36ea0dfc563dbe6233d2d423067b7b47f6efb9c3794221d14",
+   "lexer": 13,
+   "psql": 13,
+   "same": true
+  },
+  {
+   "source": "drift client privilege probe #4",
+   "sha256": "6eb40d8bbebc8ad19870a4abd7e009dc984bfdb9e50be2649998c42967bb7ad5",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift client schema probe #1",
+   "sha256": "f0a7d0c769d7a3f534db0facaec2d5f1caee6ebc77a4087d37207bcc80be2b1e",
+   "lexer": 8,
+   "psql": 8,
+   "same": true
+  },
+  {
+   "source": "drift closure coverage probe #1",
+   "sha256": "086b08b8553aa4f25ef0cdea5d6fd38d8f7e50e71ae829b52b40f4d3cfa4f999",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift created_by insert closure probe #1",
+   "sha256": "93738c9773121b6bd7a1470814489784a79ba1d35c9565bdd645e3d539f4d6be",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift data classification probe #1",
+   "sha256": "59ab7122fc43fe4a5f2dd202f58e4181edcca1f8cf8c6fd11cafe5cd72dd4b15",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift data classification probe #2",
+   "sha256": "4947bde1fcbd205abf74ba204bca4e212d529e25dfe9b4072333c7873739ba9b",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift data classification probe #3",
+   "sha256": "efe6f16900b11d14b19ea4a22ee9c30b132c46d9e4b21aa0a301562bde0c5d88",
+   "lexer": 9,
+   "psql": 9,
+   "same": true
+  },
+  {
+   "source": "drift data classification probe #4",
+   "sha256": "a51f5b7ebec46583d0b98763b9a41fda6ee35ea2cd8f142faf2992e468aab853",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift decider closure probe #1",
+   "sha256": "ae5a7cb1370ac2dae0add2184ffb2c997c3cf558349e0aed33f479d85653f187",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift fk action probe #1",
+   "sha256": "f487c05cbadefa81f46314f22e7cb6a542e2222f2a25eb8c3131b7e70466cae4",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift fk support probe #1",
+   "sha256": "096456ea230fc101b6d67f17101ebf57afaa8b8f975d96680c87ee38f91cdf98",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift fk support probe #2",
+   "sha256": "ea09efe51c19a7288b6d877ee3774cbe33ef9e8c61c4d2bcdf80084193411a27",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift index coverage probe #1",
+   "sha256": "3ad5512a93b07f52ffa0264003e4a92a4e82bae0b615f0eeea5500f74397e452",
+   "lexer": 14,
+   "psql": 14,
+   "same": true
+  },
+  {
+   "source": "drift index coverage probe #2",
+   "sha256": "351a7c30a8013ef5eb8355ef30ec8166cc55090147e138d1572a57e16cda5ea8",
+   "lexer": 11,
+   "psql": 11,
+   "same": true
+  },
+  {
+   "source": "drift index coverage probe #3",
+   "sha256": "1fb319bd2a5b32240ef4ad24f0bf57c1f7351c983d2163685709ac55fc770661",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift insert closure coverage probe #1",
+   "sha256": "8f6edc4592ea6a1ad4e1d325acfc90f32abda7fc2063f6255b5bb003e7559a54",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift permissive policy probe #1",
+   "sha256": "2c040c786790c85263e4728388b6aa1090a8e5171ce38ca98a3415944ff97257",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift pg_catalog guard probe #1",
+   "sha256": "944a412986faabc9a083c49ef423582c2767198af631e6c010d3522057347043",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned check probe #1",
+   "sha256": "4e4cec4cdd51f494af4165332fe7c36732d1845b89a15458bfba2a8e949eda38",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift pinned check probe #2",
+   "sha256": "1005cc4ba54b1bf08e6878490d83613b26ea42665dc6c64bf9e550d90de9d27d",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift pinned default probe #1",
+   "sha256": "1e2f253ecfa2e4f3e929732e0d600cdf0cb6b1110ef5a4e82e77837b6f8e9b9f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #1",
+   "sha256": "ae3054e4fe000c5277fbcfea0ba067f6ad43bb0c7f1e0bd7449521ed95b26dcd",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #2",
+   "sha256": "f97a3b323f097098ca76524eb916910b7ab53ee7260b3ab7bc80a7621a3a9ea6",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #3",
+   "sha256": "1ef2be9325518bb68ae4a856c1b0c4e58b4cffbfc17058ac70fd861e1d133797",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #4",
+   "sha256": "5faf721931659fd090d0d6e85514fddfb63e150cafb4620cf42df3f5f7fa7ace",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #5",
+   "sha256": "96250abc4fa45da95ce7c0bdca95e63d9ebafbe30f7749dcad8749e4af1035d9",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #6",
+   "sha256": "c685930e104f50651704cc15c10fa6335498dea6f0e86f7505c148b7f6b1f82e",
+   "lexer": 7,
+   "psql": 7,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #7",
+   "sha256": "704dead408265630ad0b506100161390a0b35d3601bbccd4e2323e748ebe915c",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "drift pinned grant probe #8",
+   "sha256": "59733ed466823887af9f504652f28b210040627cb5be30859bb2a404070b2846",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "drift pinned policy probe #1",
+   "sha256": "0e4a83534dc68fef1ebe30a0eb2a87d260d3597249d69dfb45826ecd1249aa6b",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift pinned shape probe #1",
+   "sha256": "5eca797bd5b11a5833b95833e833a3405886b01fcd4e4fce28064f5425d1d1a2",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift pinned shape probe #2",
+   "sha256": "7c89455c372da15f9a0758541c6c83350dd01121799f6f428ebfe8370c530a02",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned shape probe #3",
+   "sha256": "a1dea3f8b9c96ecb7018dc9a050b6278c89747b13cd4ddfd2d80b8a0064ed619",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned shape probe #4",
+   "sha256": "e782c6a1888d1329a59a97e2eb90cfb3bf7479ce06f916469eeb9b4f3fc67ab8",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned shape probe #5",
+   "sha256": "0f121075be0e43da72659cb6858987e05fe876cc5c11f2fbabb6510f671f4f14",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift pinned trigger probe #1",
+   "sha256": "9fbef52d68fb5f96fb69a07b01fccbf02565b5156010e8da28c3ce1bb77ce4ea",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "drift pinned trigger probe #2",
+   "sha256": "6ef5a47da84cc78c4f7e5c298963d8d4ba5b5b14d996967db33b73bfde6ee6c2",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift pinned trigger probe #3",
+   "sha256": "8c4cf545496b60ee8c695367a723b020787993d4013cac795cd60285a2e3047a",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift policy helper probe #1",
+   "sha256": "f9e3caa6df8b34765de29cd847ac097a40ea7ce45dd9eb36c0b9fafed6476380",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "drift policy helper probe #2",
+   "sha256": "eed86525196f003685605340dc797d416446befa38f7ff287abe73a09dae62aa",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift policy set probe #1",
+   "sha256": "64478fae634af662aca2b93111dda9523e871aa86f97de98b7ead5c188f9ee94",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "drift policy set probe #2",
+   "sha256": "f7034694ab369ca367a1cf23d8a897263b88349c66fe7bb6529e5f78bfad8775",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift read allowlist probe #1",
+   "sha256": "872f1a82a1f621e3dc0e10d3e10477d0e67d86a6634ab72ffed7aedd8a02aee7",
+   "lexer": 5,
+   "psql": 5,
+   "same": true
+  },
+  {
+   "source": "drift read allowlist probe #2",
+   "sha256": "77bdd5ba04b5c400cdddbeb10f36689c265ca3cbbe56173a497ec99217aa9366",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift requester closure probe #1",
+   "sha256": "71a4b44039c37e8b22761af050622550c248e7c994a751ae031b6e6b3748445e",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift rewrite rule probe #1",
+   "sha256": "f4c246f08f462acf688804c0e803c0e91c64e1071acfa27e0345326b27eaf063",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift security definer probe #1",
+   "sha256": "4187bad209a84194c67f6074110dd141475ef29b9bd58047443b58070860c9e3",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift security definer probe #2",
+   "sha256": "3a1c834b58982cf2eaa73ddeea75a1a58f65870655830a5473b287d8f4e680eb",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift security definer probe #3",
+   "sha256": "d8cd45df14d4509f177319770faae76e5c08b43a22a795039480c05d4dadea0b",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "drift system object fingerprint probe #1",
+   "sha256": "8c0033d6f4087b5f53c251cc14699504b84037254b6d21c1dfd418c17b9c4c17",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #1",
+   "sha256": "1ec74110912e3cdf824c5cc4964369d13ffd1f7e3cf21d1b4968a98f55b17dd3",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #2",
+   "sha256": "6664f35b2379e0414de4f3972dbb279b39996df25fe0ea31674a7e568b3fe320",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #3",
+   "sha256": "9d8a1e2791792cc0c5332dd54c39081aeed7d77c2ab5c44319eab4bb053721cc",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #4",
+   "sha256": "2122e0b89002b12b7ae35b0275a3fc3949a1f8600fd9683c39409623dff3fc40",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #5",
+   "sha256": "8e44028dffa6a56b82680c824e3a749b6781bbbbd756fe4354f5b01cb60fe60b",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift trigger probe #6",
+   "sha256": "3834ab24261539fb897fbcde80395c890202a0ffe339953c5c15781368e520dd",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift updated_by insert closure probe #1",
+   "sha256": "f621d5a5232a3af69ec4ec72d054a15498e1cf8d33d21c5987191deb488df2fd",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift updated_by update closure probe #1",
+   "sha256": "f9bb5d8e644ecfe1275263ce86223520983e32fffe9d6ccb70b3976515d3b01f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "drift vocabulary check probe #1",
+   "sha256": "b4eb9e469f4bf0ad416b2addea199e98ac4ede0ff6d92915a7d573fa86e6bd97",
+   "lexer": 3,
+   "psql": 3,
+   "same": true
+  },
+  {
+   "source": "drift vocabulary check probe #2",
+   "sha256": "d14c363d897b6e0a4055c2d9b5f09043c7d860fbe0ec207c783d1e1da3db7dae",
+   "lexer": 2,
+   "psql": 2,
+   "same": true
+  },
+  {
+   "source": "harness",
+   "sha256": "5ebfa5ef5268459d82599486535ed24ceb4c12de235c96ee8fd3af1cd2d8d63f",
+   "lexer": 28,
+   "psql": 28,
+   "same": true
+  },
+  {
+   "source": "probe client membership probe",
+   "sha256": "ac340292c94241e1056e9789ba470f058fd30f837a12da6718104d031b87e345",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe client privilege probe",
+   "sha256": "c21d3f57ec1502f83cf1acf135eaeefb8cd93f4570d57e3c284875054f9dd724",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe client schema probe",
+   "sha256": "3eefe840741198cc8dc2d9d22c2b5a2030f00313109788c9923b53612a442970",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe closure coverage probe",
+   "sha256": "201912fdce7c7e8588cdcd7b0cbfd755f9314bff9d23b2620f7e636db1a10736",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe created_by insert closure probe",
+   "sha256": "478939542f5d76965c30aff238c87dfb6d2fe4a54dbbe0141eece1d7c6caba83",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe data classification probe",
+   "sha256": "3563f67a27f5ac83c0521164f28dc1d4bbc1643347c5febaa3ec1bdf73947bb4",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe decider closure probe",
+   "sha256": "624feccdb57dd679340df7f8f2027202f32c3a7601722d95df7d0c96fed57b87",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe fk action probe",
+   "sha256": "70afca998993a71e72307e85914e149c729fb35e3b0454f0ebdec422d56e4f95",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe fk support probe",
+   "sha256": "85ff33615597ca82157f02e37160928b94007fc0069eb949d754756be16cb979",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe index coverage probe",
+   "sha256": "410f5e961e899500edc769b409732ad4105c17843e84cbe31e47e03fc54b34f5",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe insert closure coverage probe",
+   "sha256": "e00590f5a353b0af9edc5aabdd35732b4c1eb4cf1a33c43e6431edf7e3bc2a37",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe permissive policy probe",
+   "sha256": "3ffa0b443f896f6f27c7d2b1583dd175c4975ce8268fdc8f2b5fb61df8f7ac39",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pg_catalog guard probe",
+   "sha256": "9a6b026ee4f886b1a5ab0ba8d05a288de89bdc5f91e7116d0ce4fc78ed1d672d",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned check probe",
+   "sha256": "a4c074c3272592903f425e1fbadb0b939fb8ea83e288eb34bf9c534f304e55c6",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned default probe",
+   "sha256": "b5807f37743983d26bd717e740f8f40f7c96420e905069ca1a6494b410601790",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned grant probe",
+   "sha256": "729495148363dd55ed4aa4464064989619dab41eef1e64297ba577d8490782b3",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned policy probe",
+   "sha256": "4f7fe5143ffdb3e698d0d9d2c4556d1f0c4032d4c45670e562c1f68974342079",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned shape probe",
+   "sha256": "8626f133d38ad45f4bfd82a5a47250165630ba21517d33f2d7b22b9ac1a26b52",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe pinned trigger probe",
+   "sha256": "f7f9740848e623ee4367d399d7205f829efd5353e111d0ee8765eb006b49a35c",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe policy helper probe",
+   "sha256": "b3aa4e5a72fef63f9d862167af726304688ed9f1a411b2bc88d6997f331c28dd",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe policy set probe",
+   "sha256": "49a47acc2133c943fa8bea87718795cc0d81162dfc7131e862d0c60492acb101",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe read allowlist probe",
+   "sha256": "7ecbcde8b323539ff16ec88e5129d4bcdda40ed56c5f044dd25bf1128a18a12a",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe requester closure probe",
+   "sha256": "51bdbae7fdaf28dcb7bd89db413c1bc2f478025202ed0f88a567d735703da8e7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe rewrite rule probe",
+   "sha256": "8afc593b2b4d2bde9aa2a561b451aae2a26cc7484f3a48508754722dd5128b76",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe security definer probe",
+   "sha256": "d805629027ff2706676716738b3171cf2415edef7f7ec0217aaeeaa7aacb261f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe system object fingerprint probe",
+   "sha256": "d7bd44cbcba61da28f2f352a9808427218baafbd8d4174182da0618eb22cbfa7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe trigger probe",
+   "sha256": "b296bfb8258c392ce5627a4740a01b8563ab0cb8c1bd1de4f1a0d0a6b07c677f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe updated_by insert closure probe",
+   "sha256": "8a9525ecc9ec679ff2f4c1db18cb70835401b58f211828bc5798cbe22f25a7e5",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe updated_by update closure probe",
+   "sha256": "aa4eb5524a4b1409014637292e649ad3b00f60eb7e3ad6f64f53ceb09baf55ff",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "probe vocabulary check probe",
+   "sha256": "701612b3d8cbf5c15e328208dcc511fb6843b552e727892eee8308c882ae5b64",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CEILING_PROBE_SQL",
+   "sha256": "396358b489500a337203a20500c285ac9f9491b724df538abbca592b30104b18",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CLIENT_MEMBERSHIP_PROBE_SQL",
+   "sha256": "ac340292c94241e1056e9789ba470f058fd30f837a12da6718104d031b87e345",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CLIENT_PRIVILEGE_PROBE_SQL",
+   "sha256": "c21d3f57ec1502f83cf1acf135eaeefb8cd93f4570d57e3c284875054f9dd724",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CLIENT_SCHEMA_PROBE_SQL",
+   "sha256": "3eefe840741198cc8dc2d9d22c2b5a2030f00313109788c9923b53612a442970",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CLOSURE_COVERAGE_PROBE_SQL",
+   "sha256": "201912fdce7c7e8588cdcd7b0cbfd755f9314bff9d23b2620f7e636db1a10736",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.CREATED_BY_CLOSURE_PROBE_SQL",
+   "sha256": "478939542f5d76965c30aff238c87dfb6d2fe4a54dbbe0141eece1d7c6caba83",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.DATA_CLASSIFICATION_PROBE_SQL",
+   "sha256": "3563f67a27f5ac83c0521164f28dc1d4bbc1643347c5febaa3ec1bdf73947bb4",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.DECIDER_CLOSURE_PROBE_SQL",
+   "sha256": "624feccdb57dd679340df7f8f2027202f32c3a7601722d95df7d0c96fed57b87",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.FK_ACTION_PROBE_SQL",
+   "sha256": "70afca998993a71e72307e85914e149c729fb35e3b0454f0ebdec422d56e4f95",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.FK_SUPPORT_PROBE_SQL",
+   "sha256": "85ff33615597ca82157f02e37160928b94007fc0069eb949d754756be16cb979",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.INDEX_COVERAGE_PROBE_SQL",
+   "sha256": "410f5e961e899500edc769b409732ad4105c17843e84cbe31e47e03fc54b34f5",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.INSERT_CLOSURE_COVERAGE_PROBE_SQL",
+   "sha256": "e00590f5a353b0af9edc5aabdd35732b4c1eb4cf1a33c43e6431edf7e3bc2a37",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PERMISSIVE_POLICY_PROBE_SQL",
+   "sha256": "3ffa0b443f896f6f27c7d2b1583dd175c4975ce8268fdc8f2b5fb61df8f7ac39",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PG_CATALOG_GUARD_SQL",
+   "sha256": "9a6b026ee4f886b1a5ab0ba8d05a288de89bdc5f91e7116d0ce4fc78ed1d672d",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_CHECK_PROBE_SQL",
+   "sha256": "a4c074c3272592903f425e1fbadb0b939fb8ea83e288eb34bf9c534f304e55c6",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_DEFAULT_PROBE_SQL",
+   "sha256": "b5807f37743983d26bd717e740f8f40f7c96420e905069ca1a6494b410601790",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_GRANT_PROBE_SQL",
+   "sha256": "729495148363dd55ed4aa4464064989619dab41eef1e64297ba577d8490782b3",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_POLICY_PROBE_SQL",
+   "sha256": "4f7fe5143ffdb3e698d0d9d2c4556d1f0c4032d4c45670e562c1f68974342079",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_SHAPE_PROBE_SQL",
+   "sha256": "8626f133d38ad45f4bfd82a5a47250165630ba21517d33f2d7b22b9ac1a26b52",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.PINNED_TRIGGER_PROBE_SQL",
+   "sha256": "f7f9740848e623ee4367d399d7205f829efd5353e111d0ee8765eb006b49a35c",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.POLICY_HELPER_PROBE_SQL",
+   "sha256": "b3aa4e5a72fef63f9d862167af726304688ed9f1a411b2bc88d6997f331c28dd",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.POLICY_SET_PROBE_SQL",
+   "sha256": "49a47acc2133c943fa8bea87718795cc0d81162dfc7131e862d0c60492acb101",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.READ_ALLOWLIST_PROBE_SQL",
+   "sha256": "7ecbcde8b323539ff16ec88e5129d4bcdda40ed56c5f044dd25bf1128a18a12a",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.REQUESTER_CLOSURE_PROBE_SQL",
+   "sha256": "51bdbae7fdaf28dcb7bd89db413c1bc2f478025202ed0f88a567d735703da8e7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.REWRITE_RULE_PROBE_SQL",
+   "sha256": "8afc593b2b4d2bde9aa2a561b451aae2a26cc7484f3a48508754722dd5128b76",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.SECURITY_DEFINER_PROBE_SQL",
+   "sha256": "d805629027ff2706676716738b3171cf2415edef7f7ec0217aaeeaa7aacb261f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.SYSTEM_FINGERPRINT_PROBE_SQL",
+   "sha256": "d7bd44cbcba61da28f2f352a9808427218baafbd8d4174182da0618eb22cbfa7",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.SYSTEM_FINGERPRINT_READ_SQL",
+   "sha256": "ff46bd7387df2f61f6358f4e648de0b3b2d1e261c35de1ea954c213392dc8f95",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "run.SYSTEM_FINGERPRINT_SNAPSHOT_SQL",
+   "sha256": "0da577b8bd4126a0e531394cd9a524334addd5d37e467e894f79c7e5941e4fd8",
+   "lexer": 6,
+   "psql": 6,
+   "same": true
+  },
+  {
+   "source": "run.SYSTEM_FINGERPRINT_TABLE_READ_SQL",
+   "sha256": "933236bd3c09759490b6ab0a41297e7fda411ffab8ee59b73709c86e085c5273",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  },
+  {
+   "source": "run.TRIGGER_PROBE_SQL",
+   "sha256": "b296bfb8258c392ce5627a4740a01b8563ab0cb8c1bd1de4f1a0d0a6b07c677f",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.UPDATED_BY_CLOSURE_PROBE_SQL",
+   "sha256": "8a9525ecc9ec679ff2f4c1db18cb70835401b58f211828bc5798cbe22f25a7e5",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.UPDATED_BY_ON_UPDATE_CLOSURE_PROBE_SQL",
+   "sha256": "aa4eb5524a4b1409014637292e649ad3b00f60eb7e3ad6f64f53ceb09baf55ff",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "run.VOCABULARY_CHECK_PROBE_SQL",
+   "sha256": "701612b3d8cbf5c15e328208dcc511fb6843b552e727892eee8308c882ae5b64",
+   "lexer": 1,
+   "psql": 1,
+   "same": true
+  },
+  {
+   "source": "ws905 small",
+   "sha256": "353fcb3f9bc2f68fecfaaf47d90a270a6febbfd80e0751ce355c0a875051b05c",
+   "lexer": 20,
+   "psql": 20,
+   "same": true
+  },
+  {
+   "source": "db/foundation/ci/supabase-shim.sql",
+   "sha256": "959f8a089aa0936e93a4b3c4d4aaae66e2c7bb3e698c711dff05bd3009a2b8e8",
+   "lexer": 4,
+   "psql": 4,
+   "same": true
+  }
+ ]
+}
