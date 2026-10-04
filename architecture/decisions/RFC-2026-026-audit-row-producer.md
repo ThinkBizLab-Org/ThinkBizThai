@@ -1,10 +1,11 @@
 # RFC-2026-026 — Who writes an audit row: the command that performed the action, or the worker that did, in the same transaction
 
-Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q141-a = B); NOT approved; NOT in effect. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) chose option B of Q141-a — an audit row is produced by an application command or the worker only, for G1, with no database trigger producing it — and directed that this RFC be written. It did not approve this text: the producer architecture below is A0's proposal, A1's acceptance as Q141-a's co-owner is owed (§5 of that disposition), and no migration, policy or grant changes until this file carries an approval and the dependencies in §9 hold. The nine questions of §10 were answered on 2026-10-04 as A0 recommended (the Owner's `ลุยต่อเลย เอาตามแนะนำ`, transcribed with A0's reading of it in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §8); those answers are folded into this text as its design (§3.3, §3.7, §10.1), except the second half of Q-026-1's recommendation, which conflicts with Q-026-9's and is re-opened as Q-026-10, unanswered (batch rfc-text's review round). **They are not an approval of this text**: approval is the Owner's explicit act and A1's review, and each named role's own acceptance of its answer is still owed.
+Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q141-a = B); NOT approved; NOT in effect. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) chose option B of Q141-a — an audit row is produced by an application command or the worker only, for G1, with no database trigger producing it — and directed that this RFC be written. It did not approve this text: the producer architecture below is A0's proposal, A1's acceptance as Q141-a's co-owner is owed (§5 of that disposition), and no migration, policy or grant changes until this file carries an approval and the dependencies in §9 hold. The nine questions of §10 were answered on 2026-10-04 as A0 recommended (the Owner's `ลุยต่อเลย เอาตามแนะนำ`, transcribed with A0's reading of it in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §8); those answers are folded into this text as its design (§3.3, §3.7, §10.1), except the second half of Q-026-1's recommendation, which conflicts with Q-026-9's and is re-opened as Q-026-10, unanswered (batch rfc-text's review round; A0's recommendation for it is recorded beside it in §10 and is not an answer). **They are not an approval of this text**: approval is the Owner's explicit act and A1's review, and each named role's own acceptance of its answer is still owed.
 Date: 2026-10-04
 Revised: 2026-10-04, in the batch's review round, on the findings of C0 (`c0-batch-rfc-026-027-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-026-027-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-026-027-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-026-027-plan-2026-10-03.md` §7. Still Proposed; the revision approves nothing and answers no question.
 Revised: 2026-10-04, in batch rfc-text (`a0-batch-rfc-text-plan-2026-10-03.md`): the Owner's answers to Q-026-1..9 folded in as the design (Q-026-1 superseded: active membership for every command row; Q-026-9: the producers of `app.security_events`); §3.3's literal calls the page form (C0-9, A1 F4-a); §8.1/1 and §8.2/16 rewritten as executable obligations (Q0R-F2, Q0R-F1); the facts batch 170 changed restated. Still Proposed; the revision approves nothing.
 Revised: 2026-10-05, in batch rfc-text's review round, on the findings of C0 (`c0-batch-rfc-text-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-text-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-text-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-text-plan-2026-10-03.md` §6. §10.1 no longer records "not recorded" as the Owner's answer for a refusal about an unreachable workspace: the two accepted recommendations conflict, and that half is re-opened as Q-026-10 (C0-RT-1, A1 F1); §8.1/1 reads every non-system function's full definition, matches bare names, defines its `EXECUTE` token and adds (e) (C0-RT-2/3, A1 F2, Q0 F1-F4); §3.3/2-3, §8.2/17 and /21 corrected (A1 F3/F4, C0-RT-4, Q0 F6). Still Proposed; the revision approves nothing and answers no question.
+Revised: 2026-10-05, in batch rfc-026-static-rule (`a0-batch-rfc-026-static-rule-plan-2026-10-03.md`), on the re-checks of batch rfc-text's review round (`c0-`, `a1-`, `q0-batch-rfc-text-recheck-2026-10-03.md`), under the Owner's `เอาตามแนะนำ` of 2026-10-05, which A0 reads as authorising these §8.1/1 text fixes only (`product-owner-disposition-2026-10-03-batch-rfc-026-static-rule.md`): §8.1/1 reads extension members (A1 N1) and every rewrite rule in a non-system schema, as (f) (A1 N2, Q0 R2); (b) skips a function's own header name, so it no longer selects every producer (C0-RR-1, Q0 R1); what a lexer refusal means is stated (C0-RR-3, Q0 R5); drift 1's SECURITY DEFINER form reshaped (Q0 R3); the reader list held to `STABLE`/`IMMUTABLE` (Q0 R6); A0 adds (g), stored expressions; the "18 functions" corrected to 14 after `migrate-clean` (C0-RR-4, A1 N4, Q0 R4); Q-026-10's option (i) states its cost (C0-RR-2, A1 N3) and the question carries A0's recommendation, (iii), marked as a recommendation. Still Proposed; the revision approves nothing, and Q-026-10 stays unanswered.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), owner of batch `141` ("audit consumers/hooks") in the migration registry; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), co-owner of Q141-a and Q141-c, author of `RFC-2026-022` and owner of batch `140`
 Depends on: `RFC-2026-022` (approved 2026-09-08, not in effect) §3, §5/3, §5/4, §5/7, §5/8 and §8 for the CARRIED service shape; `RFC-2026-023` (in review) §3 and §4 for the acting-user bound on the command path; `RFC-2026-019` (approved) §4/2 and §4/3 for how the command and worker paths are reached; `RFC-2026-017` (approved) §3 for the service roles; `RFC-2026-016` (approved) §2 and §4; `RFC-2026-020` (approved) §5 and §6.2; `RFC-2026-012` (approved) for which tier issues a statement
@@ -330,10 +331,19 @@ binding on this table's columns. A refusal about a workspace the acting
 user cannot reach therefore has no producer in either table under this text (§3.3/4). That is not what
 the recommendation the Owner accepted for Q-026-1 said — it routed that refusal here — and it is not
 part of Q-026-4's accepted answer; it is A0's reconciliation of the conflict between the two accepted
-recommendations, held open as **Q-026-10** (§10) for A1 and the Owner. One option there, a command
-event in a workspace the actor *can* reach naming the attempted id, is expressible under the command
-policy above as written; another is a platform-scope store (`open_blockers[191]` (7)); the third is to
-accept the gap explicitly. This RFC chooses none of them. Until the halves of §9 land, `140`'s state holds for this table:
+recommendations, held open as **Q-026-10** (§10) for A1 and the Owner. One option there is a command
+event in a workspace the actor *can* reach. The command policy above admits such a row, but **the
+table has no column that can name the attempted workspace** (C0-RR-2, A1 N3 of batch rfc-text's
+re-check): its columns are those listed at the head of this section. Naming it takes either a forward
+migration adding a column — a store change in batch `140`'s range, A1's, with its classification under
+ERD §9.1, which Q-026-9's accepted answer ("no store change before G1") excluded — or the id written
+into `event_type` as 32 hex digits without hyphens, which the CHECK's grammar admits and does not mean
+(it is the kind of event, "A GRAMMAR and not a vocabulary" as `140_audit.sql:594` says of it, not
+a place for an identifier). Without either, the row says
+that an attempt happened, not where; and an actor who is an active member of no workspace has no row
+at all. Another option is a platform-scope store (`open_blockers[191]` (7)), also a store change; the
+third is to accept the gap explicitly. A0 recommends the third (§10, Q-026-10); this RFC chooses none
+of them, and the recommendation is not an answer. Until the halves of §9 land, `140`'s state holds for this table:
 `app_worker`'s grants, no policy, no writer. §3.1's no-trigger rule binds it already.
 
 ## 4. What this decides about the §8.4 `S` cell
@@ -487,44 +497,93 @@ None of these is written by this RFC; each is owed by the batch that lands the h
 
 ### 8.1 Static, by the lint that exists
 
-1. **Only the pinned producer set inserts an audit row, and no trigger reaches one** — answer B as a
-   negative, stated over the catalog so a lint can decide it (Q0R-F2: the earlier "no function
-   reachable from one" needed a call graph through PL/pgSQL bodies and had no decidable form). Read
-   after `migrate-clean` from `pg_proc`, `pg_trigger`, `pg_namespace` and `pg_depend`.
-   - **Which functions it reads** (C0-RT-2, A1 F2, Q0 F3 of batch rfc-text's review): **every**
-     function or procedure in a non-system schema or with an OID at or above 16384 — the repository's
-     `userObject` reading (`scripts/db/run.mjs`, `NON_SYSTEM_SCHEMA` and `FIRST_NORMAL_OID`), so
-     `public`, `auth`, `extensions` and any schema a later migration creates are read, not `app` and
-     `private` alone — except the members of an extension (`pg_depend.deptype = 'e'`), which no
-     migration body writes. The earlier text read `app` and `private` by name; A1 measured a
-     `SECURITY INVOKER` trigger function in `public` and one in a new schema writing an admitted audit
-     row that no part of the rule read, and the schema-by-name scope is the one `run.mjs` records being
-     bypassed three times before it was replaced by `userObject`.
-   - **What text it reads** (Q0 F1): each function's **full definition**, `pg_get_functiondef(oid)`,
-     not `prosrc`. An SQL-standard (`BEGIN ATOMIC`) body has an empty `prosrc` and keeps its body in
-     `prosqlbody`; Q0 measured one created through `EXECUTE` inside a `DO` block migrating clean
-     (`psql-driver.mjs` refuses `BEGIN ATOMIC` at the top level only), where a rule reading `prosrc`
-     saw nothing. The definition is tokenised by the repository's one SQL lexer
+1. **Only the pinned producer set inserts an audit row, and nothing else reaches one: no trigger, no
+   rewrite rule, no stored expression** — answer B as a negative, stated over the catalog so a lint can
+   decide it (Q0R-F2: the earlier "no function reachable from one" needed a call graph through PL/pgSQL
+   bodies and had no decidable form). Read after `migrate-clean` from `pg_proc`, `pg_trigger`,
+   `pg_rewrite`, `pg_attrdef`, `pg_constraint`, `pg_policy`, `pg_index`, `pg_namespace` and
+   `pg_depend`. The labels "the review round" and "the re-check" below are batch rfc-text's review
+   round and the C0, A1 and Q0 re-checks of it (`c0-`, `a1-`, `q0-batch-rfc-text-recheck-2026-10-03.md`);
+   "measured" without a source is A0's prototype in batch rfc-026-static-rule (last paragraph).
+   - **Which functions it reads** (C0-RT-2, A1 F2, Q0 F3 of the review round; A1 N1 of the re-check):
+     **every** function or procedure in a non-system schema or with an OID at or above 16384 — the
+     repository's `userObject` reading (`scripts/db/run.mjs`, `NON_SYSTEM_SCHEMA` and
+     `FIRST_NORMAL_OID`), so `public`, `auth`, `extensions` and any schema a later migration creates
+     are read, not `app` and `private` alone — **extension members included**. The review round's text
+     excepted the members of an extension (`pg_depend.deptype = 'e'`) as written by no migration body.
+     A1 measured the opposite: one `ALTER EXTENSION … ADD` makes any function a member, and a
+     `SECURITY INVOKER` function in `public` inserting into `app.audit_logs`, added to pgcrypto,
+     migrated clean with every layer green and was read by no part of the rule. `run.mjs` records the
+     same bypass for `SECURITY DEFINER` functions (A1 V06b), which batch 128's third rule closed by
+     reading exactly those members; this rule reads them for the same reason, whatever `prosecdef`
+     says. Measured on a clean `migrate-clean`: the 36 members (pgcrypto's, all in language `c`) name
+     no audit table and no producer, so reading them selects nothing; a member that does match goes to
+     the pinned lists below like any other function. A function in language `c` or `internal` is opaque
+     to this rule — its `AS` strings name a library file and a symbol, not SQL — and the rule does not
+     claim to read one; making one needs a superuser and a library on the server.
+   - **What text it reads** (Q0 F1 of the review round): each function's **full definition**,
+     `pg_get_functiondef(oid)`, not `prosrc`. An SQL-standard (`BEGIN ATOMIC`) body has an empty
+     `prosrc` and keeps its body in `prosqlbody`; Q0 measured one created through `EXECUTE` inside a
+     `DO` block migrating clean (`psql-driver.mjs` refuses `BEGIN ATOMIC` at the top level only), where
+     a rule reading `prosrc` saw nothing. The definition is tokenised by the repository's one SQL lexer
      (`scripts/db/sql-lexer.mjs`: comments dropped, string and dollar-quoted bodies read at every
-     nesting level by `walkLevels`, identifiers folded).
-   - **What counts as naming** (C0-RT-2, Q0 F2): an identifier token equal to `audit_logs` or
-     `security_events` — or to a producer function's name — **whatever qualifies it or does not**. A
-     bare `audit_logs` resolved through a function's own `set search_path = app` names the table (Q0
-     measured that form migrating clean). Matching the bare name over-selects a function that merely
-     has a column or variable of that name; that fails closed, and such a function goes to the pinned
-     lists below.
+     nesting level by `walkLevels`, identifiers folded). Only (b) leaves one part of it unread: the
+     function's own name in its header (below).
+   - **What a lexer refusal means** (C0-RR-3, Q0 R5 of the re-check). `walkLevels` lexes every
+     literal's value as SQL, so ordinary prose yields refusals at an inner level: measured, a message
+     `'the caller can''t do this'` and a JSON literal holding an apostrophe gave three in one function,
+     `rls-smoke`'s `private.as_*` helpers give one or two each, and each of pgcrypto's 36 members gives
+     one, in its `AS '$libdir/pgcrypto'` file string. The rule: tokens are collected at every level
+     whatever the refusals. **A refusal in the text the server compiles as the function fails the
+     function closed** — the definition itself (level 0) and, where `pg_get_functiondef` prints the
+     body as a dollar-quoted `AS` string, that body (the level that string opens): the function is red,
+     and only a pinned exemption in a diff a reviewer reads clears it. PostgreSQL stores such a body
+     when `check_function_bodies` is off, so the case is not hypothetical. **A refusal at a deeper
+     level, inside a literal of the body, does not fail the function**: that text reaches the server
+     as SQL only through `EXECUTE`, which (c) refuses, or as the literal body of static DDL in the
+     body, which is itself a level read here; and a text that does not lex is a syntax error when the
+     server reads it, so it runs nothing (`sql-lexer.mjs`, the header of `walkLevels`). A refusal in a
+     file string of a `c` function is of that kind. **Every level past `NESTED_DEPTH`**, which
+     `walkLevels` reports through `beyond`, **fails the function closed.** Measured on a clean
+     `migrate-clean` and after `rls-smoke`: no function has a refusal at level 0 or in its body, and none
+     reaches `beyond`.
+   - **What counts as naming** (C0-RT-2, Q0 F2 of the review round): an identifier token equal to
+     `audit_logs` or `security_events` — or to a producer function's name — **whatever qualifies it or
+     does not**. A bare `audit_logs` resolved through a function's own `set search_path = app` names
+     the table (Q0 measured that form migrating clean). Matching the bare name over-selects a function
+     that merely has a column or variable of that name; that fails closed, and such a function goes to
+     the pinned lists below.
    - **(a) the producer set is exact.** The functions read whose definition names `audit_logs` or
      `security_events` are exactly the pinned producer set — the function names the coverage map gives
      in rows with `producer_path: "command"` — plus a **pinned reader list**, empty today, for a
-     function that reads an audit table and writes none (for example the ERD §9.1 "security/admin safe
-     view" when one is built; Q0 F7), added in a diff a reviewer reads. Each producer is `SECURITY
-     DEFINER`, owned by `app_command`, with `search_path=""` (`RFC-2026-019` §4/2), and none returns
-     `trigger`. `140`'s apply-time probe that inserts into `app.audit_logs` from a `DO` block
-     (`140_audit.sql:895`) is not in `pg_proc`, so it is not matched, which is why the rule reads the
-     catalog and not migration text.
-   - **(b) a producer is an entry point, never a callee.** No function read names a producer function.
-     So no trigger function reaches one, directly or through another function. The server tier reaches
-     a producer by RPC (`RFC-2026-019` §4/2), and §8.1/6 holds who may.
+     function or a view that reads an audit table and writes none (for example the ERD §9.1
+     "security/admin safe view" when one is built; Q0 F7), added in a diff a reviewer reads. **Each
+     function on the reader list is `STABLE` or `IMMUTABLE`** (`pg_proc.provolatile`), so "writes none"
+     is held by PostgreSQL and not by review alone (Q0 R6 of the re-check): PostgreSQL refuses a write
+     in a non-volatile function when it runs. Measured: a `STABLE` PL/pgSQL function inserting into
+     `app.audit_logs` was created and, called, failed with "INSERT is not allowed in a non-volatile
+     function"; a `STABLE` SQL-language one was created as well, so the refusal is at run time and the
+     rule reads `provolatile`, not the body. A volatile function a reader calls is read by (a) on its
+     own and is selected if it names an audit table; a view on the list is read by (f). Each producer is
+     `SECURITY DEFINER`, owned by `app_command`, with `search_path=""` (`RFC-2026-019` §4/2), and none
+     returns `trigger`; it is pinned in `SECURITY_DEFINER_FUNCTIONS` (`scripts/db/run.mjs`) in the same
+     diff, so the SECURITY DEFINER probe and (a) agree. `140`'s apply-time probe that inserts into
+     `app.audit_logs` from a `DO` block (`140_audit.sql:895`) is not in `pg_proc`, so it is not matched,
+     which is why the rule reads the catalog and not migration text.
+   - **(b) a producer is an entry point, never a callee.** No function read names a producer function
+     **other than in its own header** (C0-RR-1, Q0 R1 of the re-check). `pg_get_functiondef` always
+     begins `CREATE OR REPLACE FUNCTION <schema>.<name>(` (or `PROCEDURE`), so every producer's full
+     definition names that producer; (b) as the review round worded it selected every producer by its
+     own header, and the rule would have refused its first producer (measured by C0 and Q0, and here
+     with a stand-in producer). (b) therefore skips the name tokens between the first `FUNCTION` or
+     `PROCEDURE` keyword of level 0 and the `(` after them, and reads every other token: argument
+     defaults, `SET` clauses, the body and every literal level. Reading `prosrc` instead was the other
+     remedy offered; it would miss a producer called from an argument default and the whole of an
+     SQL-standard body (empty `prosrc`), so the header is stripped instead. A producer that calls itself
+     or another producer is still selected. No view names a producer ((f)) and no stored expression
+     does ((g)). So no trigger, rule or expression reaches a producer, directly or through another
+     function. The server tier reaches a producer by RPC (`RFC-2026-019` §4/2), and §8.1/6 holds who
+     may.
    - **(c) no dynamic SQL** (C0-RT-3). No function read has an unquoted identifier token `execute` at
      any level of its definition as the lexer reads it. That is the token, not a statement: `RETURN
      QUERY EXECUTE` and `OPEN … FOR EXECUTE` do not start with it and are caught, and because
@@ -542,33 +601,92 @@ None of these is written by this RFC; each is owed by the batch that lands the h
      adds nothing the probe does not hold; its self-test asserts the probe's own message.
    - **(e) no trigger on any table, in any schema, runs a function that (a) or (b) selects** (A1 F2).
      The pinned trigger probe reads tables in `app` and `private` only; (e) reads `pg_trigger` whole.
+   - **(f) no rewrite rule but a view's, and no view that names a producer** (A1 N2, Q0 R2 of the
+     re-check). The rule reads `pg_rewrite` for every relation in the same `userObject` scope,
+     extension members included. The only rule allowed is a view's or materialized view's `_RETURN`;
+     every other rule, in any schema, is refused whatever its action names. A rule's action runs as its
+     table's owner and rewrites a write before any trigger or policy sees it: A1 measured a `do also
+     insert into app.audit_logs` rule on a table in `public` migrating clean and, when `app_command`
+     inserted one row into that table, writing a `succeeded` audit row with a forged `actor_id` past
+     the forced RLS — a database-side producer, which §3.1 says never exists, and which nothing in
+     (a)-(e) read. The existing rewrite-rule probe (`scripts/db/run.mjs`, `REWRITE_RULE_PROBE_SQL`,
+     since batch 126) refuses the same shape for relations in `app` and `private` only; the batch that
+     lands this rule may widen that probe to `userObject` and cite it, as (d) cites the trigger probe.
+     A view's `_RETURN` is read too, through `pg_get_ruledef`: one that names a producer is refused,
+     because selecting from the view calls the producer; one that names an audit table is a reader and
+     must be on (a)'s pinned reader list.
+   - **(g) no stored expression names a producer.** A0 added this while writing (f); no reviewer raised
+     it. A column default, a `CHECK` constraint, a policy expression, and an index expression or
+     predicate run on a write or a read with no trigger, so one that calls a producer makes the
+     producer a callee as surely as a trigger function does. The rule reads `pg_attrdef`,
+     `pg_constraint` (`contype = 'c'`), `pg_policy` and `pg_index` in the same scope, tokenises each
+     deparsed expression, and refuses any that names a producer. Measured: a column default calling a
+     stand-in producer, on a table in `public`, migrated clean. A policy calling it was refused first at
+     `migrate-clean` by the existing policy helper probe and policy set probe; (g)'s policy arm restates
+     them, and its self-test asserts their message, as (d)'s does.
 
    **Drifts, each owed as a self-test of the rule, in the batch that lands the command half.** Each is
    applied to the working tree, measured red, and restored, and each self-test asserts **the rule's own
-   refusal text**, not only a red exit (Q0 F4). The drifts for (a), (b), (c) and (e)'s function are
-   written **without a `create trigger` on a table in `app` or `private`**, because the pinned trigger
-   probe refuses any such trigger first and a red exit would then show the probe, not the rule (the
-   earlier text's "Q0's round r3 drift … passed at exit 0" held only for a trigger function with no
-   trigger). They are:
-   1. a `SECURITY INVOKER` trigger function in `app` inserting into `app.audit_logs` — (a), by name;
-      the same body made `SECURITY DEFINER` — (a), whatever the SECURITY DEFINER probe says;
+   refusal text**, not only a red exit (Q0 F4). The drifts for (a), (b), (c), (e), (f) and (g)'s
+   non-policy arms are written **without a `create trigger` on a table in `app` or `private`**, because
+   the pinned trigger probe refuses any such trigger first and a red exit would then show the probe,
+   not the rule. They are:
+   1. a `SECURITY INVOKER` trigger function in `app` inserting into `app.audit_logs` — (a), by name,
+      asserting (a)'s own text (measured: `migrate-clean` exit 0, (a) selects it). **1b**, the same body
+      made `SECURITY DEFINER`, is refused first at `migrate-clean` by the SECURITY DEFINER probe, "not a
+      pinned SECURITY DEFINER function" (Q0 R3 of the re-check; measured again here, exit 2), so the
+      self-test's drift also pins that function in `SECURITY_DEFINER_FUNCTIONS`; the probe then passes
+      it and (a) is what refuses, by its own text. (That pinned form is not measured: it edits
+      `run.mjs`, which this batch does not.) Without the pin, 1b asserts the probe's message, as drift
+      8 does;
    2. the same function in `public`, and in a schema the drift creates — (a) (A1's prototype, Q0 X1);
    3. a function with `set search_path = app` naming `audit_logs` unqualified — (a) (Q0 X3);
    4. an SQL-standard (`BEGIN ATOMIC`) function inserting into `app.audit_logs`, created through
       `EXECUTE` in a `DO` block — (a), through the full definition (Q0 X2);
-   5. a trigger function that calls a producer — (b);
+   5. a trigger function that calls a producer — (b). **5b, a control:** a catalog holding exactly one
+      pinned producer and no caller is green under (a)-(g) — (b)'s header skip (C0-RR-1, Q0 R1;
+      measured for (b) only, with a stand-in producer: the unstripped reading selects it, the stripped
+      one does not. The stand-in was `SECURITY INVOKER`, since an unpinned `SECURITY DEFINER` one fails
+      the SECURITY DEFINER probe first, so (a) refused its attributes, as it must);
    6. a producer that runs `execute 'insert into app.' || ...`, and a function with `return query
       execute` — (c);
    7. a trigger on a table in a schema the drift creates, running the function of drift 2 — (e);
-   8. a fourth trigger on `app.audit_logs` — (d), asserting the pinned trigger probe's message.
+   8. a fourth trigger on `app.audit_logs` — (d), asserting the pinned trigger probe's message;
+   9. an invoker writer in `public` made a pgcrypto member by `ALTER EXTENSION … ADD FUNCTION` — (a),
+      because members are read (A1 N1; measured: `migrate-clean` exit 0, selected);
+   10. a `do also insert into app.audit_logs` rule on a table in `public` — (f); and a view in
+       `public` selecting a producer — (f) (A1 N2, Q0 R2; measured: `migrate-clean` exit 0, both
+       selected);
+   11. a column default calling a producer — (g) (measured: exit 0, selected); a policy calling one —
+       (g)'s policy arm, asserting the policy helper probe's message (measured: exit 2 there);
+   12. a function on the pinned reader list made `VOLATILE` — (a)'s reader rule (Q0 R6; measured:
+       selected);
+   13. a function whose body has a literal that does not lex (an apostrophe in a message, a JSON
+       literal) — a **control**, green (measured: three inner refusals, not refused); and a function
+       stored with `check_function_bodies` off whose body itself does not lex — refused, fail closed
+       (not measured).
 
    (The earliest wording — "no function body in migrations inserts into an audit table" — would have
-   refused this RFC's own command producer; Q0's F1.) A0 approximated (a)-(c) as revised here with a
-   regular expression over `pg_get_functiondef` on a scratch cluster in batch rfc-text's review round
-   (not the lexer, and not the rule): on a clean `migrate-clean` it selected nothing, out of 18
-   functions in scope (`app`, `private`, `auth`; the 36 in `extensions` are extension members); with
-   drifts 2 (`public`), 3 and 4 and a `return query execute` function appended to `140`, it selected
-   all three under (a) and the fourth under (c), where (a) as merged selected none of the three.
+   refused this RFC's own command producer; Q0's F1.) **What was run, and what it is not.** In batch
+   rfc-text's review round A0 approximated (a)-(c) as then revised with a regular expression over
+   `pg_get_functiondef` on a scratch cluster: on a clean `migrate-clean` it selected nothing, out of
+   **14** functions in scope after `migrate-clean` (`app` 9, `private` 4, `auth` 1; the 36 in
+   `extensions` are extension members, which that text did not read). The earlier text said 18, which
+   is the count after `rls-smoke` adds its four `private.as_*` helpers (C0-RR-4, A1 N4, Q0 R4 of the
+   re-check). With drifts 2 (`public`), 3 and 4 and a `return query execute` function appended to
+   `140`, it selected all three under (a) and the fourth under (c), where (a) as merged selected none
+   of the three. In batch rfc-026-static-rule A0 applied the rule as revised here to a scratch
+   cluster's catalog with the repository's lexer (`walkLevels` over `pg_get_functiondef`,
+   `pg_get_ruledef` and the deparsed expressions; a private script, not the rule and not its
+   self-test). On a clean `migrate-clean` it read 50 functions (the 14, plus the 36 extension
+   members), no rule and 715 stored expressions, and selected nothing under (a)-(g); after `rls-smoke`
+   it read 54 and selected nothing. With drifts 1, 5 and its control, 9, 10, 11 (the default), 12 and
+   13's control appended to `140`, plus an unpinned `STABLE` function that inserts, `migrate-clean`
+   exited 0 and each part selected its drift and no other object: (a) the invoker writer, the extension
+   member and the unpinned `STABLE` writer, and the stand-in producer's attributes; the reader rule the
+   volatile reader; (b) the caller only; (f) the rule and the producer view; (g) the default; drift 13's
+   control nothing. The review round's reading would have selected none of drifts 9, 10 and 11, by its
+   scope, and would have selected the stand-in producer under (b), measured.
 2. **Exactly two policies on each audit table**, one `TO app_worker`, one `TO app_command`, all
    `FOR INSERT`, each `WITH CHECK` pinned as a literal the way `RFC-2026-020` §6.1/5 pins `app_authz`'s:
    §3.2's and §3.3's on `app.audit_logs`, §3.7's two on `app.security_events`. Each lands with its half
@@ -689,7 +807,8 @@ In batch `141`'s range, A0's per the registry, each a forward migration and neve
    denial wording at `:138` re-confirmed against §3.3/4; the `roleScopedCompleteness` question of §4;
    §8.1/1's catalog rule and its drifts, and `scripts/db/psql-driver.mjs` refusing `BEGIN ATOMIC` at
    every nesting level it reads, not the top level only (Q0 F1 of batch rfc-text's review; §8.1/1
-   reads the full definition either way); `superseded.json` entries for any earlier apply-time block the
+   reads the full definition either way); `REWRITE_RULE_PROBE_SQL` widened to `userObject` if §8.1/1
+   (f) is held through it rather than by the rule's own read; `superseded.json` entries for any earlier apply-time block the
    new policies make false (`140`'s blocks assert "no service policy"; the post-migrate pass will say
    which).
 
@@ -698,7 +817,8 @@ In batch `141`'s range, A0's per the registry, each a forward migration and neve
 The table keeps each question as it was asked. Q-026-1..9 were answered on 2026-10-04 as A0 recommended
 (§10.1); each answer is folded into the text above, except the second half of Q-026-1's recommendation,
 which conflicts with Q-026-9's and is re-opened as **Q-026-10**, raised in batch rfc-text's review round
-(C0-RT-1, A1 F1) and **unanswered**. Where a question names a role other than the Owner,
+(C0-RT-1, A1 F1) and **unanswered**; its row carries A0's recommendation (batch rfc-026-static-rule),
+marked as a recommendation and not an answer. Where a question names a role other than the Owner,
 that role's own acceptance of the answer is still owed (`open_blockers[195]`).
 
 | id | for | question |
@@ -712,7 +832,7 @@ that role's own acceptance of the answer is still owed (`open_blockers[195]`).
 | Q-026-7 | A0, A1 | `service-policy-map.json` cannot key two producers on one `(table, operation)` (§4). Add a producer field, or keep command-path policies out of the map? |
 | Q-026-8 | A6 | `actor` for a worker acting on a user's job: the job's `tenant_context.actor` (the user) or a `system_actor`? The contract permits both and SEC-009's "names its actor" reads either way. |
 | Q-026-9 | A1 (owner of batch `140`), A0 | `app.security_events` (§3.7): which producers write it, and under which predicates written on its own columns? It has no `causation_id`, so the worker's cell predicate is open — a forward migration adding a cause column, a rule such as `actor_kind is null or actor_kind = 'system_actor'`, or no worker writer; and whether a command writes there, under which workspace term (Q-026-1 (a) depends on it). Until answered, it has no writer. |
-| Q-026-10 | A1 (owner of Q-026-4 and of batch `140`), Owner | **UNANSWERED; raised 2026-10-05 in batch rfc-text's review round** (C0-RT-1, A1 F1). The recommendation accepted for Q-026-1 routes a refusal about a workspace the acting user cannot reach (another tenant's, or a `workspace_id` no workspace has) to `app.security_events` once Q-026-9 gives it a producer; the recommendation accepted for Q-026-9 gives the command a producer there only in a workspace the actor is an active member of. The two conflict, and the text now holds that refusal as unrecorded — A0's reconciliation, not an answer. Which: (i) the command writes a `security_events` row in a workspace the actor *can* reach, naming the attempted id (expressible under §3.7's command policy as written; what happens when the actor reaches none is part of the answer), with an §8.2 case; (ii) a platform-scope store (`open_blockers[191]` (7)); or (iii) accept the gap explicitly, as a class beside Q-026-4's, with SEC-014's producer owed before Paid Beta? |
+| Q-026-10 | A1 (owner of Q-026-4 and of batch `140`), Owner | **UNANSWERED; raised 2026-10-05 in batch rfc-text's review round** (C0-RT-1, A1 F1). The recommendation accepted for Q-026-1 routes a refusal about a workspace the acting user cannot reach (another tenant's, or a `workspace_id` no workspace has) to `app.security_events` once Q-026-9 gives it a producer; the recommendation accepted for Q-026-9 gives the command a producer there only in a workspace the actor is an active member of. The two conflict, and the text now holds that refusal as unrecorded — A0's reconciliation, not an answer. Which: (i) the command writes a `security_events` row in a workspace the actor *can* reach, with an §8.2 case — §3.7's command policy admits the row, but **`app.security_events` has no column for the attempted workspace id** (C0-RR-2, A1 N3 of batch rfc-text's re-check; `140_audit.sql:583-617`), so naming it costs a forward migration adding one (a store change in batch `140`'s range, A1's, classified under ERD §9.1, against Q-026-9's accepted "no store change before G1") or the id written into `event_type` as 32 hex digits (admitted by its CHECK, a misuse of its grammar); without either the row records that an attempt happened, not where, and an actor who is an active member of no workspace gets no row; (ii) a platform-scope store (`open_blockers[191]` (7)), also a store change; or (iii) accept the gap explicitly, as a class beside Q-026-4's, with SEC-014's producer owed before Paid Beta? **A0's recommendation — a recommendation, NOT an answer; added 2026-10-05 in batch rfc-026-static-rule — is (iii):** it needs no store change before G1, which matches Q-026-9's accepted "no store change before G1"; (i) needs a store change or a misuse of `event_type` and still leaves an actor with no reachable workspace unrecorded, and (ii) is a store change too. What (iii) costs: an acting user who names another tenant's workspace, or one that does not exist, is refused by the membership term and changes nothing, but the attempt leaves no row in this database until SEC-014's producer exists — a loss of detection, not of isolation. **Q-026-10 stays UNANSWERED** until A1 and the Owner answer it. |
 
 ### 10.1 Decisions taken by the Owner's answers
 
@@ -766,6 +886,14 @@ approves the RFC.**
   those drift shapes and approximated §8.1/1 as revised with a regular expression, not the lexer
   (§8.1/1, last paragraph). The rule itself does not exist, and its approximation is not its
   self-test.
+- **Batch rfc-026-static-rule (2026-10-05) corrected §8.1/1 and Q-026-10's text** on the re-checks of
+  batch rfc-text's review round (C0-RR-1..5, A1 N1..N5, Q0 R1..R6) and executed none of the RFC's SQL.
+  A0 applied §8.1/1 as revised to a scratch cluster's catalog with the repository's lexer and appended
+  its drifts to `140` (§8.1/1, last paragraph): that is a prototype in a private script, not the rule,
+  and not the self-tests the landing batch owes. Part (g) is A0's own addition, not a reviewer's
+  finding, and is the part a reviewer should read first. The recommendation on Q-026-10 is A0's and is
+  the option that asks the least of the proposer's own batch (no store change), which should be
+  weighed as such.
 - No migration, policy, grant, lint file, test or work-package field other than the writable path that
   lets this file exist was changed to write it.
 
