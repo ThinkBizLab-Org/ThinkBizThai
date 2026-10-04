@@ -34,7 +34,7 @@
     "architecture/decisions/RFC-2026-023-acting-user-narrowing.md": "537689c28ce4df851df2b6bafc8417d44ba6bcbae3c116788787e84afacff5cd",
     "architecture/decisions/RFC-2026-024-cross-vendor-condition-withdrawn.md": "7b64864cab111a5ddbf6d9c34b4cb71c6241a6e2a6ecb39054455979ac5cb0f6",
     "architecture/decisions/RFC-2026-025-owner-delegated-merge.md": "5f5a3dda7bc67d688c5450245a789ba775ae51b5daea42f52a973376f8fa4723",
-    "architecture/decisions/RFC-2026-026-audit-row-producer.md": "3916b5cd07eba6f8ca65665e998522aafd0d0ef43a5f7622ed204b4a0f831f0f",
+    "architecture/decisions/RFC-2026-026-audit-row-producer.md": "3c782f85fd65e3e8036eaf2f2d93a469c0f1367d92867e2ac3c1e5ab8275a559",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md": "c431cf0b6ea8a9844a92241a561c33d2b343731aa70408f60164c96951e7e150",
     "contract-catalog/README.md": "5bc361546dbaf3bdb9402eeb1c170214a1248bf7d79711d97771a988dfd852f1",
     "contract-catalog/shared-kernel/index.json": "a8c5173cb87e0f3efdd32a25fd57bfb90690defc1fe2def565e4bc175428df3d",
