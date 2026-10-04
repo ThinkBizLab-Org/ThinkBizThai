@@ -17,13 +17,13 @@
 //     naming the environment variable that would let them run.
 import { createHash, randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
 import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const MIGRATIONS = 'db/foundation/migrations';
 
@@ -4005,9 +4005,10 @@ async function verify() {
   return 1;
 }
 
-// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
-// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
-if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) {
+// Real paths on both sides, the repository's runner idiom: `file://${argv[1]}` never matched in a clone whose path
+// holds a space or a percent sign, and `pathToFileURL(argv[1])` never matched a script named through a symlink
+// (/tmp is one on macOS; C0-TIR-1, A1 R1), so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const target = argv[2];
   if (!target) { stderr.write('usage: node scripts/db/run.mjs <target>\n'); exit(2); }
   exit(target === 'verify' ? await verify() : await runTarget(target));

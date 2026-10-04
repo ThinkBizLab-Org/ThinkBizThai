@@ -17,7 +17,8 @@ import { argv, env, exit, stdout, stderr } from 'node:process';
 import { query, queryFinal, connectionString, openSession, feed, psqlLex } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
-import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // Statements are accumulated and flushed as one psql invocation per case, because a transaction
 // cannot survive psql exiting. `begin` opens a buffer; `exec` appends and, for the statement whose
@@ -290,6 +291,7 @@ function reportCoverage() {
   for (const [k, v] of owed) stdout.write(`    ${k}: ${v.note}\n`);
 }
 
-// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
-// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
-if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) exit(await main());
+// Real paths on both sides, the repository's runner idiom: `file://${argv[1]}` never matched in a clone whose path
+// holds a space or a percent sign, and `pathToFileURL(argv[1])` never matched a script named through a symlink
+// (/tmp is one on macOS; C0-TIR-1, A1 R1), so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) exit(await main());

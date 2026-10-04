@@ -251,7 +251,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // through the nearest existing ancestor, a file as --dir, down's refusals of a reserved port, a symlink and a
 // postmaster.pid naming another data directory or port, a stopped cluster said to be stopped, a foreign entry
 // never deleted, and the full script path in the next command; no test added or renamed; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1101,
+// 1101 to 1119 with the try-it batch's fix after the re-checks (2026-10-04, no migration): eighteen assertions in
+// the same test: the per-cluster scram-sha-256 password (no trust, at least 24 random bytes, base64url, libpq's
+// password-file line, 0600 exclusive-create files, PGPASSFILE over an inherited PGPASSWORD, no password in the URL
+// or the printed psql line), the six runners entered by real paths, no bare-URL entry check anywhere in scripts/ or
+// tests/ but the Integration Owner's two, and three runners invoked through a symlink running main(); no test added
+// or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1119,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

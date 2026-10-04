@@ -60,7 +60,8 @@ import {
   authzLint,
 } from './run.mjs';
 import { fixtureResolver } from '../../tests/db/identity/run-isolation.mjs';
-import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 export const ROSTER_POLICY = 'workspace_members_select_workspace_roster';
 
@@ -567,9 +568,10 @@ export async function main(run = queryFinal, runOne = query) {
   return results.every((r) => r.ok) ? 0 : 1;
 }
 
-// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
-// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
-if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) {
+// Real paths on both sides, the repository's runner idiom: `file://${argv[1]}` never matched in a clone whose path
+// holds a space or a percent sign, and `pathToFileURL(argv[1])` never matched a script named through a symlink
+// (/tmp is one on macOS; C0-TIR-1, A1 R1), so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try { connectionString(); } catch (failure) {
     stderr.write(`db-authz-proofs: ${failure.message}\n`);
     exit(1);

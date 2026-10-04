@@ -65,7 +65,9 @@ repository) and/or `--port <n>`; pass the same `--dir` to `demo`, `psql` and `do
 
 What `up` does, in order:
 
-1. `initdb` a new empty cluster (locale C, superuser `postgres`, local connections trusted).
+1. Draw a random password for this cluster and write it to `pgpass` in the cluster directory (readable by you
+   alone, mode 0600), then `initdb` a new empty cluster (locale C, superuser `postgres`) that asks for that
+   password on every connection (`scram-sha-256`; nothing is trusted).
 2. Start it listening on `127.0.0.1` only, over TCP, with no unix socket.
 3. Create the database `thinkbizthai_try` and apply `db/foundation/ci/supabase-shim.sql`, the stand-in
    for the `auth` schema and roles Supabase would provide, exactly as CI does.
@@ -74,13 +76,14 @@ What `up` does, in order:
    `migrate-clean.log` in the cluster directory. `up` goes on only when that target printed
    `db-migrate-clean: ok` and applied its scripts; an exit code of 0 alone is not taken as success.
 5. Load the test-identity helpers and the fixture files exactly as `make db-rls-smoke` does.
-6. Print the connection URL (`DB_TEST_URL=...`), a short paragraph on what you now have, and the next three
-   commands, ready to paste.
+6. Print the connection settings (`PGPASSFILE=<dir>/pgpass DB_TEST_URL=...`: the file that holds the password,
+   and a URL that holds none), a short paragraph on what you now have, and the next three commands, ready to
+   paste. The password itself is never printed.
 
 The database is already migrated and loaded, so do not point `make db-migrate-clean` at it: it expects an
 empty database and fails on an already-migrated one (`role "app_worker" already exists`), not on a policy.
 `make db-rls-smoke` loads its helpers and fixtures again and passes on it, so that one is safe to run against
-the `DB_TEST_URL` that `up` printed.
+it, with both settings `up` printed in front of it (`PGPASSFILE=... DB_TEST_URL=... make db-rls-smoke`).
 
 ## What the demo shows, and how to read it
 
@@ -129,8 +132,9 @@ step prints `NOT AS EXPECTED`, the command ends with `DEMO FAILED`, lists the st
 
 ## Poking at it yourself
 
-`node scripts/db/try-it.mjs psql` prints a `psql "postgresql://postgres@127.0.0.1:<port>/thinkbizthai_try"`
-line to copy, and a cheat-sheet. Connected that way you are the superuser, which row level security does not
+`node scripts/db/try-it.mjs psql` prints a
+`PGPASSFILE=<dir>/pgpass psql "postgresql://postgres@127.0.0.1:<port>/thinkbizthai_try"` line to copy (psql reads
+the password from that file; the line does not contain it), and a cheat-sheet. Connected that way you are the superuser, which row level security does not
 apply to, so you see every row of both tenants. To see what one person sees, become them inside a
 transaction:
 
@@ -169,13 +173,19 @@ then `up`.
   test-host guard (`testHostRefusal` in `scripts/db/psql-driver.mjs`), narrowed further to loopback names.
 - It never uses port 5432, never uses an existing data directory, and never creates its directory inside the
   repository (a path that does not exist yet is checked through its nearest existing parent, so a symlink
-  into the repository does not get round it).
-- While the cluster is up, **any program on this Mac can connect to it without a password, as the database
-  superuser** (it trusts local connections on `127.0.0.1`; nothing outside the Mac can reach it). The superuser
-  can run operating-system commands as you (for example through `COPY ... TO PROGRAM`), so any program, or any
-  other account on this Mac, that can open a connection to `127.0.0.1` can run commands as you for as long as
-  the cluster is up. The data is synthetic fixtures only. **Run `down` as soon as you are done**; do not leave
-  it running. A per-cluster password is owed before this becomes a `make` or `npm` command.
+  that resolves into the repository does not get round it; a dangling one is not resolved by the check, and
+  creating the directory through it then fails before anything is written).
+- **Every connection needs the cluster's password.** `up` draws a new random one (32 random bytes) for each
+  cluster, and `initdb` stores only its `scram-sha-256` verifier; nothing is trusted. The password itself is kept
+  in one file, `pgpass` in the cluster directory, readable by you alone (mode 0600). The tool and the commands it
+  prints find it through `PGPASSFILE`; it is never printed, never put in a URL or on a command line, and `down`
+  deletes it with the cluster. A program or another account on this Mac that cannot read that file is refused
+  (`password authentication failed for user "postgres"`). Nothing outside the Mac can reach the cluster at all
+  (it listens on `127.0.0.1` only).
+- What the password does not cover: a program running **as you** can read your files, that one included, and the
+  database superuser can run operating-system commands as you (for example through `COPY ... TO PROGRAM`). So
+  the data being synthetic does not make the cluster harmless to leave about: **run `down` as soon as you are
+  done**.
 
 ## What this does NOT show
 

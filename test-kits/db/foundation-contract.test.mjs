@@ -203,6 +203,24 @@ test('a target needing a database refuses without one, rather than reporting a p
   const tryItSource = await readFile('scripts/db/try-it.mjs', 'utf8');
   assert.match(tryItSource, /import \{ testHostRefusal,[^}]*\} from '\.\/psql-driver\.mjs';/, 'the shared guard is imported, not restated');
   assert.match(tryItSource, /"listen_addresses = '127\.0\.0\.1'", `port = \$\{port\}`, "unix_socket_directories = ''"/, 'loopback TCP only, no unix socket');
+  // THE PER-CLUSTER PASSWORD (A1 F1 (b), R-F1, fixed after the re-checks): initdb stores a scram-sha-256 verifier
+  // of a random password, which lives only in the cluster directory's 0600 files and reaches psql through
+  // PGPASSFILE. Trust is gone, the URL never carries a password, and nothing prints one.
+  assert.doesNotMatch(tryItSource, /--auth=trust|'-A', 'trust'/, 'initdb no longer trusts local connections');
+  assert.match(tryItSource, /'--auth=scram-sha-256', `--pwfile=\$\{pwfile\}`/, 'initdb asks for a scram-sha-256 password read from the pwfile');
+  assert.ok(tryIt.PASSWORD_BYTES >= 24, 'at least 24 random bytes');
+  const pw1 = tryIt.newPassword();
+  const pw2 = tryIt.newPassword();
+  assert.match(pw1, /^[A-Za-z0-9_-]{32,}$/, 'base64url, so it needs no escaping in a password file');
+  assert.notEqual(pw1, pw2, 'a new one each time');
+  assert.equal(tryIt.pgpassLine(55421, pw1), `127.0.0.1:55421:*:postgres:${pw1}\n`, "libpq's password-file line, for this host and port only");
+  assert.ok(tryIt.OWNED_ENTRIES.includes(tryIt.PGPASS) && tryIt.OWNED_ENTRIES.includes(tryIt.PWFILE), 'the password files are what up makes, so down deletes them and refuses a link there');
+  assert.match(tryItSource, /const PRIVATE_FILE_OPTIONS = Object\.freeze\(\{ mode: 0o600, flag: 'wx' \}\);/, 'written mode 0600, exclusive create (no link followed, no file reused)');
+  assert.equal((tryItSource.match(/, PRIVATE_FILE_OPTIONS\);/g) ?? []).length, 2, 'both password files are written that way');
+  assert.match(tryItSource, /delete env\.PGPASSWORD;\n\s+env\.PGPASSFILE = join\(dir, PGPASS\);/, 'every connection reads the cluster file; an inherited PGPASSWORD cannot win over it');
+  assert.equal(tryIt.urlFor(55421), 'postgresql://postgres@127.0.0.1:55421/thinkbizthai_try', 'the URL carries no password');
+  assert.match(tryItSource, /say\(`  PGPASSFILE=\$\{shellQuote\(join\(dir, PGPASS\)\)\} psql "\$\{at\.url\}"`\);/, 'psql prints a command that names the file, not the password');
+  assert.doesNotMatch(tryItSource, /say\([^\n]*password\}/, 'no say() line interpolates the password');
   // Without a cluster it refuses and touches nothing.
   for (const args of [['demo', '--dir', '/nonexistent-dir/try-it'], ['psql', '--dir', '/nonexistent-dir/try-it'], ['down', '--dir', '/nonexistent-dir/try-it'],
     ['up', '--dir', process.cwd()], ['up', '--dir', '/nonexistent-dir/try-it', '--port', '5432']]) {
@@ -228,13 +246,31 @@ test('a target needing a database refuses without one, rather than reporting a p
   assert.match(tryIt.migrateCleanProblem({ code: 2, out: '  applied 001\ndb-migrate-clean: FAILED\n' }).problem, /exited 2/, 'a non-zero exit fails');
   assert.deepEqual(tryIt.migrateCleanProblem({ code: 0, out: '  applied 001_a.sql\n  applied 010_b.sql\ndb-migrate-clean: ok in 5ms\n' }),
     { applied: 2, summary: 'db-migrate-clean: ok in 5ms', problem: null }, 'the summary and the scripts applied are what success is');
-  // And the four runners try-it and CI start enter main() by pathToFileURL, so a clone whose path holds a space runs
-  // them (measured exit 0 with no output before this round).
-  for (const file of ['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs', 'tests/db/identity/run-isolation.mjs', 'scripts/db/try-it.mjs']) {
+  // And the runners try-it and CI start enter main() by comparing REAL paths (fixed after the re-checks, C0-TIR-1,
+  // A1 R1): pathToFileURL fixed a space in the path but not a script named through a symlink (/tmp on macOS), where
+  // main() was skipped and the process exited 0 having run nothing (measured). generate-pinned-grants.mjs had the
+  // same line and is changed with them.
+  const entryIdiom = /realpathSync\((process\.)?argv\[1\]\) === realpathSync\(fileURLToPath\(import\.meta\.url\)\)/;
+  for (const file of ['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs', 'tests/db/identity/run-isolation.mjs', 'scripts/db/try-it.mjs', 'scripts/db/generate-pinned-grants.mjs']) {
     const source = await readFile(file, 'utf8');
     assert.doesNotMatch(source, /import\.meta\.url === `file:\/\/\$\{/, `${file}: main() is not entered by a hand-built file:// URL`);
-    assert.match(source, /import\.meta\.url === pathToFileURL\((process\.)?argv\[1\]\)\.href/, `${file}: main() is entered by pathToFileURL`);
+    assert.doesNotMatch(source, /import\.meta\.url === pathToFileURL\(/, `${file}: nor by pathToFileURL alone`);
+    assert.match(source, entryIdiom, `${file}: main() is entered by comparing real paths`);
   }
+  // No runner anywhere in scripts/ or tests/ compares the bare URL: pathToFileURL(argv[1]) appears in none, and the
+  // hand-built file:// form only in the two the Integration Owner owns (verify-clean-run.mjs, refresh-author-handoff.mjs,
+  // owed on open_blockers[196] (5)), so a new one fails here.
+  const listed = await run('git', ['ls-files', '-z', '--', 'scripts', 'tests']);
+  const sources = listed.stdout.split('\0').filter((f) => /\.(mjs|js)$/.test(f));
+  const bare = [];
+  for (const file of sources) {
+    const source = await readFile(file, 'utf8');
+    if (/import\.meta\.url === pathToFileURL\(/.test(source)) bare.push(`${file} (pathToFileURL)`);
+    if (/import\.meta\.url === `file:\/\/\$\{/.test(source)) bare.push(`${file} (file://)`);
+  }
+  assert.ok(sources.length >= 25, 'the runner scan read the scripts (29 on 2026-10-04)');
+  assert.deepEqual(bare.sort(), ['scripts/refresh-author-handoff.mjs (file://)', 'scripts/verify-clean-run.mjs (file://)'],
+    'no runner compares the bare URL, but the two the Integration Owner owns');
   // THE REVIEW ROUND (A1 F2, F3, F4; Q0-TI-3, Q0-TI-4): every refusal below is made on files alone, in a throwaway
   // directory, and no server is asked or signalled. The marker's port is one no measurement run uses.
   const scratch = await realpath(await mkdtemp(join(tmpdir(), 'try-it-contract-')));
@@ -257,6 +293,16 @@ test('a target needing a database refuses without one, rather than reporting a p
     const viaLink = await tryRun(['up', '--dir', join(scratch, 'repo-link', 'not-yet'), '--port', '55478']);
     assert.equal(viaLink.code, 1, 'up refuses it');
     assert.match(viaLink.stderr, /is inside the repository/, 'as inside the repository');
+    // C0-TIR-1, A1 R1: a runner named through a symlink runs main(). Each of these exited 0 with no output before.
+    for (const [args, refusal] of [
+      [[join(scratch, 'repo-link', 'scripts', 'db', 'try-it.mjs'), 'down', '--dir', join(scratch, 'no-marker')], /^try-it: .* holds no marker/],
+      [[join(scratch, 'repo-link', 'scripts', 'db', 'run.mjs'), 'migrate-clean'], /db-migrate-clean needs a Postgres test instance/],
+      [[join(scratch, 'repo-link', 'scripts', 'db', 'rls-smoke.mjs')], /DB_TEST_URL is not set/]]) {
+      const result = await run('node', args, { env: { ...env, DB_TEST_URL: '' } }).then(
+        (ok) => ({ code: 0, ...ok }), (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+      assert.notEqual(result.code, 0, `${args[0]} through a symlink is not a silent exit 0`);
+      assert.match(`${result.stdout}${result.stderr}`, refusal, `${args[0]} through a symlink ran main() and refused`);
+    }
     // F4: a regular file as --dir is a plain refusal, not a stack trace.
     await writeFile(join(scratch, 'a-file'), 'x');
     const onFile = await tryRun(['up', '--dir', join(scratch, 'a-file'), '--port', '55478']);

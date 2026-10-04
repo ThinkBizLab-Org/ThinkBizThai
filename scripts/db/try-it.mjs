@@ -22,21 +22,26 @@
 //     and the server answering on that port reports this data directory. Port 5432 is never used, and the URL
 //     every subcommand builds (`down` included) must pass tryItRefusal (the repository's testHostRefusal,
 //     narrowed to localhost addresses and a non-reserved port).
-//   * THE CLUSTER LISTENS ON 127.0.0.1 ONLY, OVER TCP, WITH NO UNIX SOCKET, and trusts local connections:
-//     it holds synthetic fixtures and nothing else, and it is deleted by `down`.
+//   * THE CLUSTER LISTENS ON 127.0.0.1 ONLY, OVER TCP, WITH NO UNIX SOCKET, AND ASKS FOR A PASSWORD (A1 F1, R-F1):
+//     `up` draws a random one per cluster (newPassword), initdb stores only its scram-sha-256 verifier
+//     (--auth=scram-sha-256 --pwfile), and the password itself lives in one file, <dir>/pgpass, mode 0600, in
+//     libpq's password-file format. Every connection this tool makes, and every child it starts, finds it through
+//     PGPASSFILE; it is never put in a URL, an argument or anything printed, and `psql` prints a command that names
+//     the file, not the password. The cluster holds synthetic fixtures and nothing else, and `down` deletes it.
 //   * THE DEMO CANNOT PASS VACUOUSLY. Every step declares what it expects; a step with no expectation, a case
 //     the suite no longer has, or a case whose expectation differs from the step's is refused before anything
 //     runs (demoPlanProblems), and test-kits/db/foundation-contract.test.mjs holds the same statically.
 //
 // Node built-ins only (RFC-2026-001). Needs initdb, pg_ctl and psql on PATH (Homebrew postgresql@17 is fine).
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile, appendFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { argv, env, exit, stdout, stderr } from 'node:process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import { testHostRefusal, feed, query, openSession, psqlLex } from './psql-driver.mjs';
 
@@ -45,8 +50,13 @@ export const MARKER = 'thinkbizthai-try-it.json';
 export const MARKER_TOOL = 'thinkbizthai scripts/db/try-it.mjs';
 export const DATABASE = 'thinkbizthai_try';
 export const DEFAULT_DIR = join(tmpdir(), 'thinkbizthai-try-it');
+// The password file every connection reads (PGPASSFILE), and the one-line file initdb reads the same password
+// from (removed once initdb has run). Both are written mode 0600 with an exclusive create, so neither follows a
+// symlink or reuses a file that was already there.
+export const PGPASS = 'pgpass';
+export const PWFILE = 'initdb.pwfile';
 // What `up` puts in its directory, and therefore the only names `down` will delete.
-export const OWNED_ENTRIES = Object.freeze([MARKER, 'data', 'postgres.log', 'migrate-clean.log']);
+export const OWNED_ENTRIES = Object.freeze([MARKER, 'data', 'postgres.log', 'migrate-clean.log', PGPASS, PWFILE]);
 // A free port is looked for here. 5432 is the default every local Postgres takes; the rest are ports
 // this repository's records have used for measurement clusters, left alone so a run never meets one.
 export const PORT_RANGE = Object.freeze([55420, 55479]);
@@ -71,6 +81,19 @@ export function tryItRefusal(url) {
 }
 
 export const urlFor = (port, database = DATABASE) => `postgresql://postgres@127.0.0.1:${port}/${database}`;
+
+// THE PER-CLUSTER PASSWORD (A1 F1 (b), R-F1). 32 random bytes, base64url: 43 characters, none of which is `:` or
+// `\`, so it needs no escaping in libpq's password file.
+export const PASSWORD_BYTES = 32;
+export const newPassword = () => randomBytes(PASSWORD_BYTES).toString('base64url');
+export const pgpassLine = (port, password) => `127.0.0.1:${port}:*:postgres:${password}\n`;
+const PRIVATE_FILE_OPTIONS = Object.freeze({ mode: 0o600, flag: 'wx' });
+// Every connection from here on, in this process and in every child it starts, reads the password from the
+// cluster's own file. An inherited PGPASSWORD would be used before the file, so it is dropped.
+function useClusterPassword(dir) {
+  delete env.PGPASSWORD;
+  env.PGPASSFILE = join(dir, PGPASS);
+}
 
 // --- the demo plan ----------------------------------------------------------------------------------------
 //
@@ -318,15 +341,22 @@ async function up({ dir, port: askedPort }) {
 
   const data = join(dir, 'data');
   const log = join(dir, 'postgres.log');
-  await mkdir(dir, { recursive: true });
+  await mkdir(dir, { recursive: true, mode: 0o700 });
   // Read again now that it exists, before anything is written in it.
   if (insideRepo(dir) || isSymlink(dir)) return fail(`${dir} resolves inside the repository or is a symlink once made; only the empty directory was created. Nothing was written in it.`);
   // The marker first, so a half-made cluster is still one `down` will clean up.
   await writeFile(join(dir, MARKER), `${JSON.stringify({ tool: MARKER_TOOL, dir, port, database: DATABASE, created: new Date().toISOString() }, null, 2)}\n`);
   // From here on a failure leaves a half-made cluster; say how to remove it.
   const failHalfMade = (text) => { stderr.write(`try-it: ${text}\ntry-it: to remove what was made so far: ${nextCommand('down', dir)}\n`); return 1; };
-  say(`[1/6] initdb: a new, empty cluster in ${data} (locale C, superuser postgres)`);
-  const init = await runTool('initdb', ['-D', data, '-U', 'postgres', '--locale=C', '-E', 'UTF8', '--auth=trust', '--no-instructions', '--no-sync'], { envExtra: CLUSTER_ENV });
+  // The password: drawn here, written to the two 0600 files and nowhere else, and never printed.
+  const password = newPassword();
+  const pwfile = join(dir, PWFILE);
+  await writeFile(join(dir, PGPASS), pgpassLine(port, password), PRIVATE_FILE_OPTIONS);
+  await writeFile(pwfile, `${password}\n`, PRIVATE_FILE_OPTIONS);
+  useClusterPassword(dir);
+  say(`[1/6] initdb: a new, empty cluster in ${data} (locale C, superuser postgres, password in ${join(dir, PGPASS)})`);
+  const init = await runTool('initdb', ['-D', data, '-U', 'postgres', '--locale=C', '-E', 'UTF8', '--auth=scram-sha-256', `--pwfile=${pwfile}`, '--no-instructions', '--no-sync'], { envExtra: CLUSTER_ENV });
+  await rm(pwfile, { force: true });
   if (init.code !== 0) return failHalfMade(`initdb failed${init.code === 127 ? ' (is PostgreSQL installed and initdb on PATH?)' : ''}:\n${init.out}`);
   // Loopback TCP only, no unix socket, and settings for a disposable cluster: small, and not durable.
   await appendFile(join(data, 'postgresql.conf'), [
@@ -370,7 +400,8 @@ async function up({ dir, port: askedPort }) {
   const n = counted.rows?.[0] ?? {};
   say('[6/6] ready');
   say();
-  say(`DB_TEST_URL=${url}`);
+  say(`PGPASSFILE=${shellQuote(join(dir, PGPASS))} DB_TEST_URL=${url}`);
+  say('(the password is in that file, readable by you alone, and is not printed; a connection without it is refused)');
   say();
   say(`What you have now: a private PostgreSQL ${await serverVersion(url)} cluster in ${dir}, listening only on`
     + ` 127.0.0.1:${port}, with the database "${DATABASE}" built from what CI builds its test database from: the shim,`
@@ -394,6 +425,7 @@ async function serverVersion(url) {
 async function attached(dir) {
   const marker = await readMarker(dir);
   if (!marker) return { error: `no try-it cluster in ${dir}. Run \`${nextCommand('up', dir)}\` first.` };
+  useClusterPassword(dir);
   const url = urlFor(marker.port);
   const refusal = tryItRefusal(url);
   if (refusal) return { error: `refusing ${url}: ${refusal}` };
@@ -504,7 +536,9 @@ async function psqlHelp({ dir }) {
   const ids = JSON.parse(await readFile(join(REPO, 'db/foundation/seeds/fixture-catalog.json'), 'utf8')).identities;
   say('Connect (copy and paste; this script does not run it):');
   say();
-  say(`  psql "${at.url}"`);
+  say(`  PGPASSFILE=${shellQuote(join(dir, PGPASS))} psql "${at.url}"`);
+  say();
+  say(`The password is read from that file (yours alone, mode 0600); it is not printed here. Without it the connection is refused.`);
   say();
   say('You connect as the superuser "postgres", which row level security does NOT apply to: as yourself you see every');
   say('row of both tenants. To see what one fixture user sees, become them inside a transaction. Five lines:');
@@ -561,6 +595,7 @@ async function down({ dir }) {
   const refused = await downRefusal(dir, marker);
   if (refused) return fail(`${refused}; nothing is stopped and nothing is deleted.`);
   const data = join(dir, 'data');
+  useClusterPassword(dir);
   if (existsSync(join(data, 'postmaster.pid'))) {
     // The file agrees; the server on the port must say the same before it is signalled. If nothing answers,
     // the file is stale (a restart): nothing is signalled, since its process id may now be another program's.
@@ -579,7 +614,7 @@ async function down({ dir }) {
     }
   }
   // Stopped first, then the delete is refused if anything here is not up's (Q0-TI-4): that refusal never leaves
-  // a trusting cluster running.
+  // a cluster running.
   const extra = readdirSync(dir).filter((name) => !OWNED_ENTRIES.includes(name));
   if (extra.length) return fail(`${dir} holds things \`up\` did not make (${extra.join(', ')}). The cluster is stopped; nothing is deleted. Move those out and run \`${nextCommand('down', dir)}\` again.`);
   await rm(dir, { recursive: true, force: true });
@@ -606,5 +641,6 @@ async function main() {
   return command(args);
 }
 
-// pathToFileURL, as generate-pinned-grants.mjs does, so a clone whose path holds a space still runs main().
-if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) exit(await main());
+// Real paths on both sides (C0-TIR-1, A1 R1), the idiom of the repository's other runners: a clone whose path holds
+// a space, and a script named through a symlink (/tmp is one on macOS), both run main().
+if (argv[1] && realpathSync(argv[1]) === realpathSync(fileURLToPath(import.meta.url))) exit(await main());
