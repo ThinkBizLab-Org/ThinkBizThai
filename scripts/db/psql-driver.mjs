@@ -239,7 +239,9 @@ async function invoke(sql, { env = process.env, url = null, viaStdin = false, tr
   const connection = url ?? connectionString(env);
   const args = [
     connection,
-    '--no-psqlrc', '--quiet', '--no-align', '--csv',
+    // --no-password: never prompt. A missing or unusable password must refuse at once, not wait on a
+    // terminal no runner has (try-it's re-check, A1-TIF-1: a 0644 pgpass hung demo and down).
+    '--no-psqlrc', '--no-password', '--quiet', '--no-align', '--csv',
     '--set', 'ON_ERROR_STOP=1',
     '--set', 'VERBOSITY=verbose',
   ];
@@ -681,7 +683,7 @@ export function openSession({ env = process.env, url = null, timeoutMs = SESSION
   // Directly, not through a shell: the shell was only there to merge stderr, and merging stderr is
   // exactly what created the forgeable-error hole.
   const child = spawn('psql',
-    [connection, '--no-psqlrc', '--quiet', '--no-align', '--csv',
+    [connection, '--no-psqlrc', '--no-password', '--quiet', '--no-align', '--csv',
       '--set', 'ON_ERROR_STOP=0', '--set', 'VERBOSITY=verbose'],
     {
       stdio: ['pipe', 'pipe', 'pipe'],

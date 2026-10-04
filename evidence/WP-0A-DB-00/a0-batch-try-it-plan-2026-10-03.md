@@ -485,3 +485,27 @@ Every cluster is stopped and removed; nothing listens on 5507 or 55420 (`lsof` e
 
 Private artefacts: `a0-tryit-fix/` in the run's scratchpad (`auth-probe.sh`, `printed-probe.sh`, `link-probe.sh`,
 `stale-probe.sh`, `e2e.sh`, `live5507.sh`, `mutate.mjs`, each log).
+
+## Re-checks of the auth fix, and the last fix (2026-10-04)
+
+A1 and Q0 re-checked `45937c1`, whose code commit is `3b64fd3`. Their files are cherry-picked with `-x`: A1's `1db8e58` and Q0's `915af1a`.
+
+**Neither reports a stop-the-line, and neither reports anything that blocks the merge.** A1 measured two findings closed:
+
+- **R-F1 (MEDIUM).** pg_hba is scram-sha-256 only. The password belongs to one cluster and lives only in a 0600 pgpass. Connections with no password or a wrong one are refused. An inherited PGPASSWORD is dropped. No output line contains the password.
+- **R1 / C0-TIR-1.** All six runners enter main() when started through a symlink.
+
+**A1-TIF-1 (LOW) is fixed in this commit, by A0.** When pgpass is present but unusable, for example mode 0644, the driver started psql without `--no-password`. demo and down then waited for a password on a terminal that does not exist, which A1 measured as a hang of about 10 minutes. Both psql argument lists in `scripts/db/psql-driver.mjs` now carry `--no-password`. A static pin in foundation-contract requires both, and a mutation that drops one turns that test red.
+
+Measured end to end on a fresh `--dir`:
+- `up` exits 0.
+- `demo` prints "All 13 steps behaved as expected".
+- With pgpass chmod 0644, `demo` refuses at once, in 0 s, naming libpq's permissions warning and the down/up commands.
+- `down` exits 0, and the directory is removed.
+- `npm run check` passes 685/685.
+
+**Recorded, not fixed (INFO):**
+- TRY-IT.md names only "password authentication failed". A missing password reads `fe_sendauth: no password supplied` (A1-TIF-2).
+- 0700 applies only when `up` creates the directory (A1-TIF-3).
+- The printed psql line fails closed when the user's shell exports PGPASSWORD (Q0-TIF-1).
+- The bare entry-check scan covers `scripts/` and `tests/` only (Q0-TIF-2).

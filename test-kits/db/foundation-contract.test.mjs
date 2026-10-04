@@ -239,6 +239,12 @@ test('a target needing a database refuses without one, rather than reporting a p
   assert.equal(tryIt.nextCommand('psql', "/x/it's here", '/n/bin/node'), `/n/bin/node ${script} psql --dir '/x/it'\\''s here'`, 'and quoted for the shell');
   assert.equal(tryIt.shellQuote('/a b/c'), "'/a b/c'", 'a path with a space is quoted');
   assert.equal(tryIt.PINNED_NODE, `v${(await readFile('.node-version', 'utf8')).trim()}`, 'the pinned version is .node-version');
+  // try-it's last re-check (A1-TIF-1): every psql the driver starts must refuse rather than prompt, so a
+  // missing or unusable password fails at once instead of hanging a runner that has no terminal.
+  const driverText = await readFile('scripts/db/psql-driver.mjs', 'utf8');
+  const psqlStarts = driverText.match(/(?:spawn|run|runWithInput)\('psql'/g) ?? [];
+  assert.ok(psqlStarts.length >= 2, 'the driver starts psql in its known places');
+  assert.equal((driverText.match(/'--no-password'/g) ?? []).length, 2, 'both psql argument lists carry --no-password');
   // THE REVIEW ROUND (C0-TI-1, Q0-TI-1): migrate-clean's exit 0 alone is not success. A runner whose main() was
   // skipped exits 0 with no output; `up` goes on only on the `db-migrate-clean: ok` line with scripts applied.
   assert.match(tryIt.migrateCleanProblem({ code: 0, out: '' }).problem, /printed no `db-migrate-clean: ok` line/, 'a silent exit 0 is not a migration');
