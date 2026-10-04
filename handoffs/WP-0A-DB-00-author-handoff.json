@@ -5,11 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5558b2660456be63ab35376e6484201e56a5f721",
-  "head_revision_or_patch_checksum": "3dd930ed9337e0d897f1a7d790140b1b45c94d63",
+  "head_revision_or_patch_checksum": "84e10f7d9eb80c029c38c36ed148989cc69623c7",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-owed-tooling.md"
+    "evidence/WP-0A-DB-00/a1-batch-owed-tooling-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-owed-tooling-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-owed-tooling.md",
+    "evidence/WP-0A-DB-00/q0-batch-owed-tooling-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "db/foundation/README.md",
@@ -17,6 +20,7 @@
     "db/foundation/lint/pinned-grants.json",
     "db/foundation/lint/read-allowlist-known-exceptions.json",
     "db/foundation/lint/retention-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/generate-pinned-grants.mjs",
     "scripts/db/psql-driver.mjs",
     "scripts/db/run.mjs",
@@ -36,10 +40,11 @@
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS THE OWED-TOOLING BATCH: assertion and tooling only, NO MIGRATION, so no migration number is needed. Plan a0-batch-owed-tooling-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-owed-tooling.md in evidence/WP-0A-DB-00/.",
+    "THIS INCREMENT IS THE OWED-TOOLING BATCH WITH ITS REVIEW ROUND: assertion and tooling only, NO MIGRATION, so no migration number is needed. Plan a0-batch-owed-tooling-plan-2026-10-03.md (with its \"Review round\" section) and disposition product-owner-disposition-2026-10-03-batch-owed-tooling.md in evidence/WP-0A-DB-00/, beside the cherry-picked C0, A1 and Q0 reviews (571980a, bf984f9, a071703 from 1cc4857, c35e0a5, dee14ef).",
     "All eleven owed items named for the batch were bounded and are closed; none is recorded as owed in place of being done. What each leaves owed, and the items outside the list that stay owed, are on open_blockers[185] and [191]-[195] with their owners (plan §6).",
     "The rules added to migrate-clean (the pinned trigger probe over every app and private table, the pinned grant probe rules 7 and 8, the index coverage key collation and operator class) hold the clean set as measured on PostgreSQL 17.11; like rules 2-4 of the pinned grant probe, rules 7 and 8 fail by design on a provisioned platform instance until Q170-c measures its roles.",
-    "The static suites gain assertions only: no test is added or renamed, so the suite count (684), the test floors, the name digest and evidence/VERIFICATION.md hold."
+    "The static suites gain assertions only: no test is added or renamed, so the suite count (684), the test floors, the name digest and evidence/VERIFICATION.md hold.",
+    "Every review-round finding (C0-OT-1..6, A1-OT-1..4 and I1..I3, Q0-OT-1..10) was bounded and is changed or stated as a limit in this round; none needed a migration or a decision, and none is recorded as owed in place of being done (plan, \"Review round\")."
   ],
   "acceptance_results": [
     {
@@ -96,6 +101,11 @@
       "criterion": "(11) the static view regex catches recursive and temporary views (A1 S2, Q0 R-5)",
       "result": "met",
       "evidence": "M11 red on create recursive view."
+    },
+    {
+      "criterion": "Review round: every LOW and INFO finding of the C0, A1 and Q0 reviews changed, measured, or stated as a limit",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md \"Review round\": the quoted and commented do-block spellings and a JOIN-only and relation-only drift; the internal-trigger rule (A1's hidden trigger appended to 140: migrate-clean 2 by name); COPY to a server file and server-file calls in the lexer (C0's and Q0's file-writing drift: migrate-clean 2, no file written); every omitted export bucket and the eleven classes tied to ERD lines; one blocker per quote; the tripwire's comments, CREATE RULE and rename; raw-authority redaction with seven cases; every weakening of a new rule red in its layer"
     }
   ],
   "tests": [
@@ -150,36 +160,68 @@
       "result": "clean: 684 of 684"
     },
     {
-      "command": "npm run check, with this handoff refreshed",
+      "command": "review round: f1 on the final code (before commit) and f2 on 84e10f7, branch name, each a fresh initdb (5507, TCP only), shim, make db-migrate-clean, make db-rls-smoke twice",
+      "exit_code": 0,
+      "result": "migrate-clean 0 (30 probes; the pinned trigger probe refused each of its 3 drifts; 51 apply-time blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 of 1087 each, both rounds"
+    },
+    {
+      "command": "review round: DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs --check (f2)",
+      "exit_code": 0,
+      "result": "both files match the catalog; 66 tables"
+    },
+    {
+      "command": "review round: four live drifts and mutations appended to 140_audit.sql or applied to run.mjs, each on a fresh cluster, restored byte for byte",
+      "exit_code": 2,
+      "result": "COPY to a server file: migrate-clean 2 by line, no file written; pg_stat_file call: migrate-clean 2 by line; a trigger hidden as internal: migrate-clean 2 by name (rls-smoke 0 and 0); the internal-trigger rule unable to fire: migrate-clean 2 through its self-test"
+    },
+    {
+      "command": "review round: eighteen static mutations, each restored byte for byte",
+      "exit_code": 1,
+      "result": "every one red (static exit 1); one first aimed at the guard's identical split line passed and was re-aimed at redaction's own line, red"
+    },
+    {
+      "command": "review round: npm run check; node scripts/verify-branch-scope.mjs 5558b26 WP-0A-DB-00",
+      "exit_code": 0,
+      "result": "684 of 684; all 20 changed path(s) declared, every amendment explains one"
+    },
+    {
+      "command": "review round: node scripts/commit-when-clean.mjs (84e10f7)",
+      "exit_code": 0,
+      "result": "clean: 684 of 684"
+    },
+    {
+      "command": "npm run check:handoff and npm run verify on the branch name, with this handoff refreshed",
       "exit_code": 0,
       "result": "recorded in the PR body (run after this file was written)"
     }
   ],
-  "security_privacy_cost_impact": "Security: assertion and tooling only; no grant, policy, role or schema changes. Each closure refuses a later migration that weakens an unread guarantee, none reachable by a client on the clean set: a trigger on any app or private table (A1 R-2, the lifecycle_state writer among them), a schema owner or a non-client role attribute changed (A1 S1, S3; Q0 R-2), an index whose collation or operator class does not serve its predicate (Q0 R-2), a COPY ... PROGRAM in a migration (a server shell command, C0 G1), and test-reach gaps in the static suites. Redaction now covers a fragment-carried host (G-2). Cost: the pinned grant probe runs two more drift jobs (eight in all); migrate-clean stays about 5 s of probe time on this host.",
-  "migration_and_data_impact": "None. No migration file is added or edited. Two lint files change one _how_measured line each (regenerated on the clean set), and the retention and audit coverage maps change only their blocker citations (line numbers to quotes).",
-  "compatibility_impact": "Tests stay 684 (none added or renamed); foundation-contract's assertion floor 946 -> 1000 and identity-isolation's 2167 -> 2169, the guard's own count; rls-smoke cases unchanged at 1087. Probe digests move for the pinned trigger, pinned grant and index coverage probes only. A later batch that adds a migration must regenerate pinned-grants.json and the known exceptions (their _how_measured names the last migration), and one that adds a trigger must pin it. The amendment paths stay three, so no open_blockers line pin moves.",
+  "security_privacy_cost_impact": "Security: assertion and tooling only; no grant, policy, role or schema changes. Each closure refuses a later migration that weakens an unread guarantee, none reachable by a client on the clean set: a trigger on any app or private table (A1 R-2, the lifecycle_state writer among them), a schema owner or a non-client role attribute changed (A1 S1, S3; Q0 R-2), an index whose collation or operator class does not serve its predicate (Q0 R-2), a COPY ... PROGRAM in a migration (a server shell command, C0 G1), and test-reach gaps in the static suites. Redaction now covers a fragment-carried host (G-2). Cost: the pinned grant probe runs two more drift jobs (eight in all); migrate-clean stays about 5 s of probe time on this host. Review round: a trigger hidden by marking it internal in pg_catalog (A1-OT-1), COPY to or from a server file and the server-file function calls (C0-OT-2, Q0-OT-3), and quoted or commented spellings past 170's do-block allowlist (C0-OT-1) are refused; redaction also covers a percent-encoded user, database and host, a host list and an IPv6 zone id (A1-OT-4). The pinned trigger probe runs one more drift job (three).",
+  "migration_and_data_impact": "None. No migration file is added or edited. Two lint files change one _how_measured line each (regenerated on the clean set), and the retention and audit coverage maps change only their blocker citations (line numbers to quotes; three retention-map quotes lengthened in the review round so each is said by one blocker only).",
+  "compatibility_impact": "Tests stay 684 (none added or renamed); foundation-contract's assertion floor 946 -> 1000 -> 1014 (the review round) and identity-isolation's 2167 -> 2169, the guard's own count; rls-smoke cases unchanged at 1087. Probe digests move for the pinned trigger (twice), pinned grant and index coverage probes only. A later batch that adds a migration must regenerate pinned-grants.json and the known exceptions (their _how_measured names the last migration), one that adds a trigger must pin it, and a migration may no longer carry COPY to or from a server file or call a server-file function. The amendment paths stay three, so no open_blockers line pin moves.",
   "known_limitations": [
-    "The pinned trigger probe reads tables in app and private only; a trigger on a table in another schema is read by no rule here.",
+    "The pinned trigger probe reads tables in app and private only; a trigger on a table in another schema, such as a child in public, is read by no rule here (A1-OT-I2, Q0-OT-9).",
     "The export rule's token/credential half reads column NAMES (token, secret, credential, password; a *_redacted flag excepted); a material column named otherwise is the §5 cell's to class.",
-    "The audit-table tripwire is a text scan: a dynamic EXECUTE is not read; the catalog assertion for every role on either audit table stays owed with batch 141's migration (open_blockers[191] (9)).",
-    "A COPY whose words are computed at run time is not read by the lexer, as for client_encoding.",
+    "The audit-table tripwire is a text scan of the spellings its test pins, comments read as whitespace: a dynamic EXECUTE, a function a trigger runs rewritten in place (held by the pinned trigger probe's digest) and any spelling not pinned are not read by it; the live probes hold the catalog, and the catalog assertion for every role on either audit table stays owed with batch 141's migration (open_blockers[191] (9)).",
+    "Words or names computed at run time (a COPY, a server-file call or an encoding name built by EXECUTE or a wrapper) are not read by the lexer, as for client_encoding; rls-smoke reads no migration text, so a migration carrying a refused shape is refused by migrate-clean.",
     "The pinned grant probe's rules 7 and 8, like 2-4, fail by design on a provisioned platform instance until Q170-c measures its roles, schema owners and default ACLs.",
+    "The grant files' measured-on version is read from the file it checks, and generate-pinned-grants.mjs --check runs in no make target or CI workflow (Q0-OT-6): it is held by a manual --check only.",
+    "redactConnection is not libpq's parser: it reads more URL pieces than libpq connects by, never fewer, and leaves a piece of two characters or less unredacted.",
     "Left owed, outside this batch's list: C0 R2's other two guards and Q0 R-2 on 160-prep ([192]); Q0 R-1 and C0 R-1 on 170-assert ([193]); C0 N4's lint message ([191] (8)); A1 R3, R4 on 150-prereq ([194]); everything else those blockers and [185] hold."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[185] and [191]-[195] each record what this batch closed and what stays owed, with owners; none is stop-the-line.",
+    "open_blockers[185] and [191]-[195] each record what this batch and its review round closed and what stays owed, with owners; none is stop-the-line, and no review found one.",
     "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, Q170-c's instance measurement and DATA-DEC-03 stay open; this batch answers none of them."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved, so a revert restores the previous assertions exactly.",
   "recommended_next_work_packages": [
-    "Role runs of this batch by C0, Q0 and A1 (plan §1, §3, §4: each closure, its drift and its mutation), then the merge under the standing delegation if the bar of 127 §6 is met.",
+    "Re-checks of this review round by C0, Q0 and A1 (plan \"Review round\": each change, its drift and its mutation), then the merge under the standing delegation if the bar of 127 §6 is met.",
     "The decisions the Owner's summary named as needing words or access: RFC approvals, the SLO ratification, Q170-c's measurement, DATA-DEC-03 / RFC-2026-023."
   ],
   "reviewer_instructions": [
-    "Read plan §1 (item -> change -> proof) first; then git diff 5558b26..70ab5ca -- scripts/db test-kits/db tests/db db/foundation.",
-    "Re-run the five live drifts of plan §3 by appending each to 140_audit.sql on a fresh cluster (restore it byte for byte): each must fail migrate-clean by name.",
-    "Weaken each new reading as in plan §4 (the trigger probe narrowed, the collation reading removed, rule 8 unable to fire, the allowlist's call check, each half of the fragment fix, the COPY PROGRAM rule, the view pattern) and confirm each turns its layer red.",
-    "Judge whether the do-block allowlist (item 1) and the derived export set (item 5) are allowlists in substance, and whether the trigger and attribute pins are wider than any legitimate later batch can live with."
+    "Read plan \"Review round\" (finding -> change -> measured) first; then git diff af394fa..84e10f7 -- scripts/db test-kits/db tests/db db/foundation work-packages.",
+    "Re-run the review round's live drifts by appending each to 140_audit.sql on a fresh cluster (restore it byte for byte): COPY to a server file and a pg_stat_file call must fail migrate-clean by line with no file written; a trigger on app.workspaces marked tgisinternal must fail migrate-clean by name.",
+    "Re-run the reviewers' own static drifts (C0 M-C1, M-C2; A1 §3.1-§3.4; Q0 Q1a, Q1b, Q1c, Q1d, Q4, Q5, Q7a, Q7b) and confirm each now turns its layer red.",
+    "Judge whether the stated limits (computed words; app and private only; a text tripwire; a manual --check for the measured-on version) are stated truthfully and narrowly enough."
   ],
   "superseded_by": null
 }
