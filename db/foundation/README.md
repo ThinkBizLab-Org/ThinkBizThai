@@ -734,7 +734,8 @@ from a quoted server file name (a table, quoted or not, with or without a column
 `STDIN` and `STDOUT` stay admitted) and a call of a server-file function (`lo_import`, `lo_export`,
 `pg_read_file`, `pg_read_binary_file`, `pg_stat_file`, the `pg_ls_*dir` family, adminpack's `pg_file_*`):
 `copy (select ...) to '<path>'` had the server write a file on the host with every layer green, and a rollback
-does not remove it. A name after `FUNCTION` (a GRANT or ALTER of the function) is not a call. Note that rls-smoke
+does not remove it. A name after `FUNCTION` (a GRANT or ALTER of the function) is not a call -- until the sql-lexer
+batch's review round, which refuses the name anywhere but in a GRANT, REVOKE or COMMENT (below). Note that rls-smoke
 does not read a migration's text: it refuses one of these only in the sources it feeds itself; a migration
 carrying one is refused by migrate-clean (Q0-OT-2). A client encoding changed through a name or SET psql never sees spelled out because it is
 **computed at run time** (a concatenated `set_config`, an `EXECUTE` of `'set ' || 'names ...'`, `chr()`,
@@ -758,14 +759,23 @@ parser RFC (a parser would be a dependency). `scripts/db/sql-lexer.mjs` (Node bu
 PostgreSQL's lexical rules -- standard and `E''` strings with `standard_conforming_strings` on, `U&''` and `U&""`
 with `UESCAPE`, `B''`, `X''`, `N''`, string continuation across a newline, dollar quotes with tags, nested block
 comments, `--` comments ended by LF or a bare CR, quoted identifiers, numbers with the PostgreSQL 15+ junk rule --
-plus psql's meta-commands and variable references, splits statements where psql does, and **refuses** anything it
-cannot classify. psqlLex, the COPY and server-file rules, the do-block counter, the 170 do-block allowlist, the
-comment and literal strippers (`text.replace(SQL_LINE_COMMENTS, '')`), the audit-table tripwires and the view
-scans all read through it. psqlLex's token rules run at every level -- the top level and every literal's and
+plus psql's meta-commands and variable references, splits statements at `;` outside parentheses, and **refuses**
+anything it cannot classify -- including every `;` psql's begin_depth heuristic would hold (any unquoted `begin` at
+parenthesis depth 0 in a CREATE [OR REPLACE] FUNCTION or PROCEDURE, not BEGIN ATOMIC alone: psql 17.11 sent one
+query where the split made three, C0-SL-3), so where it does not refuse, it splits where psql does. psqlLex, the
+COPY and server-file rules, the do-block counter, the 170 do-block allowlist, the comment and literal strippers
+(`text.replace(SQL_LINE_COMMENTS, '')`), the audit-table tripwires, the view scans and the pinned-grants
+generator's comment stripping (C0-SL-4) all read through it. Word rules still read raw or stripped text in
+`rls-assertions.test.mjs` (`set_config` over the helper) and in the §8.5 rules of `run.mjs`, whose `[\s\S]*?\$\$`
+pairs a function with the next `$$` whatever its tag (C0-SL-I2): they are patterns, and are named here as such. psqlLex's token rules run at every level -- the top level and every literal's and
 dollar body's text read again as SQL, as `EXECUTE` or a DO body would -- and refuse: COPY to or from anything but
 `STDIN`/`STDOUT`, whatever the target's quoting (`COPY ... TO $p$path$p$`, `copy (select ';') to 'f'`), and
-`PROGRAM`; a server-file function called by name or by the internal symbol it is built on (`pg_read_file_all`,
-`be_lo_export`); `LANGUAGE internal` or `LANGUAGE c` (either can alias any built-in); `CREATE EXTENSION` of
+`PROGRAM`; a server-file function, by name or by the internal symbol it is built on (`pg_read_file_all`,
+`be_lo_export`), named anywhere but in a GRANT, REVOKE or COMMENT -- a call, and since the review round
+(C0-SL-1) also an operator, cast or aggregate over one, `ALTER FUNCTION` of one (rename, set schema, owner) and
+a function created or dropped under its name: C0 measured an operator over `lo_export` and a rename of it each
+writing a host file with migrate-clean green; `LANGUAGE internal` or `LANGUAGE c` (either can bind a new name to
+any built-in's C symbol); `CREATE EXTENSION` of
 anything but `pgcrypto` (the one extension 000 and the prerequisite create -- a blanket refusal would have
 refused them, so the rule is an allowlist and says so); foreign tables, wrappers, servers and user mappings
 (file_fdw's `options (program ...)`). The differential is measured, not argued: every source fed to psql was fed

@@ -8053,10 +8053,16 @@ test('the effective-limit projection is named as an allowlist candidate and not 
     'create recursive view public.probe_rv (id) as select 1', 'create temp view v as select 1', 'CREATE OR REPLACE TEMPORARY RECURSIVE VIEW v (n) AS SELECT 1',
     'create /* c */ view v as select 1', 'create or/**/replace /* a /* b */ c */ materialized view m as select 1',
     // The sql-lexer batch: a view a DO block EXECUTEs from a literal or from a dollar body, read by the lexer.
-    "do $$ begin execute 'create view app.v as select 1'; end $$", "do $d$ begin execute $v$CREATE /* x */ VIEW v AS SELECT 1$v$; end $d$"]) {
+    "do $$ begin execute 'create view app.v as select 1'; end $$", "do $d$ begin execute $v$CREATE /* x */ VIEW v AS SELECT 1$v$; end $d$",
+    // The sql-lexer batch's review round (C0-SL-2, Q0-SL-4, A1 F1): a spelling only the lexer reads -- VIEW_GAP does
+    // not span a `--` comment on the raw text -- so a scan put back to the raw text fails here.
+    'create -- c\nview v as select 1', 'create --\r or replace view v as select 1']) {
     assert.match(viewScanText(spelling), CREATE_VIEW, `the view scan reads: ${spelling}`);
   }
-  for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'']) {
+  for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'',
+    // And what only the lexer clears: the words in a comment, and in a quoted identifier (C0-SL-2). (A literal is not
+    // one: its text is read again as SQL, as EXECUTE would read it, so `'create view'` is read as the statement it spells.)
+    'select 1 -- create view v\n', 'create table "create view" (x int)']) {
     assert.doesNotMatch(viewScanText(other), CREATE_VIEW, `and not: ${other}`);
   }
 

@@ -2139,11 +2139,14 @@ export const CATALOG_RULE_PROBES = [
   // stored and never compared).
   { label: 'system object fingerprint probe', sql: SYSTEM_FINGERPRINT_PROBE_SQL,
     claim: 'every function, relation, schema and language initdb made (OID below 16384) is exactly as the fingerprint taken on this database before the migrations found it: name, body (prosrc and an SQL-standard body), security, settings, owner, ACL, view definition, columns, rules, triggers and policies',
-    selfTests: [{ drift: "create or replace view information_schema.information_schema_catalog_name as select 'probe'::information_schema.sql_identifier as catalog_name; alter function information_schema._pg_char_max_length(oid, integer) security definer; grant execute on function pg_catalog.pg_ls_dir(text) to authenticated; create or replace function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) returns integer language sql immutable parallel safe strict return 2; alter function pg_catalog.pg_read_file(text) rename to probe_renamed_read_file; alter table information_schema.sql_features rename to probe_renamed_sql_features;",
+    // The function renamed in place was pg_read_file until the sql-lexer batch's review round, which refuses a
+    // server-file function named anywhere but in a GRANT, REVOKE or COMMENT (C0-SL-1: a rename of lo_export then a
+    // call by the new name wrote a host file). The rename shape is the same on pg_sleep, which reaches no file.
+    selfTests: [{ drift: "create or replace view information_schema.information_schema_catalog_name as select 'probe'::information_schema.sql_identifier as catalog_name; alter function information_schema._pg_char_max_length(oid, integer) security definer; grant execute on function pg_catalog.pg_ls_dir(text) to authenticated; create or replace function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) returns integer language sql immutable parallel safe strict return 2; alter function pg_catalog.pg_sleep(double precision) rename to probe_renamed_sleep; alter table information_schema.sql_features rename to probe_renamed_sql_features;",
       raises: 'initdb object(s) not as the fingerprint taken before the migrations found them',
       names: ['relation information_schema.information_schema_catalog_name [changed]', 'function information_schema._pg_char_max_length(typid oid, typmod integer) [changed]', 'function pg_catalog.pg_ls_dir(text) [changed]',
         'function information_schema._pg_numeric_precision_radix(typid oid, typmod integer) [changed]',
-        'function pg_catalog.pg_read_file(text) [renamed to pg_catalog.probe_renamed_read_file(text)]',
+        'function pg_catalog.pg_sleep(double precision) [renamed to pg_catalog.probe_renamed_sleep(double precision)]',
         'relation information_schema.sql_features [renamed to information_schema.probe_renamed_sql_features]'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,

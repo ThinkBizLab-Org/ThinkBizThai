@@ -140,3 +140,62 @@ differential's method -- psql's sent queries from the server log -- measures the
 psqlLex), `corpus.mjs` (the 79 lexer shapes), `differential.mjs`, `drifts.mjs` (with `old-psql-driver.mjs`,
 origin/main's driver), `mutate.mjs`, `mutations.log`, `drifts.log`, `rewire.py` and the other edit scripts, and
 each round's output. The cluster on 5507 is stopped and its data directory removed at the end of the run.
+
+## Review round (2026-10-04)
+
+Written by a subagent of `/claude/a0_atlas` (the Author). It fixes what the three role runs found and approves
+nothing; the PR stays a Draft. No migration, no dependency, no decision. Nothing above this heading is rewritten:
+where it is wrong, the correction is here.
+
+### Cherry-pick map
+
+| Role run | Review branch, commit | Here, `cherry-pick -x` |
+|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `review/c0-batch-sql-lexer` `1812bb7` | `ab3ce38` |
+| A1 `/claude/a1_bastion` | `review/a1-batch-sql-lexer` `42165ee` | `b5203b8` |
+| Q0 `/claude/q0_sentinel` | `review/q0-batch-sql-lexer` `e7593cd` | `c39f703` |
+
+All three: no stop-the-line, nothing blocks the merge in their reading.
+
+### Finding -> change -> measured
+
+| Finding | Change | Measured |
+|---|---|---|
+| **C0-SL-1** (MEDIUM): A1-RC-2 recorded closed, but an operator over `lo_export` wrote a host file with every layer green; rename, cast, aggregate, SET SCHEMA admitted | Remedy (a). `psql-driver.mjs` `statementFindings`: a `SERVER_FILE_FUNCTIONS` name as ANY identifier token, at every level, is refused unless the statement's first keyword is GRANT, REVOKE or COMMENT (`NAMING_ONLY`; they evaluate and bind nothing). A call keeps its old message; any other position gets "a server-file function named outside a GRANT, REVOKE or COMMENT". The fingerprint probe's rename drift moved from `pg_read_file(text)` to `pg_sleep(double precision)` (same shape, its digest `6a533b62eacf2022` -> `f75c1e00bd908cd5`, and the differential row for that drift re-measured). The owed-tooling test that admitted `alter function pg_catalog.pg_read_file(text) rename to probe_x` now expects a refusal. README sentences corrected; `[185]` appended | Live, fresh cluster each, appended to 140, restored (sha256 `2ac596bb950e8dfb`): **D-op** migrate-clean **2** ("140_audit.sql line 1019: ... a server-file function named outside a GRANT, REVOKE or COMMENT"), marker **not** written; **D-ren** the same, marker not written (C0 measured both written, exit 0 / 2-after-the-write, on `45893d9`). Golden: operator, cast, aggregate, rename, SET SCHEMA, OWNER TO, a function created under the name and the operator inside an EXECUTE literal each refused; GRANT, a two-name REVOKE and COMMENT admitted. Mutations: M-name (the rule back to "called") red on the operator; M-naming-only (no exemption) red on the GRANT |
+| **C0-SL-2** (LOW) = Q0-SL-4 = A1 F1: the view scan's lexer reading pinned by nothing | Two positives only the lexer reads (`create -- c\nview ...`, `create --\r or replace view ...`), two negatives only the lexer clears (`select 1 -- create view v`, `create table "create view" (x int)`). C0's suggested negative `comment on table app.t is 'create view'` is **not** one: the literal's text is read again as SQL (as EXECUTE would), and it spells a view | M-view (`viewScanText = (text) => text`) **red**: "the view scan reads: create -- c view v as select 1" (C0 measured it green on `45893d9`) |
+| **C0-SL-3** (LOW): psql held a `;` the lexer split on | `sql-lexer.mjs` `psqlHeldSemicolons(tokens)` mirrors psqlscan.l's begin_depth heuristic (first unquoted identifiers CREATE [OR REPLACE] FUNCTION/PROCEDURE; `begin` at paren depth 0 +1, `case` +1 once inside, `end` -1) and returns each top-level `;` psql would hold; psqlLex refuses each. **Refused, not modelled**: merging as psql does would hide a later statement's head (a COMMIT behind a held `;`) from the transaction-control rule, which would weaken it. BEGIN ATOMIC's own rule stays | Live S-begin (C0's input) appended to 140: migrate-clean **2**, "a `;` psql would not end a statement at". Golden: six `held` counts (S-begin 3; BEGIN ATOMIC 1; a CASE inside 2; a dollar body, a parenthesised `begin` and a quoted one 0). M-held and M-held-parens red. No fed source holds one (scan below) |
+| **C0-SL-4** (LOW): `generate-pinned-grants.mjs:109` still a `--[^\n]*` regex | Reads through `SQL_LINE_COMMENTS`; a source assertion in the catalog-rule test pins it | M-grants (the regex put back) **red** on that assertion. The generated output is unchanged (the pinned-grants test is green) |
+| **C0-SL-5** (LOW): "16 internal symbols", "17 names" | Corrected here and in `[185]`'s append: **18 names and 15 internal symbols** (C0's R5 on 17.11); the total, 33, was right. The test message says so, and pins the boundary (`be_lo_export` at index 18). Line 32 above ("the 16 internal symbols") is wrong as written and stays as written | golden green |
+| **C0-SL-6** (LOW): the handoff omits the final branch-NAME guards | The refreshed handoff records `npm run check`, `check:handoff`, `verify` on the branch name and the commit-when-clean exits, for `45893d9` (C0's R1-R3) and for this round | the handoff |
+| **Q0-SL-1** (LOW): no golden case with VT | `select\v1\vfrom\vt` in the tokenization table | L14 (`'\v'` removed from SPACE) **red** (Q0 measured it green) |
+| Q0-SL-2 (INFO): canonical form's quoted-identifier rule unpinned | `canonical` asserted on `"app"`, `"X y"`, `"t;x"`, a dollar body, `"t"` | golden green |
+| Q0-SL-3 (INFO, wording) | Row 6 above says "5 in run.mjs" strippers and "1" blanker are now `.replace(SQL_LINE_COMMENTS / SQL_LITERALS)`. Four are; the fifth stripper and the blanker became the lexer-based `doBlockOpeners` | -- |
+| Q0-SL-5 (INFO), A1 F2 (INFO), C0-SL-I1 (INFO) | none required; recorded | -- |
+| C0-SL-I2 (INFO): word rules over raw or stripped text remain | Named in the README and `[185]`: `rls-assertions.test.mjs:96,178` and the §8.5 rules of `run.mjs` (`[\s\S]*?\$\$`) | -- |
+| C0-SL-1's §7 limit (event triggers, a type's I/O functions) | Covered by token position: any DDL that names a listed function outside GRANT/REVOKE/COMMENT is refused, whatever its statement | -- |
+
+Also: §1 row 1 and §2 say the lexer "splits where psql does". Read it now as: where psqlLex does not refuse, the
+split is psql's (C0-SL-3).
+
+### Measured on this round (Node `v24.20.0`, checked before every run; PostgreSQL 17.11, 127.0.0.1:5507, TCP only, `initdb --locale=C -A trust -U postgres`, `LC_ALL=C`, the CI shim first, re-initdb every round)
+
+| Command | Exit | Output |
+|---|---|---|
+| `node --test test-kits/db/foundation-contract.test.mjs` (working tree, before the fingerprint digest was updated) | 1 | 80/81; the one failure was the digest table naming the fingerprint probe's new digest, updated in the same change with its reason |
+| golden test alone, after | 0 | -- |
+| every fed source through this psqlLex (private `scan.mjs`: every `*.sql` in git, every probe and drift, every exported `run.mjs` script) | -- | 219 sources, **0 with findings**; `unsafeDrifts` [] |
+| the changed fingerprint drift fed alone on stdin to psql, `log_statement = all` | -- | psql sent 6, the lexer split 6 (recorded sha256 `8c0033d6...`) |
+| round r1, working tree: `make db-migrate-clean`, `make db-rls-smoke` twice | 0, 0, 0 | 30 probe self-tests refused their drifts and were clean again (the fingerprint probe's included); post-migrate pass 51 blocks (39 as written, 12 replaced); 1087 isolation cases each time |
+| D-op, D-ren, S-begin (private `drifts.mjs`) | 2, 2, 2 | above; no marker file |
+| mutations (private `mutate.mjs`) | 1 each | M-view, L14, M-name, M-naming-only, M-held, M-held-parens, M-grants; every file restored (sha256) |
+
+The commit, round r2 on the committed code, `npm run check`, branch scope and the final guards are in the handoff,
+refreshed last and alone. Private artefacts: `a0-sql-lexerr2/` in the run's scratchpad (`cluster.sh`, `scan.mjs`,
+`diffdrift.mjs`, `drifts.mjs`, `mutate.mjs`, each log).
+
+### Still owed
+
+- A0: re-run the whole differential when a new fed source lands (this round re-measured only the one drift it changed).
+- A1-RC-4 and the owed-tooling INFO items, as `[185]` records them.
+- A literal holding only a server-file name (`where proname = 'lo_export'`) is refused, because a literal's text is
+  read as SQL at the next level: an over-refusal, fail closed, that no fed source meets today.

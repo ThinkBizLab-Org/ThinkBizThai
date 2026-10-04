@@ -29,7 +29,9 @@
 //     literal, body, identifier and comment is a META-COMMAND to the end of its line, and `:name`, `:'name'` and
 //     `:"name"` are psql VARIABLE references psql would substitute (refused: fail closed).
 // Statements split where psql splits them: at `;` outside parentheses. A SQL-standard `BEGIN ATOMIC` body, which
-// psql 15+ keeps whole and this splitter would not, is refused rather than modelled.
+// psql 15+ keeps whole and this splitter would not, is refused rather than modelled; so, since the review round
+// (C0-SL-3), is every `;` psql's begin_depth heuristic holds (psqlHeldSemicolons): any unquoted `begin` at
+// parenthesis depth 0 in a CREATE [OR REPLACE] FUNCTION or PROCEDURE statement, not BEGIN ATOMIC alone.
 //
 // What it does NOT decide, and says so: what a statement MEANS (that is the parser's and the catalog's), and text
 // COMPUTED at run time -- set_config('client_' || 'encoding', ...), EXECUTE of a concatenation, format(), chr(),
@@ -368,6 +370,39 @@ export function splitStatements(tokens) {
   }
   end();
   return statements;
+}
+
+// WHERE psql WOULD NOT SPLIT (C0-SL-3, the sql-lexer batch's review round). psqlscan.l holds a `;` while its
+// begin_depth is above zero, and it counts that depth on a heuristic, not on BEGIN ATOMIC alone: in a statement
+// whose first unquoted identifiers are CREATE [OR REPLACE] FUNCTION or PROCEDURE, every unquoted `begin` at
+// parenthesis depth 0 adds one, a `case` adds one once inside, and an `end` takes one away. C0 measured psql
+// 17.11 sending ONE query where splitStatements made three (`... set search_path = begin as 'select 1'; select
+// 2; select 3;`). This returns every top-level `;` psql would hold, so the caller refuses the source rather than
+// split it otherwise than psql does. Mirroring the merge instead would hide a later statement's head (a COMMIT
+// behind a held `;`) from the head rules, so it is refused, never modelled.
+export function psqlHeldSemicolons(tokens) {
+  const held = [];
+  let first = [];
+  let parens = 0;
+  let beginDepth = 0;
+  for (const t of tokens) {
+    if (t.kind === 'punct' && t.text === '(') parens += 1;
+    if (t.kind === 'punct' && t.text === ')') parens = Math.max(0, parens - 1);
+    if (t.kind === 'punct' && t.text === ';' && parens === 0) {
+      if (beginDepth > 0) { held.push(t); continue; }
+      first = []; beginDepth = 0;
+      continue;
+    }
+    if (t.kind !== 'ident') continue;
+    if (first.length < 4) first.push(['create', 'function', 'procedure', 'or', 'replace'].includes(t.value) ? t.value : '');
+    const routine = first[0] === 'create' && (['function', 'procedure'].includes(first[1])
+      || (first[1] === 'or' && first[2] === 'replace' && ['function', 'procedure'].includes(first[3])));
+    if (!routine || parens !== 0) continue;
+    if (t.value === 'begin') beginDepth += 1;
+    else if (t.value === 'case' && beginDepth >= 1) beginDepth += 1;
+    else if (t.value === 'end' && beginDepth > 0) beginDepth -= 1;
+  }
+  return held;
 }
 
 // The text with every comment replaced (by one space unless told otherwise; `null` keeps that kind as written) and

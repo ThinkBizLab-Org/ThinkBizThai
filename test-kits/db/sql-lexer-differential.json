@@ -1004,7 +1004,7 @@
   },
   {
    "source": "drift system object fingerprint probe #1",
-   "sha256": "a41520e84b62a12ecf613eab14e5039c38df50af18ef10965c195a3800ff72b6",
+   "sha256": "8c0033d6f4087b5f53c251cc14699504b84037254b6d21c1dfd418c17b9c4c17",
    "lexer": 6,
    "psql": 6,
    "same": true

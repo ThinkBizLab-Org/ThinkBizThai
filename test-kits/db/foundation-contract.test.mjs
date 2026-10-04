@@ -2317,13 +2317,15 @@ test('a migration may exceed the old argv ceiling, and none may carry a psql met
     ['copy app.jobs to stdout;', 0], ["select 'the program to run' as note;", 0],
     // The owed-tooling batch's review round (C0-OT-2, Q0-OT-3): COPY TO or FROM a server file wrote a file on the
     // host with every layer green, and G1's remedy named the server-file functions too. Each spelling refused;
-    // STDIN and STDOUT, the word "copy" in prose, and a function NAMED after FUNCTION (not called) admitted.
+    // STDIN and STDOUT, the word "copy" in prose, and a function NAMED in a GRANT admitted. Since the sql-lexer
+    // batch's review round (C0-SL-1) a rename of one is refused too: a rename of lo_export, then a call by the new
+    // name, wrote a host file.
     ["copy app.jobs from '/tmp/x';", 1], ["copy (select 'q0c') to '/tmp/x';", 1], ["COPY \"app\".\"jobs\" (id, kind) TO '/tmp/x';", 1],
     ["copy(select (1)) to /* c */ '/tmp/x';", 1], ["copy binary t from '/tmp/x';", 1], ["do $$ begin execute 'copy (select 1) to ''/tmp/x'''; end $$;", 1],
     ["select pg_read_file('/etc/hosts');", 1], ["select pg_catalog.\"pg_read_file\"('/etc/hosts');", 1], ["select lo_export(1, '/tmp/x');", 1],
     ["select lo_import('/tmp/x');", 1], ["select count(*) from pg_ls_dir /* c */ ('.');", 1], ["select pg_stat_file('postgresql.conf');", 1],
     ['copy app.jobs from stdin;', 0], ["select 'a nullable copy of the item''s page could not be held equal to ' || 'x';", 0],
-    ['grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;', 0], ['alter function pg_catalog.pg_read_file(text) rename to probe_x;', 0]]) {
+    ['grant execute on function pg_catalog.pg_ls_dir(text) to authenticated;', 0], ['alter function pg_catalog.pg_read_file(text) rename to probe_x;', 1]]) {
     assert.equal(psqlLex(sql).metaCommands.length, n, `${JSON.stringify(sql)}: ${n} meta-command(s)`);
   }
   const { metaCommandFindings } = await import('../../scripts/db/run.mjs');
@@ -2376,6 +2378,8 @@ test('one SQL lexer reads every fed source as PostgreSQL and psql do: the golden
     // Operators cut before an embedded comment; casts; the trailing +/- rule.
     ['select 1+/*c*/2, a::text, 3*-4', [['ident', 'select'], ['number', '1'], ['op', '+'], ['number', '2'], ['punct', ','], ['ident', 'a'], ['punct', '::'], ['ident', 'text'], ['punct', ','], ['number', '3'], ['op', '*'], ['op', '-'], ['number', '4']]],
     ['select 1.5e3, .5, 1_000, 0x1F', [['ident', 'select'], ['number', '1.5e3'], ['punct', ','], ['number', '.5'], ['punct', ','], ['number', '1_000'], ['punct', ','], ['number', '0x1F']]],
+    // VT is whitespace (PostgreSQL 16+), so `select<VT>1` is two tokens (Q0-SL-1: no golden case held one).
+    ['select\v1\vfrom\vt', [['ident', 'select'], ['number', '1'], ['ident', 'from'], ['ident', 't']]],
   ]) {
     assert.deepEqual(sig(sql, options), want, `tokenized as PostgreSQL does: ${JSON.stringify(sql)}`);
     const { tokens, refusals } = L.lexSql(sql, options);
@@ -2385,6 +2389,20 @@ test('one SQL lexer reads every fed source as PostgreSQL and psql do: the golden
   // Statements split where psql splits them: at `;` outside parentheses, whatever a literal, body or name holds.
   assert.deepEqual(L.splitStatements(L.lexSql("select 1;; select (2;3); select ';', $$;$$, \"a;b\" -- ;\n;").tokens).map((s) => s.head),
     ['select 1', 'select (2;3)', "select ';', $$;$$, \"a;b\""]);
+  // The canonical form: an unquoted identifier folded, a quoted one that is a plain lower-case name written bare, any
+  // other quoted one `"?"`, every literal and body `''` (Q0-SL-2: the quoted-identifier rule was pinned only elsewhere).
+  assert.equal(L.canonical(L.lexSql('SELECT "app"."X y", "t;x", $b$x$b$ FROM "t" -- c\n').tokens), 'select app . "?" , "?" , \'\' from t');
+  // Where psql's begin_depth heuristic holds a `;` (psqlscan.l), which this splitter would not (C0-SL-3, measured on
+  // psql 17.11: one query sent where the split made three). Each is refused by psqlLex; a begin ... end that closes
+  // before the `;`, a body in dollar quotes, and a `begin` outside CREATE FUNCTION/PROCEDURE split as psql splits them.
+  const held = (sql) => L.psqlHeldSemicolons(L.lexSql(sql).tokens).length;
+  assert.equal(held("create function public.c0_f() returns int language sql set search_path = begin as 'select 1'; select 2; select 3;"), 3);
+  assert.equal(held('create or replace procedure p() language sql begin atomic select 1; end;'), 1);
+  assert.equal(held('CREATE PROCEDURE p() BEGIN ATOMIC SELECT CASE WHEN true THEN 1 END; SELECT 2; END;'), 2);
+  assert.equal(held("create function f() returns int as $$ begin return 1; end $$ language plpgsql; begin; select 1; commit;"), 0);
+  assert.equal(held("create function f(begin int) returns int language sql return 1; select 2;"), 0, 'a begin inside parentheses is not counted');
+  assert.equal(held("create table begin_t (x int); create function \"begin\"() returns int language sql return 1; select 2;"), 0, 'nor a quoted one');
+  assert.match(psqlLex("create function public.c0_f() returns int language sql set search_path = begin as 'select 1'; select 2;").metaCommands.map((x) => x.text).join(' | '), /a `;` psql would not end a statement at/);
   // (2) Fail closed: what the lexer cannot classify is a refusal, never a token read past.
   for (const [sql, reason, options] of [
     ["select 'abc", /unterminated quoted string/], ['select $x$ abc', /unterminated dollar-quoted/], ['/* open /* nested */', /unterminated \/\* comment/],
@@ -2417,20 +2435,33 @@ test('one SQL lexer reads every fed source as PostgreSQL and psql do: the golden
     ["create foreign table t (x text) server s options (program 'id');", /foreign table, foreign data wrapper, server/],
     ['import foreign schema x from server s into y;', /foreign table/], ['create user mapping for public server s;', /user mapping/],
     ['create function f() returns int language sql begin atomic select 1; end;', /BEGIN ATOMIC/],
+    // A server-file function reached under another name (C0-SL-1, measured: the operator and the rename each wrote a
+    // host file with migrate-clean green before the review round): named anywhere but in GRANT, REVOKE or COMMENT.
+    ['create operator public.### (leftarg = oid, rightarg = text, function = pg_catalog.lo_export);', /server-file function named outside/],
+    ['create cast (text as bytea) with function pg_catalog.pg_read_binary_file(text);', /server-file function named outside/],
+    ['create aggregate public.agg(text) (sfunc = pg_catalog.pg_read_file, stype = text);', /server-file function named outside/],
+    ['alter function pg_catalog.lo_export(oid, text) rename to c0_lx;', /server-file function named outside/],
+    ['alter function pg_catalog.pg_read_file(text) set schema public;', /server-file function named outside/],
+    ['alter function pg_catalog."lo_export"(oid, text) owner to authenticated;', /server-file function named outside/],
+    ['create function public.lo_export(oid, text) returns int language sql return 1;', /server-file function named outside/],
+    ["do $$ begin execute 'create operator public.### (leftarg = oid, rightarg = text, function = lo_export)'; end $$;", /server-file function named outside/],
   ]) {
     assert.match(refusedBy(sql), why, `refused: ${JSON.stringify(sql)}`);
   }
   for (const sql of ['copy app.jobs to stdout;', 'copy t (a, b) from stdin with (format csv);', 'create extension if not exists pgcrypto with schema extensions;',
     'alter table t add constraint f foreign key (a) references u (a);', "select 'view(s), materialized view(s) or foreign table(s)' as m;",
-    'grant execute on function pg_catalog.pg_read_file(text) to authenticated;', 'select x.copy from t as x;', "select 'a copy of the item' as c;",
+    'grant execute on function pg_catalog.pg_read_file(text) to authenticated;', 'revoke all on function pg_catalog.lo_export(oid, text), pg_catalog.lo_import(text) from public;',
+    "comment on function pg_catalog.pg_read_file(text) is 'reads a server file';", 'select x.copy from t as x;', "select 'a copy of the item' as c;",
     "select 'x' as y where z = 'begin atomic';", 'select a::text, b[1:2] from t;', "create function f() returns int language sql return 2;"]) {
     assert.deepEqual(psqlLex(sql).metaCommands, [], `admitted: ${sql}`);
   }
   assert.deepEqual(APPROVED_EXTENSIONS, ['pgcrypto'], 'the one extension the migrations create (000_foundation.sql, prerequisites.sql)');
   for (const name of ['pg_read_file', 'lo_export', 'pg_read_file_all', 'be_lo_export', 'be_lo_import', 'pg_stat_file_1arg']) assert.ok(SERVER_FILE_FUNCTIONS.includes(name), `${name} is read`);
-  // EVERY name in the list, called, is refused (Q0-OT2-5: twelve of the seventeen were pinned by nothing), and named
-  // after FUNCTION it is not a call.
-  assert.equal(SERVER_FILE_FUNCTIONS.length, 33, 'the seventeen by name and the sixteen internal symbols measured on 17.11');
+  // EVERY name in the list, called, is refused (Q0-OT2-5: twelve of the then seventeen were pinned by nothing), and
+  // named in a COMMENT it reaches nothing. The counts: eighteen by name and fifteen internal symbols (C0-SL-5 measured
+  // 15 distinct `prosrc <> proname` on 17.11; the plan and [185] had said sixteen and seventeen).
+  assert.equal(SERVER_FILE_FUNCTIONS.length, 33, 'the eighteen by name and the fifteen internal symbols measured on 17.11');
+  assert.equal(SERVER_FILE_FUNCTIONS.indexOf('be_lo_export'), 18, 'eighteen names, then the fifteen symbols');
   for (const name of SERVER_FILE_FUNCTIONS) {
     assert.match(refusedBy(`select pg_catalog.${name}('x');`), /server-file function call/, `${name}(...) is refused`);
     assert.deepEqual(psqlLex(`comment on function pg_catalog.${name}(text) is 'x';`).metaCommands.filter((x) => /server-file/.test(x.text)), [], `${name} after FUNCTION is not a call`);
@@ -2930,6 +2961,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // The owed-tooling batch's review round: pinned trigger 6c73217f9ce9e45f to 8412a302b7f190a7 (a third rule: every
   // internal trigger on a table in app or private is one of its table's FK checks, and its drift, a trigger hidden
   // by tgisinternal and an FK trigger re-pointed at RI_FKey_cascade_del: A1-OT-1). Every other digest stays.
+  // The sql-lexer batch's review round (no migration): system object fingerprint 6a533b62eacf2022 to f75c1e00bd908cd5
+  // (its drift renames pg_catalog.pg_sleep(double precision) in place of pg_read_file(text), which psqlLex now
+  // refuses as a server-file function named outside GRANT, REVOKE or COMMENT, C0-SL-1; the rename shape and the
+  // rule are unchanged). Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2944,7 +2979,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'd82a36c9fbe730c6',
-    'system object fingerprint probe': '6a533b62eacf2022',
+    'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
     'security definer probe': '42d056bde20ea854',
@@ -3138,7 +3173,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // The drift carries each shape the reviews named, so a narrowing of what is read fails at migrate-clean too.
   const fpDrift = m.CATALOG_RULE_PROBES.find((p) => p.label === 'system object fingerprint probe').selfTests[0];
   for (const shape of [/create or replace view information_schema\./, /security definer;/, /grant execute on function pg_catalog\./,
-    /create or replace function information_schema\.\w+\([^)]*\) returns integer language sql immutable parallel safe strict return /, / rename to probe_renamed_read_file;/, /alter table information_schema\.\w+ rename to /]) {
+    /create or replace function information_schema\.\w+\([^)]*\) returns integer language sql immutable parallel safe strict return /, /alter function pg_catalog\.\w+\([^)]*\) rename to probe_renamed_\w+;/, /alter table information_schema\.\w+ rename to /]) {
     assert.match(fpDrift.drift, shape, `the fingerprint's drift holds ${shape}`);
   }
   assert.match(m.SYSTEM_FINGERPRINT_PROBE_SQL, /if differing > 0 then\n\s+raise exception/, 'and any one of them refuses');
@@ -3352,6 +3387,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(file._how_measured, gen.grantsDoc(gen.measuredOn(last, version))._how_measured, `pinned-grants.json says it was measured through ${last}`);
     assert.equal(exceptionsFile._how_measured, gen.exceptionsDoc(gen.measuredOn(last, version))._how_measured, `and so does the known-exceptions file`);
     assert.doesNotMatch(await readFile('scripts/db/generate-pinned-grants.mjs', 'utf8'), /through 1[0-9]0\b/, 'the generator carries no migration number of its own');
+    // It reads the migrations' comments through the one SQL lexer (the sql-lexer batch's review round, C0-SL-4).
+    assert.match(await readFile('scripts/db/generate-pinned-grants.mjs', 'utf8'), /readFileSync\(`\$\{migrationsDir\}\/\$\{f\}`, 'utf8'\)\.replace\(SQL_LINE_COMMENTS, ''\)/,
+      'the generator strips comments through the lexer, not a `--` regex');
     const created = new Set();
     for (const name of (await readdir('db/foundation/migrations')).filter((n) => n.endsWith('.sql'))) {
       for (const t of (await readFile(`db/foundation/migrations/${name}`, 'utf8')).matchAll(/^create table if not exists ((?:app|private)\.[a-z_]+)/gm)) created.add(t[1]);

@@ -16,7 +16,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
-import { NESTED_DEPTH, keyword, splitStatements, walkLevels, word } from './sql-lexer.mjs';
+import { NESTED_DEPTH, keyword, psqlHeldSemicolons, splitStatements, walkLevels, word } from './sql-lexer.mjs';
 
 const run = promisify(execFile);
 
@@ -411,10 +411,15 @@ export async function feedTranscript(sql, options = {}) {
 //         PROGRAM is refused (the server runs a shell command; C0 G1 on 129); ANY OTHER target, whatever its
 //         quoting -- a plain, E'', U&'' or dollar-quoted literal (`COPY ... TO $p$path$p$`, C0-OTR-2, A1-RC-1,
 //         Q0-OT2-1) -- is a server file and is refused (C0-OT-2, Q0-OT-3);
-//       - a server-file function CALLED, matched as an identifier token (quoted or not, comments allowed before
-//         its parenthesis) followed by `(`, unless FUNCTION precedes it (a GRANT, ALTER or COMMENT ON FUNCTION
-//         names it and calls nothing). The list is the functions by name and, measured on PostgreSQL 17.11, the
-//         internal symbols they are built on (pg_read_file_all, be_lo_export, ...): a call by either name;
+//       - a server-file function NAMED, as an identifier token (quoted or not), anywhere but in a GRANT, REVOKE
+//         or COMMENT statement, which evaluates nothing and binds nothing. Until the sql-lexer batch's review
+//         round only a CALL was refused (the name, then `(`, unless FUNCTION preceded it); C0-SL-1 measured an
+//         operator over lo_export writing a host file with every layer green, and a rename doing the same, so
+//         CREATE OPERATOR/CAST/AGGREGATE over one, ALTER FUNCTION (rename, set schema, owner) or CREATE/DROP of a
+//         function by that name are refused with the call. The list is the functions by name and, measured on
+//         PostgreSQL 17.11, the internal symbols they are built on (pg_read_file_all, be_lo_export, ...). A
+//         literal holding only the name is read as SQL at the next level like any other, so `where proname =
+//         'lo_export'` in a fed source is refused too: an over-refusal that fails closed, and no fed source has one;
 //       - LANGUAGE internal or LANGUAGE c, by keyword or literal: a function so defined can alias ANY built-in
 //         under a name no list holds (`create function f(text) ... language internal as 'pg_read_file_all'`,
 //         A1-RC-2), so no fed source may define one;
@@ -441,6 +446,8 @@ export const SERVER_FILE_FUNCTIONS = ['lo_import', 'lo_export', 'pg_read_file', 
   'pg_read_file_all', 'pg_read_file_all_missing', 'pg_read_file_off_len', 'pg_read_file_off_len_missing', 'pg_stat_file_1arg'];
 export const APPROVED_EXTENSIONS = ['pgcrypto'];
 const REFUSED_LANGUAGES = ['internal', 'c'];
+// The statements that name a function and reach nothing (C0-SL-1's remedy (a)).
+const NAMING_ONLY = ['grant', 'revoke', 'comment'];
 const ESCAPE_RAW = /(?<![A-Za-z0-9_$\u0080-￿])(?:[uU]&["']|[eE]')/;
 
 // The token rules read at every level, over one statement's significant tokens. Each finding is { at, text },
@@ -474,11 +481,18 @@ function statementFindings(sig, { top }) {
         else if (target !== 'stdin' && target !== 'stdout') out.push({ at, text: 'COPY ... TO/FROM a server file, which reads or writes a file on the database host' });
       } else if (top && k === 0) out.push({ at, text: 'a COPY statement whose target this lexer cannot read, refused rather than guessed' });
     }
-    // A server-file function, called.
+    // A server-file function, named anywhere but in a statement that can only name it. Since the sql-lexer
+    // batch's review round (C0-SL-1) this is no longer "called": `create operator ... (function =
+    // pg_catalog.lo_export)`, `create cast ... with function pg_read_file(text)`, `create aggregate ... (sfunc =
+    // ...)`, and `alter function lo_export(oid, text) rename to x` / `set schema` then `x(...)` each reached the
+    // function under a name no list holds, and the operator wrote a host file with every layer green. So the name
+    // is refused as ANY identifier token, except in a GRANT, REVOKE or COMMENT statement, which evaluates no
+    // expression and binds nothing: they name the function and reach nothing.
     const name = word(sig[k]);
-    if (name !== null && SERVER_FILE_FUNCTIONS.includes(name.toLowerCase()) && punct(k + 1, '(')) {
-      const before = punct(k - 1, '.') ? k - 3 : k - 1;
-      if (kw(before) !== 'function') out.push({ at, text: 'a server-file function call, which reads, lists or writes a file on the database host' });
+    if (name !== null && SERVER_FILE_FUNCTIONS.includes(name.toLowerCase()) && !NAMING_ONLY.includes(kw(0))) {
+      out.push({ at, text: punct(k + 1, '(') && kw(punct(k - 1, '.') ? k - 3 : k - 1) !== 'function'
+        ? 'a server-file function call, which reads, lists or writes a file on the database host'
+        : 'a server-file function named outside a GRANT, REVOKE or COMMENT (an operator, cast, aggregate, rename or schema move can reach it under another name)' });
     }
     // LANGUAGE internal / c.
     if (kw(k) === 'language') {
@@ -537,6 +551,9 @@ export function psqlLex(sql) {
       if (t.kind === 'estring' || t.kind === 'ustring' || t.kind === 'uident') {
         metaCommands.push({ line: where(t.start), text: `a ${t.kind === 'estring' ? "E''" : 'U&'} escape spelling, which can spell client_encoding, set names or standard_conforming_strings past the rules that read them` });
       }
+    }
+    if (depth === 0) {
+      for (const t of psqlHeldSemicolons(tokens)) metaCommands.push({ line: t.line, text: "a `;` psql would not end a statement at (a `begin` in CREATE FUNCTION or PROCEDURE, psqlscan.l's begin_depth), where this splitter would" });
     }
     for (const s of splitStatements(tokens)) {
       if (depth === 0) {

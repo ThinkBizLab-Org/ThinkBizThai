@@ -30,6 +30,7 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { argv, env, exit, stderr, stdout } from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { SQL_LINE_COMMENTS } from './sql-lexer.mjs';
 
 const GRANTS = 'db/foundation/lint/pinned-grants.json';
 const EXCEPTIONS = 'db/foundation/lint/read-allowlist-known-exceptions.json';
@@ -106,7 +107,9 @@ const CLIENT_ROLES = ['anon', 'authenticated'];
 export function renderExceptions(g, tables, on, migrationsDir = MIGRATIONS) {
   const src = {};
   for (const f of readdirSync(migrationsDir).filter((n) => n.endsWith('.sql')).sort()) {
-    const s = readFileSync(`${migrationsDir}/${f}`, 'utf8').replace(/--[^\n]*/g, '');
+    // Comments stripped through the one SQL lexer (the sql-lexer batch's review round, C0-SL-4: this was the last
+    // `--[^\n]*` reader, which took a `--` inside a literal or a dollar body for a comment).
+    const s = readFileSync(`${migrationsDir}/${f}`, 'utf8').replace(SQL_LINE_COMMENTS, '');
     for (const x of s.matchAll(/grant\s+([^;]*?)\s+on\s+(?:table\s+)?(app\.\w+)\s+to\s+([^;]*);/gi)) {
       if (!/select/i.test(x[1])) continue;
       for (const role of CLIENT_ROLES) {
