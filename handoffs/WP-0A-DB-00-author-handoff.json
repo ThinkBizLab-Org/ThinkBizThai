@@ -5,15 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "1930f4131eaf25ca6ba834b1e82ddb2511c966df",
-  "head_revision_or_patch_checksum": "2492ae98916b12bc98ede97bcf0c1535777cebd0",
+  "head_revision_or_patch_checksum": "7e6c797ccee85757e432872b3930e6f24f046182",
   "task_ids": [],
   "files_added": [
     "db/foundation/lint/safe-projections.json",
     "db/foundation/migrations/150_performance_snapshots_key.sql",
     "evidence/WP-0A-DB-00/a0-batch-150-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-150-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-150-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-150-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-150-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md",
+    "evidence/WP-0A-DB-00/q0-batch-150-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-150-test-review-2026-10-03.md"
   ],
   "files_modified": [
@@ -164,7 +167,7 @@
       "result": "data classification self-test after drift 3 refused without naming the four non-SELECT grants"
     }
   ],
-  "security_privacy_cost_impact": "One migration changes app.performance_snapshots' primary key to (id, metric_time); no row, grant, policy, role or client reach changes, and the table is applied to no instance. Since 150, id alone is unique by no constraint, only by its ALWAYS identity and by no role but the owner holding INSERT or UPDATE on it (accepted; a snapshot is addressed by (id, metric_time)). Rule 17 refuses more on the twelve open tables (any client SELECT column not pinned, and a pinned one revoked). On the four PROVIDER-3 or INTERNAL-3 tables it refuses the same as before today, and it is looser by design: a column read becomes admissible by a pin, so safe-projections.json is now a security-relevant input (A1's wording note). It revokes nothing: four client-readable columns that read as unsafe or unproven against ERD §9.1 are findings SP-1..SP-4 owed to A1/A6 and the notification owner. Rule 17's claim covers table and column privileges only; views and SET ROLE are other probes'. The harness change alters a query the harness runs, not a client; the BFF must bind the list's user_id to the session. Cost: the classification probe reads every column of 16 tables for 3 client roles twice; migrate-clean about 5 s on this host.",
+  "security_privacy_cost_impact": "One migration changes app.performance_snapshots' primary key to (id, metric_time); no row, grant, policy, role or client reach changes, and the table is applied to no instance. Since 150, id alone is unique by no constraint, only by its ALWAYS identity and by no application role holding INSERT or UPDATE on it (superusers, the owner and pg_write_all_data excepted; measured on the CI shim; re-check C0-R1, A1 F150r-1, Q0 Q2-1) (accepted; a snapshot is addressed by (id, metric_time)). Rule 17 refuses more on the twelve open tables (any client SELECT column not pinned, and a pinned one revoked). On the four PROVIDER-3 or INTERNAL-3 tables it refuses the same as before today, and it is looser by design: a column read becomes admissible by a pin, so safe-projections.json is now a security-relevant input (A1's wording note). It revokes nothing: four client-readable columns that read as unsafe or unproven against ERD §9.1 are findings SP-1..SP-4 owed to A1/A6 and the notification owner. Rule 17's claim covers table and column privileges only; views and SET ROLE are other probes'. The harness change alters a query the harness runs, not a client; the BFF must bind the list's user_id to the session. Cost: the classification probe reads every column of 16 tables for 3 client roles twice; migrate-clean about 5 s on this host.",
   "migration_and_data_impact": "db/foundation/migrations/150_performance_snapshots_key.sql: drop constraint performance_snapshots_pkey; add it as primary key (id, metric_time), under lock_timeout 5s and statement_timeout 60s; comments; an apply-time block. Forward only; 121 is not edited. On an empty table the index build is immediate; with rows it is a full scan under ACCESS EXCLUSIVE, which is why it is done now. Declared not applied to the provisioned instance (catalog-snapshot.json tail). No partition by and no index (Q150-b). Number 150: Q150-c's one-time exception to MOD-120's range. Partitioning later is NOT an attach alone: PostgreSQL 17.11 refuses to attach a table with an identity column, so that batch drops the identity, attaches, restarts the parent's identity above max(id) and supersedes the blocks that hold the table unpartitioned (open_blockers[179], measured in the review round).",
   "compatibility_impact": "Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 898 -> 929, and 929 -> 932 in the review round, the guard's own count; test floors and name digests unchanged. Two probe digests move: pinned shape b54ae8e9c8c7f6ce -> 11ba1271ffc00d70, data classification 42c77e0015f12eaf -> 77b41feaee177714, then -> a848ca33af3460e3 in the review round (Q0 Q-3's drift). evidence/VERIFICATION.md is not amended, and amends_without_owning.paths is unchanged (scripts/test-suite-contract.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json), so no WP line citation moves; no blocker is added, so no blocker index moves. A later migration that adds a client column read on any of the sixteen projection tables, or revokes a pinned one, must edit db/foundation/lint/safe-projections.json in the same diff.",
   "known_limitations": [
