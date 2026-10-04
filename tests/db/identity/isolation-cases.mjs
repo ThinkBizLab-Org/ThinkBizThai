@@ -19645,6 +19645,15 @@ export const LIFECYCLE_OWNER_FAMILY = Object.freeze([
   'billing_subscriptions',                                                                            // 130 (Q-027-3)
 ]);
 export const LIFECYCLE_MEMBER_FAMILY = Object.freeze([...LIFECYCLE_OWNER_FAMILY, 'workspace_member_scopes']);
+// The families of LIFECYCLE_MEMBER_FAMILY an editor and a viewer of workspace A read NO row of in active, as
+// measured on the clean set (batch 171's review round, C0 L4): the roster and invitations are the owner's and
+// admin's, quota and billing the owner's, and the viewer holds no notification in the fixture. For these the
+// identity's sweep is vacuous; every OTHER family must be non-empty in its before-read.
+const LIFECYCLE_EDITOR_EMPTY = ['workspace_invitations', 'workspace_members', 'quota_buckets', 'billing_subscriptions'];
+export const LIFECYCLE_EMPTY_IN_ACTIVE = Object.freeze({
+  'editor-a': Object.freeze(LIFECYCLE_EDITOR_EMPTY),
+  'viewer-a': Object.freeze([...LIFECYCLE_EDITOR_EMPTY, 'notifications']),
+});
 const familyCount = (table) => {
   if (table === 'workspaces') return '(select count(*) from app.workspaces where id = $1)';
   if (table === 'workspace_members') return '(select count(*) from app.workspace_members where workspace_id = $1 and user_id <> $2)';
@@ -19757,17 +19766,27 @@ function lifecycleVisibilityCases({ ownerA, ownerB, editorA, viewerA, A, PAGE_A1
          + 'row; the owner\'s invoices reach them through batch 160\'s export job.',
     },
     // Every member, not only the owner: the editor (scoped, so its scope row is in its sweep) and the viewer.
+    // The before-read is PER FAMILY (batch 171's review round, C0 L4): every family the identity reads in
+    // active must be non-empty, or the case fails at phase `before`. The families it cannot read in active
+    // (LIFECYCLE_EMPTY_IN_ACTIVE) stay in the sweep but pass for that identity whatever the gate does; they
+    // are named, not hidden, and the owner's sweeps hold them.
     ...[[editorA, 'editor-a'], [viewerA, 'viewer-a']].map(([as, who]) => ({
       id: `${who}-reads-no-row-of-any-family-of-workspace-a-in-access-blocked`,
       covers: ['§11.4', 'RFC-2026-027§5/1'],
       as,
-      before: { sql: lifecycleFamilySql(LIFECYCLE_MEMBER_FAMILY, '>'), params: [A, as.subject], expect: 'rows' },
+      before: {
+        sql: lifecycleFamilySql(LIFECYCLE_MEMBER_FAMILY.filter((t) => !LIFECYCLE_EMPTY_IN_ACTIVE[who].includes(t)), '='),
+        params: [A, as.subject],
+        expect: 'no-rows',
+      },
       ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
       sql: lifecycleFamilySql(LIFECYCLE_MEMBER_FAMILY, '>'),
       params: [A, '__SELF__'],
       expect: 'no-rows',
-      why: `BATCH 171: a ${who.split('-')[0]} of workspace A reads rows of A in active (the before-read) and none in `
-         + 'access_blocked: the gate is in the helper every family calls, not in the owner\'s role.',
+      why: `BATCH 171: a ${who.split('-')[0]} of workspace A reads at least one row of A in each of the `
+         + `${LIFECYCLE_MEMBER_FAMILY.length - LIFECYCLE_EMPTY_IN_ACTIVE[who].length} families it can read in active (the before-read lists `
+         + `the empty ones and must list none; ${LIFECYCLE_EMPTY_IN_ACTIVE[who].join(', ')} are empty for it in active (by role, or by the fixture) and `
+         + 'swept vacuously) and none in access_blocked: the gate is in the helper every family calls, not in the owner\'s role.',
     })),
     // RFC-2026-027 §5/3: writes refused, not only reads.
     {

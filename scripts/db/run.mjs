@@ -2928,7 +2928,8 @@ export const AUTHZ_IDENTITY_SQL =
 // The same expression as POSTGRES DEPARSES IT, which is what `pg_get_expr(polqual, polrelid)`
 // returns and what rule 5 pins.
 //
-// **This string is the control.** Any widening of app_authz's single policy — `using (true)`, a
+// **This string is the control.** Any widening of app_authz's first policy (the second, on app.workspaces,
+// is pinned the same way by AUTHZ_WORKSPACES_POLICY_QUAL below) — `using (true)`, a
 // dropped `status = 'active'`, an added function call, a second column — changes it, and the build
 // fails with a diff showing exactly what changed. That is why RFC-2026-020 §4 chose option G over
 // option E: E needed no exemption at all but its central claim ("the projection equals the table")

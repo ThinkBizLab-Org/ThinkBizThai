@@ -581,19 +581,23 @@ export async function proveTheLifecycleGate(run, ids) {
     if (off.error || count(off) !== 0) problems.push(`case 7: with ${AUTHZ_WORKSPACES_POLICY} dropped the owner of a ${state} workspace still reads ${shown(off)}; the policy is not what admits the helper's read`);
   }
 
-  // case 8 and case 11, in access_blocked.
-  const blocked = await businesses([moveWorkspace(ids.workspace, 'access_blocked')]);
-  const oldBody = await businesses([moveWorkspace(ids.workspace, 'access_blocked'), HELPER_BODY_011,
-    `alter function app.workspace_member_role(uuid) owner to ${AUTHZ_ROLE};`]);
-  const noConjunct = await businesses([moveWorkspace(ids.workspace, 'access_blocked'),
-    `drop policy ${AUTHZ_WORKSPACES_POLICY} on app.${AUTHZ_WORKSPACES_TABLE};`,
-    `create policy ${AUTHZ_WORKSPACES_POLICY} on app.${AUTHZ_WORKSPACES_TABLE} for select to ${AUTHZ_ROLE} using (exists (select 1 from app.workspace_members m where m.workspace_id = app.workspaces.id and m.user_id = app.jwt_subject() and m.status = 'active'));`]);
-  lines.push(`gate         A access_blocked: businesses ${shown(blocked)} (want 0)`);
-  lines.push(`case 8       011's helper body restored, A access_blocked: businesses ${shown(oldBody)} (want ${count(base)})`);
-  lines.push(`case 11      the policy's lifecycle conjunct removed, A access_blocked: businesses ${shown(noConjunct)} (want 0)`);
-  if (blocked.error || count(blocked) !== 0) problems.push(`the owner of an access_blocked workspace reads ${shown(blocked)} of its businesses; the gate does not hold`);
-  if (oldBody.error || count(oldBody) !== count(base)) problems.push(`case 8: with 011's helper body restored the owner of an access_blocked workspace reads ${shown(oldBody)} and should read ${count(base)}; the refusal above is not the helper's`);
-  if (noConjunct.error || count(noConjunct) !== 0) problems.push(`case 11: with the policy's lifecycle conjunct removed the owner of an access_blocked workspace reads ${shown(noConjunct)}; the helper's own conjunct does not answer by itself`);
+  // case 8 and case 11, in EVERY blocked state (RFC-2026-027 §5/11 says "in every blocked state"; batch 171's
+  // review round, C0 L2, widened both from access_blocked alone). Read on business_profiles, the family
+  // open_blockers[53] names; the per-family sweep (§5/1) is the rls-smoke cases'.
+  for (const state of LIFECYCLE_BLOCKED) {
+    const blocked = await businesses([moveWorkspace(ids.workspace, state)]);
+    const oldBody = await businesses([moveWorkspace(ids.workspace, state), HELPER_BODY_011,
+      `alter function app.workspace_member_role(uuid) owner to ${AUTHZ_ROLE};`]);
+    const noConjunct = await businesses([moveWorkspace(ids.workspace, state),
+      `drop policy ${AUTHZ_WORKSPACES_POLICY} on app.${AUTHZ_WORKSPACES_TABLE};`,
+      `create policy ${AUTHZ_WORKSPACES_POLICY} on app.${AUTHZ_WORKSPACES_TABLE} for select to ${AUTHZ_ROLE} using (exists (select 1 from app.workspace_members m where m.workspace_id = app.workspaces.id and m.user_id = app.jwt_subject() and m.status = 'active'));`]);
+    lines.push(`gate         A ${state.padEnd(14)}: businesses ${shown(blocked)} (want 0)`);
+    lines.push(`case 8       011's helper body restored, A ${state.padEnd(14)}: businesses ${shown(oldBody)} (want ${count(base)})`);
+    lines.push(`case 11      the policy's lifecycle conjunct removed, A ${state.padEnd(14)}: businesses ${shown(noConjunct)} (want 0)`);
+    if (blocked.error || count(blocked) !== 0) problems.push(`the owner of a ${state} workspace reads ${shown(blocked)} of its businesses; the gate does not hold`);
+    if (oldBody.error || count(oldBody) !== count(base)) problems.push(`case 8: with 011's helper body restored the owner of a ${state} workspace reads ${shown(oldBody)} and should read ${count(base)}; the refusal above is not the helper's`);
+    if (noConjunct.error || count(noConjunct) !== 0) problems.push(`case 11: with the policy's lifecycle conjunct removed the owner of a ${state} workspace reads ${shown(noConjunct)}; the helper's own conjunct does not answer by itself`);
+  }
 
   // (d): the helper's body reads lifecycle_state, so the column grant is needed whatever the policy needs.
   const noColumn = await run({
@@ -609,8 +613,8 @@ export async function proveTheLifecycleGate(run, ids) {
   p.ok = true;
   p.detail = `the read as ${AUTHZ_ROLE} raises no recursion and admits A only in active and closing (b, case 10); the helper's `
     + `read does not depend on authenticated's own workspaces policy (c); dropping ${AUTHZ_WORKSPACES_POLICY} empties the `
-    + "admitted states (case 7); restoring 011's body re-opens access_blocked (case 8); removing the policy's conjunct "
-    + 'leaves it closed (case 11); and the helper needs the lifecycle_state grant itself (d).';
+    + "admitted states (case 7); restoring 011's body re-opens each of the six blocked states (case 8); removing the "
+    + "policy's conjunct leaves each closed (case 11); and the helper needs the lifecycle_state grant itself (d).";
   return p;
 }
 
@@ -635,7 +639,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     p.ok = problems.length === 0;
     p.detail = problems.length === 0
       ? `every rule RFC-2026-020 §6.1/1-6 states holds against the database ${AUTHZ_MIGRATION} was just applied `
-        + `to, including the pinned policy expression:\n         ${AUTHZ_POLICY_QUAL}`
+        + `to, including both pinned policy expressions:\n         ${AUTHZ_POLICY_QUAL}\n         ${AUTHZ_WORKSPACES_POLICY_QUAL}`
       : problems.join('\n         ');
   }
   results.push(p);
