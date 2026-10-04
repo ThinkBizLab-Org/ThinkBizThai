@@ -4,6 +4,7 @@ Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q170-a = 
 Date: 2026-10-04
 Revised: 2026-10-04, in the batch's review round, on the findings of C0 (`c0-batch-rfc-026-027-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-026-027-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-026-027-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-026-027-plan-2026-10-03.md` §7. Still Proposed; the revision approves nothing and answers no question.
 Revised: 2026-10-04, in batch rfc-text (`a0-batch-rfc-text-plan-2026-10-03.md`): the Status line names every `RFC-2026-020` section §3.4 amends (C0-10); Q-027-5's column-free forms include `returning 1`, and its targeted-form sentence is true for blocked targets only (A1 C2, Q0R-F3); §6/6's census scoped to workspace-scoped tables, 89/8 (Q0R-F4); batch 170's revoke recorded, so §4's migration does not carry it; the Owner's answers to Q-027-1..6 recorded (§10.1). Still Proposed; the revision approves nothing.
+Revised: 2026-10-05, in batch rfc-text's review round (`a0-batch-rfc-text-plan-2026-10-03.md` §6): §5/6's second direction is asserted as an owner or admin with another active member, pre-asserted in `active` (Q0 F5 of `q0-batch-rfc-text-test-review-2026-10-03.md`). Still Proposed; the revision approves nothing and answers no question.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), owner of batch `170` (grants/RLS/exposed surface hardening) in the migration registry and reviewer of `RFC-2026-020`; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), co-owner of Q170-a and the Security review the registry names for `011`; `/claude/a1_identity` (A1 Identity), author of `RFC-2026-020` and of `010_identity.sql`
 Amends (when approved): `RFC-2026-020`'s Status line (a sentence appended), §5/3 (one policy becomes two), §6.1/5 (a second pinned expression), §6.1/6 (two columns of `app.workspaces` join the pinned grant), §6.3/14 (the negative control names its policy) — the exact text is §3.4
@@ -332,6 +333,11 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
 6. **The member's own row** (Q-027-1, answered: kept). In each blocked state, the member still reads
    their own membership row through `workspace_members_select_own_active`, and reads no other member's
    row (the roster policy goes through the helper and is refused, §3.3) — both directions asserted.
+   The second direction is asserted **as the owner (or an admin)** of a workspace with at least one
+   other active member, and pre-asserted in `active` (at least one other row read), because the
+   roster policy admits only owner and admin (`011_authorization_helpers.sql:339-341`): for an editor
+   or a viewer "reads no other member's row" holds with the gate absent (Q0 F5 of batch rfc-text's
+   review, measured: in `access_blocked` without the gate the editor reads 0 other rows, the owner 2).
 7. **Negative control, policy:** with `workspaces_select_authz_own_open` dropped, case 2 fails in both
    admitted states (in the six blocked states the read is refused either way, so case 1 stays green —
    measured by Q0, mutant M1). That proves the policy is what admits the helper's read; a helper that
