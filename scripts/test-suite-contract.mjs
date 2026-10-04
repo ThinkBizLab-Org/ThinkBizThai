@@ -215,7 +215,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // (id, metric_time) and 150's statements, timeouts and block read (Q150-a, Q150-b), the workspace list read
 // from workspace_members (Q150-e), and rule 17's SECRET-4 / safe-projection split and the projection file
 // (Q170-d); no test added or renamed, so the test floor and the name digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 929,
+// 929 to 932 with batch 150's review round: rule 17's two privilege lists pinned by text (Q0 Q-3) and 150's
+// check 2 reading every unique index (C0-6, A1 F150-3); no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 932,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

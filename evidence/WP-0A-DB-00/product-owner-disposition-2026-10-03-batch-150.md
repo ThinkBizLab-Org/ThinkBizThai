@@ -1,10 +1,10 @@
-# Product Owner disposition, 2026-10-04: #172's merge, the phase's 17 questions answered, and batch 150
+# Product Owner disposition, 2026-10-04: #172's merge, the phase's 16 questions answered, and batch 150
 
 **Package:** `WP-0A-DB-00`.
 
 This file is A0's (`/claude/a0_atlas`) record, written by a subagent of that run on 2026-10-04. Only the
 words quoted verbatim in §1 are the Owner's own text. The file approves no merge and grants no role's
-signature. It records the Owner's answer to the 17 open questions of the phase (§5); it does not give that
+signature. It records the Owner's answer to the 16 open questions of the phase (§5); it does not give that
 answer. The file name carries the phase's date (2026-10-03), as every disposition of this phase does.
 
 ## 1. The Owner's words this batch is written under
@@ -16,8 +16,8 @@ The Owner wrote, verbatim, on 2026-10-04:
 In English: "Go with what was recommended." The second character is the Owner's typing slip for `เอา`. The
 words are kept exactly as written, slip included.
 
-The words answered A0's phase-end summary. That summary listed all 17 open Q-ids of batches 141, 150, 160 and
-170 (Q141-a/b/c, Q150-a..e, Q160-a..d, Q170-a..d), each with A0's recommendation. It said that with this
+The words answered A0's phase-end summary. That summary listed the open Q-ids of batches 141, 150, 160 and
+170, 16 of them (Q141-a/b/c, Q150-a..e, Q160-a..d, Q170-a..d), each with A0's recommendation. It said that with this
 answer A0 would start the migration work that does not wait on DATA-DEC-03 or RFC-2026-023, namely 150's key
 (Q150-a) and Q150-e. The Owner gave one answer to the whole list.
 
@@ -32,7 +32,7 @@ Already on record, and still standing:
 
 ## 2. What A0 reads the words to mean
 
-- **Every one of the 17 questions is ANSWERED as A0 recommended** (§5). The Owner did not pick among the
+- **Every one of the 16 questions is ANSWERED as A0 recommended** (§5). The Owner did not pick among the
   alternatives the dispositions set out; the answer is the recommendation, in each case as worded in the
   disposition file the question came from.
 - **Where a question's named owner is another role, the Owner's answer is a direction, not that role's
@@ -95,7 +95,7 @@ a precedent for that range, and it does not assign ERD:280's "DB performance own
 - **Q150-d.** A0 drafted PROPOSED p95 DB-time values from a 0.2-scale run into the plan (§5), for the Owner
   to ratify. Nothing asserts them.
 
-## 5. The 17 questions: ANSWERED
+## 5. The 16 questions: ANSWERED
 
 Every row is answered by the Owner's `เิาตามแนะนำ` (2026-10-04, §1) **as A0 recommended**. The
 recommendation is quoted in substance from the disposition file named in the "From" column, where the full
@@ -107,7 +107,7 @@ question, its alternatives and its consequences are written.
 | Q141-b | `...-batch-141-prep.md` §5 | A0 + A6 | Freeze CTR-AUD-001 as batch 140 reads it, or move it first? | **Countersign 140's reading**, which countersigns F1-F4 by name. | **Owed:** the countersignature is A6's act on `contract-catalog/**`, which is read-only here. The Owner directed the answer; **A6's acceptance remains owed.** F6 still needs its own answer. | `open_blockers[33]` |
 | Q141-c | `...-batch-141-prep.md` §5 | A1 | Is tamper resistance enough before Paid Beta, or is tamper evidence required? | **Resistance only until G1; the gap is an accepted risk.** | **Recorded** as an accepted risk until G1. The Owner directed the answer; **A1's acceptance remains owed.** | `open_blockers[29]` |
 | Q150-a | `product-owner-disposition-2026-10-03-batch-150-prereq.md` §5 | Owner | Change `performance_snapshots`' key to `(id, metric_time)` now, without `partition by`? | **Yes, as a small forward migration once the item-5 pins exist.** | **Done:** `150_performance_snapshots_key.sql`; reverses question C's "id alone" for the key only. | `open_blockers[179]` (closed) |
-| Q150-b | `...-batch-150-prereq.md` §5 | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** | **Done by not doing it:** no `partition by`, no index; IC-1 stays a finding. Owed to batch 150's later part. | `open_blockers[194]` (2) |
+| Q150-b | `...-batch-150-prereq.md` §5 | Owner | Defer `partition by` and all production index work until a production-like fixture and an SLO exist? | **Yes.** The 150 migration waits; the fixture, harness and probes land now. | **Done by not doing it:** no `partition by`, no index; IC-1 stays a finding. Owed to batch 150's later part. "The 150 migration" in the recommendation is the deferred partition and index migration. Q150-a's answer asked for a small forward migration now, and Q150-c gave it the number 150, so that number is used by the re-key. **The later part has no number:** A1 and the Integration Owner must assign one (review round, C0-4). | `open_blockers[194]` (2) |
 | Q150-c | `...-batch-150-prereq.md` §5 | Owner / A0 | Who owns 150, and in which range? | **A0 authors, A1 reviews, number 150**, a recorded one-time exception to MOD-120's range for the rebuild. | **Done:** this batch is A0's, number 150, and the exception is recorded here and on the blocker. A1 reviews. | `open_blockers[194]` |
 | Q150-d | `...-batch-150-prereq.md` §5 | Product / Ops | Set the p95 DB-time SLO per query class. | **Draft values from the first fixture run, then have the Owner ratify them.** | **Drafted:** plan §5, PROPOSED, not asserted. **Owed:** the Owner's ratification; the Owner directed the route, and **Product/Ops' acceptance remains owed.** | `open_blockers[194]` |
 | Q150-e | `...-batch-150-prereq.md` §5 | Owner | Is 100 workspaces a growing table under WS:913, and which fix? | **Yes, and rewrite the list query to start from `workspace_members`** (no migration). | **Done:** `scripts/db/explain-harness.mjs`; measured, plan §3. | `open_blockers[194]` (1) (closed) |
@@ -118,7 +118,7 @@ question, its alternatives and its consequences are written.
 | Q170-a | `product-owner-disposition-2026-10-03-batch-170-assert.md` §5 | Owner + A1 | Close the `access_blocked` gap with an RFC amending RFC-2026-020 so `app_authz` can read `workspaces.lifecycle_state`? | **Yes.** | **Owed:** the RFC is to be written in the next batch, after a writable-path amendment (A0, with A1). **A1's acceptance remains owed.** | `open_blockers[95]` (and `[53]`) |
 | Q170-b | `...-batch-170-assert.md` §5 | Owner | Keep the inherited base-table grants as a closed list for Pilot, or convert them to views? | **Closed list now, conversion per family later**: closed at the 41 measured, the 31 later rows accepted as §8.5 exceptions. | **Done by keeping it:** the list stays closed at 41. The Owner answered; **A1's acceptance as RFC-2026-021's owner remains owed.** | `open_blockers[18]`, `[93]` |
 | Q170-c | `...-batch-170-assert.md` §5 | A0 | Who measures the provisioned instance's Data API, Realtime and default ACLs, and when? | **A0, a read-only catalog measurement before G1.** | **Owed to A0**, before G1. Not run here. | `open_blockers[193]` (9) |
-| Q170-d | `...-batch-170-assert.md` §5 | A1 + Owner | For PROVIDER-3 and INTERNAL-3: "no client privilege" or "only a pinned safe projection"? | **A pinned safe projection**: an allowlist of the exact columns a client may read, every other client privilege refused. | **Done:** rule 17 and `db/foundation/lint/safe-projections.json`; SP-1..SP-3 owed. **A1's acceptance remains owed.** | `open_blockers[193]` (1), (12), (13) |
+| Q170-d | `...-batch-170-assert.md` §5 | A1 + Owner | For PROVIDER-3 and INTERNAL-3: "no client privilege" or "only a pinned safe projection"? | **A pinned safe projection**: an allowlist of the exact columns a client may read, every other client privilege refused. | **Done:** rule 17 and `db/foundation/lint/safe-projections.json`; SP-1..SP-4 owed (SP-4 since the review round, A1 F150-1). **A1's acceptance remains owed.** | `open_blockers[193]` (1), (12), (13) |
 
 ## 6. What this file does not do
 
@@ -128,3 +128,16 @@ question, its alternatives and its consequences are written.
 - It does not sign for A1, A6, A4, Product/Ops or Product/Security/Legal. Where §5 says a role's acceptance
   remains owed, it remains owed.
 - It does not write the RFCs of Q170-a and Q141-a. They wait for a writable-path amendment.
+
+## 7. Corrections from the review round (2026-10-04)
+
+C0, A1 and Q0 reviewed `c0fa18e` (plan §11). Two corrections land in this file. Neither changes the Owner's
+words or any answer.
+
+- **16, not 17** (C0-2, Q0 Q-1). The file said 17 in five places. The enumeration it gave, the four source
+  dispositions and §5 all hold 16. No other Q141, Q150, Q160 or Q170 id exists in `evidence/WP-0A-DB-00/`.
+  A0's phase-end summary is not in the repository, so whether it listed a 17th item cannot be checked
+  here. If it did, that answer is not recorded. The commit messages of `2318c72` and `4b252d4` still say 17;
+  pushed messages are not rewritten.
+- **Q150-b's recommendation quoted in full** (C0-4). The row now carries "The 150 migration waits" and says
+  that the later partition and index migration has no number yet.

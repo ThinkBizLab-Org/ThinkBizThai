@@ -1439,7 +1439,12 @@ end \$\$;
 // 7's. Both table lists are computed from the registry, never read from the projection file, so a table the
 // file forgets is held to an empty projection and a SECRET-4 table the file names is still rule 2's. Measured
 // on the clean set of batch 150: 4 SECRET-4 tables and 4 PROVIDER-3 or INTERNAL-3 tables, no client privilege
-// on any of the eight; 7 of the 12 open tables hold the client SELECT columns the file pins.
+// on any of the eight; 7 of the 12 open tables hold the client SELECT columns the file pins. Its "exactly the
+// N column reads" is a claim about TABLE AND COLUMN PRIVILEGES only (review round, A1 F150-4, measured): a view
+// over a withheld column is the client privilege probe's, the pinned grant probe's and the read allowlist
+// probe's; a role a client reaches by SET ROLE is the client membership probe's and the pinned grant probe's;
+// a SECURITY DEFINER function, or a trigger that copies a withheld value into a pinned column, is outside every
+// grant probe. Rule 17 alone is not the whole read boundary.
 export const DATA_CLASSIFICATION_FILE = 'db/foundation/lint/data-classification.json';
 export const DATA_CLASSIFICATION = lintData('data-classification.json');
 export const SAFE_PROJECTIONS_FILE = 'db/foundation/lint/safe-projections.json';
@@ -1540,7 +1545,8 @@ end \$\$;
 // (121), published_posts (121 added the scope key its foreign key references) and usage_events (survey item 6:
 // usage_events_dedupe_key_unique had no probe). Measured on the clean set at 1319042: 32 constraints, 18
 // indexes and 4 policies. A batch that rebuilds one of them changes the file in the same diff, which is what
-// puts the rebuild (Q150-a, undecided) in front of a reviewer as a text difference rather than a name match.
+// puts the rebuild in front of a reviewer as a text difference rather than a name match (batch 150's re-key of
+// performance_snapshots, Q150-a answered 2026-10-04, did exactly that: the key and its index moved in this file).
 export const PINNED_SHAPES_FILE = 'db/foundation/lint/pinned-shapes.json';
 export const PINNED_SHAPES = lintData('pinned-shapes.json').tables;
 const sqlText = (s) => (s === null ? 'null' : `'${String(s).replace(/'/g, "''")}'`);
@@ -2176,10 +2182,14 @@ export const CATALOG_RULE_PROBES = [
       // Batch 150 (Q170-d), widened: a read of a PROVIDER-3 or INTERNAL-3 column no projection pins, a privilege
       // other than SELECT on such a table (column and table level), a new client column on an open table, and a
       // PUBLIC read of an open table with an empty projection.
-      { drift: 'grant select (input_ref, last_error_code) on app.jobs to authenticated; grant delete on app.consumer_ledger to anon; grant references (provider) on app.billing_webhook_receipts to authenticated; grant select (provider_request_key) on app.publish_jobs to authenticated; grant select (id) on app.social_accounts to public;',
+      // The review round (Q0 Q-3: mutant M5ab dropped INSERT and UPDATE from the column list and TRUNCATE and
+      // TRIGGER from the table list, digests refreshed, and survived) drives every privilege of both lists but
+      // MAINTAIN, which a static regex holds: a column UPDATE and INSERT, a table TRUNCATE and TRIGGER.
+      { drift: 'grant select (input_ref, last_error_code) on app.jobs to authenticated; grant delete on app.consumer_ledger to anon; grant references (provider) on app.billing_webhook_receipts to authenticated; grant select (provider_request_key) on app.publish_jobs to authenticated; grant select (id) on app.social_accounts to public; grant update (progress_stage) on app.jobs to authenticated; grant insert (id) on app.outbox_events to anon; grant truncate on app.consumer_ledger to authenticated; grant trigger on app.billing_webhook_receipts to authenticated;',
         raises: 'client privilege(s) outside the pinned safe projection of a PROVIDER-3, INTERNAL-3 or open table',
         names: ['authenticated SELECT (input_ref) on app.jobs', 'authenticated SELECT (last_error_code) on app.jobs', 'anon DELETE on app.consumer_ledger',
-          'authenticated REFERENCES (provider) on app.billing_webhook_receipts', 'authenticated SELECT (provider_request_key) on app.publish_jobs', 'public SELECT (id) on app.social_accounts'] },
+          'authenticated REFERENCES (provider) on app.billing_webhook_receipts', 'authenticated SELECT (provider_request_key) on app.publish_jobs', 'public SELECT (id) on app.social_accounts',
+          'authenticated UPDATE (progress_stage) on app.jobs', 'anon INSERT (id) on app.outbox_events', 'authenticated TRUNCATE on app.consumer_ledger', 'authenticated TRIGGER on app.billing_webhook_receipts'] },
       // And narrowed: a pinned column no client reads any more, so the projection would be documentation.
       { drift: 'revoke select (failure_class) on app.publish_targets from authenticated; revoke select (metrics) on app.performance_snapshots from authenticated;',
         raises: 'pinned safe projection column(s) no client role reads',

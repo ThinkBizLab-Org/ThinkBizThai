@@ -2720,6 +2720,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // 77b41feaee177714 (Q170-d: SECRET-4 keeps no client privilege; PROVIDER-3, INTERNAL-3 and the twelve open
   // tables are held to db/foundation/lint/safe-projections.json both ways, two new rules and two new drifts;
   // the SECRET-4 drift moved to private tables). Every other digest stays.
+  // Batch 150's review round: data classification 77b41feaee177714 to a848ca33af3460e3 (Q0 Q-3: the widen drift
+  // also grants a column UPDATE and INSERT and a table TRUNCATE and TRIGGER on the classed tables, each named).
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2743,7 +2745,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'pinned trigger probe': 'f136765c6beb5dbf',
     'pinned grant probe': 'baa6379790cb8733',
     'read allowlist probe': 'a97a58b338e52627',
-    'data classification probe': '77b41feaee177714',
+    'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
     'policy set probe': '3c643bfe1fcfb040',
@@ -3197,6 +3199,12 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       'and every open table, both ways');
     assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/raise exception/g) ?? []).length, 4, 'four rules: the registry, SECRET-4, outside the projection, a projection column no client reads');
     assert.match(m.DATA_CLASSIFICATION_PROBE_SQL, /pg_catalog\.has_column_privilege\(cr\.r, t\.t::regclass, a\.attnum, p\.p\)/, 'each column of a projection table, for every column privilege');
+    // The review round (Q0 Q-3, mutant M5ab): rule 3's two privilege lists, pinned by text in both directions,
+    // MAINTAIN included (no drift can grant MAINTAIN on a server before 17, so the text holds it).
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'\]\) as p\(p\), pg_catalog\.pg_attribute a\n/g) ?? []).length, 2,
+      'rule 3 reads SELECT, INSERT, UPDATE and REFERENCES per column of a projection table, both ways');
+    assert.equal((m.DATA_CLASSIFICATION_PROBE_SQL.match(/unnest\(array\['DELETE', 'TRUNCATE', 'TRIGGER'\]\n\s+\|\| case when pg_catalog\.current_setting\('server_version_num'\)::integer >= 170000 then array\['MAINTAIN'\] else array\[\]::text\[\] end\) as p\(p\)\n\s+where pg_catalog\.has_table_privilege\(cr\.r, t\.t::regclass, p\.p\)/g) ?? []).length, 2,
+      'and DELETE, TRUNCATE, TRIGGER and MAINTAIN per projection table, both ways');
   }
   // THE PINNED SAFE PROJECTIONS (batch 150; Q170-d). The file's tables are the registry's, its rows are today's
   // client column reads from pinned-grants.json, and every column it flags is a finding with an owner.
@@ -3222,7 +3230,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
       }
     }
     assert.equal(m.SAFE_PROJECTION_ROWS.length, 71, 'seventy-one client column reads, on seven open tables; none on a classed one');
-    assert.deepEqual(file.findings.map((f) => f.id), ['SP-1', 'SP-2', 'SP-3'], 'three columns read as unsafe or unproven, recorded and kept');
+    // SP-4 since the review round (A1 F150-1): deep_link_target_ref's form admits a provider-id and a token shape.
+    assert.deepEqual(file.findings.map((f) => f.id), ['SP-1', 'SP-2', 'SP-3', 'SP-4'], 'four columns read as unsafe or unproven, recorded and kept');
     for (const f of file.findings) {
       const [s, t, c] = f.column.split('.');
       assert.ok((file.open_tables[`${s}.${t}`] ?? file.tables[`${s}.${t}`])?.projection.authenticated?.includes(c), `${f.id}: names a column the projection pins, so it is kept, not dropped`);
@@ -3279,6 +3288,10 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.doesNotMatch(m150code, /\bpartition\s+by\b|attach\s+partition|create\s+(unique\s+)?index/i, 'no partitioning and no index (Q150-b)');
     assert.match(m150code, /if offending is distinct from 'PRIMARY KEY \(id, metric_time\)' then/, 'its block asserts the key by text');
     assert.match(m150code, /con\.contype = 'f' and con\.confrelid = 'app\.performance_snapshots'::regclass/, 'and that nothing references the table');
+    // The review round (C0-6, A1 F150-3): check 2 reads every unique INDEX too, by its key columns, so a bare
+    // unique index on (id) fails 150 and not only the pinned shape probe.
+    assert.match(m150code, /from pg_catalog\.pg_index i join pg_catalog\.pg_class ic on ic\.oid = i\.indexrelid\n\s+where i\.indrelid = 'app\.performance_snapshots'::regclass and i\.indisunique\n[\s\S]*?a\.attnum = any \(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) and a\.attname = 'metric_time'/,
+      'every unique index carries metric_time among its key columns');
     assert.match(m121, /id\s+bigint generated always as identity primary key,/, '121 is not edited (migration invariant 1)');
   }
   // THE VOCABULARY CHECKS (survey §6 item 6). Each pinned text is of the selector's shape and named by a

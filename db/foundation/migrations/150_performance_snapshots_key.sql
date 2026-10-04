@@ -13,8 +13,25 @@
 -- Owner's earlier answer to question C read §4.8's "high-volume identity PK" as `id` alone
 -- (open_blockers[179]). Q150-a reverses that answer for the key only: `id` stays a `bigint generated
 -- always as identity` (still §4.8's high-volume identity, and 121's block 10 still holds it to ALWAYS),
--- and the key it anchors now carries `metric_time` as well. Later partitioning becomes "create a
--- partitioned parent and ATTACH this table", with no rewrite of a table that may by then hold rows.
+-- and the key it anchors now carries `metric_time` as well, so later partitioning needs no rewrite of a
+-- table that may by then hold rows.
+--
+-- THE LATER PATH, AS MEASURED (review round, C0-1; PostgreSQL 17.11, rolled back): "create a parent and
+-- ATTACH this table" ALONE IS REFUSED -- 'table "performance_snapshots" being attached contains an
+-- identity column "id"' / 'The new partition may not contain an identity column' -- whether or not the
+-- parent's id is an identity. The path the server accepts is: drop the identity on this table's id (a
+-- catalog change, no rewrite); create the range-partitioned parent with id `generated always as
+-- identity` and the key (id, metric_time); attach this table; restart the parent's identity above
+-- max(id). Attached, the partition reads `attidentity = 'a'` again, the parent's. That batch also moves
+-- the policies, grants and comments to the parent, and supersedes this file's block (its check 3 refuses
+-- a partition by design) and whichever of 121's block it no longer satisfies; it is not designed here.
+--
+-- WHAT THE KEY CHANGE GIVES UP (review round, C0-5, A1 F150-2, Q0 Q-4, measured): `id` ALONE IS NO LONGER
+-- UNIQUE BY ANY CONSTRAINT. It stays unique only because it is an ALWAYS identity and no role but the
+-- table's owner holds INSERT or UPDATE on it: the owner can insert a second row with an existing id at
+-- another metric_time (OVERRIDING SYSTEM VALUE), app_worker and every client role are refused. That is an
+-- ACCEPTED property of this key, not an oversight: a snapshot is addressed by (id, metric_time) or
+-- (published_post_id, metric_time), never by id alone, and nothing references id (check 5).
 --
 -- WHAT REFERENCES THE KEY, CHECKED BEFORE IT IS CHANGED (a foreign key referencing
 -- performance_snapshots(id) alone would need a different shape, and stops the batch). Measured on a clean migrate-clean of 1930f41:
@@ -28,15 +45,18 @@
 --     column-scoped and unchanged;
 --   * 121's apply-time block, re-run by the post-migrate pass after this file, names the unique
 --     performance_snapshots_one_per_post_instant, the NOT NULL columns, the CHECKs, the grants, the
---     policies, the month index and `attidentity = 'a'` on `id`, and never the primary key's columns,
---     so it holds unchanged and needs no superseded.json entry;
+--     policies, the month index, `attidentity = 'a'` on `id` (its block 10) and metric_time's NOT NULL,
+--     and names no property this file changes (it keeps id's identity and both columns' NOT NULL), so
+--     it holds unchanged and needs no superseded.json entry;
 --   * the one pin of the key is db/foundation/lint/pinned-shapes.json (batch 150's prerequisites,
 --     README rule 18), which this batch rewrites in the same diff: `PRIMARY KEY (id, metric_time)` and
 --     the index `performance_snapshots_pkey ... btree (id, metric_time)`.
 --
 -- MIGRATION INVARIANT 1. 121 is integrated and is not edited; this is a forward migration. 121's table
--- comment, which says the key is `id` alone, is replaced below by the same text with that sentence
--- corrected, because a comment that describes a key the table no longer has is a false record.
+-- comment, which says the key is `id` alone, is replaced below, because a comment that describes a key
+-- the table no longer has is a false record. Besides that sentence the replacement also adds "by the
+-- migrations' reading" to the sensitivity, drops "shorter than the family it belongs to" from the
+-- retention, and states the partition path as measured (C0-7, Q0 Q-6).
 --
 -- MIGRATION INVARIANT 3 (ERD:289-290: risky DDL carries `lock_timeout` and `statement_timeout`).
 -- Dropping and adding a primary key takes ACCESS EXCLUSIVE and builds a unique index, so both timeouts
@@ -61,8 +81,11 @@ set statement_timeout = default;
 comment on constraint performance_snapshots_pkey on app.performance_snapshots is
   'Batch 150 (A0, Q150-a, answered 2026-10-04): the key is (id, metric_time). id is still the bigint '
   'identity (generated always), and metric_time is in the key because a table partitioned by range '
-  '(metric_time) requires every unique to contain it. NOT PARTITIONED (Q150-b): declaring partitions and every '
-  'production index wait for a production-like fixture and an SLO.';
+  '(metric_time) requires every unique to contain it. id ALONE IS NOT UNIQUE BY ANY CONSTRAINT: only the '
+  'identity and the fact that no role but the owner holds INSERT or UPDATE on id keep it unique, so a '
+  'snapshot is addressed by (id, metric_time) or (published_post_id, metric_time), never by id alone. NOT '
+  'PARTITIONED (Q150-b): declaring partitions and every production index wait for a production-like '
+  'fixture and an SLO.';
 
 comment on table app.performance_snapshots is
   'Owner: A6 Publisher (publisher.meta, batch 121; key changed by batch 150). What a published post '
@@ -75,9 +98,11 @@ comment on table app.performance_snapshots is
   'service; NOTHING HERE ENFORCES THE CADENCE and nothing holds a snapshot to be no older than its post '
   '(both in the work package''s open blockers). PARTITION-READY AND NOT PARTITIONED: since batch 150 the '
   'primary key is (id, metric_time) and the unique is (published_post_id, metric_time), so every unique '
-  'carries metric_time and the month index prunes on it; a later monthly partition is a parent created '
-  'and this table attached, not a rebuild. Declaring it waits on Q150-b (a production-like fixture and an '
-  'SLO). Sensitivity PROVIDER-3 by the migrations'' reading; retention PUBLISH-HISTORY, whose §10 row '
+  'carries metric_time and the month index prunes on it, so a later monthly partition needs no rewrite. '
+  'It is not an attach alone: PostgreSQL refuses to attach a table with an identity column, so that batch '
+  'drops the identity on id, creates the parent with the identity restarted above max(id), attaches this '
+  'table, and supersedes the apply-time blocks that hold this table unpartitioned. Declaring it waits on '
+  'Q150-b (a production-like fixture and an SLO). Sensitivity PROVIDER-3 by the migrations'' reading; retention PUBLISH-HISTORY, whose §10 row '
   'gives metrics a detail window of its own: 24 months by default. Enforced nowhere here; 160 owns '
   'retention.';
 
@@ -97,16 +122,29 @@ begin
   if offending is distinct from 'PRIMARY KEY (id, metric_time)' then
     raise exception 'batch 150''s primary key on app.performance_snapshots is not (id, metric_time): %',
       coalesce(offending, '(no primary key)')
-      using hint = 'Q150-a: the key carries the partition column so a later monthly partition is an ATTACH, not a rebuild.';
+      using hint = 'Q150-a: the key carries the partition column so a later monthly partition needs no rewrite (the identity is dropped, the table attached, the identity restarted on the parent).';
   end if;
 
-  -- 2. Partition-READY: every unique and primary key on the table contains metric_time.
-  select string_agg(con.conname, ', ' order by con.conname) into offending
-    from pg_catalog.pg_constraint con
-   where con.conrelid = 'app.performance_snapshots'::regclass and con.contype in ('p', 'u')
-     and not exists (
-       select 1 from pg_catalog.pg_attribute a
-        where a.attrelid = con.conrelid and a.attnum = any (con.conkey) and a.attname = 'metric_time');
+  -- 2. Partition-READY: every unique and primary key on the table contains metric_time, and so does every
+  --    unique INDEX, a constraint or not (review round, C0-6, A1 F150-3: a bare `create unique index` on
+  --    (id) passed the constraint reading and would block a partition just as the old key did). An index's
+  --    KEY columns are read, not its INCLUDE columns, which a partition's unique does not count.
+  select string_agg(n, ', ' order by n) into offending from (
+    select con.conname::text as n
+      from pg_catalog.pg_constraint con
+     where con.conrelid = 'app.performance_snapshots'::regclass and con.contype in ('p', 'u')
+       and not exists (
+         select 1 from pg_catalog.pg_attribute a
+          where a.attrelid = con.conrelid and a.attnum = any (con.conkey) and a.attname = 'metric_time')
+    union
+    select 'index ' || ic.relname
+      from pg_catalog.pg_index i join pg_catalog.pg_class ic on ic.oid = i.indexrelid
+     where i.indrelid = 'app.performance_snapshots'::regclass and i.indisunique
+       and not exists (select 1 from pg_catalog.pg_constraint bc
+                        where bc.conrelid = i.indrelid and bc.conindid = i.indexrelid and bc.contype in ('p', 'u'))
+       and not exists (
+         select 1 from pg_catalog.pg_attribute a
+          where a.attrelid = i.indrelid and a.attnum = any ((i.indkey::int2[])[0:i.indnkeyatts - 1]) and a.attname = 'metric_time')) u;
   if offending is not null then
     raise exception 'a unique key on app.performance_snapshots does not carry metric_time: %', offending
       using hint = 'A table partitioned by range (metric_time) requires every unique to contain it.';

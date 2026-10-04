@@ -177,7 +177,7 @@
         "metric_time DESC"
       ],
       "where": null,
-      "why": "metrics per post (a post's snapshots newest first, the read batch 150's rebuild of performance_snapshots must keep serving); today performance_snapshots_post_time_idx, 121_publisher_metrics.sql"
+      "why": "metrics per post (a post's snapshots newest first, the read any later re-key or partitioning of performance_snapshots must keep serving; batch 150 re-keyed the table in place and did not rebuild it); today performance_snapshots_post_time_idx, 121_publisher_metrics.sql"
     },
     "research_runs keyset (business_profile_id, created_at DESC, id DESC)": {
       "table": "app.research_runs",

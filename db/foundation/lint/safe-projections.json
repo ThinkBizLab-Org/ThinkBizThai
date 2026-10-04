@@ -52,7 +52,7 @@
       "projection": {
         "authenticated": ["id", "workspace_id", "user_id", "channel", "message_key", "deep_link_target_ref", "deep_link_requires_permission", "read_at", "created_at", "updated_at"]
       },
-      "review": "No SECRET-4 column: the push token lives in private.push_subscription_references, and delivery_state, delivery_failure_class and dedupe_key are withheld (051). user_id is PII-2 'actor identity', the reader's own row. message_key is a key, not text; deep_link_target_ref is held to an app/content/asset/job reference by notifications_deep_link_target_ref_form, so it cannot carry a URL or a provider identifier. Reads as safe."
+      "review": "No SECRET-4 column: the push token lives in private.push_subscription_references, and delivery_state, delivery_failure_class and dedupe_key are withheld (051). user_id is PII-2 'actor identity', the reader's own row. message_key is a key, not text. deep_link_target_ref is held to an app/content/asset/job reference by notifications_deep_link_target_ref_form, which refuses a URL and a `..` segment but bounds no length and does not tie the reference to an application id, so it CAN carry a provider identifier or a token-shaped value (review round, A1 F150-1, measured with synthetic values): finding SP-4. No client writes the column (authenticated holds UPDATE on read_at only), and each reader sees only their own rows."
     },
     "app.performance_snapshots": {
       "erd_classes": ["CONTENT-2", "PROVIDER-3"],
@@ -123,6 +123,13 @@
       "severity": "INFO",
       "finding": "attempt_count and last_attempt_at are retry bookkeeping of a job, which §9.1 classes INTERNAL-3 ('job payload ... trace', 'redacted status only'); they are more than a status. Neither carries provider text. Kept as measured.",
       "owner": "A1 and A6 (Publisher)"
+    },
+    {
+      "id": "SP-4",
+      "column": "app.notifications.deep_link_target_ref",
+      "severity": "LOW",
+      "finding": "Review round, A1 F150-1 (measured): notifications_deep_link_target_ref_form (051_notification.sql:535-536) has no length bound and admits content:17841400000000000 (an Instagram media id shape), a page-post <digits>_<digits> shape and a 211-character alphanumeric token-shaped job: value; it refuses only a URL and `..`. Under §9.1 an external post id is PROVIDER-3 'safe projection only' and a token is SECRET-4 'never returned after write'. Not a leak today: no client writes the column (authenticated holds UPDATE on read_at only), a value reaches it only through the notification writer, and each reader sees only their own rows. Kept as measured, not revoked.",
+      "owner": "The notification table's owner and A1, with CTR-NTF-001's owner: a forward migration and the contract bound the length and key the reference to an application id form (for example a uuid after the scheme); open_blockers[193]"
     }
   ]
 }

@@ -618,9 +618,15 @@ break it silently:
    be held: both ways, and today all four projections are empty. On the twelve open tables the client SELECT
    columns are held to the pinned set both ways (A1 R5), 71 column reads on seven tables; their other client
    privileges are rule 7's. Both table lists are computed from the registry, never from the projection file.
-   Each pinned column was reviewed against §9.1; three that read as unsafe or unproven are findings in the
+   Each pinned column was reviewed against §9.1; four that read as unsafe or unproven are findings in the
    file (SP-1 `performance_snapshots.metrics`, SP-2 `publish_targets.failure_class`, SP-3
-   `publish_jobs.attempt_count`), kept as measured and owed on `open_blockers[193]`.
+   `publish_jobs.attempt_count`, and SP-4 `notifications.deep_link_target_ref`, whose form admits a provider
+   id and a token shape, added in the review round from A1 F150-1), kept as measured and owed on
+   `open_blockers[193]`. The rule's "exactly the N column reads" is a claim about table and column
+   privileges only (A1 F150-4): a view over a withheld column is held by the client privilege, pinned grant
+   and read allowlist probes, a role reached by SET ROLE by the client membership and pinned grant probes,
+   and a SECURITY DEFINER function or a copying trigger by no grant probe. Rule 17 alone is not the read
+   boundary.
 18. **The tables batch 150 re-keyed or rests on are pinned whole, by text** (batch 150's prerequisites;
    weak-assertion survey §6 item 5). `db/foundation/lint/pinned-shapes.json` holds `app.performance_snapshots`,
    `app.published_posts` and `app.usage_events`: row level security enabled AND forced (rule 1; FORCE was
@@ -632,7 +638,12 @@ break it silently:
    (type, NOT NULL, default, identity: F7, `open_blockers[194]` (4)). A batch that rebuilds one of them
    rewrites the file in the same diff, as batch 150 did: Q150-a, answered 2026-10-04, made
    `performance_snapshots_pkey` `PRIMARY KEY (id, metric_time)` (`150_performance_snapshots_key.sql`), and
-   both its constraint and its index are pinned in that text; the table is not partitioned (Q150-b).
+   both its constraint and its index are pinned in that text; the table is not partitioned (Q150-b). Since
+   that key, `id` alone is unique by no constraint, only by its ALWAYS identity and by no role but the owner
+   holding INSERT or UPDATE on it, an accepted property (review round, C0-5, A1 F150-2, Q0 Q-4). The later
+   partition is NOT "create a parent and attach this table": PostgreSQL 17.11 refuses to attach a table
+   with an identity column, so that batch drops the identity, attaches, and restarts the parent's identity
+   above max(id) (C0-1, measured; `open_blockers[179]`).
 19. **Every vocabulary CHECK is pinned by its fixed text** (survey §6 item 6).
    `db/foundation/lint/vocabulary-checks.json` holds the 60 CHECKs in `app` and `private` whose deparse
    carries a literal array (`ARRAY['`) or is the single-column `CHECK ((col = 'value'::text))`; the probe
@@ -745,7 +756,8 @@ repeat runs while the plan shapes held (A1 S2, Q0 Q-5). Run it once per fresh cl
 afterwards. The full scale needs about 2 GB of free disk while it runs; the harness has no free-space guard
 (`open_blockers[194]` (12)).
 
-It asserts no timing: the p95 budget is the SLO the team has not set (Q150-d). A Seq Scan on a
+It asserts no timing: the p95 budget is Q150-d's, whose values A0 drafted as PROPOSED in
+`a0-batch-150-plan-2026-10-03.md` §5 and the Owner has not ratified. A Seq Scan on a
 membership-class query is reported, and fails the run only under `--fail-on-seq-scan`. It refuses without
 `DB_TEST_URL`, and refuses a URL the shared test-instance guard refuses (`testHostRefusal` in
 `scripts/db/psql-driver.mjs`, which `db-reset-test` uses too): the URL is parsed, its host must be exactly
