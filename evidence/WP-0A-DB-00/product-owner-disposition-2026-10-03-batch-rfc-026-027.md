@@ -131,3 +131,49 @@ answered; neither RFC is approved.** Three things change in what §5 holds:
 | Q-026-5, Q-027-5 | Owner, A1 | Qualified with the measured forms (C0, A1, Q0): a targeted `UPDATE` is refused for the six blocked states; an `UPDATE` reading no column moves every workspace the owner owns. "Irreversibly" now reads "irreversibly by any client". | **Unchanged: revoke**, now in the **first** of batch 170's migrations, any job that selects workspaces by `lifecycle_state` (batch 160), or RFC-027's migration — whichever lands first (C0-8, A1 F1-b). The revoke needs nothing either RFC decides. |
 
 So §5's fourteen questions are now **fifteen**, all UNANSWERED, each held in `open_blockers[195]`.
+
+## 8. The Owner's answer (appended 2026-10-04; nothing above is rewritten)
+
+On 2026-10-04 the Owner wrote, verbatim:
+
+> ลุยต่อเลย เอาตามแนะนำ
+
+In English: "Carry on, take the recommendations."
+
+**What the Owner had seen.** The words answer A0's chat message. That message said this batch's review
+was running and that its RFCs raise 14 new questions for the Owner, A1 and A6. It also said A0 would sum
+them up "to answer at once, with recommendations" after the merge. The Owner had not seen the
+per-question text when writing.
+
+**How A0 reads them.** A0 reads the words as accepting A0's recommendation on every question this batch
+holds. The recommendation that applies is the one current when the batch merges:
+
+- §5's rows, except where §7 replaced them;
+- Q-026-1 takes §7's superseded recommendation: the acting user's active membership is required for
+  every command row in `app.audit_logs`;
+- Q-026-9, which is new in §7, takes §7's recommendation.
+
+That covers fifteen questions, all **ANSWERED as A0 recommended**.
+
+A0 records this reading openly, so that the Owner can correct it. Two answers in particular follow
+A0's reading of the Owner's words rather than text the Owner saw: Q-026-1's changed recommendation and
+Q-026-9.
+
+**What stays owed:**
+
+- Where a question's named owner is another role (A1, A6, the Integration Owner), that role's own
+  acceptance is still owed. It is recorded on `open_blockers[195]`.
+- **Neither RFC is approved by these words.** Approval needs the Owner's explicit approval and A1's
+  review. Until then RFC-026 and RFC-027 stay **Proposed**.
+
+**What these answers unblock now.** Q-026-5 and Q-027-5 are answered *revoke*: the client `UPDATE` of
+`workspaces.lifecycle_state` is revoked in the first of batch 170's migrations. That needs nothing either
+RFC decides. A0 writes it as the next batch.
+
+## 9. The merge of this batch
+
+A0 presses this PR's merge under the standing delegation (batch 127 disposition §6):
+
+- the re-checks of the review round report no stop-the-line and nothing that blocks the merge;
+- the required check is green on the reviewed head;
+- the head contains main.
