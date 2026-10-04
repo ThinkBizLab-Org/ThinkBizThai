@@ -4,207 +4,174 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "f3e6fbcc574ce3f3e66d000f28ec5cf650f6b03f",
-  "head_revision_or_patch_checksum": "0ee6248f83efafe3ec56ad535a8576c0fe001b34",
+  "base_revision": "9a074599ccd50ba55a43556e36f9324e4d3ddce6",
+  "head_revision_or_patch_checksum": "e7f9c2c14bb6e82f52e1567c3b23aef26b51a67e",
   "task_ids": [],
   "files_added": [
-    "architecture/decisions/RFC-2026-026-audit-row-producer.md",
-    "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
-    "evidence/WP-0A-DB-00/a0-batch-rfc-026-027-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a0-rfc-026-027-draft-2026-10-04.md",
-    "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md",
-    "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-test-review-2026-10-03.md"
+    "db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql",
+    "evidence/WP-0A-DB-00/a0-batch-170-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170.md"
   ],
   "files_modified": [
     "db/foundation/lint/audit-coverage-map.json",
+    "db/foundation/lint/catalog-snapshot.json",
+    "db/foundation/lint/pinned-grants.json",
     "db/foundation/lint/retention-map.json",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/verify-test-coverage-floor.mjs",
+    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
+    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "test-kits/repository-json.test.mjs",
+    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `เิาตามแนะนำ` (2026-10-04, \"as recommended\"; product-owner-disposition-2026-10-03-batch-150.md §1 and §5), which answered Q141-a (B: audit rows from an application command or the worker only, no trigger) and Q170-a (yes: an RFC amending RFC-2026-020 so app_authz may read workspaces.lifecycle_state) as A0 recommended and directed both RFCs to be written in this batch, after a writable-path amendment. No new Owner words since (product-owner-disposition-2026-10-03-batch-rfc-026-027.md §1).",
-    "The standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #173; it does not decide this PR's merge."
+    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8), which answered Q-026-5 / Q-027-5 as A0 recommended -- revoke the client UPDATE of workspaces.lifecycle_state in the first of batch 170's migrations -- and Q-027-6 -- the next free number in 170's range. A1's and the Integration Owner's own acceptance stays owed (open_blockers[195]).",
+    "The Owner's phase direction `เอาตามที่แนะนำเลย ลุยต่อ` and goal `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03; product-owner-disposition-2026-10-03-batch-129.md §1); no new Owner words since 2026-10-04.",
+    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #174 at its reviewed head c307d1d (bootstrap run 37177130592 green; merge 9a07459, 2026-10-04T04:35:58Z). Recorded in product-owner-disposition-2026-10-03-batch-170.md §3.",
+    "RFC-2026-026 and RFC-2026-027 stay Proposed; this batch depends on neither (C0-8 on the RFC batch)."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH RFC-026-027: two decision records, RFC-2026-026 (audit row producer) and RFC-2026-027 (lifecycle visibility), both Proposed; their approval is the Owner's and A1's act, owed. No migration, policy, grant, pin or lint rule changes. Plan a0-batch-rfc-026-027-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-rfc-026-027.md, drafting record a0-rfc-026-027-draft-2026-10-04.md.",
-    "Branch agent/claude/WP-0A-DB-00-batch-rfc-026-027 is cut from main f3e6fbc (PR #173, merged 2026-10-04T03:20:26Z by A0 at its reviewed head 04c2a6c under the standing delegation; required check bootstrap, run 37173407430, green on 04c2a6c). The local draft (2917c5c, 56ad4bf on draft/wp-db00-rfc-026-027, stacked on 5c406de) was cherry-picked onto it without a conflict as 7479107 and 6326183; 31ffab4 packages it; 4916579 adds the plan and disposition.",
-    "The writable-path amendment adds exactly the two RFC files beside 021-025. They are registered in DECISION_RECORDS (test-kits/repository-json.test.mjs) and DIGESTED_FLOOR (scripts/verify-test-coverage-floor.mjs), the 5856f0b precedent; both files are declared in amends_without_owning with the branch-identity slot and the integrity manifest. Batch 150's scripts/test-suite-contract.mjs amendment is dropped (merged; no floor moves).",
-    "The manifest grew by three lines above open_blockers, so open_blockers[i] is on line 256+i (main 253+i, the draft 257+i); the 33 line pins and two source texts of audit-coverage-map.json and the 19 citations of retention-map.json were re-derived at -1 from the draft and checked by the static suite.",
-    "open_blockers[195] is new and appended at the end: the client UPDATE of workspaces.lifecycle_state (010_identity.sql:403, WITH CHECK :509-517 unbounded), graded MEDIUM, read by A0 as not stop-the-line, for the reviewers to judge; the fix owed to RFC-2026-027's forward migration (Q-026-5 / Q-027-5, recommendation: revoke). It also holds the fourteen questions Q-026-1..8 and Q-027-1..6 by name and owner, all unanswered, cross-referencing [21], [29], [32], [33], [95], [113], [150], [191] rather than duplicating them. Blockers 21 and 95 gain one sentence each: their RFC is written, Proposed.",
-    "This handoff speaks for no role. Where the disposition gives A0's recommendation on a question, it is a recommendation for the Owner's phase-end review, not an answer.",
-    "REVIEW ROUND (2026-10-04, code commit b6d65e1): the role runs C0, A1 and Q0 on e64e1f5 are cherry-picked with -x as b55f0e1, b66a868 and 54ad956; A0 revised both Proposed RFC texts on their findings (plan a0-batch-rfc-026-027-plan-2026-10-03.md §7 maps every finding to its change). Both RFCs stay Proposed; no question is answered; the revision approves nothing. No migration, policy, grant, pin or lint rule changes, and nothing a database layer reads changes, so no live database round was owed or run."
+    "THIS INCREMENT IS BATCH 170'S FIRST MIGRATION: db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql revokes UPDATE (lifecycle_state) on app.workspaces from authenticated and changes no other grant and no policy. Plan a0-batch-170-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-170.md in evidence/WP-0A-DB-00/.",
+    "anon and PUBLIC held no UPDATE or INSERT on the column before 170 (measured with has_column_privilege on 9a07459), so nothing is revoked from them; 170's apply-time block holds all three client roles to none.",
+    "app_worker keeps 010's table-level SELECT, INSERT and UPDATE on app.workspaces; revoking it is outside the Owner's answer and belongs to DATA-DEC-03's worker (open_blockers[113]).",
+    "The migration is declared not applied to the provisioned instance (catalog-snapshot.json), appended to the tail after 150."
   ],
   "acceptance_results": [
     {
-      "criterion": "Q141-a's RFC written (audit row producer: command or worker only, no trigger), Proposed",
+      "criterion": "Q-026-5 / Q-027-5: the client UPDATE of workspaces.lifecycle_state revoked in the first of batch 170's migrations, at the number Q-027-6 gives",
       "result": "met",
-      "evidence": "architecture/decisions/RFC-2026-026-audit-row-producer.md, the draft's text byte for byte; Status line reads Proposed. open_blockers[21] records it."
+      "evidence": "170_workspace_lifecycle_not_client_writable.sql, one revoke statement; 170 is the first number in the range and no 17x file existed."
     },
     {
-      "criterion": "Q170-a's RFC written (app_authz reads workspaces.lifecycle_state; one helper change for every family; amends RFC-2026-020 only on approval), Proposed",
+      "criterion": "No other column grant or policy touched; the owner still updates the name",
       "result": "met",
-      "evidence": "architecture/decisions/RFC-2026-027-lifecycle-visibility.md, the draft's text byte for byte. open_blockers[95] records it; [53] stays open."
+      "evidence": "170's block checks 2 and 3 (authenticated UPDATE exactly name, updated_by; SELECT 010's seven columns), drifts d4 and d5; pinned-grants.json one-line diff; the rename positive case; plan §2."
     },
     {
-      "criterion": "Packaging: branch slot, increment rationale naming every file amended outside ownership, line pins re-derived, integrity manifest, verify-branch-scope 0",
+      "criterion": "Apply-time block: no client role holds UPDATE or INSERT on lifecycle_state",
       "result": "met",
-      "evidence": "work-packages/WP-0A-DB-00.json (branch, writable_paths, amends_without_owning); test-kits/branch-identity.test.mjs; plan §1 items 3-8 and 11; node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 exit 0 (all 10 changed paths declared); drifts D1-D8 (plan §2)."
+      "evidence": "block check 1, with and without grant option, anon, authenticated and PUBLIC; drifts d1 (table-level UPDATE), d2 (anon INSERT), d3 (PUBLIC UPDATE) each refused by it (plan §3)."
     },
     {
-      "criterion": "Every finding the draft recorded is owed with a named owner or cross-referenced to an existing blocker",
+      "criterion": "pinned-grants.json and every pin of the old grant moved through the repository's mechanisms",
       "result": "met",
-      "evidence": "open_blockers[195] (1) the lifecycle_state finding, (2) Q-026-1..8 and Q-027-1..6 with owners; cross-references to [21], [29], [32], [33], [95], [113], [150], [191] (2) and (6); plan §1 closing paragraph."
+      "evidence": "generate-pinned-grants.mjs regenerated the file (one line); pinned grant probe digest baa6379790cb8733 -> eb5ecbffb7f4f3cf; foundation-contract reads the pin, 170 and 010."
     },
     {
-      "criterion": "The disposition records the Owner's words verbatim, the merge of #173 as A0 executing the standing delegation, and the fourteen questions as unanswered with A0's recommendation",
+      "criterion": "rls-smoke: targeted UPDATE refused; every column-free form refused; the owner can still rename",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md §1, §3, §5."
+      "evidence": "eight cases (plan §4): seven refusals demanded at the grant layer on workspaces, and the rename positive; on the pre-170 privilege the seven fail and the positive passes."
     },
     {
-      "criterion": "Review round: every C0, A1 and Q0 finding acted on or recorded as owed",
+      "criterion": "Every form open_blockers[195] recorded as passing, measured before and after",
       "result": "met",
-      "evidence": "plan §7.2: C0-1..8, F1-a..F3-a, F2-a..g, C1, Q0-F1..F10, each with its change and what measured it; owed items in plan §7.5 and open_blockers[195] (3)-(7), appended only."
+      "evidence": "lifecycle-forms.sql, nine forms by eight states: 48 of 72 admitted on 9a07459; 0 of 72 on 03dbd30, all 42501 \"permission denied for table workspaces\" (plan §2)."
     },
     {
-      "criterion": "Neither RFC approved; no migration added",
+      "criterion": "The finding part of open_blockers[195] closed; what remains said plainly",
       "result": "met",
-      "evidence": "Both Status lines still read Proposed; each carries a Revised: line pointing to plan §7. git diff f3e6fbc..b6d65e1 touches no file under db/foundation/migrations/."
+      "evidence": "open_blockers[195] (8) closes the finding; (9) records that nothing on a request path writes lifecycle_state until RFC-2026-023's step-up command or DATA-DEC-03's worker, cross-referenced to [21] and [113]."
     }
   ],
   "tests": [
     {
-      "command": "git cherry-pick 2917c5c 56ad4bf onto origin/main f3e6fbc",
+      "command": "node -v before every measured run",
       "exit_code": 0,
-      "result": "no conflict"
+      "result": "v24.20.0 (/Users/bank/.local/node-v24.20.0/bin, ahead of the PATH Node 26)"
     },
     {
-      "command": "npm run check before the code commit (Node v24.20.0)",
+      "command": "before1 on 9a07459: shim, make db-migrate-clean, make db-rls-smoke (port 5507, TCP only, fresh initdb)",
+      "exit_code": 0,
+      "result": "migrate-clean 0; rls-smoke 0, 1079 cases"
+    },
+    {
+      "command": "psql -f lifecycle-forms.sql on 9a07459",
+      "exit_code": 0,
+      "result": "48 of 72 admitted: four column-reading forms to active and closing, five column-free forms to all eight states"
+    },
+    {
+      "command": "draft1: make db-migrate-clean with the migration and the old pin",
+      "exit_code": 2,
+      "result": "pinned grant probe: missing authenticated UPDATE (lifecycle_state) on app.workspaces -- the pin had not moved"
+    },
+    {
+      "command": "node scripts/db/generate-pinned-grants.mjs on the migrated set",
+      "exit_code": 0,
+      "result": "pinned-grants.json rewritten (one line); read-allowlist-known-exceptions.json matches the catalog"
+    },
+    {
+      "command": "draft2: make db-migrate-clean, make db-rls-smoke, lifecycle-forms.sql",
+      "exit_code": 0,
+      "result": "migrate-clean 0 (51 blocks, 39 as written, 12 replaced); rls-smoke 0, 1087 cases; 72 of 72 refused"
+    },
+    {
+      "command": "pre170grant: grant update (lifecycle_state) on app.workspaces to authenticated on the live database, then make db-rls-smoke",
+      "exit_code": 2,
+      "result": "FAILED 7 of 1087: exactly the seven new refusal cases; the rename positive passes"
+    },
+    {
+      "command": "npm run check before the code commit",
       "exit_code": 1,
-      "result": "tests 684, pass 682, fail 2: the handoff guard only ('the handoff for this branch describes this branch' and the handoff ratchet that runs the suite on a copy)"
+      "result": "tests 684, pass 682, fail 2: the handoff guard only"
     },
     {
       "command": "node scripts/commit-when-clean.mjs (code commit)",
       "exit_code": 1,
-      "result": "refused on the same two handoff failures; 31ffab4 is therefore a plain git commit, the sole red being the not-yet-refreshed handoff guard"
+      "result": "refused on the same two handoff failures; 03dbd30 is therefore a plain git commit, the sole red being the not-yet-refreshed handoff guard"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 at 31ffab4",
+      "command": "r1 on 03dbd30: fresh initdb, shim, make db-migrate-clean, make db-rls-smoke",
       "exit_code": 0,
-      "result": "all 10 changed path(s) are declared, and every amendment explains one"
+      "result": "migrate-clean 0; rls-smoke 0, 1087 cases"
     },
     {
-      "command": "node --test test-kits/db/foundation-contract.test.mjs (undrifted)",
+      "command": "r2 on 03dbd30: fresh initdb, shim, make db-migrate-clean, make db-rls-smoke, lifecycle-forms.sql",
       "exit_code": 0,
-      "result": "tests 80, pass 80"
+      "result": "migrate-clean 0; rls-smoke 0, 1087 cases; 72 of 72 refused 42501 permission denied for table workspaces"
     },
     {
-      "command": "drift D1: retention-map citations +1, foundation-contract",
-      "exit_code": 1,
-      "result": "1 of 80 fails: the retention map test"
+      "command": "drifts d1-d5 appended to 140_audit.sql, make db-migrate-clean each (fresh initdb), restored byte for byte",
+      "exit_code": 2,
+      "result": "each refused by 170's block with its own message (plan §3); sha256 prefix 2ac596bb950e8dfb before and after every restore; git status clean"
     },
     {
-      "command": "drift D2: audit-coverage-map line pins +1, foundation-contract",
-      "exit_code": 1,
-      "result": "1 of 80 fails: batch 141 prep's coverage map test"
-    },
-    {
-      "command": "drift D3: audit-coverage-map source texts (line N) +1, foundation-contract",
+      "command": "node scripts/verify-branch-scope.mjs 9a07459 WP-0A-DB-00 at 03dbd30",
       "exit_code": 0,
-      "result": "nothing fails: the two prose line numbers are pinned by no test (INFO, plan §2, owed to A0 tooling)"
+      "result": "all 11 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "drift D4: RFC-2026-027 removed from DECISION_RECORDS, node --test test-kits/repository-json.test.mjs",
-      "exit_code": 1,
-      "result": "'the set of decision records is what it was, and each is digested' fails"
-    },
-    {
-      "command": "drift D5: RFC-2026-027 removed from DIGESTED_FLOOR, node scripts/verify-test-coverage-floor.mjs",
-      "exit_code": 86,
-      "result": "the integrity tripwire names the edited file"
-    },
-    {
-      "command": "drift D6: scripts/test-suite-contract.mjs re-declared, verify-branch-scope f3e6fbc",
-      "exit_code": 74,
-      "result": "declares 1 amendment that explains nothing this branch changed"
-    },
-    {
-      "command": "drift D7: RFC-2026-027 removed from writable_paths, verify-branch-scope f3e6fbc",
-      "exit_code": 73,
-      "result": "changed 1 path it neither owns nor records as an amendment"
-    },
-    {
-      "command": "drift D8: test-kits/repository-json.test.mjs removed from amends_without_owning, verify-branch-scope f3e6fbc",
-      "exit_code": 73,
-      "result": "the same, naming that file"
-    },
-    {
-      "command": "npm run check before the evidence commit",
-      "exit_code": 1,
-      "result": "tests 684, pass 682, fail 2: the handoff guard only; 4916579 is a plain git commit for the same reason"
-    },
-    {
-      "command": "make db-migrate-clean, make db-rls-smoke",
+      "command": "node scripts/commit-when-clean.mjs (evidence commit)",
       "exit_code": 0,
-      "result": "NOT RUN: nothing the DB layer reads changed (no migration, scripts/db, fixture, isolation case or CI file; the two lint files changed only in WP line citations, read only by test-kits/db/foundation-contract.test.mjs); no cluster started"
-    },
-    {
-      "command": "git cherry-pick -x 369c495 c276e01 f91294e (review round, on the branch name)",
-      "exit_code": 0,
-      "result": "b55f0e1, b66a868, 54ad956; no conflict"
-    },
-    {
-      "command": "npm run check before the review-round commit (Node v24.20.0)",
-      "exit_code": 0,
-      "result": "tests 684, pass 684, fail 0"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (review-round commit)",
-      "exit_code": 0,
-      "result": "b6d65e1; clean: exit 0, tests 684, pass 684"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 at b6d65e1",
-      "exit_code": 0,
-      "result": "all 16 changed path(s) are declared, and every amendment explains one"
+      "result": "e7f9c2c; clean: tests 684, pass 684"
     }
   ],
-  "security_privacy_cost_impact": "None at run time: two Proposed decision records and no migration, policy, grant or role change. Recorded, pre-existing on main (open_blockers[195] (1), (3), (4)): an owner moves every workspace they own into any §11.4 state with one client UPDATE that reads no column (measured by C0, A1 and Q0; a targeted UPDATE is refused for the six blocked states), skipping step-up, the recovery window and audit; MEDIUM, not stop-the-line today, and stop-the-line the day RFC-2026-027's gate or any job selecting by lifecycle_state lands without the revoke. RFC-2026-026's denial arm, as proposed, lets any authenticated client append undeletable denied rows into any workspace_id through a correct command (A1's prototype, F2-a); stated in §3.3/3 and held by the re-worded Q-026-1, to be answered before approval.",
-  "migration_and_data_impact": "None. No migration is added or edited; RFC-2026-027's forward migration (batch 170's range, number owed by the Integration Owner, Q-027-6) and the lifecycle_state revoke wait for the RFC's approval.",
-  "compatibility_impact": "Tests stay 684 (none added or renamed); no floor or name digest moves, so scripts/test-suite-contract.mjs and evidence/VERIFICATION.md are untouched. WP line citations in two lint files move by +3 from main, as the manifest grew by three lines above open_blockers.",
+  "security_privacy_cost_impact": "Security: closes open_blockers[195]'s finding (MEDIUM, not stop-the-line): a workspace's own active owner could move every workspace they own into any §11.4 state with one client UPDATE that reads no column, skipping step-up, the recovery window and audit. After 170 no client role can write lifecycle_state; every measured form is refused at the privilege layer. Cost of the change: nothing on a request path writes the state until RFC-2026-023's step-up command or DATA-DEC-03's worker exists, so an owner can neither request closing nor cancel it from a client. Privacy: none (synthetic ids only). Cost: none.",
+  "migration_and_data_impact": "One forward migration, 170_workspace_lifecycle_not_client_writable.sql: a column-level REVOKE and a column comment; no table rewrite, no data change. 010 is not edited and has no apply-time block, so no superseded.json entry. Declared not applied to the provisioned instance (appended to catalog-snapshot.json's tail).",
+  "compatibility_impact": "A client that sets lifecycle_state now gets 42501 (permission denied for table workspaces) for every form; a client that updates name or updated_by is unaffected. Tests stay 684 (none added or renamed); foundation-contract's assertion floor 932 -> 942; rls-smoke cases 1079 -> 1087. The manifest's amendment paths go from four to three, so every open_blockers line pin moves from 256+i to 255+i (52 pins re-derived).",
   "known_limitations": [
-    "Neither RFC's mechanism claims are executed by this package: the role runs prototyped them on scratch clusters (RFC-026 §11, RFC-027 §11), which is evidence for the text, not RFC-2026-020 §6.2's execution; the RFC-026 policy as revised and the cases added in review (RFC-026 §8.2/16-18, RFC-027 §5/10-11) are not executed.",
-    "The C0-3 list of coverage-map rows that are client writes today (RFC-026 §5.5) is read from pinned-grants.json and the migrations' permissive policies, not measured on a catalog.",
-    "No live database round in the review round: nothing a database layer reads changed (plan §7.4).",
-    "The two prose (line N) numbers in audit-coverage-map.json's source texts and the quote-less retention-map citations are pinned by no test (plan D3, Q0-F9; open_blockers[195] (6))."
+    "Nothing on a request path writes lifecycle_state until §11.4's step-up command (RFC-2026-023, with RFC-2026-026's producer for its audit row) or DATA-DEC-03's worker exists; open_blockers[195] (9).",
+    "app_worker still holds table-level UPDATE on app.workspaces with no policy; its only member is postgres (RFC-2026-022 §5/8, not in effect; open_blockers[113]).",
+    "pinned-grants.json's _how_measured prose still says the list was generated through 140; the generator keeps the header (plan §6 F4, INFO).",
+    "The pre-170 leg of the cases was measured by restoring the old grant by hand on a live database, not by checking out main with the cases; the forms were measured on main itself."
   ],
   "open_risks_or_blockers": [
-    "Fifteen RFC questions are unanswered (Q-026-1..9, Q-027-1..6; open_blockers[195] (2), (5)); Q-026-1 and Q-026-9 must be answered before RFC-2026-026 is approved. A0's recommendations: disposition §5 and §7. The Owner's and A1's approval of each RFC (and A1 Identity's agreement to the RFC-2026-020 amendment) is owed.",
-    "The client UPDATE of workspaces.lifecycle_state (open_blockers[195] (1), (3), (4)): the revoke is owed in the FIRST of batch 170's migrations, any job selecting workspaces by lifecycle_state (batch 160), or RFC-2026-027's migration; its isolation case must use the UPDATE form that reads no column.",
-    "Independent review, test and Integration Owner evidence for the review round itself: the role runs reviewed e64e1f5, not b6d65e1."
+    "open_blockers[195] stays open for (6), (7), the named roles' acceptance of the fifteen RFC answers (A1, A6, the Integration Owner), both RFCs' approval, and the two items owed before RFC approval; its finding is closed here.",
+    "The §11.4 transition command (step-up, audit row) is owed to the batch that writes RFC-2026-023's first command function (A0 author, A1 review), after RFC-2026-023 leaves In review."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit; it removes two Proposed decision records, the role-run records, the writable-path amendment and the blocker sentences, and moves the line pins back. Nothing is applied to any instance.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit, or a forward migration `grant update (lifecycle_state) on app.workspaces to authenticated` that restores the old privilege exactly (and reopens the finding); nothing else depends on the client holding it. Nothing is applied to any instance.",
   "recommended_next_work_packages": [
-    "A C0 re-check of the review round's text (b6d65e1 over e64e1f5): RFC-026 §3.3, §3.7, §8 and RFC-027 §3.4's quotations against RFC-2026-020; then the merge under the standing delegation if the bar of 127 §6 is met.",
-    "A1's answers to Q-026-1 and Q-026-9 before RFC-2026-026's approval; the Owner's and A1's answers to the rest of the fifteen; A1 Identity on RFC-027 §3.4.",
-    "The lifecycle_state revoke migration once Q-026-5/Q-027-5 is answered (open_blockers[195] (4))."
+    "C0, A1 and Q0 role runs on this branch: the migration and its block, the eight cases (each against the pre-170 privilege), the pin, and plan §2's forms; then the merge under the standing delegation if the bar of 127 §6 is met.",
+    "RFC-2026-027's gate migration, now without the revoke it would otherwise have had to carry, after the RFC leaves Proposed.",
+    "The §11.4 step-up transition command, after RFC-2026-023 leaves In review."
   ],
   "reviewer_instructions": [
-    "Read plan §7 first: the cherry-pick map and the finding-to-change table; then git diff e64e1f5..b6d65e1 -- architecture/ evidence/ work-packages/.",
-    "RFC-027 §3.4: compare each quoted 'now' text with RFC-2026-020 at the cited lines (:3, :393-395, :397-405, :407-411, :444-447, :448-449, :476).",
-    "RFC-026 §3.3: the WITH CHECK now holds refusal rows to null scope unless the acting-user helper admits it; the workspace term of the denial arm is unchanged on purpose (Q-026-1 is A1's).",
-    "open_blockers[195]: confirm the change is a pure append (entries 0..194 unchanged; 196 entries; line pins unmoved)."
+    "Read plan §1 and §2 first; then git diff 9a07459..03dbd30 -- db/ tests/ test-kits/db/.",
+    "Re-run lifecycle-forms.sql's forms (plan §2) on main and on this branch: the column-free forms are the ones that matter (A1 F1-a); a targeted form to a blocked state was already refused by the policy layer before 170.",
+    "Re-run the cases against the pre-170 privilege (grant the column back by hand on a migrated database): the seven refusals must fail and the rename positive pass.",
+    "Check that nothing but lifecycle_state left the grant: pinned-grants.json's one-line diff, and 170's block checks 2 and 3 with drifts d4 and d5."
   ],
   "superseded_by": null
 }
