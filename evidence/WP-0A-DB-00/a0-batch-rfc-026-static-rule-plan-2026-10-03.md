@@ -244,3 +244,32 @@ first commits.
   `open_blockers[197]`, new.
 - Approval of RFC-2026-026 and RFC-2026-027, and Q-026-10's answer: unchanged, the Owner's and A1's.
 - Re-checks of this round by C0, A1 and Q0.
+
+## 7. Re-checks of the review round (2026-10-05)
+
+C0, A1 and Q0 re-checked `2dc140c` (code `9fd448b`). Their files are cherry-picked with `-x`:
+
+| Run | Original commit | Cherry-picked as |
+|---|---|---|
+| C0 | `6dae39d` | `7e1eba3` |
+| A1 | `b5a188c` | `d8fd465` |
+| Q0 | `8426215` | `62490a8` |
+
+Q0's first re-check stopped before measuring, so it was re-run.
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is green on `2dc140c` (run 37233876909).
+
+C0 measured C0-SR-1..8 closed in the text. Q0 measured Q0-S1..S6 written as executable obligations, each with a named drift. Q0 re-ran A0's prototype on five rounds and found the results matched.
+
+**Q-026-10 is now answered (iii).** This follows the Owner's words of 2026-10-05, recorded in the disposition; RFC-026 §10.2 holds the answer.
+
+The findings that remain are on the text of §8.1/1. They are all LOW or INFO, and they are owed to the batch that implements the rule:
+- C0-RR2-1: three drifts cannot be selfTests under the named harness.
+- C0-RR2-2: c/internal aggregates have no pinned exemption list.
+- C0-RR2-3: statistics objects.
+- A1 R1: the language rule admits any c function made a pgcrypto member, including one bound to dblink_exec.
+- A1 R2, R3: the append-only probe citation; pg_subscription and pg_publication.
+- Q0-SR-1: an opclass support function is caught by the pg_depend arm, but the text does not name it.
+- C0-RR2-4, -5: wording; the Status line's quotation of `เิาตามแนะนำ` is the Owner's own spelling.
+
+**A0's recommendation:** stop refining §8.1/1's text. Like the static scanners before it, each review round finds a further route. The rule should be finished where it can be measured, in the batch that implements it against the live catalog with its drifts.

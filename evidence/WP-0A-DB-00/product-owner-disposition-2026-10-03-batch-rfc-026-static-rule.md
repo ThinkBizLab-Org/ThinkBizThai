@@ -108,3 +108,18 @@ Branch `agent/claude/WP-0A-DB-00-batch-rfc-026-static-rule`, from `dc6d481`. The
   PR stays a Draft until they report. Under the standing delegation, A0 may then press the merge only if
   the bar of 127 §6 is met. A stop-the-line finding halts it.
 - It does not sign for A1, A6 or the Integration Owner.
+
+## The Owner's later words (appended 2026-10-05)
+
+While this batch was in review, the Owner wrote, verbatim:
+
+> คุณตะลุยไล่ไปได้เลนไม่ต้องรอผม
+> เอาตามที่คุณแนะนำทุกอย่าง
+
+In English: "Go ahead without waiting for me; take everything you recommend."
+
+A0 reads these words as a delegation: from this point, A0's recommendations are the Owner's answers, and each one is recorded where it is taken. The first one is taken here.
+
+**Q-026-10 is answered (iii).** The gap is accepted explicitly until Paid Beta, beside Q-026-4, and SEC-014's producer is owed before then. The answer is written as RFC-026 §10.2. A1's acceptance is still owed.
+
+The next batch acts on A0's standing recommendations: the RFC approvals, the SLO ratification and RFC-027's migration. That batch records each one as the Owner's decision, taken through this delegation. A0 executes them; A0 does not decide them.

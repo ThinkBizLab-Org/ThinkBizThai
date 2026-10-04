@@ -1011,6 +1011,14 @@ approves the RFC.**
 | Q-026-8 | **The job's `tenant_context.actor`** (the user who started it); `system_actor` only for a sweep no user started | §3.5 | A6 |
 | Q-026-9 | **"A forward migration adding a nullable cause column is not recommended before G1"** (the accepted words, `product-owner-disposition-2026-10-03-batch-rfc-026-027.md:130`; this row earlier summarised them as "no store change before G1", which is broader and is not what was accepted; C0-SR-4). The worker writes only unattributed or `system_actor` events (`actor_kind is null or actor_kind = 'system_actor'`, plus the confinement term); the command writes only for its own actor, in a workspace it is an active member of | §3.7, §8.1/2-3, §8.2/21, §9/1-2 | A1 (owner of batch `140`), A0 |
 
+#### 10.2 Q-026-10, answered 2026-10-05
+
+The Owner wrote, verbatim: `คุณตะลุยไล่ไปได้เลนไม่ต้องรอผม / เอาตามที่คุณแนะนำทุกอย่าง`. In English: "go ahead without waiting for me; take everything you recommend." This came after this RFC carried A0's recommendation (iii) on Q-026-10.
+
+A0 reads these words as accepting that recommendation. **Q-026-10 is answered (iii):** the gap is accepted explicitly, as a class beside Q-026-4's. A refusal about a workspace the acting user cannot reach goes unrecorded until Paid Beta. SEC-014's producer for it is owed before then.
+
+There is no store change before G1. A1's acceptance, as owner of batch 140 and of Q-026-4, is still owed. This paragraph records an answer to a question. **It does not approve the RFC.**
+
 ## 11. Provenance, and what a reviewer should discount
 
 - **I am A0, the owner of batch 141, proposing the architecture of batch 141.** The proposal makes
