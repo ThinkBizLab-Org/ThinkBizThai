@@ -439,7 +439,11 @@ break it silently:
    every layer): 51 triggers on 47 tables, running `set_updated_at`, `set_decided_at`, `set_deleted_at` and
    `refuse_mutation`, re-derived from the migration text by the static suite. A second BEFORE UPDATE trigger
    sorting after `set_decided_at`, a trigger on any other table, a rewritten body or a changed owner fails by
-   name. The pinned check probe also holds
+   name. Since that batch's review round (A1-OT-1: a trigger marked `tgisinternal` by an UPDATE of
+   `pg_catalog.pg_trigger` was skipped by both rules and fired) every INTERNAL trigger there must be one of its
+   table's own foreign key checks -- `RI_FKey_check_ins`/`_check_upd` on the referencing side,
+   `RI_FKey_noaction_del`/`_noaction_upd` on the referenced side, of an FK constraint of that table -- and any
+   other is named. The pinned check probe also holds
    `approval_requests.created_at` NOT NULL (`PINNED_NOT_NULL`), since a CHECK reading a NULL passes.
 7. **The privileges every non-superuser role holds on every table in `app` and `private` are exactly an
    allowlist** (`PINNED_GRANTS`, read from `db/foundation/lint/pinned-grants.json`; batch 126, C0 H1 and
@@ -725,7 +729,14 @@ refused too (C0 F1); it is not a lexing hazard, but it is the switch that lets t
 `pg_catalog` and name a schema `pg_*`. Since the owed-tooling batch so is `TO PROGRAM` or `FROM PROGRAM`,
 whitespace or comments between the words, anywhere (C0 G1 on batch 129's re-check): `COPY ... PROGRAM`
 runs a shell command as the database server's OS user, the server-side twin of `\!`, and no layer read
-it; none of the sources fed carries one. A client encoding changed through a name or SET psql never sees spelled out because it is
+it; none of the sources fed carries one. Since that batch's review round (C0-OT-2, Q0-OT-3) so is `COPY` to or
+from a quoted server file name (a table, quoted or not, with or without a column list, or a parenthesised query;
+`STDIN` and `STDOUT` stay admitted) and a call of a server-file function (`lo_import`, `lo_export`,
+`pg_read_file`, `pg_read_binary_file`, `pg_stat_file`, the `pg_ls_*dir` family, adminpack's `pg_file_*`):
+`copy (select ...) to '<path>'` had the server write a file on the host with every layer green, and a rollback
+does not remove it. A name after `FUNCTION` (a GRANT or ALTER of the function) is not a call. Note that rls-smoke
+does not read a migration's text: it refuses one of these only in the sources it feeds itself; a migration
+carrying one is refused by migrate-clean (Q0-OT-2). A client encoding changed through a name or SET psql never sees spelled out because it is
 **computed at run time** (a concatenated `set_config`, an `EXECUTE` of `'set ' || 'names ...'`, `chr()`,
 `format()`, `convert_from()`) stays outside the list: escapes were the static spellings of that class,
 and what remains is computation. The two readings could part after any non-ASCII

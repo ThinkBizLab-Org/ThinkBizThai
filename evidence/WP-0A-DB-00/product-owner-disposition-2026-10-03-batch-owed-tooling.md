@@ -70,15 +70,19 @@ Branch `agent/claude/WP-0A-DB-00-batch-owed-tooling`, from `5558b26`; plan
 3. the grant generator's measured-on text names the last migration (C0-170-3);
 4. the two lint maps' blocker citations by quote, not line number (D3, C0-7, Q0-F9);
 5. export_allowed derived and pinned, F160-17's record, the export-label guard over every §11.1 domain
-   (A1 R1, R2; Q0 R-3, R-5; C0 R1, R2);
-6. the 141-prep static pins and the audit-table tripwire widened, [191] (9) corrected (Q0 R1-R4; C0 N3, N4;
-   A1 N2, N3);
+   (A1 R1, R2; Q0 R-3, R-5; C0 R1, R2's first guard -- its other two guards stay owed on [192]);
+6. the 141-prep static pins and the audit-table tripwire widened, [191] (9) corrected (Q0 R1-R4; C0 N3, N4's
+   first half -- the lint message in `scripts/db/run.mjs` stays owed on [191] (8); A1 N2, N3);
 7. the host guard's two halves pinned and redaction from the raw query (G-1, G-2);
 8. index coverage reads collation and operator class (Q0 R-2);
 9. COPY ... TO/FROM PROGRAM refused in every fed source (C0 G1);
 10. the schemas' owner and every non-client role's attributes, schema privileges and default ACLs pinned
     (A1 S1, S3; Q0 R-2);
 11. the static view regex reads recursive and temporary views (A1 S2, Q0 R-5).
+
+(Items 5 and 6 were first written "C0 R1, R2" and "C0 N3, N4" unqualified; the qualifications above were added
+in the batch's review round, C0-OT-6, A1-OT-I3, Q0-OT-10, to match plan §6, the handoff and the blockers. The
+review round's own changes are in the plan's "Review round" section; they decide nothing either.)
 
 **Nothing here is an Owner decision.** No grant, policy, role, contract, ownership, P0 scope or RLS meaning
 changes; the batch only refuses later drift that today passes every layer, and moves the citations of two

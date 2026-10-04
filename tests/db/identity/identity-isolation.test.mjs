@@ -43,7 +43,11 @@ import { schemaLint, tablesCreatedByMigrations } from '../../../scripts/db/run.m
 // owed-tooling batch; A1 S2 and Q0 R-5 on batch 170-assert's re-check: the three scans below read
 // `create (or replace)? (materialized)? view`, so `create recursive view` -- n15, a definer recursive view over a
 // SECRET-4 table that app_command read -- and a temporary view passed them). One pattern, used by all three.
-const CREATE_VIEW = /create\s+(?:or\s+replace\s+)?(?:(?:temp|temporary)\s+)?(?:recursive\s+|materialized\s+)?view\b/i;
+// Since the owed-tooling batch's review round (Q0-OT-8) a block comment between the words is read as the
+// whitespace it is (`create /* c */ view`), a nested one included: the lazy comment match extends to a later `*/`
+// when the words after the first one do not follow.
+const VIEW_GAP = String.raw`(?:\s|\/\*[\s\S]*?\*\/)+`;
+const CREATE_VIEW = new RegExp(String.raw`create${VIEW_GAP}(?:or${VIEW_GAP}replace${VIEW_GAP})?(?:(?:temp|temporary)${VIEW_GAP})?(?:recursive${VIEW_GAP}|materialized${VIEW_GAP})?view\b`, 'i');
 import {
   expectDenied, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
@@ -8039,7 +8043,8 @@ test('the effective-limit projection is named as an allowlist candidate and not 
     + 'projection for a caller that does not exist.');
   // The pattern's own spellings (the owed-tooling batch; A1 S2, Q0 R-5), so a narrowed pattern fails here.
   for (const spelling of ['create view app.v as select 1', 'CREATE OR REPLACE VIEW app.v AS SELECT 1', 'create materialized view app.m as select 1',
-    'create recursive view public.probe_rv (id) as select 1', 'create temp view v as select 1', 'CREATE OR REPLACE TEMPORARY RECURSIVE VIEW v (n) AS SELECT 1']) {
+    'create recursive view public.probe_rv (id) as select 1', 'create temp view v as select 1', 'CREATE OR REPLACE TEMPORARY RECURSIVE VIEW v (n) AS SELECT 1',
+    'create /* c */ view v as select 1', 'create or/**/replace /* a /* b */ c */ materialized view m as select 1']) {
     assert.match(spelling, CREATE_VIEW, `the view scan reads: ${spelling}`);
   }
   for (const other of ['create table app.view_state (id uuid)', 'grant select on app.v to app_worker', 'comment on view app.v is \'x\'']) {

@@ -1244,6 +1244,28 @@ begin
   if offending is not null then
     raise exception 'trigger function(s) on a table in app or private not in their pinned shape: %', offending;
   end if;
+  -- EVERY INTERNAL TRIGGER IS ONE OF ITS TABLE'S OWN FOREIGN KEY CHECKS (the owed-tooling batch's review round;
+  -- A1-OT-1). Both rules above read non-internal triggers only, and the migration owner, a superuser, may
+  -- UPDATE pg_catalog.pg_trigger: A1 measured an unpinned BEFORE UPDATE trigger on app.workspaces marked
+  -- tgisinternal = true by a fed source, firing, with every layer green. Measured on the clean set through 170
+  -- (PostgreSQL 17.11): every internal trigger on a table in app and private runs pg_catalog's RI_FKey_check_ins
+  -- or _check_upd on the referencing side of a foreign key constraint of that table, or RI_FKey_noaction_del or
+  -- _noaction_upd on its referenced side (the FK action probe holds every action to NO ACTION). Any other is
+  -- named, whatever its function.
+  select string_agg(format('%s.%s (%s.%s)', t.tgrelid::regclass, t.tgname, pn.nspname, p.proname), ', '
+                    order by t.tgrelid::regclass::text, t.tgname) into offending
+    from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_proc p on p.oid = t.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
+    left join pg_catalog.pg_constraint con on con.oid = t.tgconstraint
+   where t.tgisinternal
+     and n.nspname in ('app', 'private')
+     and not (pn.nspname = 'pg_catalog' and con.contype = 'f'
+              and ((con.conrelid = t.tgrelid and p.proname in ('RI_FKey_check_ins', 'RI_FKey_check_upd'))
+                   or (con.confrelid = t.tgrelid and p.proname in ('RI_FKey_noaction_del', 'RI_FKey_noaction_upd'))));
+  if offending is not null then
+    raise exception 'internal trigger(s) on a table in app or private that are not its foreign key checks: %', offending;
+  end if;
 end \$\$;
 `;
 
@@ -2188,7 +2210,7 @@ export const CATALOG_RULE_PROBES = [
     ] },
   // Blocker 186 item 13 (Q0 F3, F8 on batch 125).
   { label: 'pinned trigger probe', sql: PINNED_TRIGGER_PROBE_SQL,
-    claim: `the non-internal triggers on every table in app and private are exactly the ${Object.values(PINNED_TABLE_TRIGGERS).flat().length} pinned definitions on ${Object.keys(PINNED_TABLE_TRIGGERS).length} tables, and the ${PINNED_TRIGGER_FUNCTIONS.length} functions they run match their pinned bodies, security, owner and empty search_path`,
+    claim: `the non-internal triggers on every table in app and private are exactly the ${Object.values(PINNED_TABLE_TRIGGERS).flat().length} pinned definitions on ${Object.keys(PINNED_TABLE_TRIGGERS).length} tables, and the ${PINNED_TRIGGER_FUNCTIONS.length} functions they run match their pinned bodies, security, owner and empty search_path, and every internal trigger there is one of its table's foreign key checks`,
     selfTests: [
       // Q0's M7: a second BEFORE UPDATE trigger sorting after set_decided_at.
       // The owed-tooling batch (A1 R-2 on batch 170's re-check): a BEFORE UPDATE trigger on app.workspaces that
@@ -2206,6 +2228,12 @@ export const CATALOG_RULE_PROBES = [
       { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$; alter function private.set_decided_at() owner to app_worker; create or replace function private.set_deleted_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$;",
         raises: 'trigger function(s) on a table in app or private not in their pinned shape',
         names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]', 'private.set_deleted_at() [body differs from the pinned digest]'] },
+      // The owed-tooling batch's review round (A1-OT-1): an unpinned trigger on app.workspaces hidden by marking
+      // it internal in pg_catalog, which both rules above skip, and an internal FK trigger re-pointed at the
+      // cascading RI function.
+      { drift: "create trigger probe_hidden before update on app.workspaces for each row when (new.name = 'probe-never') execute function private.set_updated_at(); update pg_catalog.pg_trigger set tgisinternal = true where tgname = 'probe_hidden'; update pg_catalog.pg_trigger set tgfoid = 'pg_catalog.\"RI_FKey_cascade_del\"()'::pg_catalog.regprocedure where oid = (select min(t.oid) from pg_catalog.pg_trigger t join pg_catalog.pg_proc p on p.oid = t.tgfoid where t.tgrelid = 'app.workspaces'::pg_catalog.regclass and t.tgisinternal and p.proname = 'RI_FKey_noaction_del');",
+        raises: 'internal trigger(s) on a table in app or private that are not its foreign key checks',
+        names: ['app.workspaces.probe_hidden (private.set_updated_at)', '(pg_catalog.RI_FKey_cascade_del)'] },
     ] },
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
   // batch 170 draft, with the table-list rule first.

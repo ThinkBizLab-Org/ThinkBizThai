@@ -311,7 +311,7 @@
       "id": "F160-02",
       "class_as_written": "CATALOG/HISTORY",
       "what": "§5 assigns industry.core `CATALOG/HISTORY`; §10 defines no `CATALOG`, and `HISTORY` (\"immutable ... versions\", \"อายุ Workspace + lineage\") cannot describe a global catalog row, nor a mutable business assignment.",
-      "source": "ERD:204; ERD:490; open_blockers[77] (\"§10 DEFINES NO `CATALOG` CLASS\")",
+      "source": "ERD:204; ERD:490; open_blockers[77] (\"§10 DEFINES NO `CATALOG` CLASS**. Its table has twenty-seven rows\")",
       "decision": "Q160-c"
     },
     {
@@ -325,7 +325,7 @@
       "id": "F160-04",
       "class_as_written": "NOTIFICATION-*",
       "what": "The glob reaches only `NOTIFICATION-INBOX` (\"user notifications\", 180 days, purge), which does not describe a preference row; no §10 class does.",
-      "source": "ERD:215; ERD:507; open_blockers[192] (\"F160-04\")",
+      "source": "ERD:215; ERD:507; open_blockers[192] (\"(1) F160-04: §5's NOTIFICATION-* reaches only NOTIFICATION-INBOX\")",
       "decision": null
     },
     {
@@ -402,7 +402,7 @@
       "id": "F160-15",
       "class_as_written": null,
       "what": "app.assets and app.asset_versions reference each other (assets_current_version_scope_fk and asset_versions_asset_scope_fk); the purge must null assets.current_version_id first, an UPDATE only app_worker holds a grant for and no policy admits.",
-      "source": "live catalog FKs; open_blockers[192] (\"F160-15\")",
+      "source": "live catalog FKs; open_blockers[192] (\"(11) F160-15: the app.assets <-> app.asset_versions cycle\")",
       "decision": "Q160-d"
     },
     {

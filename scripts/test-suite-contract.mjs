@@ -229,8 +229,12 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // generator's measured-on text, quoted blocker citations in the two maps, the export rules derived over every
 // §11.1 domain and the F160-17 record, the 141-prep pins and audit-table tripwire, the host guard's halves and
 // raw-query redaction, and COPY ... PROGRAM in the lexer; no test added or renamed, so the test floor and the
-// name digest stay; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1000,
+// name digest stay; the guard's own count. 1000 to 1014 with that batch's review round: the do-block's quoted
+// and commented spellings and a drift each for its JOIN and relation rules, the internal-trigger rule's text,
+// the COPY-to-file and server-file lexer shapes, the authority redaction cases, every omitted export bucket and
+// the eleven classes tied to their ERD lines, one blocker per quote, and the tripwire's comment, rule and rename
+// spellings; no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1014,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
