@@ -185,3 +185,19 @@ yet. They are **owed before RFC-026 is approved**, on open_blockers[195]:
 | Q-026-10's option (i), "naming the attempted id", needs a column that app.security_events does not have (C0-RR-2, A1 N3) | LOW | State the forward migration, or the event_type route |
 | Drift 1's SECURITY DEFINER form is refused first by the definer probe (Q0 R3). Lexer refusals inside string literals (C0-RR-3, Q0 R5). Reader-list coverage (Q0 R6) | LOW / INFO | Wording and the drift's shape |
 | "18 functions" is 14 after migrate-clean; 18 is the count after rls-smoke (C0-RR-4, A1 N4, Q0 R4). The handoff and plan §6.4 cite each other (C0-RR-5, A1 N5) | INFO | Wording |
+
+## 8. Corrections (appended 2026-10-05 by batch rfc-026-static-rule; nothing above is rewritten)
+
+- **§6.3, round r1, and §6.3's r4 note: "18 functions in scope" is not the count at the rule's read point**
+  (C0-RR-4, A1 N4, Q0 R4). After `migrate-clean` the scope holds **14** (`app` 9, `private` 4, `auth` 1);
+  18 is the count after `rls-smoke` adds its four `private.as_*` helpers, and `round.sh` read the rule after
+  `rls-smoke`, so r4's note that those four were "made after the rule's read point" was not what the script
+  did. The selection (nothing) was right either way. RFC-2026-026 §8.1/1's last paragraph now says 14;
+  batch rfc-026-static-rule re-measured 14 (plus 36 extension members, which §8.1/1 now reads) on its own
+  cluster.
+- **§6.4: "exit codes in the handoff" was circular** (C0-RR-5, A1 N5): the handoff's `tests` row pointed back
+  at this section for the final-head results, and neither held them. The final-head `check:handoff`,
+  `verify-branch-scope` and `npm run verify` results of the review round (all exit 0, 685/685, 12 paths) are
+  in PR #179's body, and C0, A1 and Q0 re-measured them on the branch name (`c0-`, `a1-`,
+  `q0-batch-rfc-text-recheck-2026-10-03.md` §1 or §2.1). Batch rfc-026-static-rule's handoff cites its
+  own plan and PR body for its own results and does not cite this file for them.
