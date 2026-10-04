@@ -4,215 +4,147 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "5bde893136cbe17a222e3a6abd83dcd4a1433f26",
-  "head_revision_or_patch_checksum": "fb6c720072e825f56485737ec7d652ba230349db",
+  "base_revision": "b0a3809fef6b69f31f0cc2638f904bf5107fd808",
+  "head_revision_or_patch_checksum": "6e1e43ab59e71c07b773b53e8a059d8180fd54ba",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-sql-lexer-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/a1-batch-sql-lexer-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-sql-lexer-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-sql-lexer-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-sql-lexer.md",
-    "evidence/WP-0A-DB-00/q0-batch-sql-lexer-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/q0-batch-sql-lexer-test-review-2026-10-03.md",
-    "scripts/db/sql-lexer.mjs",
-    "test-kits/db/sql-lexer-differential.json"
+    "db/foundation/TRY-IT.md",
+    "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a0-try-it-draft-2026-10-04.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-try-it.md",
+    "scripts/db/try-it.mjs"
   ],
   "files_modified": [
-    "db/foundation/README.md",
     "db/foundation/lint/audit-coverage-map.json",
-    "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/generate-pinned-grants.mjs",
-    "scripts/db/psql-driver.mjs",
-    "scripts/db/run.mjs",
+    "scripts/db/rls-smoke.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/identity-isolation.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-sql-lexer.md §1), answering A0's summary whose item 5 recommended one real lexer shared by every static reader over an RFC for PostgreSQL's own parser (a dependency). A0 recommended nothing on items 1-4 (RFC approval, SLO ratification, instance access, DATA-DEC-03/RFC-2026-023), which stay unanswered. A0's reading, which a correction from the Owner replaces.",
-    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #176 at its reviewed head 84ed650 (merge 5bde893, 2026-10-04T09:07:34Z, bootstrap run 37190663121 green); A0 executed it and did not decide it.",
+    "The Owner's `คุณไม่ต้องรอ confirm กับผม  คุณลุยไปยาวๆ จนถึงจุดที่ให้ผม test แล้วค่อยถาม` and `ลุยๆ` (2026-10-04, set as the session goal; product-owner-disposition-2026-10-03-batch-try-it.md §1): go on until the point where the Owner can test, then ask. A0 reads that point as a local tool the Owner runs on their own Mac; a correction from the Owner replaces the reading.",
+    "The phase direction `เอาตามที่แนะนำเลย ลุยต่อ` / `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03; product-owner-disposition-2026-10-03-batch-129.md §1).",
+    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #176 at its reviewed head 84ed650 (merge 5bde893, 2026-10-04T09:07:34Z, bootstrap run 37190663121 green) and #177 at its reviewed head 941e718 (merge b0a3809, 2026-10-04T14:02:54Z, bootstrap run 37206998439 green); A0 executed it and did not decide it.",
     "RFC-2026-001: Node built-ins only, no dependency added."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS THE SQL-LEXER BATCH: tooling and static tests only, NO MIGRATION and NO DEPENDENCY, so no migration number and no RFC is needed. Plan a0-batch-sql-lexer-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-sql-lexer.md. It decides nothing beyond the recommendation the Owner accepted and approves no RFC.",
-    "The lexer follows PostgreSQL 17 lexical rules with standard_conforming_strings on; any mention of that setting stays refused by psqlLex, so the other reading never applies to a fed source.",
-    "A text EXECUTE, a DO block or a function body runs WHOLE is valid SQL or runs nothing (a syntax error stops it before execution), so reading every literal and dollar body as SQL, at every level to depth 8, reads every statically spelled statement a fed source can run; text computed at run time is outside, as stated.",
-    "THE REVIEW ROUND (2026-10-04, commit 286770f): the C0, A1 and Q0 role runs are cherry-picked with -x (ab3ce38, b5203b8, c39f703) and each finding is acted on in evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\". Still no migration, no dependency, no decision; nothing is approved."
+    "THIS INCREMENT IS THE TRY-IT BATCH: a local tool, its guide and static assertions only, NO MIGRATION, NO DEPENDENCY and NO ROOT CONFIGURATION, so no migration number and no RFC is needed. Plan a0-batch-try-it-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-try-it.md. It decides nothing and approves no RFC.",
+    "The local draft (cf47b11, c90ac1f on draft/wp-db00-try-it, drafted on 5bde893) is cherry-picked onto b0a3809 (4539d92, 99fd697); its conflicts with #177 were the assertion floor and two digests only. try-it imports testHostRefusal and psqlLex from psql-driver.mjs, so it uses main's guard and the one lexer as #177 left them without a code change.",
+    "The Owner runs it on macOS with Homebrew PostgreSQL 17 and Node 24.20.0 at /Users/bank/.local/node-v24.20.0/bin; a newer Node on PATH gets a note, not a refusal.",
+    "The measurement used this run's private scratch directory and the port try-it picked (55420): the run's assigned 5507 is one of try-it's reserved ports, refused by design (measured), and the refusal was not weakened. migrate-clean and rls-smoke ran on 127.0.0.1:5507 as assigned."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) One SQL tokenizer following PostgreSQL's lexical rules, with kinds and positions, failing closed",
+      "criterion": "(1) The draft on main as it now stands, using main's guards and lexer",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §1 row 1: scripts/db/sql-lexer.mjs; the golden test's tokenization table, statement split and 15 fail-closed inputs; M3 red"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 1-2: cherry-picked onto b0a3809, conflicts resolved; testHostRefusal and psqlLex imported from psql-driver.mjs (asserted statically); up scans and feeds the shim through psqlLex (§2)"
     },
     {
-      "criterion": "(2) Every static reader rewired onto it",
+      "criterion": "(2) up, demo, psql, down run end to end on main's tree, with the full demo output recorded",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §1 rows 2-7: psqlLex and its refusals, COPY (any target, PROGRAM), server-file calls by token with the internal symbols, LANGUAGE internal/c, the do-block counter and allowlist, every comment and literal stripper, sqlWithoutComments, the tripwires, the view scans, file_fdw / foreign / extension; drifts D1-D4 migrate-clean 2 where origin/main's psqlLex found 0; M1-M9 red"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §2: on 1298dbe, clean tree, Node 24.20.0, psql 17.11: up 0 (53 migrations, 66 tables, 209 policies, 21 fixture files), demo 0 (All 13 steps behaved as expected), psql 0, down 0 (directory gone); the whole transcript"
     },
     {
-      "criterion": "(3) A golden corpus and a differential against what PostgreSQL executes",
+      "criterion": "(3) The demo cannot pass on a broken database",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §2: 221 fed sources, 1897 queries psql sent = 1897 lexer statements, every one equal in canonical text; test-kits/db/sql-lexer-differential.json re-checked by sha256 in the new foundation-contract test"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §4: RLS off on app.content_items -> demo exit 1, DEMO FAILED: 6 of 13 named; RLS on -> exit 0"
     },
     {
-      "criterion": "(4) The OWED items on blocker 186 closed with evidence, and what a lexer cannot decide stated",
+      "criterion": "(4) Simple and safe for one non-specialist: copy-paste commands with the full Node path; trust on loopback only; a marker-guarded delete; reserved ports refused",
       "result": "met",
-      "evidence": "open_blockers[185]'s appended \"THE SQL-LEXER BATCH\" sentence; evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §6"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 3-5 and §3: every next command printed with the running Node's full path and --dir; the half-made cluster's down printed and run; the Node 26.7.0 note; port 5507 refused with nothing created; db/foundation/TRY-IT.md Quick start; static assertions on nextCommand and PINNED_NODE"
     },
     {
-      "criterion": "No integrated migration or fed source newly refused",
+      "criterion": "(5) Packaging: branch slot, rationale naming every file amended outside ownership, floors, digests, blockers",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md §2: 0 findings over 221 sources; the CREATE EXTENSION rule is an allowlist of pgcrypto because a blanket rule would refuse 000_foundation.sql:24 and prerequisites.sql:48, recorded rather than narrowed silently"
-    },
-    {
-      "criterion": "Review round: every LOW-or-higher finding of C0, A1 and Q0 acted on or recorded as owed",
-      "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\": C0-SL-1 remedy (a) (server-file names refused by token position outside GRANT/REVOKE/COMMENT; D-op and D-ren live exit 2, no marker); C0-SL-2/Q0-SL-4/A1 F1 (view scan pinned, M-view red); C0-SL-3 (psql's held semicolons refused, S-begin exit 2); C0-SL-4 (generate-pinned-grants through the lexer, M-grants red); C0-SL-5 (18 and 15, corrected by append); C0-SL-6 (this handoff's tests); Q0-SL-1 (VT golden case, L14 red); Q0-SL-2 (canonical form pinned)"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 8-9 and §5: verify-branch-scope b0a3809 exit 0 (10 paths); assertion floor 1044 -> 1074; evidence/VERIFICATION.md not amended (685 stays) and not declared; open_blockers[196] added"
     }
   ],
   "tests": [
     {
       "command": "node -v before every measured run",
       "exit_code": 0,
-      "result": "v24.20.0 (/Users/bank/.local/node-v24.20.0/bin, ahead of the PATH Node 26)"
+      "result": "v24.20.0 (/Users/bank/.local/node-v24.20.0/bin, ahead of the PATH Node 26.7.0)"
     },
     {
-      "command": "r1, working tree before b2193ad: fresh initdb (127.0.0.1:5507, TCP only, --locale=C, -A trust), shim, make db-migrate-clean, make db-rls-smoke twice",
+      "command": "npm run check on the cherry-picked tree before any edit, branch name",
       "exit_code": 0,
-      "result": "migrate-clean 0 (30 probes each refusing its drifts and clean again; post-migrate pass 51 apply-time blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 isolation cases each"
+      "result": "685 tests, 685 pass"
     },
     {
-      "command": "r2 on b2193ad, branch name, a second fresh cluster: the same three",
-      "exit_code": 0,
-      "result": "migrate-clean 0; rls-smoke 0 and 0, 1087 cases each"
-    },
-    {
-      "command": "the differential (private differential.mjs): every fed source on stdin to psql 17.11, log_statement = all",
-      "exit_code": 0,
-      "result": "221 sources, 221 agree; 1897 queries sent, 1897 lexer statements"
-    },
-    {
-      "command": "drifts D1-D4 appended to 140_audit.sql (private drifts.mjs), fresh cluster each, 140 restored by sha256",
-      "exit_code": 2,
-      "result": "each migrate-clean 2 by line before anything applied, no file written; origin/main psqlLex 0 findings on each"
-    },
-    {
-      "command": "mutations M1-M9 (private mutate.mjs), static",
+      "command": "npm run check on the tree that became 1298dbe, branch name (node scripts/commit-when-clean.mjs refused it)",
       "exit_code": 1,
-      "result": "each red by name; every file restored by sha256"
+      "result": "685 tests, 683 pass; the two failures are the handoff guard alone (the handoff for this branch describes this branch, and the ratchet that runs that suite on a copy), not yet refreshed, so 1298dbe and 6e1e43a were plain commits"
     },
     {
-      "command": "npm run test:bootstrap on the tree that became b2193ad",
+      "command": "node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00 on 1298dbe",
+      "exit_code": 0,
+      "result": "all 10 changed paths declared, every amendment explains one (with evidence/VERIFICATION.md still declared it was 74)"
+    },
+    {
+      "command": "node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 0,
+      "result": "foundation-contract 1074 assertions by the guard's count, floor 1074"
+    },
+    {
+      "command": "try-it up, demo, psql, down on 1298dbe (private scratch dir, port 55420 picked by up)",
+      "exit_code": 0,
+      "result": "0, 0 (13 of 13), 0, 0; cluster 58 MB, deleted"
+    },
+    {
+      "command": "negative control on 1298dbe: alter table app.content_items disable row level security, demo; enable, demo; down",
       "exit_code": 1,
-      "result": "685 tests, 683 pass; the two failures are the handoff guard alone (not yet refreshed), so b2193ad is a plain commit"
+      "result": "demo 1 with RLS off (6 of 13 named, the same six as the draft), 0 with it on; down 0"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (98d0f2f)",
-      "exit_code": 0,
-      "result": "clean: 685 of 685"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs 5bde893 WP-0A-DB-00",
-      "exit_code": 0,
-      "result": "all 13 changed path(s) are declared, and every amendment explains one (at b2193ad)"
-    },
-    {
-      "command": "C0 R1-R3 on 45893d9, branch name (read from the C0 record, not re-run here): verify-branch-scope 5bde893, npm run check:handoff, npm run verify",
-      "exit_code": 0,
-      "result": "all 16 changed paths declared; describes the branch; clean 685/685 (C0-SL-6: the previous refresh did not record these)"
-    },
-    {
-      "command": "review round: every fed source through the new psqlLex (private scan.mjs; every *.sql in git, every probe and drift, every exported run.mjs script) and unsafeDrifts(CATALOG_RULE_PROBES)",
-      "exit_code": 0,
-      "result": "219 sources, 0 with findings; unsafeDrifts []"
-    },
-    {
-      "command": "review round: the changed fingerprint drift fed alone on stdin to psql 17.11, log_statement = all (private diffdrift.mjs)",
-      "exit_code": 0,
-      "result": "psql sent 6, the lexer split 6; recorded sha256 8c0033d6f408..."
-    },
-    {
-      "command": "review round r1, working tree: fresh initdb (127.0.0.1:5507, TCP only), shim, make db-migrate-clean, make db-rls-smoke twice",
-      "exit_code": 0,
-      "result": "migrate-clean 0 (30 probe self-tests refused their drifts and were clean again, the fingerprint probe with its pg_sleep rename included; post-migrate pass 51 blocks, 39 as written, 12 replaced); rls-smoke 0 and 0, 1087 cases each"
-    },
-    {
-      "command": "review round: C0's D-op and D-ren and S-begin appended to 140_audit.sql, fresh cluster each, 140 restored by sha256 2ac596bb950e8dfb (private drifts.mjs)",
-      "exit_code": 2,
-      "result": "each migrate-clean 2 at '140_audit.sql line 1019' before anything applied; no marker file written (C0 had measured both markers written on 45893d9)"
-    },
-    {
-      "command": "review round mutations (private mutate.mjs): M-view, L14, M-name, M-naming-only, M-held, M-held-parens, M-grants",
+      "command": "refusals: demo with no cluster; up with no initdb on PATH then the printed down; up --port 5507; demo under Node 26.7.0",
       "exit_code": 1,
-      "result": "each red by name; every file restored by sha256"
+      "result": "each 1 with a try-it: line naming the command to type; the half-made directory removed by the printed down (0); nothing created for 5507; the Node note printed"
     },
     {
-      "command": "npm run check, working tree before 286770f",
+      "command": "round 1: fresh initdb (127.0.0.1:5507, TCP only, --locale=C, -A trust), shim, make db-migrate-clean, make db-rls-smoke, on 1298dbe",
       "exit_code": 0,
-      "result": "685 tests, 685 pass (coverage floor, toolchain, secrets, protocol, suite)"
+      "result": "migrate-clean 0 (ok in 5118ms); rls-smoke 0 (1087 isolation cases, 6 authz claims)"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 5bde893 WP-0A-DB-00, before 286770f",
+      "command": "round 2: re-initdb, the same",
       "exit_code": 0,
-      "result": "all 19 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (286770f)",
-      "exit_code": 0,
-      "result": "clean: exit 0 -- tests 685, pass 685, fail 0"
-    },
-    {
-      "command": "review round r2 on 286770f, branch name, a second fresh cluster: the same three",
-      "exit_code": 0,
-      "result": "migrate-clean 0 (30 self-tests; 51 blocks); rls-smoke 0 and 0, 1087 cases each; cluster stopped and removed"
-    },
-    {
-      "command": "npm run check:handoff and npm run verify on the branch name after this handoff commit",
-      "exit_code": 0,
-      "result": "recorded in the PR body and the Author run's structured result; a handoff cannot record the guard run on the commit that contains it"
+      "result": "migrate-clean 0 (ok in 5256ms); rls-smoke 0 (1087, 6)"
     }
   ],
-  "security_privacy_cost_impact": "Security: tooling and static tests only; no grant, policy, role or schema change. Every static reader now reads SQL as PostgreSQL does, and psqlLex refuses in every fed source, at every level of literal and dollar body: COPY to or from any target but STDIN/STDOUT whatever its quoting (C0-OTR-2, A1-RC-1, Q0-OT2-1), a server-file function called by name or internal symbol, LANGUAGE internal or c (A1-RC-2), CREATE EXTENSION outside pgcrypto and the foreign-data statements (Q0-OT2-2). Each was reachable only by a reviewed migration author; the live catalog probes still hold the guarantees. Privacy: no data. Cost: none; no dependency. Review round: a server-file function is refused as ANY identifier token outside GRANT, REVOKE or COMMENT (C0-SL-1: an operator over lo_export and a rename of it each wrote a host file with every layer green before), and every `;` psql would hold inside CREATE FUNCTION/PROCEDURE is refused (C0-SL-3).",
-  "migration_and_data_impact": "None. No migration file is added or edited. db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (+1 each: the manifest's amendment list grew by one line; indexes and quotes unchanged). No integrated migration or fed source is newly refused (measured over all 221). Review round: still no migration; the fingerprint probe's rename drift moves from pg_read_file to pg_sleep (same shape, digest moved); 0 new refusals over 219 fed sources.",
-  "compatibility_impact": "Tests 684 -> 685 (one added to foundation-contract: test floor 80 -> 81, its name digest, assertion floor 1014 -> 1044; identity-isolation stays 2169), evidence/VERIFICATION.md 685. rls-smoke cases unchanged at 1087. The removed exports of psql-driver.mjs (SET_NAMES, COPY_PROGRAM, COPY_SERVER_FILE, SERVER_FILE_CALL, escapeSpellings, ESCAPE_SPELLING_DEPTH) had no other user; SERVER_FILE_FUNCTIONS grows from 17 to 33 names and APPROVED_EXTENSIONS is new. Three existing lexer shapes gain a fail-closed finding (each commented). Review round: no test added (685 stays), assertions added to existing tests; the owed-tooling shape `alter function pg_catalog.pg_read_file(text) rename to probe_x` is now refused (1, was 0); psqlHeldSemicolons is a new export of sql-lexer.mjs.",
+  "security_privacy_cost_impact": "Security: a local tool only; no grant, policy, role, schema or CI change. try-it makes a cluster outside the repository that listens on 127.0.0.1 only, over TCP, with no unix socket, and trusts local connections while it is up (any process on the machine can connect as the superuser; it holds synthetic fixtures only; TRY-IT.md says so; A1 owes the call on a per-cluster password, open_blockers[196] (2)). Every URL it builds passes the repository's testHostRefusal narrowed to loopback names and a non-reserved port; it refuses 5432 and the measurement ports; `down` deletes only a directory holding its marker and nothing but what `up` made. Privacy: synthetic fixtures only, no real data. Cost: none; no dependency, no service.",
+  "migration_and_data_impact": "None. No migration file is added or edited. scripts/db/rls-smoke.mjs moves its helper and fixture loading, unchanged, into the exported loadHelpersAndFixtures(), which main() calls (rls-smoke 1087 cases, twice). db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged).",
+  "compatibility_impact": "Tests stay 685 (no test added); foundation-contract's assertion floor 1044 -> 1074 (main counted 1054; 20 assertions added to the existing live-target refusal test); test floor and name digest unchanged; evidence/VERIFICATION.md unchanged. rls-smoke.mjs gains one export (loadHelpersAndFixtures). New: scripts/db/try-it.mjs, db/foundation/TRY-IT.md. No Makefile target or npm script (owed to the Integration Owner).",
   "known_limitations": [
-    "Semantics are not lexical: which function a name resolves to, what a body does at run time, whether a grant widens anything. The live catalog probes hold these.",
-    "Text computed at run time (EXECUTE of a concatenation, format(), chr(), set_config of a built name, 'pro' || 'gram') is not read by any lexer.",
-    "The word rules over the lexer's output (the tripwire and view patterns, the migration-text pins) are still patterns, over normalised text, and read the spellings pinned.",
-    "The differential is re-checked statically only for sources whose sha256 it recorded; a new fed source needs the measurement re-run (owed to A0 on open_blockers[185]).",
-    "A psql variable reference named by a digit (b[1:2]) is admitted: psql sets none and nothing fed can set one.",
-    "evidence/VERIFICATION.md was written with record-verification.mjs's own render at 685/685/0, because record:verification refuses while the handoff guard is red and the handoff commit is last and alone; verification-record.test.mjs checks it against a live run.",
-    "A literal holding only a server-file name (`where proname = 'lo_export'`) is refused, because a literal's text is read as SQL at the next level: an over-refusal, fail closed, that no fed source meets today.",
-    "A `;` psql's begin_depth heuristic would hold is refused, not modelled: modelling the merge would hide a later statement's head from the transaction-control rule.",
-    "Word rules over raw or stripped text remain in rls-assertions.test.mjs (set_config over the helper) and the §8.5 rules of run.mjs (C0-SL-I2), within the stated word-rule limit."
+    "Measured on macOS (Darwin 25.6) with Homebrew PostgreSQL 17.11 and Node 24.20.0 only; Linux unmeasured, Windows not claimed (open_blockers[196] (3)).",
+    "The demo shows the database rules on a local copy: no app, no service-worker path (no app_worker step; open_blockers[113]), no provisioned Supabase instance; 13 representative checks, not the suite.",
+    "The demo's four counts steps pin today's fixture; CI holds the plan statically, not the counts live (open_blockers[196] (4)).",
+    "Trust auth on loopback while a cluster is up (open_blockers[196] (2)).",
+    "The other DB runners still enter main() by `file://${argv[1]}` (a clone path with a space); try-it does not (open_blockers[196] (5), read and not measured).",
+    "The cherry-picked draft commit's message says assertion floor 1014 -> 1030, true on 5bde893; on main the floor is 1074, set by 1298dbe."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[185] records what this batch closed, its review round's corrections (A1-RC-2 was closed for LANGUAGE internal/c only and is now closed by token position; the counts are 18 and 15; the psql split), and what stays owed with owners (A1-RC-4, the INFO items of the owed-tooling re-checks, re-running the differential for new fed sources); none is stop-the-line.",
-    "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, the provisioned-instance measurement (Q170-c) and DATA-DEC-03 stay unanswered; this batch does not decide them.",
-    "RFC-2026-025 §5: Integration Owner evidence is still owed for every merge A0 presses."
+    "open_blockers[196] holds what this batch leaves owed, each with its owner: a make/npm entry point (Integration Owner), trust auth on loopback (A1), platforms (A0), the demo's pinned counts (A0), the other runners' entry check (A0), independent review and test (C0, Q0, A1); cross-referenced to [113] and [188]. None is stop-the-line.",
+    "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, the provisioned-instance measurement (Q170-c), DATA-DEC-03 and the other unanswered Q-ids stay unanswered; this batch does not decide them.",
+    "RFC-2026-025 §5: Integration Owner evidence is still owed for every merge A0 presses (open_blockers[188])."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved, so a revert restores the previous readers exactly.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved; a cluster a person made with `up` is removed by `down`, and a revert leaves no state behind.",
   "recommended_next_work_packages": [
-    "Re-checks of this review round by the C0, A1 and Q0 role runs (in particular C0-SL-1's remedy (a) and the begin_depth refusal). Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
-    "The decisions the Owner's summary named as needing words or access (items 1-4), unchanged."
+    "The C0, Q0 and A1 role runs on this batch (A1 in particular on trust auth on loopback and the marker-guarded delete). Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
+    "Then ask the Owner to test: the four commands in db/foundation/TRY-IT.md's Quick start, and what they see.",
+    "The decisions still unanswered (RFC approvals, SLO ratification, instance access, DATA-DEC-03), unchanged."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md \"Review round\" first (cherry-pick map; finding -> change -> measured); then git diff 45893d9..286770f.",
-    "Re-run C0's D-op and D-ren appended to 140_audit.sql on a fresh cluster (shim first; restore byte for byte): each should now be migrate-clean 2 with no marker file. Re-run S-begin likewise.",
-    "Re-run M-view (viewScanText = (text) => text) and L14 (VT removed from SPACE): each should now be red.",
-    "Read scripts/db/sql-lexer.mjs against the PostgreSQL 17 documentation (sql-syntax-lexical) and src/backend/parser/scan.l: comments ended by CR, nested comments, continuation in the E state, UESCAPE, dollar-tag matching, the numeric junk rule, the operator cut.",
-    "Re-run the drifts by appending each of plan §3 to 140_audit.sql on a fresh cluster (shim first) and restoring the file byte for byte; re-run the differential with log_statement = all and compare the queries psql sent with psqlLex(sql).statements.",
-    "Try to find a spelling a reader still reads otherwise than PostgreSQL: every finding of that kind is now a lexer bug, fixed once for every reader."
+    "Read evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md first (item -> change -> proof; the full transcript), then git diff b0a3809..1298dbe; the draft record a0-try-it-draft-2026-10-04.md describes the tool as drafted.",
+    "Run it yourself on a scratch directory outside the repository: node scripts/db/try-it.mjs up --dir <scratch>, demo, psql, down (with the same --dir). Expect 13 of 13 and the directory gone.",
+    "Repeat the negative control: after up, alter table app.content_items disable row level security as postgres; demo should exit 1 naming six steps.",
+    "Try to make try-it touch what it did not make: a --dir inside the repository, a non-empty directory without the marker, a forged marker naming another directory, a reserved port, an off-loopback URL. Each should refuse with nothing changed.",
+    "Re-run make db-migrate-clean and make db-rls-smoke on a fresh cluster (shim first): rls-smoke.mjs's loading was moved, not changed."
   ],
   "superseded_by": null
 }
