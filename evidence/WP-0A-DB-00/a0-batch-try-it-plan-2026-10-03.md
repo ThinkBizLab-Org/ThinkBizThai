@@ -345,3 +345,76 @@ cd /Users/bank/ThinkBizThai
 ```
 
 The guide is `db/foundation/TRY-IT.md`.
+
+## Review round (2026-10-04)
+
+Written by a subagent of `/claude/a0_atlas` (the Author). It fixes what the three role runs found and approves
+nothing; the PR stays a Draft. No migration, no dependency, no decision, no new test. Nothing above this heading is
+rewritten: where it is wrong, the correction is here.
+
+### Cherry-pick map
+
+| Role run | Review branch, commit | Here, `cherry-pick -x` |
+|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `review/c0-batch-try-it` `cdafe99` | `849890f` |
+| A1 `/claude/a1_bastion` | `review/a1-batch-try-it` `a7f6c97` | `739ea82` |
+| Q0 `/claude/q0_sentinel` | `review/q0-batch-try-it` `4350d39` | `dfb524a` |
+
+All three: no stop-the-line, nothing blocks the merge in their reading. The code of this round is `dd11a35`.
+
+### Finding -> change -> measured
+
+| Finding | Change (`dd11a35`) | Measured |
+|---|---|---|
+| **Q0-TI-1** (MEDIUM) = **C0-TI-1** (LOW): in a clone path with a space, migrate-clean exits 0 having run nothing, and `up` took that exit 0 as success | (a) `migrateCleanProblem({ code, out })`, exported: `up` goes on only when the output holds a `db-migrate-clean: ok` line AND at least one `  applied ` line; otherwise the half-made refusal names why. (b) `run.mjs`, `rls-smoke.mjs`, `authz-proofs.mjs` and `run-isolation.mjs` enter `main()` by `pathToFileURL(argv[1]).href` (one line and one import each). (c) the wording: plan §1 row 4 and `1298dbe`'s "a path with a space still runs" were true of try-it's own `main()` only; `open_blockers[196]` (5) now says so, measured | Fed the real make output of round r1: `{ applied: 54, summary: 'db-migrate-clean: ok in 5038ms', problem: null }`; an empty exit 0: "printed no `db-migrate-clean: ok` line, so it did not run". A copy of the tree under `clone with space/`, no `DB_TEST_URL`: each of the four runners now exits **1** with its own refusal; the same four at `cee1585`, same path: exit **0**, 0 bytes (the control). Static: M-mig, M-applied, M-runner red |
+| **A1 F1** (MEDIUM): trust on loopback is the superuser, so OS command execution as the Owner; TRY-IT.md undersold it | (a) now: TRY-IT.md Safety says "as the database superuser", that the superuser can run operating-system commands as you (`COPY ... TO PROGRAM`), that any program or account that can reach `127.0.0.1` can do so while it is up, "Run `down` as soon as you are done", and that a per-cluster password is owed before a make/npm command. (b) scram-sha-256 with a random per-cluster password in a 0600 file and `PGPASSFILE`: **owed**, recorded on `[196]` (2) as A1's answer. Bounded, but it changes every connection try-it and its children make (`initdb`, the shim feed, `run.mjs`, rls-smoke's loader, the demo session, the printed `psql`) and wants its own live `up`, which this round cannot run (below) | read (A1's measurement stands) |
+| **A1 F2** (LOW): `down` acted on a forged marker -- stopped a cluster it did not make, signalled an arbitrary PID, ignored the reserved ports | `downRefusal(dir, marker)`, exported, before anything is stopped: the marker's URL must pass `tryItRefusal`; `dir` and every owned entry (and `data/postmaster.pid`) must not be a symlink; `pidFileProblem`: line 2 must realpath to `<dir>/data`, line 4 must equal the marker's port, line 1 must be a number. Then, before `pg_ctl stop`, the server answering on the marker's port is asked `current_setting('data_directory')`, and it must realpath to `<dir>/data`. If the connection is refused, nothing is signalled (the file is stale, as after a restart); any other connection error refuses | Live on a 5507 cluster of mine: its real `postmaster.pid` (lines `10808 / <P>/pg-r1 / 1791125951 / 5507`) gives `pidFileProblem(...)` = `null` for port 5507 and "names port 5507, and the marker port 55478" for 55478; its `data_directory` realpaths equal. Forged dirs, `down` each: D7 again (marker 5432, `data` -> my 5507 cluster) exit 1 "port 5432 is one this tool never touches"; marker 55478 with `data` -> my cluster: exit 1 "data ... is a symlink"; a copied live `postmaster.pid` in a real `data`: exit 1 "names another data directory"; D6 again (a live unrelated Node process's PID, line 2 my cluster): exit 1, the same; that PID with line 2 its own `data` and line 4 5507: exit 1 "names port 5507". After all five: `pg_ctl status` 0 (my cluster untouched), the unrelated process got **no** SIGINT, every forged dir still there. A real refused connection reads `... failed: Connection refused` (the text the stale-file branch keys on). Static: M-pid, M-pidport, M-downport, M-links red |
+| **A1 F3** (LOW): the repository check was bypassed by a not-yet-existing path under a symlink into the repository | `realpathThroughAncestor(path)`: the real path of the nearest existing ancestor plus the rest; `insideRepo` uses it. `up` also refuses a `--dir` that is a symlink, and reads the check again after `mkdir`, before the marker is written. TRY-IT.md:152 is now true as written, and says how | Static: a not-yet-made path under a link to the repository is inside it; `up --dir <link>/not-yet --port 55478` exits 1 "is inside the repository" (U7's shape; it stopped at the port before). M-ancestor red |
+| **Q0-TI-2** (LOW): the printed "next" commands only ran from the repository root | `SCRIPT = join(REPO, 'scripts', 'db', 'try-it.mjs')`, shell-quoted, in every printed command; TRY-IT.md says the printed ones run from anywhere | Static: the three `nextCommand` assertions now expect the full script path; `shellQuote('/a b/c')`. M-script red |
+| **Q0-TI-3** (LOW): a stopped cluster read as `DEMO FAILED: 13 of 13` | `attached()` (demo, psql): no `data/postmaster.pid` -> "is not running (it has stopped, after a restart for example). Run `down`, then `up`"; a pid file but no answer to `select 1` -> "does not answer on 127.0.0.1:N (...)", the same advice. `up`'s "already holds" says `down` then `up` is the way back if it has stopped | Static: `demo` and `psql` on a marker with no `postmaster.pid` exit 1 with that text, and no connection is tried. The probe branch (a stale pid file after a restart) is read, not measured live (limit below) |
+| **Q0-TI-4** (LOW, read): `down` refused over a foreign entry before stopping, leaving the trust cluster running | `down` stops first (after every check above), then refuses the delete: "holds things `up` did not make (notes.txt). The cluster is stopped; nothing is deleted. Move those out and run `<down>` again." | Static: the message, the foreign file kept; and the control: the same forged dir without it is deleted (no server, nothing signalled) |
+| **C0-TI-2** (LOW): TRY-IT.md said `db-rls-smoke` would fail on a loaded database | Says `db-migrate-clean` fails on a migrated database (`role "app_worker" already exists`) and `db-rls-smoke` loads again and passes | read (C0 M12) |
+| **C0-TI-3** (LOW) = Q0-TI-7 (INFO): "several hundred cases" | "over a thousand cases (1087 on 2026-10-04) plus the authorization proofs (6 claims)" | rounds r1, r2 below: 1087, 6 |
+| A1 F4 (INFO): `up` onto a regular file crashed with a stack trace | `up` refuses a non-directory with a `try-it:` line | Static: exit 1, `^try-it: .* is not a directory`. M-notdir red |
+| A1 F5 (INFO) = Q0-TI-5 (INFO): `[196]` cites the plan's §5; the owed list is §6 | Corrected by an append to `[196]` (its text above is not rewritten) | read |
+| C0-TI-4 (INFO): the settled-approval witness reads a value the statement writes | Step 12's `proves` and TRY-IT.md part 6 now rest on the 0-row update ("which is the proof"); the suite's witness is the suite's, unchanged here | read |
+| C0-TI-5 (INFO): no way given to get `initdb` on PATH | `brew link postgresql@17`, or `$(brew --prefix postgresql@17)/bin` first on `PATH` | read |
+| C0-TI-7 (INFO): "built exactly as CI builds" | "built from what CI builds its test database from" (TRY-IT.md, and `up`'s closing paragraph), with the differences named (locale C, durability off); the demo's last line likewise | read |
+| C0-TI-6 (INFO), Q0-TI-6 (INFO) | No rewrite (no force-push). For Q0-TI-6: the cherry-pick's conflict resolution in `4539d92` set the floor to an intermediate 1060, recorded nowhere until now; `1298dbe` set 1074 and this round 1101 | -- |
+
+Every mutation above (private `mutate.mjs`) weakens one fix in place, runs the one test, and restores the file
+(sha256 compared): M-mig, M-applied, M-ancestor, M-pid, M-pidport, M-downport, M-links, M-notdir, M-script,
+M-runner, each **red** with the assertion that names it, each restored. A mutation of the `attached()` pid-file check
+was not run: with it, the test's `demo` would try a connection to a port in try-it's range that another run may hold.
+
+### Measured on this round (Node `v24.20.0`, checked before every run; PostgreSQL 17.11, 127.0.0.1:5507, TCP only, `initdb --locale=C -A trust -U postgres`, `LC_ALL=C`, the CI shim first, re-initdb every round)
+
+| Command | Where | Exit | Output |
+|---|---|---|---|
+| `node --test --test-name-pattern='a target needing a database refuses' test-kits/db/foundation-contract.test.mjs` | working tree | 0 | 1/1 |
+| `npm run check` | working tree, branch name | 0 | tests 685, pass 685 |
+| `node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00` | working tree, branch name | 0 | "all 16 changed path(s) are declared, and every amendment explains one" |
+| `node scripts/commit-when-clean.mjs` -> `dd11a35` | branch name | 0 | "clean: exit 0 — tests 685, pass 685" |
+| round r1: shim, `make db-migrate-clean`, `make db-rls-smoke` | working tree that became `dd11a35` | 0, 0, 0 | `ok in 5038ms`, 54 scripts applied; 1087 isolation cases passed, 6 claims discharged, `ok in 1236ms` |
+| the probes above (private `probes.mjs`, `space.sh`) | r1's cluster, then stopped | -- | as in the table |
+| round r2, re-initdb | `dd11a35` committed | 0, 0, 0 | `ok in 5180ms`; 1087, 6, `ok in 1271ms` |
+| foundation-contract assertions, the guard's own rule | `dd11a35` | -- | 1101 (1074 + 27); the floor in `scripts/test-suite-contract.mjs` moves 1074 -> 1101 |
+
+`run.mjs` and `rls-smoke.mjs` changed only in how `main()` is entered, so the rounds were the check that matters:
+both targets printed their own summaries, which a skipped `main()` would not. No migration text or migration-reading
+rule changed, so no drift was appended and `140_audit.sql` was not touched. The cluster is stopped and removed;
+nothing listens on 5507.
+
+### Still owed (recorded on `open_blockers[196]`)
+
+- **`up`, `demo`, `psql`, `down` end to end on this round's code**, and a stopped cluster and a stale
+  `postmaster.pid` live: try-it refuses 5507 (a reserved port), and this round was allowed no other. The changed
+  parts are measured piecewise above and held statically. Owner A0, the next run with a port in 55420-55479.
+- **A per-cluster scram-sha-256 password** (A1 F1 (b)), before a make/npm entry point. Owner A0.
+- `scripts/verify-clean-run.mjs:75` and `scripts/refresh-author-handoff.mjs:373` keep `file://${process.argv[1]}`:
+  outside this package's ownership; the Integration Owner.
+- A residual: when nothing answers on the marker's port, `down` signals nothing and deletes the directory, so a
+  postmaster alive but not listening on its port would not be stopped by `down`.
+
+Private artefacts: `a0-try-itr2/` in the run's scratchpad (`round.sh`, `probes.mjs`, `space.sh`, `mutate.mjs`, each
+log).
