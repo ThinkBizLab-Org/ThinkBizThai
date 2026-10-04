@@ -175,3 +175,42 @@ second round, f2, on the committed code, and the final `npm run check`, branch s
 `static-mut.sh`, `mutations.log`, `copyscan.mjs` (the source scan for the two new lexer rules),
 `q-internal.sql` (the internal trigger inventory), `append-blockers.mjs`, `rationale.mjs`, and each round's
 output. The cluster on 5507 is stopped and its data directory removed at the end.
+
+## Re-checks of the review round (2026-10-04)
+
+C0, A1 and Q0 re-checked `a722c1c` (code `84e10f7`). Their files are cherry-picked with `-x`:
+
+| Run | Original | Cherry-picked |
+|---|---|---|
+| C0 | `5bf0d5f` | `f20b1ec` |
+| A1 | `8daa18f` | `036360c` |
+| Q0 | `101ec34` | `8b98314` |
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is
+green on `a722c1c` (run 37188723660). A0 changes no code in this round.
+
+**A0's assessment: the remaining findings belong to one class.** Each is a static text scanner that
+reads SQL less precisely than PostgreSQL does. For each, every scanner fix so far has been followed by
+a new spelling that gets past it:
+
+- the dollar-quoted literal that desyncs the do-block blanker (C0-OTR-1, A1-RC-3);
+- a dollar-quoted or `;`-bearing COPY target (C0-OTR-2, A1-RC-1, Q0-OT2-1);
+- server-file function aliases (A1-RC-2);
+- `--` inside a dollar body in sqlWithoutComments (A1-RC-I1, Q0-OT2-7);
+- file_fdw `options(program …)`. This one runs at apply time, and migrate-clean refuses it only after
+  the fact (Q0-OT2-2).
+
+The live probes, which read the catalog, are what actually hold the grant, trigger and policy
+guarantees. The static scanners are an early-warning layer.
+
+A0's recommendation is to stop extending the static scanners. The fix that converges is a real SQL
+lexer, or running every fed source through PostgreSQL's own parser (`pg_query`-style), which needs a
+dependency and therefore an RFC. Until then, these items are owed on [185], each with its limit stated:
+
+| Finding | Grade | Owed |
+|---|---|---|
+| The do-block blanker desyncs on a dollar-quoted `'` or `'a--'` (C0-OTR-1, A1-RC-3). The quoted-name and comment spellings of the review round are closed | LOW | A0: one lexer for every static reader, or a parser RFC |
+| COPY_SERVER_FILE reads only a single-quoted target. A dollar-quoted name, or a `;` inside the query, wrote a host file with every layer green (C0-OTR-2, A1-RC-1, Q0-OT2-1). SERVER_FILE_CALL is a name list, so `language internal` aliases pass (A1-RC-2), and 12 of its 17 names are unpinned (Q0-OT2-5) | LOW | Same. Note: only a migration author reaches these, and every migration is reviewed |
+| file_fdw `options(program …)` runs a shell command at apply time (Q0-OT2-2) | LOW | A0: refuse `create extension file_fdw` and `create foreign table` in fed sources, or a parser RFC |
+| The new internal-trigger rule checks one direction. Deleting an RI trigger row from pg_trigger passes (A1-RC-4) | LOW | A0: pin the internal trigger set both ways |
+| Membership of `in-minimum-domain-projection-undecided` is unpinned (C0-OTR-3). Rule 3's referencing/referenced split, the audit-map quote rule, and redactConnection's sort/password parts are pinned by text only (Q0-OT2-3, -4, -6). The zone-id IPv6 host is printed (A1-RC-I2) | INFO | recorded |
