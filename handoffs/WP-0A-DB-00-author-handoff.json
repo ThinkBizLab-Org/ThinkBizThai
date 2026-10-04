@@ -4,198 +4,207 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "1930f4131eaf25ca6ba834b1e82ddb2511c966df",
-  "head_revision_or_patch_checksum": "0bf809ddfbb050a46c41d91996b0c9bbfe6e28ea",
+  "base_revision": "f3e6fbcc574ce3f3e66d000f28ec5cf650f6b03f",
+  "head_revision_or_patch_checksum": "0ee6248f83efafe3ec56ad535a8576c0fe001b34",
   "task_ids": [],
   "files_added": [
-    "db/foundation/lint/safe-projections.json",
-    "db/foundation/migrations/150_performance_snapshots_key.sql",
-    "evidence/WP-0A-DB-00/a0-batch-150-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-150-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-150-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-150-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-150-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-150-wording-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md",
-    "evidence/WP-0A-DB-00/q0-batch-150-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-150-test-review-2026-10-03.md"
+    "architecture/decisions/RFC-2026-026-audit-row-producer.md",
+    "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
+    "evidence/WP-0A-DB-00/a0-batch-rfc-026-027-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a0-rfc-026-027-draft-2026-10-04.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-test-review-2026-10-03.md"
   ],
   "files_modified": [
-    "db/foundation/README.md",
-    "db/foundation/lint/catalog-snapshot.json",
-    "db/foundation/lint/index-coverage.json",
-    "db/foundation/lint/pinned-shapes.json",
+    "db/foundation/lint/audit-coverage-map.json",
+    "db/foundation/lint/retention-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/explain-harness.mjs",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
+    "scripts/verify-test-coverage-floor.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
+    "test-kits/repository-json.test.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `เิาตามแนะนำ` (2026-10-04, \"as recommended\"; product-owner-disposition-2026-10-03-batch-150.md §1-§2), read by A0 as answering all 16 open Q-ids of the phase as A0 recommended (Q141-a/b/c, Q150-a..e, Q160-a..d, Q170-a..d). Implemented here: Q150-a (the key (id, metric_time), migration 150), Q150-e (the harness's workspace list from workspace_members) and Q170-d (rule 17: a pinned safe projection for PROVIDER-3 and INTERNAL-3). Consumed as direction: Q150-b (no partition by, no index), Q150-c (A0 authors, A1 reviews, number 150 as a one-time exception to MOD-120's range), Q150-d (values drafted as PROPOSED, plan §5, unratified). Recorded and owed, each on its blocker: Q141-a/b/c, Q160-a..d, Q170-a/b/c. Where the named owner is another role, that role's acceptance remains owed.",
-    "The standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #172; it does not decide this PR's merge."
+    "The Owner's `เิาตามแนะนำ` (2026-10-04, \"as recommended\"; product-owner-disposition-2026-10-03-batch-150.md §1 and §5), which answered Q141-a (B: audit rows from an application command or the worker only, no trigger) and Q170-a (yes: an RFC amending RFC-2026-020 so app_authz may read workspaces.lifecycle_state) as A0 recommended and directed both RFCs to be written in this batch, after a writable-path amendment. No new Owner words since (product-owner-disposition-2026-10-03-batch-rfc-026-027.md §1).",
+    "The standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #173; it does not decide this PR's merge."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 150: the migration work of batch 150 that waits on no pending decision, written under the Owner's `เิาตามแนะนำ` (2026-10-04, \"as recommended\"; the typo is the Owner's and is kept), which answered all 16 open Q-ids of the phase (17 until the review round corrected the count, C0-2, Q0 Q-1) (Q141-a/b/c, Q150-a..e, Q160-a..d, Q170-a..d) as A0 recommended. Plan a0-batch-150-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-150.md (the words verbatim; one row per Q-id citing the disposition it came from).",
-    "Branch agent/claude/WP-0A-DB-00-batch-150 is cut from main 1930f41 (PR #172, merged by A0 at its reviewed head 64684a2 under the standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6; required check bootstrap, run 37162394369, green on 64684a2). There was no draft; this branch is the first writing.",
-    "Implemented: Q150-a (150_performance_snapshots_key.sql, the key (id, metric_time), no partition by), Q150-e (the harness's workspace list from workspace_members) and Q170-d (rule 17: SECRET-4 no client privilege; PROVIDER-3, INTERNAL-3 and the twelve open tables held to db/foundation/lint/safe-projections.json both ways). Q150-d's values are drafted into the plan §5 as PROPOSED and asserted nowhere. Every other answer is recorded on its blocker and its work is owed.",
-    "Migration number 150 is Q150-c's answer: A0 authors, A1 reviews, a recorded one-time exception to MOD-120's range (115-129) for the rebuild of a MOD-120 table; not a precedent and not an assignment of ERD:280's DB performance owner.",
-    "Where a question's named owner is another role (A1, A6, A4, Product/Ops, Product/Security/Legal), the Owner directed the answer and that role's own acceptance is still owed, recorded on the relevant blocker; this handoff speaks for no role.",
-    "REVIEW ROUND (plan §11): C0 607cf5d, A1 4a08b8a and Q0 63d4d5f were cherry-picked with -x as b073813, 9c6da72 and c2e713c, and acted on in 2492ae9. 150 is not integrated, so it is edited in place: the partition path as measured (an attach alone is refused for the identity column), id alone recorded as unique by no constraint (accepted), and check 2 reading unique indexes. Rule 3's privilege lists are driven and pinned. SP-4 is added. The records say 16, not 17."
+    "THIS INCREMENT IS BATCH RFC-026-027: two decision records, RFC-2026-026 (audit row producer) and RFC-2026-027 (lifecycle visibility), both Proposed; their approval is the Owner's and A1's act, owed. No migration, policy, grant, pin or lint rule changes. Plan a0-batch-rfc-026-027-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-rfc-026-027.md, drafting record a0-rfc-026-027-draft-2026-10-04.md.",
+    "Branch agent/claude/WP-0A-DB-00-batch-rfc-026-027 is cut from main f3e6fbc (PR #173, merged 2026-10-04T03:20:26Z by A0 at its reviewed head 04c2a6c under the standing delegation; required check bootstrap, run 37173407430, green on 04c2a6c). The local draft (2917c5c, 56ad4bf on draft/wp-db00-rfc-026-027, stacked on 5c406de) was cherry-picked onto it without a conflict as 7479107 and 6326183; 31ffab4 packages it; 4916579 adds the plan and disposition.",
+    "The writable-path amendment adds exactly the two RFC files beside 021-025. They are registered in DECISION_RECORDS (test-kits/repository-json.test.mjs) and DIGESTED_FLOOR (scripts/verify-test-coverage-floor.mjs), the 5856f0b precedent; both files are declared in amends_without_owning with the branch-identity slot and the integrity manifest. Batch 150's scripts/test-suite-contract.mjs amendment is dropped (merged; no floor moves).",
+    "The manifest grew by three lines above open_blockers, so open_blockers[i] is on line 256+i (main 253+i, the draft 257+i); the 33 line pins and two source texts of audit-coverage-map.json and the 19 citations of retention-map.json were re-derived at -1 from the draft and checked by the static suite.",
+    "open_blockers[195] is new and appended at the end: the client UPDATE of workspaces.lifecycle_state (010_identity.sql:403, WITH CHECK :509-517 unbounded), graded MEDIUM, read by A0 as not stop-the-line, for the reviewers to judge; the fix owed to RFC-2026-027's forward migration (Q-026-5 / Q-027-5, recommendation: revoke). It also holds the fourteen questions Q-026-1..8 and Q-027-1..6 by name and owner, all unanswered, cross-referencing [21], [29], [32], [33], [95], [113], [150], [191] rather than duplicating them. Blockers 21 and 95 gain one sentence each: their RFC is written, Proposed.",
+    "This handoff speaks for no role. Where the disposition gives A0's recommendation on a question, it is a recommendation for the Owner's phase-end review, not an answer.",
+    "REVIEW ROUND (2026-10-04, code commit b6d65e1): the role runs C0, A1 and Q0 on e64e1f5 are cherry-picked with -x as b55f0e1, b66a868 and 54ad956; A0 revised both Proposed RFC texts on their findings (plan a0-batch-rfc-026-027-plan-2026-10-03.md §7 maps every finding to its change). Both RFCs stay Proposed; no question is answered; the revision approves nothing. No migration, policy, grant, pin or lint rule changes, and nothing a database layer reads changes, so no live database round was owed or run."
   ],
   "acceptance_results": [
     {
-      "criterion": "Q150-a: performance_snapshots' primary key (id) -> (id, metric_time) by a forward migration, no partition by; every FK/unique/index/policy/pin that references the key checked first and updated through the repository's final-state mechanism, never by editing 121",
+      "criterion": "Q141-a's RFC written (audit row producer: command or worker only, no trigger), Proposed",
       "result": "met",
-      "evidence": "db/foundation/migrations/150_performance_snapshots_key.sql (two statements under lock_timeout 5s and statement_timeout 60s, reset after; the table comment corrected; an apply-time block re-run post-migrate: key by text, every unique carries metric_time, relkind r and no inheritance, id ALWAYS identity and NOT NULL, no FK references the table). Measured on a clean set of 1930f41: 0 foreign keys reference the table; 121's block names no key column, so no superseded.json entry (post-migrate 50 / 38 / 12). db/foundation/lint/pinned-shapes.json rewritten in the same diff. Drifts D1 (a FK on (id)) and D2 (identity by default) fail migrate-clean 2 at 150 (plan §6). open_blockers[179] closed."
+      "evidence": "architecture/decisions/RFC-2026-026-audit-row-producer.md, the draft's text byte for byte; Status line reads Proposed. open_blockers[21] records it."
     },
     {
-      "criterion": "Q150-e: the workspace-list named query starts from app.workspace_members joined to workspaces; at scale <= 0.2 no seq scan and --fail-on-seq-scan exits 0; before/after plans recorded; no policy change, no index",
+      "criterion": "Q170-a's RFC written (app_authz reads workspaces.lifecycle_state; one helper change for every family; amends RFC-2026-020 only on approval), Proposed",
       "result": "met",
-      "evidence": "scripts/db/explain-harness.mjs:84. Base (main's text, 1930f41): Seq Scan on workspaces, total cost 865.54, exit 3. Branch: Bitmap Index Scan workspace_members_user_id_status_idx -> Nested Loop -> Index Scan workspaces_pkey, total cost 27.30, flagged [], exit 0 (plan §3). Same two rows for the caller on a scratch cluster. Static test :3427. open_blockers[194] (1) closed."
+      "evidence": "architecture/decisions/RFC-2026-027-lifecycle-visibility.md, the draft's text byte for byte. open_blockers[95] records it; [53] stays open."
     },
     {
-      "criterion": "Q170-d: rule 17 from 'no client privilege on PROVIDER-3/INTERNAL-3' to 'only a pinned safe projection', an allowlist of exact client columns derived from pinned-grants.json and reviewed against ERD §9.1, unsafe-looking columns recorded as findings, every other client privilege refused, self-test drifts both ways",
+      "criterion": "Packaging: branch slot, increment rationale naming every file amended outside ownership, line pins re-derived, integrity manifest, verify-branch-scope 0",
       "result": "met",
-      "evidence": "db/foundation/lint/safe-projections.json (4 classed tables with empty projections; 12 open tables, 71 client column reads on 7; findings SP-1 performance_snapshots.metrics, SP-2 publish_targets.failure_class, SP-3 publish_jobs.attempt_count, kept); scripts/db/run.mjs:1423-1530 and the probe job :2166 (4 rules, 4 drifts: widen and narrow are new); migrate-clean claim '... a client holds exactly the 71 column reads ...'; D3 (widen) and D4 (narrow) fail migrate-clean 2 by name (plan §6); README rule 17."
+      "evidence": "work-packages/WP-0A-DB-00.json (branch, writable_paths, amends_without_owning); test-kits/branch-identity.test.mjs; plan §1 items 3-8 and 11; node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 exit 0 (all 10 changed paths declared); drifts D1-D8 (plan §2)."
     },
     {
-      "criterion": "The remaining answers recorded without implementing what they defer (Q150-b/c/d, Q170-a/b/c, Q141-a/b/c, Q160-a/b/c/d), each with its owner on a blocker",
+      "criterion": "Every finding the draft recorded is owed with a named owner or cross-referenced to an existing blocker",
       "result": "met",
-      "evidence": "Disposition §5 (17 rows); open_blockers 18, 21, 29, 33, 93, 95, 148, 150, 192, 193 and 194 extended; plan §7-§8."
+      "evidence": "open_blockers[195] (1) the lifecycle_state finding, (2) Q-026-1..8 and Q-027-1..6 with owners; cross-references to [21], [29], [32], [33], [95], [113], [150], [191] (2) and (6); plan §1 closing paragraph."
     },
     {
-      "criterion": "migrate-clean and rls-smoke twice on the branch (a DB-read input changed)",
+      "criterion": "The disposition records the Owner's words verbatim, the merge of #173 as A0 executing the standing delegation, and the fourteen questions as unanswered with A0's recommendation",
       "result": "met",
-      "evidence": "Round 1 on 127.0.0.1:5507: db-schema-lint 0, db-migrate-clean 0, db-rls-smoke 0 and 0 (1079 cases; 6 authz claims) (plan §0.2)."
+      "evidence": "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md §1, §3, §5."
+    },
+    {
+      "criterion": "Review round: every C0, A1 and Q0 finding acted on or recorded as owed",
+      "result": "met",
+      "evidence": "plan §7.2: C0-1..8, F1-a..F3-a, F2-a..g, C1, Q0-F1..F10, each with its change and what measured it; owed items in plan §7.5 and open_blockers[195] (3)-(7), appended only."
+    },
+    {
+      "criterion": "Neither RFC approved; no migration added",
+      "result": "met",
+      "evidence": "Both Status lines still read Proposed; each carries a Revised: line pointing to plan §7. git diff f3e6fbc..b6d65e1 touches no file under db/foundation/migrations/."
     }
   ],
   "tests": [
     {
-      "command": "npm run check (Node v24.20.0, main 1930f41 as cut, before any change)",
+      "command": "git cherry-pick 2917c5c 56ad4bf onto origin/main f3e6fbc",
       "exit_code": 0,
-      "result": "tests 684, pass 684"
+      "result": "no conflict"
     },
     {
-      "command": "make db-migrate-clean on main's migrations (150 moved aside), 127.0.0.1:5507, then explain-harness.mjs --scale 0.2 --json --fail-on-seq-scan",
-      "exit_code": 3,
-      "result": "migrate-clean 0; harness exit 3: workspace list: Seq Scan on workspaces (the before plan)"
-    },
-    {
-      "command": "npm run check before the code commit",
+      "command": "npm run check before the code commit (Node v24.20.0)",
       "exit_code": 1,
-      "result": "tests 684, pass 682, fail 2: the handoff guard only ('the handoff for this branch describes this branch', the handoff ratchet)"
+      "result": "tests 684, pass 682, fail 2: the handoff guard only ('the handoff for this branch describes this branch' and the handoff ratchet that runs the suite on a copy)"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (for 2318c72)",
+      "command": "node scripts/commit-when-clean.mjs (code commit)",
       "exit_code": 1,
-      "result": "refused for the same two handoff tests; 2318c72 committed plainly"
+      "result": "refused on the same two handoff failures; 31ffab4 is therefore a plain git commit, the sole red being the not-yet-refreshed handoff guard"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs 1930f41 WP-0A-DB-00",
+      "command": "node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 at 31ffab4",
       "exit_code": 0,
-      "result": "after 2318c72: all 12 changed path(s) are declared; after 4b252d4: all 14 (74 before the code commit, nothing committed yet)"
+      "result": "all 10 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "make db-schema-lint; make db-migrate-clean (round 1)",
+      "command": "node --test test-kits/db/foundation-contract.test.mjs (undrifted)",
       "exit_code": 0,
-      "result": "150 applied; pinned shape probe 32 constraints, 18 indexes, 4 policies, 5 drifts; data classification probe 4 SECRET-4 tables, 4 PROVIDER-3 or INTERNAL-3, 12 open, 71 column reads, 4 drifts; post-migrate 50 / 38 / 12"
+      "result": "tests 80, pass 80"
     },
     {
-      "command": "make db-rls-smoke twice on the round 1 database",
+      "command": "drift D1: retention-map citations +1, foundation-contract",
+      "exit_code": 1,
+      "result": "1 of 80 fails: the retention map test"
+    },
+    {
+      "command": "drift D2: audit-coverage-map line pins +1, foundation-contract",
+      "exit_code": 1,
+      "result": "1 of 80 fails: batch 141 prep's coverage map test"
+    },
+    {
+      "command": "drift D3: audit-coverage-map source texts (line N) +1, foundation-contract",
       "exit_code": 0,
-      "result": "1079 isolation case(s) passed each time; db-authz-proofs ok, 6 claims; the key read back as PRIMARY KEY (id, metric_time)"
+      "result": "nothing fails: the two prose line numbers are pinned by no test (INFO, plan §2, owed to A0 tooling)"
     },
     {
-      "command": "explain-harness.mjs --scale 0.2 --json --fail-on-seq-scan on a fresh migrate-clean (round 2)",
+      "command": "drift D4: RFC-2026-027 removed from DECISION_RECORDS, node --test test-kits/repository-json.test.mjs",
+      "exit_code": 1,
+      "result": "'the set of decision records is what it was, and each is digested' fails"
+    },
+    {
+      "command": "drift D5: RFC-2026-027 removed from DIGESTED_FLOOR, node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 86,
+      "result": "the integrity tripwire names the edited file"
+    },
+    {
+      "command": "drift D6: scripts/test-suite-contract.mjs re-declared, verify-branch-scope f3e6fbc",
+      "exit_code": 74,
+      "result": "declares 1 amendment that explains nothing this branch changed"
+    },
+    {
+      "command": "drift D7: RFC-2026-027 removed from writable_paths, verify-branch-scope f3e6fbc",
+      "exit_code": 73,
+      "result": "changed 1 path it neither owns nor records as an amendment"
+    },
+    {
+      "command": "drift D8: test-kits/repository-json.test.mjs removed from amends_without_owning, verify-branch-scope f3e6fbc",
+      "exit_code": 73,
+      "result": "the same, naming that file"
+    },
+    {
+      "command": "npm run check before the evidence commit",
+      "exit_code": 1,
+      "result": "tests 684, pass 682, fail 2: the handoff guard only; 4916579 is a plain git commit for the same reason"
+    },
+    {
+      "command": "make db-migrate-clean, make db-rls-smoke",
       "exit_code": 0,
-      "result": "flagged []; workspace list total cost 27.30, no Seq Scan"
+      "result": "NOT RUN: nothing the DB layer reads changed (no migration, scripts/db, fixture, isolation case or CI file; the two lint files changed only in WP line citations, read only by test-kits/db/foundation-contract.test.mjs); no cluster started"
     },
     {
-      "command": "explain-harness.mjs --scale 0.2 --analyze --json --fail-on-seq-scan (round 3)",
+      "command": "git cherry-pick -x 369c495 c276e01 f91294e (review round, on the branch name)",
       "exit_code": 0,
-      "result": "one ANALYZE sample per query, the source of the PROPOSED Q150-d values (plan §5)"
+      "result": "b55f0e1, b66a868, 54ad956; no conflict"
     },
     {
-      "command": "drifts D1-D4 appended to 140_audit.sql, fresh cluster each, migrate-clean / rls-smoke",
-      "exit_code": 2,
-      "result": "D1 2BP01 at 150; D2 P0001 at 150's block; D3 and D4 by the data classification probe (and the pinned grant probe) by name; rls-smoke 0 each; 140_audit.sql restored, sha256 2ac596bb... every time"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs (for 4b252d4)",
+      "command": "npm run check before the review-round commit (Node v24.20.0)",
       "exit_code": 0,
-      "result": "tests 684, pass 684"
+      "result": "tests 684, pass 684, fail 0"
     },
     {
-      "command": "REVIEW ROUND: npm run check (Node v24.20.0), before the fix commit",
+      "command": "node scripts/commit-when-clean.mjs (review-round commit)",
       "exit_code": 0,
-      "result": "tests 684, pass 684"
+      "result": "b6d65e1; clean: exit 0, tests 684, pass 684"
     },
     {
-      "command": "node scripts/commit-when-clean.mjs (for 2492ae9, the review round's fix and records)",
+      "command": "node scripts/verify-branch-scope.mjs f3e6fbc WP-0A-DB-00 at b6d65e1",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 684, pass 684, fail 0"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs 1930f41 WP-0A-DB-00 (after 2492ae9, on the branch name)",
-      "exit_code": 0,
-      "result": "all 19 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "REVIEW ROUND r1 on 127.0.0.1:5507: make db-schema-lint; make db-migrate-clean; make db-rls-smoke twice",
-      "exit_code": 0,
-      "result": "150 applied; data classification 71 column reads, 4 drifts refused; pinned shape 32/18/4/0, 5 drifts; post-migrate 50 / 38 / 12; 1079 isolation cases and 6 claims, twice"
-    },
-    {
-      "command": "REVIEW ROUND r2, a fresh cluster: make db-migrate-clean; make db-rls-smoke twice",
-      "exit_code": 0,
-      "result": "as r1"
-    },
-    {
-      "command": "drift E1 (create unique index on performance_snapshots (id), appended to 140_audit.sql): make db-migrate-clean",
-      "exit_code": 2,
-      "result": "150_performance_snapshots_key.sql: a unique key on app.performance_snapshots does not carry metric_time: index probe_ps_id_uq (P0001); rls-smoke 0"
-    },
-    {
-      "command": "mutant M5ab (rule 3's privilege lists narrowed in scripts/db/run.mjs, restored after): make db-migrate-clean",
-      "exit_code": 2,
-      "result": "data classification self-test after drift 3 refused without naming the four non-SELECT grants"
+      "result": "all 16 changed path(s) are declared, and every amendment explains one"
     }
   ],
-  "security_privacy_cost_impact": "One migration changes app.performance_snapshots' primary key to (id, metric_time); no row, grant, policy, role or client reach changes, and the table is applied to no instance. Since 150, id alone is unique by no constraint, only by its ALWAYS identity and by no application role holding INSERT or UPDATE on it (superusers, the owner and pg_write_all_data excepted; measured on the CI shim; re-check C0-R1, A1 F150r-1, Q0 Q2-1) (accepted; a snapshot is addressed by (id, metric_time)). Rule 17 refuses more on the twelve open tables (any client SELECT column not pinned, and a pinned one revoked). On the four PROVIDER-3 or INTERNAL-3 tables it refuses the same as before today, and it is looser by design: a column read becomes admissible by a pin, so safe-projections.json is now a security-relevant input (A1's wording note). It revokes nothing: four client-readable columns that read as unsafe or unproven against ERD §9.1 are findings SP-1..SP-4 owed to A1/A6 and the notification owner. Rule 17's claim covers table and column privileges only; views and SET ROLE are other probes'. The harness change alters a query the harness runs, not a client; the BFF must bind the list's user_id to the session. Cost: the classification probe reads every column of 16 tables for 3 client roles twice; migrate-clean about 5 s on this host.",
-  "migration_and_data_impact": "db/foundation/migrations/150_performance_snapshots_key.sql: drop constraint performance_snapshots_pkey; add it as primary key (id, metric_time), under lock_timeout 5s and statement_timeout 60s; comments; an apply-time block. Forward only; 121 is not edited. On an empty table the index build is immediate; with rows it is a full scan under ACCESS EXCLUSIVE, which is why it is done now. Declared not applied to the provisioned instance (catalog-snapshot.json tail). No partition by and no index (Q150-b). Number 150: Q150-c's one-time exception to MOD-120's range. Partitioning later is NOT an attach alone: PostgreSQL 17.11 refuses to attach a table with an identity column, so that batch drops the identity, attaches, restarts the parent's identity above max(id) and supersedes the blocks that hold the table unpartitioned (open_blockers[179], measured in the review round).",
-  "compatibility_impact": "Tests stay 684 (no test added or renamed); foundation-contract's assertion floor 898 -> 929, and 929 -> 932 in the review round, the guard's own count; test floors and name digests unchanged. Two probe digests move: pinned shape b54ae8e9c8c7f6ce -> 11ba1271ffc00d70, data classification 42c77e0015f12eaf -> 77b41feaee177714, then -> a848ca33af3460e3 in the review round (Q0 Q-3's drift). evidence/VERIFICATION.md is not amended, and amends_without_owning.paths is unchanged (scripts/test-suite-contract.mjs, test-kits/branch-identity.test.mjs, test-kits/integrity-manifest.json), so no WP line citation moves; no blocker is added, so no blocker index moves. A later migration that adds a client column read on any of the sixteen projection tables, or revokes a pinned one, must edit db/foundation/lint/safe-projections.json in the same diff.",
+  "security_privacy_cost_impact": "None at run time: two Proposed decision records and no migration, policy, grant or role change. Recorded, pre-existing on main (open_blockers[195] (1), (3), (4)): an owner moves every workspace they own into any §11.4 state with one client UPDATE that reads no column (measured by C0, A1 and Q0; a targeted UPDATE is refused for the six blocked states), skipping step-up, the recovery window and audit; MEDIUM, not stop-the-line today, and stop-the-line the day RFC-2026-027's gate or any job selecting by lifecycle_state lands without the revoke. RFC-2026-026's denial arm, as proposed, lets any authenticated client append undeletable denied rows into any workspace_id through a correct command (A1's prototype, F2-a); stated in §3.3/3 and held by the re-worded Q-026-1, to be answered before approval.",
+  "migration_and_data_impact": "None. No migration is added or edited; RFC-2026-027's forward migration (batch 170's range, number owed by the Integration Owner, Q-027-6) and the lifecycle_state revoke wait for the RFC's approval.",
+  "compatibility_impact": "Tests stay 684 (none added or renamed); no floor or name digest moves, so scripts/test-suite-contract.mjs and evidence/VERIFICATION.md are untouched. WP line citations in two lint files move by +3 from main, as the manifest grew by three lines above open_blockers.",
   "known_limitations": [
-    "Rule 3 reads only SELECT columns on the twelve open tables; their INSERT and UPDATE grants are rule 7's (the pinned grant probe).",
-    "The projection file's static test derives each projection from pinned-grants.json's column SELECTs; a table-level client SELECT would sit in that file's table list and not be derived, though rule 3 still refuses it live (has_column_privilege per column).",
-    "The Q150-d values are one ANALYZE sample per query at scale 0.2 on a laptop, not a p95; the calendar first page's fixture window returned no rows; nothing asserts them.",
-    "The pinned shapes still pin no column beyond what 150's block holds for id and metric_time (F7, open_blockers[194] (4)).",
-    "The RFCs of Q170-a and Q141-a are not written: the only writable RFC files are 021-025, so a writable-path amendment comes first.",
-    "The harness query names the caller's id as a literal, and nothing binds it to the session: an owner or admin reads co-members' rows through workspace_members_select_workspace_roster, so the result follows the literal (nothing leaks; workspaces_select_active_member still limits every row). The BFF that issues the list must bind m.user_id to the authenticated subject (open_blockers[194] (1)).",
-    "150's block does not pin that no non-owner role holds INSERT or UPDATE on id; a role-enumerating assertion waits on Q170-c's measurement of the platform roles (open_blockers[194] (14))."
+    "Neither RFC's mechanism claims are executed by this package: the role runs prototyped them on scratch clusters (RFC-026 §11, RFC-027 §11), which is evidence for the text, not RFC-2026-020 §6.2's execution; the RFC-026 policy as revised and the cases added in review (RFC-026 §8.2/16-18, RFC-027 §5/10-11) are not executed.",
+    "The C0-3 list of coverage-map rows that are client writes today (RFC-026 §5.5) is read from pinned-grants.json and the migrations' permissive policies, not measured on a catalog.",
+    "No live database round in the review round: nothing a database layer reads changed (plan §7.4).",
+    "The two prose (line N) numbers in audit-coverage-map.json's source texts and the quote-less retention-map citations are pinned by no test (plan D3, Q0-F9; open_blockers[195] (6))."
   ],
   "open_risks_or_blockers": [
-    "Owed acceptance of the Owner-directed answers by their named roles: A1 (Q141-a, Q141-c, Q160-b, Q160-c, Q170-a, Q170-b, Q170-d), A6 (Q141-b, and its countersignature on read-only contract-catalog), A4 (Q160-d), Product/Ops (Q150-d; the Owner's ratification of the PROPOSED values is owed as well) and Product/Security/Legal (Q160-a); each on its blocker (disposition §5).",
-    "SP-1, SP-2, SP-3, SP-4 (open_blockers[193]); the partition path's identity-and-attach half (open_blockers[179]); the later partition and index migration's number, A1 and the Integration Owner (open_blockers[194] (2)); IC-1 under Q150-b (open_blockers[194] (2)); Q170-c's provisioned-instance measurement before G1 (open_blockers[193] (9)).",
-    "Integration Owner evidence is still owed for this package (RFC-2026-025 §5, open_blockers[188])."
+    "Fifteen RFC questions are unanswered (Q-026-1..9, Q-027-1..6; open_blockers[195] (2), (5)); Q-026-1 and Q-026-9 must be answered before RFC-2026-026 is approved. A0's recommendations: disposition §5 and §7. The Owner's and A1's approval of each RFC (and A1 Identity's agreement to the RFC-2026-020 amendment) is owed.",
+    "The client UPDATE of workspaces.lifecycle_state (open_blockers[195] (1), (3), (4)): the revoke is owed in the FIRST of batch 170's migrations, any job selecting workspaces by lifecycle_state (batch 160), or RFC-2026-027's migration; its isolation case must use the UPDATE form that reads no column.",
+    "Independent review, test and Integration Owner evidence for the review round itself: the role runs reviewed e64e1f5, not b6d65e1."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit; where 150 has been applied, a forward migration restoring primary key (id) (the same two statements reversed) is a complete recovery, since nothing references the table. NEVER a force-push.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit; it removes two Proposed decision records, the role-run records, the writable-path amendment and the blocker sentences, and moves the line pins back. Nothing is applied to any instance.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 re-check of this review round (plan §11, the diff c0fa18e..head), then the merge under the standing delegation if the bar of 127 §6 is met.",
-    "A writable-path amendment for RFC-2026-026+ and then the two RFCs the Owner's answer asks for: Q170-a (app_authz reads workspaces.lifecycle_state, amending RFC-2026-020) and Q141-a (audit rows from command or worker only).",
-    "The Owner's ratification of the PROPOSED Q150-d values (plan §5), then batch 150's later part (IC-1 and partitioning) once a production-like fixture exists."
+    "A C0 re-check of the review round's text (b6d65e1 over e64e1f5): RFC-026 §3.3, §3.7, §8 and RFC-027 §3.4's quotations against RFC-2026-020; then the merge under the standing delegation if the bar of 127 §6 is met.",
+    "A1's answers to Q-026-1 and Q-026-9 before RFC-2026-026's approval; the Owner's and A1's answers to the rest of the fifteen; A1 Identity on RFC-027 §3.4.",
+    "The lifecycle_state revoke migration once Q-026-5/Q-027-5 is answered (open_blockers[195] (4))."
   ],
   "reviewer_instructions": [
-    "Review round: read plan §11 with the diff c0fa18e..head. Re-run migrate-clean (post-migrate 50 / 38 / 12; data classification refuses its 4 drifts, the widen drift now naming a column UPDATE and INSERT and a table TRUNCATE and TRIGGER) and rls-smoke twice; append C0's unique index on (id) to 140_audit.sql and expect migrate-clean 2 at 150's check 2; re-run the attach experiment of §11.2.",
-    "Read the plan's §1 with the diff 1930f41..2318c72: db/foundation/migrations/150_performance_snapshots_key.sql (whole); db/foundation/lint/pinned-shapes.json (the two performance_snapshots_pkey entries); scripts/db/run.mjs 6c (:1423-1530) and the probe job (:2166); db/foundation/lint/safe-projections.json; scripts/db/explain-harness.mjs:84; test-kits/db/foundation-contract.test.mjs :430, :2718, :3185, :3201, :3269, :3427; db/foundation/README.md rules 17-18 (:602, :624).",
-    "Re-run migrate-clean on a fresh cluster (the data classification probe refuses 4 drifts, the pinned shape probe 5; post-migrate 50 / 38 / 12) and rls-smoke twice; append D1-D4 (plan §6) to 140_audit.sql and check each fails migrate-clean by name; run explain-harness.mjs --scale 0.2 --fail-on-seq-scan once on a fresh migrate-clean and expect exit 0.",
-    "Read the projection review (plan §4) column by column against ERD §9.1, and the disposition's §5 against the four dispositions it cites."
+    "Read plan §7 first: the cherry-pick map and the finding-to-change table; then git diff e64e1f5..b6d65e1 -- architecture/ evidence/ work-packages/.",
+    "RFC-027 §3.4: compare each quoted 'now' text with RFC-2026-020 at the cited lines (:3, :393-395, :397-405, :407-411, :444-447, :448-449, :476).",
+    "RFC-026 §3.3: the WITH CHECK now holds refusal rows to null scope unless the acting-user helper admits it; the workspace term of the denial arm is unchanged on purpose (Q-026-1 is A1's).",
+    "open_blockers[195]: confirm the change is a pure append (entries 0..194 unchanged; 196 entries; line pins unmoved)."
   ],
   "superseded_by": null
 }
