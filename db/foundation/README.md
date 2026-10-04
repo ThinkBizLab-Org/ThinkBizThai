@@ -639,8 +639,9 @@ break it silently:
    rewrites the file in the same diff, as batch 150 did: Q150-a, answered 2026-10-04, made
    `performance_snapshots_pkey` `PRIMARY KEY (id, metric_time)` (`150_performance_snapshots_key.sql`), and
    both its constraint and its index are pinned in that text; the table is not partitioned (Q150-b). Since
-   that key, `id` alone is unique by no constraint, only by its ALWAYS identity and by no role but the owner
-   holding INSERT or UPDATE on it, an accepted property (review round, C0-5, A1 F150-2, Q0 Q-4). The later
+   that key, `id` alone is unique by no constraint, only by its ALWAYS identity and by no application role
+   holding INSERT or UPDATE on it (superusers, the owner and pg_write_all_data excepted; measured on the CI
+   shim), an accepted property (review round, C0-5, A1 F150-2, Q0 Q-4). The later
    partition is NOT "create a parent and attach this table": PostgreSQL 17.11 refuses to attach a table
    with an identity column, so that batch drops the identity, attaches, and restarts the parent's identity
    above max(id) (C0-1, measured; `open_blockers[179]`).

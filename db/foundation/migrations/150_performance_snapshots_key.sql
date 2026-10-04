@@ -27,9 +27,11 @@
 -- a partition by design) and whichever of 121's block it no longer satisfies; it is not designed here.
 --
 -- WHAT THE KEY CHANGE GIVES UP (review round, C0-5, A1 F150-2, Q0 Q-4, measured): `id` ALONE IS NO LONGER
--- UNIQUE BY ANY CONSTRAINT. It stays unique only because it is an ALWAYS identity and no role but the
--- table's owner holds INSERT or UPDATE on it: the owner can insert a second row with an existing id at
--- another metric_time (OVERRIDING SYSTEM VALUE), app_worker and every client role are refused. That is an
+-- UNIQUE BY ANY CONSTRAINT. It stays unique only because it is an ALWAYS identity and no application
+-- role (app_worker, app_command, app_maintenance, app_authz, anon, authenticated) holds INSERT or UPDATE
+-- on it; superusers, the owner and the predefined pg_write_all_data (granted to no role here) can still
+-- insert a second row with an existing id at another metric_time (OVERRIDING SYSTEM VALUE). Measured on
+-- the CI shim only (re-check, C0-R1, A1 F150r-1, Q0 Q2-1); the provisioned instance is Q170-c's to measure. That is an
 -- ACCEPTED property of this key, not an oversight: a snapshot is addressed by (id, metric_time) or
 -- (published_post_id, metric_time), never by id alone, and nothing references id (check 5).
 --
@@ -82,7 +84,8 @@ comment on constraint performance_snapshots_pkey on app.performance_snapshots is
   'Batch 150 (A0, Q150-a, answered 2026-10-04): the key is (id, metric_time). id is still the bigint '
   'identity (generated always), and metric_time is in the key because a table partitioned by range '
   '(metric_time) requires every unique to contain it. id ALONE IS NOT UNIQUE BY ANY CONSTRAINT: only the '
-  'identity and the fact that no role but the owner holds INSERT or UPDATE on id keep it unique, so a '
+  'identity and the fact that no application role holds INSERT or UPDATE on id keep it unique (superusers, '
+  'the owner and pg_write_all_data excepted; measured on the CI shim), so a '
   'snapshot is addressed by (id, metric_time) or (published_post_id, metric_time), never by id alone. NOT '
   'PARTITIONED (Q150-b): declaring partitions and every production index wait for a production-like '
   'fixture and an SLO.';
