@@ -187,6 +187,62 @@ test('a target needing a database refuses without one, rather than reporting a p
       assert.match(result.stderr, new RegExp(`${file} refuses this host: `), `${file}: and says so before connecting`);
     }
   }
+  // THE TRY-IT TOOL (scripts/db/try-it.mjs, the A0 try-it draft of 2026-10-04): a throwaway local cluster for the
+  // Owner. Its guard is the shared one narrowed to the loopback names and a port that is not 5432, so every URL
+  // the shared guard refuses it refuses too, and so are CI's `postgres` host and the default port it admits.
+  const tryIt = await import('../../scripts/db/try-it.mjs');
+  for (const url of [...crafted, 'postgresql://postgres@postgres:55420/x', 'postgresql://postgres@127.0.0.1:5432/x',
+    'postgresql://postgres@localhost/x', 'postgresql://postgres@db.example.invalid:55420/x', 'postgresql://postgres@10.0.0.5:55420/x']) {
+    assert.ok(tryIt.tryItRefusal(url), `${url}: refused by try-it`);
+  }
+  for (const port of tryIt.RESERVED_PORTS) assert.ok(tryIt.tryItRefusal(tryIt.urlFor(port)), `port ${port}: never touched`);
+  assert.equal(tryIt.tryItRefusal(tryIt.urlFor(55420)), null, 'its own loopback URL is admitted');
+  assert.ok(tryIt.PORT_RANGE[0] > 5511 && !tryIt.RESERVED_PORTS.some((p) => p >= tryIt.PORT_RANGE[0] && p <= tryIt.PORT_RANGE[1]), 'the search range holds no reserved port');
+  const tryItSource = await readFile('scripts/db/try-it.mjs', 'utf8');
+  assert.match(tryItSource, /import \{ testHostRefusal,[^}]*\} from '\.\/psql-driver\.mjs';/, 'the shared guard is imported, not restated');
+  assert.match(tryItSource, /"listen_addresses = '127\.0\.0\.1'", `port = \$\{port\}`, "unix_socket_directories = ''"/, 'loopback TCP only, no unix socket');
+  // Without a cluster it refuses and touches nothing.
+  for (const args of [['demo', '--dir', '/nonexistent-dir/try-it'], ['psql', '--dir', '/nonexistent-dir/try-it'], ['down', '--dir', '/nonexistent-dir/try-it'],
+    ['up', '--dir', process.cwd()], ['up', '--dir', '/nonexistent-dir/try-it', '--port', '5432']]) {
+    const result = await run('node', ['scripts/db/try-it.mjs', ...args], { env }).then(
+      (ok) => ({ code: 0, ...ok }), (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+    assert.equal(result.code, 1, `try-it ${args.join(' ')} refuses`);
+    assert.match(result.stderr, /^try-it: /, 'and says why');
+  }
+  // EVERY DEMO STEP HAS AN EXPECTED RESULT, so the demo cannot pass vacuously: a counts step expects exact numbers,
+  // a case step names a case the suite has and repeats the outcome that case expects, and at least one step
+  // expects rows. The plan is sound as written, and the check bites on each way it could stop being.
+  const { buildCases } = await import('../../tests/db/identity/isolation-cases.mjs');
+  const { fixtureResolver } = await import('../../tests/db/identity/run-isolation.mjs');
+  const cases = buildCases(await fixtureResolver());
+  const identities = JSON.parse(await readFile('db/foundation/seeds/fixture-catalog.json', 'utf8')).identities;
+  assert.deepEqual(tryIt.demoPlanProblems(tryIt.DEMO_STEPS, cases, identities), [], 'the demo plan is sound');
+  assert.ok(tryIt.DEMO_STEPS.length >= 10, 'the tour has its steps');
+  for (const step of tryIt.DEMO_STEPS) {
+    assert.ok(step.proves && step.title, `${step.title}: says what it proves`);
+    if (step.kind === 'counts') assert.deepEqual(Object.keys(step.expect), ['workspaces', 'businesses', 'content_items'], `${step.title}: exact counts`);
+    else assert.equal(cases.find((c) => c.id === step.case)?.expect, step.expect, `${step.case}: the step expects what the suite's case expects`);
+  }
+  for (const kind of ['rows', 'no-rows', 'denied', 'no-effect']) assert.ok(tryIt.DEMO_STEPS.some((s) => s.expect === kind), `the tour shows a ${kind} outcome`);
+  for (const caseId of ['owner-a-cannot-see-workspace-b', 'viewer-a-cannot-create-a-content-item', 'owner-a-cannot-move-workspace-a-to-closing-by-id',
+    'owner-a-cannot-forge-created-by-alone-on-a-content-item', 'owner-a-cannot-redecide-a-settled-approval-request']) {
+    assert.ok(tryIt.DEMO_STEPS.some((s) => s.case === caseId), `the tour shows ${caseId}`);
+  }
+  const mutate = (i, change) => tryIt.DEMO_STEPS.map((s, j) => (j === i ? { ...s, ...change } : s));
+  const firstCase = tryIt.DEMO_STEPS.findIndex((s) => s.kind === 'case');
+  for (const [steps, what] of [
+    [mutate(firstCase, { expect: undefined }), /expects nothing the demo can check|the suite's case expects/],
+    [mutate(firstCase, { case: 'no-such-case' }), /the suite has no case no-such-case/],
+    [mutate(firstCase, { expect: 'denied' }), /expects denied and the suite's case expects/],
+    [mutate(0, { expect: { workspaces: '1' } }), /expects no exact count/],
+    [mutate(0, { expect: { workspaces: 'any', businesses: '4', content_items: '4' } }), /workspaces is not an exact count/],
+    [mutate(0, { proves: '' }), /says nothing about what it proves/],
+    [mutate(0, { user: 'user_nobody' }), /not a fixture identity/],
+    [tryIt.DEMO_STEPS.filter((s) => s.kind === 'case' && s.expect !== 'rows'), /no step expects to see a row/],
+    [[], /the demo has no steps/],
+  ]) {
+    assert.match(tryIt.demoPlanProblems(steps, cases, identities).join('\n'), what, `the plan check refuses: ${what}`);
+  }
 });
 
 test('db-verify fails as a whole, and its summary names what is missing', async () => {

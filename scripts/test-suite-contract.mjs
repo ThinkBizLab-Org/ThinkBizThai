@@ -239,7 +239,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // refusals, the measured statement split and the readers built on it (one test added, so the test floor moves 80 to
 // 81 and the name digest with it), the do-block allowlist's dollar and `'a--'` drifts, the tripwires' lexer-read
 // spellings and the do-block counter's refusal of a text that is not SQL; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1044,
+// 1044 to 1060 with the try-it batch (2026-10-04, no migration): scripts/db/try-it.mjs's host guard over every
+// crafted URL, CI's host and the reserved ports, its refusals without a cluster, and its demo plan held sound with a
+// mutation each for the ways it could pass vacuously, added to the existing live-target refusal test; no test added
+// or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1060,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.
