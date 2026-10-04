@@ -1,8 +1,10 @@
 # RFC-2026-027 — Lifecycle visibility: the authorization helper refuses a member of a workspace whose access is blocked
 
-Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q170-a = yes); NOT approved; amends RFC-2026-020 only when approved. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) answered Q170-a as A0 recommended — close the `access_blocked` gap with an RFC that amends `RFC-2026-020` so that `app_authz` can read `workspaces.lifecycle_state` — and directed that this RFC be written. It did not approve this text. A1's acceptance as Q170-a's co-owner is owed; `RFC-2026-020`'s §5/3 and §6.1/5-6 read as they do today until this file carries an approval, and no migration, policy, grant or pin changes before then.
+Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q170-a = yes); NOT approved; amends RFC-2026-020 only when approved. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) answered Q170-a as A0 recommended — close the `access_blocked` gap with an RFC that amends `RFC-2026-020` so that `app_authz` can read `workspaces.lifecycle_state` — and directed that this RFC be written. It did not approve this text. A1's acceptance as Q170-a's co-owner is owed; `RFC-2026-020`'s Status line, §5/3, §6.1/5, §6.1/6 and §6.3/14 — every place §3.4 amends — read as they do today until this file carries an approval, and no migration, policy, grant or pin changes before then. The six questions of §10 were answered on 2026-10-04 as A0 recommended (the Owner's `ลุยต่อเลย เอาตามแนะนำ`, transcribed with A0's reading of it in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §8) and are recorded in §10.1; **they are not an approval of this text**, which stays the Owner's explicit act and A1's review.
 Date: 2026-10-04
 Revised: 2026-10-04, in the batch's review round, on the findings of C0 (`c0-batch-rfc-026-027-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-026-027-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-026-027-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-026-027-plan-2026-10-03.md` §7. Still Proposed; the revision approves nothing and answers no question.
+Revised: 2026-10-04, in batch rfc-text (`a0-batch-rfc-text-plan-2026-10-03.md`): the Status line names every `RFC-2026-020` section §3.4 amends (C0-10); Q-027-5's column-free forms include `returning 1`, and its targeted-form sentence is true for blocked targets only (A1 C2, Q0R-F3); §6/6's census scoped to workspace-scoped tables, 89/8 (Q0R-F4); batch 170's revoke recorded, so §4's migration does not carry it; the Owner's answers to Q-027-1..6 recorded (§10.1). Still Proposed; the revision approves nothing.
+Revised: 2026-10-05, in batch rfc-text's review round (`a0-batch-rfc-text-plan-2026-10-03.md` §6): §5/6's second direction is asserted as an owner or admin with another active member, pre-asserted in `active` (Q0 F5 of `q0-batch-rfc-text-test-review-2026-10-03.md`). Still Proposed; the revision approves nothing and answers no question.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), owner of batch `170` (grants/RLS/exposed surface hardening) in the migration registry and reviewer of `RFC-2026-020`; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), co-owner of Q170-a and the Security review the registry names for `011`; `/claude/a1_identity` (A1 Identity), author of `RFC-2026-020` and of `010_identity.sql`
 Amends (when approved): `RFC-2026-020`'s Status line (a sentence appended), §5/3 (one policy becomes two), §6.1/5 (a second pinned expression), §6.1/6 (two columns of `app.workspaces` join the pinned grant), §6.3/14 (the negative control names its policy) — the exact text is §3.4
@@ -139,8 +141,10 @@ unaffected. The three helpers remain the only functions `app_authz` owns.
   conjunct and need no change.
 - `RFC-2026-023`'s acting-user helpers (`app.acting_user_admits_business`, `..._page`), if approved,
   ask membership themselves (§3.2 there). **They must apply the same admitted-state gate**, either by
-  calling `app.workspace_member_role` or by repeating §3.2's join. This RFC states the requirement;
-  whichever of the two RFCs lands second carries it into the other's batch.
+  calling `app.workspace_member_role` or by repeating §3.2's join. Q-027-4 was answered *yes*: the
+  requirement is to be written into `RFC-2026-023`'s own text now, so whichever RFC's batch lands first
+  carries it. That edit is `RFC-2026-023`'s, not this file's, and is owed to A0 at that RFC's next
+  revision (`open_blockers[195]`).
 
 ### 3.3 The effect on every family's policies
 
@@ -160,7 +164,7 @@ at `5c406de` (non-comment calls to `app.is_active_member(` or `app.workspace_mem
 | `090`, `091` | approval, calendar | refused |
 | `100` | assets | refused |
 | `120`, `121` | publisher, metrics | refused |
-| `130` | billing (owner read) | refused — see Q-027-3 |
+| `130` | billing (owner read) | refused (Q-027-3, answered: refused through the client; the owner's invoices reach them through batch `160`'s export job) |
 
 **Not reached, because they read membership without the helper** — all in `010`, and listed so the
 residual is a list rather than a surprise:
@@ -169,7 +173,7 @@ residual is a list rather than a surprise:
 |---|---|---|
 | `workspace_settings_select_active_member`, `workspace_settings_update_owner` (`:522`, `:534`) | no lifecycle gate | rewritten in the forward migration to call the helper (no cycle: a different relation) |
 | `workspace_invitations_select_owner`, `_insert_owner`, `_update_owner` (`:581`, `:597`, `:613`) | no lifecycle gate | rewritten likewise — an owner of a blocked workspace must not issue invitations into it |
-| `workspace_members_select_own_active` (`:565`) | the caller's own active row, any state | **kept as is** — see Q-027-1 |
+| `workspace_members_select_own_active` (`:565`) | the caller's own active row, any state | **kept as is** (Q-027-1, answered: kept) |
 | `workspaces_select_active_member`, `workspaces_update_owner` (`:481`, `:497`) | already gated | unchanged |
 | `user_profiles_*` | not workspace-scoped | unchanged |
 
@@ -293,9 +297,11 @@ And, in the same diff, the artefacts that pin the old state:
   `run.mjs:1671-1677` — "policy(ies) no pinned list names: …") gains whatever the pinned key list does
   not already cover. Q0 measured both probes refusing §3.1 and §3.2 appended as a drift (round r3,
   migrate-clean exit 2), before the post-migrate pass could run;
-- `db/foundation/lint/pinned-grants.json`: `app_authz` on `app.workspaces` (and, if Q-027-5 is
-  answered "revoke" and the revoke lands in this migration, `authenticated`'s `UPDATE` on
-  `app.workspaces` without `lifecycle_state`, `pinned-grants.json:221`);
+- `db/foundation/lint/pinned-grants.json`: `app_authz` on `app.workspaces`. **Not** `authenticated`'s
+  `UPDATE` on `app.workspaces`: Q-027-5 was answered *revoke*, and batch 170's
+  `170_workspace_lifecycle_not_client_writable.sql` (merged) already revoked the client `UPDATE` of
+  `lifecycle_state` and moved that pin (`authenticated` keeps `UPDATE (name, updated_by)`). This
+  migration carries no revoke and must not re-grant the column;
 - `db/foundation/lint/catalog-snapshot.json`: the `app_authz` block, when the instance receives it;
 - `db/foundation/invariants/superseded.json`: entries for every earlier apply-time block the new state
   makes false — at least `011`'s "exactly one policy" block (`011:410`) and `021`'s restatement of
@@ -324,7 +330,14 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
    `workspace_settings` and cannot read, issue or revoke invitations.
 5. **No membership oracle.** Calling the helpers as `authenticated` for a blocked workspace the caller
    is *not* in returns false/null, as `RFC-2026-020` §6.3/12 already requires for an active one.
-6. **The member's own row** — asserted to whatever Q-027-1 decides, in both directions.
+6. **The member's own row** (Q-027-1, answered: kept). In each blocked state, the member still reads
+   their own membership row through `workspace_members_select_own_active`, and reads no other member's
+   row (the roster policy goes through the helper and is refused, §3.3) — both directions asserted.
+   The second direction is asserted **as the owner (or an admin)** of a workspace with at least one
+   other active member, and pre-asserted in `active` (at least one other row read), because the
+   roster policy admits only owner and admin (`011_authorization_helpers.sql:339-341`): for an editor
+   or a viewer "reads no other member's row" holds with the gate absent (Q0 F5 of batch rfc-text's
+   review, measured: in `access_blocked` without the gate the editor reads 0 other rows, the owner 2).
 7. **Negative control, policy:** with `workspaces_select_authz_own_open` dropped, case 2 fails in both
    admitted states (in the six blocked states the read is refused either way, so case 1 stays green —
    measured by Q0, mutant M1). That proves the policy is what admits the helper's read; a helper that
@@ -356,13 +369,19 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
    in `010`'s workspace policies, the `app_authz` policy and the helper.
 5. `identityExpressionLint` is unchanged: the new policy calls `app.jwt_subject()` and copies no
    identity expression.
-6. **No family escapes the helper.** Every permissive policy `TO authenticated` on a workspace-scoped
-   table in `app`, other than the pinned list of `010`'s policies in §3.3's residual table, calls
-   `app.is_active_member` or `app.workspace_member_role`. A1 measured the tree as it is (91 permissive
-   `authenticated` policies, exactly 10 calling neither helper, all `010`'s and all in §3.3's residual
-   table); nothing holds it for the next family, so a policy that joins `app.workspace_members`
-   directly would be silently ungated. Owed to A0, owner of `scripts/db/run.mjs`, in the batch that
-   lands §4 (A1's F3-a); the five `010` rewrites of §3.3 leave that list at five.
+6. **No family escapes the helper.** The rule's scope, defined so its exemption list is unambiguous
+   (Q0R-F4): every permissive policy `TO authenticated` on a **workspace-scoped table** — a table in
+   `app` that has a `workspace_id` column, plus `app.workspaces` itself — other than the pinned list of
+   `010`'s policies in §3.3's residual table, calls `app.is_active_member` or
+   `app.workspace_member_role`. Tables without a `workspace_id` column (`app.user_profiles`, which §3.3
+   calls "not workspace-scoped") are outside it. Census on the tree as it is: A1 counted 91 permissive
+   `authenticated` policies in `app` and exactly 10 calling neither helper, all `010`'s and all in
+   §3.3's residual table; Q0 reproduced that and, **in the rule's scope, measured 89 and 8** — the two
+   `user_profiles` policies are the difference. Nothing holds it for the next family, so a policy that
+   joins `app.workspace_members` directly would be silently ungated. Owed to A0, owner of
+   `scripts/db/run.mjs`, in the batch that lands §4 (A1's F3-a). After the five `010` rewrites of §3.3,
+   the pinned exemption list is three: `workspace_members_select_own_active`,
+   `workspaces_select_active_member` and `workspaces_update_owner`.
 
 ## 7. What must be executed, never cited
 
@@ -401,8 +420,9 @@ batch that lands §4.
   artefact holds, and it overwrites membership rows §11.2 treats as history.
 - **Suspend every member at the transition** (§11.4 step 2, in the command). Cheap, and it uses the
   `status = 'active'` gate that already exists. Rejected as the control because it makes lifecycle
-  visibility a property of one command's correctness: a state change by any other path — including
-  today's direct client `UPDATE` of `lifecycle_state` (`010:403`) — leaves access open. It may still be
+  visibility a property of one command's correctness: a state change by any other path — a
+  service-side write, or the direct client `UPDATE` of `lifecycle_state` that `010:403` granted until
+  batch 170 revoked it — leaves access open. It may still be
   worth doing in the command, as defence in depth.
 - **A separate `app.workspace_is_open(workspace)` helper** that families add beside
   `is_active_member`. Rejected: it reintroduces the per-family edit the first alternative has, and a
@@ -417,7 +437,11 @@ either direction. Rolling back re-opens `open_blockers[53]` and `[95]` — membe
 read their data again — which is strictly wider than the amended state and is the state of `main`
 today, so it passes every existing test.
 
-## 10. Questions this RFC raises
+## 10. Questions this RFC raised, and the Owner's answers
+
+The table keeps each question as it was asked, with Q-027-5's two wording corrections of batch rfc-text.
+All six were answered on 2026-10-04 as A0 recommended (§10.1); where a question names a role other than
+the Owner, that role's own acceptance is still owed (`open_blockers[195]`).
 
 | id | for | question |
 |---|---|---|
@@ -425,8 +449,25 @@ today, so it passes every existing test.
 | Q-027-2 | A1 | Is `closing` admitted for **writes** as well as reads? §11.4 stops new jobs and publishing only at the transition out of `closing` (step 2). Proposed: admitted for both, as `010`'s workspace policies already do; a narrower `closing` is a command-side rule. |
 | Q-027-3 | Owner, A1 | Billing: should an owner still read invoices and payments of a workspace in `access_blocked` or later (§11.1 lists "Usage/billing invoices/read model" among the export domains)? Under this RFC they cannot through the client; export is the background job batch `160` owns. |
 | Q-027-4 | A1 | `RFC-2026-023`'s acting-user helpers must carry the gate (§3.2). Which RFC's batch carries it depends on landing order; does A1 want the requirement written into `RFC-2026-023` now? |
-| Q-027-5 | Owner, A1 | Today an owner can `UPDATE` `lifecycle_state` directly (`010:403`, `workspaces_update_owner` has no state constraint in `WITH CHECK`). Measured by C0, A1 and Q0 on `e64e1f5`: an `UPDATE` that reads a column is refused (`42501`) for the six blocked states, and one that reads none (no `WHERE`, or `where true`, no `RETURNING`) moves every active or closing workspace the caller owns to any of the eight states. After this RFC, an owner who does that with `access_blocked` locks every member, including themselves, out — irreversibly **by any client** (a service-side write restores the value), unaudited, without the step-up §11.4 requires. Revoke the client `UPDATE` of `lifecycle_state`, or leave it to the §11.4 command (`RFC-2026-026` Q-026-5)? Proposed: revoke, in the **first** of batch 170's migrations, any job that selects workspaces by `lifecycle_state` (batch 160), or this RFC's migration — whichever lands first; the revoke needs nothing this RFC decides. Its isolation case must use the form that reads no column: a case asserting only that `… where id = …` is refused passes today, with the gap open. |
+| Q-027-5 | Owner, A1 | Today an owner can `UPDATE` `lifecycle_state` directly (`010:403`, `workspaces_update_owner` has no state constraint in `WITH CHECK`). Measured by C0, A1 and Q0 on `e64e1f5`: an `UPDATE` that reads a column is refused (`42501`) for the six blocked states, and one that reads none (no `WHERE`, or `where true`, and no `RETURNING` of a column — `returning 1` reads none and moves them too, A1's C2) moves every active or closing workspace the caller owns to any of the eight states. After this RFC, an owner who does that with `access_blocked` locks every member, including themselves, out — irreversibly **by any client** (a service-side write restores the value), unaudited, without the step-up §11.4 requires. Revoke the client `UPDATE` of `lifecycle_state`, or leave it to the §11.4 command (`RFC-2026-026` Q-026-5)? Proposed: revoke, in the **first** of batch 170's migrations, any job that selects workspaces by `lifecycle_state` (batch 160), or this RFC's migration — whichever lands first; the revoke needs nothing this RFC decides. Its isolation case must use the form that reads no column: a case asserting only that `… where id = …` is refused, **to a blocked state**, passed with the gap open (to `closing` the targeted form succeeded, `UPDATE 1`; Q0R-F3). **Answered *revoke*, and done:** batch 170's `170_workspace_lifecycle_not_client_writable.sql` (merged) revokes it, and its rls-smoke cases include the column-free forms, `returning 1` among them (`tests/db/identity/isolation-cases.mjs:17674`). |
 | Q-027-6 | Integration Owner | Migration number in batch `170`'s range, and whether it may land before `170`'s other parts. |
+
+### 10.1 Decisions taken by the Owner's answers
+
+The Owner's words, verbatim: `ลุยต่อเลย เอาตามแนะนำ` ("Carry on, take the recommendations"), 2026-10-04,
+read by A0 as accepting the recommendation current at the merge of batch rfc-026-027
+(`product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §5, §7 and §8). The Owner had not seen
+the per-question text when writing; that reading is A0's and the Owner may correct it. **None of this
+approves the RFC.**
+
+| id | answer, as A0 recommended | where it is now the design | acceptance still owed |
+|---|---|---|---|
+| Q-027-1 | **Kept:** a member of a blocked workspace still sees their own membership row, so the client can tell "your workspace is closed" from "you belong to nothing" | §3.3's residual table, §5/6 | A1 |
+| Q-027-2 | **`closing` admitted for writes as well as reads**, as `010`'s workspace policies already do; a narrower `closing` is a command-side rule | §2, §3.3 | A1 |
+| Q-027-3 | **Billing reads of a blocked workspace refused through the client**; the owner's invoices reach them through the export job batch `160` owns | §3.3's table | A1 |
+| Q-027-4 | **Yes:** write the admitted-state gate into `RFC-2026-023` now, so whichever RFC's batch lands first carries it | §3.2; the edit to `RFC-2026-023` is owed to A0 at its next revision (`open_blockers[195]`) | A1 |
+| Q-027-5 | **Revoke** the client `UPDATE` of `lifecycle_state`, in whichever lands first — **done**, by batch 170's first migration, before this RFC's | §4 (this migration carries no revoke), §8 | A1 |
+| Q-027-6 | **The next free number in batch `170`'s range** (on A0's reading, the next after `170`), landing after this RFC's approval and before any batch that relies on the gate | §4 | the Integration Owner, who assigns it |
 
 ## 11. Provenance, and what a reviewer should discount
 
@@ -441,5 +482,8 @@ today, so it passes every existing test.
   predicts; the policy negative control bites; the two single-conjunct mutants survive the cases as
   first written (now cases 10 and 11). That is evidence for this text; it discharges none of §7.2 for
   the batch that lands §4, and the cases added in review have not been executed.
+- **Batch rfc-text (2026-10-04) changed wording, scope and recorded answers only.** §3.1's and §3.2's
+  SQL, the state sets and the cases' design are unchanged; nothing was executed for it. The 89/8 census
+  of §6/6 is Q0's measurement on its review cluster, cited, not re-run.
 - No migration, policy, grant, pin, lint file or test was changed to write this file; the only other
   change in its batch is the writable-path entry that lets it exist.

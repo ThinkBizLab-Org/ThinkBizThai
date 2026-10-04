@@ -4,294 +4,216 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "b0a3809fef6b69f31f0cc2638f904bf5107fd808",
-  "head_revision_or_patch_checksum": "b7dc53fd2d76dd974db4258f4ab58f42abb71518",
+  "base_revision": "88a6670a35e9d9e73008550923723ff9d62e42be",
+  "head_revision_or_patch_checksum": "8fc8af2c6ea36ea78536bf263ca265055d7f59b8",
   "task_ids": [],
   "files_added": [
-    "db/foundation/TRY-IT.md",
-    "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a0-try-it-draft-2026-10-04.md",
-    "evidence/WP-0A-DB-00/a1-batch-try-it-fix-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/a1-batch-try-it-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-try-it-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-try-it-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-try-it-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-try-it.md",
-    "evidence/WP-0A-DB-00/q0-batch-try-it-fix-recheck-2026-10-04.md",
-    "evidence/WP-0A-DB-00/q0-batch-try-it-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-try-it-test-review-2026-10-03.md",
-    "scripts/db/try-it.mjs"
+    "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-text-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-text-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-text-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-text-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-text.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-text-recheck-2026-10-03.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-text-test-review-2026-10-03.md"
   ],
   "files_modified": [
+    "architecture/decisions/RFC-2026-026-audit-row-producer.md",
+    "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
     "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
-    "scripts/db/authz-proofs.mjs",
-    "scripts/db/generate-pinned-grants.mjs",
-    "scripts/db/psql-driver.mjs",
-    "scripts/db/rls-smoke.mjs",
-    "scripts/db/run.mjs",
-    "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
-    "test-kits/db/foundation-contract.test.mjs",
     "test-kits/integrity-manifest.json",
-    "tests/db/identity/run-isolation.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "The Owner's `คุณไม่ต้องรอ confirm กับผม  คุณลุยไปยาวๆ จนถึงจุดที่ให้ผม test แล้วค่อยถาม` and `ลุยๆ` (2026-10-04, set as the session goal; product-owner-disposition-2026-10-03-batch-try-it.md §1): go on until the point where the Owner can test, then ask. A0 reads that point as a local tool the Owner runs on their own Mac; a correction from the Owner replaces the reading.",
+    "The Owner's `แล้วลุยต่อยาวได้เลยคืนนี้` (2026-10-04), after the session goal `คุณไม่ต้องรอ confirm กับผม  คุณลุยไปยาวๆ จนถึงจุดที่ให้ผม test แล้วค่อยถาม` (product-owner-disposition-2026-10-03-batch-rfc-text.md §1): keep going without waiting. A0 reads it as licence for this batch, which needs no decision the Owner has not already made; a correction from the Owner replaces the reading.",
+    "The Owner's `ลุยต่อเลย เอาตามแนะนำ` (2026-10-04; product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8): the fifteen questions of RFC-2026-026/027 answered as A0 recommended (Q-026-1 superseded: active membership for every command row; Q-026-9 as §7 recommended). Folded into both RFCs as their design, NOT as approval.",
     "The phase direction `เอาตามที่แนะนำเลย ลุยต่อ` / `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03; product-owner-disposition-2026-10-03-batch-129.md §1).",
-    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #176 at its reviewed head 84ed650 (merge 5bde893, 2026-10-04T09:07:34Z, bootstrap run 37190663121 green) and #177 at its reviewed head 941e718 (merge b0a3809, 2026-10-04T14:02:54Z, bootstrap run 37206998439 green); A0 executed it and did not decide it.",
-    "RFC-2026-001: Node built-ins only, no dependency added."
+    "The standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), which A0 executed in merging #178 at its reviewed head a0965f7 (CI run 37217282992 green; merge commit 88a6670, 2026-10-04T16:48:40Z); recorded in the disposition §3."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS THE TRY-IT BATCH: a local tool, its guide and static assertions only, NO MIGRATION, NO DEPENDENCY and NO ROOT CONFIGURATION, so no migration number and no RFC is needed. Plan a0-batch-try-it-plan-2026-10-03.md and disposition product-owner-disposition-2026-10-03-batch-try-it.md. It decides nothing and approves no RFC.",
-    "The local draft (cf47b11, c90ac1f on draft/wp-db00-try-it, drafted on 5bde893) is cherry-picked onto b0a3809 (4539d92, 99fd697); its conflicts with #177 were the assertion floor and two digests only. try-it imports testHostRefusal and psqlLex from psql-driver.mjs, so it uses main's guard and the one lexer as #177 left them without a code change.",
-    "The Owner runs it on macOS with Homebrew PostgreSQL 17 and Node 24.20.0 at /Users/bank/.local/node-v24.20.0/bin; a newer Node on PATH gets a note, not a refusal.",
-    "The measurement used this run's private scratch directory and the port try-it picked (55420): the run's assigned 5507 is one of try-it's reserved ports, refused by design (measured), and the refusal was not weakened. migrate-clean and rls-smoke ran on 127.0.0.1:5507 as assigned.",
-    "THE REVIEW ROUND (2026-10-04): the C0, A1 and Q0 reports are cherry-picked (849890f, 739ea82, dfb524a); dd11a35 fixes what they found and 952095f records it (evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Review round (2026-10-04)`). Still no migration, no dependency, no root configuration and no new test; it decides nothing. A1's answer to open_blockers[196] (2) (a per-cluster credential is wanted) is recorded there; implementing it is owed.",
-    "THE FIX AFTER THE RE-CHECKS (2026-10-04): the C0, A1 and Q0 re-checks are cherry-picked (b0dc60f, 60e77eb, e71308f from be76256, e77da51, 33214e2); 3b64fd3 fixes A1 R-F1 (the per-cluster scram-sha-256 password) and C0-TIR-1 / A1 R1 (the runners entered by real paths), and 1c7d638 records it (evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Fix after the re-checks (2026-10-04)`; open_blockers[196] appended). Still no migration, no dependency, no root configuration and no new test; it decides nothing. The password reaches connections through PGPASSFILE (the file named by the brief's PGPASSFILE option), never PGPASSWORD or the URL, so redactConnection has no password to redact; the grep of every printed line is the measure."
+    "THIS INCREMENT IS THE RFC-TEXT BATCH: the text of two PROPOSED decision records, the manifest and line pins only; NO MIGRATION, NO DEPENDENCY, NO ROOT CONFIGURATION; nothing a database layer reads changed. Plan evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md, disposition evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-text.md.",
+    "IT APPROVES NEITHER RFC. Both Status lines still say Proposed; each RFC's new §10.1 says the Owner's answers are not an approval. Approval is the Owner's explicit act and A1's review (A1 Identity too, for the RFC-2026-020 amendment).",
+    "RFC-2026-026's command membership term is 011's app.is_active_member (it exists and reads the same claims); RFC-2026-023's two acting-user helpers do not exist yet. Nothing in the revised texts was executed.",
+    "REVIEW ROUND (2026-10-05): the three reviews cherry-picked, the RFC texts corrected (a35a619), the plan's §6 appended (6613697). No migration; no question answered; Q-026-10 re-opened from the conflict between the accepted Q-026-1 and Q-026-9 recommendations, A0's reconciliation no longer recorded as the Owner's answer."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) The draft on main as it now stands, using main's guards and lexer",
+      "criterion": "(1) RFC-2026-026: Q-026-1 superseded and Q-026-9 folded in as the design",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 1-2: cherry-picked onto b0a3809, conflicts resolved; testHostRefusal and psqlLex imported from psql-driver.mjs (asserted statically); up scans and feeds the shim through psqlLex (§2)"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 1-2: §3.3's literal requires app.is_active_member(workspace_id) for every command row; §3.7 gives app.security_events its two producers on its own columns; new §8.2/19 and /21. Review round (a35a619): Q-026-1's second half (a refusal about an unreachable workspace routed to security_events) conflicts with Q-026-9's accepted predicate; the text no longer records \"not recorded\" as the Owner's answer and re-opens it as Q-026-10 (C0-RT-1, A1 F1)"
     },
     {
-      "criterion": "(2) up, demo, psql, down run end to end on main's tree, with the full demo output recorded",
+      "criterion": "(2) RFC-2026-026 §3.3's literal requires acting_user_admits_page as well as acting_user_admits_business (C0-9, A1 F4-a)",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §2: on 1298dbe, clean tree, Node 24.20.0, psql 17.11: up 0 (53 migrations, 66 tables, 209 policies, 21 fixture files), demo 0 (All 13 steps behaved as expected), psql 0, down 0 (directory gone); the whole transcript"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 item 3: the page form is called whenever a page id is present; a refusal row names no scope; §3.3/3-4, §3.6, §8.2/18 rewritten, /20 new"
     },
     {
-      "criterion": "(3) The demo cannot pass on a broken database",
+      "criterion": "(3) §8.2/16 and §8.1/1 rewritten as executable obligations (Q0R-F1, Q0R-F2)",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §4: RLS off on app.content_items -> demo exit 1, DEMO FAILED: 6 of 13 named; RLS on -> exit 0"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 4-5: §8.1/1 a catalog-plus-lexer rule (a)-(d) with five named drifts; §8.2/16 a named injection, a control and a self-test"
     },
     {
-      "criterion": "(4) Simple and safe for one non-specialist: copy-paste commands with the full Node path; trust on loopback only; a marker-guarded delete; reserved ports refused",
+      "criterion": "(4) Q-026-2..8 recorded in a 'Decisions taken by the Owner's answers' section",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 3-5 and §3: every next command printed with the running Node's full path and --dir; the half-made cluster's down printed and run; the Node 26.7.0 note; port 5507 refused with nothing created; db/foundation/TRY-IT.md Quick start; static assertions on nextCommand and PINNED_NODE"
+      "evidence": "RFC-2026-026 §10.1; evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 item 6"
     },
     {
-      "criterion": "(5) Packaging: branch slot, rationale naming every file amended outside ownership, floors, digests, blockers",
+      "criterion": "(5) RFC-2026-027: C0-10, A1 C2, Q0R-F3, Q0R-F4, batch 170's revoke noted, Q-027-1..4 and 6 recorded",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md §1 rows 8-9 and §5: verify-branch-scope b0a3809 exit 0 (10 paths); assertion floor 1044 -> 1074; evidence/VERIFICATION.md not amended (685 stays) and not declared; open_blockers[196] added"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 7-11; RFC-2026-027 §10.1"
     },
     {
-      "criterion": "(review round) Every C0, A1 and Q0 finding acted on or recorded as owed with a reason",
+      "criterion": "(6) open_blockers[195]: the STILL OWED-before-approval text items marked done; approval kept owed",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Review round (2026-10-04)`: Q0-TI-1/C0-TI-1 (migrateCleanProblem; the four DB runners on pathToFileURL), A1 F2 (downRefusal, pidFileProblem, the data_directory probe), A1 F3 (realpathThroughAncestor), Q0-TI-2/3/4, A1 F4, the TRY-IT.md wording (A1 F1 (a), C0-TI-2, C0-TI-3, C0-TI-5, C0-TI-7, C0-TI-4's proves text); owed: A1 F1 (b) scram-sha-256, `up` end to end on this round's code (no permitted port), two runners outside ownership"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 item 15; work-packages/WP-0A-DB-00.json open_blockers[195], appended (no other entry changed)"
     },
     {
-      "criterion": "(fix after the re-checks) A1 R-F1 before merge: no trust; a random per-cluster password, stored only in the marker-guarded cluster directory (0600), read by demo, psql and down from there, never printed",
+      "criterion": "(7) Packaging: branch slot, rationale naming every file amended outside ownership, line pins, integrity manifest",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Fix after the re-checks (2026-10-04)`: initdb --auth=scram-sha-256 --pwfile; 32 random bytes base64url; <dir>/pgpass mode 600 (measured); on 55420 a connection with no password exits 2 (`fe_sendauth: no password supplied`), a wrong one exits 2 (`FATAL:  password authentication failed for user \"postgres\"`), the file connects; demo 13 of 13; the password in pgpass alone, 0 hits in every printed line and log; M-trust, M-mode, M-pgpassword, M-psql-line red"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 12-16; §2 drifts D1-D4; verify-branch-scope 88a6670 exit 0"
     },
     {
-      "criterion": "(fix after the re-checks) C0-TIR-1 / A1 R1: every runner using the bare entry check compares real paths; a static assertion that none is left; invocation through a symlink runs main()",
+      "criterion": "(7a) Review round: every C0, A1 and Q0 finding on batch rfc-text acted on in the text or recorded as owed",
       "result": "met",
-      "evidence": "the same section: run.mjs, rls-smoke.mjs, authz-proofs.mjs, run-isolation.mjs, try-it.mjs, generate-pinned-grants.mjs on realpathSync; the contract test scans scripts/ and tests/ (only the Integration Owner's two left) and runs three runners through a symlink; measured through a link to the worktree, each of the six refuses or runs; M-entry-tryit, M-entry-runner red"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §6.2: C0-RT-1..6, A1 F1-F4, Q0 F1-F7 and F9 changed in RFC-026/027 or [195]; Q0 F1's driver change owed (outside ownership); A1 F5 owed to A1; C0-RT-7, A1 F6, Q0 F8 need no change"
     },
     {
-      "criterion": "(fix after the re-checks) C0-TIR-2/3 and Q0-TIR-1/2 corrected or recorded",
-      "result": "met",
-      "evidence": "open_blockers[196], appended: (7) corrected (Q0 measured it on dd11a35) and closed; C0-TIR-2 (TRY-IT.md now says `a symlink that resolves`) and C0-TIR-3 stated limits; Q0-TIR-1 the scope count (19 at 20623f2, 23 now)"
+      "criterion": "(8) Independent review, test and approval",
+      "result": "not_met",
+      "evidence": "owed to the C0, Q0 and A1 role runs; RFC approval to the Owner and A1"
     }
   ],
   "tests": [
     {
       "command": "node -v before every measured run",
       "exit_code": 0,
-      "result": "v24.20.0 (/Users/bank/.local/node-v24.20.0/bin, ahead of the PATH Node 26.7.0)"
-    },
-    {
-      "command": "npm run check on the cherry-picked tree before any edit, branch name",
-      "exit_code": 0,
-      "result": "685 tests, 685 pass"
-    },
-    {
-      "command": "npm run check on the tree that became 1298dbe, branch name (node scripts/commit-when-clean.mjs refused it)",
-      "exit_code": 1,
-      "result": "685 tests, 683 pass; the two failures are the handoff guard alone (the handoff for this branch describes this branch, and the ratchet that runs that suite on a copy), not yet refreshed, so 1298dbe and 6e1e43a were plain commits"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00 on 1298dbe",
-      "exit_code": 0,
-      "result": "all 10 changed paths declared, every amendment explains one (with evidence/VERIFICATION.md still declared it was 74)"
-    },
-    {
-      "command": "node scripts/verify-test-coverage-floor.mjs",
-      "exit_code": 0,
-      "result": "foundation-contract 1074 assertions by the guard's count, floor 1074"
-    },
-    {
-      "command": "try-it up, demo, psql, down on 1298dbe (private scratch dir, port 55420 picked by up)",
-      "exit_code": 0,
-      "result": "0, 0 (13 of 13), 0, 0; cluster 58 MB, deleted"
-    },
-    {
-      "command": "negative control on 1298dbe: alter table app.content_items disable row level security, demo; enable, demo; down",
-      "exit_code": 1,
-      "result": "demo 1 with RLS off (6 of 13 named, the same six as the draft), 0 with it on; down 0"
-    },
-    {
-      "command": "refusals: demo with no cluster; up with no initdb on PATH then the printed down; up --port 5507; demo under Node 26.7.0",
-      "exit_code": 1,
-      "result": "each 1 with a try-it: line naming the command to type; the half-made directory removed by the printed down (0); nothing created for 5507; the Node note printed"
-    },
-    {
-      "command": "round 1: fresh initdb (127.0.0.1:5507, TCP only, --locale=C, -A trust), shim, make db-migrate-clean, make db-rls-smoke, on 1298dbe",
-      "exit_code": 0,
-      "result": "migrate-clean 0 (ok in 5118ms); rls-smoke 0 (1087 isolation cases, 6 authz claims)"
-    },
-    {
-      "command": "round 2: re-initdb, the same",
-      "exit_code": 0,
-      "result": "migrate-clean 0 (ok in 5256ms); rls-smoke 0 (1087, 6)"
-    },
-    {
-      "command": "node -v before every measured run of the review round",
-      "exit_code": 0,
       "result": "v24.20.0"
     },
     {
-      "command": "node --test --test-name-pattern='a target needing a database refuses' test-kits/db/foundation-contract.test.mjs (review round, working tree)",
+      "command": "npm run regenerate:manifest",
       "exit_code": 0,
-      "result": "1/1; foundation-contract counts 1101 assertions by the guard's own rule (1074 + 27)"
+      "result": "rebuilt 90 digest(s)"
     },
     {
-      "command": "ten mutations of the review round's fixes (private mutate.mjs), each restored and sha256-compared",
+      "command": "npm run check before the code commit, branch name",
       "exit_code": 1,
-      "result": "M-mig, M-applied, M-ancestor, M-pid, M-pidport, M-downport, M-links, M-notdir, M-script, M-runner each red with the assertion that names it; each file restored"
+      "result": "685 tests, 683 pass; the two failures are the not-yet-refreshed handoff guard alone"
     },
     {
-      "command": "npm run check (review round, working tree, branch name)",
-      "exit_code": 0,
-      "result": "685 tests, 685 pass"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00 (review round, branch name)",
-      "exit_code": 0,
-      "result": "all 16 changed path(s) declared before the evidence commit, 19 after it; every amendment explains one"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs -> dd11a35, then -> 952095f (branch name)",
-      "exit_code": 0,
-      "result": "clean: exit 0 - tests 685, pass 685, fail 0, each time"
-    },
-    {
-      "command": "round r1 (working tree of dd11a35): fresh initdb 127.0.0.1:5507 TCP only, shim, make db-migrate-clean, make db-rls-smoke",
-      "exit_code": 0,
-      "result": "shim 0; migrate-clean 0 (ok in 5038ms, 54 scripts applied); rls-smoke 0 (1087 isolation cases passed, 6 claims discharged, ok in 1236ms)"
-    },
-    {
-      "command": "probes on r1's cluster (private probes.mjs): the live postmaster.pid through pidFileProblem; data_directory; five forged try-it dirs through down",
-      "exit_code": 0,
-      "result": "pidFileProblem null for 5507, a port mismatch for 55478; data_directory realpath equal; each forged down exit 1 with nothing stopped or deleted; the 5507 cluster still running after all five; the unrelated process got no SIGINT; a refused connection reads `Connection refused`"
-    },
-    {
-      "command": "the four DB runners in a copy of the tree under `clone with space/`, no DB_TEST_URL (private space.sh)",
+      "command": "node scripts/commit-when-clean.mjs (code commit)",
       "exit_code": 1,
-      "result": "each exits 1 with its own refusal; the same four at cee1585 in the same path exit 0 with 0 bytes (the control)"
+      "result": "refused, tests 685, pass 683, fail 2 (the handoff guard); cdf6774 is a plain commit for that reason"
     },
     {
-      "command": "round r2 (dd11a35 committed): re-initdb, shim, make db-migrate-clean, make db-rls-smoke",
+      "command": "node scripts/verify-branch-scope.mjs 88a6670 WP-0A-DB-00 at cdf6774",
       "exit_code": 0,
-      "result": "migrate-clean 0 (ok in 5180ms); rls-smoke 0 (1087, 6, ok in 1271ms); cluster stopped and removed, nothing listens on 5507"
+      "result": "all 6 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "node -v before every measured run of the fix after the re-checks",
-      "exit_code": 0,
-      "result": "v24.20.0"
-    },
-    {
-      "command": "npm run check on the tree that became 3b64fd3, branch name agent/claude/WP-0A-DB-00-batch-try-it",
-      "exit_code": 0,
-      "result": "tests 685, pass 685, fail 0 (a first run exited 86: the integrity manifest not yet rebuilt; a second exited 70: the secret scan matched the name SECRET_FILE, renamed PRIVATE_FILE_OPTIONS)"
-    },
-    {
-      "command": "node scripts/commit-when-clean.mjs -> 3b64fd3 (code) and -> 1c7d638 (evidence), branch name",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 685, pass 685, fail 0, both (the evidence commit was refused once, exit 70, by the secret scan on two literal PGPASSWORD assignments and the old constant name in the plan, reworded)"
-    },
-    {
-      "command": "node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00 at 3b64fd3",
-      "exit_code": 0,
-      "result": "all 23 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "foundation-contract assertions by the guard's own rule at 3b64fd3",
-      "exit_code": 0,
-      "result": "1119 (1101 + 18); floor 1101 -> 1119; 81 tests unchanged"
-    },
-    {
-      "command": "six mutations of the fix (private mutate.mjs), the one test each",
+      "command": "drift D1: coverage-map line pins at main's values; node --test test-kits/db/foundation-contract.test.mjs",
       "exit_code": 1,
-      "result": "M-trust, M-mode, M-pgpassword, M-psql-line, M-entry-tryit, M-entry-runner each red with its named assertion; each file restored (sha256 equal), git status clean"
+      "result": "1 of 81 fails: the audit coverage map test (live blockers)"
     },
     {
-      "command": "try-it up (it chose 55420), demo, psql, down end to end, private dir; auth probes; password grep",
+      "command": "drift D2: scripts/test-suite-contract.mjs re-declared; verify-branch-scope",
+      "exit_code": 74,
+      "result": "declares 1 amendment that explains nothing"
+    },
+    {
+      "command": "drift D3: branch-identity.test.mjs undeclared; verify-branch-scope",
+      "exit_code": 73,
+      "result": "changed 1 path it neither owns nor records"
+    },
+    {
+      "command": "drift D4: RFC-027 edited, digest not regenerated; node scripts/verify-test-coverage-floor.mjs",
+      "exit_code": 86,
+      "result": "content does not match its recorded digest"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (evidence commit)",
       "exit_code": 0,
-      "result": "up 0 (54 applied), demo 0 (13 of 13, a wrong PGPASSWORD value inherited), psql 0 (PGPASSFILE-prefixed line, which connects as printed), down 0; psql with no password exit 2 fe_sendauth, with a wrong one exit 2 FATAL password authentication failed, with the pgpass file 0 (SCRAM-SHA-256 verifier); make db-rls-smoke with the printed settings 0 (1087, 6); the password in pgpass alone. Repeated on 3b64fd3 committed: the same"
+      "result": "tests 685, pass 685"
     },
     {
-      "command": "a second cluster on 3b64fd3: up, pg_ctl stop, demo; the saved postmaster.pid put back, demo, down",
+      "command": "make db-migrate-clean, make db-rls-smoke (before the review round)",
       "exit_code": 0,
-      "result": "0; demo 1 \"is not running\"; demo 1 \"does not answer on 127.0.0.1:55420\"; down 0 \"nothing answers ... nothing is signalled\", deleted"
+      "result": "NOT RUN before the review round: no migration, invariant, fixture, isolation case, scripts/db/** or CI file changed; no cluster started. The review round ran them on 5507, rows below"
     },
     {
-      "command": "the six runners through a symlink to the worktree, no DB_TEST_URL",
-      "exit_code": 1,
-      "result": "try-it psql (live cluster) 0 with its output; try-it down --dir <none> via /tmp and the link 1 \"holds no marker\"; run.mjs migrate-clean 1, rls-smoke 1, authz-proofs 1, generate-pinned-grants --check 2, run-isolation 1, each its own refusal"
-    },
-    {
-      "command": "half-made: up with no initdb on PATH, then the printed down",
+      "command": "review round: git cherry-pick -x 42cdab1 89ee445 8edc15a (C0, A1, Q0 reviews)",
       "exit_code": 0,
-      "result": "up 1 naming initdb; pgpass and the marker left, the pwfile already removed; down 0, deleted"
+      "result": "98cc81c, 3720c85, ba4c654; no conflict"
     },
     {
-      "command": "rounds 1-4 on 127.0.0.1:5507 (fresh initdb --locale=C -A trust -U postgres, TCP only, LC_ALL=C, shim first): make db-migrate-clean, make db-rls-smoke; rounds 3 and 4 on 3b64fd3 committed",
+      "command": "review round, r1 on 127.0.0.1:5507 (fresh initdb, shim first, node v24.20.0): make db-migrate-clean; make db-rls-smoke",
       "exit_code": 0,
-      "result": "each round 0, 0: 54 applied, ok in 4980/5026/5123/5148ms; 1087 isolation cases, 6 claims, ok in 1210/1223/1248/1244ms; nothing listens on 5507 after"
+      "result": "migrate-clean ok (51 apply-time blocks, 39 re-run, 12 superseded); rls-smoke ok, 1087 isolation cases, 6 authz proofs"
+    },
+    {
+      "command": "review round, r4 on 5507 (fresh initdb): make db-migrate-clean; make db-rls-smoke",
+      "exit_code": 0,
+      "result": "the same as r1 (second clean run)"
+    },
+    {
+      "command": "review round, r2 and r3 on 5507: four drifts (Q0 X2 BEGIN ATOMIC via EXECUTE in a DO block, Q0 X3 unqualified, X1 in public, return query execute) appended to 140_audit.sql, no trigger; make db-migrate-clean; RFC-026 §8.1/1 approximated by regex over pg_get_functiondef",
+      "exit_code": 0,
+      "result": "migrate-clean ok (52 blocks): the drifts pass the driver; the revised (a) selects the three writers and (c) the fourth, the merged (a) selects none; 140_audit.sql restored, sha256 2ac596bb950e8dfb... before and after every round"
+    },
+    {
+      "command": "npm run check before the review-round code commit, branch name",
+      "exit_code": 0,
+      "result": "tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round code commit a35a619)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 88a6670 WP-0A-DB-00 at a35a619",
+      "exit_code": 0,
+      "result": "all 12 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round evidence commit 6613697)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
+    },
+    {
+      "command": "npm run check:handoff, npm run verify, verify-branch-scope at the handoff commit, branch name",
+      "exit_code": 0,
+      "result": "recorded in the PR body and plan §6.4 after this commit (the handoff cannot cite its own commit)"
     }
   ],
-  "security_privacy_cost_impact": "Security: a local tool only; no grant, policy, role, schema or CI change. try-it makes a cluster outside the repository that listens on 127.0.0.1 only, over TCP, with no unix socket, and trusts local connections while it is up (any process on the machine can connect as the superuser; it holds synthetic fixtures only; TRY-IT.md says so; A1 owes the call on a per-cluster password, open_blockers[196] (2)). Every URL it builds passes the repository's testHostRefusal narrowed to loopback names and a non-reserved port; it refuses 5432 and the measurement ports; `down` deletes only a directory holding its marker and nothing but what `up` made. Privacy: synthetic fixtures only, no real data. Cost: none; no dependency, no service. REVIEW ROUND: A1 F1 is MEDIUM: trust on loopback is the superuser and can run operating-system commands as the Owner while a cluster is up; TRY-IT.md's Safety section now says so and says to run `down` as soon as you are done; a per-cluster scram-sha-256 password is owed before a make/npm entry point (open_blockers[196] (2)). `down` now acts only when the marker's port passes tryItRefusal, no owned entry is a symlink, postmaster.pid names this data directory and port, and the server on that port serves this data directory (A1 F2); the repository check reads a not-yet-made path through its nearest existing ancestor (A1 F3). FIX AFTER THE RE-CHECKS (A1 R-F1): the trust described above is gone. Each cluster gets a random 32-byte password; initdb stores only its scram-sha-256 verifier; the password lives in <dir>/pgpass (0600, exclusive create) and reaches connections through PGPASSFILE (an inherited PGPASSWORD is dropped); it is never in a URL, an argument or printed output (measured by grep). A process that cannot read that file is refused (measured: no password, and a wrong one). Not covered, and TRY-IT.md says so: a program running as the Owner can read the file, and the superuser can run OS commands, so `down` promptly stays the advice. The runners now enter main() by real paths (C0-TIR-1, A1 R1).",
-  "migration_and_data_impact": "None. No migration file is added or edited. scripts/db/rls-smoke.mjs moves its helper and fixture loading, unchanged, into the exported loadHelpersAndFixtures(), which main() calls (rls-smoke 1087 cases, twice). db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged). Review round: still no migration. run.mjs, rls-smoke.mjs, authz-proofs.mjs and run-isolation.mjs change only how main() is entered (pathToFileURL); migrate-clean and rls-smoke measured twice on fresh clusters (1087 cases each); no drift needed and 140_audit.sql untouched. Fix after the re-checks: still no migration. The six runners change only how main() is entered (real paths); migrate-clean and rls-smoke measured four times on fresh clusters (two on 3b64fd3 committed), 1087 cases each; no drift needed and 140_audit.sql untouched.",
-  "compatibility_impact": "Tests stay 685 (no test added); foundation-contract's assertion floor 1044 -> 1074 (main counted 1054; 20 assertions added to the existing live-target refusal test); test floor and name digest unchanged; evidence/VERIFICATION.md unchanged. rls-smoke.mjs gains one export (loadHelpersAndFixtures). New: scripts/db/try-it.mjs, db/foundation/TRY-IT.md. No Makefile target or npm script (owed to the Integration Owner). Review round: foundation-contract's assertion floor 1074 -> 1101 (27 assertions in the same test); still 685 tests. try-it's printed next commands now name the script by its full path. try-it exports SCRIPT, shellQuote, realpathThroughAncestor, insideRepo, migrateCleanProblem, pidFileProblem and downRefusal. Fix after the re-checks: foundation-contract's assertion floor 1101 -> 1119 (18 assertions in the same test); still 685 tests. try-it exports PGPASS, PWFILE, PASSWORD_BYTES, newPassword and pgpassLine, and OWNED_ENTRIES gains pgpass and initdb.pwfile; `up` prints `PGPASSFILE=<dir>/pgpass DB_TEST_URL=<url>` and `psql` a PGPASSFILE-prefixed line, so anyone pointing a make target at a try-it cluster puts both settings in front. A try-it cluster made by an earlier version of this branch (trust) is still removed by `down`. generate-pinned-grants.mjs changes only its main() entry.",
+  "security_privacy_cost_impact": "None in effect. Two Proposed decision records change text only; no grant, policy, role, schema or CI change. RFC-2026-026 proposes membership for every command audit row (no client writes into another tenant's log while the request tier alone sets request.jwt.claims, §3.3/1), refusal rows that name no scope, and the page form in the policy. A refusal about a workspace the user cannot reach is recorded nowhere under the text; that is now stated as A0's reconciliation and held open as Q-026-10, not as an accepted answer. §8.1/1 now reads every non-system function's full definition. Neither RFC is in effect. No secret, no customer data, no cost.",
+  "migration_and_data_impact": "None. No migration file is added or edited. db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged).",
+  "compatibility_impact": "Tests stay 685 (no test added); no floor moves, so scripts/test-suite-contract.mjs is not amended and evidence/VERIFICATION.md is unchanged. The integrity manifest's records of the two RFCs and test-kits/branch-identity.test.mjs change.",
   "known_limitations": [
-    "Measured on macOS (Darwin 25.6) with Homebrew PostgreSQL 17.11 and Node 24.20.0 only; Linux unmeasured, Windows not claimed (open_blockers[196] (3)).",
-    "The demo shows the database rules on a local copy: no app, no service-worker path (no app_worker step; open_blockers[113]), no provisioned Supabase instance; 13 representative checks, not the suite.",
-    "The demo's four counts steps pin today's fixture; CI holds the plan statically, not the counts live (open_blockers[196] (4)).",
-    "A per-cluster password, not a per-user boundary: a program running as the Owner can read <dir>/pgpass, and the database superuser can run OS commands as the Owner, so `down` as soon as done stays the advice (TRY-IT.md Safety).",
-    "The cherry-picked draft commit's message says assertion floor 1014 -> 1030, true on 5bde893; on main the floor is 1074, set by 1298dbe.",
-    "Review round: A0 did not run try-it `up`, `demo`, `psql`, `down` end to end on dd11a35 (its only permitted port, 5507, is reserved); Q0's re-check did (55477, 55420), with a stopped cluster and a stale postmaster.pid, and this fix ran them again on 3b64fd3 (open_blockers[196] (7), closed).",
-    "scripts/verify-clean-run.mjs and scripts/refresh-author-handoff.mjs still enter main() by `file://${process.argv[1]}` (outside this package's ownership; open_blockers[196] (5)).",
-    "When nothing answers on the marker's port, `down` signals nothing and deletes the directory (open_blockers[196] (8)).",
-    "A dangling symlink into the repository is not resolved by insideRepo; `mkdir` through it throws an uncaught ENOTDIR before anything is written (C0-TIR-2, a stated limit on open_blockers[196]).",
-    "attached() (demo, psql) checks that a server answers on the marker's port, not that it serves this directory; another try-it cluster there refuses this directory's password (read, not measured; C0-TIR-3)."
+    "Nothing in the revised RFC texts was executed: §3.3's literal, §3.7's two policies, §8.1/1's catalog rule and §8.2/16-21 are text, owed to the batches that land each half.",
+    "RFC-2026-023 is not edited: Q-027-4's answer (write the admitted-state gate into it now) is owed to A0 at its next revision; this batch's scope is the two Proposed RFCs.",
+    "The 89/8 census of RFC-2026-027 §6/6 is Q0's measurement, cited, not re-run.",
+    "Review round: §8.1/1 as revised was approximated by a regular expression over pg_get_functiondef on a scratch cluster, not by the lexer; the rule and its eight drifts are owed to the command half. scripts/db/psql-driver.mjs still refuses BEGIN ATOMIC at the top level only (Q0 F1), owed."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[196] holds what this batch leaves owed, each with its owner: a make/npm entry point (Integration Owner), trust auth on loopback (A1), platforms (A0), the demo's pinned counts (A0), the other runners' entry check (A0), independent review and test (C0, Q0, A1); cross-referenced to [113] and [188]. None is stop-the-line. Review round: (2) answered by A1 (a per-cluster credential is wanted; owed to A0), (5) measured and fixed for the four DB runners, (7) and (8) added. Fix after the re-checks: (2) done (scram-sha-256, a per-cluster password in a 0600 file, PGPASSFILE), so (1) no longer waits on it; (5) extended to symlinked paths for six runners, the Integration Owner's two still owed; (7) closed (measured by Q0 and again here); C0-TIR-2 and C0-TIR-3 recorded as stated limits.",
-    "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, the provisioned-instance measurement (Q170-c), DATA-DEC-03 and the other unanswered Q-ids stay unanswered; this batch does not decide them.",
-    "RFC-2026-025 §5: Integration Owner evidence is still owed for every merge A0 presses (open_blockers[188])."
+    "open_blockers[195], appended: both RFCs' approval (the Owner and A1) and the named roles' acceptance of the fifteen answers stay owed; new owed items: Q-027-4's edit to RFC-2026-023 (A0) and app_command's EXECUTE on app.is_active_member (RFC-2026-026's command-half batch). Cross-referenced, not duplicated: [21], [29], [32], [33], [95], [113], [191] (2) and (6), [188]. None is stop-the-line.",
+    "Appended to open_blockers[195] after the C0, A1 and Q0 round: Q-026-10 UNANSWERED (A1 and the Owner), owed before any decision on RFC-2026-026; the driver refusing nested BEGIN ATOMIC; A1 deciding a form for a system_actor id (A1 F5). None is stop-the-line."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved; a cluster a person made with `up` is removed by `down`, and a revert leaves no state behind.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Proposed text only; nothing is applied to any instance and no migration is involved.",
   "recommended_next_work_packages": [
-    "Re-checks of the fix after the re-checks by A1 (R-F1: the password, live on a port in 55420-55479), C0 and Q0 (3b64fd3, recorded in 1c7d638). Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
-    "Then ask the Owner to test: the four commands in db/foundation/TRY-IT.md's Quick start, and what they see.",
-    "The decisions still unanswered (RFC approvals, SLO ratification, instance access, DATA-DEC-03), unchanged."
+    "Merge under the standing delegation if the bar of 127 §6 is met on this head (green CI on the reviewed head); RFC-2026-025 §5 Integration Owner evidence stays owed.",
+    "Q-026-10 put to A1 and the Owner with the phase-end review; then the Owner's and A1's decision on RFC-2026-026 and RFC-2026-027, and the named roles' acceptance of the fifteen answers.",
+    "Q-027-4: write the admitted-state gate into RFC-2026-023 at its next revision (A0)."
   ],
   "reviewer_instructions": [
-    "For the fix after the re-checks: read the plan's `Fix after the re-checks (2026-10-04)` section, then git diff 20623f2..1c7d638 (the three cherry-picked re-checks, 3b64fd3, the record). Run `up` on a port in 55420-55479 and try to connect without the password and with a wrong one; run demo, psql (paste its line) and down; grep everything printed for the password in <dir>/pgpass; invoke a runner through a symlinked path.",
-    "For the review round: read the plan's `Review round (2026-10-04)` section, then git diff cee1585..952095f (the three cherry-picked reports, dd11a35, the record). Check each finding's change against its report; re-run the forged `down` probes and the spaced-path runners; run `up` to `down` end to end on a port in 55420-55479 if your brief allows one.",
-    "Read evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md first (item -> change -> proof; the full transcript), then git diff b0a3809..1298dbe; the draft record a0-try-it-draft-2026-10-04.md describes the tool as drafted.",
-    "Run it yourself on a scratch directory outside the repository: node scripts/db/try-it.mjs up --dir <scratch>, demo, psql, down (with the same --dir). Expect 13 of 13 and the directory gone.",
-    "Repeat the negative control: after up, alter table app.content_items disable row level security as postgres; demo should exit 1 naming six steps.",
-    "Try to make try-it touch what it did not make: a --dir inside the repository, a non-empty directory without the marker, a forged marker naming another directory, a reserved port, an off-loopback URL. Each should refuse with nothing changed.",
-    "Re-run make db-migrate-clean and make db-rls-smoke on a fresh cluster (shim first): rls-smoke.mjs's loading was moved, not changed."
+    "Read evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1, then the diff 88a6670..cdf6774 of the two RFCs. Check RFC-2026-026 §3.3's literal against §3.3/1-4, §3.6, §3.7 and §8.2/16-21 and against RFC-2026-023 §3.2; check §8.1/1's rule (a)-(d) is decidable over pg_proc/pg_trigger with the repository's lexer, and that its drifts would each be red.",
+    "Check each §10.1 row against product-owner-disposition-2026-10-03-batch-rfc-026-027.md §5, §7 and §8 (the recommendation current at that merge), and that neither Status line claims approval.",
+    "Check open_blockers[195]'s append (no other entry changed; the coverage map's 33 pins moved back by one).",
+    "Review round: read the plan §6.2 table against the three reviews, then the diff ba4c654..a35a619 (RFC-026 §3.3/2-4, §3.4, §3.7, §8.1/1, §8.2/17, /21, §10, §10.1; RFC-027 §5/6) and [195]'s last append; check that §10.1 no longer records any answer the Owner did not accept."
   ],
   "superseded_by": null
 }
