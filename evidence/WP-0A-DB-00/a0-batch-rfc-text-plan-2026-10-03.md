@@ -153,3 +153,35 @@ on the branch name.
 
 Q-026-10's answer (A1, the Owner) before RFC-026 is approved; the rule itself and its eight drifts, with the command
 half; the driver's nested `BEGIN ATOMIC` refusal; approval of both RFCs and every named role's acceptance, as before.
+
+## 7. Re-checks of the review round (2026-10-05)
+
+C0, A1 and Q0 re-checked `eaf92dd`, whose code commit is `a35a619`. Their files are cherry-picked with
+`-x`:
+
+| Reviewer | Commit | Cherry-picked as |
+|---|---|---|
+| C0 | `f017023` | `64f84ac` |
+| A1 | `2e33c63` | `efe88a5` |
+| Q0 | `53382ca` | `4aed996` |
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is
+green on `eaf92dd` (run 37223567906). Both RFCs stay **Proposed**, and nothing here approves either one.
+
+C0 measured three findings as closed in the text:
+
+- **C0-RT-1.** "Not recorded" is now A0's own departure, and it is reopened as Q-026-10, UNANSWERED.
+- **C0-RT-2 and C0-RT-3.** The scope now reads every user object, unqualified names are matched, and the
+  `execute` token is defined.
+
+Every finding below concerns the text of RFC-026's static rule §8.1/1, which no batch has implemented
+yet. They are **owed before RFC-026 is approved**, on open_blockers[195]:
+
+| Finding | Grade | Owed before approval |
+|---|---|---|
+| §8.1/1 exempts every extension member: an invoker function that writes app.audit_logs and is then `ALTER EXTENSION … ADD`-ed passes migrate-clean (A1 N1) | MEDIUM | §8.1/1 reads extension members too, as batch 128's definer probe does |
+| §8.1/1 reads functions and triggers only. A rewrite rule on a table outside app/private can write audit rows with the owner's rights (A1 N2, Q0 R2) | MEDIUM | §8.1/1 also reads pg_rewrite in every non-system schema, which widens REWRITE_RULE_PROBE |
+| §8.1/1 (b) reads pg_get_functiondef, so it selects every producer by its own CREATE header (C0-RR-1, Q0 R1) | LOW | Read prosrc, or strip the header |
+| Q-026-10's option (i), "naming the attempted id", needs a column that app.security_events does not have (C0-RR-2, A1 N3) | LOW | State the forward migration, or the event_type route |
+| Drift 1's SECURITY DEFINER form is refused first by the definer probe (Q0 R3). Lexer refusals inside string literals (C0-RR-3, Q0 R5). Reader-list coverage (Q0 R6) | LOW / INFO | Wording and the drift's shape |
+| "18 functions" is 14 after migrate-clean; 18 is the count after rls-smoke (C0-RR-4, A1 N4, Q0 R4). The handoff and plan §6.4 cite each other (C0-RR-5, A1 N5) | INFO | Wording |
