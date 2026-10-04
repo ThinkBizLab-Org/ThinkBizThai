@@ -427,7 +427,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '140_audit.sql',
   // Batch 150: performance_snapshots (121's, not on the instance) re-keyed to (id, metric_time); APPENDED after
   // 140, its numeric place, so the declaration stays a TAIL.
-  '150_performance_snapshots_key.sql'];
+  '150_performance_snapshots_key.sql',
+  // Batch 170: the client UPDATE of 010's workspaces.lifecycle_state revoked (Q-026-5 / Q-027-5); it could apply
+  // to the instance on its own, but it sorts after 150, so it is APPENDED and the declaration stays a TAIL.
+  '170_workspace_lifecycle_not_client_writable.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -2722,6 +2725,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // the SECRET-4 drift moved to private tables). Every other digest stays.
   // Batch 150's review round: data classification 77b41feaee177714 to a848ca33af3460e3 (Q0 Q-3: the widen drift
   // also grants a column UPDATE and INSERT and a table TRUNCATE and TRIGGER on the classed tables, each named).
+  // Batch 170 (Q-026-5 / Q-027-5, revoke): pinned grant baa6379790cb8733 to eb5ecbffb7f4f3cf (the pinned list the
+  // probe embeds loses authenticated UPDATE (lifecycle_state) on app.workspaces; no rule and no drift changed).
+  // Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -2743,7 +2749,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '7ebb13f1c66bd33a',
     'pinned trigger probe': 'f136765c6beb5dbf',
-    'pinned grant probe': 'baa6379790cb8733',
+    'pinned grant probe': 'eb5ecbffb7f4f3cf',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
@@ -3293,6 +3299,31 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.match(m150code, /from pg_catalog\.pg_index i join pg_catalog\.pg_class ic on ic\.oid = i\.indexrelid\n\s+where i\.indrelid = 'app\.performance_snapshots'::regclass and i\.indisunique\n[\s\S]*?a\.attnum = any \(\(i\.indkey::int2\[\]\)\[0:i\.indnkeyatts - 1\]\) and a\.attname = 'metric_time'/,
       'every unique index carries metric_time among its key columns');
     assert.match(m121, /id\s+bigint generated always as identity primary key,/, '121 is not edited (migration invariant 1)');
+  }
+  // Batch 170 (Q-026-5 / Q-027-5, answered "revoke" 2026-10-04; open_blockers[195]): no client role writes
+  // app.workspaces.lifecycle_state. One forward migration revokes the one column from authenticated's UPDATE and
+  // touches no other grant and no policy; the pinned grant list moves in the same diff; 010 is not edited.
+  {
+    const ws = m.PINNED_GRANTS['app.workspaces'];
+    assert.deepEqual(ws.authenticated.UPDATE, ['name', 'updated_by'], 'the owner still updates name and updated_by, and nothing else');
+    assert.deepEqual(ws.authenticated.SELECT, ['id', 'name', 'lifecycle_state', 'created_at', 'updated_at', 'created_by', 'updated_by'], 'members still read the state');
+    assert.deepEqual([ws.authenticated.table, ws.authenticated.INSERT, ws.anon], [undefined, undefined, undefined], 'no table-level client privilege, no client INSERT, nothing for anon');
+    for (const [table, roles] of Object.entries(m.PINNED_GRANTS)) {
+      for (const r of m.CLIENT_ROLES.filter((r) => roles[r])) {
+        for (const p of ['UPDATE', 'INSERT']) {
+          assert.ok(!(table === 'app.workspaces' && ((roles[r][p] ?? []).includes('lifecycle_state') || (roles[r].table ?? []).includes(p))), `${r} cannot ${p} app.workspaces.lifecycle_state`);
+        }
+      }
+    }
+    const m170 = await readFile('db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql', 'utf8');
+    const m170code = m170.replace(/--[^\n]*/g, '');
+    assert.equal((m170code.match(/^revoke [^\n]*$/gm) ?? []).join('\n'), 'revoke update (lifecycle_state) on app.workspaces from authenticated;', '170 revokes exactly one column from one role');
+    assert.doesNotMatch(m170code, /^\s*grant\b|\b(create|alter|drop)\s+(policy|table|function|trigger|index)\b/im, 'and grants nothing and creates, alters or drops no policy, table, function, trigger or index');
+    assert.match(m170code, /pg_catalog\.has_column_privilege\(cr\.r, 'app\.workspaces', 'lifecycle_state', p\.p\)/, 'its block reads every client role against the column');
+    assert.match(m170code, /unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\),\s+unnest\(array\['UPDATE', 'INSERT', 'UPDATE WITH GRANT OPTION', 'INSERT WITH GRANT OPTION'\]\) as p\(p\)/, 'for UPDATE and INSERT, with and without grant option');
+    assert.match(m170code, /if offending is distinct from 'name, updated_by'/, 'and holds the owner\'s other UPDATE columns to name and updated_by');
+    const m010 = await readFile('db/foundation/migrations/010_identity.sql', 'utf8');
+    assert.match(m010, /^grant update \(name, lifecycle_state, updated_by\) on app\.workspaces to authenticated;$/m, '010 is not edited (migration invariant 1): the forward migration narrows its grant');
   }
   // THE VOCABULARY CHECKS (survey §6 item 6). Each pinned text is of the selector's shape and named by a
   // migration; a vocabulary shared by several homes is one text in each, so the rewrite of every home alike

@@ -17607,6 +17607,115 @@ export function buildCases(id) {
     // attributable to created_by and to nothing else -- to 127's restrictive closure, and while the
     // permissive INSERT policies still bind the column, to them as well.
     ...createdByAloneCases({ ownerA, editorA, id, BUSINESS_A1 }),
+    // BATCH 170: NO CLIENT MOVES A WORKSPACE'S LIFECYCLE STATE (open_blockers[195]; Q-026-5 / Q-027-5,
+    // answered "revoke"). Before 170, workspace A's own active owner moved it with one client UPDATE:
+    // a statement that read a column was admitted to 'active' and 'closing' and refused by
+    // workspaces_select_active_member for the six blocked states, and a statement that read NO column
+    // was admitted to all eight and moved every workspace the owner holds. Every case below is the
+    // owner, the strongest client identity on the table, and every refusal is demanded at the GRANT
+    // layer on app.workspaces: a policy-layer 42501 -- which the targeted form to a blocked state
+    // already raised before 170 -- does not satisfy it, so each case fails against 9a07459 and passes
+    // with 170 applied. The column-free forms are A1's F1-a on the RFC batch: a case asserting only
+    // that `... where id = ...` is refused passes with the gap open.
+    {
+      id: 'owner-a-cannot-move-workspace-a-to-closing-by-id',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'closing', updated_by = $2 where id = $1 returning id",
+      params: [A, '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170, THE TARGETED FORM: §11.4\'s Active -> Closing is "owner confirms + step-up" and step 1 '
+         + 'writes an audit event; a client UPDATE does neither. Admitted (UPDATE 1) before 170, because the new '
+         + 'row is still SELECT-visible; refused by the privilege system now.',
+    },
+    {
+      id: 'owner-a-cannot-move-workspace-a-to-access-blocked-by-id',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'access_blocked', updated_by = $2 where id = $1 returning id",
+      params: [A, '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170: refused before 170 too, but by the SELECT policy on the new row (42501 "new row violates '
+         + 'row-level security policy"), which is why this case names the GRANT layer: on 9a07459 it fails with '
+         + 'the policy layer, and it passes only once no client holds the column.',
+    },
+    {
+      id: 'owner-a-cannot-move-every-workspace-it-owns-to-access-blocked-with-no-where',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'access_blocked', updated_by = $1",
+      params: ['__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170, THE COLUMN-FREE FORM (A1 F1-a): no WHERE and no RETURNING reads no column, so no SELECT '
+         + 'policy checks the new row, and before 170 this moved every workspace the owner holds to access_blocked '
+         + '(UPDATE 1 here), which the owner could not undo. Refused by the privilege system now.',
+    },
+    {
+      id: 'owner-a-cannot-move-every-workspace-it-owns-to-access-blocked-where-true',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'access_blocked', updated_by = $1 where true",
+      params: ['__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170: a WHERE that reads no column is the same as none (A1\'s re-check, Q0 P6). Admitted before 170.',
+    },
+    {
+      id: 'owner-a-cannot-move-every-workspace-it-owns-to-access-blocked-returning-a-constant',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'access_blocked', updated_by = $1 returning 1",
+      params: ['__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170: RETURNING a constant reads no column either (A1\'s re-check, C2). Admitted before 170, and '
+         + 'it is the form that returns a row, so a rows-shaped client could not tell it from a rename.',
+    },
+    {
+      id: 'owner-a-cannot-move-every-workspace-it-owns-to-deleted-through-the-postgrest-shape',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "with pgrst_source as (update app.workspaces set lifecycle_state = 'deleted', updated_by = $1 returning 1) select count(*) from pgrst_source",
+      params: ['__SELF__'],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170: the shape PostgREST sends for a PATCH with no filter (A1\'s lifecycle-probe-2). Before 170 it '
+         + 'moved every workspace the owner holds to deleted.',
+    },
+    {
+      id: 'owner-a-cannot-queue-every-workspace-it-owns-for-purge',
+      covers: ['§11.4', '§8.5'],
+      as: ownerA,
+      sql: "update app.workspaces set lifecycle_state = 'purge_queued'",
+      params: [],
+      expect: 'denied',
+      deniedBy: 'grant',
+      deniedOn: { kind: 'table', name: 'workspaces' },
+      why: 'BATCH 170: the column alone, unfiltered, to the state a batch 160 purge selector would read -- A1\'s '
+         + 'second stop-the-line condition ([195] (4)(b)): skipping step-up and the DATA-DEC-04 recovery window. '
+         + 'Admitted before 170 (Q0 P12).',
+    },
+    // The honest side: the same owner still renames the workspace and names itself as its updater, so the
+    // refusals above are about lifecycle_state and not about every UPDATE on the table.
+    {
+      id: 'owner-a-can-still-rename-workspace-a-after-batch-170',
+      covers: ['§8.6/1', '§8.5'],
+      as: ownerA,
+      sql: 'update app.workspaces set name = $2, updated_by = $3 where id = $1 returning name',
+      params: [A, 'renamed by its owner after batch 170', '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 170: the positive beside the seven refusals. 170 revoked one column; name and updated_by stay in '
+         + 'the owner\'s UPDATE grant, so without this case the refusals could pass on a table nobody can update.',
+    },
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
