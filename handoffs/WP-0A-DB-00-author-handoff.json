@@ -5,13 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5558b2660456be63ab35376e6484201e56a5f721",
-  "head_revision_or_patch_checksum": "84e10f7d9eb80c029c38c36ed148989cc69623c7",
+  "head_revision_or_patch_checksum": "0e65e7c14ffc9e3773d9a858008a7e8fb542c74f",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-owed-tooling-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-owed-tooling-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-owed-tooling-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-owed-tooling-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-owed-tooling-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-owed-tooling.md",
+    "evidence/WP-0A-DB-00/q0-batch-owed-tooling-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-owed-tooling-test-review-2026-10-03.md"
   ],
   "files_modified": [
