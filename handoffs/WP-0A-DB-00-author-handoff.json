@@ -5,13 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "5bde893136cbe17a222e3a6abd83dcd4a1433f26",
-  "head_revision_or_patch_checksum": "286770f41325dc2a060c787502ce4ec6821193a4",
+  "head_revision_or_patch_checksum": "fb6c720072e825f56485737ec7d652ba230349db",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-sql-lexer-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/a1-batch-sql-lexer-recheck-2026-10-04.md",
     "evidence/WP-0A-DB-00/a1-batch-sql-lexer-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-sql-lexer-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-sql-lexer-recheck-2026-10-04.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-sql-lexer.md",
+    "evidence/WP-0A-DB-00/q0-batch-sql-lexer-recheck-2026-10-04.md",
     "evidence/WP-0A-DB-00/q0-batch-sql-lexer-test-review-2026-10-03.md",
     "scripts/db/sql-lexer.mjs",
     "test-kits/db/sql-lexer-differential.json"
