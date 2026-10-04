@@ -5,15 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "dc6d481e126449f2a0b3ac12eb77de87955db447",
-  "head_revision_or_patch_checksum": "3c82044c76dc5b2f363230bd490bd7e7df898144",
+  "head_revision_or_patch_checksum": "bbfedbb11ca23252e060cac5188b13bbe239e91a",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-static-rule.md"
+    "evidence/WP-0A-DB-00/a1-batch-rfc-026-static-rule-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-026-static-rule-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-static-rule.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-026-static-rule-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-026-audit-row-producer.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "test-kits/branch-identity.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
@@ -22,14 +26,17 @@
   "decisions_consumed": [
     "The Owner's `เอาตามแนะนำ` (2026-10-05), answering A0's test-point summary, whose item 2 said RFC-2026-026/027 need A0's §8.1/1 text fixes (two MEDIUM) before approval and that Q-026-10 is new and waits for the Owner (evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-static-rule.md §1). A0 gave no recommendation on Q-026-10 and none on item 3 in that summary, so A0 reads the words as covering the §8.1/1 text fixes only (§2 of the same file).",
     "The standing delegation of product-owner-disposition-2026-10-03-batch-127.md §6, which A0 executed in merging #179 at its reviewed head 8dc33ba (CI run 37225078364 green, 2026-10-04T18:45:52Z); the phase direction `เอาตามที่แนะนำเลย ลุยต่อ` / `คุณทำต่อยาวจนนกว่าจะจบ phase เลย แล้วรีวิวทีเดียว` (2026-10-03).",
-    "The re-checks of batch rfc-text's review round: C0-RR-1..5, A1 N1..N5, Q0 R1..R6 (c0-, a1-, q0-batch-rfc-text-recheck-2026-10-03.md), and open_blockers[195]'s sentence 'OWED BEFORE RFC-026 APPROVAL'."
+    "The re-checks of batch rfc-text's review round: C0-RR-1..5, A1 N1..N5, Q0 R1..R6 (c0-, a1-, q0-batch-rfc-text-recheck-2026-10-03.md), and open_blockers[195]'s sentence 'OWED BEFORE RFC-026 APPROVAL'.",
+    "The review round's findings, cherry-picked with -x: C0 6d0c27f (evidence/WP-0A-DB-00/c0-batch-rfc-026-static-rule-contract-review-2026-10-03.md, C0-SR-1..8), A1 c1e48a0 (a1-batch-rfc-026-static-rule-security-review-2026-10-03.md, N1..N5), Q0 1665deb (q0-batch-rfc-026-static-rule-test-review-2026-10-03.md, Q0-S1..S6). None is a stop-the-line; each is owed before RFC-2026-026's approval."
   ],
   "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
     "THIS INCREMENT IS THE RFC-026-STATIC-RULE BATCH: the text of one PROPOSED decision record (RFC-2026-026), open_blockers[195] appended, the branch slot and evidence; NO MIGRATION, NO DEPENDENCY, NO ROOT CONFIGURATION; nothing a database layer reads changed. Plan evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md, disposition evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-static-rule.md.",
     "RFC-2026-026's Status line still says Proposed; its approval (the Owner's explicit act and A1's review) stays outstanding, and Q-026-10 stays UNANSWERED. A0's recommendation on Q-026-10, option (iii), is written into the question's row and marked as a recommendation, not an answer; the Owner has not seen it.",
-    "The prototype of §8.1/1 (plan §2) is A0's private script over a throwaway cluster's catalog with the repository's lexer; it is not the rule and not its self-tests, which stay owed to the batch that lands the command half."
+    "The prototype of §8.1/1 (plan §2) is A0's private script over a throwaway cluster's catalog with the repository's lexer; it is not the rule and not its self-tests, which stay owed to the batch that lands the command half.",
+    "THE REVIEW ROUND (plan §6) changes the same kinds of path and adds no new one: RFC-2026-026's §8.1/1, §3.7, Q-026-10 and §10.1's Q-026-9 row; open_blockers[195] appended and open_blockers[197] added at the end of the list (the manifest grows to 460 lines; no earlier blocker's line moves); the integrity manifest; the plan's §6. Still no migration and nothing a database layer reads changed; RFC-2026-026 stays Proposed and Q-026-10 UNANSWERED.",
+    "The prototype of the added arms (evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6.3) is a second private script over throwaway clusters; it is not the rule and not its self-tests."
   ],
   "acceptance_results": [
     {
@@ -66,6 +73,31 @@
       "criterion": "(7) open_blockers[195] marks the text items done and keeps approval and Q-026-10 owed",
       "result": "met",
       "evidence": "work-packages/WP-0A-DB-00.json open_blockers[195], appended (old text a strict prefix; the other 196 entries byte-equal, checked by script)"
+    },
+    {
+      "criterion": "(8) a producer reached by OID is selected: pg_depend read in (b); tgqual, typdefaultbin and domain CHECK in (g) (Q0-S1, Q0-S2, A1 N2, C0-SR-1, Q0-S5)",
+      "result": "met in the text",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6.2-§6.3 s2-s4: on C0's, A1's and Q0's drift files the added arms select every operator, aggregate, trigger WHEN, domain default and domain CHECK the reviews measured; s1 clean: none"
+    },
+    {
+      "criterion": "(9) (h) extensions and foreign data (A1 N1); the live run.mjs probe recorded on its own blocker",
+      "result": "met in the text; the probe is owed",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6.3 s5: A1's r7 selected by (h); work-packages/WP-0A-DB-00.json open_blockers[197]"
+    },
+    {
+      "criterion": "(10) (c) language rule and text-executing list (A1 N3, C0-SR-2)",
+      "result": "met in the text",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6.3 s2 (query_to_xml selected), s6 (internal and c functions selected; migrate-clean exit 0 on them, recorded on open_blockers[197])"
+    },
+    {
+      "criterion": "(11) reader views not updatable (Q0-S3); aggregates fail closed (Q0-S4); self-test harness named (C0-SR-3); Q-026-9 quoted (C0-SR-4); wording (C0-SR-5..8, A1 N4, N5, Q0-S6)",
+      "result": "met in the text",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6.2; RFC-2026-026 §8.1/1, §3.7, §10, §10.1"
+    },
+    {
+      "criterion": "(12) open_blockers[195] appended with what stays owed",
+      "result": "met",
+      "evidence": "work-packages/WP-0A-DB-00.json open_blockers[195] (old text a strict prefix; every other blocker byte-equal; checked by script)"
     }
   ],
   "tests": [
@@ -130,34 +162,74 @@
       "result": "tests 685, pass 685"
     },
     {
-      "command": "npm run check:handoff, verify-branch-scope at the head and npm run verify on the branch name, after this refresh",
+      "command": "npm run check:handoff, verify-branch-scope at fb508e7 and npm run verify on the branch name, after the first handoff (fb508e7)",
+      "result": "exit 0 each, as recorded in the PR body and re-measured by C0, A1 and Q0 (their M1-M3 / §1.1); this row no longer carries an exit code of its own (C0-SR-7)"
+    },
+    {
+      "command": "review round: git cherry-pick -x 6d0c27f, c1e48a0, 1665deb onto fb508e7",
       "exit_code": 0,
-      "result": "run after this handoff's commit; their output is in this branch's PR body, not in this file and not in the plan"
+      "result": "32adffc, c033a29, 3df23a8"
+    },
+    {
+      "command": "review round s1 on 127.0.0.1:5507 (fresh initdb, shim first): make db-migrate-clean; make db-rls-smoke; the added-arms prototype before and after",
+      "exit_code": 0,
+      "result": "migrate-clean ok (51 apply-time blocks, 39 re-run, 12 superseded); rls-smoke ok, 1087 isolation cases, 6 authz proofs; arms all green (50 then 54 functions read)"
+    },
+    {
+      "command": "review round s2-s6 on 5507, a fresh initdb each: C0 c2.sql, A1 r3.sql, Q0 q0-r3.sql, A1 r7.sql (port changed), A0 d-lang.sql appended to 140_audit.sql; make db-migrate-clean; the arms",
+      "exit_code": 0,
+      "result": "migrate-clean exit 0 each (s6 after its drift was made re-runnable); the arms exit 1 each, selecting what plan §6.3 lists; 140_audit.sql restored, sha256 2ac596bb950e8dfb before and after"
+    },
+    {
+      "command": "npm run regenerate:manifest",
+      "exit_code": 0,
+      "result": "rebuilt 90 digest(s)"
+    },
+    {
+      "command": "npm run check before the review round code commit, branch name",
+      "exit_code": 0,
+      "result": "tests 685, pass 685, fail 0"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (code commit 9fd448b; evidence commit bbfedbb)",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 685, pass 685, fail 0 (each)"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs dc6d481 WP-0A-DB-00 at bbfedbb",
+      "exit_code": 0,
+      "result": "all 11 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "npm run check:handoff and npm run verify on the branch name, after this refresh",
+      "result": "run after this handoff's commit; their output is in the PR body, not in this file (C0-SR-7)"
     }
   ],
-  "security_privacy_cost_impact": "None in effect. One Proposed decision record changes text only; no grant, policy, role, schema or CI change. The revised §8.1/1 widens what a future lint reads (extension members, rewrite rules in every non-system schema, stored expressions) and fails closed on what it cannot lex; until that lint lands, nothing enforces it. The prototype ran on a throwaway local cluster (port 5507, trust auth on 127.0.0.1, synthetic rows only) that was stopped and removed. No secret, PII or customer content.",
-  "migration_and_data_impact": "None. No migration file is added or edited; drifts were appended to 140_audit.sql for one round each and restored byte for byte (sha256 2ac596bb950e8dfb before and after). The manifest keeps 459 lines, so the audit coverage map's line pins do not move.",
+  "security_privacy_cost_impact": "None in effect. One Proposed decision record changes text only; no grant, policy, role, schema or CI change. The revised §8.1/1 widens what a future lint reads (extension members, rewrite rules in every non-system schema, stored expressions, pg_depend, function languages, the extension and foreign-data catalogs) and fails closed on what it cannot lex; until that lint lands, nothing enforces it. The review round records on open_blockers[197] a present gap NOT specific to audit tables: a migration that computes its statement text can create a loopback foreign table (A1 N1, measured by A1) or an internal or c function (measured by A0) and pass every layer; nothing in the tree does so. The prototypes ran on throwaway local clusters (port 5507, trust auth on 127.0.0.1, synthetic rows only), each stopped and removed. No secret, PII or customer content.",
+  "migration_and_data_impact": "None. No migration file is added or edited; drifts were appended to 140_audit.sql for one round each and restored byte for byte (sha256 2ac596bb950e8dfb before and after). The review round adds open_blockers[197] at the end of the list, so the manifest grows from 459 to 460 lines and no earlier blocker's line moves; the audit coverage map's line pins do not move.",
   "compatibility_impact": "Tests stay 685 (no test added); no floor moves, so scripts/test-suite-contract.mjs and evidence/VERIFICATION.md are not amended. The integrity manifest's records of RFC-2026-026 and test-kits/branch-identity.test.mjs change.",
   "known_limitations": [
-    "Nothing in RFC-2026-026 was executed as the rule: §8.1/1 (a)-(g) and drifts 1-13 are text, prototyped by A0's private script; the self-tests are owed to the batch that lands the command half.",
-    "Not measured: drift 1b's pinned form (it edits scripts/db/run.mjs) and drift 13's fail-closed half (a body stored with check_function_bodies off).",
-    "(g), stored expressions, is A0's own addition and has had no independent review.",
-    "A function in language c or internal is opaque to the rule; the text says so and does not claim to read one."
+    "Nothing in RFC-2026-026 was executed as the rule: §8.1/1 (a)-(h) and drifts 1-20 are text, prototyped by A0's private scripts; the self-tests are owed to the batch that lands the command half.",
+    "Not measured: drift 1b in the selfTests harness (the rule does not exist); a window function; statistics-object expressions and publication row filters (named in §8.1/1 as unexamined); what an internal alias created through computed text can reach.",
+    "The catalog list in §8.1/1 is an enumeration the reviews found routes through, not a proof that no other route exists.",
+    "(g) and (h) and the arms of the review round are A0's text on reviewers' findings and have had no re-check yet."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[195], appended: Q-026-10's answer (A1, the Owner) is outstanding before RFC-2026-026's approval; approval of RFC-2026-026 and RFC-2026-027 (the Owner's explicit act and A1's review) stays outstanding; the rule with drifts 1-13, REWRITE_RULE_PROBE_SQL widened if (f) is held through it, and psql-driver.mjs refusing nested BEGIN ATOMIC are owed to the command half's batch (A0). Cross-referenced, not duplicated: [21], [29], [32], [33], [188], [191].",
+    "open_blockers[195], appended twice by this batch: Q-026-10's answer (A1, the Owner) is outstanding before RFC-2026-026's approval; approval of RFC-2026-026 and RFC-2026-027 stays outstanding; the rule with (h), the pg_depend read, the language rule, the text-executing list, the tgqual/typdefaultbin/domain-CHECK reads, the reader-view rule and drifts 1-20, REWRITE_RULE_PROBE_SQL widened if (f) is held through it, psql-driver.mjs refusing nested BEGIN ATOMIC and a cast drift on the pg_catalog guard are owed to the command half's batch (A0). Cross-referenced, not duplicated: [21], [29], [32], [33], [188], [191].",
+    "open_blockers[197], new: no live probe reads the foreign-data catalogs or a function's language, so a migration that computes its statement text passes every layer (A1 N1 MEDIUM; A0's s6). Owed to the Integration Owner with A1, independently of RFC-2026-026.",
     "RFC-2026-025 §5: Integration Owner evidence stays owed (open_blockers[188])."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Proposed text only; nothing is applied to any instance and no migration is involved.",
   "recommended_next_work_packages": [
-    "C0, A1 and Q0 role runs on this branch, (g) first; then merge under the standing delegation only if the bar of 127 §6 is met on the reviewed head.",
+    "C0, A1 and Q0 re-checks of this review round (plan §6), the pg_depend arm, (h) and the language rule first; then merge under the standing delegation only if the bar of 127 §6 is met on the reviewed head.",
+    "open_blockers[197]'s live probe, independently of RFC-2026-026 (Integration Owner, A1).",
     "Q-026-10 put to A1 and the Owner with A0's recommendation beside it, at the phase-end review; then the Owner's and A1's decision on RFC-2026-026 and RFC-2026-027."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §1, then the diff dc6d481..16b839b of RFC-2026-026 (§8.1/1, §3.7, §10's Q-026-10 row, the Status and Revised lines, §9/4, §11).",
-    "Check each of C0-RR-1..5, A1 N1..N5 and Q0 R1..R6 against the text; check (g), A0's own addition, for a reading that would refuse a legitimate object or miss a producer callee.",
-    "Check that Q-026-10 is still UNANSWERED and that A0's recommendation is marked as one, and that the disposition reads the Owner's 2026-10-05 words as covering the §8.1/1 text fixes only.",
-    "If re-running the prototype, use a fresh cluster on your own port; the drift files are described in plan §2."
+    "Read evidence/WP-0A-DB-00/a0-batch-rfc-026-static-rule-plan-2026-10-03.md §6, then the diff 3df23a8..9fd448b (RFC-2026-026 §8.1/1, §3.7, §10's Q-026-10 row, §10.1's Q-026-9 row, the Revised line, §9/4, §11; the manifest's open_blockers[195] tail and [197]).",
+    "Check each of C0-SR-1..8, A1 N1..N5 and Q0-S1..S6 against the text; check that the pg_depend arm would not refuse a legitimate object (the pinned exemption list is empty), and that the language rule's exception for c members of approved extensions is as narrow as (h).",
+    "Check that Q-026-10 is still UNANSWERED, that A0's recommendation is marked as one, and that the Q-026-9 quotation matches product-owner-disposition-2026-10-03-batch-rfc-026-027.md:130.",
+    "If re-running the arms, use a fresh cluster on your own port; the drift files are the reviewers' own and A0's d-lang.sql (plan §6.3)."
   ],
   "superseded_by": null
 }
