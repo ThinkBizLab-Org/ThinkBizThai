@@ -35,7 +35,7 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Invite/change scope", "Transfer/remove owner"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" }
       ]
     },
     {
@@ -48,8 +48,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Connect/disconnect/re-auth Meta", "BYOK credential manage"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 6, "line": 262, "quote": "BATCH 110 IMPLEMENTS NONE" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 6, "line": 261, "quote": "BATCH 110 IMPLEMENTS NONE" }
       ]
     },
     {
@@ -62,8 +62,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Publish now/cancel pending", "Publish delivery/post/metric INSERT"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 167, "line": 423, "quote": "\"CANCEL PENDING\" IS NOT A DATABASE RULE" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 167, "line": 422, "quote": "\"CANCEL PENDING\" IS NOT A DATABASE RULE" }
       ]
     },
     {
@@ -77,7 +77,7 @@
       "section8_cell": null,
       "section8_note": "§8 has no row for deleting a workspace. The nearest, §8.1 \"Workspace UPDATE\", governs settings and is not the lifecycle; §11.4's ten steps are the source, and which §8 cell a lifecycle transition is would be a reading this map does not make.",
       "blockers": [
-        { "index": 21, "line": 277, "quote": "§11.4 step 1" }
+        { "index": 21, "line": 276, "quote": "§11.4 step 1" }
       ]
     },
     {
@@ -90,8 +90,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Asset hard purge"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 150, "line": 406, "quote": "HAS NO HOME IN THIS REPOSITORY" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 150, "line": 405, "quote": "HAS NO HOME IN THIS REPOSITORY" }
       ]
     },
     {
@@ -104,8 +104,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Plan/payment action"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 80, "line": 336, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 80, "line": 335, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" }
       ]
     },
     {
@@ -120,8 +120,8 @@
       "section8_cell": null,
       "section8_note": "§8's four matrices have no support or break-glass row.",
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "SUPPORT OR BREAK-GLASS ACCESS HAS NO TABLE" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "SUPPORT OR BREAK-GLASS ACCESS HAS NO TABLE" }
       ]
     },
     {
@@ -135,7 +135,7 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Asset rights/share"],
       "blockers": [
-        { "index": 156, "line": 412, "quote": "Owed to the command surface, to A1 Security/Audit and to batch 141" }
+        { "index": 156, "line": 411, "quote": "Owed to the command surface, to A1 Security/Audit and to batch 141" }
       ]
     },
     {
@@ -149,7 +149,7 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Schedule/unschedule"],
       "blockers": [
-        { "index": 190, "line": 446, "quote": "owed with batch 141's audit coverage" }
+        { "index": 190, "line": 445, "quote": "owed with batch 141's audit coverage" }
       ]
     },
     {
@@ -162,8 +162,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Business/Page INSERT/UPDATE/archive"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -177,8 +177,8 @@
       "section8_cell": null,
       "section8_note": "§8.1's only user row is \"Own user profile SELECT/UPDATE\"; no §8 row deletes an account, and which cell an account deletion is would be a reading this map does not make.",
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -192,8 +192,8 @@
       "section8_cell": null,
       "section8_note": "§8.1 has \"Invite/change scope\" and \"Transfer/remove owner\"; it has no row for removing or suspending a member who is not the owner.",
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -207,8 +207,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Audit/security INSERT"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "A PLATFORM-SCOPE SECURITY EVENT HAS NO HOME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "A PLATFORM-SCOPE SECURITY EVENT HAS NO HOME" }
       ]
     },
     {
@@ -222,8 +222,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Approval policy manage"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -237,8 +237,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Workspace UPDATE"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -254,7 +254,7 @@
       "section8_cell": null,
       "section8_note": "§8's four matrices have no export row.",
       "blockers": [
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -269,8 +269,8 @@
       "section8_cell": null,
       "section8_note": "§8's matrices name tenant roles and the service; a platform admin's adjustment has no row, and \"Plan/payment action\" is the tenant Owner's.",
       "blockers": [
-        { "index": 80, "line": 336, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 80, "line": 335, "quote": "NOTHING IN THIS REPOSITORY CAN CREATE, CHANGE OR END A SUBSCRIPTION" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -284,8 +284,8 @@
       "producer_decision": "Q141-a",
       "section8_cell": ["Internal job/attempt/DLQ payload"],
       "blockers": [
-        { "index": 21, "line": 277, "quote": "nothing can write an audit row today" },
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 21, "line": 276, "quote": "nothing can write an audit row today" },
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -301,7 +301,7 @@
       "section8_cell": null,
       "section8_note": "§8's four matrices have no banner row.",
       "blockers": [
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     },
     {
@@ -317,7 +317,7 @@
       "section8_cell": null,
       "section8_note": "§8's four matrices have no hold row.",
       "blockers": [
-        { "index": 191, "line": 447, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
+        { "index": 191, "line": 446, "quote": "AUDITED ACTIONS THE COVERAGE MAP DID NOT NAME" }
       ]
     }
   ]

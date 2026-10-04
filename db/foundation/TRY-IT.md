@@ -8,6 +8,32 @@ Everything here is a **local, throwaway copy built the way CI builds its test da
 the same migrations, the same synthetic fixtures. Nothing is real data, and nothing connects to Supabase
 or any other service.
 
+## Quick start (copy and paste)
+
+On the Owner's Mac (Node 24.20.0 at `/Users/bank/.local/node-v24.20.0/bin`, Homebrew PostgreSQL 17), paste these
+one at a time into Terminal. The first line goes to the repository; the rest are the whole tour.
+
+```sh
+cd /Users/bank/ThinkBizThai
+/Users/bank/.local/node-v24.20.0/bin/node scripts/db/try-it.mjs up
+/Users/bank/.local/node-v24.20.0/bin/node scripts/db/try-it.mjs demo
+/Users/bank/.local/node-v24.20.0/bin/node scripts/db/try-it.mjs psql
+/Users/bank/.local/node-v24.20.0/bin/node scripts/db/try-it.mjs down
+```
+
+- `up` takes about ten seconds and ends with `[6/6] ready` and the next commands to paste.
+- `demo` ends with `All 13 steps behaved as expected.` when everything held.
+- `psql` only prints a line to paste (and five lines to paste after it); it runs nothing itself.
+- `down` stops the database and deletes its directory. Run it when you are done.
+
+The full path to `node` matters: this Mac also has a newer Node on its `PATH` (`node -v` may print `v26...`).
+The tool still runs on it, but prints a note, and the repository's measurements are on 24.20.0. Every
+"next" command the tool prints is spelled with the full path of the Node that is running it, so you can
+paste those too. If `up` stops part way, it prints the `down` command that removes what it made.
+
+On another machine, replace `/Users/bank/ThinkBizThai` with your clone and the Node path with your own
+Node 24.20.0; the rest of this guide explains each step.
+
 ## Prerequisites
 
 - **PostgreSQL 17** with `initdb`, `pg_ctl` and `psql` on your `PATH`. On macOS with Homebrew:
@@ -16,6 +42,8 @@ or any other service.
 - **Node.js 24.20.0** (the repository's pinned version). If you keep it outside your `PATH`, put it first
   for this shell, for example `export PATH=/Users/<you>/.local/node-v24.20.0/bin:$PATH`.
 - Run every command from the repository root. No `npm install` is needed: the tool uses Node built-ins only.
+- There is no `make` target or `npm run` script for this yet: both live in protected root configuration, and
+  adding one is owed as a request to the Integration Owner. The `node scripts/db/try-it.mjs` lines are the tool.
 
 ## The four commands
 
@@ -40,7 +68,8 @@ What `up` does, in order:
    migration in order, and every check that target makes after migrating. Its full output is kept in
    `migrate-clean.log` in the cluster directory.
 5. Load the test-identity helpers and the fixture files exactly as `make db-rls-smoke` does.
-6. Print the connection URL (`DB_TEST_URL=...`) and a short paragraph on what you now have.
+6. Print the connection URL (`DB_TEST_URL=...`), a short paragraph on what you now have, and the next three
+   commands, ready to paste.
 
 The database is already migrated and loaded, so do not point `make db-migrate-clean` or `make db-rls-smoke`
 at it: both expect an empty database and would fail on the second load, not on a policy.
@@ -122,6 +151,9 @@ written by `up`, or that holds anything `up` did not put there. If you passed `-
   test-host guard (`testHostRefusal` in `scripts/db/psql-driver.mjs`), narrowed further to loopback names.
 - It never uses port 5432, never uses an existing data directory, and never creates its directory inside the
   repository.
+- While the cluster is up, **any program on this Mac can connect to it without a password** (it trusts local
+  connections on `127.0.0.1`; nothing outside the Mac can reach it). It holds synthetic fixtures only. Run
+  `down` when you are done rather than leaving it running.
 
 ## What this does NOT show
 

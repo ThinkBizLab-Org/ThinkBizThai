@@ -209,6 +209,12 @@ test('a target needing a database refuses without one, rather than reporting a p
     assert.equal(result.code, 1, `try-it ${args.join(' ')} refuses`);
     assert.match(result.stderr, /^try-it: /, 'and says why');
   }
+  // What it tells a person to type next is spelled with the running Node's full path and the --dir in use, quoted
+  // for the shell when it needs to be, and the version it notes a difference from is the repository's pin.
+  assert.equal(tryIt.nextCommand('down', tryIt.DEFAULT_DIR, '/n/bin/node'), '/n/bin/node scripts/db/try-it.mjs down', 'the default directory needs no --dir');
+  assert.equal(tryIt.nextCommand('demo', '/x/y', '/n/bin/node'), '/n/bin/node scripts/db/try-it.mjs demo --dir /x/y', 'another directory is named');
+  assert.equal(tryIt.nextCommand('psql', "/x/it's here", '/n/bin/node'), "/n/bin/node scripts/db/try-it.mjs psql --dir '/x/it'\\''s here'", 'and quoted for the shell');
+  assert.equal(tryIt.PINNED_NODE, `v${(await readFile('.node-version', 'utf8')).trim()}`, 'the pinned version is .node-version');
   // EVERY DEMO STEP HAS AN EXPECTED RESULT, so the demo cannot pass vacuously: a counts step expects exact numbers,
   // a case step names a case the suite has and repeats the outcome that case expects, and at least one step
   // expects rows. The plan is sound as written, and the check bites on each way it could stop being.

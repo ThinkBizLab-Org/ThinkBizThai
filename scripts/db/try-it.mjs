@@ -32,7 +32,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { argv, env, exit, stdout, stderr } from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { testHostRefusal, feed, query, openSession, psqlLex } from './psql-driver.mjs';
 
@@ -201,6 +201,13 @@ export function demoPlanProblems(steps, cases, users) {
 // --- small helpers ----------------------------------------------------------------------------------------
 const say = (text = '') => stdout.write(`${text}\n`);
 const fail = (text) => { stderr.write(`try-it: ${text}\n`); return 1; };
+// The command to type next, spelled with the Node that is running now (its full path) and the --dir in use,
+// so a person who started from TRY-IT.md's copy-paste lines can paste what this prints as it stands.
+export const PINNED_NODE = 'v24.20.0';
+export function nextCommand(sub, dir, node = process.execPath) {
+  const quoted = (text) => (/^[\w./-]+$/.test(text) ? text : `'${text.replaceAll("'", "'\\''")}'`);
+  return `${quoted(node)} scripts/db/try-it.mjs ${sub}${resolve(dir) === DEFAULT_DIR ? '' : ` --dir ${quoted(dir)}`}`;
+}
 
 function parseArgs(args) {
   const out = { command: args[0], dir: DEFAULT_DIR, port: null };
@@ -263,7 +270,7 @@ async function up({ dir, port: askedPort }) {
   if (insideRepo(dir)) return fail(`${dir} is inside the repository; the cluster goes outside it (default ${DEFAULT_DIR}).`);
   const already = await readMarker(dir);
   if (already) {
-    return fail(`${dir} already holds a try-it cluster on port ${already.port}. Run \`node scripts/db/try-it.mjs demo\` to use it, or \`down\` first to start over.`);
+    return fail(`${dir} already holds a try-it cluster on port ${already.port}. Run \`${nextCommand('demo', dir)}\` to use it, or \`${nextCommand('down', dir)}\` first to start over.`);
   }
   if (existsSync(dir) && readdirSync(dir).length) return fail(`${dir} exists and is not empty, and it was not made by \`up\`. Nothing was touched. Pass --dir <a new path>.`);
   const port = askedPort ?? await freePort();
@@ -279,9 +286,11 @@ async function up({ dir, port: askedPort }) {
   await mkdir(dir, { recursive: true });
   // The marker first, so a half-made cluster is still one `down` will clean up.
   await writeFile(join(dir, MARKER), `${JSON.stringify({ tool: MARKER_TOOL, dir, port, database: DATABASE, created: new Date().toISOString() }, null, 2)}\n`);
+  // From here on a failure leaves a half-made cluster; say how to remove it.
+  const failHalfMade = (text) => { stderr.write(`try-it: ${text}\ntry-it: to remove what was made so far: ${nextCommand('down', dir)}\n`); return 1; };
   say(`[1/6] initdb: a new, empty cluster in ${data} (locale C, superuser postgres)`);
   const init = await runTool('initdb', ['-D', data, '-U', 'postgres', '--locale=C', '-E', 'UTF8', '--auth=trust', '--no-instructions', '--no-sync'], { envExtra: CLUSTER_ENV });
-  if (init.code !== 0) return fail(`initdb failed${init.code === 127 ? ' (is PostgreSQL installed and initdb on PATH?)' : ''}:\n${init.out}`);
+  if (init.code !== 0) return failHalfMade(`initdb failed${init.code === 127 ? ' (is PostgreSQL installed and initdb on PATH?)' : ''}:\n${init.out}`);
   // Loopback TCP only, no unix socket, and settings for a disposable cluster: small, and not durable.
   await appendFile(join(data, 'postgresql.conf'), [
     '', '# scripts/db/try-it.mjs: a disposable local cluster',
@@ -291,18 +300,18 @@ async function up({ dir, port: askedPort }) {
   ].join('\n'));
   say(`[2/6] pg_ctl start: listening on 127.0.0.1:${port} (TCP only, no unix socket)`);
   const started = await runTool('pg_ctl', ['-D', data, '-l', log, '-w', '-t', '60', 'start'], { envExtra: CLUSTER_ENV });
-  if (started.code !== 0) return fail(`pg_ctl start failed; see ${log}:\n${started.out}`);
+  if (started.code !== 0) return failHalfMade(`pg_ctl start failed; see ${log}:\n${started.out}`);
 
   process.env.DB_TEST_URL = url;
   const created = await query(`create database ${DATABASE}`, { url: urlFor(port, 'postgres') });
-  if (created.error) return fail(`create database: ${created.error.message}`);
+  if (created.error) return failHalfMade(`create database: ${created.error.message}`);
 
   say(`[3/6] the Supabase shim (${SHIM}), as CI applies it before migrating`);
   const shim = await readFile(join(REPO, SHIM), 'utf8');
   const meta = psqlLex(shim).metaCommands;
-  if (meta.length) return fail(`${SHIM} line ${meta[0].line} carries a psql meta-command; it is not fed.`);
+  if (meta.length) return failHalfMade(`${SHIM} line ${meta[0].line} carries a psql meta-command; it is not fed.`);
   const shimmed = await feed(shim, { url });
-  if (shimmed.error) return fail(`the shim did not apply: ${shimmed.error.message}`);
+  if (shimmed.error) return failHalfMade(`the shim did not apply: ${shimmed.error.message}`);
 
   say('[4/6] node scripts/db/run.mjs migrate-clean: the prerequisite, every migration in order, and every probe');
   const migrateLog = join(dir, 'migrate-clean.log');
@@ -310,13 +319,13 @@ async function up({ dir, port: askedPort }) {
     { envExtra: { DB_TEST_URL: url, LC_ALL: 'C', TZ: 'UTC' }, logTo: migrateLog });
   const applied = (migrated.out.match(/^ {2}applied /gm) ?? []).length;
   const summary = migrated.out.split('\n').find((l) => l.startsWith('db-migrate-clean:')) ?? '(no summary line)';
-  if (migrated.code !== 0) return fail(`migrate-clean failed; the whole output is in ${migrateLog}. Its summary: ${summary}`);
+  if (migrated.code !== 0) return failHalfMade(`migrate-clean failed; the whole output is in ${migrateLog}. Its summary: ${summary}`);
   say(`      ${applied} scripts applied; ${summary}`);
 
   say('[5/6] the auth-context helpers and the identity fixtures, loaded exactly as `make db-rls-smoke` loads them');
   const { loadHelpersAndFixtures } = await import('./rls-smoke.mjs');
   const { FIXTURE_SQL_FILES } = await import('../../tests/db/identity/run-isolation.mjs');
-  if (await loadHelpersAndFixtures() !== 0) return fail('the helpers or a fixture did not load (above).');
+  if (await loadHelpersAndFixtures() !== 0) return failHalfMade('the helpers or a fixture did not load (above).');
   say(`      ${FIXTURE_SQL_FILES.length} fixture files loaded`);
 
   const counted = await query(`select (select count(*) from pg_tables where schemaname in ('app','private'))::text as tables,
@@ -331,9 +340,12 @@ async function up({ dir, port: askedPort }) {
     + ` 127.0.0.1:${port}, with the database "${DATABASE}" built exactly as CI builds its test database: the shim,`
     + ` then all ${applied - 1} migrations (${n.tables ?? '?'} tables in app and private, ${n.policies ?? '?'} row level security policies),`
     + ` then the synthetic fixtures (${n.workspaces ?? '?'} workspaces: tenant A and tenant B, which the tests set against each other).`
-    + ' Nothing here is real data and nothing is connected to any other service. Next: `node scripts/db/try-it.mjs demo`'
-    + ' for the guided tour, `node scripts/db/try-it.mjs psql` to poke at it yourself, and `node scripts/db/try-it.mjs down`'
-    + ' to stop it and delete it.');
+    + ' Nothing here is real data and nothing is connected to any other service.');
+  say();
+  say('Next (copy and paste):');
+  say(`  ${nextCommand('demo', dir)}    # the guided tour`);
+  say(`  ${nextCommand('psql', dir)}    # how to connect and look around yourself`);
+  say(`  ${nextCommand('down', dir)}    # stop it and delete it when you are done`);
   return 0;
 }
 
@@ -345,7 +357,7 @@ async function serverVersion(url) {
 // --- connect to what `up` made ----------------------------------------------------------------------------
 async function attached(dir) {
   const marker = await readMarker(dir);
-  if (!marker) return { error: `no try-it cluster in ${dir}. Run \`node scripts/db/try-it.mjs up\` first${dir === DEFAULT_DIR ? '' : ` (with --dir ${dir})`}.` };
+  if (!marker) return { error: `no try-it cluster in ${dir}. Run \`${nextCommand('up', dir)}\` first.` };
   const url = urlFor(marker.port);
   const refusal = tryItRefusal(url);
   if (refusal) return { error: `refusing ${url}: ${refusal}` };
@@ -440,6 +452,7 @@ async function demo({ dir }) {
   say(`All ${DEMO_STEPS.length} steps behaved as expected.`);
   say('What this does NOT show: any app or screen, the service worker path, or a real Supabase project. It shows the');
   say('database rules on a local copy built the way CI builds one.');
+  say(`When you are done: ${nextCommand('down', dir)}`);
   return 0;
 }
 
@@ -498,7 +511,13 @@ async function main() {
     return 2;
   }
   process.chdir(REPO);
+  // Not fatal: the tool uses Node built-ins only, but the repository's measurements are on the pinned version.
+  if (process.version !== PINNED_NODE) {
+    stderr.write(`try-it: note: this is Node ${process.version}; the repository pins ${PINNED_NODE}`
+      + ' (see db/foundation/TRY-IT.md for the full path to use). Carrying on.\n');
+  }
   return command(args);
 }
 
-if (import.meta.url === `file://${argv[1]}`) exit(await main());
+// pathToFileURL, as generate-pinned-grants.mjs does, so a clone whose path holds a space still runs main().
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) exit(await main());
