@@ -199,3 +199,38 @@ refreshed last and alone. Private artefacts: `a0-sql-lexerr2/` in the run's scra
 - A1-RC-4 and the owed-tooling INFO items, as `[185]` records them.
 - A literal holding only a server-file name (`where proname = 'lo_export'`) is refused, because a literal's text is
   read as SQL at the next level: an over-refusal, fail closed, that no fed source meets today.
+
+## Re-checks of the review round (2026-10-04)
+
+C0, A1 and Q0 re-checked `548dead` (code `286770f`). Their files are cherry-picked with `-x`:
+
+| Run | Original | Cherry-picked |
+|---|---|---|
+| C0 | `fa6d335` | `2c6cf22` |
+| A1 | `d6be3ae` | `5500486` |
+| Q0 | `f3af255` | `df18ed5` |
+
+A first attempt at these re-checks was cut off by the end of a session before it wrote anything. A
+second A1 attempt was stopped by the session's safety classifier before it measured anything. A1 was
+then re-run with a narrow scope: verify each claimed fix with the repository's own golden corpus,
+mutations and suites. Its file is the one above.
+
+**None of the three reports a stop-the-line, and none reports anything that blocks the merge.** CI is
+green on `548dead` (run 37199626659).
+
+**What was measured**
+
+- C0-SL-1 (MEDIUM, server-file aliases) is closed, measured. The live D-op and D-ren drifts are refused
+  before anything applies, and no marker file is written.
+- C0-SL-3 (held semicolons) is closed. C0 measured agreement with psql 17.11 on 14 inputs.
+- F1 and F2 are closed.
+- Q0's differential over all 221 fed sources agrees: psql sent 1897 queries and psqlLex split 1897
+  statements, with no disagreement. No integrated migration is refused.
+
+**What is recorded (INFO)**
+
+- The plan's 219 should read 221. The extra two are the EXPLAIN harness and the WS:911 fixture (C0-SLR-I1, Q0-SLR-1).
+- The fingerprint self-test drift moved from `pg_read_file` to `pg_sleep`. This was intended (C0-SLR-I2).
+- A rejection is cited at line 1019, but A1 measured 1018. The difference comes from how the drift is appended (Q0-SLR-2).
+- A `GRANT` that names a server-file function passes the lexer by design. The live fingerprint refuses it (A1 R-1, Q0-SLR-3).
+- `psqlHeldSemicolons` was not compared with psqlscan.l's source, which is not in the tree. A1 found that any divergence has no security effect (A1 R-2).
