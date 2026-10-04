@@ -823,9 +823,31 @@ repeat runs while the plan shapes held (A1 S2, Q0 Q-5). Run it once per fresh cl
 afterwards. The full scale needs about 2 GB of free disk while it runs; the harness has no free-space guard
 (`open_blockers[194]` (12)).
 
-It asserts no timing: the p95 budget is Q150-d's, whose values A0 drafted as PROPOSED in
-`a0-batch-150-plan-2026-10-03.md` §5 and the Owner has not ratified. A Seq Scan on a
-membership-class query is reported, and fails the run only under `--fail-on-seq-scan`. It refuses without
+It asserts no timing. The p95 budget is Q150-d's: A0 drafted the values from the first fixture run
+(`a0-batch-150-plan-2026-10-03.md` §5), and on 2026-10-05 they were **RATIFIED as the Pilot p95 DB-time
+budget**, as the Owner's decision taken through the delegation of A0's recommendations
+(`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md`; Product/Ops's named-role acceptance
+is owed). The budget, per query of WS:909-917, as DB execution time at the WS:911 scale (no network, no pooler):
+
+| Query class | Query | Pilot p95 DB-time budget |
+|---|---|---|
+| membership | membership check (`app.workspace_member_role`'s body) | ≤ 2 ms |
+| membership | workspace list | ≤ 10 ms |
+| first page | content first page | ≤ 50 ms |
+| first page | calendar first page | ≤ 50 ms |
+| first page | library first page | ≤ 50 ms |
+| worker | worker claim | ≤ 20 ms |
+| batch 150 tables | metrics per post | ≤ 150 ms |
+| batch 150 tables | usage recompute | ≤ 100 ms |
+| batch 150 tables | audit first page | ≤ 50 ms |
+
+**Nothing asserts it yet, and a timing assertion is now owed.** The harness takes one sample per query on
+whatever machine runs it, which is not a p95, and it is not run by CI; a check needs a repeated measurement at
+the full scale on a named environment and a place in CI, which are the Integration Owner's
+(`open_blockers[194]`). Batch 171's membership check now joins `app.workspaces` on its primary key
+(RFC-2026-027 §7.1); its plan was re-read with the harness on the batch's cluster (the plan of batch 171
+records it). A Seq Scan on a membership-class query is reported, and fails the run only under
+`--fail-on-seq-scan`. It refuses without
 `DB_TEST_URL`, and refuses a URL the shared test-instance guard refuses (`testHostRefusal` in
 `scripts/db/psql-driver.mjs`, which `db-reset-test` uses too): the URL is parsed, its host must be exactly
 `localhost`, `127.0.0.1`, `[::1]` or the CI service container `postgres`, its authority must hold one `@`

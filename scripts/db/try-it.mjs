@@ -193,6 +193,18 @@ export const DEMO_STEPS = Object.freeze([
     kind: 'case', case: 'owner-a-cannot-redecide-a-settled-approval-request', expect: 'no-effect',
     proves: 'Not even the owner can overwrite the approver\'s decision.',
   },
+  {
+    heading: '7. A blocked workspace is invisible to its members (batch 171)',
+    title: "Workspace A is moved to access_blocked (by the database owner); its owner looks for anything of it",
+    kind: 'case', case: 'owner-a-reads-no-row-of-any-family-of-workspace-a-in-access-blocked', expect: 'no-rows',
+    proves: 'The same owner first reads rows of A in every one of 39 tables while A is active; once A is access_blocked'
+      + ' it reads none in any of them, writes included elsewhere in the suite. All inside one transaction, rolled back.',
+  },
+  {
+    title: 'The same owner still sees that it belongs to workspace A (the control)',
+    kind: 'case', case: 'owner-a-still-reads-its-own-membership-row-of-workspace-a-in-access-blocked', expect: 'rows',
+    proves: 'Its own membership row stays readable, so an app can say "your workspace is closed" rather than "you belong to nothing".',
+  },
 ]);
 
 // Everything that would let the demo report success without having shown anything. Pure, so the contract

@@ -370,14 +370,15 @@ export const PERMISSIVE_POLICIES = {
   'research_suggestions.research_suggestions_update_writer': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text]))", check: "((updated_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text])))" },
   'user_profiles.user_profiles_select_own': { cmd: 'r', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: null },
   'user_profiles.user_profiles_update_own': { cmd: 'w', roles: 'authenticated', using: "(user_id = ( SELECT auth.uid() AS uid))", check: "(user_id = ( SELECT auth.uid() AS uid))" },
-  'workspace_invitations.workspace_invitations_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))" },
-  'workspace_invitations.workspace_invitations_select_owner': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: null },
-  'workspace_invitations.workspace_invitations_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_invitations.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspace_invitations.workspace_invitations_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'owner'::text))" },
+  'workspace_invitations.workspace_invitations_select_owner': { cmd: 'r', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: null },
+  'workspace_invitations.workspace_invitations_update_owner': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: "(app.workspace_member_role(workspace_id) = 'owner'::text)" },
   'workspace_member_scopes.workspace_member_scopes_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'owner'::text))" },
   'workspace_member_scopes.workspace_member_scopes_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
-  'workspace_settings.workspace_settings_select_active_member': { cmd: 'r', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))", check: null },
-  'workspace_settings.workspace_settings_update_owner': { cmd: 'w', roles: 'authenticated', using: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspace_settings.workspace_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
+  'workspace_settings.workspace_settings_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
+  'workspace_settings.workspace_settings_update_owner': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: "(app.workspace_member_role(workspace_id) = 'owner'::text)" },
   'workspaces.workspaces_select_active_member': { cmd: 'r', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text)))))", check: null },
+  'workspaces.workspaces_select_authz_own_open': { cmd: 'r', roles: 'app_authz', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = app.jwt_subject()) AND (m.status = 'active'::text)))))", check: null },
   'workspaces.workspaces_update_owner': { cmd: 'w', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
 };
 export const PERMISSIVE_POLICY_PROBE_SQL = `do \$\$
@@ -952,7 +953,7 @@ end \$\$;
 export const SECURITY_DEFINER_FUNCTIONS = [
   ['app.is_active_member(workspace uuid)', 'app_authz', '552b6db607ddb258f6917f7e9e01cfd4'],
   ['app.jwt_subject()', 'app_authz', '185148c2a93687d4574a2c66df66d3f3'],
-  ['app.workspace_member_role(workspace uuid)', 'app_authz', '83e32b7264d1cf2532581a88bf6e7732'],
+  ['app.workspace_member_role(workspace uuid)', 'app_authz', 'e6cacb6e4f893a12100c1099719c00f1'],
   ['private.refuse_mutation()', 'migration owner', '6db127bec23ecfaaf041b7dc5c031615'],
   ['private.set_updated_at()', 'migration owner', '1c4318bee4240d4113d86fad7eb15623'],
 ];
@@ -2941,9 +2942,31 @@ export const AUTHZ_POLICY_QUAL =
   "((user_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)"
   + " AND (status = 'active'::text))";
 
-// §6.1/6, exactly. Anything else app_authz holds is a widening nobody declared.
+// RFC-2026-027 §3.1 (approved 2026-10-05, batch 171): app_authz's SECOND policy, on app.workspaces. It is
+// 010's workspaces_select_active_member with the identity read through app.jwt_subject(), and it calls
+// NEITHER membership helper -- after 171 the helpers read app.workspaces, so a call here would recurse at run
+// time. Deparsed by PostgreSQL 17.11 on the clean set (pg_get_expr, search_path pg_catalog), never written by
+// hand; 171's apply-time block and the permissive policy probe hold the same object.
+export const AUTHZ_WORKSPACES_TABLE = 'workspaces';
+export const AUTHZ_WORKSPACES_POLICY = 'workspaces_select_authz_own_open';
+export const AUTHZ_WORKSPACES_POLICY_QUAL =
+  "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n"
+  + "  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = app.jwt_subject()) AND (m.status = 'active'::text)))))";
+
+// RFC-2026-020 §5/3 and §6.1/5 as RFC-2026-027 §3.4 amends them: exactly these two (table, policy, qual)
+// pairs, both FOR SELECT. The first is batch 011's and is still exported under its old names.
+export const AUTHZ_POLICIES = Object.freeze([
+  Object.freeze({ table: AUTHZ_TABLE, policy: AUTHZ_POLICY, qual: AUTHZ_POLICY_QUAL }),
+  Object.freeze({ table: AUTHZ_WORKSPACES_TABLE, policy: AUTHZ_WORKSPACES_POLICY, qual: AUTHZ_WORKSPACES_POLICY_QUAL }),
+]);
+
+// §6.1/6 as RFC-2026-027 amends it, exactly. Anything else app_authz holds is a widening nobody declared.
 export const AUTHZ_SCHEMA_GRANTS = ['USAGE on schema app'];
 export const AUTHZ_COLUMN_GRANTS = ['role', 'status', 'user_id', 'workspace_id'];
+export const AUTHZ_COLUMN_GRANTS_BY_TABLE = Object.freeze({
+  [AUTHZ_TABLE]: AUTHZ_COLUMN_GRANTS,
+  [AUTHZ_WORKSPACES_TABLE]: ['id', 'lifecycle_state'],
+});
 
 // The platform's own `auth.uid()`, measured read-only on `xtvtflkntpqfvflvdbwk` 2026-09-06 and
 // normalised (whitespace collapsed, case folded). RFC-2026-020 §2.2 and the evidence file Q5 carry
@@ -3024,27 +3047,31 @@ export function authzLint(catalog) {
     }
   }
 
-  // 5. Exactly one policy, on app.workspace_members, FOR SELECT, and its qual is the pinned string.
+  // 5. Exactly two policies (RFC-2026-027 §3.4 amending §5/3 and §6.1/5): on app.workspace_members and on
+  //    app.workspaces, each FOR SELECT under its pinned name, and each qual is its pinned string.
   const policies = authz.policies;
   if (policies === undefined) problems.push(`the catalog does not record the policies ${AUTHZ_ROLE} holds`);
-  else if (policies.length !== 1) {
-    problems.push(`${AUTHZ_ROLE} holds ${policies.length} policies in schema app; RFC-2026-020 §5/3 gives it exactly one. `
-      + 'The exemption is structural, not scopal — a second policy is a second decision and needs its own RFC.');
+  else if (policies.length !== AUTHZ_POLICIES.length) {
+    problems.push(`${AUTHZ_ROLE} holds ${policies.length} policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 amends it gives it exactly ${AUTHZ_POLICIES.length}. `
+      + 'The exemption is structural, not scopal — another policy is another decision and needs its own RFC.');
   } else {
-    const [p] = policies;
-    if (p.table !== AUTHZ_TABLE) problems.push(`${AUTHZ_ROLE}'s policy is on app.${p.table}, and §5/3 puts it on app.${AUTHZ_TABLE}`);
-    if (p.policy !== AUTHZ_POLICY) problems.push(`${AUTHZ_ROLE}'s policy is named ${p.policy}, and batch 011 names it ${AUTHZ_POLICY}`);
-    if (p.command !== 'select') problems.push(`${AUTHZ_ROLE}'s policy is FOR ${String(p.command).toUpperCase()}, and §5/3 gives it SELECT only`);
-    if (p.qual !== AUTHZ_POLICY_QUAL) {
-      problems.push(`${AUTHZ_ROLE}'s policy expression is not the pinned one. This string IS the control — any `
-        + 'widening changes it, and RFC-2026-020 §4 chose this option over the alternatives precisely because the '
-        + 'claim is a string a build can compare.\n'
-        + `      pinned:   ${AUTHZ_POLICY_QUAL}\n`
-        + `      measured: ${p.qual}`);
+    for (const pin of AUTHZ_POLICIES) {
+      const p = policies.find((x) => x.table === pin.table);
+      if (!p) { problems.push(`${AUTHZ_ROLE} holds no policy on app.${pin.table}, and RFC-2026-020 §5/3 as amended puts ${pin.policy} there`); continue; }
+      if (p.policy !== pin.policy) problems.push(`${AUTHZ_ROLE}'s policy on app.${pin.table} is named ${p.policy}, and it is pinned as ${pin.policy}`);
+      if (p.command !== 'select') problems.push(`${AUTHZ_ROLE}'s policy on app.${pin.table} is FOR ${String(p.command).toUpperCase()}, and §5/3 gives it SELECT only`);
+      if (p.qual !== pin.qual) {
+        problems.push(`${AUTHZ_ROLE}'s policy expression is not the pinned one (app.${pin.table}, ${pin.policy}). This string IS the control — any `
+          + 'widening changes it, and RFC-2026-020 §4 chose this option over the alternatives precisely because the '
+          + 'claim is a string a build can compare.\n'
+          + `      pinned:   ${pin.qual}\n`
+          + `      measured: ${p.qual}`);
+      }
     }
   }
 
-  // 6. Its grants are exactly USAGE on app and a column-scoped SELECT on app.workspace_members.
+  // 6. Its grants are exactly USAGE on app and column-scoped SELECT on app.workspace_members and
+  //    app.workspaces (RFC-2026-027 §3.4 amending §6.1/6).
   const grants = authz.grants;
   if (grants === undefined) problems.push(`the catalog does not record ${AUTHZ_ROLE}'s grants`);
   else {
@@ -3059,7 +3086,8 @@ export function authzLint(catalog) {
         + 'COLUMN-scoped, so the role cannot read token_hash or anything else it was not given a reason to read.');
     }
     const columns = [...(grants.columns ?? [])].sort();
-    const expected = [...AUTHZ_COLUMN_GRANTS].sort().map((column) => `app.${AUTHZ_TABLE}.${column}`);
+    const expected = Object.entries(AUTHZ_COLUMN_GRANTS_BY_TABLE)
+      .flatMap(([table, cols]) => cols.map((column) => `app.${table}.${column}`)).sort();
     if (columns.join('|') !== expected.join('|')) {
       problems.push(`${AUTHZ_ROLE} holds column SELECT on [${columns.join(', ')}] and §6.1/6 gives it exactly `
         + `[${expected.join(', ')}]`);

@@ -257,7 +257,11 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // or the printed psql line), the six runners entered by real paths, no bare-URL entry check anywhere in scripts/ or
 // tests/ but the Integration Owner's two, and three runners invoked through a symlink running main(); no test added
 // or renamed; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 1119,
+// 1119 to 1121 with batch 171 (2026-10-05, migration 171, RFC-2026-027): the authz lint's second pinned pair -- its
+// lifecycle term dropped, a helper call, `true`, the policy lost or renamed, and a workspace's name among the column
+// grants, each a finding -- and the permissive list's count and roles moved to seventy-five with app_authz's policy
+// on app.workspaces; no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1121,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

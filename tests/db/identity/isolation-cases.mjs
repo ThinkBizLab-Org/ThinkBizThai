@@ -17716,6 +17716,9 @@ export function buildCases(id) {
       why: 'BATCH 170: the positive beside the seven refusals. 170 revoked one column; name and updated_by stay in '
          + 'the owner\'s UPDATE grant, so without this case the refusals could pass on a table nobody can update.',
     },
+    // BATCH 171: A BLOCKED WORKSPACE IS INVISIBLE TO ITS MEMBERS (RFC-2026-027 §5; open_blockers[53], [95]). The
+    // builder is at the end of this file, with the family list and the reason each case moves workspace A itself.
+    ...lifecycleVisibilityCases({ ownerA, ownerB, editorA, viewerA, A, PAGE_A1, BUSINESS_A1 }),
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -19605,4 +19608,322 @@ export function metricSnapshotDelete(postId) {
     sql: 'delete from app.performance_snapshots where published_post_id = $1::uuid',
     params: [postId],
   };
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 171 -- a blocked workspace is invisible to its members (RFC-2026-027 §5).
+// ---------------------------------------------------------------------------------------------
+//
+// Since batch 170 no client role can write app.workspaces.lifecycle_state, so every case below moves
+// workspace A -- the populated one -- into the state it is about AS THE CONNECTION ROLE, inside its own
+// rolled-back transaction (`ownerFirst`, run-isolation.mjs), and most of them first read the same thing as
+// the same identity in `active` (`before`), so a family with no row in the fixture fails the case rather
+// than passing it (RFC-2026-027 §5/1, Q0's F4). RFC-2026-027 §5/9 asked for six blocked-state fixture
+// workspaces by name; moving the one populated workspace is what §5/1 asks for and needs none, so the
+// fixture catalog is unchanged (the plan records the substitution). Cases 7, 8, 10 and 11 of §5 are
+// mutation controls -- a policy dropped, 011's body restored, a conjunct removed -- and are executed by
+// scripts/db/authz-proofs.mjs's lifecycle-gate proof on every rls-smoke run, not here.
+export const CONNECTION_ROLE = 'connection-role';
+export const LIFECYCLE_BLOCKED_STATES = Object.freeze(['access_blocked', 'purge_queued', 'held', 'purging', 'verify', 'deleted']);
+// The client-readable workspace-scoped tables, one or more per family of RFC-2026-027 §3.3's table plus
+// 010's residual, as measured on the clean set: the owner of workspace A reads at least one row of A in each
+// (workspace_member_scopes excepted: the owner holds no scope row, so it is read in the editor's sweep).
+// `workspace_members` is read as OTHER members' rows -- the caller's own row stays visible by Q-027-1.
+export const LIFECYCLE_OWNER_FAMILY = Object.freeze([
+  'workspaces', 'workspace_settings', 'workspace_invitations', 'workspace_members',                 // 010, 011 roster
+  'business_profiles', 'business_profile_versions', 'page_context_profiles', 'page_context_profile_versions', // 020
+  'industry_assignments',                                                                             // 030
+  'knowledge_items', 'knowledge_item_versions',                                                       // 040
+  'notifications',                                                                                    // 051 (PII-2, [95])
+  'quota_buckets',                                                                                    // 061
+  'research_runs', 'research_sources', 'research_evidence', 'research_suggestions',                   // 070
+  'content_ideas', 'content_items', 'content_versions', 'content_variants', 'quality_reviews', 'content_targets', // 080, 081
+  'approval_policies', 'approval_requests', 'approval_events', 'calendar_items', 'content_schedules', // 090, 091
+  'assets', 'asset_versions', 'asset_rights', 'content_asset_links',                                  // 100
+  'publish_intents', 'publish_jobs', 'publish_targets', 'publish_target_assets', 'published_posts', 'performance_snapshots', // 120, 121
+  'billing_subscriptions',                                                                            // 130 (Q-027-3)
+]);
+export const LIFECYCLE_MEMBER_FAMILY = Object.freeze([...LIFECYCLE_OWNER_FAMILY, 'workspace_member_scopes']);
+const familyCount = (table) => {
+  if (table === 'workspaces') return '(select count(*) from app.workspaces where id = $1)';
+  if (table === 'workspace_members') return '(select count(*) from app.workspace_members where workspace_id = $1 and user_id <> $2)';
+  return `(select count(*) from app.${table} where workspace_id = $1)`;
+};
+// The names of the families whose count is `op` 0: '>' lists what the caller still sees, '=' what is empty.
+export const lifecycleFamilySql = (tables, op) => `select f.family from (values ${tables.map((t) => `('${t}', ${familyCount(t)})`).join(', ')}) as f(family, n) where f.n ${op} 0`;
+export const moveWorkspaceTo = (workspace, state) => ({
+  sql: 'update app.workspaces set lifecycle_state = $2 where id = $1',
+  params: [workspace, state],
+});
+const HELPERS_ADMIT_SQL = "select 1 as admitted where app.is_active_member($1) or app.workspace_member_role($1) is not null";
+
+function lifecycleVisibilityCases({ ownerA, ownerB, editorA, viewerA, A, PAGE_A1, BUSINESS_A1 }) {
+  const self = ownerA.subject;
+  const out = [];
+  const ownerFamilyPopulated = { sql: lifecycleFamilySql(LIFECYCLE_OWNER_FAMILY, '='), params: [A, self], expect: 'no-rows' };
+  for (const state of LIFECYCLE_BLOCKED_STATES) {
+    const slug = state.replace(/_/g, '-');
+    const move = [moveWorkspaceTo(A, state)];
+    out.push(
+      {
+        id: `owner-a-reads-no-row-of-any-family-of-workspace-a-in-${slug}`,
+        covers: ['§11.4', '§8.5', 'RFC-2026-027§5/1'],
+        as: ownerA,
+        before: ownerFamilyPopulated,
+        ownerFirst: move,
+        sql: lifecycleFamilySql(LIFECYCLE_OWNER_FAMILY, '>'),
+        params: [A, '__SELF__'],
+        expect: 'no-rows',
+        why: `BATCH 171, RFC-2026-027 §5/1: the owner of workspace A, the strongest client identity, in ${state}. Before `
+           + `the move it reads at least one row of A in each of the ${LIFECYCLE_OWNER_FAMILY.length} tables (the before-read lists the empty ones and `
+           + 'must list none); after it, the statement lists every table where it still reads one, and must list none. '
+           + 'Before 171 every family but app.workspaces was still readable here (open_blockers[53], [95]).',
+      },
+      {
+        id: `owner-a-is-no-member-of-workspace-a-in-${slug}-through-the-helpers`,
+        covers: ['§11.4', 'RFC-2026-027§5/1'],
+        as: ownerA,
+        before: { sql: "select 1 as admitted where app.is_active_member($1) and app.workspace_member_role($1) = 'owner'", params: [A], expect: 'rows' },
+        ownerFirst: move,
+        sql: HELPERS_ADMIT_SQL,
+        params: [A],
+        expect: 'no-rows',
+        why: `BATCH 171, RFC-2026-027 §5/1: in ${state} is_active_member is false and workspace_member_role is null for A's `
+           + 'own active owner, who was admitted as owner in active one statement earlier in the same transaction.',
+      },
+      {
+        id: `owner-a-still-reads-its-own-membership-row-of-workspace-a-in-${slug}`,
+        covers: ['§11.4', 'RFC-2026-027§5/6'],
+        as: ownerA,
+        ownerFirst: move,
+        sql: 'select user_id from app.workspace_members where workspace_id = $1 and user_id = $2',
+        params: [A, '__SELF__'],
+        expect: 'rows',
+        why: `BATCH 171, Q-027-1 (answered: kept): in ${state} the member still reads their own membership row through `
+           + "010's workspace_members_select_own_active, so a client can tell \"your workspace is closed\" from \"you "
+           + 'belong to nothing\".',
+      },
+      {
+        id: `owner-a-reads-no-other-member-row-of-workspace-a-in-${slug}`,
+        covers: ['§11.4', 'RFC-2026-027§5/6'],
+        as: ownerA,
+        before: { sql: 'select user_id from app.workspace_members where workspace_id = $1 and user_id <> $2', params: [A, self], expect: 'rows' },
+        ownerFirst: move,
+        sql: 'select user_id from app.workspace_members where workspace_id = $1 and user_id <> $2',
+        params: [A, '__SELF__'],
+        expect: 'no-rows',
+        why: `BATCH 171, RFC-2026-027 §5/6's second direction, asserted as the OWNER (the roster admits only owner and `
+           + `admin, so for an editor it would hold with the gate absent; Q0 F5): other members' rows are read in active `
+           + `and none in ${state}, because the roster policy goes through the helper.`,
+      },
+    );
+  }
+  out.push(
+    // Named reads in access_blocked, for the blockers that name them.
+    {
+      id: 'owner-a-reads-no-notification-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/1'],
+      as: ownerA,
+      before: { sql: 'select id from app.notifications where workspace_id = $1', params: [A], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'select id from app.notifications where workspace_id = $1',
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171, open_blockers[95]: notifications are PII-2, and before 171 a member of an access_blocked '
+         + 'workspace still read their own.',
+    },
+    {
+      id: 'owner-a-reads-no-business-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/1'],
+      as: ownerA,
+      before: { sql: 'select id from app.business_profiles where workspace_id = $1', params: [A], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'select id from app.business_profiles where workspace_id = $1',
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171, open_blockers[53]: batch 020 named the gap first, on business_profiles.',
+    },
+    {
+      id: 'owner-a-reads-no-billing-subscription-once-its-tenant-is-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/1'],
+      as: ownerA,
+      before: { sql: 'select id from app.billing_subscriptions where workspace_id = $1', params: [A], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'select id from app.billing_subscriptions where workspace_id = $1',
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171, Q-027-3 (answered: refused through the client): the owner of a blocked workspace reads no billing '
+         + 'row; the owner\'s invoices reach them through batch 160\'s export job.',
+    },
+    // Every member, not only the owner: the editor (scoped, so its scope row is in its sweep) and the viewer.
+    ...[[editorA, 'editor-a'], [viewerA, 'viewer-a']].map(([as, who]) => ({
+      id: `${who}-reads-no-row-of-any-family-of-workspace-a-in-access-blocked`,
+      covers: ['§11.4', 'RFC-2026-027§5/1'],
+      as,
+      before: { sql: lifecycleFamilySql(LIFECYCLE_MEMBER_FAMILY, '>'), params: [A, as.subject], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: lifecycleFamilySql(LIFECYCLE_MEMBER_FAMILY, '>'),
+      params: [A, '__SELF__'],
+      expect: 'no-rows',
+      why: `BATCH 171: a ${who.split('-')[0]} of workspace A reads rows of A in active (the before-read) and none in `
+         + 'access_blocked: the gate is in the helper every family calls, not in the owner\'s role.',
+    })),
+    // RFC-2026-027 §5/3: writes refused, not only reads.
+    {
+      id: 'owner-a-cannot-create-a-business-in-workspace-a-in-access-blocked',
+      covers: ['§11.4', '§8.5', 'RFC-2026-027§5/3'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: "insert into app.business_profiles (workspace_id, name, created_by, updated_by) values ($1, 'attempted business', $2, $2) returning id",
+      params: [A, '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'business_profiles' },
+      why: 'BATCH 171, RFC-2026-027 §5/3: the owner\'s INSERT of a Business in an access_blocked workspace is refused by '
+         + 'row level security (42501, the WITH CHECK through the helper); in active and closing the same statement is '
+         + 'admitted (owner-a-can-still-create-a-business-in-workspace-a-in-closing).',
+    },
+    {
+      id: 'owner-a-cannot-rename-page-a1-in-access-blocked',
+      covers: ['§11.4', '§8.5', 'RFC-2026-027§5/3'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'update app.page_context_profiles set name = $2, updated_by = $3 where id = $1 returning id',
+      params: [PAGE_A1, 'renamed in a blocked workspace', '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: CONNECTION_ROLE, sql: 'select name from app.page_context_profiles where id = $1', params: [PAGE_A1], column: 'name', equals: 'fixture page a1' },
+      why: 'BATCH 171, RFC-2026-027 §5/3: the USING clause no longer admits the row, so the UPDATE matches nothing and '
+         + 'raises nothing; the witness is the connection role, because no client identity can see the row in a blocked '
+         + 'workspace, and it reads the name unchanged (§8.6: an empty result does not prove a mutation denial).',
+    },
+    // RFC-2026-027 §5/4: 010's residual, rewritten by 171 to call the helper.
+    {
+      id: 'owner-a-reads-no-settings-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/4'],
+      as: ownerA,
+      before: { sql: 'select workspace_id from app.workspace_settings where workspace_id = $1', params: [A], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'select workspace_id from app.workspace_settings where workspace_id = $1',
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171: workspace_settings_select_active_member joined workspace_members directly and had no lifecycle '
+         + 'gate; 171 rewrote it to call app.is_active_member.',
+    },
+    {
+      id: 'owner-a-cannot-update-the-settings-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/4'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'update app.workspace_settings set default_timezone = $2, updated_by = $3 where workspace_id = $1 returning workspace_id',
+      params: [A, 'UTC', '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: CONNECTION_ROLE, sql: 'select default_timezone from app.workspace_settings where workspace_id = $1', params: [A], column: 'default_timezone', equals: 'Asia/Bangkok' },
+      why: 'BATCH 171: workspace_settings_update_owner now asks workspace_member_role, so the owner of an access_blocked '
+         + 'workspace matches no settings row; the connection role reads the timezone unchanged.',
+    },
+    {
+      id: 'owner-a-reads-no-invitation-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/4'],
+      as: ownerA,
+      before: { sql: 'select id from app.workspace_invitations where workspace_id = $1', params: [A], expect: 'rows' },
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'select id from app.workspace_invitations where workspace_id = $1',
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171: workspace_invitations_select_owner rewritten to call the helper.',
+    },
+    {
+      id: 'owner-a-cannot-issue-an-invitation-into-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/4'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'insert into app.workspace_invitations (workspace_id, role, token_hash, expires_at, created_by)'
+         + " values ($1, 'editor', sha256(convert_to($2, 'utf8')), now() + interval '1 day', $3) returning id",
+      params: [A, 'batch 171 blocked-workspace invitation', '__SELF__'],
+      expect: 'denied',
+      deniedBy: 'policy',
+      deniedOn: { kind: 'table', name: 'workspace_invitations' },
+      why: 'BATCH 171, RFC-2026-027 §3.3: an owner of a blocked workspace must not issue invitations into it; '
+         + 'workspace_invitations_insert_owner now asks workspace_member_role.',
+    },
+    {
+      id: 'owner-a-cannot-revoke-an-invitation-of-workspace-a-in-access-blocked',
+      covers: ['§11.4', 'RFC-2026-027§5/4'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: 'update app.workspace_invitations set revoked_at = now(), updated_by = $2 where workspace_id = $1 returning id',
+      params: [A, '__SELF__'],
+      expect: 'no-effect',
+      witness: { as: CONNECTION_ROLE, sql: 'select count(*)::text as open from app.workspace_invitations where workspace_id = $1 and revoked_at is null', params: [A], column: 'open', equals: '1' },
+      why: 'BATCH 171: workspace_invitations_update_owner rewritten to call the helper; the one open invitation of A is '
+         + 'still open afterwards.',
+    },
+    // RFC-2026-027 §5/5: no membership oracle for a stranger, in a blocked workspace either.
+    {
+      id: 'owner-b-learns-nothing-of-workspace-a-in-access-blocked-through-the-helpers',
+      covers: ['§11.4', 'RFC-2026-027§5/5'],
+      as: ownerB,
+      ownerFirst: [moveWorkspaceTo(A, 'access_blocked')],
+      sql: HELPERS_ADMIT_SQL,
+      params: [A],
+      expect: 'no-rows',
+      why: 'BATCH 171, RFC-2026-020 §6.3/12 for a blocked workspace: the helpers answer only about the caller.',
+    },
+    // RFC-2026-027 §5/2: positive controls in the two admitted states, and Q-027-2 (closing writable).
+    {
+      id: 'owner-a-reads-every-family-of-workspace-a-in-active',
+      covers: ['§11.4', 'RFC-2026-027§5/2'],
+      as: ownerA,
+      sql: lifecycleFamilySql(LIFECYCLE_OWNER_FAMILY, '='),
+      params: [A, '__SELF__'],
+      expect: 'no-rows',
+      why: 'BATCH 171, RFC-2026-027 §5/2: in active no family of A is empty for its owner. Without this, a helper that '
+         + 'refused everything would pass every blocked-state case above.',
+    },
+    {
+      id: 'owner-a-reads-every-family-of-workspace-a-in-closing',
+      covers: ['§11.4', 'RFC-2026-027§5/2'],
+      as: ownerA,
+      before: ownerFamilyPopulated,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      sql: lifecycleFamilySql(LIFECYCLE_OWNER_FAMILY, '='),
+      params: [A, '__SELF__'],
+      expect: 'no-rows',
+      why: 'BATCH 171, RFC-2026-027 §5/2 and Q-027-2: closing is the recovery window and stays readable; no family of A '
+         + 'is empty for its owner there either.',
+    },
+    {
+      id: 'owner-a-is-owner-of-workspace-a-in-closing-through-the-helpers',
+      covers: ['§11.4', 'RFC-2026-027§5/2'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      sql: "select 1 as admitted where app.is_active_member($1) and app.workspace_member_role($1) = 'owner'",
+      params: [A],
+      expect: 'rows',
+      why: 'BATCH 171: the helpers admit the owner in closing.',
+    },
+    {
+      id: 'owner-a-can-still-rename-business-a1-in-closing',
+      covers: ['§11.4', '§8.6/1', 'RFC-2026-027§5/2'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      sql: 'update app.business_profiles set name = $2, updated_by = $3 where id = $1 returning id',
+      params: [BUSINESS_A1, 'renamed during the recovery window', '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 171, Q-027-2 (answered: closing admitted for writes as well as reads): the owner still writes in closing.',
+    },
+    {
+      id: 'owner-a-can-still-create-a-business-in-workspace-a-in-closing',
+      covers: ['§11.4', '§8.6/1', 'RFC-2026-027§5/2'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      sql: "insert into app.business_profiles (workspace_id, name, created_by, updated_by) values ($1, 'created during the recovery window', $2, $2) returning id",
+      params: [A, '__SELF__'],
+      expect: 'rows',
+      why: 'BATCH 171, Q-027-2: the positive beside owner-a-cannot-create-a-business-in-workspace-a-in-access-blocked -- the '
+         + 'same statement, admitted in closing.',
+    },
+  );
+  return out;
 }

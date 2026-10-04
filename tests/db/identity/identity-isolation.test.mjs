@@ -25,7 +25,7 @@ import test from 'node:test';
 import { SQL_LINE_COMMENTS, canonicalStatements } from '../../../scripts/db/sql-lexer.mjs';
 
 import {
-  AUTHORIZATION_CASE_COVERAGE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SERVICE_PATH_CLOSURE_ON, SMOKE_COVERAGE,
+  AUTHORIZATION_CASE_COVERAGE, CONNECTION_ROLE, NOT_A_CONSTRAINT_CODE, OUTCOME_KINDS, SERVICE_PATH_CLOSURE_ON, SMOKE_COVERAGE,
   buildCases, isMutation, resolvePlaceholders,
 } from './isolation-cases.mjs';
 import { ASSERTION_FOR, ROLE_FOR_HELPER, assertRejectedWith, assumeIdentity, fixtureResolver, runCases } from './run-isolation.mjs';
@@ -622,11 +622,18 @@ test('the suite FAILS against a database where row level security does nothing',
   // helper called and answers the role read-back truthfully — otherwise the transaction check added
   // for C0's D4 fires first, every case fails at assume-identity, and the assertions below still
   // pass while testing nothing about RLS at all.
-  let assumed = null;
+  //
+  // BATCH 171: a transaction starts as the connection role, which `current_setting('role')` reads as 'none', and
+  // `reset role` returns to it -- so a case's `ownerFirst` step and its connection-role witness run where they
+  // would on a real database. And an unprotected database has every family of the fixture populated, so the
+  // family census that lists EMPTY families (`where f.n = 0`) lists none, as it would there.
+  let assumed = 'none';
   const permissive = {
-    begin: async () => { assumed = null; },
+    begin: async () => { assumed = 'none'; },
     rollback: async () => {},
     exec: async (sql) => {
+      if (/^\s*reset role/i.test(sql)) { assumed = 'none'; return { rows: [] }; }
+      if (/where f\.n = 0$/.test(sql)) return { rows: [] };
       const became = sql.match(/private\.(as_\w+)/)?.[1];
       if (became) { assumed = ROLE_FOR_HELPER[became] ?? null; return { rows: [{}] }; }
       if (/current_setting\('role'/.test(sql)) return { rows: [{ role: assumed }] };
@@ -743,7 +750,9 @@ test('every identity helper the cases use has a role the runner can check', asyn
   const helpers = new Set();
   for (const testCase of cases) {
     helpers.add(testCase.as.helper);
-    if (testCase.witness) helpers.add(testCase.witness.as.helper);
+    // BATCH 171: a witness may be the connection role (a blocked workspace hides the row from every client
+    // identity); the runner steps back with `reset role` and checks the role reads 'none' before reading.
+    if (testCase.witness && testCase.witness.as !== CONNECTION_ROLE) helpers.add(testCase.witness.as.helper);
   }
   for (const helper of helpers) {
     assert.ok(ROLE_FOR_HELPER[helper], `${helper} is used by a case and has no expected role, so the `

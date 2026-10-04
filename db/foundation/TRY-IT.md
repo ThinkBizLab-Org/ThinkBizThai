@@ -23,7 +23,7 @@ cd /Users/bank/ThinkBizThai
 ```
 
 - `up` takes about ten seconds and ends with `[6/6] ready` and the next commands to paste.
-- `demo` ends with `All 13 steps behaved as expected.` when everything held.
+- `demo` ends with `All 15 steps behaved as expected.` when everything held.
 - `psql` only prints a line to paste (and five lines to paste after it); it runs nothing itself.
 - `down` stops the database and deletes its directory. Run it when you are done.
 
@@ -103,7 +103,7 @@ Every step prints the same lines:
    result:   as expected | NOT AS EXPECTED -- <what differed>
 ```
 
-The six parts of the tour:
+The seven parts of the tour:
 
 1. **What each person can see.** Counts of workspaces, businesses and content items as the owner of A, the
    editor, the viewer and the owner of B. The database holds 2 workspaces, 5 businesses and 5 content
@@ -122,12 +122,16 @@ The six parts of the tour:
    to decide an already-approved request again: the update changes 0 rows, which is the proof, and a second
    read shows the request as it stands (it says `approved`, the value the refused update would also have
    written, so the 0 rows is what tells the two apart).
+7. **A blocked workspace is invisible to its members** (batch 171, RFC-2026-027). Inside the step's own
+   transaction the database owner moves workspace A to `access_blocked` (no client can, since batch 170).
+   Its owner, who a moment earlier read rows of A in every one of 39 tables, now reads none; a control step
+   shows the owner still sees its own membership row, so an app can say "your workspace is closed".
 
 The refusals are cases taken from the isolation suite CI runs (`tests/db/identity/isolation-cases.mjs`),
 run through the same runner, so the demo can never disagree with the suite about what they mean. Every step
 runs in its own transaction and is rolled back, so you can run the demo as often as you like.
 
-If the last line reads `All 13 steps behaved as expected.`, everything held and the command exits 0. If any
+If the last line reads `All 15 steps behaved as expected.`, everything held and the command exits 0. If any
 step prints `NOT AS EXPECTED`, the command ends with `DEMO FAILED`, lists the steps, and exits 1.
 
 ## Poking at it yourself
@@ -195,6 +199,6 @@ then `up`.
 - **No provisioned instance.** This is a bare PostgreSQL with a shim standing in for Supabase's `auth` schema
   and roles. It shows that *our* policies behave as written; it says nothing about how a real Supabase
   project is configured (see the header of `db/foundation/ci/supabase-shim.sql`).
-- **Not the whole suite.** The demo is a tour of 13 representative checks over the synthetic fixtures. The
-  full isolation suite, over a thousand cases (1087 on 2026-10-04) plus the authorization proofs (6 claims),
+- **Not the whole suite.** The demo is a tour of 15 representative checks over the synthetic fixtures. The
+  full isolation suite, over a thousand cases (1129 on 2026-10-05) plus the authorization proofs (7 claims),
   is `make db-rls-smoke`, which CI runs on every pull request against a fresh database.
