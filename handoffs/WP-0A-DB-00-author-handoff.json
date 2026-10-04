@@ -5,16 +5,20 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "88a6670a35e9d9e73008550923723ff9d62e42be",
-  "head_revision_or_patch_checksum": "64895961b9ce47987997028ccd774b5a1bb33947",
+  "head_revision_or_patch_checksum": "66136970b014dd2a85c905b2bb67b0effcce4265",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-text.md"
+    "evidence/WP-0A-DB-00/a1-batch-rfc-text-security-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-text-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-text.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-text-test-review-2026-10-03.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-026-audit-row-producer.md",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
     "db/foundation/lint/audit-coverage-map.json",
+    "handoffs/WP-0A-DB-00-author-handoff.json",
     "test-kits/branch-identity.test.mjs",
     "test-kits/integrity-manifest.json",
     "work-packages/WP-0A-DB-00.json"
@@ -31,13 +35,14 @@
   "assumptions": [
     "THIS INCREMENT IS THE RFC-TEXT BATCH: the text of two PROPOSED decision records, the manifest and line pins only; NO MIGRATION, NO DEPENDENCY, NO ROOT CONFIGURATION; nothing a database layer reads changed. Plan evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md, disposition evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-text.md.",
     "IT APPROVES NEITHER RFC. Both Status lines still say Proposed; each RFC's new §10.1 says the Owner's answers are not an approval. Approval is the Owner's explicit act and A1's review (A1 Identity too, for the RFC-2026-020 amendment).",
-    "RFC-2026-026's command membership term is 011's app.is_active_member (it exists and reads the same claims); RFC-2026-023's two acting-user helpers do not exist yet. Nothing in the revised texts was executed."
+    "RFC-2026-026's command membership term is 011's app.is_active_member (it exists and reads the same claims); RFC-2026-023's two acting-user helpers do not exist yet. Nothing in the revised texts was executed.",
+    "REVIEW ROUND (2026-10-05): the three reviews cherry-picked, the RFC texts corrected (a35a619), the plan's §6 appended (6613697). No migration; no question answered; Q-026-10 re-opened from the conflict between the accepted Q-026-1 and Q-026-9 recommendations, A0's reconciliation no longer recorded as the Owner's answer."
   ],
   "acceptance_results": [
     {
       "criterion": "(1) RFC-2026-026: Q-026-1 superseded and Q-026-9 folded in as the design",
       "result": "met",
-      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 1-2: §3.3's literal requires app.is_active_member(workspace_id) for every command row; §3.7 gives app.security_events its two producers on its own columns; new §8.2/19 and /21"
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 1-2: §3.3's literal requires app.is_active_member(workspace_id) for every command row; §3.7 gives app.security_events its two producers on its own columns; new §8.2/19 and /21. Review round (a35a619): Q-026-1's second half (a refusal about an unreachable workspace routed to security_events) conflicts with Q-026-9's accepted predicate; the text no longer records \"not recorded\" as the Owner's answer and re-opens it as Q-026-10 (C0-RT-1, A1 F1)"
     },
     {
       "criterion": "(2) RFC-2026-026 §3.3's literal requires acting_user_admits_page as well as acting_user_admits_business (C0-9, A1 F4-a)",
@@ -68,6 +73,11 @@
       "criterion": "(7) Packaging: branch slot, rationale naming every file amended outside ownership, line pins, integrity manifest",
       "result": "met",
       "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1 items 12-16; §2 drifts D1-D4; verify-branch-scope 88a6670 exit 0"
+    },
+    {
+      "criterion": "(7a) Review round: every C0, A1 and Q0 finding on batch rfc-text acted on in the text or recorded as owed",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §6.2: C0-RT-1..6, A1 F1-F4, Q0 F1-F7 and F9 changed in RFC-026/027 or [195]; Q0 F1's driver change owed (outside ownership); A1 F5 owed to A1; C0-RT-7, A1 F6, Q0 F8 need no change"
     },
     {
       "criterion": "(8) Independent review, test and approval",
@@ -127,32 +137,80 @@
       "result": "tests 685, pass 685"
     },
     {
-      "command": "make db-migrate-clean, make db-rls-smoke",
+      "command": "make db-migrate-clean, make db-rls-smoke (before the review round)",
       "exit_code": 0,
-      "result": "NOT RUN: no migration, invariant, fixture, isolation case, scripts/db/** or CI file changed; no cluster started, port 5507 unused"
+      "result": "NOT RUN before the review round: no migration, invariant, fixture, isolation case, scripts/db/** or CI file changed; no cluster started. The review round ran them on 5507, rows below"
+    },
+    {
+      "command": "review round: git cherry-pick -x 42cdab1 89ee445 8edc15a (C0, A1, Q0 reviews)",
+      "exit_code": 0,
+      "result": "98cc81c, 3720c85, ba4c654; no conflict"
+    },
+    {
+      "command": "review round, r1 on 127.0.0.1:5507 (fresh initdb, shim first, node v24.20.0): make db-migrate-clean; make db-rls-smoke",
+      "exit_code": 0,
+      "result": "migrate-clean ok (51 apply-time blocks, 39 re-run, 12 superseded); rls-smoke ok, 1087 isolation cases, 6 authz proofs"
+    },
+    {
+      "command": "review round, r4 on 5507 (fresh initdb): make db-migrate-clean; make db-rls-smoke",
+      "exit_code": 0,
+      "result": "the same as r1 (second clean run)"
+    },
+    {
+      "command": "review round, r2 and r3 on 5507: four drifts (Q0 X2 BEGIN ATOMIC via EXECUTE in a DO block, Q0 X3 unqualified, X1 in public, return query execute) appended to 140_audit.sql, no trigger; make db-migrate-clean; RFC-026 §8.1/1 approximated by regex over pg_get_functiondef",
+      "exit_code": 0,
+      "result": "migrate-clean ok (52 blocks): the drifts pass the driver; the revised (a) selects the three writers and (c) the fourth, the merged (a) selects none; 140_audit.sql restored, sha256 2ac596bb950e8dfb... before and after every round"
+    },
+    {
+      "command": "npm run check before the review-round code commit, branch name",
+      "exit_code": 0,
+      "result": "tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round code commit a35a619)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs 88a6670 WP-0A-DB-00 at a35a619",
+      "exit_code": 0,
+      "result": "all 12 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs (review-round evidence commit 6613697)",
+      "exit_code": 0,
+      "result": "clean: tests 685, pass 685"
+    },
+    {
+      "command": "npm run check:handoff, npm run verify, verify-branch-scope at the handoff commit, branch name",
+      "exit_code": 0,
+      "result": "recorded in the PR body and plan §6.4 after this commit (the handoff cannot cite its own commit)"
     }
   ],
-  "security_privacy_cost_impact": "None in effect. Two Proposed decision records change text only; no grant, policy, role, schema or CI change. RFC-2026-026 now proposes membership for every command audit row (no client writes into another tenant's log), refusal rows that name no scope, and the page form in the policy; RFC-2026-027's design is unchanged. Neither RFC is in effect; nothing changes until each is decided by those who hold that authority and a later batch lands it. No secret, no customer data, no cost.",
+  "security_privacy_cost_impact": "None in effect. Two Proposed decision records change text only; no grant, policy, role, schema or CI change. RFC-2026-026 proposes membership for every command audit row (no client writes into another tenant's log while the request tier alone sets request.jwt.claims, §3.3/1), refusal rows that name no scope, and the page form in the policy. A refusal about a workspace the user cannot reach is recorded nowhere under the text; that is now stated as A0's reconciliation and held open as Q-026-10, not as an accepted answer. §8.1/1 now reads every non-system function's full definition. Neither RFC is in effect. No secret, no customer data, no cost.",
   "migration_and_data_impact": "None. No migration file is added or edited. db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged).",
   "compatibility_impact": "Tests stay 685 (no test added); no floor moves, so scripts/test-suite-contract.mjs is not amended and evidence/VERIFICATION.md is unchanged. The integrity manifest's records of the two RFCs and test-kits/branch-identity.test.mjs change.",
   "known_limitations": [
     "Nothing in the revised RFC texts was executed: §3.3's literal, §3.7's two policies, §8.1/1's catalog rule and §8.2/16-21 are text, owed to the batches that land each half.",
     "RFC-2026-023 is not edited: Q-027-4's answer (write the admitted-state gate into it now) is owed to A0 at its next revision; this batch's scope is the two Proposed RFCs.",
-    "The 89/8 census of RFC-2026-027 §6/6 is Q0's measurement, cited, not re-run."
+    "The 89/8 census of RFC-2026-027 §6/6 is Q0's measurement, cited, not re-run.",
+    "Review round: §8.1/1 as revised was approximated by a regular expression over pg_get_functiondef on a scratch cluster, not by the lexer; the rule and its eight drifts are owed to the command half. scripts/db/psql-driver.mjs still refuses BEGIN ATOMIC at the top level only (Q0 F1), owed."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[195], appended: both RFCs' approval (the Owner and A1) and the named roles' acceptance of the fifteen answers stay owed; new owed items: Q-027-4's edit to RFC-2026-023 (A0) and app_command's EXECUTE on app.is_active_member (RFC-2026-026's command-half batch). Cross-referenced, not duplicated: [21], [29], [32], [33], [95], [113], [191] (2) and (6), [188]. None is stop-the-line."
+    "open_blockers[195], appended: both RFCs' approval (the Owner and A1) and the named roles' acceptance of the fifteen answers stay owed; new owed items: Q-027-4's edit to RFC-2026-023 (A0) and app_command's EXECUTE on app.is_active_member (RFC-2026-026's command-half batch). Cross-referenced, not duplicated: [21], [29], [32], [33], [95], [113], [191] (2) and (6), [188]. None is stop-the-line.",
+    "Appended to open_blockers[195] after the C0, A1 and Q0 round: Q-026-10 UNANSWERED (A1 and the Owner), owed before any decision on RFC-2026-026; the driver refusing nested BEGIN ATOMIC; A1 deciding a form for a system_actor id (A1 F5). None is stop-the-line."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Proposed text only; nothing is applied to any instance and no migration is involved.",
   "recommended_next_work_packages": [
-    "C0, Q0 and A1 role runs on this batch. Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
-    "The Owner's and A1's approval (or correction) of RFC-2026-026 and RFC-2026-027, at the phase-end review; the named roles' acceptance of the fifteen answers.",
+    "Merge under the standing delegation if the bar of 127 §6 is met on this head (green CI on the reviewed head); RFC-2026-025 §5 Integration Owner evidence stays owed.",
+    "Q-026-10 put to A1 and the Owner with the phase-end review; then the Owner's and A1's decision on RFC-2026-026 and RFC-2026-027, and the named roles' acceptance of the fifteen answers.",
     "Q-027-4: write the admitted-state gate into RFC-2026-023 at its next revision (A0)."
   ],
   "reviewer_instructions": [
     "Read evidence/WP-0A-DB-00/a0-batch-rfc-text-plan-2026-10-03.md §1, then the diff 88a6670..cdf6774 of the two RFCs. Check RFC-2026-026 §3.3's literal against §3.3/1-4, §3.6, §3.7 and §8.2/16-21 and against RFC-2026-023 §3.2; check §8.1/1's rule (a)-(d) is decidable over pg_proc/pg_trigger with the repository's lexer, and that its drifts would each be red.",
     "Check each §10.1 row against product-owner-disposition-2026-10-03-batch-rfc-026-027.md §5, §7 and §8 (the recommendation current at that merge), and that neither Status line claims approval.",
-    "Check open_blockers[195]'s append (no other entry changed; the coverage map's 33 pins moved back by one)."
+    "Check open_blockers[195]'s append (no other entry changed; the coverage map's 33 pins moved back by one).",
+    "Review round: read the plan §6.2 table against the three reviews, then the diff ba4c654..a35a619 (RFC-026 §3.3/2-4, §3.4, §3.7, §8.1/1, §8.2/17, /21, §10, §10.1; RFC-027 §5/6) and [195]'s last append; check that §10.1 no longer records any answer the Owner did not accept."
   ],
   "superseded_by": null
 }
