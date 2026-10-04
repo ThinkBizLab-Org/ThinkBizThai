@@ -3319,6 +3319,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     const m170code = m170.replace(/--[^\n]*/g, '');
     assert.equal((m170code.match(/^revoke [^\n]*$/gm) ?? []).join('\n'), 'revoke update (lifecycle_state) on app.workspaces from authenticated;', '170 revokes exactly one column from one role');
     assert.doesNotMatch(m170code, /^\s*grant\b|\b(create|alter|drop)\s+(policy|table|function|trigger|index)\b/im, 'and grants nothing and creates, alters or drops no policy, table, function, trigger or index');
+    // The review round (A1 F170-2): the keyword list above does not see `create or replace function`, a view,
+    // a rule or `alter default privileges`. So 170's code, comments stripped, is held to exactly three
+    // statements -- the revoke, the column comment (string literals only) and one do-block -- and the
+    // do-block, its string literals blanked, issues no statement of its own beyond reading the catalog.
+    const m170do = m170code.match(/^do \$\$$[\s\S]*?^end \$\$;$/gm) ?? [];
+    assert.equal(m170do.length, 1, '170 carries exactly one do-block');
+    assert.deepEqual(m170code.replace(m170do[0], '').split(';').map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).slice(0, 3).join(' ')),
+      ['revoke update (lifecycle_state)', 'comment on column'], 'and outside it only the revoke and the column comment, in that order');
+    assert.match(m170code, /^comment on column app\.workspaces\.lifecycle_state is(\s+'(?:[^']|'')*')+;$/m, 'the comment statement is string literals and nothing else');
+    assert.doesNotMatch(m170do[0].replace(/'(?:[^']|'')*'/g, "''"), /\b(create|alter|drop|grant|revoke|truncate|execute|copy|insert|update|delete|merge|comment|call|perform|set|reset)\b/i,
+      'and the do-block, literals blanked, runs no DDL, DML, dynamic SQL or setting');
     assert.match(m170code, /pg_catalog\.has_column_privilege\(cr\.r, 'app\.workspaces', 'lifecycle_state', p\.p\)/, 'its block reads every client role against the column');
     assert.match(m170code, /unnest\(array\['anon', 'authenticated', 'public'\]\) as cr\(r\),\s+unnest\(array\['UPDATE', 'INSERT', 'UPDATE WITH GRANT OPTION', 'INSERT WITH GRANT OPTION'\]\) as p\(p\)/, 'for UPDATE and INSERT, with and without grant option');
     assert.match(m170code, /if offending is distinct from 'name, updated_by'/, 'and holds the owner\'s other UPDATE columns to name and updated_by');

@@ -43,10 +43,10 @@ Already on record, and still standing:
 |---|---|---|---|
 | Q-026-5 | Owner + A1 | **revoke**: the client `UPDATE` of `workspaces.lifecycle_state` is revoked in the first of batch 170's migrations | **Done:** `db/foundation/migrations/170_workspace_lifecycle_not_client_writable.sql` |
 | Q-027-5 | Owner + A1 | the same answer, from RFC-2026-027's side | **Done:** the same file |
-| Q-027-6 | Integration Owner | **the next free number in 170's range** | **Done:** 170, the first number in the range; no 17x file existed |
+| Q-027-6 | Integration Owner | **the next free number in 170's range** for RFC-2026-027's gate migration, landing after approval and before any batch that relies on the gate | **Not this batch.** Q-027-6 numbers RFC-2026-027's gate migration, which this batch does not write. It stays the Integration Owner's to assign; on A0's reading of the answer it is now the next free number after 170. 170's own number comes from Q-026-5 / Q-027-5's answer (§7 row: "the first of batch 170's migrations"). Corrected in the review round (Q0-F1, C0-170-2); the first writing of this row said "Done: 170". |
 
 The Owner directed these answers. **A1's acceptance (Q-026-5, Q-027-5) and the Integration Owner's
-(Q-027-6) remain owed**, as `open_blockers[195]` already records for every named role.
+(Q-027-6, and the gate's number itself) remain owed**, as `open_blockers[195]` already records for every named role.
 
 **Neither RFC-2026-026 nor RFC-2026-027 is approved, and this batch does not depend on either.** The revoke
 needs nothing either RFC decides (C0-8 on the RFC batch), so it lands first, as `open_blockers[195]` (4)

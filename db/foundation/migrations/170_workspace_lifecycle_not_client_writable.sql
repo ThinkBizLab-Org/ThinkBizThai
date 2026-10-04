@@ -1,10 +1,12 @@
 -- Batch 170 (first migration): no client moves a workspace's lifecycle state.
 --
--- A0 author, A1 review; number 170, the next free number in batch 170's range (Q-027-6, answered
--- 2026-10-04 as A0 recommended: `ลุยต่อเลย เอาตามแนะนำ`, transcribed in
--- evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8). The change is
--- Q-026-5 / Q-027-5's, answered "revoke" in the same words: the client UPDATE of
--- app.workspaces.lifecycle_state is revoked in the FIRST of batch 170's migrations. Disposition
+-- A0 author, A1 review. The change is Q-026-5 / Q-027-5's, answered "revoke" on 2026-10-04 as A0
+-- recommended (`ลุยต่อเลย เอาตามแนะนำ`, transcribed in
+-- evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md §8): the client UPDATE
+-- of app.workspaces.lifecycle_state is revoked in the FIRST of batch 170's migrations. The number 170
+-- comes from that answer (the same disposition's §7 row: "the first of batch 170's migrations"), not
+-- from Q-027-6: Q-027-6 asks for the number of RFC-2026-027's GATE migration, which stays the
+-- Integration Owner's to assign (Q0-F1, C0-170-2 on batch 170). Disposition
 -- evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170.md; plan
 -- evidence/WP-0A-DB-00/a0-batch-170-plan-2026-10-03.md. Neither RFC-2026-026 nor RFC-2026-027 is
 -- approved, and this file depends on neither (C0-8 on the RFC batch: the revoke needs nothing either
@@ -78,8 +80,13 @@ comment on column app.workspaces.lifecycle_state is
 -- ============================================================================================
 -- WHAT THIS MIGRATION ASSERTS ABOUT THE DATABASE IT HAS JUST CHANGED
 -- ============================================================================================
--- Re-run by the post-migrate pass after the last migration, so a later file that grants the column back
--- to a client fails migrate-clean here as well as in the pinned grant probe.
+-- Re-run by the post-migrate pass after the last migration. A later file that grants the column back to
+-- a client fails migrate-clean in two independent layers: the pinned grant probe (which stops the run
+-- first while the pin is unchanged), and this block (which fires once the pin has moved too) (Q0-F2).
+-- This block reads has_column_privilege, which does not see a role MEMBERSHIP a client cannot inherit
+-- (the client roles are NOINHERIT): `grant app_worker to authenticated`, with or without inherit false,
+-- passes it although SET ROLE would reach the column. That reach is held by the client membership probe
+-- and the pinned grant probe in the same migrate-clean, not by this block (C0-170-1, A1 F170-1).
 do $$
 declare
   offending text;
