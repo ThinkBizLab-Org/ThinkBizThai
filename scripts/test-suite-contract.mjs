@@ -217,7 +217,13 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // (Q170-d); no test added or renamed, so the test floor and the name digest stay; the guard's own count.
 // 929 to 932 with batch 150's review round: rule 17's two privilege lists pinned by text (Q0 Q-3) and 150's
 // check 2 reading every unique index (C0-6, A1 F150-3); no test added or renamed; the guard's own count.
-  'test-kits/db/foundation-contract.test.mjs': 932,
+// 932 to 942 with batch 170 (2026-10-04, migration 170_workspace_lifecycle_not_client_writable.sql): the client
+// UPDATE of workspaces.lifecycle_state revoked (Q-026-5 / Q-027-5), read from pinned-grants.json and from 170's
+// statement and block, 010 unedited; no test added or renamed, so the test floor and the name digest stay;
+// the guard's own count. 942 to 946 with batch 170's review round (A1 F170-2): 170's code held to exactly the
+// revoke, the column comment and one do-block that runs no statement of its own; no test added or renamed;
+// the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 946,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

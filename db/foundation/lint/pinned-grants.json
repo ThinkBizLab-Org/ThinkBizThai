@@ -218,7 +218,7 @@
     },
     "app.workspaces": {
       "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
-      "authenticated": { "SELECT": ["id", "name", "lifecycle_state", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["name", "lifecycle_state", "updated_by"] }
+      "authenticated": { "SELECT": ["id", "name", "lifecycle_state", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["name", "updated_by"] }
     },
     "private.ai_credential_references": {},
     "private.meta_credential_references": {},
