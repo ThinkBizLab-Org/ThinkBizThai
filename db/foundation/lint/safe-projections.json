@@ -1,0 +1,128 @@
+{
+  "_what": "The pinned safe projection of every table classed PROVIDER-3 or INTERNAL-3, and of every table the ERD leaves open between a refused class and another: for each, the exact columns each client role may read (batch 150, Q170-d answered 2026-10-04 as A0 recommended, `เิาตามแนะนำ`; ERD §9.1's client projections 'safe projection only' for PROVIDER-3 and 'redacted status only' for INTERNAL-3). Read by DATA_CLASSIFICATION_PROBE_SQL in scripts/db/run.mjs (README rule 17).",
+  "_rule": "\"tables\": exactly the tables db/foundation/lint/data-classification.json classes PROVIDER-3 or INTERNAL-3 (a table classed SECRET-4, or left by its §5 row only between refused classes one of which is SECRET-4, is NOT here: no client privilege of any kind, unchanged). For each, the client privileges found (anon, authenticated, PUBLIC; SELECT, INSERT, UPDATE and REFERENCES per column, DELETE, TRUNCATE, TRIGGER and MAINTAIN per table) must equal the pinned SELECT columns exactly, both ways: every other client privilege is refused. \"open_tables\": exactly the twelve tables data-classification.json carries as a `finding` (open between a refused class and another); for each, the client SELECT columns found must equal the pinned set, both ways, so a new client column on an open table fails rule 17 and not only rule 7 (A1 R5 on batch 170-assert, open_blockers[193] (13)). Their other client privileges (an INSERT or UPDATE grant) are not read here; rule 7 (the pinned grant probe) holds them.",
+  "_derived": "Derived from db/foundation/lint/pinned-grants.json at main 1930f41 (every client SELECT column on each table, in attnum order), not from a fresh decision: the four classed tables hold no client privilege, so their projection is empty, and each open table's projection is what 051, 120 and 121 grant today. Re-measured on the clean set of this branch by the probe itself (migrate-clean, as built).",
+  "_review": "Each pinned column was read against ERD §9.1 (PROVIDER-3: 'provider payload, external post ID, webhook' -> 'safe projection only'; INTERNAL-3: 'job payload, DLQ, trace, implementation errors' -> 'redacted status only'; SECRET-4: 'never returned after write') and §9.2. A column that looks unsafe is a FINDING below, kept in the projection as measured and not dropped: removing a column a migration grants is a REVOKE in a migration, which is a decision for A1 and the table's owner. Owed on open_blockers[193].",
+  "_shape": "tables|open_tables: { \"<schema>.<table>\": { \"projection\": { \"<client role>\": [columns, in attnum order] }, \"review\": \"the §9.1 reading of its columns\" } }; findings: [ { \"id\", \"column\": \"<schema>.<table>.<column>\", \"severity\", \"finding\", \"owner\" } ].",
+  "tables": {
+    "app.billing_webhook_receipts": {
+      "class": "PROVIDER-3",
+      "projection": {},
+      "review": "No client column. A Stripe delivery's receipt (provider event hash, payload hash, provider event type, attempts, last error code) is PROVIDER-3 'webhook' and partly INTERNAL-3 'implementation errors'; withholding every column is the narrowest safe projection. A client-visible billing state is the projection tables of 131, not this one."
+    },
+    "app.consumer_ledger": {
+      "class": "INTERNAL-3",
+      "projection": {},
+      "review": "No client column. Which consumer took which event is INTERNAL-3 bookkeeping with no client meaning; 'redacted status only' has nothing to redact to here."
+    },
+    "app.jobs": {
+      "class": "INTERNAL-3",
+      "projection": {},
+      "review": "No client column. input_ref, result_ref, lease_owner, dedupe_key and last_error_code are §9.1's 'job payload' and 'implementation errors'. A client-facing job status (progress_percent, progress_stage) would be the 'redacted status only' projection; none is granted today, and adding one is a grant in a migration plus an entry here, A1's to review."
+    },
+    "app.outbox_events": {
+      "class": "INTERNAL-3",
+      "projection": {},
+      "review": "No client column. An outbox row is an event envelope for consumers (correlation, causation, idempotency key, schema ref): INTERNAL-3 'trace'."
+    }
+  },
+  "open_tables": {
+    "app.ai_model_policies": {
+      "erd_classes": ["CONTENT-2", "SECRET-4"],
+      "projection": {},
+      "review": "No client column (the gateway reads it as app_worker)."
+    },
+    "app.ai_models": {
+      "erd_classes": ["CONTENT-2", "SECRET-4"],
+      "projection": {},
+      "review": "No client column. §9.1 names 'public model label' PUBLIC-0, so a label projection could be granted later; none is today."
+    },
+    "app.meta_connections": {
+      "erd_classes": ["INTEGRATION-2", "SECRET-4"],
+      "projection": {},
+      "review": "No client column; the credential is a reference in private.meta_credential_references. INTEGRATION-2's 'health projection only' would be a later grant and entry."
+    },
+    "app.notification_preferences": {
+      "erd_classes": ["PII-2", "SECRET-4"],
+      "projection": {},
+      "review": "No client column today."
+    },
+    "app.notifications": {
+      "erd_classes": ["PII-2", "SECRET-4"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "user_id", "channel", "message_key", "deep_link_target_ref", "deep_link_requires_permission", "read_at", "created_at", "updated_at"]
+      },
+      "review": "No SECRET-4 column: the push token lives in private.push_subscription_references, and delivery_state, delivery_failure_class and dedupe_key are withheld (051). user_id is PII-2 'actor identity', the reader's own row. message_key is a key, not text; deep_link_target_ref is held to an app/content/asset/job reference by notifications_deep_link_target_ref_form, so it cannot carry a URL or a provider identifier. Reads as safe."
+    },
+    "app.performance_snapshots": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "published_post_id", "metric_time", "metrics", "metrics_schema_version", "collected_at"]
+      },
+      "review": "metrics is the provider payload itself, inside the client SELECT by the Owner's question D and held by 121's shape (ten numeric keys, each a number between 0 and 10^12, the object non-empty and at most 2 KiB), which A1 measured keeps a provider id and a sentence out: finding SP-1. The other columns are keys, instants and a version number."
+    },
+    "app.publish_intents": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "content_item_id", "content_version_id", "requested_by", "request_kind", "idempotency_key", "cancelled_at", "created_at", "updated_at", "created_by", "updated_by"]
+      },
+      "review": "No PROVIDER-3 column: an intent is the client's own request (CONTENT-2). idempotency_key is the client's key, bounded to 128 characters; requested_by, created_by and updated_by are AUTH-3 actor ids of the tenant's members. Reads as safe."
+    },
+    "app.publish_jobs": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "publish_target_id", "status", "attempt_count", "last_attempt_at", "created_at", "updated_at"]
+      },
+      "review": "provider_request_key (PROVIDER-3) and the failure code are withheld (120). status reads as a redacted status. attempt_count and last_attempt_at are retry bookkeeping, more than a status: finding SP-3."
+    },
+    "app.publish_target_assets": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "publish_target_id", "asset_id", "asset_version_id", "sort_order", "role", "created_at"]
+      },
+      "review": "No PROVIDER-3 column: which of the tenant's own asset versions a send carries. Reads as safe."
+    },
+    "app.publish_targets": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "publish_intent_id", "content_target_id", "social_account_id", "content_variant_id", "status", "dispatched_at", "completed_at", "failed_at", "failure_class", "created_at", "updated_at"]
+      },
+      "review": "failure_class is the one PROVIDER-3 column, 'safe projection only' in 120's own comment, held to a code of at most 64 characters of [a-z0-9_.] by publish_targets_failure_class_is_a_code, with no closed vocabulary: finding SP-2. social_account_id is the tenant's own account row's id, not the provider's. The rest are keys, status and instants."
+    },
+    "app.published_posts": {
+      "erd_classes": ["CONTENT-2", "PROVIDER-3"],
+      "projection": {
+        "authenticated": ["id", "workspace_id", "business_profile_id", "publish_target_id", "social_account_id", "platform", "published_at", "created_at"]
+      },
+      "review": "The external post id is withheld, even as its hash (120). platform is a vocabulary; the rest are keys and instants. Reads as safe."
+    },
+    "app.social_accounts": {
+      "erd_classes": ["INTEGRATION-2", "SECRET-4"],
+      "projection": {},
+      "review": "No client column today."
+    }
+  },
+  "findings": [
+    {
+      "id": "SP-1",
+      "column": "app.performance_snapshots.metrics",
+      "severity": "LOW",
+      "finding": "§9.1 names 'provider payload' PROVIDER-3, 'safe projection only'. This column IS the provider's payload, readable by every active member in scope, safe only because 121's four shape constraints and its plausibility bound make it ten numbers. Whether a shape-held payload counts as the 'safe projection' §9.1 asks for is a reading, not a fact; the column is pinned as measured, not dropped.",
+      "owner": "A1 (with the ERD owner's column classification, open_blockers[193] (3))"
+    },
+    {
+      "id": "SP-2",
+      "column": "app.publish_targets.failure_class",
+      "severity": "LOW",
+      "finding": "A PROVIDER-3 code inside the client SELECT whose shape refuses a sentence, a URL and an external post id but whose vocabulary is open: a provider's own error code in that shape (for example a Graph API code) passes, and §9.1's INTERNAL-3 'implementation errors' would read 'redacted status only'. A closed vocabulary needs Product's failure classes (120's comment).",
+      "owner": "A1 and A6 (Publisher), with Product for the vocabulary"
+    },
+    {
+      "id": "SP-3",
+      "column": "app.publish_jobs.attempt_count",
+      "severity": "INFO",
+      "finding": "attempt_count and last_attempt_at are retry bookkeeping of a job, which §9.1 classes INTERNAL-3 ('job payload ... trace', 'redacted status only'); they are more than a status. Neither carries provider text. Kept as measured.",
+      "owner": "A1 and A6 (Publisher)"
+    }
+  ]
+}

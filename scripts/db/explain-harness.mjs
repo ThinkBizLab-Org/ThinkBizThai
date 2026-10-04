@@ -75,8 +75,14 @@ const pp1 = "md5('ws905:pp:1')::uuid";
 export const NAMED_QUERIES = Object.freeze([
   { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:913; app.workspace_member_role',
     sql: `select m.role from app.workspace_members m where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' limit 1` },
-  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:913; workspaces_select_active_member',
-    sql: 'select w.id, w.name from app.workspaces w order by w.name limit 50' },
+  // Batch 150 (Q150-e, answered 2026-10-04 as A0 recommended): the list is read FROM the caller's active
+  // memberships and joined to workspaces, so the plan starts on workspace_members_user_id_status_idx and reaches
+  // each workspace by its key. Read from workspaces outward (the batch 150 prerequisites' text,
+  // `select w.id, w.name from app.workspaces w order by w.name limit 50`) it seq-scanned app.workspaces at the
+  // 0.2 scale (F2, open_blockers[194] (1)). Same rows: the policies are unchanged, and the caller's id is the
+  // literal the client already holds (a client role cannot call app.jwt_subject() or name schema auth).
+  { name: 'workspace list', klass: 'membership', role: 'authenticated', source: 'WS:913; workspace_members, then workspaces_select_active_member',
+    sql: `select w.id, w.name from app.workspace_members m join app.workspaces w on w.id = m.workspace_id where m.user_id = ${fixtureIds.owner(1)} and m.status = 'active' order by w.name limit 50` },
   { name: 'content first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
     sql: `select c.id, c.title, c.status, c.created_at from app.content_items c where c.workspace_id = ${ws1} and c.business_profile_id = ${bp1} and c.deleted_at is null order by c.created_at desc, c.id desc limit 50` },
   { name: 'calendar first page', klass: 'first page', role: 'authenticated', source: 'WS:914',
