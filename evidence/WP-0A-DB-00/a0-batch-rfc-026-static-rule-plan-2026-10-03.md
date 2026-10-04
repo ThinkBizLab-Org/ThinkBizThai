@@ -142,3 +142,105 @@ These are under the scratchpad directory `a0-rfc-026-static-ruler/`:
 - the logs `r1`-`r5` (`*-migrate.log`, `*-rule.log`, `*-smoke.log`, `*-extra.log`), `r2-first-attempt*.log`,
   `check1.log`, `cwc-code.log` and `d1.log`;
 - the old and new §8.1/1 texts, the `140_audit.sql` original, and the commit messages.
+
+## 6. Review round (2026-10-05)
+
+Written by a subagent of `/claude/a0_atlas`, on the branch name `agent/claude/WP-0A-DB-00-batch-rfc-026-static-rule`
+(`git branch --show-current` printed it before every commit). It fixes; it approves nothing. **No migration, and
+nothing a database layer reads changed.** RFC-2026-026 stays Proposed and Q-026-10 stays UNANSWERED.
+
+### 6.1 Cherry-pick map
+
+Each review was cherry-picked with `-x` onto `fb508e7`, unchanged:
+
+| role | review branch | reviewed commit | on this branch |
+|---|---|---|---|
+| C0 `/claude/c0_contract_reviewer` | `review/c0-batch-rfc-026-static-rule` | `6d0c27f3d6fa7ae3a6be588bbc60c17c7e43ff63` | `32adffc8f516e9bb8f6bd2df3fd1b7a3cef7a723` |
+| A1 `/claude/a1_bastion` | `review/a1-batch-rfc-026-static-rule` | `c1e48a066a0f2af8cdc152d3840ada08bea38e08` | `c033a293fffb8c4f42972d3ddeb923740362cae9` |
+| Q0 `/claude/q0_sentinel` | `review/q0-batch-rfc-026-static-rule` | `1665deb6190377b7494dab3cb43d862080e63396` | `3df23a8f39b0c2a73e32e2c679b80816b49ec977` |
+
+All three report **no stop-the-line** and nothing that blocks this Draft's merge; every finding is owed before
+RFC-2026-026's **approval**.
+
+### 6.2 Finding → change → measured
+
+"§8.1/1" is RFC-2026-026's. "Measured" is §6.3's prototype of the added arms, unless a reviewer is named.
+
+| finding | grade | change | measured |
+|---|---|---|---|
+| A1 N1 | MEDIUM | New **(h)**: `pg_extension` is exactly `APPROVED_EXTENSIONS` + `plpgsql`; `pg_foreign_data_wrapper`, `pg_foreign_server`, `pg_user_mapping`, `pg_foreign_table` are empty, each with an empty pinned exemption list. The catalogs are added to §8.1/1's list. Drift 19 is A1's r7, asserting (h)'s own text. The live `run.mjs` probe of the four catalogs, which is not specific to audit tables, is a **new blocker, `open_blockers[197]`** | s5 (A1's r7, port changed): `migrate-clean` exit 0, (h) selects the extension, wrapper, server, mapping and foreign table. s1 (clean): none, before and after `rls-smoke` |
+| Q0-S1 | MEDIUM | (b) also reads **`pg_depend`**: no object but a pinned one depends on a producer. Line 584's sentence is replaced by what holds it: (b)'s token read and `pg_depend` read, (c), (e), (f), (g) and the `pg_catalog` guard for casts. Drift 16 (operator in a trigger function, a default and a view; aggregate) | s4 (Q0's `q0-r3.sql`): `pg_depend` selects the operator, the trigger `q_when`, the domain check and the aggregate. s3 (A1's r3): the operator, the domain and the aggregate |
+| Q0-S2 | MEDIUM | (g) reads **`pg_trigger.tgqual`** through `pg_get_triggerdef`; (e) says the `WHEN` is (g)'s and (b)'s. Drift 14 | s4: (g) and `pg_depend` both select `q_when`. s2 (C0's `c2.sql`): both select `s_when` |
+| A1 N2 | LOW | Same `pg_depend` arm; (g) reads **`pg_type.typdefaultbin`**; an aggregate (no `pg_get_functiondef`, language `internal`) and a window function in `c`/`internal` fail closed unless pinned; drift 20 (cast) is cited as the `pg_catalog` guard's hold, and a cast drift on the guard is owed (its self-test drift has none) | s3: operator, domain default and aggregate selected; the aggregate also by the language rule (`public.s_agg [internal]`) |
+| A1 N3 | LOW | (c) gains a **language rule**: `sql` or `plpgsql`, or a `c` member of an approved extension; anything else fails closed. It cites the `pg_catalog` guard (PL handlers), the definer extension-member rule (`dblink_connect_u`) and the driver's `REFUSED_LANGUAGES` as today's holds. Drift 18 asserts the rule's own text; the PL and dblink shapes are cited | s6 (A0's `d-lang.sql`): an `internal` alias of `int4pl` and a raw `c` function, the language word computed, **`migrate-clean` exit 0**, both selected. s1: on a clean tree nothing |
+| C0-SR-1 | LOW | (g) adds `tgqual` and `typdefaultbin`; `pg_constraint` is scoped by `connamespace`, so a domain `CHECK` is read; the catalog list at the head of §8.1/1 is extended and called an enumeration a reviewer checks. Drifts 14, 15 | s2: trigger `WHEN`, domain default and domain `CHECK` each selected by (g) and by `pg_depend` |
+| C0-SR-2 | LOW | (c) gains a **pinned list of functions that execute their text argument** (`query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `ts_stat`, `ts_rewrite`), refused wherever named, failing closed: re-read against the server version, and extended only through (h)'s extension list. The ":594" sentence now says the three parts of (c) together keep (a)/(b) decidable. Drift 17 | s2: `public.s_qx names query_to_xml`; s1: none |
+| C0-SR-3 | LOW | The drifts name their harness: `run.mjs` `selfTests` (`probeJobScript`, `decideCatalogProbes`). 1b needs no pin and asserts (a)'s own text. Drifts 8, 11's policy arm, 18's PL/dblink shapes and 20 are **cited** as existing probes' holds, not this rule's self-tests; (d) and (g)'s policy arm say they have no self-test of their own | read against `run.mjs:2480-2580` |
+| C0-SR-4 | LOW | §3.7, Q-026-10's row and §10.1's Q-026-9 row quote the accepted words verbatim ("A forward migration adding a nullable cause column is not recommended before G1", disposition rfc-026-027 `:130`). (i)'s column and (ii)'s store are stated as new store questions Q-026-9 did not decide, priced on their merits. A0 keeps (iii) as the recommendation and withdraws the "matches Q-026-9" reason | read |
+| Q0-S3 | LOW | (a): every view on the reader list has `pg_relation_is_updatable(oid, false) = 0` and no `INSERT`/`UPDATE`/`DELETE` grant to a role but its owner. Drift 12 gains the view | s4: `public.q_reader_upd [updatable 28; grants none]` selected |
+| Q0-S4 | INFO | "Which functions it reads": an aggregate fails closed under the language rule and its calls are read through `pg_depend` | s3, s4 |
+| Q0-S5 | INFO | (g): `pg_constraint` scoped by `connamespace`, domains included | s4: `q_dom_check` selected |
+| Q0-S6 | INFO | Recorded here: A0's `r3-extra.sql` also tried `app_command` inserting into `public.s_rule_target`, and it failed on `audit_logs_reason_key_form` (`reason_key` `s.drift`). No claim rested on it; the forged-row measurement in (f) is A1's | — |
+| C0-SR-5 | INFO | §3.7 and Q-026-10: the id goes into `event_type` "as a dotted segment"; the CHECK refuses a bare id | read against `140_audit.sql:598-599` |
+| C0-SR-6 | INFO | (a): a producer has a dollar-quoted body, not `BEGIN ATOMIC`, since the definer probe pins `md5(prosrc)`; or the landing batch pins `md5(pg_get_functiondef(oid))` | read (C0's M9) |
+| C0-SR-7 | INFO | This round's handoff records commands run after its own commit without an exit code, pointing to the PR body | the handoff's `tests` |
+| C0-SR-8 | INFO | "zero to two each (`as_suspended_user` none)" | read (C0's M4) |
+| A1 N4 | INFO | One bullet in §8.1/1 cites the event-trigger probe (`PINNED_EVENT_TRIGGERS`) and the policy helper probe as holds of this rule | read |
+| A1 N5 | INFO | Q-026-10's row names the events lost (cross-tenant probing; SEC-014's P0 rate limit), says "not of isolation" is conditional on §3.3's literal being executed, and says SEC-014's deadline needs a blocker with an owner if (iii) is chosen | read |
+| C0 §2.2 | — | `16b839b`'s message says drift 1b is "reshaped so (a)'s own text refuses it", true only of the pinned form at the time. A merged commit message is not rewritten; the RFC now states 1b correctly for the `selfTests` harness | — |
+
+**New, found while measuring (not a reviewer's finding):** s6 shows an `internal` or `c` function, its language
+word computed in a `DO` block, passes `migrate-clean` with every probe green. The driver's header says computed
+text is "held by the live catalog probes in run.mjs", and no live probe reads a function's language. An `internal`
+function can alias any built-in under a name no list holds (the driver's own comment), so this is the class of
+A1 N1 and is not specific to audit tables. It is recorded on `open_blockers[197]` beside the foreign-data probe,
+owed to the Integration Owner with A1; it needs a migration written to evade the driver, as every drift here does,
+and nothing in the tree does it. I did not measure what such an alias can reach.
+
+### 6.3 Prototype of the added arms (port 5507, private dir `a0-rfc-026-static-ruler2/`)
+
+Same setup as §2: Node `v24.20.0` (`node -v` printed every round), PostgreSQL 17.11 from `/opt/homebrew/bin`,
+a fresh `initdb --locale=C -A trust -U postgres` every round, TCP only on 127.0.0.1:5507
+(`unix_socket_directories=''`), `LC_ALL=C`, the shim first. Each drift was appended to `140_audit.sql` and
+restored from a copy: sha256 `2ac596bb950e8dfb…` before and after every round, `git status` clean after. Each
+cluster was stopped and its data directory removed; no listener on 5507 after. No other port was touched.
+
+`arms.mjs` is a hand application of **only the arms this round adds**, with the repository's lexer and
+`APPROVED_EXTENSIONS` imported. It is not the rule and not its self-test. The reviewers' drift files were
+re-run unchanged but for A1's port string.
+
+| round | drift | `migrate-clean` | `rls-smoke` | arms |
+|---|---|---|---|---|
+| s1 | none | 0 ("51 apply-time blocks, 39 re-run as written, 12 superseded") | 0 ("1087 isolation case(s) passed"; "6 claim(s) discharged") | exit 0, all green: 50 functions read, 54 after `rls-smoke` |
+| s2 | C0's `c2.sql` (producer `public.s_producer`) | 0 | — | exit 1: `pg_depend` trigger `s_when`, type `s_dom`, constraint `s_dchk_check`; text-executing `public.s_qx`; (g) the `WHEN`, the domain default and the domain `CHECK` |
+| s3 | A1's `r3.sql` (producer `app.s_producer`) | 0 | — | exit 1: `pg_depend` operator `###`, type `s_dom`, aggregate `s_agg`; language `public.s_agg [internal]`; (g) the domain default |
+| s4 | Q0's `q0-r3.sql` (producers `app.q_producer`, `app.q_producer2`; reader `public.q_reader_upd`) | 0 | — | exit 1: `pg_depend` operator `@@@`, trigger `q_when`, constraint `q_dom_check`, aggregate `q_agg`; language `public.q_agg [internal]`; (g) `q_when`, `q_dom_check`; reader view updatable 28 |
+| s5 | A1's `r7.sql`, port 5507 | 0 ("52 apply-time blocks, 40 re-run") | — | exit 1: (h) extension `postgres_fdw`, its wrapper, server `s_loop`, a user mapping, foreign table `s_a1.s_ft`; language: postgres_fdw's five `c` members |
+| s6 | `d-lang.sql` (A0's) | 0 ("52 … 40 re-run"; a first form not written to re-run failed the post-migrate pass, 42723, and was made `create or replace`) | — | exit 1: language `s_lang.s_int [internal]`, `s_lang.s_cfn [c]` |
+
+Nothing a database layer reads changed in this round, so the two clean layers were run once (s1), as the
+measurement of the arms on a clean tree, and not as a regression check.
+
+### 6.4 Commands and exit codes
+
+Before this file's commit, on the branch name, Node `v24.20.0`:
+
+| command | exit | result |
+|---|---|---|
+| `npm run regenerate:manifest` | 0 | "rebuilt 90 digest(s)" |
+| `npm run check` | 0 | tests 685, pass 685, fail 0 |
+| `node scripts/commit-when-clean.mjs` (code commit `9fd448b`: RFC-2026-026, the manifest, the integrity manifest) | 0 | "clean: exit 0 — tests 685, pass 685, fail 0" |
+
+The commands run on the final head (`verify-branch-scope`, `check:handoff`, `verify`) are recorded in the PR
+body and the handoff, which come after this file; not here (C0-RR-5). The plan's §3 stands for the batch's
+first commits.
+
+### 6.5 What is still owed
+
+- Everything §4 lists, plus: (h), the `pg_depend` read, the language rule, the text-executing list, the `tgqual`,
+  `typdefaultbin` and domain-`CHECK` reads, the reader-view rule and drifts 14-20, all in the rule's batch (A0,
+  batch 141's range); a cast drift on the `pg_catalog` guard. Appended to `open_blockers[195]`.
+- The live foreign-data and function-language probe in `run.mjs`, not specific to audit tables:
+  `open_blockers[197]`, new.
+- Approval of RFC-2026-026 and RFC-2026-027, and Q-026-10's answer: unchanged, the Owner's and A1's.
+- Re-checks of this round by C0, A1 and Q0.
