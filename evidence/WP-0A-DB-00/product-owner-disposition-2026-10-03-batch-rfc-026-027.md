@@ -117,3 +117,17 @@ Still owed, and not re-held by this batch: A1's acceptance of Q141-a, Q141-c and
   bar of 127 §6 is met. A stop-the-line finding halts it, and the reviewers' judgement of §4's reading is
   part of that bar.
 - It does not sign for A1, A6 or the Integration Owner.
+
+## 7. After the review round (appended 2026-10-04; nothing above is rewritten)
+
+The role runs C0, A1 and Q0 reported on `e64e1f5`; A0 revised both Proposed texts in the review round
+(`a0-batch-rfc-026-027-plan-2026-10-03.md` §7). **The Owner has said nothing new; no question is
+answered; neither RFC is approved.** Three things change in what §5 holds:
+
+| Q-id | Named owner | What changed | A0's recommendation now |
+|---|---|---|---|
+| Q-026-1 | A1 | Re-worded. A1 measured on a prototype that the denial arm is not the cost of a *defective* command: any authenticated client, through a correct command, appends undeletable `denied` rows attributed to itself into any `workspace_id`, another tenant's or a non-existent one. **It must be answered before RFC-026 is approved.** | **Superseded: require the acting user's active membership for every command row in `app.audit_logs`** (option (a) of the re-worded question), so no client writes into another tenant's log; a refusal about a workspace the user cannot reach goes to `app.security_events` once Q-026-9 gives it a producer, and is held with Q-026-4 until then. §5's "accept the cost" rested on the understated premise and is withdrawn as A0's recommendation. |
+| Q-026-9 | A1 (owner of batch `140`), A0 | **New.** RFC-026 now proposes no policy on `app.security_events` (C0-1: the table has none of the columns the predicates read). Which producers write it, under which predicates on its own columns? | **A forward migration adding a nullable cause column is not recommended before G1**; recommend the worker writes only unattributed or `system_actor` events there (`actor_kind is null or actor_kind = 'system_actor'`, plus the confinement term) and the command writes there only for its own actor in a workspace the actor is an active member of. A1's to decide; it owns the store. |
+| Q-026-5, Q-027-5 | Owner, A1 | Qualified with the measured forms (C0, A1, Q0): a targeted `UPDATE` is refused for the six blocked states; an `UPDATE` reading no column moves every workspace the owner owns. "Irreversibly" now reads "irreversibly by any client". | **Unchanged: revoke**, now in the **first** of batch 170's migrations, any job that selects workspaces by `lifecycle_state` (batch 160), or RFC-027's migration — whichever lands first (C0-8, A1 F1-b). The revoke needs nothing either RFC decides. |
+
+So §5's fourteen questions are now **fifteen**, all UNANSWERED, each held in `open_blockers[195]`.

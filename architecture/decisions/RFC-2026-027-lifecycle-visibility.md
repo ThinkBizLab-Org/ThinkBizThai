@@ -2,9 +2,10 @@
 
 Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q170-a = yes); NOT approved; amends RFC-2026-020 only when approved. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) answered Q170-a as A0 recommended — close the `access_blocked` gap with an RFC that amends `RFC-2026-020` so that `app_authz` can read `workspaces.lifecycle_state` — and directed that this RFC be written. It did not approve this text. A1's acceptance as Q170-a's co-owner is owed; `RFC-2026-020`'s §5/3 and §6.1/5-6 read as they do today until this file carries an approval, and no migration, policy, grant or pin changes before then.
 Date: 2026-10-04
+Revised: 2026-10-04, in the batch's review round, on the findings of C0 (`c0-batch-rfc-026-027-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-026-027-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-026-027-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-026-027-plan-2026-10-03.md` §7. Still Proposed; the revision approves nothing and answers no question.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), owner of batch `170` (grants/RLS/exposed surface hardening) in the migration registry and reviewer of `RFC-2026-020`; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), co-owner of Q170-a and the Security review the registry names for `011`; `/claude/a1_identity` (A1 Identity), author of `RFC-2026-020` and of `010_identity.sql`
-Amends (when approved): `RFC-2026-020` §5/3 (one policy becomes two), §6.1/5 (a second pinned expression), §6.1/6 (two columns of `app.workspaces` join the pinned grant)
+Amends (when approved): `RFC-2026-020`'s Status line (a sentence appended), §5/3 (one policy becomes two), §6.1/5 (a second pinned expression), §6.1/6 (two columns of `app.workspaces` join the pinned grant), §6.3/14 (the negative control names its policy) — the exact text is §3.4
 Depends on: `RFC-2026-020` (approved) §2, §5, §6; `RFC-2026-023` (in review) §3.2 and §5, which widens the same pinned grant; `RFC-2026-016` (approved) §5 for negative controls
 Answers: Q170-a (`evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-170-assert.md` §5, answered in `product-owner-disposition-2026-10-03-batch-150.md` §5)
 Holds: `work-packages/WP-0A-DB-00.json` `open_blockers[53]` and `[95]`
@@ -39,13 +40,22 @@ that RFC.
 Batch `010`'s CHECK enumerates §11.4's state machine (`010_identity.sql:156-157`):
 `active`, `closing`, `access_blocked`, `purge_queued`, `held`, `purging`, `verify`, `deleted`.
 
-§11.4's diagram is the authority for which of them a member may still use:
+§11.4's diagram is the authority for which of them a member may still use. Quoted whole
+(`docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md`, §11.4):
 
 ```
+[*] --> Active
 Active --> Closing: owner confirms + step-up
 Closing --> Active: cancel within recovery window
 Closing --> AccessBlocked: revoke sessions/connectors/jobs
-AccessBlocked --> PurgeQueued --> (Held <-> PurgeQueued) --> Purging --> Verify --> Deleted
+AccessBlocked --> PurgeQueued: recovery window elapsed
+PurgeQueued --> Held: legal/finance/rights hold
+Held --> PurgeQueued: hold released
+PurgeQueued --> Purging: dependency-ordered workers
+Purging --> Verify: objects + rows + secrets
+Verify --> Deleted: signed report complete
+Verify --> PurgeQueued: partial failure retry
+Deleted --> [*]
 ```
 
 - **Admitted: `active`, `closing`.** `closing` must stay usable: it is the recovery window, and the
@@ -96,8 +106,11 @@ what forbids it.
 
 The policy states the lifecycle gate itself, rather than leaving it to the helper, for the reason `011`
 gives about `status = 'active'` (`011:252-256`): the policy is what stops the helper *reading* a row
-the caller could not; the helper's own predicate is what stops it *answering* for one. Both are pinned,
-and §5's cases hold each separately.
+the caller could not; the helper's own predicate is what stops it *answering* for one. Both are pinned
+(§6/4), and §5's cases hold each separately: case 10 holds the policy's conjunct (a direct read as
+`app_authz`) and case 11 the helper's (case 1 with the policy's conjunct removed). Without those two,
+either conjunct could be removed alone and every other case would stay green — Q0 measured exactly
+that on a prototype (mutants M3 and M4).
 
 ### 3.2 `app.workspace_member_role` refuses a blocked workspace; its siblings inherit
 
@@ -170,19 +183,86 @@ command that implements the transition — not by row level security.
 
 ### 3.4 What changes in `RFC-2026-020`, as text the Owner can accept or refuse
 
-- **§5/3**, last paragraph, becomes: "`app_authz` holds exactly **two** policies in the schema: `FOR
-  SELECT` on `app.workspace_members` (the caller's own active row) and `FOR SELECT` on
-  `app.workspaces` (the workspaces in which the caller holds an active membership, in an admitted
-  lifecycle state — `RFC-2026-027` §3.1). The helper sees no row the caller could not already select
-  for itself, on either table."
-- **§6.1/5** gains a second pinned expression, for `workspaces_select_authz_own_open`, and the count in
-  the rule becomes two.
-- **§6.1/6** becomes: "`app_authz`'s grants are exactly `USAGE` on schema `app`, column-scoped `SELECT`
-  on `app.workspace_members (workspace_id, user_id, role, status)`, and column-scoped `SELECT` on
-  `app.workspaces (id, lifecycle_state)`." `RFC-2026-023` §5 proposes a third table for the same pin;
-  the two amendments are independent and compose.
-- §5/5, §6.1/1-4, §6.1/7, §6.2 and §6.3 are unchanged. §6.3/11 ("a suspended member of A sees zero
-  rows") gains a lifecycle twin in §5 below.
+Each changed sentence of `RFC-2026-020` is quoted as it stands (line numbers at `e64e1f5`), with its
+exact replacement. **Every sentence of `RFC-2026-020` not quoted here is unchanged**, including both
+code blocks of §5/3, §5/1-2, §5/4-6, §6.1/1-4, §6.1/7, §6.2 and §6.3/10-13.
+
+1. **Status line** (`:3`). The approval's words are the Owner's record of what was approved on
+   2026-09-06 and are **not rewritten**. One sentence is appended at the end of the line:
+   > Amended by `RFC-2026-027` (approved <date>): `app_authz` holds exactly two policies — the one above
+   > and `FOR SELECT` on `app.workspaces`, no wider than `authenticated`'s
+   > `workspaces_select_active_member` — and column-scoped `SELECT` on `app.workspaces (id,
+   > lifecycle_state)`; the helpers refuse a member of a workspace whose `lifecycle_state` is not
+   > `active` or `closing`.
+2. **§5/3, first paragraph** (`:393-395`). Now:
+   > `app_authz` holds exactly one policy in the schema: `FOR SELECT` on `app.workspace_members`, whose
+   > `USING` expression is `workspace_members_select_own_active`'s predicate — own row, `status =
+   > 'active'` — with the identity expression inlined. Semantically:
+
+   Becomes:
+   > `app_authz` holds exactly two policies in the schema. The first is `FOR SELECT` on
+   > `app.workspace_members`, whose `USING` expression is `workspace_members_select_own_active`'s
+   > predicate — own row, `status = 'active'` — with the identity expression inlined. Semantically:
+
+   The two code blocks and the sentence between them (`:397-405`) are unchanged.
+3. **§5/3, a new paragraph inserted after the second code block** (after `:405`, before `:407`):
+   > The second is `FOR SELECT` on `app.workspaces`, `workspaces_select_authz_own_open`
+   > (`RFC-2026-027` §3.1): the workspace's `lifecycle_state` is `active` or `closing` and the caller
+   > holds an active membership in it, the identity read through `app.jwt_subject()`. It is `010`'s
+   > `workspaces_select_active_member` restricted to the columns `id` and `lifecycle_state`, and it
+   > calls neither membership helper.
+4. **§5/3, last paragraph, first two sentences** (`:407-410`). Now:
+   > **The helper sees no row the caller could not already select for itself.** It is not given
+   > cross-tenant reach and it is not given the member list — it is given the caller's own membership
+   > row, which the caller already has, in a context where the rewriter is not in the middle of
+   > expanding `workspace_members`.
+
+   Becomes:
+   > **The helper sees no row the caller could not already select for itself, on either table.** It is
+   > not given cross-tenant reach and it is not given the member list — it is given the caller's own
+   > membership row, which the caller already has, and the lifecycle state of the workspaces the caller
+   > can already select, in a context where the rewriter is not in the middle of expanding
+   > `workspace_members`.
+
+   The rest of the paragraph — "The exemption buys the boundary and nothing else. `010` called this
+   an exemption; §7 records why the word was imprecise." — is unchanged.
+5. **§6.1/5** (`:444-447`). Now:
+   > **`app_authz` holds exactly one policy in schema `app`**, on `app.workspace_members`, `FOR
+   > SELECT`, and `pg_get_expr(polqual, polrelid)` equals a pinned literal. The pinned string is the
+   > whole control: any widening — `using (true)`, dropping `status = 'active'`, adding a function
+   > call — fails the build with a diff that shows exactly what changed.
+
+   Becomes:
+   > **`app_authz` holds exactly two policies in schema `app`**, one on `app.workspace_members` and
+   > one on `app.workspaces`, both `FOR SELECT`, and for each `pg_get_expr(polqual, polrelid)` equals
+   > its pinned literal. The pinned strings are the whole control: any widening — `using (true)`,
+   > dropping `status = 'active'` or the lifecycle term, adding a function call — fails the build with
+   > a diff that shows exactly what changed.
+6. **§6.1/6** (`:448-449`). Now:
+   > **`app_authz`'s grants are exactly `USAGE` on schema `app` and column-scoped `SELECT` on
+   > `app.workspace_members`.** Column-scoped, so it cannot read `token_hash` or any other table.
+
+   Becomes:
+   > **`app_authz`'s grants are exactly `USAGE` on schema `app`, column-scoped `SELECT` on
+   > `app.workspace_members (workspace_id, user_id, role, status)`, and column-scoped `SELECT` on
+   > `app.workspaces (id, lifecycle_state)`.** Column-scoped, so it cannot read `token_hash`, a
+   > workspace's `name`, or any other table.
+
+   The second sentence is **restated, not dropped**: `token_hash` stays named, and the "any other
+   table" clause now excludes the two named tables. `RFC-2026-023` §5 proposes a third table for the
+   same pin; the two amendments are independent and compose.
+7. **§6.3/14, first sentence** (`:476`). Now:
+   > **A negative control**: with `app_authz`'s single policy dropped, the member-list cases fail.
+
+   Becomes:
+   > **A negative control**: with `app_authz`'s policy on `app.workspace_members` dropped, the
+   > member-list cases fail; with its policy on `app.workspaces` dropped, `RFC-2026-027` §5's positive
+   > controls (case 2) fail.
+
+   The rest of §6.3/14 is unchanged.
+
+§6.3/11 ("a suspended member of A sees zero rows") is unchanged in `RFC-2026-020`; its lifecycle twin
+is case 1 of §5 below, owed by the batch that lands §4, not text added to `RFC-2026-020`.
 
 ## 4. The migration this implies (not written here)
 
@@ -205,7 +285,17 @@ And, in the same diff, the artefacts that pin the old state:
   `AUTHZ_POLICY_QUAL` deparsed by PostgreSQL 17 (never hand-written), `AUTHZ_COLUMN_GRANTS` keyed by
   table, the count rule at two, and the `SECURITY_DEFINER_FUNCTIONS` digest of
   `app.workspace_member_role(workspace uuid)` moved (`run.mjs:951-953`);
-- `db/foundation/lint/pinned-grants.json`: `app_authz` on `app.workspaces`;
+- `scripts/db/run.mjs`'s two **policy pinned lists**, each of which refuses the new policy until it is
+  named: `PERMISSIVE_POLICIES` (`run.mjs:305`, read by the permissive policy probe — "unlisted or
+  changed: app.workspaces.workspaces_select_authz_own_open") gains the new policy, and the pinned
+  deparses of the five `010` rewrites of §3.3, already listed there, change with them; and the policy set (`POLICY_SET`,
+  `db/foundation/lint/policy-set.json`, read by the policy set probe through `PINNED_POLICY_KEYS`,
+  `run.mjs:1671-1677` — "policy(ies) no pinned list names: …") gains whatever the pinned key list does
+  not already cover. Q0 measured both probes refusing §3.1 and §3.2 appended as a drift (round r3,
+  migrate-clean exit 2), before the post-migrate pass could run;
+- `db/foundation/lint/pinned-grants.json`: `app_authz` on `app.workspaces` (and, if Q-027-5 is
+  answered "revoke" and the revoke lands in this migration, `authenticated`'s `UPDATE` on
+  `app.workspaces` without `lifecycle_state`, `pinned-grants.json:221`);
 - `db/foundation/lint/catalog-snapshot.json`: the `app_authz` block, when the instance receives it;
 - `db/foundation/invariants/superseded.json`: entries for every earlier apply-time block the new state
   makes false — at least `011`'s "exactly one policy" block (`011:410`) and `021`'s restatement of
@@ -220,7 +310,11 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
    `purge_queued`, `held`, `purging`, `verify` and `deleted`, its active owner: `is_active_member`
    returns false, `workspace_member_role` returns null, and a representative read on each family in
    §3.3's table returns zero rows — `notifications` (`open_blockers[95]`) and `business_profiles`
-   (`open_blockers[53]`) by name.
+   (`open_blockers[53]`) by name. **No family may pass vacuously:** the case moves one *populated*
+   workspace — one with at least one row in every family of §3.3's table — into each blocked state
+   inside the case's own transaction, and asserts, in the same transaction before the move, that the
+   same read returns at least one row for every family. A family with no rows in the fixture fails
+   the case rather than passing it (Q0's F4; case 8 sees only the aggregate).
 2. **Positive controls for the two admitted states.** The same owner in an `active` and in a `closing`
    workspace reads the same rows. Without them, a helper that refused everything would pass case 1.
 3. **Writes refused, not only reads.** In an `access_blocked` workspace, an owner's `INSERT` of a
@@ -231,14 +325,24 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
 5. **No membership oracle.** Calling the helpers as `authenticated` for a blocked workspace the caller
    is *not* in returns false/null, as `RFC-2026-020` §6.3/12 already requires for an active one.
 6. **The member's own row** — asserted to whatever Q-027-1 decides, in both directions.
-7. **Negative control, policy:** with `workspaces_select_authz_own_open` dropped, case 2 fails for
-   every member in every state. That proves the policy is what admits the helper's read; a helper that
+7. **Negative control, policy:** with `workspaces_select_authz_own_open` dropped, case 2 fails in both
+   admitted states (in the six blocked states the read is refused either way, so case 1 stays green —
+   measured by Q0, mutant M1). That proves the policy is what admits the helper's read; a helper that
    read `app.workspaces` through some bypass would otherwise be indistinguishable (`RFC-2026-016` §5).
 8. **Negative control, helper:** with `011`'s original helper body restored, case 1 goes red. A gate
    that passes with the gate removed is not a gate.
 9. **Fixture symbols.** Six blocked-state workspaces join the fixture catalog by name
    (`db/foundation/seeds/fixture-catalog.json`), through the list a batch edits explicitly, as batch
    `020` did for `business_a3_archived`.
+10. **The policy's conjunct, alone.** As `app_authz`, with the claims of the active owner of a
+    workspace in each blocked state, `select id from app.workspaces where id = <that workspace>`
+    returns zero rows; in `active` and `closing` it returns one. This is the only case that reads
+    through the policy without the helper, so it is what fails when the policy's
+    `lifecycle_state in ('active', 'closing')` is removed and the helper's is kept (Q0's mutant M4).
+11. **The helper's conjunct, alone.** With the policy's lifecycle conjunct removed inside the case's
+    transaction (the policy re-created without it, as owner), case 1 still refuses in every blocked
+    state. That proves the helper's own conjunct answers by itself, and fails when the helper's is
+    removed and the policy's kept (Q0's mutant M3).
 
 ## 6. Static obligations
 
@@ -252,6 +356,13 @@ Isolation cases, `§8.6` shape, in the batch that lands §4:
    in `010`'s workspace policies, the `app_authz` policy and the helper.
 5. `identityExpressionLint` is unchanged: the new policy calls `app.jwt_subject()` and copies no
    identity expression.
+6. **No family escapes the helper.** Every permissive policy `TO authenticated` on a workspace-scoped
+   table in `app`, other than the pinned list of `010`'s policies in §3.3's residual table, calls
+   `app.is_active_member` or `app.workspace_member_role`. A1 measured the tree as it is (91 permissive
+   `authenticated` policies, exactly 10 calling neither helper, all `010`'s and all in §3.3's residual
+   table); nothing holds it for the next family, so a policy that joins `app.workspace_members`
+   directly would be silently ungated. Owed to A0, owner of `scripts/db/run.mjs`, in the batch that
+   lands §4 (A1's F3-a); the five `010` rewrites of §3.3 leave that list at five.
 
 ## 7. What must be executed, never cited
 
@@ -314,7 +425,7 @@ today, so it passes every existing test.
 | Q-027-2 | A1 | Is `closing` admitted for **writes** as well as reads? §11.4 stops new jobs and publishing only at the transition out of `closing` (step 2). Proposed: admitted for both, as `010`'s workspace policies already do; a narrower `closing` is a command-side rule. |
 | Q-027-3 | Owner, A1 | Billing: should an owner still read invoices and payments of a workspace in `access_blocked` or later (§11.1 lists "Usage/billing invoices/read model" among the export domains)? Under this RFC they cannot through the client; export is the background job batch `160` owns. |
 | Q-027-4 | A1 | `RFC-2026-023`'s acting-user helpers must carry the gate (§3.2). Which RFC's batch carries it depends on landing order; does A1 want the requirement written into `RFC-2026-023` now? |
-| Q-027-5 | Owner, A1 | Today an owner can `UPDATE` `lifecycle_state` directly (`010:403`, `workspaces_update_owner` has no state constraint in `WITH CHECK`). After this RFC, an owner who writes `access_blocked` locks every member, including themselves, out irreversibly, unaudited, without the step-up §11.4 requires. Revoke the client `UPDATE` of `lifecycle_state` in the same migration, or leave it to the §11.4 command (`RFC-2026-026` Q-026-5)? Proposed: revoke in the same migration. |
+| Q-027-5 | Owner, A1 | Today an owner can `UPDATE` `lifecycle_state` directly (`010:403`, `workspaces_update_owner` has no state constraint in `WITH CHECK`). Measured by C0, A1 and Q0 on `e64e1f5`: an `UPDATE` that reads a column is refused (`42501`) for the six blocked states, and one that reads none (no `WHERE`, or `where true`, no `RETURNING`) moves every active or closing workspace the caller owns to any of the eight states. After this RFC, an owner who does that with `access_blocked` locks every member, including themselves, out — irreversibly **by any client** (a service-side write restores the value), unaudited, without the step-up §11.4 requires. Revoke the client `UPDATE` of `lifecycle_state`, or leave it to the §11.4 command (`RFC-2026-026` Q-026-5)? Proposed: revoke, in the **first** of batch 170's migrations, any job that selects workspaces by `lifecycle_state` (batch 160), or this RFC's migration — whichever lands first; the revoke needs nothing this RFC decides. Its isolation case must use the form that reads no column: a case asserting only that `… where id = …` is refused passes today, with the gap open. |
 | Q-027-6 | Integration Owner | Migration number in batch `170`'s range, and whether it may land before `170`'s other parts. |
 
 ## 11. Provenance, and what a reviewer should discount
@@ -325,5 +436,10 @@ today, so it passes every existing test.
 - **Nothing was executed.** No database was started or queried for this draft. The state list, the
   policies and the helper bodies are read from `010` and `011` at `5c406de`; §7.2 lists what reading
   cannot settle.
+- **In the review round, C0, A1 and Q0 each executed §3.1 and §3.2 on a scratch cluster** (C0 port
+  5505, A1 5501 round r3, Q0 5503): no `42P17` and no runtime recursion; the eight-state matrix as §2
+  predicts; the policy negative control bites; the two single-conjunct mutants survive the cases as
+  first written (now cases 10 and 11). That is evidence for this text; it discharges none of §7.2 for
+  the batch that lands §4, and the cases added in review have not been executed.
 - No migration, policy, grant, pin, lint file or test was changed to write this file; the only other
   change in its batch is the writable-path entry that lets it exist.
