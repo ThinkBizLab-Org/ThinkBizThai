@@ -430,11 +430,16 @@ break it silently:
    (`pg_parameter_acl`) lets a non-superuser SET it (batch 126; A1 V3 on batch 125). **No event trigger**
    but the pinned ones, and none is pinned (`PINNED_EVENT_TRIGGERS`; batch 129's review round, A1 R3: no
    probe read `pg_event_trigger`): one fires on DDL in any session, a client's TEMPORARY DDL included.
-6. **Every trigger on `app.approval_requests` is exactly its pinned `pg_get_triggerdef` text, and every
-   function those triggers run matches its pinned body digest, security and empty `search_path`**
-   (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3 and F8 on batch 125), and its
-   pinned owner (Q0 F8 on batch 126). A second BEFORE UPDATE trigger sorting after `set_decided_at`, a
-   rewritten body or a changed owner fails by name. The pinned check probe also holds
+6. **Every non-internal trigger on every table in `app` and `private` is exactly its pinned
+   `pg_get_triggerdef` text, and every function those triggers run matches its pinned body digest,
+   security and empty `search_path`** (`PINNED_TABLE_TRIGGERS`, `PINNED_TRIGGER_FUNCTIONS`; batch 126, Q0 F3
+   and F8 on batch 125, for `app.approval_requests`), and its pinned owner (Q0 F8 on batch 126). Since the
+   owed-tooling batch every table in both schemas (A1 R-2 on batch 170's re-check: a BEFORE UPDATE trigger on
+   `app.workspaces` writing `NEW.lifecycle_state`, the transition batch 170 took from every client, passed
+   every layer): 51 triggers on 47 tables, running `set_updated_at`, `set_decided_at`, `set_deleted_at` and
+   `refuse_mutation`, re-derived from the migration text by the static suite. A second BEFORE UPDATE trigger
+   sorting after `set_decided_at`, a trigger on any other table, a rewritten body or a changed owner fails by
+   name. The pinned check probe also holds
    `approval_requests.created_at` NOT NULL (`PINNED_NOT_NULL`), since a CHECK reading a NULL passes.
 7. **The privileges every non-superuser role holds on every table in `app` and `private` are exactly an
    allowlist** (`PINNED_GRANTS`, read from `db/foundation/lint/pinned-grants.json`; batch 126, C0 H1 and
@@ -464,10 +469,20 @@ break it silently:
    by SET ROLE unread. What this rule still does not read: a grant to a predefined `pg_*` role on an `app`
    or `private` table (only a role BECOMING one is named, by the fourth rule), a relation in a schema
    other than `app` and `private` that a non-client role can read, and sequences and functions (owed on
-   blocker 185). `scripts/db/generate-pinned-grants.mjs` regenerates the file and the known exceptions
+   blocker 185). Since the owed-tooling batch two more rules (A1 S1, S3 and Q0 R-2 on batch 170-assert's
+   re-check): the seventh holds `app` and `private` to the migration owner as their owner and every
+   non-superuser role's USAGE and CREATE on them, grant option included, to `PINNED_SCHEMA_PRIVILEGES`
+   (USAGE on `app` for `app_authz`, `app_worker` and `authenticated`, measured; `alter schema private owner
+   to app_command` passed every layer before); the eighth holds every non-superuser role's BYPASSRLS, LOGIN,
+   CREATEDB, CREATEROLE, INHERIT and REPLICATION false and `pg_default_acl` empty (`alter role app_worker
+   bypassrls` was held by rls-smoke alone, the others by nothing). Like rules 2-4 these fail by design on a
+   provisioned platform instance until Q170-c measures its roles. `scripts/db/generate-pinned-grants.mjs`
+   regenerates the file and the known exceptions
    from a live catalog (`--check` compares; exit 1 differs, 2 no database, 3 refused). It is a reviewer's
    tool, not a gate: nothing in `make`, npm, the tests or CI runs it, and this rule is what holds the files
-   to the catalog on every run.
+   to the catalog on every run. Each file's `_how_measured` names the last migration and the server version
+   it read (the owed-tooling batch; C0-170-3: it said "through 140" after 150 and 170), and the static
+   suite holds both files to that text over the current last migration.
 8. **Column defaults a decision fixes are pinned by deparse text** (`PINNED_DEFAULTS`): today only
    `calendar_items.timezone = 'Asia/Bangkok'` (DEC-UX-06; C0 H3 on batch 091's third round).
 9. **No relation in `app` or `private` carries a rewrite rule** but a view's `_RETURN` (batch 126's
@@ -671,7 +686,10 @@ break it silently:
    LAST` audit keyset each passed every layer while its query lost the index). "Served" means an index of
    that shape exists; whether the query plans through it is the harness's to show (F2: the workspace list
    seq-scanned `workspaces` while its membership lookup was green, until batch 150 wrote the list from
-   `workspace_members`, Q150-e). Rule 3: every exemption names a column rule
+   `workspace_members`, Q150-e). Since the owed-tooling batch both rules read each key column's collation
+   and operator class too (Q0 R-2 on 150-prereq's re-check: `(user_id, status COLLATE "C")` passed every
+   layer): a key serves a predicate or a lookup only under its column's own collation and its access
+   method's default operator class. Rule 3: every exemption names a column rule
    1 finds uncovered. The content list's first page
    has NO serving index today; it is a finding in the file (IC-1), not a lookup, since the index is a migration
    (Q150-b).
@@ -704,7 +722,10 @@ one. That rule's own code is held by one layer: migrate-clean refuses through th
 weakened `escapeSpellings` is caught by the static lexer shapes alone (Q0 F2 on 128, QESC1 and QESC2),
 as for every lexer rule here. Since 128's review round any mention of `allow_system_table_mods` is
 refused too (C0 F1); it is not a lexing hazard, but it is the switch that lets the migration owner write
-`pg_catalog` and name a schema `pg_*`. A client encoding changed through a name or SET psql never sees spelled out because it is
+`pg_catalog` and name a schema `pg_*`. Since the owed-tooling batch so is `TO PROGRAM` or `FROM PROGRAM`,
+whitespace or comments between the words, anywhere (C0 G1 on batch 129's re-check): `COPY ... PROGRAM`
+runs a shell command as the database server's OS user, the server-side twin of `\!`, and no layer read
+it; none of the sources fed carries one. A client encoding changed through a name or SET psql never sees spelled out because it is
 **computed at run time** (a concatenated `set_config`, an `EXECUTE` of `'set ' || 'names ...'`, `chr()`,
 `format()`, `convert_from()`) stays outside the list: escapes were the static spellings of that class,
 and what remains is computation. The two readings could part after any non-ASCII

@@ -86,9 +86,22 @@ export function redactConnection(text, url) {
     for (const part of [parsed.hostname, parsed.username, parsed.password, parsed.port, parsed.pathname.replace(/^\//, '')]) {
       if (part && part.length > 2) parts.add(part);
     }
-    // And every query parameter's value (A1 S6 on batch 150-prereq: a `?host=` value was printed).
-    for (const value of parsed.searchParams.values()) if (value && value.length > 2) parts.add(value);
+    // A bracketed IPv6 host is printed by psql without its brackets (Q0 G-2 on the guard fix: `::1`).
+    if (parsed.hostname.startsWith('[') && parsed.hostname.length > 4) parts.add(parsed.hostname.slice(1, -1));
   } catch { /* an unparseable URL still gets the scheme rule above */ }
+  // And every query parameter's value (A1 S6 on batch 150-prereq: a `?host=` value was printed), read from the
+  // RAW text after the first `?`, the way libpq and testHostRefusal read it, not from the WHATWG parser: Q0 G-2
+  // on the guard fix measured `.../postgres#?host=q0-probe.invalid` at db-migrate-clean (a target the guard does
+  // not cover) printing the fragment-carried host unredacted, because a parser reads `#...` as a fragment.
+  const raw = String(url);
+  const rawQuery = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  for (const pair of rawQuery.split(/[&#]/)) {
+    const eq = pair.indexOf('=');
+    if (eq < 0) continue;
+    let value = pair.slice(eq + 1);
+    try { value = decodeURIComponent(value); } catch { /* the undecoded text is redacted as written */ }
+    for (const v of [value, pair.slice(eq + 1)]) if (v && v.length > 2) parts.add(v);
+  }
   for (const part of parts) {
     out = out.split(part).join('[redacted]');
   }
@@ -406,6 +419,7 @@ export async function feedTranscript(sql, options = {}) {
 //     lexer rule here, and is stated rather than doubled.
 // The claim is the shapes measured and this list, not "anywhere psql would execute one".
 export const SET_NAMES = /\bset(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+(?:(?:session|local)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+)?names\b/gi;
+export const COPY_PROGRAM = /\b(?:to|from)(?:\s|\/\*[\s\S]*?\*\/|--[^\n]*\n)+program\b/gi;
 // Every place a U& or E'' token opens, at top level and inside every literal and dollar body read again as
 // SQL (batch 128). Returns the offset in `text` of each, or of the outermost literal or body that holds it.
 export const ESCAPE_SPELLING_DEPTH = 8;
@@ -491,6 +505,17 @@ export function psqlLex(sql) {
     // initdb made and it REDEFINES in place (batch 129; C0 G1 on 128's re-check: OID readings miss that).
     for (const found of text.matchAll(/allow_system_table_mods/gi)) {
       metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'allow_system_table_mods, which lets a superuser write pg_catalog and name a schema pg_*' });
+    }
+    // COPY ... TO PROGRAM / FROM PROGRAM (the owed-tooling batch; C0 G1 on batch 129's re-check): the server runs
+    // the command as its own OS user, so a migration, replacement, fixture, helper, probe or drift carrying one
+    // runs a shell command on the database host at migrate-clean or rls-smoke -- the server-side twin of `\!`,
+    // and no layer read it. Any mention of TO or FROM followed by PROGRAM, whitespace or comments between them,
+    // anywhere in the text (a literal or dollar body included, since EXECUTE runs a literal), as with
+    // client_encoding. None of the sources fed at this batch carries one (measured). Its U&/E'' spellings are
+    // refused below as escape spellings; a statement whose words are COMPUTED at run time is not read here,
+    // the limit stated for client_encoding above.
+    for (const found of text.matchAll(COPY_PROGRAM)) {
+      metaCommands.push({ line: text.slice(0, found.index).split('\n').length, text: 'COPY ... TO/FROM PROGRAM, which runs a shell command on the database server' });
     }
     for (const found of escapeSpellings(text)) {
       metaCommands.push({ line: text.slice(0, found.at).split('\n').length,

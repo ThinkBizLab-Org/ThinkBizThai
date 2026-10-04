@@ -1159,18 +1159,47 @@ end \$\$;
 // non-internal trigger on a pinned table is compared by pg_get_triggerdef TEXT against an exact list,
 // and every function those triggers execute is compared against a pinned body digest, security and
 // empty search_path, with no EXECUTE for PUBLIC -- a second pin, in this file, beside 126's block.
-export const PINNED_TABLE_TRIGGERS = {
-  'app.approval_requests': [
-    'CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()',
-    'CREATE TRIGGER set_updated_at BEFORE UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()',
-  ],
+//
+// EVERY TABLE IN app AND private SINCE THE OWED-TOOLING BATCH (A1 R-2 on batch 170's re-check): the list read
+// approval_requests alone, so a later BEFORE UPDATE trigger on app.workspaces writing NEW.lifecycle_state --
+// the transition batch 170 took away from every client -- passed every layer (no guard read the triggers on
+// any other table). The set found is now every non-internal trigger on every table in app and private, and
+// it must be exactly this list, both ways: an unpinned trigger on any of them is named, and so is a function
+// one of them runs that is not pinned below. Measured on the clean set through 170 (PostgreSQL 17.11): 51
+// triggers on 47 tables, running four functions -- set_updated_at on the 45 tables in SET_UPDATED_AT_TABLES,
+// set_decided_at on approval_requests, set_deleted_at on calendar_items, and refuse_mutation's two on each of
+// audit_logs and security_events (pinned again, by the same text, in the trigger probe's second rule).
+// A batch that adds, drops or changes a trigger changes this list in the same diff.
+export const SET_UPDATED_AT_TABLES = ['app.ai_model_policies', 'app.ai_models', 'app.approval_policies', 'app.approval_requests',
+  'app.asset_rights', 'app.asset_versions', 'app.assets', 'app.billing_invoices', 'app.billing_plans', 'app.billing_subscriptions',
+  'app.billing_webhook_receipts', 'app.business_profiles', 'app.calendar_items', 'app.content_ideas', 'app.content_items',
+  'app.content_schedules', 'app.content_targets', 'app.industry_assignments', 'app.industry_packs', 'app.jobs', 'app.knowledge_items',
+  'app.meta_connections', 'app.notification_preferences', 'app.notifications', 'app.outbox_events', 'app.page_context_profiles',
+  'app.publish_intents', 'app.publish_jobs', 'app.publish_targets', 'app.quota_buckets', 'app.research_runs', 'app.research_snapshots',
+  'app.research_suggestions', 'app.social_accounts', 'app.usage_reservations', 'app.user_profiles', 'app.workspace_invitations',
+  'app.workspace_member_scopes', 'app.workspace_members', 'app.workspace_settings', 'app.workspaces',
+  'private.ai_credential_references', 'private.meta_credential_references', 'private.meta_webhook_inbox',
+  'private.push_subscription_references'];
+const tableTriggerPins = () => {
+  const pins = {};
+  const add = (t, def) => { (pins[t] ??= []).push(def); };
+  for (const t of SET_UPDATED_AT_TABLES) add(t, `CREATE TRIGGER set_updated_at BEFORE UPDATE ON ${t} FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()`);
+  add('app.approval_requests', 'CREATE TRIGGER set_decided_at BEFORE INSERT OR UPDATE ON app.approval_requests FOR EACH ROW EXECUTE FUNCTION private.set_decided_at()');
+  add('app.calendar_items', 'CREATE TRIGGER set_deleted_at BEFORE UPDATE ON app.calendar_items FOR EACH ROW EXECUTE FUNCTION private.set_deleted_at()');
+  for (const d of REFUSE_MUTATION_TRIGGERS) add(d.match(/ ON (\S+) /)[1], d);
+  return Object.fromEntries(Object.keys(pins).sort().map((t) => [t, pins[t].sort()]));
 };
+export const PINNED_TABLE_TRIGGERS = tableTriggerPins();
 // [function, security, body digest, owner]. The owner is pinned beside the digest (Q0 F8 on batch 126: a
 // later file handing set_decided_at to app_worker passed every layer, and an owner can drop the trigger).
+// Since the owed-tooling batch every function a trigger on a table in app or private runs: set_deleted_at
+// (invoker, 091) and refuse_mutation (definer, 140) join the two that ran on approval_requests.
+const definerPin = (fn) => ['definer', SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === fn)[2], SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === fn)[1]];
 export const PINNED_TRIGGER_FUNCTIONS = [
+  ['private.refuse_mutation()', ...definerPin('private.refuse_mutation()')],
   ['private.set_decided_at()', 'invoker', '48bcd0d03295b86120ea89fa4dec7adf', 'migration owner'],
-  ['private.set_updated_at()', 'definer', SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[2],
-    SECURITY_DEFINER_FUNCTIONS.find(([f]) => f === 'private.set_updated_at()')[1]],
+  ['private.set_deleted_at()', 'invoker', '3b153bd25169c0cee4476163fa2db757', 'migration owner'],
+  ['private.set_updated_at()', ...definerPin('private.set_updated_at()')],
 ];
 export const PINNED_TRIGGER_PROBE_SQL = `do \$\$
 declare
@@ -1181,7 +1210,7 @@ begin
       from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace
      where not t.tgisinternal
-       and format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_TABLE_TRIGGERS).map((t) => `'${t}'`).join(', ')}])
+       and n.nspname in ('app', 'private')
   ), pinned as (
     select * from (values ${Object.entries(PINNED_TABLE_TRIGGERS).flatMap(([t, defs]) => defs.map((d) => `('${t}', '${d}')`)).join(', ')}) as v(tab, def)
   )
@@ -1191,7 +1220,7 @@ begin
     select 'unpinned: ' || f.def from found f where not exists (select 1 from pinned p where p.tab = f.tab and p.def = f.def)
   ) d;
   if offending is not null then
-    raise exception 'trigger(s) on a pinned table not exactly its pinned definitions: %', offending;
+    raise exception 'trigger(s) on a table in app or private not exactly its pinned definitions: %', offending;
   end if;
   select string_agg(x, ', ' order by x) into offending from (
     select format('%s.%s()%s%s%s%s%s', pn.nspname, p.proname,
@@ -1206,14 +1235,14 @@ begin
       from (select distinct t.tgfoid from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid
               join pg_catalog.pg_namespace n on n.oid = c.relnamespace
              where not t.tgisinternal
-               and format('%s.%s', n.nspname, c.relname) = any (array[${Object.keys(PINNED_TABLE_TRIGGERS).map((t) => `'${t}'`).join(', ')}])) used
+               and n.nspname in ('app', 'private')) used
       join pg_catalog.pg_proc p on p.oid = used.tgfoid join pg_catalog.pg_namespace pn on pn.oid = p.pronamespace
       left join (values ${PINNED_TRIGGER_FUNCTIONS.map(([f, sec, d, o]) => `('${f}', '${sec}', '${d}', '${o}')`).join(', ')}) as pin(fn, security, digest, owner)
         on pin.fn = format('%s.%s(%s)', pn.nspname, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid))
   ) f
    where x ~ '\\[';
   if offending is not null then
-    raise exception 'trigger function(s) on a pinned table not in their pinned shape: %', offending;
+    raise exception 'trigger function(s) on a table in app or private not in their pinned shape: %', offending;
   end if;
 end \$\$;
 `;
@@ -1284,6 +1313,20 @@ const pinnedGrantTables = `array[${Object.keys(PINNED_GRANTS).map((t) => `'${t}'
 // pg_monitor's own, both outside the role set). The client membership probe holds anon and authenticated
 // the same way; this one holds every other role.
 export const PINNED_ROLE_MEMBERSHIPS = [];
+// The owed-tooling batch (A1 S1, Q0 R-2 and A1 S3 on batch 170-assert's re-check). Two premises of the rules
+// above were read by no layer. (a) The schemas' OWNER: `alter schema private owner to app_command` passed every
+// layer, and a schema's owner may drop and re-create what is in it and grant USAGE on it. And no rule read a
+// non-client role's USAGE or CREATE on app or private. The seventh rule requires both schemas to be owned by
+// the migration owner, session_user, and every non-superuser, non-pg_* role's USAGE and CREATE on them, with
+// and without grant option, to be exactly PINNED_SCHEMA_PRIVILEGES (measured on the clean set through 170:
+// USAGE on app for app_authz, app_worker and authenticated; nothing on private; no CREATE; no grant option).
+// (b) A non-client role's own ATTRIBUTES: `alter role app_worker bypassrls` was held by rls-smoke alone, and
+// CREATEROLE, CREATEDB, INHERIT, LOGIN and REPLICATION by nothing; and pg_default_acl was read for the client
+// roles only (batch 129), so `alter default privileges ... grant ... to app_worker` was read by nothing. The
+// eighth rule requires every non-superuser, non-pg_* role to hold none of the six attributes (all false,
+// measured) and pg_default_acl to be empty (measured). Like rules 2-4, both fail BY DESIGN on a provisioned
+// platform instance until Q170-c measures the platform's own roles, schema owners and default ACLs.
+export const PINNED_SCHEMA_PRIVILEGES = ['app_authz USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'];
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1361,6 +1404,40 @@ begin
        and not pg_catalog.has_table_privilege(roles.r, cols.rel, p.p || go.opt)${grantDiff('found', pinnedGrantRows('column'))}
   if offending is not null then
     raise exception 'column privilege(s) on a pinned table not exactly its allowlist: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('schema %s %s', s.s, case when n.oid is null then 'missing'
+                                        else 'owned by ' || pg_catalog.pg_get_userbyid(n.nspowner) end) as x
+      from unnest(array['app', 'private']) as s(s) left join pg_catalog.pg_namespace n on n.nspname = s.s
+     where n.oid is null or n.nspowner <> (select o.oid from pg_catalog.pg_roles o where o.rolname = session_user)
+    union all
+    select 'unlisted: ' || f.g from (
+      select format('%s %s%s on %s', r.rolname, p.p, go.opt, s.s) as g
+        from pg_catalog.pg_roles r, unnest(array['app', 'private']) as s(s), unnest(array['USAGE', 'CREATE']) as p(p),
+             (values (''), (' WITH GRANT OPTION')) as go(opt)
+       where not r.rolsuper and r.rolname !~ '^pg_' and pg_catalog.has_schema_privilege(r.rolname, s.s, p.p || go.opt)) f
+     where not (f.g = any (array[${PINNED_SCHEMA_PRIVILEGES.map((g) => `'${g}'`).join(', ')}]::text[]))
+    union all
+    select 'missing: ' || p.g from unnest(array[${PINNED_SCHEMA_PRIVILEGES.map((g) => `'${g}'`).join(', ')}]::text[]) as p(g)
+     where not exists (select 1 from pg_catalog.pg_roles r, unnest(array['app', 'private']) as s(s), unnest(array['USAGE', 'CREATE']) as q(q)
+                        where not r.rolsuper and r.rolname !~ '^pg_' and format('%s %s on %s', r.rolname, q.q, s.s) = p.g
+                          and pg_catalog.has_schema_privilege(r.rolname, s.s, q.q))
+  ) d;
+  if offending is not null then
+    raise exception 'schema app or private not owned by the migration owner, or a schema privilege of a non-superuser role on them not exactly its pin: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s %s', r.rolname, a.a) as x
+      from pg_catalog.pg_roles r
+      cross join lateral (values ('rolbypassrls', r.rolbypassrls), ('rolcanlogin', r.rolcanlogin), ('rolcreatedb', r.rolcreatedb),
+                                 ('rolcreaterole', r.rolcreaterole), ('rolinherit', r.rolinherit), ('rolreplication', r.rolreplication)) as a(a, v)
+     where not r.rolsuper and r.rolname !~ '^pg_' and a.v
+    union all
+    select format('default privilege entry in %s, of role %s', coalesce('schema ' || n.nspname, 'every schema'), pg_catalog.pg_get_userbyid(d.defaclrole))
+      from pg_catalog.pg_default_acl d left join pg_catalog.pg_namespace n on n.oid = d.defaclnamespace
+  ) d;
+  if offending is not null then
+    raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists: %', offending;
   end if;
 end \$\$;
 `;
@@ -1726,6 +1803,17 @@ end \$\$;
 // has NO serving index and is a finding in the file, not a lookup (Q150-b).
 export const INDEX_COVERAGE_FILE = 'db/foundation/lint/index-coverage.json';
 export const INDEX_COVERAGE = lintData('index-coverage.json');
+// THE KEY'S COLLATION AND OPERATOR CLASS (the owed-tooling batch; Q0 R-2 on batch 150-prereq's re-check): both
+// rules read a key column by its attnum alone, so an index on (user_id, status COLLATE "C") -- or with a
+// non-default operator class such as text_pattern_ops -- counted as covering status, although a policy's
+// `status = 'active'` compares under the column's own collation and the btree's default class and the planner
+// cannot use it for that comparison. A key column now serves a predicate or a lookup only when its collation
+// is the column's own (indcollation against attcollation; 0 on both for a non-collatable type) and its
+// operator class is its access method's default (opcdefault). Measured on the clean set through 170: all 563
+// key columns in app and private use their column's collation, and every operator class is a default one.
+// `alias` is the unnest alias whose (k, ord) is the key's attnum and 1-based position in index i.
+const nonDefaultKey = (alias) => `((i.indcollation::pg_catalog.oid[])[${alias}.ord - 1] is distinct from (select ca.attcollation from pg_catalog.pg_attribute ca where ca.attrelid = i.indrelid and ca.attnum = ${alias}.k)
+                                              or not coalesce((select oc.opcdefault from pg_catalog.pg_opclass oc where oc.oid = (i.indclass::pg_catalog.oid[])[${alias}.ord - 1]), false))`;
 const rlsPredicateColumns = `with pol as (
     select p.oid, p.polrelid, pg_catalog.pg_get_expr(p.polqual, p.polrelid) as using_text
       from pg_catalog.pg_policy p join pg_catalog.pg_class c on c.oid = p.polrelid join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -1744,7 +1832,7 @@ const rlsPredicateColumns = `with pol as (
     select i.indrelid as relid,
            (select array_agg(k.k) from unnest((i.indkey::int2[])[0:i.indnkeyatts - 1]) with ordinality as k(k, ord)
              where k.ord <= coalesce((select min(v.ord) - 1 from unnest((i.indkey::int2[])[0:i.indnkeyatts - 1]) with ordinality as v(k, ord)
-                                       where not (v.k = any (s.cols))), i.indnkeyatts)) as run
+                                       where not (v.k = any (s.cols)) or ${nonDefaultKey('v')}), i.indnkeyatts)) as run
       from pg_catalog.pg_index i join s on s.relid = i.indrelid
       join pg_catalog.pg_class ic on ic.oid = i.indexrelid join pg_catalog.pg_am am on am.oid = ic.relam
      where i.indisvalid and i.indpred is null and am.amname = 'btree'
@@ -1765,7 +1853,8 @@ begin
   with idx as (
     select format('%s.%s', n.nspname, c.relname) as t, pg_catalog.pg_get_expr(i.indpred, i.indrelid) as pred,
            (select array_agg(case when k.k = 0 then '(expression)' else a.attname::text || case when (i.indoption::int2[])[k.ord - 1] & 1 = 1 then ' DESC' else '' end
-                                     || case (i.indoption::int2[])[k.ord - 1] & 3 when 2 then ' NULLS FIRST' when 1 then ' NULLS LAST' else '' end end order by k.ord)
+                                     || case (i.indoption::int2[])[k.ord - 1] & 3 when 2 then ' NULLS FIRST' when 1 then ' NULLS LAST' else '' end
+                                     || case when ${nonDefaultKey('k')} then ' (non-default collation or operator class)' else '' end end order by k.ord)
               from unnest((i.indkey::int2[])[0:i.indnkeyatts - 1]) with ordinality as k(k, ord)
               left join pg_catalog.pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.k) as cols
       from pg_catalog.pg_index i join pg_catalog.pg_class c on c.oid = i.indrelid join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -2099,23 +2188,29 @@ export const CATALOG_RULE_PROBES = [
     ] },
   // Blocker 186 item 13 (Q0 F3, F8 on batch 125).
   { label: 'pinned trigger probe', sql: PINNED_TRIGGER_PROBE_SQL,
-    claim: `the ${Object.values(PINNED_TABLE_TRIGGERS).flat().length} triggers on ${Object.keys(PINNED_TABLE_TRIGGERS).join(', ')} are exactly their pinned definitions, and the ${PINNED_TRIGGER_FUNCTIONS.length} functions they run match their pinned bodies, security and empty search_path`,
+    claim: `the non-internal triggers on every table in app and private are exactly the ${Object.values(PINNED_TABLE_TRIGGERS).flat().length} pinned definitions on ${Object.keys(PINNED_TABLE_TRIGGERS).length} tables, and the ${PINNED_TRIGGER_FUNCTIONS.length} functions they run match their pinned bodies, security, owner and empty search_path`,
     selfTests: [
       // Q0's M7: a second BEFORE UPDATE trigger sorting after set_decided_at.
-      { drift: 'create trigger set_decided_at_backfill before update on app.approval_requests for each row execute function private.set_updated_at();',
-        raises: 'trigger(s) on a pinned table not exactly its pinned definitions',
-        names: ['unpinned: CREATE TRIGGER set_decided_at_backfill BEFORE UPDATE ON app.approval_requests'] },
+      // The owed-tooling batch (A1 R-2 on batch 170's re-check): a BEFORE UPDATE trigger on app.workspaces that
+      // writes NEW.lifecycle_state, which batch 170 revoked from every client, and a trigger on a private table;
+      // each passed every layer while the list named approval_requests alone.
+      { drift: "create trigger set_decided_at_backfill before update on app.approval_requests for each row execute function private.set_updated_at(); create function private.probe_force_lifecycle() returns trigger language plpgsql set search_path = '' as $f$ begin new.lifecycle_state := 'purge_queued'; return new; end $f$; create trigger probe_force_lifecycle before update on app.workspaces for each row execute function private.probe_force_lifecycle(); create trigger probe_private_trigger before insert on private.meta_credential_references for each row execute function private.set_updated_at();",
+        raises: 'trigger(s) on a table in app or private not exactly its pinned definitions',
+        names: ['unpinned: CREATE TRIGGER set_decided_at_backfill BEFORE UPDATE ON app.approval_requests',
+          'unpinned: CREATE TRIGGER probe_force_lifecycle BEFORE UPDATE ON app.workspaces FOR EACH ROW EXECUTE FUNCTION private.probe_force_lifecycle()',
+          'unpinned: CREATE TRIGGER probe_private_trigger BEFORE INSERT ON private.meta_credential_references'] },
       // Q0's M6: the body rewritten in place. A function body is a DO-free drift that holds `begin` and
       // `end` inside its dollar quotes, which the statement-position rule admits (A1 V4).
       // And Q0 T5 on batch 126: its owner changed as well.
-      { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$; alter function private.set_decided_at() owner to app_worker;",
-        raises: 'trigger function(s) on a pinned table not in their pinned shape',
-        names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]'] },
+      // The owed-tooling batch: set_deleted_at, which runs on calendar_items and no pin read, rewritten in place.
+      { drift: "create or replace function private.set_decided_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$; alter function private.set_decided_at() owner to app_worker; create or replace function private.set_deleted_at() returns trigger language plpgsql security invoker set search_path = '' as $f$ begin return new; end $f$;",
+        raises: 'trigger function(s) on a table in app or private not in their pinned shape',
+        names: ['private.set_decided_at() [body differs from the pinned digest] [owner is not the pinned owner]', 'private.set_deleted_at() [body differs from the pinned digest]'] },
     ] },
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
   // batch 170 draft, with the table-list rule first.
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s), and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option`,
+    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s), and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option; app and private are owned by the migration owner and every non-superuser role's USAGE and CREATE on them are exactly the ${PINNED_SCHEMA_PRIVILEGES.length} pinned; and no non-superuser role holds BYPASSRLS, LOGIN, CREATEDB, CREATEROLE, INHERIT or REPLICATION, and no default privilege entry exists`,
     selfTests: [
       // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away. Since
       // its review round (A1 R2, Q0 Q-2), a materialized view in app over a SECRET-4 table and a definer
@@ -2153,6 +2248,16 @@ export const CATALOG_RULE_PROBES = [
         names: ['unlisted: authenticated INSERT (deleted_at) on app.calendar_items', 'unlisted: authenticated INSERT (created_at) on app.content_schedules',
           'unlisted: service_role SELECT (id) on app.content_schedules', 'unlisted: authenticated UPDATE WITH GRANT OPTION (timezone) on app.calendar_items',
           'unlisted: app_command SELECT (input_ref) on app.jobs', 'missing: app_worker UPDATE (lease_owner) on app.jobs', 'unlisted: anon SELECT (id) on app.workspaces'] },
+      // The owed-tooling batch (A1 S1 on batch 170-assert's re-check): private handed to a command role, CREATE
+      // on app for the worker, USAGE with grant option for a service role, and the worker's USAGE revoked.
+      { drift: 'alter schema private owner to app_command; grant create on schema app to app_worker; grant usage on schema private to service_role with grant option; revoke usage on schema app from app_worker;',
+        raises: 'schema app or private not owned by the migration owner, or a schema privilege of a non-superuser role on them not exactly its pin',
+        names: ['schema private owned by app_command', 'unlisted: app_worker CREATE on app', 'unlisted: service_role USAGE WITH GRANT OPTION on private', 'missing: app_worker USAGE on app'] },
+      // The owed-tooling batch (Q0 R-2, A1 S3 on batch 170-assert's re-check): the worker bypassing RLS, a
+      // command role that inherits and creates roles, and a default privilege for the worker.
+      { drift: 'alter role app_worker bypassrls; alter role app_command inherit createrole; alter role app_maintenance login replication createdb; alter default privileges in schema app grant select on tables to app_worker;',
+        raises: 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists',
+        names: ['app_worker rolbypassrls', 'app_command rolinherit', 'app_command rolcreaterole', 'app_maintenance rolcanlogin', 'app_maintenance rolreplication', 'app_maintenance rolcreatedb', 'default privilege entry in schema app'] },
     ] },
   // The batch 170 draft (RFC-2026-021 §8.2, §8.5): the read allowlist, both ways.
   { label: 'read allowlist probe', sql: READ_ALLOWLIST_PROBE_SQL,
@@ -2257,25 +2362,31 @@ export const CATALOG_RULE_PROBES = [
     ] },
   // The batch 150 prerequisite draft (plan (b); ERD §3.3): RLS predicate and keyset cursor columns indexed.
   { label: 'index coverage probe', sql: INDEX_COVERAGE_PROBE_SQL,
-    claim: `every RLS predicate column in app and private sits in the leading run of a valid whole btree index of such columns, ${Object.keys(INDEX_COVERAGE.rls_predicate_exemptions).length} exempt by schema.table.column; the ${Object.keys(INDEX_COVERAGE.lookups).length} declared lookups and keyset cursors in ${INDEX_COVERAGE_FILE} are each served by a valid btree index that begins with their columns in order, direction and NULLS order; and each exemption names an uncovered column`,
+    claim: `every RLS predicate column in app and private sits in the leading run of a valid whole btree index of such columns, each under its column's collation and its default operator class, ${Object.keys(INDEX_COVERAGE.rls_predicate_exemptions).length} exempt by schema.table.column; the ${Object.keys(INDEX_COVERAGE.lookups).length} declared lookups and keyset cursors in ${INDEX_COVERAGE_FILE} are each served by a valid btree index that begins with their columns in order, direction and NULLS order, each key under its column's collation and its default operator class; and each exemption names an uncovered column`,
     selfTests: [
       // A new table whose read policy filters an unindexed column, and an existing policy narrowed on one.
       // Batch 150-prereq's review round: the new table's predicate column also sits in an index BEHIND a
       // column no policy reads (Q0 Q-2, mutant C8: "leading run" read as "any key column" survived); a second
       // new table's policy names its column table-qualified inside an EXISTS (mutant C9: the qualified
       // alternative dropped survived); and the workspace-switch index rebuilt as BRIN under its own name (C0-1,
-      // Q0 Q-1: rule 1 counted any access method).
-      { drift: "create table app.probe_ic_t (id uuid primary key, workspace_id uuid); alter table app.probe_ic_t enable row level security; create policy probe_ic_read on app.probe_ic_t for select to authenticated using (app.is_active_member(workspace_id)); create index probe_ic_t_behind_idx on app.probe_ic_t (id, workspace_id); alter policy content_items_select_active_member on app.content_items using (app.is_active_member(workspace_id) and title <> ''); create table app.probe_ic_q (id uuid primary key, workspace_id uuid); alter table app.probe_ic_q enable row level security; create policy probe_ic_q_read on app.probe_ic_q for select to authenticated using (exists (select 1 from app.workspace_members m where m.workspace_id = probe_ic_q.workspace_id and m.user_id = app.jwt_subject())); drop index app.workspace_members_user_id_status_idx; create index workspace_members_user_id_status_idx on app.workspace_members using brin (user_id, status);",
+      // Q0 Q-1: rule 1 counted any access method). The owed-tooling batch (Q0 R-2 on 150-prereq's re-check): a
+      // third new table whose policy reads two text columns, one indexed under COLLATE "C" and one under
+      // text_pattern_ops, neither of which serves the policy's comparison.
+      { drift: "create table app.probe_ic_t (id uuid primary key, workspace_id uuid); alter table app.probe_ic_t enable row level security; create policy probe_ic_read on app.probe_ic_t for select to authenticated using (app.is_active_member(workspace_id)); create index probe_ic_t_behind_idx on app.probe_ic_t (id, workspace_id); alter policy content_items_select_active_member on app.content_items using (app.is_active_member(workspace_id) and title <> ''); create table app.probe_ic_q (id uuid primary key, workspace_id uuid); alter table app.probe_ic_q enable row level security; create policy probe_ic_q_read on app.probe_ic_q for select to authenticated using (exists (select 1 from app.workspace_members m where m.workspace_id = probe_ic_q.workspace_id and m.user_id = app.jwt_subject())); drop index app.workspace_members_user_id_status_idx; create index workspace_members_user_id_status_idx on app.workspace_members using brin (user_id, status); create table app.probe_ic_c (id uuid primary key, label text, tag text); create policy probe_ic_c_read on app.probe_ic_c for select to authenticated using (label = 'x' and tag = 'y'); create index probe_ic_c_label_idx on app.probe_ic_c (label collate \"C\"); create index probe_ic_c_tag_idx on app.probe_ic_c (tag text_pattern_ops);",
         raises: 'RLS predicate column(s) with no supporting index and no named exemption',
-        names: ['app.probe_ic_t.workspace_id', 'app.content_items.title', 'app.probe_ic_q.workspace_id', 'app.workspace_members.status'] },
+        names: ['app.probe_ic_t.workspace_id', 'app.content_items.title', 'app.probe_ic_q.workspace_id', 'app.workspace_members.status', 'app.probe_ic_c.label', 'app.probe_ic_c.tag'] },
       // The worker claim's index dropped, and the library keyset rebuilt ascending under its own name. Batch
       // 150-prereq's review round (C0-1, Q0 Q-1, measured: each passed every layer while the query lost its
       // index): the worker claim's index rebuilt as HASH rather than dropped, and the audit keyset rebuilt
-      // DESC NULLS LAST under its own name.
-      { drift: 'drop index app.jobs_available_at_idx; create index jobs_available_at_idx on app.jobs using hash (available_at); drop index app.assets_library_keyset_idx; create index assets_library_keyset_idx on app.assets (workspace_id, business_profile_id, created_at, id) where deleted_at is null; drop index app.audit_logs_workspace_keyset_idx; create index audit_logs_workspace_keyset_idx on app.audit_logs (workspace_id, occurred_at desc nulls last, id desc nulls last);',
+      // DESC NULLS LAST under its own name. The owed-tooling batch (Q0 R-2 on 150-prereq's re-check): the
+      // workspace-switch index rebuilt with status COLLATE "C" (an index leading with status keeps rule 1 quiet),
+      // and the quota recompute index with dimension under text_pattern_ops, each under its own name.
+      { drift: 'drop index app.jobs_available_at_idx; create index jobs_available_at_idx on app.jobs using hash (available_at); drop index app.assets_library_keyset_idx; create index assets_library_keyset_idx on app.assets (workspace_id, business_profile_id, created_at, id) where deleted_at is null; drop index app.audit_logs_workspace_keyset_idx; create index audit_logs_workspace_keyset_idx on app.audit_logs (workspace_id, occurred_at desc nulls last, id desc nulls last); drop index app.workspace_members_user_id_status_idx; create index workspace_members_user_id_status_idx on app.workspace_members (user_id, status collate "C"); create index probe_ic_status_lead_idx on app.workspace_members (status, user_id); drop index app.usage_events_bucket_recompute_idx; create index usage_events_bucket_recompute_idx on app.usage_events (workspace_id, business_profile_id, dimension text_pattern_ops, occurred_at);',
         raises: 'declared lookup(s) or keyset cursor(s) no valid index begins with',
         names: ['worker claim on app.jobs (available_at)', 'library first page on app.assets (workspace_id, business_profile_id, created_at DESC, id DESC)',
-          'audit_logs keyset (workspace_id, occurred_at DESC, id DESC) on app.audit_logs (workspace_id, occurred_at DESC, id DESC)'] },
+          'audit_logs keyset (workspace_id, occurred_at DESC, id DESC) on app.audit_logs (workspace_id, occurred_at DESC, id DESC)',
+          'workspace switch / list on app.workspace_members (user_id, status)',
+          'quota bucket recompute on app.usage_events (workspace_id, business_profile_id, dimension, occurred_at)'] },
       // An exempt column now covered: the exemption outlives its reason.
       { drift: 'create index probe_ic_status_idx on app.approval_requests (workspace_id, status);',
         raises: 'index coverage exemption(s) naming no uncovered RLS predicate column',
