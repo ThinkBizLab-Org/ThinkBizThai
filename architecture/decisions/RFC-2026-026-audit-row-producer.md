@@ -1,8 +1,9 @@
 # RFC-2026-026 — Who writes an audit row: the command that performed the action, or the worker that did, in the same transaction
 
-Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q141-a = B); NOT approved; NOT in effect. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) chose option B of Q141-a — an audit row is produced by an application command or the worker only, for G1, with no database trigger producing it — and directed that this RFC be written. It did not approve this text: the producer architecture below is A0's proposal, A1's acceptance as Q141-a's co-owner is owed (§5 of that disposition), and no migration, policy or grant changes until this file carries an approval and the dependencies in §9 hold.
+Status: Proposed — answered in principle by the Owner on 2026-10-04 (Q141-a = B); NOT approved; NOT in effect. The Owner's `เิาตามแนะนำ` of 2026-10-04 (transcribed in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-150.md` §1 and §5) chose option B of Q141-a — an audit row is produced by an application command or the worker only, for G1, with no database trigger producing it — and directed that this RFC be written. It did not approve this text: the producer architecture below is A0's proposal, A1's acceptance as Q141-a's co-owner is owed (§5 of that disposition), and no migration, policy or grant changes until this file carries an approval and the dependencies in §9 hold. The nine questions of §10 were answered on 2026-10-04 as A0 recommended (the Owner's `ลุยต่อเลย เอาตามแนะนำ`, transcribed with A0's reading of it in `evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §8); those answers are folded into this text as its design (§3.3, §3.7, §10.1). **They are not an approval of this text**: approval is the Owner's explicit act and A1's review, and each named role's own acceptance of its answer is still owed.
 Date: 2026-10-04
 Revised: 2026-10-04, in the batch's review round, on the findings of C0 (`c0-batch-rfc-026-027-contract-review-2026-10-03.md`), A1 (`a1-batch-rfc-026-027-security-review-2026-10-03.md`) and Q0 (`q0-batch-rfc-026-027-test-review-2026-10-03.md`); the change list is in `a0-batch-rfc-026-027-plan-2026-10-03.md` §7. Still Proposed; the revision approves nothing and answers no question.
+Revised: 2026-10-04, in batch rfc-text (`a0-batch-rfc-text-plan-2026-10-03.md`): the Owner's answers to Q-026-1..9 folded in as the design (Q-026-1 superseded: active membership for every command row; Q-026-9: the producers of `app.security_events`); §3.3's literal calls the page form (C0-9, A1 F4-a); §8.1/1 and §8.2/16 rewritten as executable obligations (Q0R-F2, Q0R-F1); the facts batch 170 changed restated. Still Proposed; the revision approves nothing.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), owner of batch `141` ("audit consumers/hooks") in the migration registry; drafted by a subagent of that run
 Reviewer sought: `/claude/a1_bastion` (A1 Security), co-owner of Q141-a and Q141-c, author of `RFC-2026-022` and owner of batch `140`
 Depends on: `RFC-2026-022` (approved 2026-09-08, not in effect) §3, §5/3, §5/4, §5/7, §5/8 and §8 for the CARRIED service shape; `RFC-2026-023` (in review) §3 and §4 for the acting-user bound on the command path; `RFC-2026-019` (approved) §4/2 and §4/3 for how the command and worker paths are reached; `RFC-2026-017` (approved) §3 for the service roles; `RFC-2026-016` (approved) §2 and §4; `RFC-2026-020` (approved) §5 and §6.2; `RFC-2026-012` (approved) for which tier issues a statement
@@ -58,7 +59,11 @@ Measured on `5c406de` by reading files; no database was queried for this draft.
    `delete.workspace_closing` row of the coverage map — §11.4 step 1 — is a client `UPDATE` today,
    and no producer of any kind sees it. The same holds for invitations (`010:597`, `:613`) and for
    Business and Page archive (batch `020`'s owner/admin `UPDATE` policies). This is the fact B has to
-   answer for; §5.5 does.
+   answer for; §5.5 does. **Changed since this RFC was first written:** Q-026-5 was answered *revoke*,
+   and `170_workspace_lifecycle_not_client_writable.sql` (batch 170, merged) revokes `authenticated`'s
+   `UPDATE (lifecycle_state)` on `app.workspaces`; the client keeps `UPDATE (name, updated_by)`. So
+   §11.4 step 1 is no longer a client write — it has no writer at all until its command lands
+   (`open_blockers[195]` (9)). The other client writes named here are unchanged.
 6. **No foreign key holds an audit row's scope** (`open_blockers[32]`): "What refuses it is the
    producer". `open_blockers[191]` (6) adds that any service `INSERT` policy owes the
    Workspace→Business→Page check beside the workspace term.
@@ -83,8 +88,8 @@ carries a recorded reason") is a separate record and is not merged into the tena
 The two policies §3.2 and §3.3 propose are written for **`app.audit_logs`**, whose columns they read.
 `app.security_events` has a different shape — no `causation_id`, no `outcome`, no `business_profile_id`
 or `page_context_profile_id`, and a nullable actor (`140_audit.sql:583-606`) — so neither predicate
-transfers to it. Its producers are held by §3.7 and Q-026-9; the no-trigger rule above holds for both
-tables either way.
+transfers to it. Its producers are §3.7's, written on its own columns as Q-026-9 was answered; the
+no-trigger rule above holds for both tables either way.
 
 No new role is created. Option A needed one (`app_audit` or similar), with an exemption-register row;
 B does not, which is one of the reasons it was recommended.
@@ -92,7 +97,7 @@ B does not, which is one of the reasons it was recommended.
 ### 3.2 The worker producer: `RFC-2026-022`'s CARRIED shape, unchanged
 
 A policy `FOR INSERT TO app_worker` on `app.audit_logs` (its counterpart on `app.security_events`,
-which has no `causation_id`, is §3.7's question, not this text), whose `WITH CHECK` is **the cell's own predicate AND the pinned confinement term**, exactly as
+which has no `causation_id`, is §3.7's worker policy, not this text), whose `WITH CHECK` is **the cell's own predicate AND the pinned confinement term**, exactly as
 `RFC-2026-022` §5/3 requires — never the confinement term alone:
 
 ```
@@ -120,20 +125,35 @@ because an audit table is where a reader is most tempted to read it the other wa
 
 A policy `FOR INSERT TO app_command` on `app.audit_logs` (for `app.security_events`, see §3.7). The
 command path has no confinement setting — `RFC-2026-023` §3.1 refuses a second identity channel — and
-is bounded instead by the acting user read from `request.jwt.claims`:
+is bounded instead by the acting user read from `request.jwt.claims`. The literal, as the Owner's
+answers to Q-026-1 (superseded: membership for every command row) and Q-026-2 shape it, and with the
+page form C0-9 and A1's F4-a found missing:
 
 ```
 with check (
   actor_kind = 'user'
   and actor_id = (app.jwt_subject())::text
-  and (app.acting_user_admits_business(workspace_id, business_profile_id)
-       or (outcome <> 'succeeded'
-           and business_profile_id is null
-           and page_context_profile_id is null))
+  and app.is_active_member(workspace_id)
+  and case
+        when outcome = 'succeeded' then
+          (business_profile_id is null
+             or app.acting_user_admits_business(workspace_id, business_profile_id))
+          and (page_context_profile_id is null
+             or (business_profile_id is not null
+                 and app.acting_user_admits_page(workspace_id, business_profile_id,
+                                                 page_context_profile_id)))
+        else business_profile_id is null and page_context_profile_id is null
+      end
 )
 ```
 
-Three things this does, each a separate claim a test must hold (§8.2):
+`outcome` is `not null` (`140`'s `audit_logs_outcome_known`), so the `case` has no third branch; a helper
+that answers null leaves the check null, which refuses. No scope helper is ever called with a null
+scope id: the business form only when a business is named, the page form only when both a business and
+a page are named. So what `RFC-2026-023`'s helpers answer for a null id is not something this policy
+depends on, and a row naming a page without a business is refused.
+
+Four things this does, each a separate claim a test must hold (§8.2):
 
 1. **The actor cannot be forged by the command's inputs.** A command function that passes a different
    user id as the actor is refused by the policy. What remains is wider than one function: the binding
@@ -143,29 +163,41 @@ Three things this does, each a separate claim a test must hold (§8.2):
    than the request path holding `EXECUTE` on a command function. §8.1/6 makes the second a static
    rule; the first stays a review question, the same residual every `SECURITY DEFINER` function
    carries (§11).
-2. **A succeeded record lands only where the acting user could have acted.** The `succeeded` arm reuses
-   `RFC-2026-023` §3.2's acting-user helper, which asks membership and scope together. Its page form
-   applies where `page_context_profile_id` is not null, as `RFC-2026-023` §3.3 already specifies.
-3. **A denied or failed record is admitted for the acting user in any `workspace_id`, but names a
-   business or page only when the acting-user helper admits that scope** (§3.6's rule, held by the
-   policy rather than left to the producer). A denial is often a denial *because* the user is not a
+2. **Every command row lands only in a workspace the acting user is an active member of** — succeeded,
+   denied and failed alike (Q-026-1, answered: option (a)). The membership term is `011`'s
+   `app.is_active_member`, which reads the same claims and, once `RFC-2026-027` lands, refuses a
+   workspace whose access is blocked. So no client, through any command, writes into another tenant's
+   log or into a `workspace_id` that does not exist. The cross-tenant append the review round measured
+   on the earlier text (A1, round r4) is refused by this literal as written — read, not executed;
+   §8.2/19 is the case that must show it.
+3. **A succeeded record names a business or page only where the acting user's narrowing admits it.**
+   The business form is `RFC-2026-023` §3.2's `acting_user_admits_business`; the page form is its
+   `acting_user_admits_page`, called whenever `page_context_profile_id` is not null (C0-9, A1 F4-a: the
+   earlier literal called the business form alone, so it admitted any page id). **What the policy does
+   not hold:** those helpers answer "is this user narrowed away from this scope?", not "does this
+   business belong to this workspace, and this page to this business?". For an unnarrowed member — the
+   usual case for an owner — they are true for any id. The relation between the scope columns is held
+   by the producer copying them from the changed row (§3.6) and tested by §8.2/17; a policy-side check
+   of it stays owed with `open_blockers[32]`'s missing foreign key (Q-026-2, answered).
+4. **A denied or failed record names no business and no page.** Where no row changed there is no row
+   to copy a checked scope from, and the helpers cannot check the relation, so a refusal row carries its
+   `workspace_id` only (A1's F4-a, option (i)). A denial is often a denial *because* the user is not a
    member (`service-policy-map.json:138`: "for a denial, the workspace the actor asked to act in, even
-   when the actor's membership in it is what failed"). **The cost, as measured on a prototype in this
-   RFC's review (A1, round r4):** it is not the cost of a *defective* command. A command written
-   correctly to §3.4 records a denial for whatever `workspace_id` it was asked about, so **any
-   authenticated client can, through a correct command, append `denied` rows attributed to itself into
-   any `workspace_id`** — another tenant's, or one that does not exist (no foreign key,
-   `open_blockers[32]`) — and `private.refuse_mutation()` makes them undeletable. Such a row cannot be
-   `succeeded`, cannot name another actor, cannot name another tenant's business or page, and cannot
-   alter or remove anything. It does write the caller's user id into another tenant's log and lets a
-   caller fill that log. **Whether the arm stays, and if so with what volume bound, is Q-026-1 (§10),
-   which must be answered before this RFC is approved.**
+   when the actor's membership in it is what failed"). Under this literal a member's denial — a missing
+   capability or scope — is recorded at workspace level, and a non-member's denial is not recorded in
+   `app.audit_logs` at all. It is not recorded in `app.security_events` either, since §3.7 holds the
+   command there to the same membership term; it is an unrecorded refusal held with Q-026-4's accepted
+   gap (§3.4), and `service-policy-map.json:138`'s denial wording is re-confirmed against this when the
+   command half lands (§9/4).
 
 `app.jwt_subject()` is granted to nobody today (`011_authorization_helpers.sql:306-317`, "the narrowest
 grant that leaves every real caller working is none"). This policy is the first real caller, so the
 batch that lands it grants `EXECUTE` on `app.jwt_subject()` to `app_command` — and to nobody else — in a
 diff a reviewer reads, rather than copying the identity expression into a third place, which
-`scripts/db/run.mjs`'s identity-expression rule refuses outside `011`.
+`scripts/db/run.mjs`'s identity-expression rule refuses outside `011`. The same diff grants `EXECUTE` on
+`app.is_active_member(uuid)` to `app_command`, beside `authenticated`, which holds it today
+(`011_authorization_helpers.sql:320`); `RFC-2026-023`'s two helpers are granted to `app_command` by
+that RFC's own batch (§3.2 there).
 
 ### 3.4 Same transaction, and what each outcome looks like
 
@@ -193,10 +225,13 @@ outer transaction with its `error_code` (`CTR-ERR-001`'s stable code, as `140`'s
 `audit_logs_outcome_matches_error` requires), and **returns** a typed error to the caller instead of
 raising. The worker does the same in the transaction that records the failed attempt. A refusal that
 never reaches a producer — a client statement refused by row level security, an authentication failure
-before any database session — is not recorded by this design (§5.5, §10 Q-026-4). Nor is a recorded
+before any database session — is not recorded by this design (§5.5), and neither is a refusal about a
+workspace the acting user is not an active member of (§3.3/4); both are accepted until G1 as a recorded
+gap (Q-026-4, answered), with SEC-014's producer for them owed before Paid Beta. Nor is a recorded
 denial durable if the client controls the end of the transaction (a direct connection, or a request
 tier that lets the client ask for a rollback): the `denied` row is lost with it. No action commits that
-way, so only refusal records are lost; it is held under Q-026-4 (A1's F2-f, reasoned, not measured).
+way, so only refusal records are lost; it is part of Q-026-4's accepted gap (A1's F2-f, reasoned, not
+measured).
 
 ### 3.5 Where each `CTR-AUD-001` field comes from
 
@@ -207,8 +242,8 @@ server tier" is untrusted by the database and checked only for shape.
 | `CTR-AUD-001` field | store column(s) | command producer | worker producer |
 |---|---|---|---|
 | `audit_id` | `id` (default `gen_random_uuid()`) | the default | the default |
-| `occurred_at` | `occurred_at` | `now()` of the action's transaction | `now()`, unless the action is the projection of an external event with its own time (Q-026-3) |
-| `actor` | `actor_kind`, `actor_id` | `user`, the acting user — held by the policy | the job's `tenant_context.actor` (`CTR-JOB-001`), or `system_actor` for a sweep no user started |
+| `occurred_at` | `occurred_at` | `now()` of the action's transaction | `now()` of the worker's transaction, always — for the projection of an external event too: `occurred_at` is a time this system witnessed, and the provider's own time stays in the event's payload where the projection stored it (Q-026-3, answered) |
+| `actor` | `actor_kind`, `actor_id` | `user`, the acting user — held by the policy | the job's `tenant_context.actor` (`CTR-JOB-001`), the user who started it; `system_actor` only for a sweep no user started (Q-026-8, answered) |
 | `action` | `action_category`, `action_name` | a constant of the command function, one per coverage-map row | a constant of the job type |
 | `tenant_context` scope | `workspace_id`, `business_profile_id`, `page_context_profile_id` | **read back from the row the action changed** (`RETURNING`), never from the inputs (§3.6) | the job's tenant context, confined by `app.workspace_id` |
 | `request_id`, `correlation_id`, `causation_id` | the three columns | arguments of the command function, passed by the server tier from the resolved `CTR-TEN-001` context | the job's `tenant_context`; `causation_id` is the job id or the enqueuing event and is required (§3.2) |
@@ -227,49 +262,65 @@ holds whichever way A6 signs.
 ### 3.6 The scope path is checked by the producer, by copying, not by a policy
 
 Neither audit table has a foreign key, and cannot (`open_blockers[32]`). A policy cannot check
-Workspace→Business→Page either: `app_worker` reads no business row (grants without policies), and step
-8 of §11.4 writes records about rows step 7 has already purged.
+Workspace→Business→Page either: `app_worker` reads no business row (grants without policies), step 8 of
+§11.4 writes records about rows step 7 has already purged, and the command policy's scope helpers answer
+narrowing, not the relation (§3.3/3).
 
 So the rule is on the producer: **a `succeeded` row copies its scope columns from the row the action
 changed**, read back with `RETURNING` in the same statement. That row's own composite foreign keys
 (`§3.3`, every tenant table since `020`) already guarantee the relation, so the audit row inherits a
 checked scope instead of re-checking an unchecked one. A `denied` or `failed` row, where no row
-changed, carries `workspace_id` as requested and **leaves `business_profile_id` and
-`page_context_profile_id` null** unless the acting-user helper admits that scope — the policy of §3.3
-holds this for refusal rows, so a refusal row cannot carry another tenant's business id (A1's
-prototype case 9 admitted one under the earlier text). This discharges `open_blockers[191]` (6) on the
-producer side; whether A1 accepts it there is Q-026-2. The copy-from-the-row half for `succeeded` rows
-is a property of each command's body; §8.2/17 is the case that tells it apart from copying the inputs.
+changed, carries the `workspace_id` it was about — one the acting user is an active member of (§3.3/2)
+— and **always leaves `business_profile_id` and `page_context_profile_id` null**; the policy of §3.3
+refuses a refusal row that names either (§3.3/4, §8.2/18). The earlier text let a refusal row name a
+scope "the acting-user helper admits"; A1 measured that to admit another tenant's business for an
+unnarrowed member (F4-a, cases D-H), so that clause is gone.
 
-### 3.7 `app.security_events`: held, not proposed
+This discharges `open_blockers[191]` (6) and `[32]` **on the producer side** (Q-026-2, answered: yes on
+the producer side, no on the policy side). The policy side — a check of the relation between the scope
+columns — stays owed with `[32]`'s missing foreign key; A1's acceptance of the answer is owed. The
+copy-from-the-row half for `succeeded` rows is a property of each command's body; §8.2/17 is the case
+that tells it apart from copying the inputs.
+
+### 3.7 `app.security_events`: the producers Q-026-9's answer gives it
 
 `140` built `app.security_events` with `workspace_id`, `occurred_at`, `event_type`, a nullable
 `actor_kind`/`actor_id` pair, two digests and `created_at` (`140_audit.sql:583-606`). Neither §3.2's
-predicate (`causation_id`) nor §3.3's (`outcome`, `business_profile_id`, `page_context_profile_id`,
-and an actor that is always present) can be written on it; a `create policy` copying either would fail
-on an undefined column. This RFC therefore proposes **no policy and no grant on `app.security_events`**,
-and holds its producers as Q-026-9: what a worker's cell predicate is on a table with no cause column
-(a store change adding one, an `actor_kind is null or actor_kind = 'system_actor'` rule, or no worker
-writer), and whether a command writes there at all and under which workspace term. Until Q-026-9 is
-answered, `140`'s state holds for that table: `app_worker`'s grants, no policy, no writer. §3.1's
-no-trigger rule binds it already.
+predicate (`causation_id`) nor §3.3's (`outcome`, `business_profile_id`, `page_context_profile_id`)
+can be written on it; a `create policy` copying either would fail on an undefined column.
+
+Q-026-9 was answered as A0 recommended (A1's acceptance, as the owner of batch `140`, is owed): **no
+store change before G1** — no cause column is added — and two producers, each with a predicate on the
+table's own columns:
+
+| producer | policy | `WITH CHECK` | what it admits |
+|---|---|---|---|
+| **Worker** | `FOR INSERT TO app_worker` | `workspace_id = (select nullif(current_setting('app.workspace_id', true), '')::uuid) and (actor_kind is null or actor_kind = 'system_actor')` | an unattributed event (a pattern nobody performed, §9.1's "replay anomaly") or one a `system_actor` raised, confined to the job's workspace; never an event attributed to a user |
+| **Command** | `FOR INSERT TO app_command` | `actor_kind = 'user' and actor_id = (app.jwt_subject())::text and app.is_active_member(workspace_id)` | an event attributed to the acting user itself, in a workspace it is an active member of; never another actor, never an unattributed one, never a workspace it cannot reach |
+
+The worker's predicate is the cell's own predicate AND the pinned confinement term, as `RFC-2026-022`
+§5/3 requires; the confinement term is containment, not isolation (§3.2). The command's is §3.3/1-2's
+binding on this table's columns. A refusal about a workspace the acting
+user cannot reach therefore has no producer in either table (§3.3/4): it is part of Q-026-4's accepted
+gap, not a `security_events` row. Until the halves of §9 land, `140`'s state holds for this table:
+`app_worker`'s grants, no policy, no writer. §3.1's no-trigger rule binds it already.
 
 ## 4. What this decides about the §8.4 `S` cell
 
 §8.4 gives the cell to "Service". Under this RFC, "Service" means **two named service roles, each
 admitted by its own policy, and nothing else**: `app_worker` in `RFC-2026-022`'s CARRIED shape, and
-`app_command` in the acting-user shape above — both on `app.audit_logs`; the same cell on
-`app.security_events` waits for Q-026-9 (§3.7) and has no writer until then. Both are service roles in `RFC-2026-017` §3's sense; no
+`app_command` in the acting-user shape above — on `app.audit_logs`, and on `app.security_events` with
+the predicates §3.7 gives as Q-026-9 was answered. Both are service roles in `RFC-2026-017` §3's sense; no
 client column changes (`N` stays `N`, with no grant). `app_maintenance`, `service_role`, `app_authz`,
 `anon` and `authenticated` hold no `INSERT` and no policy.
 
 Two consequences for the register, owed and not taken here:
 
 - `service-policy-map.json` keys a row on `(table, operation)` and has no role field
-  (`open_blockers[191]` (2)). This cell now has two producers on one key. The map can hold the
-  CARRIED worker row as it stands; the command row is `RFC-2026-023`'s shape, not a CARRIED one, and
-  either the map gains a producer field or the command policy is recorded elsewhere. Owed to A1 with
-  (2).
+  (`open_blockers[191]` (2)). This cell now has two producers on one key. **The map gains a producer
+  field** (Q-026-7, answered), so the register stays the one place every write path is listed: the
+  CARRIED worker row as it stands, and the command row in `RFC-2026-023`'s shape beside it. The field
+  lands with the first of §9's halves; owed to A0 and A1 with `[191]` (2).
 - `roleScopedCompleteness` (`RFC-2026-022` §7.1/8) asks an exemption-register row of every policy on a
   non-request-path role that is not the pinned CARRIED shape. The command policy is such a policy.
   Either it takes a register row, or the rule learns `RFC-2026-023`'s shape. Owed to A0 (the owner of
@@ -355,14 +406,17 @@ honest with a rule beside it:
 > `producer_path` set to `command` names its function, and no client role holds the privilege that
 > would let it bypass that function.
 
-Until those commands exist the gap is real and is recorded on `open_blockers[21]`: the owner can set
-`app.workspaces.lifecycle_state` directly, unaudited. `RFC-2026-027` makes the consequence of that
-sharper (an owner who sets `access_blocked` locks every member out), which is Q-026-5.
+Until those commands exist the gap is real and is recorded on `open_blockers[21]`. Its sharpest case is
+closed: Q-026-5 was answered *revoke*, and batch 170's
+`170_workspace_lifecycle_not_client_writable.sql` revoked the client `UPDATE` of
+`app.workspaces.lifecycle_state`, before `RFC-2026-027`'s gate could turn it into a lock-out of every
+member. That is §5.5's rule applied ahead of its command: the change now has no client path and no
+producer, and waits for the §11.4 command (`open_blockers[195]` (9)).
 
 ## 6. What happens before `DATA-DEC-03`'s worker identity exists
 
-The Owner's answer says "No audit migration lands before the worker RFC". Read literally, and this RFC
-proposes reading it literally:
+The Owner's answer says "No audit migration lands before the worker RFC". Q-026-6's answer reads that
+sentence as binding the worker half; for that half it is read literally:
 
 1. **No producer is in effect, and none is written.** The state of `open_blockers[21]` holds: nothing
    writes an audit row. The coverage map's `producer_path` moves from `UNDECIDED` to the producer this
@@ -370,11 +424,12 @@ proposes reading it literally:
    else changes.
 2. **The worker half waits for two things:** the worker identity (`DATA-DEC-03`, `open_blockers[113]`)
    and `RFC-2026-022` §7 holding. A policy `TO app_worker` written before then is moot (§2/3).
-3. **The command half waits for three:** `RFC-2026-023`'s approval, the first command function (which
-   `RFC-2026-023` §6 lands together with its closure amendment), and the worker RFC, per the Owner's
-   sentence. Whether the command half may land with `RFC-2026-023`'s first command function, before the
-   worker RFC, is Q-026-6 — it would let §11.4 step 1 be audited sooner, and it is the Owner's to say,
-   not this RFC's to infer.
+3. **The command half waits for two:** `RFC-2026-023`'s approval and the first command function (which
+   `RFC-2026-023` §6 lands together with its closure amendment). It does **not** wait for the worker
+   RFC: Q-026-6 was answered *yes*, so the Owner's "no audit migration lands before the worker RFC" is
+   read as binding the worker half only, and §11.4 step 1 can be audited as soon as its command exists.
+   That reading is A0's recommendation as the Owner accepted it (disposition §8); a correction from the
+   Owner replaces it.
 4. **No interim producer.** In particular no `postgres`-run script, no `app_maintenance` writer and no
    temporary trigger. A record written by a bypassing role proves nothing about the policy that will
    admit the real producer (`RFC-2026-016` §5) and would be the first rows of a log whose provenance
@@ -401,21 +456,49 @@ None of these is written by this RFC; each is owed by the batch that lands the h
 
 ### 8.1 Static, by the lint that exists
 
-1. **No trigger function writes an audit row.** No function that returns `trigger`, and no function
-   reachable from one, contains an `INSERT` into `app.audit_logs` or `app.security_events`; the
-   functions whose bodies do insert into them are exactly the names the coverage map gives in rows with
-   `producer_path: "command"` (and their worker counterparts, which are not migration functions); and
-   no trigger is created on either table except `140`'s refusal triggers. **Drift:** a trigger function
-   inserting an audit row, appended to a migration, is refused by name. (The earlier wording — "no
-   function body in migrations inserts into an audit table" — would have refused this RFC's own command
-   producer, which is a migration-created function; Q0's F1.) This is answer B as a negative.
-2. **Exactly two policies on `app.audit_logs`**, one `TO app_worker`, one `TO app_command`, both
-   `FOR INSERT`, each `WITH CHECK` pinned as a literal the way `RFC-2026-020` §6.1/5 pins
-   `app_authz`'s. On `app.security_events`, none until Q-026-9 is answered (§3.7).
-3. **Grants:** `app_command` holds `INSERT` on `app.audit_logs` and nothing else on it, and nothing on
-   `app.security_events` until Q-026-9; `app_worker`'s existing `SELECT` is reviewed (the producer
-   needs none) and either justified or revoked; no other role gains anything. `EXECUTE` on
-   `app.jwt_subject()` is held by `app_command` alone.
+1. **Only the pinned producer set inserts an audit row, and no trigger reaches one** — answer B as a
+   negative, stated over the catalog so a lint can decide it (Q0R-F2: the earlier "no function
+   reachable from one" needed a call graph through PL/pgSQL bodies and had no decidable form). Read
+   after `migrate-clean` from `pg_proc`, `pg_trigger` and `pg_namespace`, every function's `prosrc`
+   tokenised by the repository's one SQL lexer (`scripts/db/sql-lexer.mjs`: comments dropped, string
+   and dollar-quoted bodies read at every nesting level by `walkLevels`, identifiers folded):
+   - **(a) the producer set is exact.** The functions in schemas `app` and `private` — every one,
+     `SECURITY DEFINER` or `SECURITY INVOKER` — whose code names `app.audit_logs` or
+     `app.security_events` are exactly the pinned producer set: the function names the coverage map
+     gives in rows with `producer_path: "command"`. Each of them is `SECURITY DEFINER`, owned by
+     `app_command`, with `search_path=""` (`RFC-2026-019` §4/2), and none returns `trigger`. `140`'s
+     apply-time probe that inserts into `app.audit_logs` from a `DO` block (`140_audit.sql:895`) is not
+     in `pg_proc`, so it is not matched, which is why the rule reads the catalog and not migration text.
+   - **(b) a producer is an entry point, never a callee.** No function in `app` or `private` names a
+     producer function. So no trigger function reaches one, directly or through another function. The
+     server tier reaches a producer by RPC (`RFC-2026-019` §4/2), and §8.1/6 holds who may.
+   - **(c) no dynamic SQL.** No function in `app` or `private` contains a PL/pgSQL `EXECUTE` statement.
+     The lexer cannot see text computed at run time (its own header says so), so a name built in a
+     string would pass (a) and (b); this rule is what keeps them decidable. A later function that needs
+     dynamic SQL is added to a pinned exemption list, empty today (read from the migrations, not
+     measured on a catalog), in a diff a reviewer reads, and each exemption is held to naming no audit
+     table and no producer in what it executes.
+   - **(d) the triggers on the two audit tables are exactly `140`'s refusal triggers**, by name and
+     function (`pg_trigger`).
+
+   **Drifts, each owed as a self-test of the rule:** Q0's round r3 drift — a `SECURITY INVOKER`
+   trigger function on `app.workspaces` inserting into `app.audit_logs`, appended to `140_audit.sql`,
+   which `make db-migrate-clean` passed at exit 0 — is refused by (a), by name; the same body made
+   `SECURITY DEFINER` is refused by (a) whatever the SECURITY DEFINER probe says; a trigger function
+   that calls a producer is refused by (b); a producer that runs `execute 'insert into app.' || ...` is
+   refused by (c); a fourth trigger on `app.audit_logs` is refused by (d). Each is applied to the
+   working tree, measured red, and restored, in the batch that lands the command half. (The earliest
+   wording — "no function body in migrations inserts into an audit table" — would have refused this
+   RFC's own command producer; Q0's F1.)
+2. **Exactly two policies on each audit table**, one `TO app_worker`, one `TO app_command`, all
+   `FOR INSERT`, each `WITH CHECK` pinned as a literal the way `RFC-2026-020` §6.1/5 pins `app_authz`'s:
+   §3.2's and §3.3's on `app.audit_logs`, §3.7's two on `app.security_events`. Each lands with its half
+   (§9).
+3. **Grants:** `app_command` holds `INSERT` on each audit table and nothing else on either;
+   `app_worker`'s existing `SELECT` is reviewed (the producer needs none) and either justified or
+   revoked; no other role gains anything. `EXECUTE` on `app.jwt_subject()` is held by `app_command`
+   alone; `EXECUTE` on `app.is_active_member(uuid)` by `authenticated` and `app_command` and nobody
+   else.
 4. **Every coverage-map row names a producer** — `command` with a function name, or `worker` with a
    job type — and `producer_decision` cites this RFC. The coverage-map test that today refuses any
    value but `UNDECIDED` is changed in the same diff.
@@ -428,7 +511,8 @@ None of these is written by this RFC; each is owed by the batch that lands the h
 
 ### 8.2 Isolation cases (§8.6 shape)
 
-Every case below is on `app.audit_logs`; `app.security_events` has no producer until Q-026-9 (§3.7).
+Cases 6-20 are on `app.audit_logs`; case 21 holds §3.7's two policies on `app.security_events`. Each
+case is owed by the batch that lands the half it exercises.
 
 6. Command, succeeded: as an acting user who can reach the target, the command changes the row and
    exactly one audit row exists with that actor, that scope (copied, §3.6) and `succeeded`.
@@ -437,7 +521,8 @@ Every case below is on `app.audit_logs`; `app.security_events` has no producer u
    or restrictive policy the `succeeded` row violates — then calls the command. The action's change is
    absent afterwards, and the caller receives an error, not a typed `denied` result. A test stub is not
    enough: it proves PostgreSQL's transaction semantics, not that the landed producer writes in the
-   action's transaction (Q0's F6). Without this case §3.4's central claim is a sentence.
+   action's transaction (Q0's F6). Without this case §3.4's central claim is a sentence. This injection
+   refuses every row, `denied` included, so it does **not** stand in for case 16 (Q0R-F1).
 8. Command, denied: the action's change is absent, one `denied` row exists with an `error_code`, and
    the function returned rather than raised.
 9. Forged actor: a stub command inserting `actor_id` other than the claims' subject is refused by the
@@ -454,52 +539,111 @@ Every case below is on `app.audit_logs`; `app.security_events` has no producer u
     something bypassed row security is indistinguishable otherwise (`RFC-2026-016` §5).
 15. `140`'s two cases that assert today's refusal at the policy layer flip, as `RFC-2026-022` §8
     predicts, and are rewritten in the same diff — never left green by accident.
-16. **An audit-write refusal is not a user denial** (§3.4): with the `succeeded` audit row refused by
-    the policy, the call raises, the action's change is absent, and **no** `denied` row exists.
+16. **An audit-write refusal is not a user denial** (§3.4), with the refusal injected so that a
+    function recording denials wrongly fails the case (Q0R-F1). For each landed command function, as
+    owner inside the case's transaction, add a restrictive policy on `app.audit_logs`,
+    `for insert to app_command with check (outcome <> 'succeeded')`: it refuses the `succeeded` row
+    with `42501`, the SQLSTATE a handler catching `insufficient_privilege` would swallow, and admits a
+    `denied` row. Then call the command on an action the acting user may perform, and assert: the call
+    **raises** `42501` (it does not return a typed `denied` result), the action's change is absent, and
+    **no** audit row exists for the call's `request_id`. **Control, same injection:** call the command
+    on an action it refuses; it returns its typed `denied` result and exactly one `denied` row exists —
+    so the injection is shown to admit the row a wrong function would write. **Self-test, in the batch
+    that lands the first command:** a copy of the command with the `succeeded` `INSERT` moved inside the
+    exception block and a handler catching `insufficient_privilege` fails this case (Q0 measured that
+    shape returning `denied` with one `denied` row under this injection). Two injections are named as
+    **not** acceptable, because the wrong function passes them: `with check (false)` (it refuses the
+    handler's `denied` row too, so both functions raise) and case 7's CHECK (`23514`, which the handler
+    does not catch).
 17. **Scope is copied from the row, not taken from the inputs** (§3.6): where a command's signature
     admits a business or page argument, a call whose argument names a business or page different from
     the changed row's records the row's scope; where no signature admits one, a static rule on the
     function body (scope columns sourced from `RETURNING`) stands in for it (Q0's F7).
-18. **A refusal row names no unadmitted scope:** a command writing `denied` with a business id the
-    acting user cannot reach — another tenant's — is refused by the policy (`deniedBy: 'rls'`); the
-    same row with `business_profile_id` and `page_context_profile_id` null is admitted (A1's prototype
-    case 9, inverted).
+18. **A refusal row names no scope:** with the acting user an active, unnarrowed member of its own
+    workspace W, a command writing `denied` in W with `business_profile_id` set — to a business of W,
+    and to another tenant's — is refused by the policy (`deniedBy: 'rls'`); the same with only
+    `page_context_profile_id` set is refused; the same row with both null is admitted (A1's F4-a, case
+    D-H, inverted; the earlier wording of this case, with another tenant's `workspace_id`, would have
+    passed with the gap open).
+19. **Every command row needs membership** (Q-026-1): as an authenticated user, a `denied` row and a
+    `failed` row with `workspace_id` set to another tenant's workspace, and to a `uuid` no workspace
+    has, are each refused by the policy (`deniedBy: 'rls'`); the same rows in a workspace the user is
+    an active member of are admitted. A suspended member's own workspace is refused. Once
+    `RFC-2026-027` lands, a workspace of the user's in each blocked state is refused too.
+20. **The page form is called** (C0-9, A1 F4-a): with the acting user narrowed by a scope row to one
+    page of business B in its own workspace, a `succeeded` row naming B and a page of B outside that
+    scope is refused by the policy; naming B and the page in scope is admitted; naming a page with
+    `business_profile_id` null is refused. Under the earlier literal, which called the business form
+    alone, the first row was admitted.
+21. **`app.security_events`** (§3.7): as `app_worker` with `app.workspace_id` set, an unattributed
+    event and a `system_actor` event in that workspace are admitted, a `user`-attributed event is
+    refused, and an event naming another workspace is refused; as `app_command`, an event attributed to
+    the acting user in a workspace it is an active member of is admitted, and one naming another actor,
+    no actor, or another tenant's workspace is refused. With either policy dropped its admitted half
+    fails (the negative control of case 14, for this table).
 
 ## 9. Migrations this implies later (none in this batch)
 
 In batch `141`'s range, A0's per the registry, each a forward migration and never an edit to `140`:
 
-1. **Command half** (after `RFC-2026-023` is approved and the worker RFC exists, or earlier if Q-026-6
-   says so): `grant insert on app.audit_logs to app_command`; the `TO app_command` policy on
-   `app.audit_logs`; `grant execute on function app.jwt_subject() to app_command`; an apply-time block
-   asserting §8.1/2-3 and §8.1/6. Lands with, or after, the first command function.
-   `app.security_events` gains a grant and a policy only as Q-026-9 decides.
-2. **Worker half** (after `DATA-DEC-03` and `RFC-2026-022` §7): the `TO app_worker` policy on
-   `app.audit_logs` (and on `app.security_events` only as Q-026-9 decides);
-   `private.as_service()` gains its workspace argument (`RFC-2026-022` §8); the review of
-   `app_worker`'s `SELECT`.
+1. **Command half** (after `RFC-2026-023` is approved, with or after its first command function; not
+   after the worker RFC, as Q-026-6 was answered): `grant insert on app.audit_logs to app_command` and
+   the `TO app_command` policy of §3.3; `grant insert on app.security_events to app_command` and §3.7's
+   command policy; `grant execute on function app.jwt_subject() to app_command` and on
+   `app.is_active_member(uuid)`; an apply-time block asserting §8.1/2-3 and §8.1/6 for the command
+   half.
+2. **Worker half** (after `DATA-DEC-03` and `RFC-2026-022` §7): the `TO app_worker` policies of §3.2 on
+   `app.audit_logs` and §3.7 on `app.security_events`; `private.as_service()` gains its workspace
+   argument (`RFC-2026-022` §8); the review of `app_worker`'s `SELECT`.
 3. **Per audited action**, in the batch that lands its command or job: the revocation §5.5 requires.
-   The first is the owner's `UPDATE` of `app.workspaces.lifecycle_state`, which the §11.4 closing
-   command replaces.
+   The first one is already done ahead of its command: batch 170's
+   `170_workspace_lifecycle_not_client_writable.sql` revoked the client `UPDATE` of
+   `app.workspaces.lifecycle_state` (Q-026-5, answered *revoke*); the §11.4 closing command lands with
+   nothing to revoke for that column.
 4. **Lint, in the same diffs:** `audit-coverage-map.json`'s `producer_path`; the two
-   `service-policy-map.json` rows re-confirmed (and the map's producer question of §4 settled); the
-   `roleScopedCompleteness` question of §4; `superseded.json` entries for any earlier apply-time block
-   the new policies make false (`140`'s blocks assert "no service policy"; the post-migrate pass will
-   say which).
+   `service-policy-map.json` rows re-confirmed, the map's producer field added (§4, Q-026-7) and its
+   denial wording at `:138` re-confirmed against §3.3/4; the `roleScopedCompleteness` question of §4;
+   §8.1/1's catalog rule and its drifts; `superseded.json` entries for any earlier apply-time block the
+   new policies make false (`140`'s blocks assert "no service policy"; the post-migrate pass will say
+   which).
 
-## 10. Questions this RFC raises
+## 10. Questions this RFC raised, and the Owner's answers
+
+The table keeps each question as it was asked. All nine were answered on 2026-10-04 as A0 recommended
+(§10.1); each answer is folded into the text above. Where a question names a role other than the Owner,
+that role's own acceptance of the answer is still owed (`open_blockers[195]`).
 
 | id | for | question |
 |---|---|---|
-| Q-026-1 | A1 | **To be answered before approval.** Under §3.3/3 any authenticated client, through a command written correctly to §3.4, can append undeletable `denied`/`failed` rows attributed to itself into any `workspace_id` — another tenant's, or one that does not exist (measured on A1's prototype). Either (a) every `app.audit_logs` row from a command requires the acting user's active membership (or the workspace's existence through a definer helper), and a refusal about a workspace the user cannot reach is recorded elsewhere — a `security_events` row in a scope the actor can reach, which depends on Q-026-9 — or not recorded, beside Q-026-4; or (b) the arm stays, and this RFC states the cross-tenant append and the volume bound (a server-tier rate limit) that makes it acceptable. `service-policy-map.json:138`'s denial wording is re-confirmed either way. |
+| Q-026-1 | A1 | **To be answered before approval** (answered: §10.1). Under the earlier §3.3/3 any authenticated client, through a command written correctly to §3.4, can append undeletable `denied`/`failed` rows attributed to itself into any `workspace_id` — another tenant's, or one that does not exist (measured on A1's prototype). Either (a) every `app.audit_logs` row from a command requires the acting user's active membership (or the workspace's existence through a definer helper), and a refusal about a workspace the user cannot reach is recorded elsewhere — a `security_events` row in a scope the actor can reach, which depends on Q-026-9 — or not recorded, beside Q-026-4; or (b) the arm stays, and this RFC states the cross-tenant append and the volume bound (a server-tier rate limit) that makes it acceptable. `service-policy-map.json:138`'s denial wording is re-confirmed either way. |
 | Q-026-2 | A1 | Does §3.6 (scope copied from the changed row; denial rows carry no business or page unless validated) discharge `open_blockers[191]` (6) and `[32]`, or is a policy-side check still owed? |
 | Q-026-3 | A1, A6 | `occurred_at` for a worker projecting an external event (a provider's publish confirmation, a payment webhook): the projection's time or the provider's? `CTR-AUD-001` does not say. |
 | Q-026-4 | A1 | Refusals that never reach a producer — RLS refusals of direct client statements, authentication failures, platform-scope events (`open_blockers[191]` (7)) — are unrecorded under B. Is that accepted until G1, or does SEC-014 need a producer before then? The same question covers a recorded denial lost because the client controls the transaction's end (§3.4); if accepted, the deployment pins the request tier so a client cannot ask for a rollback, when that configuration exists. |
-| Q-026-5 | Owner, A1 | Until the §11.4 closing command exists, an owner can change `lifecycle_state` directly and unaudited, and under `RFC-2026-027` that includes setting `access_blocked`. Measured by C0, A1 and Q0 on `e64e1f5`: an `UPDATE` that reads a column (`WHERE id = …`, `RETURNING id`, a `CASE` in `SET`, the PostgREST-shaped CTE) is refused (`42501`) for the six blocked states, and an `UPDATE` that reads none (no `WHERE`, or `where true`, no `RETURNING`) moves **every** active or closing workspace the caller owns to any of the eight states, and nothing the caller does not own; the owner cannot move it back. Revoke the client `UPDATE` of `lifecycle_state` now (no command yet, so nobody can close a workspace), or accept the gap until the command lands? The revoke needs nothing either RFC decides (`open_blockers[195]`). |
+| Q-026-5 | Owner, A1 | Until the §11.4 closing command exists, an owner can change `lifecycle_state` directly and unaudited, and under `RFC-2026-027` that includes setting `access_blocked`. Measured by C0, A1 and Q0 on `e64e1f5`: an `UPDATE` that reads a column (`WHERE id = …`, `RETURNING id`, a `CASE` in `SET`, the PostgREST-shaped CTE) is refused (`42501`) for the six blocked states, and an `UPDATE` that reads none (no `WHERE`, or `where true`, and no `RETURNING` of a column — `returning 1` reads none) moves **every** active or closing workspace the caller owns to any of the eight states, and nothing the caller does not own; the owner cannot move it back. Revoke the client `UPDATE` of `lifecycle_state` now (no command yet, so nobody can close a workspace), or accept the gap until the command lands? The revoke needs nothing either RFC decides (`open_blockers[195]`). |
 | Q-026-6 | Owner | May the command half land with `RFC-2026-023`'s first command function, before the worker RFC? The Owner's words say no audit migration lands before the worker RFC; this asks whether that was meant for both halves. |
 | Q-026-7 | A0, A1 | `service-policy-map.json` cannot key two producers on one `(table, operation)` (§4). Add a producer field, or keep command-path policies out of the map? |
 | Q-026-8 | A6 | `actor` for a worker acting on a user's job: the job's `tenant_context.actor` (the user) or a `system_actor`? The contract permits both and SEC-009's "names its actor" reads either way. |
 | Q-026-9 | A1 (owner of batch `140`), A0 | `app.security_events` (§3.7): which producers write it, and under which predicates written on its own columns? It has no `causation_id`, so the worker's cell predicate is open — a forward migration adding a cause column, a rule such as `actor_kind is null or actor_kind = 'system_actor'`, or no worker writer; and whether a command writes there, under which workspace term (Q-026-1 (a) depends on it). Until answered, it has no writer. |
+
+### 10.1 Decisions taken by the Owner's answers
+
+The Owner's words, verbatim: `ลุยต่อเลย เอาตามแนะนำ` ("Carry on, take the recommendations"), 2026-10-04,
+read by A0 as accepting the recommendation current at the merge of batch rfc-026-027
+(`product-owner-disposition-2026-10-03-batch-rfc-026-027.md` §5, §7 and §8). The Owner had not seen
+the per-question text when writing; that reading is A0's and the Owner may correct it. **None of this
+approves the RFC.**
+
+| id | answer, as A0 recommended | where it is now the design | acceptance still owed |
+|---|---|---|---|
+| Q-026-1 | **Superseded recommendation, option (a):** the acting user's active membership is required for every command row in `app.audit_logs`, so no client writes into another tenant's log; a refusal about a workspace the user cannot reach is not recorded, beside Q-026-4 | §3.3's literal (`app.is_active_member(workspace_id)`), §3.3/2 and /4, §8.2/19 | A1 |
+| Q-026-2 | **Yes on the producer side, no on the policy side:** copying scope from the changed row discharges `open_blockers[191]` (6) and `[32]` for the producer; a policy-side check of the scope relation stays owed with `[32]`'s missing foreign key | §3.6, §3.3/3 | A1 |
+| Q-026-3 | **Projection time** in `occurred_at`; the provider's time stays in the event's own payload | §3.5 | A1, A6 |
+| Q-026-4 | **Accepted until G1 as a recorded gap:** refusals that never reach a producer, refusals about a workspace the user cannot reach, and denial rows lost to a client-controlled rollback; SEC-014's producer for them is owed before Paid Beta | §3.4, §3.3/4, §3.7 | A1 |
+| Q-026-5 | **Revoke** the client `UPDATE` of `workspaces.lifecycle_state` — **done**, by batch 170's `170_workspace_lifecycle_not_client_writable.sql` (merged) | §2/5, §5.5, §9/3 | A1 |
+| Q-026-6 | **Yes:** the command half may land with `RFC-2026-023`'s first command function, before the worker RFC; the Owner's "no audit migration before the worker RFC" binds the worker half only | §6/3, §9/1 | (the Owner's own question) |
+| Q-026-7 | **Add a producer field** to `service-policy-map.json` | §4, §9/4 | A0, A1 (with `open_blockers[191]` (2)) |
+| Q-026-8 | **The job's `tenant_context.actor`** (the user who started it); `system_actor` only for a sweep no user started | §3.5 | A6 |
+| Q-026-9 | **No store change before G1.** The worker writes only unattributed or `system_actor` events (`actor_kind is null or actor_kind = 'system_actor'`, plus the confinement term); the command writes only for its own actor, in a workspace it is an active member of | §3.7, §8.1/2-3, §8.2/21, §9/1-2 | A1 (owner of batch `140`), A0 |
 
 ## 11. Provenance, and what a reviewer should discount
 
@@ -517,12 +661,16 @@ In batch `141`'s range, A0's per the registry, each a forward migration and neve
 - **In the review round, A1 prototyped §3.3 and §3.4 on a scratch cluster** (round r4: the grant, the
   policy as then written, and a command function in §3.4's shape, with `app.is_active_member` standing
   in for `RFC-2026-023`'s helper, which does not exist). That measured the cross-tenant append (§3.3/3),
-  the refusal-row scope gap (now held by the policy), the SQLSTATE overlap (§3.4) and fail-closed
+  the refusal-row scope gap (now closed by §3.3/4: a refusal row names no scope), the SQLSTATE overlap (§3.4) and fail-closed
   atomicity. It is evidence for this text, not the execution `RFC-2026-020` §6.2 requires of the batch
   that lands it, and the revised policy of §3.3 has not been executed.
 - **The actor binding's residual** (§3.3/1): a session that can set `request.jwt.claims` and execute a
   command function writes as any user. §8.1/6 confines `EXECUTE` to `authenticated`; what remains is
   a `SECURITY DEFINER` function that rewrites the claims before it writes, which only review catches.
+- **Batch rfc-text (2026-10-04) changed the text, and executed nothing.** The literal of §3.3, the two
+  policies of §3.7, the catalog rule of §8.1/1 and cases 16 and 18-21 are written from the review
+  rounds' measurements and the Owner's answers; none has run on a cluster. The membership term reuses
+  `011`'s `app.is_active_member`, which exists; `RFC-2026-023`'s two helpers do not exist yet.
 - No migration, policy, grant, lint file, test or work-package field other than the writable path that
   lets this file exist was changed to write it.
 
