@@ -126,3 +126,42 @@ batch leaves owed that no other blocker holds.
 - It does not answer any question the Owner has not answered. The approvals, the ratification and the
   number are the Owner's decisions taken through §1's delegation, recorded where each is taken; that the
   delegation reaches them is A0's reading, and the Owner's confirmation is owed (§1).
+
+## The Owner's confirmation of A0's plan (appended 2026-10-05; closes `open_blockers[195]` (e))
+
+C0's re-check (R1) found the approvals resting on A0's reading of a general delegation, with the
+Owner's confirmation still owed. The conversation holds that confirmation. It is transcribed here
+verbatim.
+
+The Owner first wrote `คุณตะลุยไล่ไปได้เลนไม่ต้องรอผม` / `เอาตามที่คุณแนะนำทุกอย่าง`. A0 replied with
+its plan. These are A0's words to the Owner, in Thai as sent:
+
+> แผนต่อจากนี้:
+> 1. batch RFC-026 §8.1/1 ที่รันอยู่: พอเสร็จจะจดว่า Q-026-10 ใช้ทางเลือก (iii) คือยอมรับช่องนี้ไว้จนถึง Paid Beta แล้ว merge
+> 2. batch อนุมัติ:
+>    - RFC-026/027 เปลี่ยนเป็น Approved โดยระบุว่ามาจากคำแนะนำของผมที่คุณมอบอำนาจไว้ และ A1 รีวิวแล้ว ทั้งสองฉบับมีผลก็ต่อเมื่อ dependency ใน §9 ครบ
+>    - รับรองค่า SLO ตามที่เสนอไว้
+> 3. migration ของ RFC-027: ปิดช่องที่สมาชิกของ workspace ซึ่งถูกระงับแล้วยังเห็นข้อมูลได้ งานนี้ไม่ต้องรอ DATA-DEC-03 จึงทำได้เลย รันครบรอบรีวิวเหมือนเดิม
+
+In English, the plan was:
+
+1. When the running RFC-026 §8.1/1 batch finishes, record Q-026-10 as (iii) and merge.
+2. Run an approvals batch:
+   - mark RFC-026/027 Approved, as A0's recommendation taken through the Owner's delegation, with A1's
+     review; each takes effect only when its §9 dependencies hold;
+   - ratify the proposed SLO values.
+3. Implement RFC-027's migration, with the full review cycle. It does not wait on DATA-DEC-03.
+
+**The Owner replied, verbatim: `ครับ`** ("yes"). This was the Owner's next message after the plan.
+
+That reply confirms all three: the approval of RFC-2026-026 and RFC-2026-027 through the delegation,
+the ratification of the SLO values, and the migration that puts RFC-027 into effect. They are the
+Owner's decisions. A0 executes them; it does not decide them. Two things remain owed:
+
+- the named roles' own acceptances (A1, A1 Identity, A6, Product/Ops), which the repository requires
+  as distinct human roles, on `[194]` and `[195]`;
+- the RFC-2026-020 text, applied by reference.
+
+The qualifiers that read "A0's reading … pending the Owner's confirmation", in the RFC status lines,
+the README, the harness header and the handoff, are superseded by this section. They are not
+rewritten.
