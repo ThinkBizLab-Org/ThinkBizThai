@@ -5,15 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "b0a3809fef6b69f31f0cc2638f904bf5107fd808",
-  "head_revision_or_patch_checksum": "952095fc008fd9adbb92430a8429dd8fcdf57713",
+  "head_revision_or_patch_checksum": "1c7d638582f9b29bd762a85332faffae9615171c",
   "task_ids": [],
   "files_added": [
     "db/foundation/TRY-IT.md",
     "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md",
     "evidence/WP-0A-DB-00/a0-try-it-draft-2026-10-04.md",
+    "evidence/WP-0A-DB-00/a1-batch-try-it-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-try-it-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-try-it-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-try-it-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-try-it.md",
+    "evidence/WP-0A-DB-00/q0-batch-try-it-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-try-it-test-review-2026-10-03.md",
     "scripts/db/try-it.mjs"
   ],
@@ -21,6 +24,7 @@
     "db/foundation/lint/audit-coverage-map.json",
     "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/authz-proofs.mjs",
+    "scripts/db/generate-pinned-grants.mjs",
     "scripts/db/rls-smoke.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
@@ -44,7 +48,8 @@
     "The local draft (cf47b11, c90ac1f on draft/wp-db00-try-it, drafted on 5bde893) is cherry-picked onto b0a3809 (4539d92, 99fd697); its conflicts with #177 were the assertion floor and two digests only. try-it imports testHostRefusal and psqlLex from psql-driver.mjs, so it uses main's guard and the one lexer as #177 left them without a code change.",
     "The Owner runs it on macOS with Homebrew PostgreSQL 17 and Node 24.20.0 at /Users/bank/.local/node-v24.20.0/bin; a newer Node on PATH gets a note, not a refusal.",
     "The measurement used this run's private scratch directory and the port try-it picked (55420): the run's assigned 5507 is one of try-it's reserved ports, refused by design (measured), and the refusal was not weakened. migrate-clean and rls-smoke ran on 127.0.0.1:5507 as assigned.",
-    "THE REVIEW ROUND (2026-10-04): the C0, A1 and Q0 reports are cherry-picked (849890f, 739ea82, dfb524a); dd11a35 fixes what they found and 952095f records it (evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Review round (2026-10-04)`). Still no migration, no dependency, no root configuration and no new test; it decides nothing. A1's answer to open_blockers[196] (2) (a per-cluster credential is wanted) is recorded there; implementing it is owed."
+    "THE REVIEW ROUND (2026-10-04): the C0, A1 and Q0 reports are cherry-picked (849890f, 739ea82, dfb524a); dd11a35 fixes what they found and 952095f records it (evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Review round (2026-10-04)`). Still no migration, no dependency, no root configuration and no new test; it decides nothing. A1's answer to open_blockers[196] (2) (a per-cluster credential is wanted) is recorded there; implementing it is owed.",
+    "THE FIX AFTER THE RE-CHECKS (2026-10-04): the C0, A1 and Q0 re-checks are cherry-picked (b0dc60f, 60e77eb, e71308f from be76256, e77da51, 33214e2); 3b64fd3 fixes A1 R-F1 (the per-cluster scram-sha-256 password) and C0-TIR-1 / A1 R1 (the runners entered by real paths), and 1c7d638 records it (evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Fix after the re-checks (2026-10-04)`; open_blockers[196] appended). Still no migration, no dependency, no root configuration and no new test; it decides nothing. The password reaches connections through PGPASSFILE (the file named by the brief's PGPASSFILE option), never PGPASSWORD or the URL, so redactConnection has no password to redact; the grep of every printed line is the measure."
   ],
   "acceptance_results": [
     {
@@ -76,6 +81,21 @@
       "criterion": "(review round) Every C0, A1 and Q0 finding acted on or recorded as owed with a reason",
       "result": "met",
       "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Review round (2026-10-04)`: Q0-TI-1/C0-TI-1 (migrateCleanProblem; the four DB runners on pathToFileURL), A1 F2 (downRefusal, pidFileProblem, the data_directory probe), A1 F3 (realpathThroughAncestor), Q0-TI-2/3/4, A1 F4, the TRY-IT.md wording (A1 F1 (a), C0-TI-2, C0-TI-3, C0-TI-5, C0-TI-7, C0-TI-4's proves text); owed: A1 F1 (b) scram-sha-256, `up` end to end on this round's code (no permitted port), two runners outside ownership"
+    },
+    {
+      "criterion": "(fix after the re-checks) A1 R-F1 before merge: no trust; a random per-cluster password, stored only in the marker-guarded cluster directory (0600), read by demo, psql and down from there, never printed",
+      "result": "met",
+      "evidence": "evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md, section `Fix after the re-checks (2026-10-04)`: initdb --auth=scram-sha-256 --pwfile; 32 random bytes base64url; <dir>/pgpass mode 600 (measured); on 55420 a connection with no password exits 2 (`fe_sendauth: no password supplied`), a wrong one exits 2 (`FATAL:  password authentication failed for user \"postgres\"`), the file connects; demo 13 of 13; the password in pgpass alone, 0 hits in every printed line and log; M-trust, M-mode, M-pgpassword, M-psql-line red"
+    },
+    {
+      "criterion": "(fix after the re-checks) C0-TIR-1 / A1 R1: every runner using the bare entry check compares real paths; a static assertion that none is left; invocation through a symlink runs main()",
+      "result": "met",
+      "evidence": "the same section: run.mjs, rls-smoke.mjs, authz-proofs.mjs, run-isolation.mjs, try-it.mjs, generate-pinned-grants.mjs on realpathSync; the contract test scans scripts/ and tests/ (only the Integration Owner's two left) and runs three runners through a symlink; measured through a link to the worktree, each of the six refuses or runs; M-entry-tryit, M-entry-runner red"
+    },
+    {
+      "criterion": "(fix after the re-checks) C0-TIR-2/3 and Q0-TIR-1/2 corrected or recorded",
+      "result": "met",
+      "evidence": "open_blockers[196], appended: (7) corrected (Q0 measured it on dd11a35) and closed; C0-TIR-2 (TRY-IT.md now says `a symlink that resolves`) and C0-TIR-3 stated limits; Q0-TIR-1 the scope count (19 at 20623f2, 23 now)"
     }
   ],
   "tests": [
@@ -178,34 +198,91 @@
       "command": "round r2 (dd11a35 committed): re-initdb, shim, make db-migrate-clean, make db-rls-smoke",
       "exit_code": 0,
       "result": "migrate-clean 0 (ok in 5180ms); rls-smoke 0 (1087, 6, ok in 1271ms); cluster stopped and removed, nothing listens on 5507"
+    },
+    {
+      "command": "node -v before every measured run of the fix after the re-checks",
+      "exit_code": 0,
+      "result": "v24.20.0"
+    },
+    {
+      "command": "npm run check on the tree that became 3b64fd3, branch name agent/claude/WP-0A-DB-00-batch-try-it",
+      "exit_code": 0,
+      "result": "tests 685, pass 685, fail 0 (a first run exited 86: the integrity manifest not yet rebuilt; a second exited 70: the secret scan matched the name SECRET_FILE, renamed PRIVATE_FILE_OPTIONS)"
+    },
+    {
+      "command": "node scripts/commit-when-clean.mjs -> 3b64fd3 (code) and -> 1c7d638 (evidence), branch name",
+      "exit_code": 0,
+      "result": "clean: exit 0 — tests 685, pass 685, fail 0, both (the evidence commit was refused once, exit 70, by the secret scan on two literal PGPASSWORD assignments and the old constant name in the plan, reworded)"
+    },
+    {
+      "command": "node scripts/verify-branch-scope.mjs b0a3809 WP-0A-DB-00 at 3b64fd3",
+      "exit_code": 0,
+      "result": "all 23 changed path(s) are declared, and every amendment explains one"
+    },
+    {
+      "command": "foundation-contract assertions by the guard's own rule at 3b64fd3",
+      "exit_code": 0,
+      "result": "1119 (1101 + 18); floor 1101 -> 1119; 81 tests unchanged"
+    },
+    {
+      "command": "six mutations of the fix (private mutate.mjs), the one test each",
+      "exit_code": 1,
+      "result": "M-trust, M-mode, M-pgpassword, M-psql-line, M-entry-tryit, M-entry-runner each red with its named assertion; each file restored (sha256 equal), git status clean"
+    },
+    {
+      "command": "try-it up (it chose 55420), demo, psql, down end to end, private dir; auth probes; password grep",
+      "exit_code": 0,
+      "result": "up 0 (54 applied), demo 0 (13 of 13, a wrong PGPASSWORD value inherited), psql 0 (PGPASSFILE-prefixed line, which connects as printed), down 0; psql with no password exit 2 fe_sendauth, with a wrong one exit 2 FATAL password authentication failed, with the pgpass file 0 (SCRAM-SHA-256 verifier); make db-rls-smoke with the printed settings 0 (1087, 6); the password in pgpass alone. Repeated on 3b64fd3 committed: the same"
+    },
+    {
+      "command": "a second cluster on 3b64fd3: up, pg_ctl stop, demo; the saved postmaster.pid put back, demo, down",
+      "exit_code": 0,
+      "result": "0; demo 1 \"is not running\"; demo 1 \"does not answer on 127.0.0.1:55420\"; down 0 \"nothing answers ... nothing is signalled\", deleted"
+    },
+    {
+      "command": "the six runners through a symlink to the worktree, no DB_TEST_URL",
+      "exit_code": 1,
+      "result": "try-it psql (live cluster) 0 with its output; try-it down --dir <none> via /tmp and the link 1 \"holds no marker\"; run.mjs migrate-clean 1, rls-smoke 1, authz-proofs 1, generate-pinned-grants --check 2, run-isolation 1, each its own refusal"
+    },
+    {
+      "command": "half-made: up with no initdb on PATH, then the printed down",
+      "exit_code": 0,
+      "result": "up 1 naming initdb; pgpass and the marker left, the pwfile already removed; down 0, deleted"
+    },
+    {
+      "command": "rounds 1-4 on 127.0.0.1:5507 (fresh initdb --locale=C -A trust -U postgres, TCP only, LC_ALL=C, shim first): make db-migrate-clean, make db-rls-smoke; rounds 3 and 4 on 3b64fd3 committed",
+      "exit_code": 0,
+      "result": "each round 0, 0: 54 applied, ok in 4980/5026/5123/5148ms; 1087 isolation cases, 6 claims, ok in 1210/1223/1248/1244ms; nothing listens on 5507 after"
     }
   ],
-  "security_privacy_cost_impact": "Security: a local tool only; no grant, policy, role, schema or CI change. try-it makes a cluster outside the repository that listens on 127.0.0.1 only, over TCP, with no unix socket, and trusts local connections while it is up (any process on the machine can connect as the superuser; it holds synthetic fixtures only; TRY-IT.md says so; A1 owes the call on a per-cluster password, open_blockers[196] (2)). Every URL it builds passes the repository's testHostRefusal narrowed to loopback names and a non-reserved port; it refuses 5432 and the measurement ports; `down` deletes only a directory holding its marker and nothing but what `up` made. Privacy: synthetic fixtures only, no real data. Cost: none; no dependency, no service. REVIEW ROUND: A1 F1 is MEDIUM: trust on loopback is the superuser and can run operating-system commands as the Owner while a cluster is up; TRY-IT.md's Safety section now says so and says to run `down` as soon as you are done; a per-cluster scram-sha-256 password is owed before a make/npm entry point (open_blockers[196] (2)). `down` now acts only when the marker's port passes tryItRefusal, no owned entry is a symlink, postmaster.pid names this data directory and port, and the server on that port serves this data directory (A1 F2); the repository check reads a not-yet-made path through its nearest existing ancestor (A1 F3).",
-  "migration_and_data_impact": "None. No migration file is added or edited. scripts/db/rls-smoke.mjs moves its helper and fixture loading, unchanged, into the exported loadHelpersAndFixtures(), which main() calls (rls-smoke 1087 cases, twice). db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged). Review round: still no migration. run.mjs, rls-smoke.mjs, authz-proofs.mjs and run-isolation.mjs change only how main() is entered (pathToFileURL); migrate-clean and rls-smoke measured twice on fresh clusters (1087 cases each); no drift needed and 140_audit.sql untouched.",
-  "compatibility_impact": "Tests stay 685 (no test added); foundation-contract's assertion floor 1044 -> 1074 (main counted 1054; 20 assertions added to the existing live-target refusal test); test floor and name digest unchanged; evidence/VERIFICATION.md unchanged. rls-smoke.mjs gains one export (loadHelpersAndFixtures). New: scripts/db/try-it.mjs, db/foundation/TRY-IT.md. No Makefile target or npm script (owed to the Integration Owner). Review round: foundation-contract's assertion floor 1074 -> 1101 (27 assertions in the same test); still 685 tests. try-it's printed next commands now name the script by its full path. try-it exports SCRIPT, shellQuote, realpathThroughAncestor, insideRepo, migrateCleanProblem, pidFileProblem and downRefusal.",
+  "security_privacy_cost_impact": "Security: a local tool only; no grant, policy, role, schema or CI change. try-it makes a cluster outside the repository that listens on 127.0.0.1 only, over TCP, with no unix socket, and trusts local connections while it is up (any process on the machine can connect as the superuser; it holds synthetic fixtures only; TRY-IT.md says so; A1 owes the call on a per-cluster password, open_blockers[196] (2)). Every URL it builds passes the repository's testHostRefusal narrowed to loopback names and a non-reserved port; it refuses 5432 and the measurement ports; `down` deletes only a directory holding its marker and nothing but what `up` made. Privacy: synthetic fixtures only, no real data. Cost: none; no dependency, no service. REVIEW ROUND: A1 F1 is MEDIUM: trust on loopback is the superuser and can run operating-system commands as the Owner while a cluster is up; TRY-IT.md's Safety section now says so and says to run `down` as soon as you are done; a per-cluster scram-sha-256 password is owed before a make/npm entry point (open_blockers[196] (2)). `down` now acts only when the marker's port passes tryItRefusal, no owned entry is a symlink, postmaster.pid names this data directory and port, and the server on that port serves this data directory (A1 F2); the repository check reads a not-yet-made path through its nearest existing ancestor (A1 F3). FIX AFTER THE RE-CHECKS (A1 R-F1): the trust described above is gone. Each cluster gets a random 32-byte password; initdb stores only its scram-sha-256 verifier; the password lives in <dir>/pgpass (0600, exclusive create) and reaches connections through PGPASSFILE (an inherited PGPASSWORD is dropped); it is never in a URL, an argument or printed output (measured by grep). A process that cannot read that file is refused (measured: no password, and a wrong one). Not covered, and TRY-IT.md says so: a program running as the Owner can read the file, and the superuser can run OS commands, so `down` promptly stays the advice. The runners now enter main() by real paths (C0-TIR-1, A1 R1).",
+  "migration_and_data_impact": "None. No migration file is added or edited. scripts/db/rls-smoke.mjs moves its helper and fixture loading, unchanged, into the exported loadHelpersAndFixtures(), which main() calls (rls-smoke 1087 cases, twice). db/foundation/lint/audit-coverage-map.json changes only its 33 blocker line fields (-1 each: the manifest's amendment list shrank by one line; indexes and quotes unchanged). Review round: still no migration. run.mjs, rls-smoke.mjs, authz-proofs.mjs and run-isolation.mjs change only how main() is entered (pathToFileURL); migrate-clean and rls-smoke measured twice on fresh clusters (1087 cases each); no drift needed and 140_audit.sql untouched. Fix after the re-checks: still no migration. The six runners change only how main() is entered (real paths); migrate-clean and rls-smoke measured four times on fresh clusters (two on 3b64fd3 committed), 1087 cases each; no drift needed and 140_audit.sql untouched.",
+  "compatibility_impact": "Tests stay 685 (no test added); foundation-contract's assertion floor 1044 -> 1074 (main counted 1054; 20 assertions added to the existing live-target refusal test); test floor and name digest unchanged; evidence/VERIFICATION.md unchanged. rls-smoke.mjs gains one export (loadHelpersAndFixtures). New: scripts/db/try-it.mjs, db/foundation/TRY-IT.md. No Makefile target or npm script (owed to the Integration Owner). Review round: foundation-contract's assertion floor 1074 -> 1101 (27 assertions in the same test); still 685 tests. try-it's printed next commands now name the script by its full path. try-it exports SCRIPT, shellQuote, realpathThroughAncestor, insideRepo, migrateCleanProblem, pidFileProblem and downRefusal. Fix after the re-checks: foundation-contract's assertion floor 1101 -> 1119 (18 assertions in the same test); still 685 tests. try-it exports PGPASS, PWFILE, PASSWORD_BYTES, newPassword and pgpassLine, and OWNED_ENTRIES gains pgpass and initdb.pwfile; `up` prints `PGPASSFILE=<dir>/pgpass DB_TEST_URL=<url>` and `psql` a PGPASSFILE-prefixed line, so anyone pointing a make target at a try-it cluster puts both settings in front. A try-it cluster made by an earlier version of this branch (trust) is still removed by `down`. generate-pinned-grants.mjs changes only its main() entry.",
   "known_limitations": [
     "Measured on macOS (Darwin 25.6) with Homebrew PostgreSQL 17.11 and Node 24.20.0 only; Linux unmeasured, Windows not claimed (open_blockers[196] (3)).",
     "The demo shows the database rules on a local copy: no app, no service-worker path (no app_worker step; open_blockers[113]), no provisioned Supabase instance; 13 representative checks, not the suite.",
     "The demo's four counts steps pin today's fixture; CI holds the plan statically, not the counts live (open_blockers[196] (4)).",
-    "Trust auth on loopback while a cluster is up (open_blockers[196] (2)).",
+    "A per-cluster password, not a per-user boundary: a program running as the Owner can read <dir>/pgpass, and the database superuser can run OS commands as the Owner, so `down` as soon as done stays the advice (TRY-IT.md Safety).",
     "The cherry-picked draft commit's message says assertion floor 1014 -> 1030, true on 5bde893; on main the floor is 1074, set by 1298dbe.",
-    "Review round: try-it `up`, `demo`, `psql`, `down` were not run end to end on dd11a35: try-it refuses the round's only permitted port (5507), and no other was allowed. The changed parts are measured piecewise on a 5507 cluster and held statically; a stopped cluster and a stale postmaster.pid are not measured live (open_blockers[196] (7)).",
+    "Review round: A0 did not run try-it `up`, `demo`, `psql`, `down` end to end on dd11a35 (its only permitted port, 5507, is reserved); Q0's re-check did (55477, 55420), with a stopped cluster and a stale postmaster.pid, and this fix ran them again on 3b64fd3 (open_blockers[196] (7), closed).",
     "scripts/verify-clean-run.mjs and scripts/refresh-author-handoff.mjs still enter main() by `file://${process.argv[1]}` (outside this package's ownership; open_blockers[196] (5)).",
-    "When nothing answers on the marker's port, `down` signals nothing and deletes the directory (open_blockers[196] (8))."
+    "When nothing answers on the marker's port, `down` signals nothing and deletes the directory (open_blockers[196] (8)).",
+    "A dangling symlink into the repository is not resolved by insideRepo; `mkdir` through it throws an uncaught ENOTDIR before anything is written (C0-TIR-2, a stated limit on open_blockers[196]).",
+    "attached() (demo, psql) checks that a server answers on the marker's port, not that it serves this directory; another try-it cluster there refuses this directory's password (read, not measured; C0-TIR-3)."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[196] holds what this batch leaves owed, each with its owner: a make/npm entry point (Integration Owner), trust auth on loopback (A1), platforms (A0), the demo's pinned counts (A0), the other runners' entry check (A0), independent review and test (C0, Q0, A1); cross-referenced to [113] and [188]. None is stop-the-line. Review round: (2) answered by A1 (a per-cluster credential is wanted; owed to A0), (5) measured and fixed for the four DB runners, (7) and (8) added.",
+    "open_blockers[196] holds what this batch leaves owed, each with its owner: a make/npm entry point (Integration Owner), trust auth on loopback (A1), platforms (A0), the demo's pinned counts (A0), the other runners' entry check (A0), independent review and test (C0, Q0, A1); cross-referenced to [113] and [188]. None is stop-the-line. Review round: (2) answered by A1 (a per-cluster credential is wanted; owed to A0), (5) measured and fixed for the four DB runners, (7) and (8) added. Fix after the re-checks: (2) done (scram-sha-256, a per-cluster password in a 0600 file, PGPASSFILE), so (1) no longer waits on it; (5) extended to symlinked paths for six runners, the Integration Owner's two still owed; (7) closed (measured by Q0 and again here); C0-TIR-2 and C0-TIR-3 recorded as stated limits.",
     "RFC-2026-026, RFC-2026-027 and RFC-2026-023 approval, the SLO ratification, the provisioned-instance measurement (Q170-c), DATA-DEC-03 and the other unanswered Q-ids stay unanswered; this batch does not decide them.",
     "RFC-2026-025 §5: Integration Owner evidence is still owed for every merge A0 presses (open_blockers[188])."
   ],
   "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR of the merge commit. Nothing is applied to any instance and no migration is involved; a cluster a person made with `up` is removed by `down`, and a revert leaves no state behind.",
   "recommended_next_work_packages": [
-    "Re-checks of the review round by C0, Q0 and A1 (dd11a35, recorded in 952095f), ideally with a port in try-it's range so `up`, `demo`, `psql` and `down` run end to end on this code, with a stopped cluster and a stale postmaster.pid. Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
-    "A per-cluster scram-sha-256 password for try-it (A1 F1 (b)) before any make/npm entry point.",
+    "Re-checks of the fix after the re-checks by A1 (R-F1: the password, live on a port in 55420-55479), C0 and Q0 (3b64fd3, recorded in 1c7d638). Then the merge under the standing delegation if the bar of 127 §6 is met; RFC-2026-025 §5 Integration Owner evidence stays owed.",
     "Then ask the Owner to test: the four commands in db/foundation/TRY-IT.md's Quick start, and what they see.",
     "The decisions still unanswered (RFC approvals, SLO ratification, instance access, DATA-DEC-03), unchanged."
   ],
   "reviewer_instructions": [
+    "For the fix after the re-checks: read the plan's `Fix after the re-checks (2026-10-04)` section, then git diff 20623f2..1c7d638 (the three cherry-picked re-checks, 3b64fd3, the record). Run `up` on a port in 55420-55479 and try to connect without the password and with a wrong one; run demo, psql (paste its line) and down; grep everything printed for the password in <dir>/pgpass; invoke a runner through a symlinked path.",
     "For the review round: read the plan's `Review round (2026-10-04)` section, then git diff cee1585..952095f (the three cherry-picked reports, dd11a35, the record). Check each finding's change against its report; re-run the forged `down` probes and the spaced-path runners; run `up` to `down` end to end on a port in 55420-55479 if your brief allows one.",
     "Read evidence/WP-0A-DB-00/a0-batch-try-it-plan-2026-10-03.md first (item -> change -> proof; the full transcript), then git diff b0a3809..1298dbe; the draft record a0-try-it-draft-2026-10-04.md describes the tool as drafted.",
     "Run it yourself on a scratch directory outside the repository: node scripts/db/try-it.mjs up --dir <scratch>, demo, psql, down (with the same --dir). Expect 13 of 13 and the directory gone.",
