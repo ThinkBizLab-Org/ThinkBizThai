@@ -5,16 +5,19 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "f3e6fbcc574ce3f3e66d000f28ec5cf650f6b03f",
-  "head_revision_or_patch_checksum": "b6d65e1592cd88757668f734ac53376dd7730f44",
+  "head_revision_or_patch_checksum": "0ee6248f83efafe3ec56ad535a8576c0fe001b34",
   "task_ids": [],
   "files_added": [
     "architecture/decisions/RFC-2026-026-audit-row-producer.md",
     "architecture/decisions/RFC-2026-027-lifecycle-visibility.md",
     "evidence/WP-0A-DB-00/a0-batch-rfc-026-027-plan-2026-10-03.md",
     "evidence/WP-0A-DB-00/a0-rfc-026-027-draft-2026-10-04.md",
+    "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/a1-batch-rfc-026-027-security-review-2026-10-03.md",
     "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-contract-review-2026-10-03.md",
+    "evidence/WP-0A-DB-00/c0-batch-rfc-026-027-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-rfc-026-027.md",
+    "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-recheck-2026-10-03.md",
     "evidence/WP-0A-DB-00/q0-batch-rfc-026-027-test-review-2026-10-03.md"
   ],
   "files_modified": [
