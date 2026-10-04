@@ -23,6 +23,7 @@ import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
 import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 const MIGRATIONS = 'db/foundation/migrations';
 
@@ -4004,7 +4005,9 @@ async function verify() {
   return 1;
 }
 
-if (import.meta.url === `file://${argv[1]}`) {
+// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
+// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) {
   const target = argv[2];
   if (!target) { stderr.write('usage: node scripts/db/run.mjs <target>\n'); exit(2); }
   exit(target === 'verify' ? await verify() : await runTarget(target));

@@ -4,9 +4,10 @@ This guide gets you from a clone of the repository to a running database you can
 minute, and shows you the row level security rules working. It is for one person on a laptop. It changes
 nothing outside one temporary directory, and `down` deletes that directory.
 
-Everything here is a **local, throwaway copy built the way CI builds its test database**: the same shim,
-the same migrations, the same synthetic fixtures. Nothing is real data, and nothing connects to Supabase
-or any other service.
+Everything here is a **local, throwaway copy built from what CI builds its test database from**: the same
+shim, the same migrations, the same synthetic fixtures. (Not byte for byte the same server: this one runs with
+locale C and with durability settings off, since it is thrown away.) Nothing is real data, and nothing connects
+to Supabase or any other service.
 
 ## Quick start (copy and paste)
 
@@ -29,7 +30,8 @@ cd /Users/bank/ThinkBizThai
 The full path to `node` matters: this Mac also has a newer Node on its `PATH` (`node -v` may print `v26...`).
 The tool still runs on it, but prints a note, and the repository's measurements are on 24.20.0. Every
 "next" command the tool prints is spelled with the full path of the Node that is running it, so you can
-paste those too. If `up` stops part way, it prints the `down` command that removes what it made.
+paste those too, from any directory. If `up` stops part way, it prints the `down` command that removes what it
+made.
 
 On another machine, replace `/Users/bank/ThinkBizThai` with your clone and the Node path with your own
 Node 24.20.0; the rest of this guide explains each step.
@@ -37,11 +39,14 @@ Node 24.20.0; the rest of this guide explains each step.
 ## Prerequisites
 
 - **PostgreSQL 17** with `initdb`, `pg_ctl` and `psql` on your `PATH`. On macOS with Homebrew:
-  `brew install postgresql@17`, then make sure `which initdb` prints a path. Your own Postgres does not
-  need to be running, and if it is, it is not touched: this tool never uses port 5432.
+  `brew install postgresql@17`, then make sure `which initdb` prints a path. If it prints nothing (Homebrew's
+  versioned formulae are usually not linked), run `brew link postgresql@17`, or put
+  `$(brew --prefix postgresql@17)/bin` first on your `PATH`. Your own Postgres does not need to be running,
+  and if it is, it is not touched: this tool never uses port 5432.
 - **Node.js 24.20.0** (the repository's pinned version). If you keep it outside your `PATH`, put it first
   for this shell, for example `export PATH=/Users/<you>/.local/node-v24.20.0/bin:$PATH`.
-- Run every command from the repository root. No `npm install` is needed: the tool uses Node built-ins only.
+- Run the four commands below from the repository root (the commands the tool prints name the script by its
+  full path, so those run from anywhere). No `npm install` is needed: the tool uses Node built-ins only.
 - There is no `make` target or `npm run` script for this yet: both live in protected root configuration, and
   adding one is owed as a request to the Integration Owner. The `node scripts/db/try-it.mjs` lines are the tool.
 
@@ -66,13 +71,16 @@ What `up` does, in order:
    for the `auth` schema and roles Supabase would provide, exactly as CI does.
 4. Run `node scripts/db/run.mjs migrate-clean`, the repository's own target: the prerequisite, every
    migration in order, and every check that target makes after migrating. Its full output is kept in
-   `migrate-clean.log` in the cluster directory.
+   `migrate-clean.log` in the cluster directory. `up` goes on only when that target printed
+   `db-migrate-clean: ok` and applied its scripts; an exit code of 0 alone is not taken as success.
 5. Load the test-identity helpers and the fixture files exactly as `make db-rls-smoke` does.
 6. Print the connection URL (`DB_TEST_URL=...`), a short paragraph on what you now have, and the next three
    commands, ready to paste.
 
-The database is already migrated and loaded, so do not point `make db-migrate-clean` or `make db-rls-smoke`
-at it: both expect an empty database and would fail on the second load, not on a policy.
+The database is already migrated and loaded, so do not point `make db-migrate-clean` at it: it expects an
+empty database and fails on an already-migrated one (`role "app_worker" already exists`), not on a policy.
+`make db-rls-smoke` loads its helpers and fixtures again and passes on it, so that one is safe to run against
+the `DB_TEST_URL` that `up` printed.
 
 ## What the demo shows, and how to read it
 
@@ -108,8 +116,9 @@ The six parts of the tour:
 5. **Nobody writes a row in someone else's name** (batch 127). Owner A creating a content item with the
    editor's id in `created_by` is refused.
 6. **A settled approval cannot be changed** (batches 125 and 126). The approver, and then the owner, try
-   to decide an already-approved request again: the update touches 0 rows, and a second read shows it still
-   says `approved`.
+   to decide an already-approved request again: the update changes 0 rows, which is the proof, and a second
+   read shows the request as it stands (it says `approved`, the value the refused update would also have
+   written, so the 0 rows is what tells the two apart).
 
 The refusals are cases taken from the isolation suite CI runs (`tests/db/identity/isolation-cases.mjs`),
 run through the same runner, so the demo can never disagree with the suite about what they mean. Every step
@@ -141,19 +150,32 @@ After `rollback;` you are the superuser again and nothing you did is kept.
 node scripts/db/try-it.mjs down
 ```
 
-This stops the cluster and deletes its directory. It refuses to delete a directory that has no marker
-written by `up`, or that holds anything `up` did not put there. If you passed `--dir` to `up`, pass the same
-`--dir` here.
+This stops the cluster and deletes its directory. If you passed `--dir` to `up`, pass the same `--dir` here.
+
+- It does nothing at all to a directory that has no marker written by `up`, or whose marker names a port this
+  tool never uses, or that holds a symlink where `up` made a file or a directory.
+- It stops a server only when the server's own `postmaster.pid` names this directory's data and the marker's
+  port, and the server answering on that port says it serves this directory. If nothing answers (the machine
+  restarted, say), nothing is signalled.
+- If the directory holds something `up` did not put there, it stops the cluster, deletes nothing, and says
+  which names to move out before running `down` again.
+
+If the machine restarted while a cluster was up, `demo` and `psql` say the cluster is not running; run `down`,
+then `up`.
 
 ## Safety
 
 - The tool only ever connects to `127.0.0.1` on the port it chose; every URL passes the repository's
   test-host guard (`testHostRefusal` in `scripts/db/psql-driver.mjs`), narrowed further to loopback names.
 - It never uses port 5432, never uses an existing data directory, and never creates its directory inside the
-  repository.
-- While the cluster is up, **any program on this Mac can connect to it without a password** (it trusts local
-  connections on `127.0.0.1`; nothing outside the Mac can reach it). It holds synthetic fixtures only. Run
-  `down` when you are done rather than leaving it running.
+  repository (a path that does not exist yet is checked through its nearest existing parent, so a symlink
+  into the repository does not get round it).
+- While the cluster is up, **any program on this Mac can connect to it without a password, as the database
+  superuser** (it trusts local connections on `127.0.0.1`; nothing outside the Mac can reach it). The superuser
+  can run operating-system commands as you (for example through `COPY ... TO PROGRAM`), so any program, or any
+  other account on this Mac, that can open a connection to `127.0.0.1` can run commands as you for as long as
+  the cluster is up. The data is synthetic fixtures only. **Run `down` as soon as you are done**; do not leave
+  it running. A per-cluster password is owed before this becomes a `make` or `npm` command.
 
 ## What this does NOT show
 
@@ -164,5 +186,5 @@ written by `up`, or that holds anything `up` did not put there. If you passed `-
   and roles. It shows that *our* policies behave as written; it says nothing about how a real Supabase
   project is configured (see the header of `db/foundation/ci/supabase-shim.sql`).
 - **Not the whole suite.** The demo is a tour of 13 representative checks over the synthetic fixtures. The
-  full isolation suite, several hundred cases plus the authorization proofs, is `make db-rls-smoke`, which CI
-  runs on every pull request against a fresh database.
+  full isolation suite, over a thousand cases (1087 on 2026-10-04) plus the authorization proofs (6 claims),
+  is `make db-rls-smoke`, which CI runs on every pull request against a fresh database.

@@ -246,7 +246,12 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // could pass vacuously, and the next command it prints (the running Node's full path, the --dir in use,
 // shell-quoted; the pin it notes a difference from is .node-version); no test added or renamed; the guard's own
 // count.
-  'test-kits/db/foundation-contract.test.mjs': 1074,
+// 1074 to 1101 with the try-it batch's review round (2026-10-04, no migration): twenty-seven assertions in the same
+// test: migrate-clean's exit 0 not taken alone, the five runners entered by pathToFileURL, the repository check
+// through the nearest existing ancestor, a file as --dir, down's refusals of a reserved port, a symlink and a
+// postmaster.pid naming another data directory or port, a stopped cluster said to be stopped, a foreign entry
+// never deleted, and the full script path in the next command; no test added or renamed; the guard's own count.
+  'test-kits/db/foundation-contract.test.mjs': 1101,
   'test-kits/db/rls-assertions.test.mjs': 108,
   // Batch 091's second round: 2150 to 2152, the converse hold that every 091 case is in exactly one
   // control family (Q0 F3 on 091's corrections), the guard's own count.

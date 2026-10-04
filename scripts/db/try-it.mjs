@@ -14,10 +14,14 @@
 //     every probe); the helpers and fixtures through rls-smoke's own loadHelpersAndFixtures(); and every
 //     refusal the demo shows is a case from tests/db/identity/isolation-cases.mjs, run through run-isolation's
 //     runCases, so the demo's verdict is the suite's verdict on that case and its SQL cannot drift from it.
-//   * ONLY A CLUSTER IT MADE. `up` refuses a directory that exists and is not empty, and a directory inside
-//     the repository; `down` deletes only a directory holding the marker `up` wrote, and only when nothing
-//     but what `up` made is in it. Port 5432 is never used, and the URL every subcommand builds must pass
-//     tryItRefusal (the repository's testHostRefusal, narrowed to localhost addresses and a non-default port).
+//   * ONLY A CLUSTER IT MADE. `up` refuses a directory that exists and is not empty, a symlink, and a directory
+//     inside the repository (read through the nearest existing ancestor's real path, so a path that does not
+//     exist yet under a symlink into the repository is refused too); `down` deletes only a directory holding
+//     the marker `up` wrote, holding no symlink, and only when nothing but what `up` made is in it, and it
+//     stops a server only when that server's postmaster.pid names this directory's data and the marker's port
+//     and the server answering on that port reports this data directory. Port 5432 is never used, and the URL
+//     every subcommand builds (`down` included) must pass tryItRefusal (the repository's testHostRefusal,
+//     narrowed to localhost addresses and a non-reserved port).
 //   * THE CLUSTER LISTENS ON 127.0.0.1 ONLY, OVER TCP, WITH NO UNIX SOCKET, and trusts local connections:
 //     it holds synthetic fixtures and nothing else, and it is deleted by `down`.
 //   * THE DEMO CANNOT PASS VACUOUSLY. Every step declares what it expects; a step with no expectation, a case
@@ -26,11 +30,11 @@
 //
 // Node built-ins only (RFC-2026-001). Needs initdb, pg_ctl and psql on PATH (Homebrew postgresql@17 is fine).
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile, appendFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { argv, env, exit, stdout, stderr } from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -158,7 +162,8 @@ export const DEMO_STEPS = Object.freeze([
     heading: '6. A settled approval cannot be changed (batches 125 and 126)',
     title: 'The approver tries to decide an already-approved request again',
     kind: 'case', case: 'approver-a-cannot-redecide-a-settled-approval-request', expect: 'no-effect',
-    proves: 'Once decided, a request is out of reach: the update touches 0 rows, and a second read shows it still says approved.',
+    proves: 'Once decided, a request is out of reach: the update changes 0 rows, which is the proof (the update itself would'
+      + ' write approved, so the second read alone could not tell); the second read shows the request as it stands.',
   },
   {
     title: 'The workspace owner tries the same',
@@ -203,10 +208,12 @@ const say = (text = '') => stdout.write(`${text}\n`);
 const fail = (text) => { stderr.write(`try-it: ${text}\n`); return 1; };
 // The command to type next, spelled with the Node that is running now (its full path) and the --dir in use,
 // so a person who started from TRY-IT.md's copy-paste lines can paste what this prints as it stands.
+// The script is named by its full path (Q0-TI-2), so what is printed runs from any directory, not only the root.
 export const PINNED_NODE = 'v24.20.0';
+export const SCRIPT = join(REPO, 'scripts', 'db', 'try-it.mjs');
+export const shellQuote = (text) => (/^[\w./-]+$/.test(text) ? text : `'${text.replaceAll("'", "'\\''")}'`);
 export function nextCommand(sub, dir, node = process.execPath) {
-  const quoted = (text) => (/^[\w./-]+$/.test(text) ? text : `'${text.replaceAll("'", "'\\''")}'`);
-  return `${quoted(node)} scripts/db/try-it.mjs ${sub}${resolve(dir) === DEFAULT_DIR ? '' : ` --dir ${quoted(dir)}`}`;
+  return `${shellQuote(node)} ${shellQuote(SCRIPT)} ${sub}${resolve(dir) === DEFAULT_DIR ? '' : ` --dir ${shellQuote(dir)}`}`;
 }
 
 function parseArgs(args) {
@@ -249,12 +256,37 @@ async function freePort() {
   return null;
 }
 
-const insideRepo = (path) => {
-  let real = path;
-  try { real = realpathSync(path); } catch { /* not created yet: compare as given */ }
+// The real path of `path`, read through its nearest existing ancestor when it does not exist yet (A1 F3): a
+// path that is not made yet, under a symlink into the repository, resolves into the repository.
+export function realpathThroughAncestor(path) {
+  const rest = [];
+  for (let head = resolve(path); ;) {
+    try { return join(realpathSync(head), ...rest); } catch { /* not there yet: go up one */ }
+    const parent = dirname(head);
+    if (parent === head) return resolve(path);
+    rest.unshift(basename(head));
+    head = parent;
+  }
+}
+
+export const insideRepo = (path) => {
+  const real = realpathThroughAncestor(path);
   const repo = realpathSync(REPO);
   return real === repo || real.startsWith(repo + sep);
 };
+
+const isSymlink = (path) => { try { return lstatSync(path).isSymbolicLink(); } catch { return false; } };
+
+// migrate-clean's exit 0 alone is not proof that it ran (C0-TI-1, Q0-TI-1): a runner whose main() is never
+// entered also exits 0, with no output. So `up` goes on only when the summary says ok and scripts were applied.
+export function migrateCleanProblem({ code, out }) {
+  const applied = (String(out).match(/^ {2}applied /gm) ?? []).length;
+  const summary = String(out).split('\n').find((l) => l.startsWith('db-migrate-clean:')) ?? '(no summary line)';
+  if (code !== 0) return { applied, summary, problem: `migrate-clean exited ${code}` };
+  if (!/^db-migrate-clean: ok\b/.test(summary)) return { applied, summary, problem: 'migrate-clean exited 0 but printed no `db-migrate-clean: ok` line, so it did not run' };
+  if (applied === 0) return { applied, summary, problem: 'migrate-clean exited 0 but applied no script' };
+  return { applied, summary, problem: null };
+}
 
 async function readMarker(dir) {
   const path = join(dir, MARKER);
@@ -270,8 +302,11 @@ async function up({ dir, port: askedPort }) {
   if (insideRepo(dir)) return fail(`${dir} is inside the repository; the cluster goes outside it (default ${DEFAULT_DIR}).`);
   const already = await readMarker(dir);
   if (already) {
-    return fail(`${dir} already holds a try-it cluster on port ${already.port}. Run \`${nextCommand('demo', dir)}\` to use it, or \`${nextCommand('down', dir)}\` first to start over.`);
+    return fail(`${dir} already holds a try-it cluster on port ${already.port}. Run \`${nextCommand('demo', dir)}\` to use it, or \`${nextCommand('down', dir)}\` first to start over`
+      + ' (and if it has stopped, after a restart for example, `down` then `up` is the way back).');
   }
+  if (isSymlink(dir)) return fail(`${dir} is a symlink; pass --dir <a new path>, not a link. Nothing was touched.`);
+  if (existsSync(dir) && !lstatSync(dir).isDirectory()) return fail(`${dir} exists and is not a directory. Nothing was touched. Pass --dir <a new path>.`);
   if (existsSync(dir) && readdirSync(dir).length) return fail(`${dir} exists and is not empty, and it was not made by \`up\`. Nothing was touched. Pass --dir <a new path>.`);
   const port = askedPort ?? await freePort();
   if (!port) return fail(`no free port in ${PORT_RANGE.join('-')}; pass --port <n>.`);
@@ -284,6 +319,8 @@ async function up({ dir, port: askedPort }) {
   const data = join(dir, 'data');
   const log = join(dir, 'postgres.log');
   await mkdir(dir, { recursive: true });
+  // Read again now that it exists, before anything is written in it.
+  if (insideRepo(dir) || isSymlink(dir)) return fail(`${dir} resolves inside the repository or is a symlink once made; only the empty directory was created. Nothing was written in it.`);
   // The marker first, so a half-made cluster is still one `down` will clean up.
   await writeFile(join(dir, MARKER), `${JSON.stringify({ tool: MARKER_TOOL, dir, port, database: DATABASE, created: new Date().toISOString() }, null, 2)}\n`);
   // From here on a failure leaves a half-made cluster; say how to remove it.
@@ -317,9 +354,8 @@ async function up({ dir, port: askedPort }) {
   const migrateLog = join(dir, 'migrate-clean.log');
   const migrated = await runTool(process.execPath, ['scripts/db/run.mjs', 'migrate-clean'],
     { envExtra: { DB_TEST_URL: url, LC_ALL: 'C', TZ: 'UTC' }, logTo: migrateLog });
-  const applied = (migrated.out.match(/^ {2}applied /gm) ?? []).length;
-  const summary = migrated.out.split('\n').find((l) => l.startsWith('db-migrate-clean:')) ?? '(no summary line)';
-  if (migrated.code !== 0) return failHalfMade(`migrate-clean failed; the whole output is in ${migrateLog}. Its summary: ${summary}`);
+  const { applied, summary, problem: notMigrated } = migrateCleanProblem(migrated);
+  if (notMigrated) return failHalfMade(`${notMigrated}; the whole output is in ${migrateLog}. Its summary: ${summary}`);
   say(`      ${applied} scripts applied; ${summary}`);
 
   say('[5/6] the auth-context helpers and the identity fixtures, loaded exactly as `make db-rls-smoke` loads them');
@@ -337,7 +373,7 @@ async function up({ dir, port: askedPort }) {
   say(`DB_TEST_URL=${url}`);
   say();
   say(`What you have now: a private PostgreSQL ${await serverVersion(url)} cluster in ${dir}, listening only on`
-    + ` 127.0.0.1:${port}, with the database "${DATABASE}" built exactly as CI builds its test database: the shim,`
+    + ` 127.0.0.1:${port}, with the database "${DATABASE}" built from what CI builds its test database from: the shim,`
     + ` then all ${applied - 1} migrations (${n.tables ?? '?'} tables in app and private, ${n.policies ?? '?'} row level security policies),`
     + ` then the synthetic fixtures (${n.workspaces ?? '?'} workspaces: tenant A and tenant B, which the tests set against each other).`
     + ' Nothing here is real data and nothing is connected to any other service.');
@@ -361,6 +397,11 @@ async function attached(dir) {
   const url = urlFor(marker.port);
   const refusal = tryItRefusal(url);
   if (refusal) return { error: `refusing ${url}: ${refusal}` };
+  // A cluster that has stopped (a restart, say) is said to be stopped, not reported as 13 failed steps (Q0-TI-3).
+  const back = `Run \`${nextCommand('down', dir)}\`, then \`${nextCommand('up', dir)}\`, to make a new one.`;
+  if (!existsSync(join(dir, 'data', 'postmaster.pid'))) return { error: `the try-it cluster in ${dir} is not running (it has stopped, after a restart for example). ${back}` };
+  const probe = await query('select 1 as up', { url });
+  if (probe.error) return { error: `the try-it cluster in ${dir} does not answer on 127.0.0.1:${marker.port} (${probe.error.message.split('\n')[0]}). ${back}` };
   return { marker, url };
 }
 
@@ -451,7 +492,7 @@ async function demo({ dir }) {
   }
   say(`All ${DEMO_STEPS.length} steps behaved as expected.`);
   say('What this does NOT show: any app or screen, the service worker path, or a real Supabase project. It shows the');
-  say('database rules on a local copy built the way CI builds one.');
+  say('database rules on a local copy built from the same shim, migrations and fixtures CI uses.');
   say(`When you are done: ${nextCommand('down', dir)}`);
   return 0;
 }
@@ -483,18 +524,64 @@ async function psqlHelp({ dir }) {
 }
 
 // --- down ---------------------------------------------------------------------------------------------------
+//
+// Before any server is signalled, everything that names it must agree (A1 F2): the marker's port passes
+// tryItRefusal; no owned entry is a symlink; data/postmaster.pid names this directory's data (line 2, by real
+// path) and the marker's port (line 4); and the server answering on that port reports this data directory. A
+// forged marker or postmaster.pid therefore stops nothing and signals nothing. downRefusal reads files only, so
+// the contract test holds each of its refusals without a database.
+export function pidFileProblem(pidText, dataDir, port) {
+  const lines = String(pidText).split('\n');
+  let named;
+  try { named = realpathSync(lines[1] ?? ''); } catch { return 'its postmaster.pid names a data directory that does not exist'; }
+  let ours;
+  try { ours = realpathSync(dataDir); } catch { return `${dataDir} does not exist`; }
+  if (named !== ours) return `its postmaster.pid names another data directory (${lines[1]})`;
+  if ((lines[3] ?? '').trim() !== String(port)) return `its postmaster.pid names port ${(lines[3] ?? '').trim() || '(none)'}, and the marker port ${port}`;
+  if (!/^\d+$/.test((lines[0] ?? '').trim())) return 'its postmaster.pid holds no process id';
+  return null;
+}
+
+export async function downRefusal(dir, marker) {
+  const refusal = tryItRefusal(urlFor(marker.port));
+  if (refusal) return `its marker names ${urlFor(marker.port)}: ${refusal}`;
+  if (isSymlink(dir)) return `${dir} is a symlink`;
+  const links = OWNED_ENTRIES.filter((name) => isSymlink(join(dir, name)));
+  if (links.length) return `${links.join(', ')} in ${dir} ${links.length === 1 ? 'is a symlink' : 'are symlinks'}, which \`up\` never makes`;
+  const pidFile = join(dir, 'data', 'postmaster.pid');
+  if (isSymlink(pidFile)) return `${pidFile} is a symlink`;
+  if (existsSync(pidFile)) return pidFileProblem(await readFile(pidFile, 'utf8'), join(dir, 'data'), marker.port);
+  return null;
+}
+
 async function down({ dir }) {
   const marker = await readMarker(dir);
   if (!marker) return fail(`${dir} holds no marker written by \`up\`, so nothing is stopped and nothing is deleted.`);
   if (insideRepo(dir)) return fail(`${dir} is inside the repository; refusing to delete it.`);
-  const extra = readdirSync(dir).filter((name) => !OWNED_ENTRIES.includes(name));
-  if (extra.length) return fail(`${dir} holds things \`up\` did not make (${extra.join(', ')}); nothing is deleted.`);
+  const refused = await downRefusal(dir, marker);
+  if (refused) return fail(`${refused}; nothing is stopped and nothing is deleted.`);
   const data = join(dir, 'data');
   if (existsSync(join(data, 'postmaster.pid'))) {
-    say(`stopping the cluster on port ${marker.port}`);
-    const stopped = await runTool('pg_ctl', ['-D', data, '-m', 'fast', '-w', '-t', '60', 'stop'], { envExtra: CLUSTER_ENV });
-    if (stopped.code !== 0) return fail(`pg_ctl stop failed, so nothing is deleted:\n${stopped.out}`);
+    // The file agrees; the server on the port must say the same before it is signalled. If nothing answers,
+    // the file is stale (a restart): nothing is signalled, since its process id may now be another program's.
+    const asked = await query("select current_setting('data_directory') as data_directory", { url: urlFor(marker.port, 'postgres') });
+    if (asked.error && !/connection refused/i.test(asked.error.message)) {
+      return fail(`the server on port ${marker.port} could not be asked which data directory it serves (${asked.error.message.split('\n')[0]}); nothing is stopped and nothing is deleted.`);
+    } else if (asked.error) {
+      say(`nothing answers on 127.0.0.1:${marker.port}, so the cluster is already stopped; nothing is signalled`);
+    } else {
+      let served = '';
+      try { served = realpathSync(asked.rows?.[0]?.data_directory ?? ''); } catch { /* compared below */ }
+      if (served !== realpathSync(data)) return fail(`the server on port ${marker.port} serves ${asked.rows?.[0]?.data_directory ?? '(nothing)'}, not ${data}; nothing is stopped and nothing is deleted.`);
+      say(`stopping the cluster on port ${marker.port}`);
+      const stopped = await runTool('pg_ctl', ['-D', data, '-m', 'fast', '-w', '-t', '60', 'stop'], { envExtra: CLUSTER_ENV });
+      if (stopped.code !== 0) return fail(`pg_ctl stop failed, so nothing is deleted:\n${stopped.out}`);
+    }
   }
+  // Stopped first, then the delete is refused if anything here is not up's (Q0-TI-4): that refusal never leaves
+  // a trusting cluster running.
+  const extra = readdirSync(dir).filter((name) => !OWNED_ENTRIES.includes(name));
+  if (extra.length) return fail(`${dir} holds things \`up\` did not make (${extra.join(', ')}). The cluster is stopped; nothing is deleted. Move those out and run \`${nextCommand('down', dir)}\` again.`);
   await rm(dir, { recursive: true, force: true });
   say(`deleted ${dir}`);
   return 0;

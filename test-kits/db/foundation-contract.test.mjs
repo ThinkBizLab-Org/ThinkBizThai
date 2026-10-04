@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
 import { SQL_LINE_COMMENTS, SQL_LITERALS, canonicalStatements, lexSql, stripComments, walkLevels } from '../../scripts/db/sql-lexer.mjs';
@@ -211,10 +213,96 @@ test('a target needing a database refuses without one, rather than reporting a p
   }
   // What it tells a person to type next is spelled with the running Node's full path and the --dir in use, quoted
   // for the shell when it needs to be, and the version it notes a difference from is the repository's pin.
-  assert.equal(tryIt.nextCommand('down', tryIt.DEFAULT_DIR, '/n/bin/node'), '/n/bin/node scripts/db/try-it.mjs down', 'the default directory needs no --dir');
-  assert.equal(tryIt.nextCommand('demo', '/x/y', '/n/bin/node'), '/n/bin/node scripts/db/try-it.mjs demo --dir /x/y', 'another directory is named');
-  assert.equal(tryIt.nextCommand('psql', "/x/it's here", '/n/bin/node'), "/n/bin/node scripts/db/try-it.mjs psql --dir '/x/it'\\''s here'", 'and quoted for the shell');
+  // The script is named by its full path (review round, Q0-TI-2), so the line runs from any directory.
+  const script = tryIt.shellQuote(join(tryIt.REPO, 'scripts', 'db', 'try-it.mjs'));
+  assert.equal(tryIt.SCRIPT, join(tryIt.REPO, 'scripts', 'db', 'try-it.mjs'), 'the script path is absolute, under the repository');
+  assert.equal(tryIt.nextCommand('down', tryIt.DEFAULT_DIR, '/n/bin/node'), `/n/bin/node ${script} down`, 'the default directory needs no --dir');
+  assert.equal(tryIt.nextCommand('demo', '/x/y', '/n/bin/node'), `/n/bin/node ${script} demo --dir /x/y`, 'another directory is named');
+  assert.equal(tryIt.nextCommand('psql', "/x/it's here", '/n/bin/node'), `/n/bin/node ${script} psql --dir '/x/it'\\''s here'`, 'and quoted for the shell');
+  assert.equal(tryIt.shellQuote('/a b/c'), "'/a b/c'", 'a path with a space is quoted');
   assert.equal(tryIt.PINNED_NODE, `v${(await readFile('.node-version', 'utf8')).trim()}`, 'the pinned version is .node-version');
+  // THE REVIEW ROUND (C0-TI-1, Q0-TI-1): migrate-clean's exit 0 alone is not success. A runner whose main() was
+  // skipped exits 0 with no output; `up` goes on only on the `db-migrate-clean: ok` line with scripts applied.
+  assert.match(tryIt.migrateCleanProblem({ code: 0, out: '' }).problem, /printed no `db-migrate-clean: ok` line/, 'a silent exit 0 is not a migration');
+  assert.match(tryIt.migrateCleanProblem({ code: 0, out: 'db-migrate-clean: ok in 1ms\n' }).problem, /applied no script/, 'an ok with nothing applied is not one either');
+  assert.match(tryIt.migrateCleanProblem({ code: 2, out: '  applied 001\ndb-migrate-clean: FAILED\n' }).problem, /exited 2/, 'a non-zero exit fails');
+  assert.deepEqual(tryIt.migrateCleanProblem({ code: 0, out: '  applied 001_a.sql\n  applied 010_b.sql\ndb-migrate-clean: ok in 5ms\n' }),
+    { applied: 2, summary: 'db-migrate-clean: ok in 5ms', problem: null }, 'the summary and the scripts applied are what success is');
+  // And the four runners try-it and CI start enter main() by pathToFileURL, so a clone whose path holds a space runs
+  // them (measured exit 0 with no output before this round).
+  for (const file of ['scripts/db/run.mjs', 'scripts/db/rls-smoke.mjs', 'scripts/db/authz-proofs.mjs', 'tests/db/identity/run-isolation.mjs', 'scripts/db/try-it.mjs']) {
+    const source = await readFile(file, 'utf8');
+    assert.doesNotMatch(source, /import\.meta\.url === `file:\/\/\$\{/, `${file}: main() is not entered by a hand-built file:// URL`);
+    assert.match(source, /import\.meta\.url === pathToFileURL\((process\.)?argv\[1\]\)\.href/, `${file}: main() is entered by pathToFileURL`);
+  }
+  // THE REVIEW ROUND (A1 F2, F3, F4; Q0-TI-3, Q0-TI-4): every refusal below is made on files alone, in a throwaway
+  // directory, and no server is asked or signalled. The marker's port is one no measurement run uses.
+  const scratch = await realpath(await mkdtemp(join(tmpdir(), 'try-it-contract-')));
+  try {
+    const tryRun = (args) => run('node', ['scripts/db/try-it.mjs', ...args], { env }).then(
+      (ok) => ({ code: 0, ...ok }), (err) => ({ code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }));
+    const forge = async (name, { port = 55478, data = true, pid = null, extra = null } = {}) => {
+      const dir = join(scratch, name);
+      await mkdir(dir);
+      await writeFile(join(dir, tryIt.MARKER), JSON.stringify({ tool: tryIt.MARKER_TOOL, dir, port, database: tryIt.DATABASE }));
+      if (data) await mkdir(join(dir, 'data'));
+      if (pid) await writeFile(join(dir, 'data', 'postmaster.pid'), pid(dir));
+      if (extra) await writeFile(join(dir, extra), 'not up\'s');
+      return dir;
+    };
+    // F3: a path not made yet, under a symlink into the repository, is inside the repository.
+    await symlink(tryIt.REPO, join(scratch, 'repo-link'));
+    assert.equal(tryIt.insideRepo(join(scratch, 'repo-link', 'not-yet', 'cluster')), true, 'a not-yet-made path under a link into the repository is inside it');
+    assert.equal(tryIt.insideRepo(join(scratch, 'not-yet', 'cluster')), false, 'and one under the scratch directory is not');
+    const viaLink = await tryRun(['up', '--dir', join(scratch, 'repo-link', 'not-yet'), '--port', '55478']);
+    assert.equal(viaLink.code, 1, 'up refuses it');
+    assert.match(viaLink.stderr, /is inside the repository/, 'as inside the repository');
+    // F4: a regular file as --dir is a plain refusal, not a stack trace.
+    await writeFile(join(scratch, 'a-file'), 'x');
+    const onFile = await tryRun(['up', '--dir', join(scratch, 'a-file'), '--port', '55478']);
+    assert.equal(onFile.code, 1, 'up onto a file refuses');
+    assert.match(onFile.stderr, /^try-it: .* is not a directory/, 'and says why');
+    // F2: down refuses a marker naming a reserved port, a symlinked data directory, and a postmaster.pid that names
+    // another data directory or another port, before anything is stopped.
+    const pidLines = (dataDir, port) => `999999\n${dataDir}\n1700000000\n${port}\n\n127.0.0.1\n`;
+    const otherData = join(scratch, 'other-data');
+    await mkdir(otherData);
+    const reserved = await forge('reserved', { port: 5432 });
+    const linked = await forge('linked', { data: false });
+    await symlink(otherData, join(linked, 'data'));
+    const otherDir = await forge('pid-other-dir', { pid: () => pidLines(otherData, 55478) });
+    const otherPort = await forge('pid-other-port', { pid: (dir) => pidLines(join(dir, 'data'), 5507) });
+    for (const [dir, why] of [[reserved, /port 5432 is one this tool never touches/], [linked, /data in .* is a symlink/],
+      [otherDir, /postmaster\.pid names another data directory/], [otherPort, /postmaster\.pid names port 5507, and the marker port 55478/]]) {
+      assert.match(await tryIt.downRefusal(dir, { port: dir === reserved ? 5432 : 55478 }) ?? '', why, `downRefusal: ${why}`);
+      const result = await tryRun(['down', '--dir', dir]);
+      assert.equal(result.code, 1, `down refuses (${why})`);
+      assert.match(result.stderr, /nothing is stopped and nothing is deleted/, 'and stops and deletes nothing');
+      assert.ok((await readdir(dir)).includes(tryIt.MARKER), 'the directory is still there');
+    }
+    assert.ok((await readdir(scratch)).includes('other-data'), 'the link target is untouched');
+    assert.equal(tryIt.pidFileProblem(pidLines(join(otherPort, 'data'), 55478), join(otherPort, 'data'), 55478), null, 'a postmaster.pid naming this data and port agrees');
+    // Q0-TI-3: a marker with no running server says so (no connection is tried without a postmaster.pid).
+    const stopped = await forge('stopped');
+    for (const sub of ['demo', 'psql']) {
+      const result = await tryRun([sub, '--dir', stopped]);
+      assert.equal(result.code, 1, `${sub} on a stopped cluster refuses`);
+      assert.match(result.stderr, /is not running .* then .* up/, `${sub}: and says to run down, then up`);
+    }
+    // Q0-TI-4: something `up` did not make is never deleted, and with no server to stop, the message says it is stopped.
+    const extra = await forge('extra', { extra: 'notes.txt' });
+    const withExtra = await tryRun(['down', '--dir', extra]);
+    assert.equal(withExtra.code, 1, 'down with a foreign entry refuses the delete');
+    assert.match(withExtra.stderr, /\(notes\.txt\)\. The cluster is stopped; nothing is deleted\./, 'and says the cluster is stopped');
+    assert.ok((await readdir(extra)).includes('notes.txt'), 'the foreign file is still there');
+    // The control: the same forged directory with nothing foreign in it is deleted (no server, so nothing is signalled).
+    const clean = await forge('clean');
+    const cleaned = await tryRun(['down', '--dir', clean]);
+    assert.equal(cleaned.code, 0, 'down deletes a directory holding only what up makes');
+    assert.ok(!(await readdir(scratch)).includes('clean'), 'and it is gone');
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
   // EVERY DEMO STEP HAS AN EXPECTED RESULT, so the demo cannot pass vacuously: a counts step expects exact numbers,
   // a case step names a case the suite has and repeats the outcome that case expects, and at least one step
   // expects rows. The plan is sound as written, and the check bites on each way it could stop being.

@@ -60,6 +60,7 @@ import {
   authzLint,
 } from './run.mjs';
 import { fixtureResolver } from '../../tests/db/identity/run-isolation.mjs';
+import { pathToFileURL } from 'node:url';
 
 export const ROSTER_POLICY = 'workspace_members_select_workspace_roster';
 
@@ -566,7 +567,9 @@ export async function main(run = queryFinal, runOne = query) {
   return results.every((r) => r.ok) ? 0 : 1;
 }
 
-if (import.meta.url === `file://${argv[1]}`) {
+// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
+// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) {
   try { connectionString(); } catch (failure) {
     stderr.write(`db-authz-proofs: ${failure.message}\n`);
     exit(1);

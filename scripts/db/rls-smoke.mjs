@@ -17,6 +17,7 @@ import { argv, env, exit, stdout, stderr } from 'node:process';
 import { query, queryFinal, connectionString, openSession, feed, psqlLex } from './psql-driver.mjs';
 import { buildCases, SMOKE_COVERAGE } from '../../tests/db/identity/isolation-cases.mjs';
 import { fixtureResolver, runCases, formatReport, FIXTURE_SQL_FILES } from '../../tests/db/identity/run-isolation.mjs';
+import { pathToFileURL } from 'node:url';
 
 // Statements are accumulated and flushed as one psql invocation per case, because a transaction
 // cannot survive psql exiting. `begin` opens a buffer; `exec` appends and, for the statement whose
@@ -289,4 +290,6 @@ function reportCoverage() {
   for (const [k, v] of owed) stdout.write(`    ${k}: ${v.note}\n`);
 }
 
-if (import.meta.url === `file://${argv[1]}`) exit(await main());
+// pathToFileURL, as try-it.mjs and generate-pinned-grants.mjs do: `file://${argv[1]}` never matched in a clone whose
+// path holds a space or a percent sign, so main() was skipped and the process exited 0 having run nothing.
+if (argv[1] && import.meta.url === pathToFileURL(argv[1]).href) exit(await main());
