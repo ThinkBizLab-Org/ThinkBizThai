@@ -141,3 +141,68 @@ No contract-catalog file, script, CI file, `docs/**` file or other package's man
 4. WP-0A-CON-001's owner: `x-amended-by` on `ctr-api-001` and `ctr-idm-001` (Security C1, schema
    half).
 5. The Product Owner's personal merge, because the PR changes an RFC (RFC-2026-025 §5 item 6).
+
+## 7. Second increment: closing the re-verification conditions (2026-10-05, measured 2026-10-06)
+
+A0 executes under the Owner's standing words for this pass, "เอาตามที่คุณแนะนำทุกอย่าง". A0
+does not decide anything here: every item below is a record correction or a test the role
+files asked for, and each lifts only when the role that raised it says so. This section does
+not write `integration_verified`, does not refresh the handoff, and does not merge.
+
+**Branch moves.** `git cherry-pick -x` of the four role commits made at `e7d5e6e`: C0
+`2d5a6da`, A1 `3f63ac0`, Q0 `b82019d`, R0 `a69435d`; each adds one file under
+`evidence/WP-0A-CON-005/`. Then this increment's commit, then `git merge origin/main`
+(`e1fa28e`, PR #186): a normal merge commit, no conflict, no force, made LAST. The order was
+first tried the other way (merge, then the picks): with the merge below non-merge commits, the
+handoff guard reads `main`'s four work-package files as changes after the cited head (exit 1 in
+`npm run check`, two tests: the guard and its ratchet), and `commit-when-clean.mjs` would refuse
+the commit; the only cure in that order is refreshing the handoff, which this pass was told not
+to do yet. With the merge at the head, the guard compares against the branch side of the merge,
+as Q0 measured. The resulting tree is the same. The Owner-disposition file the manifest cites
+(Q0 N2) is on the branch via `main` from the merge on.
+
+| Item | Raised by | What changed | Where |
+|---|---|---|---|
+| C5 / R2 | C0 re-verify, R0 | `[7]` and `[8]` and the RFC's "Scope explicitly excluded" amendment paragraph no longer say "nothing else". They state what `64d9c65` changed on each of `ctr-api-001` `accepted.status_ref`, `accepted.deep_link_ref` and `ctr-idm-001` `result_ref`: exactly two leaves, the `pattern` (lookaheads removed) and the `x-reference-rule` (two sentences appended, quoted verbatim). A dated correction note says what the earlier text omitted. | manifest `authorized_cross_package_amendments[7]`, `[8]`; RFC-2026-006 |
+| R5 | R0 | `rollback_or_forward_fix` refreshed: migration 050 enforces the same pattern and `length <= 256` as CHECK constraints `jobs_input_ref_form` / `jobs_result_ref_form` on `app.jobs`, so a revert alone would leave the contract wider than the database. The rollback is a forward fix; a revert must be paired with a reviewed forward migration on the database package's path. A dated note under the RFC's Rollback says the same; the original paragraph is left as approved. | manifest; RFC-2026-006 Rollback |
+| R7 | R0 | `open_blockers[2]` ("no implementation") and `[14]` ("no Tester attestation covers the current head") marked stale by an appended dated parenthetical, the manifest's own convention, citing the Q0 and R0 files. Original text kept. | manifest |
+| N5 | C0 re-verify | `open_blockers[12]`: 248 → 252, corrected in place with a dated note. | manifest |
+| N3 | C0 re-verify (recommended) | The membership assertion now enumerates every letter-case spelling of each WHATWG special scheme (84 spellings × 2 fields), inside the existing test. RFC Limitations wording updated to match. | test file; RFC-2026-006 |
+| `[6]` | — | One more increment recorded: exactly the RFC and test digests move. | manifest |
+
+**Measured.**
+
+- `64d9c65` leaf diff (`64d9c65^` → `64d9c65`, script over every JSON leaf): on each of
+  `ctr-api-001` `/properties/accepted/properties/status_ref`, `.../deep_link_ref` and
+  `ctr-idm-001` `/properties/result_ref`, exactly `pattern` and `x-reference-rule` differ; the
+  new `x-reference-rule` is the old one plus the appended two sentences, byte for byte. No other
+  leaf differs. (`ctr-job-001`'s two fields show the same two-leaf change, already recorded.)
+- 252: with the repository validator (`test-kits/contracts/json-schema-subset.mjs`) on
+  `valid.json`, `job:` or `app:` plus 252 characters is accepted and plus 253 rejected on both
+  `input_ref` and `result_ref`; `content:` plus 248 accepted, plus 249 rejected.
+- N3 mutation, disposable copy of the tree, `ctr-job-001` scheme group widened on both fields,
+  new guard vs the guard at `e7d5e6e`:
+
+  ```
+  (none)      new 0  old 0
+  https       new 1  old 1
+  HTTPS       new 1  old 1
+  Https       new 1  old 0   <- C0 N6, now caught
+  hTTp        new 1  old 0
+  wSs         new 1  old 0
+  FiLe        new 1  old 0
+  fTP         new 1  old 0
+  javascript  new 0  old 0   (outside the special-scheme list; disclosed, C0 N4 / A1 N1)
+  ```
+
+- `npm run regenerate:manifest`: rebuilt 91 digests; exactly two entries changed
+  (RFC-2026-006 and `ctr-job-001-reference-hardening.test.mjs`).
+- `node --test test-kits/contracts/ctr-job-001-reference-hardening.test.mjs`: 6 / 6.
+- `npm run check`, `verify-branch-scope.mjs origin/main WP-0A-CON-005` and the role-separation
+  validator: results in the commit-time run and in the Author's report for this increment.
+
+**Still owed.** A C0 re-check of this increment (lifts C5, RFC-2026-025 §5 item 2); since the
+test file changed (N3), whether Q0's attestation needs extending is Q0's call. Then the
+handoff refreshed last and alone on the branch name, a green CI run on that head, an R0
+confirmation at that head, the Owner's personal merge (PR changes an RFC), and after merge the
+transcription of R0 §5.1 onto `ctr-job-001` `x-amended-by[1]` on the contract owner's path.

@@ -107,13 +107,17 @@ test('neither reference field carries a deny-list, and both carry the recorded r
   // widens -- and RFC-2026-006 leaves that set to the contract owner. WHATWG URL parsing treats
   // the special schemes as network-dereferenceable even without `//`:
   // `https:public.example.invalid/x` resolves to `https://public.example.invalid/x`. So a body
-  // the grammar ACCEPTS is paired with each such scheme, in both cases, and must be rejected.
-  // Widening the allow-list to any of them now fails CI instead of passing with a ledger edit.
+  // the grammar ACCEPTS is paired with each such scheme, in EVERY letter-case spelling (WHATWG
+  // lowercases the scheme, so `Https:` is as dereferenceable as `https:`; C0 re-verify N3), and
+  // must be rejected. Widening the allow-list to any of them now fails CI instead of passing
+  // with a ledger edit.
   const valid = await readJson(join(BASE, 'examples/valid.json'));
   const { resolve } = await loadContract();
+  const everyCaseSpelling = (word) => Array.from({ length: 2 ** word.length }, (_, mask) =>
+    [...word].map((c, i) => ((mask >> i) & 1 ? c.toUpperCase() : c)).join(''));
   const readmitted = [];
   for (const scheme of ['http', 'https', 'ws', 'wss', 'ftp', 'file']) {
-    for (const spelled of [scheme, scheme.toUpperCase()]) {
+    for (const spelled of everyCaseSpelling(scheme)) {
       for (const field of ['input_ref', 'result_ref']) {
         const body = structuredClone(valid);
         body[field] = `${spelled}:public.example.invalid/x`;

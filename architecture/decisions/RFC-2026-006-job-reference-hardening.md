@@ -265,8 +265,18 @@ other twelve catalog contracts" was not honoured in full, and the record says so
 rather than leaving it to a diff. Commit `64d9c65` also changed
 `contract-catalog/shared-kernel/ctr-api-001/schema.json` (`accepted.status_ref`,
 `accepted.deep_link_ref`) and `contract-catalog/shared-kernel/ctr-idm-001/schema.json`
-(`result_ref`). The change on each was the lookahead removal described under
-Decision 2 and nothing else. Security review proved it behaviour-preserving over
+(`result_ref`). On each of those three fields exactly two leaves changed: the
+`pattern` lost the two lookaheads, as described under Decision 2, and the
+`x-reference-rule` had these two sentences appended, verbatim: "The two negative
+lookaheads were removed: a 400,000-string fuzz by independent testing found zero
+divergence from this lookahead-free form, because the body grammar already forbids
+a leading slash, an empty segment and a `..` segment. Removing them closes
+WP-0A-CON-002 review finding R8 (RE2 portability) at zero cost, which had no
+recorded disposition anywhere." No other leaf of either file changed (leaf diff
+`64d9c65^` → `64d9c65`). The appended sentences are annotation, not behaviour.
+*Corrected 2026-10-05 (C0 re-verify C5 / R0 R2): this paragraph first said the
+change was the lookahead removal "and nothing else", which omitted the appended
+sentences.* Security review proved the pattern change behaviour-preserving over
 455,555 strings, so nothing became more permissive. The defect is provenance:
 those two Candidate contracts carry no `x-amended-by` record of it. This package
 now lists both files in its manifest's `authorized_cross_package_amendments` with
@@ -293,6 +303,9 @@ closure is in `evidence/WP-0A-CON-005/author-conditions-closure-2026-10-05.md`.
 | Decision 2 | Printed pattern brought into line with the tree; history of `64d9c65` recorded | C0 C1, A1 C3, A1 S6 |
 | Decision 4 | Catalog tally time-stamped | C0 C2 |
 | Scope explicitly excluded | The CTR-API-001 / CTR-IDM-001 lookahead removal recorded against the exclusion | A1 C1 (RFC half) |
+| Scope explicitly excluded | The same record now also states the `x-reference-rule` sentences `64d9c65` appended | C0 re-verify C5, R0 R2 |
+| Limitations | Membership property covers every letter-case spelling, not two | C0 re-verify N3 |
+| Rollback | Dated note: a revert alone would now leave the contract wider than migration 050 | R0 R5 |
 | Limitations | `ctr-evt-001` bullet withdrawn as closed; membership property and `ctr-ntf-001` referral added | C0 C2, C0 C3, A1 C3 |
 | Verification | Counts are those at the time; current counts are in the closure record | Q0 §9(1) |
 
@@ -318,6 +331,16 @@ and the standing guard, and restores the two WP-0A-CON-001 test assertions. The
 change creates no persisted data, provider state, credential, migration, or
 customer-data effect. Reverting also restores the bypasses, so a revert should be
 paired with re-opening the WP-0A-CON-002 escalation rather than closing it.
+
+*Note 2026-10-05 (R0 integration verdict R5).* The paragraph above was written
+when nothing implemented CTR-JOB-001. Since migration 050
+(`db/foundation/migrations/050_async_kernel.sql`), `app.jobs` enforces this same
+pattern with `length <= 256` as the CHECK constraints `jobs_input_ref_form` and
+`jobs_result_ref_form`. A revert of this package alone would leave the contract
+wider than the database, a contract/database mismatch. The rollback is now a
+forward fix; a revert must be paired with a reviewed forward migration on the
+database package's path. The work package's `rollback_or_forward_fix` states the
+same.
 
 ## Limitations
 
@@ -351,7 +374,8 @@ paired with re-opening the WP-0A-CON-002 escalation rather than closing it.
 - The standing guard defends the allow-list's **membership** as a property, not
   only its current members (added 2026-10-05, C0 F4 / condition C3). It rejects
   `http`, `https`, `ws`, `wss`, `ftp` and `file` (the WHATWG special schemes, in
-  both cases) paired with a body the grammar accepts. A contract owner who widens
+  every letter-case spelling, since WHATWG lowercases the scheme; widened from
+  lower and upper case only on 2026-10-05, C0 re-verify N3) paired with a body the grammar accepts. A contract owner who widens
   the set to any of them under blocker 8 now gets a CI failure, not a green run
   after a ledger edit. Schemes outside that list are not covered by the
   assertion. Any scheme added to the set still needs that owner's own judgement.
