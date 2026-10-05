@@ -858,11 +858,19 @@ export const PINNED_CHECKS = {
   'approval_requests.approval_requests_decider_is_a_pair': 'CHECK (((decided_at IS NULL) = (decided_by IS NULL)))',
   // Batch 126 (blocker 186 item 17; A1 V5 on batch 125): a decision cannot predate its request.
   'approval_requests.approval_requests_decided_after_created': 'CHECK ((decided_at >= created_at))',
+  // Batch 174 (migration 174; RFC-2026-028 §3.4, Q-028-5): a job's tenant context, CTR-TEN-001's actor.kind enum and
+  // 172's identifier shape for the three ids, held here as well as by 174's own block, so a later file that drops or
+  // loosens one is refused by a probe that does not depend on the block it would also have to supersede.
+  'jobs.jobs_actor_kind_known': "CHECK ((actor_kind = ANY (ARRAY['user'::text, 'system_actor'::text])))",
+  'jobs.jobs_actor_id_bounded': "CHECK ((actor_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
+  'jobs.jobs_request_id_bounded': "CHECK ((request_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
+  'jobs.jobs_correlation_id_bounded': "CHECK ((correlation_id ~ '^[A-Za-z0-9._:-]{1,128}$'::text))",
 };
 // A CHECK is NULL, and so passes, when a column it reads is NULL. decided_at is NULL by design while a
 // request is pending (the pair CHECK says when); created_at must never be, or 126's order CHECK admits
 // anything (Q0 F8 on batch 126: `drop not null` on created_at passed every layer).
-export const PINNED_NOT_NULL = ['app.approval_requests.created_at'];
+// Batch 174: and the four tenant-context columns of app.jobs, whose CHECKs pass a NULL (RFC-2026-028 §3.4: not null).
+export const PINNED_NOT_NULL = ['app.approval_requests.created_at', 'app.jobs.actor_kind', 'app.jobs.actor_id', 'app.jobs.request_id', 'app.jobs.correlation_id'];
 export const PINNED_CHECK_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1401,6 +1409,60 @@ export const PINNED_SCHEMA_PRIVILEGES = ['app_authz USAGE on app', 'app_command 
 // DESIGN on a provisioned instance, where the operator has set the login role's verifier; the snapshot lint reads
 // that instance (workerLoginSnapshotLint).
 export const PINNED_ROLE_ATTRIBUTES = ['app_worker_login rolcanlogin'];
+// Batch 174 (A1-173-3, LOW, on batch 173's review: open_blockers[201] (10)). Since 173 a non-superuser role can LOG IN
+// and become app_worker, and two of app_worker's reaches were read by no rule: A1 measured `grant create on database
+// postgres to app_worker`, appended to 140, pass every layer, after which the login role, as app_worker, created a schema
+// it owned; and no rule read which FUNCTIONS a non-client role may execute. So two more rules, over every non-superuser,
+// non-pg_* role (the client roles included: the client schema probe reads their database privileges too, and nothing
+// read their EXECUTE).
+//   Rule 10, the database arm: no such role holds CREATE on any database, the current one or another, and none holds
+//   CREATE, TEMPORARY or CONNECT WITH GRANT OPTION anywhere. Pinned none (measured on the clean set through 174: none).
+//   TEMPORARY and CONNECT without grant option are what PUBLIC holds by default, and differ by database (CI's
+//   thinkbizthai_test beside its postgres; template0 and template1), so they are not read; the current database is
+//   printed as such, never by name, so a name is the same on every cluster.
+//   Rule 11, EXECUTE per role: on every function in every schema (pg_catalog included -- an EXECUTE grant on a
+//   server-file function to a service role is a file read no other rule sees), each such role's EXECUTE, with and
+//   without grant option, BEYOND what PUBLIC holds, is exactly PINNED_FUNCTION_EXECUTE, both ways; and PUBLIC may
+//   execute no function in app or private (the security definer and pinned trigger probes say so for their own
+//   functions; this says it for every one). Measured on the clean set through 174: the 31 rows below -- app_authz's
+//   own six helpers (it owns them, so it holds them with grant option), app_command's two commands (owned; 172 revokes
+//   the owner's EXECUTE, and an owner keeps its grant option implicitly, so they read WITH GRANT OPTION only) and the six
+//   helpers it calls, app_worker's knowledge_scope_applies, and authenticated's ten; PUBLIC none in app or private. A
+//   function a later batch grants to a role moves this list in the same diff as its reason. Like rules 2-4 and 7-9
+//   both fail BY DESIGN on a provisioned instance until Q170-c measures the platform's own roles and grants.
+export const PINNED_FUNCTION_EXECUTE = [
+  'app_authz EXECUTE WITH GRANT OPTION on app.acting_user_admits_business(uuid,uuid)',
+  'app_authz EXECUTE WITH GRANT OPTION on app.acting_user_admits_page(uuid,uuid,uuid)',
+  'app_authz EXECUTE WITH GRANT OPTION on app.is_active_member(uuid)',
+  'app_authz EXECUTE WITH GRANT OPTION on app.jwt_aal()',
+  'app_authz EXECUTE WITH GRANT OPTION on app.jwt_subject()',
+  'app_authz EXECUTE WITH GRANT OPTION on app.workspace_member_role(uuid)',
+  'app_authz EXECUTE on app.acting_user_admits_business(uuid,uuid)',
+  'app_authz EXECUTE on app.acting_user_admits_page(uuid,uuid,uuid)',
+  'app_authz EXECUTE on app.is_active_member(uuid)',
+  'app_authz EXECUTE on app.jwt_aal()',
+  'app_authz EXECUTE on app.jwt_subject()',
+  'app_authz EXECUTE on app.workspace_member_role(uuid)',
+  'app_command EXECUTE WITH GRANT OPTION on app.cancel_workspace_closing(uuid,text,text)',
+  'app_command EXECUTE WITH GRANT OPTION on app.close_workspace(uuid,text,text)',
+  'app_command EXECUTE on app.acting_user_admits_business(uuid,uuid)',
+  'app_command EXECUTE on app.acting_user_admits_page(uuid,uuid,uuid)',
+  'app_command EXECUTE on app.is_active_member(uuid)',
+  'app_command EXECUTE on app.jwt_aal()',
+  'app_command EXECUTE on app.jwt_subject()',
+  'app_command EXECUTE on app.workspace_member_role(uuid)',
+  'app_worker EXECUTE on app.knowledge_scope_applies(uuid,uuid,uuid,uuid)',
+  'authenticated EXECUTE on app.cancel_workspace_closing(uuid,text,text)',
+  'authenticated EXECUTE on app.close_workspace(uuid,text,text)',
+  'authenticated EXECUTE on app.is_active_member(uuid)',
+  'authenticated EXECUTE on app.knowledge_scope_applies(uuid,uuid,uuid,uuid)',
+  'authenticated EXECUTE on app.member_scope_admits_business(uuid,uuid)',
+  'authenticated EXECUTE on app.member_scope_admits_page(uuid,uuid,uuid)',
+  'authenticated EXECUTE on app.member_scope_covers_business(uuid,uuid)',
+  'authenticated EXECUTE on app.member_scope_covers_page(uuid,uuid,uuid)',
+  'authenticated EXECUTE on app.member_scope_is_narrowed(uuid)',
+  'authenticated EXECUTE on app.workspace_member_role(uuid)',
+];
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -1542,6 +1604,39 @@ begin
    where not a.rolsuper and a.rolname !~ '^pg_' and a.rolpassword is not null;
   if offending is not null then
     raise exception 'a non-superuser role holds a stored credential on a migrate-clean cluster, which no fed source may set: %', offending;
+  end if;
+  select string_agg(x, ', ' order by x) into offending from (
+    select format('%s %s%s on %s', r.rolname, p.p, go.opt,
+                  case when d.datname = pg_catalog.current_database() then 'the current database' else 'database ' || d.datname end) as x
+      from pg_catalog.pg_roles r, pg_catalog.pg_database d, unnest(array['CREATE', 'TEMPORARY', 'CONNECT']) as p(p),
+           (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where not r.rolsuper and r.rolname !~ '^pg_' and (p.p = 'CREATE' or go.opt <> '')
+       and pg_catalog.has_database_privilege(r.rolname, d.oid, p.p || go.opt)
+  ) f;
+  if offending is not null then
+    raise exception 'a non-superuser role holds CREATE on a database, or a database privilege with grant option: %', offending;
+  end if;
+  with fns as (
+    select p.oid, p.oid::pg_catalog.regprocedure::text as f, n.nspname as s
+      from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+  ), found as (
+    select format('%s EXECUTE%s on %s', r.rolname, go.opt, fns.f) as g
+      from pg_catalog.pg_roles r, fns, (values (''), (' WITH GRANT OPTION')) as go(opt)
+     where not r.rolsuper and r.rolname !~ '^pg_'
+       and pg_catalog.has_function_privilege(r.rolname, fns.oid, 'EXECUTE' || go.opt)
+       and (go.opt <> '' or not pg_catalog.has_function_privilege('public', fns.oid, 'EXECUTE'))
+    union all
+    select format('public EXECUTE on %s', fns.f)
+      from fns where fns.s in ('app', 'private') and pg_catalog.has_function_privilege('public', fns.oid, 'EXECUTE')
+  )
+  select string_agg(x, ', ' order by x) into offending from (
+    select 'unlisted: ' || f.g as x from found f where not (f.g = any (array[${PINNED_FUNCTION_EXECUTE.map((g) => `'${g}'`).join(', ')}]::text[]))
+    union all
+    select 'missing: ' || p.g from unnest(array[${PINNED_FUNCTION_EXECUTE.map((g) => `'${g}'`).join(', ')}]::text[]) as p(g)
+     where not exists (select 1 from found f where f.g = p.g)
+  ) d;
+  if offending is not null then
+    raise exception 'function EXECUTE of a non-superuser role beyond what PUBLIC holds not exactly its pin, or PUBLIC can execute a function in app or private: %', offending;
   end if;
 end \$\$;
 `;
@@ -2234,13 +2329,14 @@ export const CATALOG_RULE_PROBES = [
         'function pg_catalog.pg_sleep(double precision) [renamed to pg_catalog.probe_renamed_sleep(double precision)]',
         'relation information_schema.sql_features [renamed to information_schema.probe_renamed_sql_features]'] }] },
   { label: 'pinned check probe', sql: PINNED_CHECK_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule leans on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
+    claim: `the ${Object.keys(PINNED_CHECKS).length} CHECK constraints the decider rule and a job's tenant context lean on, validated and in their pinned text, and the ${PINNED_NOT_NULL.length} NOT NULL column(s) they read`,
     selfTests: [
-      { drift: 'alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider;',
-        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider'] },
-      // Q0 T3 on batch 126.
-      { drift: 'alter table app.approval_requests alter column created_at drop not null;',
-        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at'] },
+      // Batch 174: and a job's correlation id re-bounded under its own name (a 256-character id the shape refuses).
+      { drift: "alter table app.approval_requests drop constraint approval_requests_decision_has_a_decider; alter table app.jobs drop constraint jobs_correlation_id_bounded, add constraint jobs_correlation_id_bounded check (correlation_id ~ '^[A-Za-z0-9._:-]{1,256}$');",
+        raises: 'pinned CHECK constraint(s) missing, unvalidated or not in their pinned text', names: ['approval_requests.approval_requests_decision_has_a_decider', 'jobs.jobs_correlation_id_bounded'] },
+      // Q0 T3 on batch 126. Batch 174: and a job's actor made optional.
+      { drift: 'alter table app.approval_requests alter column created_at drop not null; alter table app.jobs alter column actor_id drop not null;',
+        raises: 'pinned NOT NULL column(s) a pinned CHECK reads are nullable or missing', names: ['app.approval_requests.created_at', 'app.jobs.actor_id'] },
     ] },
   { label: 'pinned policy probe', sql: PINNED_POLICY_PROBE_SQL,
     claim: `the ${Object.keys(PINNED_POLICIES).length} restrictive policies that bound which rows a client may update or see, in their pinned text`,
@@ -2327,7 +2423,7 @@ export const CATALOG_RULE_PROBES = [
   // Batch 126, from batch 091's third round (C0 H1, A1 R1 and R3); every table and every role since the
   // batch 170 draft, with the table-list rule first.
   { label: 'pinned grant probe', sql: PINNED_GRANT_PROBE_SQL,
-    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s) (${PINNED_ROLE_MEMBERSHIPS.join(', ')}), each direct membership row exactly its pinned options, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option; app and private are owned by the migration owner and every non-superuser role's USAGE and CREATE on them are exactly the ${PINNED_SCHEMA_PRIVILEGES.length} pinned; and no non-superuser role holds BYPASSRLS, LOGIN, CREATEDB, CREATEROLE, INHERIT or REPLICATION but the ${PINNED_ROLE_ATTRIBUTES.length} pinned (${PINNED_ROLE_ATTRIBUTES.join(', ')}), no default privilege entry exists, and no non-superuser role holds a stored credential`,
+    claim: `the ${Object.keys(PINNED_GRANTS).length} tables in app and private are exactly the pinned list and no other relation is there, each owned by a superuser, no superuser but the migration owner exists, every non-superuser role is a member of exactly the ${PINNED_ROLE_MEMBERSHIPS.length} pinned role(s) (${PINNED_ROLE_MEMBERSHIPS.join(', ')}), each direct membership row exactly its pinned options, and every non-superuser role's privileges on them are exactly the ${pinnedGrantRows('table').length} table-level and ${pinnedGrantRows('column').length} column-level grants pinned in ${PINNED_GRANTS_FILE}, none with grant option; app and private are owned by the migration owner and every non-superuser role's USAGE and CREATE on them are exactly the ${PINNED_SCHEMA_PRIVILEGES.length} pinned; and no non-superuser role holds BYPASSRLS, LOGIN, CREATEDB, CREATEROLE, INHERIT or REPLICATION but the ${PINNED_ROLE_ATTRIBUTES.length} pinned (${PINNED_ROLE_ATTRIBUTES.join(', ')}), no default privilege entry exists, and no non-superuser role holds a stored credential; no non-superuser role holds CREATE on any database or a database privilege with grant option, and every non-superuser role's EXECUTE beyond PUBLIC's, in every schema, is exactly the ${PINNED_FUNCTION_EXECUTE.length} pinned, with PUBLIC executing nothing in app or private`,
     selfTests: [
       // The batch 170 draft: a table no entry names, in each schema, and a pinned one renamed away. Since
       // its review round (A1 R2, Q0 Q-2), a materialized view in app over a SECRET-4 table and a definer
@@ -2393,6 +2489,17 @@ export const CATALOG_RULE_PROBES = [
       { drift: "alter role app_worker_login password 'probe-not-a-credential';",
         raises: 'a non-superuser role holds a stored credential on a migrate-clean cluster',
         names: ['app_worker_login'] },
+      // Batch 174 (A1-173-3): A1's own drift, CREATE on the database for the worker, and a grant option on another
+      // database for a command role and for the login role; the current database is named as such on every cluster.
+      { drift: "do $d$ begin execute pg_catalog.format('grant create on database %I to app_worker', pg_catalog.current_database()); end $d$; grant connect on database template1 to app_command with grant option; grant temporary on database template1 to app_worker_login with grant option;",
+        raises: 'a non-superuser role holds CREATE on a database, or a database privilege with grant option',
+        names: ['app_worker CREATE on the current database', 'app_command CONNECT WITH GRANT OPTION on database template1', 'app_worker_login TEMPORARY WITH GRANT OPTION on database template1'] },
+      // Batch 174 (A1-173-3): a command the worker may not call, a server-file read for the login role, a helper opened
+      // to PUBLIC, a grant option for a maintenance role, and the worker's one pinned function revoked.
+      { drift: 'grant execute on function app.close_workspace(uuid, text, text) to app_worker; grant execute on function pg_catalog.pg_read_file(text) to app_worker_login; grant execute on function app.member_scope_is_narrowed(uuid) to public; grant execute on function app.jwt_aal() to app_maintenance with grant option; revoke execute on function app.knowledge_scope_applies(uuid, uuid, uuid, uuid) from app_worker;',
+        raises: 'function EXECUTE of a non-superuser role beyond what PUBLIC holds not exactly its pin, or PUBLIC can execute a function in app or private',
+        names: ['unlisted: app_worker EXECUTE on app.close_workspace(uuid,text,text)', 'unlisted: app_worker_login EXECUTE on pg_read_file(text)', 'unlisted: public EXECUTE on app.member_scope_is_narrowed(uuid)',
+          'missing: authenticated EXECUTE on app.member_scope_is_narrowed(uuid)', 'unlisted: app_maintenance EXECUTE WITH GRANT OPTION on app.jwt_aal()', 'missing: app_worker EXECUTE on app.knowledge_scope_applies(uuid,uuid,uuid,uuid)'] },
     ] },
   // The batch 170 draft (RFC-2026-021 §8.2, §8.5): the read allowlist, both ways.
   { label: 'read allowlist probe', sql: READ_ALLOWLIST_PROBE_SQL,

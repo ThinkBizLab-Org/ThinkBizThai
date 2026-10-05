@@ -90,7 +90,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // the closing command's succeeded row tied to its CTR-AUD-001 conformance fixture: 81 to 82. Batch 173 (2026-10-05,
 // migration 173, RFC-2026-028): three tests -- the login role's migration and the static credential rule over every
 // fed source, the snapshot lint of the login role per row, and the worker login proofs driven by a fake: 82 to 85.
-  'test-kits/db/foundation-contract.test.mjs': 85,
+// Batch 174 (2026-10-05, migration 174, RFC-2026-028 §3.4, Q-028-5): one test -- app.jobs' tenant-context columns, every
+// writer naming them, and the job-context proof driven by a fake: 85 to 86.
+  'test-kits/db/foundation-contract.test.mjs': 86,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -310,7 +312,7 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': 'd4851295dd024f20',
+  'test-kits/db/foundation-contract.test.mjs': '63dd7456375c0764',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
   'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
