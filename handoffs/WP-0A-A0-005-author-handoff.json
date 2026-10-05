@@ -5,7 +5,7 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "82071f5bc6e1c50f1ed2e875921a591455c8afcc",
+  "head_revision_or_patch_checksum": "bacf138312cf71419f5c5bc6781cbb38aca1adea",
   "task_ids": [
     "WP-0A-A0-005",
     "G0-step-2"
@@ -36,57 +36,69 @@
     {
       "criterion": "A Luhn-valid card number carrying a recognised issuer prefix is reported, in prose and in code alike.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     },
     {
       "criterion": "A Luhn-INVALID digit run of card length is not reported, so a correlation id or a hash prefix does not become a finding.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     },
     {
       "criterion": "A Luhn-valid run with no recognised issuer prefix is not reported: one in ten arbitrary digit runs passes Luhn, and a rule that fires on those is noise.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     },
     {
       "criterion": "A published provider test card IS reported. The scanner cannot distinguish a test number from a live one at rest, and Gate G0 permits no provider integration that would need one.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     },
     {
       "criterion": "The rule is not prose-exempt, on the same footing as the Thai national identity rule.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     },
     {
       "criterion": "Repository scan over the tree stays clean; npm run check stays green with no test skipped.",
       "result": "pass",
-      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run at main e1fa28e in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5"
+      "evidence": "evidence/WP-0A-A0-005/author-self-check.md; re-run in evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5-§6"
     }
   ],
   "tests": [
     {
-      "command": "node scripts/scan-repository-secrets.mjs",
-      "exit_code": 0,
-      "result": "no output, at main e1fa28e on the branch name",
+      "command": "npm run check (at main e1fa28e, before this refresh)",
+      "exit_code": 1,
+      "result": "tests 691, pass 689, fail 2. Both come from the stale-handoff guard for this branch: the handoff cited dcb3ffc, and 390 substantive paths had changed after it. evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "node --test test-kits/secret-scan.test.mjs",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005 (before fdc60ed)",
+      "exit_code": 74,
+      "result": "four dead amendments; removed from paths in fdc60ed. evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §3",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node scripts/scan-repository-secrets.mjs (main 8c089cc merged)",
+      "exit_code": 0,
+      "result": "no output",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "node --test test-kits/secret-scan.test.mjs (main 8c089cc merged)",
       "exit_code": 0,
       "result": "tests 46, pass 46, fail 0, skipped 0, todo 0",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "npm run check (at main e1fa28e, before this refresh)",
-      "exit_code": 1,
-      "result": "tests 691, pass 689, fail 2. Both are the stale-handoff guard for this branch (the handoff cited dcb3ffc; 390 substantive paths had changed after it). evidence/WP-0A-A0-005/author-reverify-2026-10-06.md §5",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005 (main 8c089cc merged)",
+      "exit_code": 0,
+      "result": "all 3 changed path(s) are declared, and every amendment explains one",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "npm run verify (via node scripts/commit-when-clean.mjs, on the records commit)",
+      "command": "npm run verify (via node scripts/commit-when-clean.mjs, on bacf138)",
       "exit_code": 0,
-      "result": "clean: tests 691, pass 691, fail 0, skipped 0, todo 0. It gated commit 25cff93, the head this handoff cites",
+      "result": "clean: tests 692, pass 692, fail 0, skipped 0, todo 0. It gated bacf138, which this handoff cites as head.",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
