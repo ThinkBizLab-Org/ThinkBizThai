@@ -5,12 +5,13 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "a3d61f3fa10ddadcf9d954a5b0b3fff10ab714fd",
+  "head_revision_or_patch_checksum": "b4c5509d2a74c0b862140a284e12d2ec9df587df",
   "task_ids": [
     "WP-0A-A0-001",
     "G0-step-2"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/c0-g0-records-review-2026-10-05.md",
     "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md"
   ],
   "files_modified": [
@@ -82,12 +83,12 @@
     {
       "command": "node scripts/commit-when-clean.mjs <message> (runs npm run verify on branch agent/root/WP-0A-A0-001-repository-bootstrap)",
       "exit_code": 0,
-      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0; commit a3d61f3"
+      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0; commit b4c5509 (C0 F1-F4 fix, after cherry-picking C0's review ac9ba9e as bdcd472)"
     },
     {
       "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "WP-0A-A0-001: all 7 changed path(s) are declared, and every amendment explains one"
+      "result": "WP-0A-A0-001: all 8 changed path(s) are declared, and every amendment explains one"
     },
     {
       "command": "node scripts/verify-branch-identity.mjs agent/root/WP-0A-A0-001-repository-bootstrap",
