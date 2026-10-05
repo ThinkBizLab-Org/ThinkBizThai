@@ -156,7 +156,7 @@ PR the Owner merges. The same reasoning was applied to WP-0A-CON-002's Candidate
 | C-2 / T-2 (unkilled constraints; named minimum set) | **Closed at main** | §1 m1-m4 fail closed; `schema-mutation-coverage.test.mjs` pins per-contract floors and names every untested constraint. |
 | C-2 / T-7 (split `invalid-temporary-without-expiry` into its two obligations) | **Closed here** | The correction round added `invalid-temporary-without-owner.json` (lacks only `owner_role`) but left `invalid-temporary-without-expiry.json` lacking **both** `expires_at` and `owner_role`. Measured at `main`: deleting `expires_at` alone from the temporary branch's `audit.required` changed no fixture verdict, so the expiry obligation had no counterexample of its own (acceptance criterion 10). This branch adds `"owner_role":"A0"` to that fixture and changes nothing else. Re-measured: deleting `expires_at` alone now flips `invalid-temporary-without-expiry.json`, and deleting `owner_role` alone flips `invalid-temporary-without-owner.json`. The fixture's name and its file in the pinned set are unchanged; contract suites 79/79. |
 | C-3 (CI chain backgrounding / early `||`) | **Not this package's** | Owned by WP-0A-A0-002 (open blocker there). |
-| C-4 / T-4 | **Closed at main** | Prefix enum; manifest reconciled. The index's `required_before_freeze` still lists "platform→plan→workspace→business precedence"; that is correct, because the enforcement half needs an evaluator. |
+| C-4 / T-4 | **Mostly closed** (corrected 2026-10-06 per Q0 Q-2; this row read "Closed at main") | F7 and F7b rejected by the prefix enum; manifest reconciled. **F8 is still accepted**: a decision whose deciding scope is absent from `evaluated_scopes` (`decision_source.scope: "business"` with `evaluated_scopes: ["platform"]`) validates. Owed, `open_blockers[11]`(h). The index's `required_before_freeze` still lists "platform→plan→workspace→business precedence"; that is correct, because the enforcement half needs an evaluator. |
 | C-5 / T-3 | **Mostly closed at main** | All three explicit rules are linked. Remainder: `percentage_bucket` with `effect: allow` and `bucket.allocated: false` validates (§1). Owed to A0 with the FP-003 allocation algorithm, which this package deliberately does not infer. |
 | T-5 | **Owed** | Same as CS-3. |
 | T-6 (`audit` required only for a temporary flag) | **Owed** (A0) | §1: a kill switch validates with no `audit`. FP-005 says every change carries actor, reason and time; whether a decision document is a change is the owner's call. |
@@ -203,3 +203,46 @@ The figures on this branch's head are in the handoff's `tests` and in `evidence/
    (`FIXTURE_SET`), which `WP-0A-CON-008` writes, so the new names land there together with the
    fixtures. This is the CON-003 part of the catalog-wide nested-requiredness remainder in
    `open_blockers[3]`.
+
+## 6. Closure of the role re-verification conditions, 2026-10-06
+
+Added by a subagent of `/claude/a0_atlas`, acting as the Author. It approves nothing and moves no
+status. A0 executes under the Owner's delegation `เอาตามที่คุณแนะนำทุกอย่าง`; it does not decide.
+
+The four role files are now on this branch, cherry-picked with `-x`: C0
+`c0-contract-reverify-2026-10-05.md` (`12f2527e`, `review_approved_with_conditions`), A1
+`a1-security-reverify-2026-10-05.md` (`fbf0a09e`, `security_approved_with_conditions`), Q0
+`q0-test-reverify-2026-10-05.md` (`2acda9e5`, `test_verified_with_conditions`) and R0
+`r0-integration-verdict-2026-10-05.md` (`d408abfc`, `integration_conditional`). `origin/main`
+(`fa10229`) is merged into the branch, as R0 §6 step 1 and C0 N-6 / Q0 Q-1 require; `git merge-tree`
+was clean. One fix commit then made the record conditions, records only, no schema or fixture change:
+
+| Condition | Raised by | Where it is now |
+|---|---|---|
+| N-1, `module_id` pattern refuses MOD-900 and admits MOD-005/141/149 | C0 | `open_blockers[11]`(l), owner A0, Candidate change path |
+| N-5, `reason_key` accepts `policy.....` | C0 | `open_blockers[11]`(m), owner A0, Candidate change path |
+| N-3, A1 lettering in `open_blockers[11]` | C0 | Reconciled in place: "with A1 for (d), (i), (j) and (k)", agreeing with §2 and §5 above (A1 on CS-1, CS-2 in `open_blockers[1]` and CS-5 in (d)); the old wording is quoted in the entry |
+| N-2, contract manifests' `freeze_boundary` still opens "Draft only." | C0 | `open_blockers[14]`(3), owner A0, catalog-wide, Candidate RFC |
+| N-4, copied `x-rule` history on two branches | C0 | `open_blockers[11]`(n), folded into the Candidate RFC |
+| N1, MOD/SEC handle length does not compose (129 chars) | A1 | `open_blockers[14]`(1), the length half of `open_blockers[1]`, A0 + A1 by RFC, blocking on freeze |
+| N2, `tenant-data` with `tenant_scoped: false` passes | A1 | `open_blockers[11]`(i), A0 with A1 |
+| N3, `readiness.reason` has no `maxLength` | A1 | `open_blockers[11]`(j), A0 with A1 |
+| N4, permissioned-data references accept a single space | A1 | `open_blockers[11]`(k), A0 with A1 |
+| CS-1 to CS-5, S-8, C1 at this head | A1 | `open_blockers[14]`(2), in A1's own words, each pointing at its existing entry |
+| Q-2, F8 recorded as closed | Q0 | `open_blockers[11]`(h); the C-4/T-4 row in §2 now reads "Mostly closed" |
+| Q-3, the T-7 fix has no ratchet | Q0 | `open_blockers[14]`(4), owed by A0, not made on this PR |
+
+Not made here, and why: no schema, fixture, test or catalog file moved, because every item above changes a
+Candidate contract's rules, annotations or fixture set, which goes through an RFC (§2). The handoff is
+refreshed in a later commit, last and alone; until then `npm run check:handoff` is expected to be red.
+
+**A0's reading of RFC-2026-025 §5 item 6 (R0 R4).** The clause asks that no unresolved security finding
+of any grade be open against the PR. A1's open findings (CS-1, CS-2 length, CS-3, CS-4, CS-5
+`tenant-data`, S-8, N1-N4) are pre-existing on `main` at `8c089cc`, as A1 measured and states; each is
+now recorded with an owner and a route (`open_blockers[1]`, `[11]`, `[14]`); and none is introduced by
+this PR, which changes no schema. A0 therefore reads them as open against the two Candidate contracts,
+not against this PR. This is the reading R0 asked A0 to record; A0 records it executing under
+`เอาตามที่คุณแนะนำทุกอย่าง` and does not decide it. If the Owner reads the clause more strictly, the
+Owner merges personally. Still owed before any merge, per R0 §6: the light re-checks by C0, A1 and Q0
+at the new head, a green `bootstrap` run on that exact head including Database foundation, and the
+`/claude/r0_steward` confirmation.
