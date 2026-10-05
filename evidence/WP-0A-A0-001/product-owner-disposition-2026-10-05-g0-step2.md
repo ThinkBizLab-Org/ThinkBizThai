@@ -165,3 +165,19 @@ Read-only, 2026-10-05: `gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/
   item 5's mechanical record-only check does not exist in `scripts/` yet, so no PR is treated as
   record-only. The PR carrying this file needs the role runs its package gates require.
 - Not G0. G0-024's signed checklist is a separate act by the Product Owner and A0.
+
+## 8. The role runs, and the merge (appended 2026-10-05)
+
+Three role runs reviewed this PR on head `10a337e`, and their files are cherry-picked here:
+
+| Run | Commit | Cherry-picked as | Verdict |
+|---|---|---|---|
+| C0 re-check | `eb00c98` | `75c56bc` | Approved for the Reviewer role. It measures F1–F4 fixed, and confirms the step-2 text in §1.1 matches the session transcript byte for byte. |
+| Q0 | `a717a17` | `f56ac98` | Nothing blocks the merge. Every blocker closure was re-measured, and the secret scan passes. |
+| R0 | `758b299` | `2eaa828` | R1–R3 were marked as blocking because R0 ran in parallel with C0 and Q0. Each is met at the merged head: C0's re-check exists and approves, Q0's evidence exists, and the required check `bootstrap` must be green on that head before A0 presses the merge. |
+
+**R4 asks whether A1 security review is required.** RFC-2026-025 §5 forbids a delegated merge while a security finding is open "against the PR". CON-002 #13's open remainder (CTR-TEN-001's `actor.id` admits a JWT-shaped value) is a pre-existing contract item owned by WP-0A-CON-001. This PR records that item's state accurately; it neither introduced the finding nor touches the contract. A0 reads it as not a finding against this PR.
+
+**R5 asks whether this is a governance PR.** RFC-2026-025 §5 item 6 defines governance as changing an RFC, `CONTRIBUTING_AGENTS.md`, CI or a gate. This PR changes none of those. It adds evidence files, updates the G0 tracker's status records, closes manifest blocker lines with citations, and refreshes the handoff. The gate's rules and pass criteria are unchanged. A0 therefore reads it as within the Owner's standing delegation (batch 127 disposition §6), reinforced by `ลุยยาวเลยนะครับ ผมนอนแล้ว` ("keep going for a long run; I'm going to sleep", 2026-10-05).
+
+A0 executes the merge; A0 does not decide it. If the Owner reads either R4 or R5 differently, the correction is a revert PR.
