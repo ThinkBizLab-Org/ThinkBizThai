@@ -24,7 +24,7 @@ import { readFile } from 'node:fs/promises';
 import {
   expectDenied, expectDeniedBy, expectNoRows, expectRows,
 } from '../../../db/foundation/test-helpers/rls-assertions.mjs';
-import { NOT_A_CONSTRAINT_CODE } from './isolation-cases.mjs';
+import { NOT_A_CONSTRAINT_CODE, CONNECTION_ROLE } from './isolation-cases.mjs';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -339,6 +339,43 @@ export async function verifyIdentity(driver, identity) {
     + 'have run as the connection role rather than as the identity under test.';
 }
 
+// BATCH 171. The connection role is the migration owner the driver connected as (postgres, in CI and in
+// every local cluster this repository builds). It is named by a marker rather than by a helper, because no
+// identity helper makes it: a step back to it is `reset role`, and `current_setting('role')` then reads
+// 'none' -- which is what connectionRoleHeld demands before anything runs as it.
+export { CONNECTION_ROLE };
+export const RESET_ROLE_SQL = 'reset role';
+export async function connectionRoleHeld(driver) {
+  const seen = await driver.exec(VERIFY_IDENTITY_SQL, []);
+  if (seen?.error) return `could not read the role back: ${seen.error.message}`;
+  const role = seen?.rows?.[0]?.role ?? null;
+  return role === 'none' ? null
+    : `a connection-role step would run as ${JSON.stringify(role)}, not as the connection role`;
+}
+
+// `before`: { sql, params, expect: 'rows' | 'no-rows' }, read as the case's own identity, then the role is
+// stepped back to the connection role for `ownerFirst`. Returns null, or the failure to report.
+async function runBefore(testCase, driver) {
+  const before = testCase.before;
+  for (const statement of assumeIdentity(testCase.as)) {
+    const setup = await driver.exec(statement, testCase.as.subject ? [testCase.as.subject] : []);
+    if (setup?.error) return { phase: 'before', detail: setup.error.message };
+  }
+  const held = await verifyIdentity(driver, testCase.as);
+  if (held !== null) return { phase: 'before', detail: held };
+  const seen = await driver.exec(before.sql, before.params ?? []);
+  const assertion = ASSERTION_FOR[before.expect];
+  if (!assertion || !['rows', 'no-rows'].includes(before.expect)) return { phase: 'before', detail: `a before-read must expect rows or no-rows, not ${before.expect}` };
+  try {
+    assertion(seen, `${testCase.id} (before the move)`);
+  } catch (error) {
+    return { phase: 'before', detail: `${error.message} -- the read before the state change does not see what the case demands, so its verdict after the change would be vacuous` };
+  }
+  const back = await driver.exec(RESET_ROLE_SQL, []);
+  if (back?.error) return { phase: 'before', detail: back.error.message };
+  return null;
+}
+
 export async function runCases(cases, driver) {
   const results = [];
   for (const testCase of cases) {
@@ -356,6 +393,22 @@ async function runOne(testCase, driver) {
   try {
     await driver.begin();
     try {
+      // BATCH 171 (RFC-2026-027 §5/1): a case may read as its identity FIRST, then change the state of the
+      // world as the CONNECTION ROLE, then run its statement -- all in its one rolled-back transaction.
+      // Since batch 170 no client role can write app.workspaces.lifecycle_state, so a case about a blocked
+      // workspace moves a populated one there itself (`ownerFirst`), and proves the move is what changed
+      // the answer by reading the same family set before it (`before`). A `before` that does not see what
+      // it demands fails the case: no family may pass vacuously.
+      if (testCase.before) {
+        const early = await runBefore(testCase, driver);
+        if (early) return { ...base, ok: false, ...early };
+      }
+      for (const step of testCase.ownerFirst ?? []) {
+        const held = await connectionRoleHeld(driver);
+        if (held !== null) return { ...base, ok: false, phase: 'owner-first', detail: held };
+        const moved = await driver.exec(step.sql, step.params ?? []);
+        if (moved?.error) return { ...base, ok: false, phase: 'owner-first', detail: moved.error.message };
+      }
       for (const statement of assumeIdentity(testCase.as)) {
         const setup = await driver.exec(statement, testCase.as.subject ? [testCase.as.subject] : []);
         if (setup?.error) {
@@ -376,6 +429,23 @@ async function runOne(testCase, driver) {
         // says what it said. This is what fails when RLS is off — the write succeeds, the witness
         // sees the new value — and what fails when the fixture never loaded.
         const witness = testCase.witness;
+        // BATCH 171: in a blocked workspace no client identity can see the target row any more, so the
+        // witness is the CONNECTION ROLE, which reads it as it is. The role is stepped back explicitly and
+        // checked before the read, for the reason verifyIdentity gives.
+        if (witness.as === CONNECTION_ROLE) {
+          const back = await driver.exec(RESET_ROLE_SQL, []);
+          if (back?.error) return { ...base, ok: false, phase: 'assume-witness', detail: back.error.message };
+          const held = await connectionRoleHeld(driver);
+          if (held !== null) return { ...base, ok: false, phase: 'assume-witness', detail: held };
+          const seen = await driver.exec(witness.sql, witness.params);
+          expectRows(seen, `${testCase.id}: the witness must still see the target row`);
+          const actual = seen.rows[0][witness.column];
+          if (actual !== witness.equals) {
+            throw new Error(`${testCase.id}: the write was NOT stopped. ${witness.column} is `
+              + `${JSON.stringify(actual)} and should still be ${JSON.stringify(witness.equals)}.`);
+          }
+          return { ...base, ok: true };
+        }
         for (const statement of assumeIdentity(witness.as)) {
           const setup = await driver.exec(statement, witness.as.subject ? [witness.as.subject] : []);
           if (setup?.error) return { ...base, ok: false, phase: 'assume-witness', detail: setup.error.message };

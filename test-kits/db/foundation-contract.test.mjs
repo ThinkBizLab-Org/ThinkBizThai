@@ -665,7 +665,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '150_performance_snapshots_key.sql',
   // Batch 170: the client UPDATE of 010's workspaces.lifecycle_state revoked (Q-026-5 / Q-027-5); it could apply
   // to the instance on its own, but it sorts after 150, so it is APPENDED and the declaration stays a TAIL.
-  '170_workspace_lifecycle_not_client_writable.sql'];
+  '170_workspace_lifecycle_not_client_writable.sql',
+  // Batch 171: RFC-2026-027's gate -- 011's helper replaced, app_authz given a policy and two columns on 010's
+  // workspaces, five 010 policies rewritten; it needs 011, which the instance does not have, and sorts after 170.
+  '171_workspace_lifecycle_visibility.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -1819,9 +1822,13 @@ test('EXECUTE is checked for PUBLIC, for the callers that need it, and for the o
 // rule nobody has checked. Every case below hands authzLint a catalog that violates exactly one
 // thing and requires it to say so.
 
-import { AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_TABLE, authzLint, platformIdentityLint } from '../../scripts/db/run.mjs';
+import {
+  AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_TABLE, AUTHZ_WORKSPACES_POLICY, AUTHZ_WORKSPACES_POLICY_QUAL, AUTHZ_WORKSPACES_TABLE,
+  authzLint, platformIdentityLint,
+} from '../../scripts/db/run.mjs';
 
-// What the CI container actually measured on the green run, reduced to the fields the rules read.
+// What the CI container actually measured on the green run, reduced to the fields the rules read. Since batch 171
+// (RFC-2026-027 §3.4 amending RFC-2026-020 §5/3 and §6.1/5-6) that is two policies and six columns.
 const GOOD_AUTHZ = () => ({
   authenticator_memberships: [],
   authz: {
@@ -1834,12 +1841,15 @@ const GOOD_AUTHZ = () => ({
     ],
     policies: [{
       table: AUTHZ_TABLE, policy: AUTHZ_POLICY, command: 'select', qual: AUTHZ_POLICY_QUAL,
+    }, {
+      table: AUTHZ_WORKSPACES_TABLE, policy: AUTHZ_WORKSPACES_POLICY, command: 'select', qual: AUTHZ_WORKSPACES_POLICY_QUAL,
     }],
     grants: {
       schemas: ['USAGE on schema app'],
       tables: [],
       columns: ['app.workspace_members.role', 'app.workspace_members.status',
-        'app.workspace_members.user_id', 'app.workspace_members.workspace_id'],
+        'app.workspace_members.user_id', 'app.workspace_members.workspace_id',
+        'app.workspaces.id', 'app.workspaces.lifecycle_state'],
     },
   },
 });
@@ -1901,10 +1911,19 @@ test('§6.1/5: the pinned policy expression is the control, and every widening c
   rejects((c) => { c.authz.policies[0].qual = 'true'; }, /policy expression is not the pinned one/, 'using (true)');
   rejects((c) => { c.authz.policies[0].qual = AUTHZ_POLICY_QUAL.replace(" AND (status = 'active'::text)", ''); },
     /policy expression is not the pinned one/, 'dropped the active check');
-  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'second' }); },
-    /holds 2 policies/, 'a second policy is a second decision');
+  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'third' }); },
+    /holds 3 policies/, 'a third policy is a third decision');
   rejects((c) => { c.authz.policies[0].command = 'all'; }, /is FOR ALL/, 'command');
-  rejects((c) => { c.authz.policies[0].table = 'workspaces'; }, /policy is on app\.workspaces/, 'table');
+  rejects((c) => { c.authz.policies[0].table = 'workspaces'; }, /holds no policy on app\.workspace_members/, 'table');
+  // Batch 171 (RFC-2026-027 §3.1, §6/1-2): the second pinned pair, held the same way. Dropping its lifecycle
+  // term, adding a helper call (the recursion), widening it to true, or losing it are each a finding.
+  rejects((c) => { c.authz.policies[1].qual = AUTHZ_WORKSPACES_POLICY_QUAL.replace("(lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND ", ''); },
+    /policy expression is not the pinned one \(app\.workspaces,/, 'dropped the lifecycle term');
+  rejects((c) => { c.authz.policies[1].qual = 'app.is_active_member(id)'; },
+    /policy expression is not the pinned one \(app\.workspaces,/, 'a helper call, which recurses');
+  rejects((c) => { c.authz.policies[1].qual = 'true'; }, /policy expression is not the pinned one \(app\.workspaces,/, 'using (true) on workspaces');
+  rejects((c) => { c.authz.policies.pop(); }, /holds 1 policies/, 'the second policy lost');
+  rejects((c) => { c.authz.policies[1].policy = 'renamed'; }, /on app\.workspaces is named renamed/, 'second name');
   rejects((c) => { c.authz.policies[0].policy = 'renamed'; }, /is named renamed/, 'name');
   rejects((c) => { delete c.authz.policies; }, /does not record the policies/, 'unmeasured');
 });
@@ -1915,6 +1934,8 @@ test('§6.1/6: a wider grant than USAGE on app and four columns is refused', () 
   rejects((c) => { c.authz.grants.schemas.push('USAGE on schema private'); }, /schema grants/, 'schema');
   rejects((c) => { c.authz.grants.columns.push('app.workspace_invitations.token_hash'); }, /column SELECT/, 'column');
   rejects((c) => { c.authz.grants.columns.pop(); }, /column SELECT/, 'missing column');
+  // Batch 171: a workspace's name is not among the six columns.
+  rejects((c) => { c.authz.grants.columns.push('app.workspaces.name'); }, /column SELECT/, 'a workspace name');
   rejects((c) => { delete c.authz.grants; }, /does not record .*grants/, 'unmeasured');
 });
 
@@ -3167,6 +3188,13 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // (its drift renames pg_catalog.pg_sleep(double precision) in place of pg_read_file(text), which psqlLex now
   // refuses as a server-file function named outside GRANT, REVOKE or COMMENT, C0-SL-1; the rename shape and the
   // rule are unchanged). Every other digest stays.
+  // Batch 171 (RFC-2026-027, approved 2026-10-05): four probes embed a pinned list 171 moves, and no rule and no
+  // drift changed. Permissive policy 2fd449e14cd8900f to d926d01e77d6a7ac (the five 010 policies 171 rewrites to
+  // call the helpers, and app_authz's workspaces_select_authz_own_open on app.workspaces); security definer
+  // 42d056bde20ea854 to 6be3c66576d15b14 (app.workspace_member_role's body digest, its join to app.workspaces);
+  // pinned grant 06c68d76dce9d29a to f6c6a5afaf062367 (app_authz SELECT (id, lifecycle_state) on app.workspaces);
+  // policy set 3c643bfe1fcfb040 to fa0abb94ce92aee8 (the pinned key list gains the new policy through the
+  // permissive list). Every other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3177,23 +3205,23 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'closure coverage probe': '1a626907571ffb7e',
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
-    'permissive policy probe': '2fd449e14cd8900f',
+    'permissive policy probe': 'd926d01e77d6a7ac',
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'd82a36c9fbe730c6',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
-    'security definer probe': '42d056bde20ea854',
+    'security definer probe': '6be3c66576d15b14',
     'policy helper probe': '79f1d9721698eb44',
     'trigger probe': '7ebb13f1c66bd33a',
     'pinned trigger probe': '8412a302b7f190a7',
-    'pinned grant probe': '06c68d76dce9d29a',
+    'pinned grant probe': 'f6c6a5afaf062367',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
-    'policy set probe': '3c643bfe1fcfb040',
+    'policy set probe': 'fa0abb94ce92aee8',
     'index coverage probe': '2d47460e43a5c68e',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
@@ -3261,14 +3289,17 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.equal((permissive.match(/\bselect\b/g) ?? []).length, 11, 'eleven selects, counted at batch 127: no reading clause added unseen');
   const pkeys = Object.keys(m.PERMISSIVE_POLICIES);
   assert.deepEqual([...pkeys].sort(), pkeys, 'sorted, so a diff to the list reads as one line per policy');
-  assert.equal(pkeys.length, 74, 'seventy-four permissive policies on the client-writable tables, measured from the catalog at batch 127');
+  // Batch 171: seventy-five -- app_authz's workspaces_select_authz_own_open sits on app.workspaces, a client-writable
+  // table, so the probe reads it; it is the one row here that is not TO authenticated (RFC-2026-027 §3.1).
+  assert.equal(pkeys.length, 75, 'seventy-five permissive policies on the client-writable tables: batch 127\'s seventy-four and batch 171\'s app_authz policy');
   const ptables = new Set(pkeys.map((k) => k.split('.')[0]));
   assert.equal(ptables.size, 25, 'on twenty-five client-writable app tables');
   for (const t of m.CREATED_BY_CLOSURES) assert.ok(ptables.has(t), `${t}: a created_by table has its permissive set pinned (D1 fails by name on all nineteen)`);
   for (const [k, p] of Object.entries(m.PERMISSIVE_POLICIES)) {
     assert.match(k, /^[a-z_]+\.[a-z_]+$/, `${k}: table.policy`);
     assert.ok(['r', 'a', 'w', 'd', '*'].includes(p.cmd), `${k}: a policy command`);
-    assert.equal(p.roles, 'authenticated', `${k}: every permissive policy here is TO authenticated`);
+    assert.equal(p.roles, k === 'workspaces.workspaces_select_authz_own_open' ? 'app_authz' : 'authenticated',
+      `${k}: every permissive policy here is TO authenticated, but app_authz's own on app.workspaces (batch 171)`);
     assert.ok(p.cmd === 'a' ? p.using === null : p.using !== null, `${k}: USING exactly when the command has one`);
     assert.ok(p.cmd === 'r' ? p.check === null : p.check !== null, `${k}: WITH CHECK exactly when the command has one`);
   }
@@ -3949,7 +3980,8 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     assert.equal(rows.length, 44, 'forty-four policies no other list named, measured at 1319042');
     const others = new Set(m.PINNED_POLICY_KEYS().filter((k) => !m.POLICY_SET[k]));
     for (const [k] of rows) assert.ok(!others.has(k), `${k}: pinned once, here`);
-    assert.equal(m.PINNED_POLICY_KEYS().length, 209, 'two hundred and nine policies in app, every one named');
+    // Batch 171: two hundred and ten -- app_authz's workspaces_select_authz_own_open, named by the permissive list.
+    assert.equal(m.PINNED_POLICY_KEYS().length, 210, 'two hundred and ten policies in app, every one named (209 at 1319042, and batch 171\'s)');
     const service = rows.filter(([k]) => k.endsWith('_service_path_closed'));
     assert.equal(service.length, 26, 'twenty-six service-path closures');
     for (const [k, p] of service) {

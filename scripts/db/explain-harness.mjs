@@ -24,9 +24,10 @@
 // went, none of it returned at rollback; the full scale needs about 2 GB while it runs). Plan costs drift between repeat runs on one cluster although the plan shapes do not. So: one run per
 // fresh cluster, and remove the cluster afterwards. It has no free-space guard (open_blockers[194] (12)).
 //
-// What it does NOT do, by decision of the plan: it asserts no p95 or any other timing (the SLO is Q150-d,
-// answered 2026-10-04: A0 drafted PROPOSED values in a0-batch-150-plan-2026-10-03.md §5, unratified and asserted
-// nowhere), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
+// What it does NOT do, by decision of the plan: it asserts no p95 or any other timing (the SLO is Q150-d: A0
+// drafted values in a0-batch-150-plan-2026-10-03.md §5, RATIFIED 2026-10-05 as the Pilot p95 DB-time budget through
+// the Owner's delegation, product-owner-disposition-2026-10-03-batch-171.md, and written in db/foundation/README.md;
+// a timing assertion is owed, open_blockers[194], because one sample here is not a p95), it is not a target in the Makefile and it is not run by CI (CI is protected: adding it needs
 // the Integration Owner), and it changes no schema. A Seq Scan on a membership-class query is REPORTED; it
 // fails the run only under --fail-on-seq-scan, because at a small scale the planner may rightly prefer one.
 //
@@ -74,8 +75,10 @@ const ws1 = fixtureIds.workspace(1);
 const bp1 = fixtureIds.business(1);
 const pp1 = "md5('ws905:pp:1')::uuid";
 export const NAMED_QUERIES = Object.freeze([
+  // Batch 171 (RFC-2026-027 §3.2, §7.1): the body now joins app.workspaces on its key and admits only the open
+  // states, so the membership check is re-measured with the join, as app_authz under its two policies.
   { name: 'membership check', klass: 'membership', role: 'app_authz', source: 'WS:913; app.workspace_member_role',
-    sql: `select m.role from app.workspace_members m where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' limit 1` },
+    sql: `select m.role from app.workspace_members m join app.workspaces w on w.id = m.workspace_id where m.workspace_id = ${ws1} and m.user_id = app.jwt_subject() and m.status = 'active' and w.lifecycle_state in ('active', 'closing') limit 1` },
   // Batch 150 (Q150-e, answered 2026-10-04 as A0 recommended): the list is read FROM the caller's active
   // memberships and joined to workspaces, so the plan starts on workspace_members_user_id_status_idx and reaches
   // each workspace by its key. Read from workspaces outward (the batch 150 prerequisites' text,

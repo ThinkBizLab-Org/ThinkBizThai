@@ -1,0 +1,331 @@
+-- Batch 171: a member of a workspace whose access is blocked is refused by the authorization helper.
+--
+-- A0 author, A1 review. This file implements RFC-2026-027 (architecture/decisions/
+-- RFC-2026-027-lifecycle-visibility.md) as written, §3.1 to §3.3 and §4. RFC-2026-027 was approved on
+-- 2026-10-05 as the Owner's decision taken through the delegation of A0's recommendations (`คุณตะลุยไล่ไปได้
+-- เลนไม่ต้องรอผม` / `เอาตามที่คุณแนะนำทุกอย่าง`, transcribed in
+-- evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-171.md); A1's named-role acceptance is
+-- recorded there as owed. The number 171 is Q-027-6's answer: the next free number in batch 170's range,
+-- landing after the RFC's approval and before any batch that relies on the gate. Plan:
+-- evidence/WP-0A-DB-00/a0-batch-171-plan-2026-10-03.md.
+--
+-- THE GAP (open_blockers[53], [95]). ERD §8.5's SELECT pattern ends in "lifecycle visibility". Batch 010
+-- applied it to app.workspaces alone (`lifecycle_state in ('active', 'closing')`, 010_identity.sql:484,
+-- :500); every other family reads membership through app.is_active_member or app.workspace_member_role,
+-- and neither read lifecycle_state (011_authorization_helpers.sql:257-290). So a member of a workspace in
+-- access_blocked could not see the workspace row and could still read its businesses, content, assets,
+-- billing and its notifications (PII-2).
+--
+-- THE CHANGE, IN RFC-2026-027 §4's ORDER:
+--   1. app_authz gains column SELECT on app.workspaces (id, lifecycle_state) and ONE policy there,
+--      workspaces_select_authz_own_open: 010's workspaces_select_active_member, the identity read through
+--      app.jwt_subject(), calling NEITHER membership helper. After step 2 the helpers read app.workspaces,
+--      so a policy there that called one would recurse at run time until max_stack_depth (RFC-2026-020
+--      option D). The subquery runs as app_authz and is filtered by app_authz's own pinned policy on
+--      app.workspace_members, which calls no function, so nothing cycles.
+--   2. app.workspace_member_role gains one join and one conjunct: the workspace's lifecycle_state is
+--      'active' or 'closing'. Signature, owner (app_authz), SECURITY DEFINER, STABLE and the empty
+--      search_path are restated. app.is_active_member is `workspace_member_role(...) is not null` and
+--      inherits the gate unchanged; so does every family policy that calls either (RFC-2026-027 §3.3's
+--      table: the roster, 020/021, 030/040, 051, 061, 070, 080/081, 090/091, 100, 120/121, 130).
+--      THE GATE IS AN ALLOWLIST OF ADMITTED STATES, never a denylist of blocked ones: a ninth state added
+--      to the CHECK is refused until somebody admits it, and the block below fails until it is classified.
+--   3. The five policies of 010 the helpers do not reach are rewritten to call them (RFC-2026-027 §3.3's
+--      residual table): workspace_settings_select_active_member, workspace_settings_update_owner,
+--      workspace_invitations_select_owner, _insert_owner and _update_owner. Each keeps its name, command,
+--      role and the role it admits (any active member; the owner); the insert keeps
+--      `created_by = (select auth.uid())`. No cycle: neither table is one the helpers read.
+--      KEPT AS IS (Q-027-1, answered "kept"): workspace_members_select_own_active -- a member of a blocked
+--      workspace still reads their own membership row, so the client can tell "your workspace is closed"
+--      from "you belong to nothing". workspaces_select_active_member and workspaces_update_owner already
+--      carry the gate. user_profiles_* are not workspace-scoped.
+--   4. An apply-time block (below).
+--
+-- Q-027-2 (answered: closing admitted for reads AND writes) and Q-027-3 (answered: billing reads of a
+-- blocked workspace refused through the client; the export job of batch 160 is the owner's route) are
+-- both consequences of the one allowlist, not separate code.
+--
+-- NOT IN SCOPE (RFC-2026-027 §3.3): app_worker and app_maintenance do not go through these helpers.
+-- Stopping jobs at access_blocked is §11.4 step 2's act, by the command that performs the transition --
+-- which does not exist yet: since batch 170 nothing on a request path writes lifecycle_state.
+--
+-- MIGRATION INVARIANT 1. 010 and 011 are integrated and are not edited. 011's apply-time block ("app_authz
+-- holds % policies ... gives it exactly one") and 021's restatement of it are made false by step 1 and are
+-- listed in db/foundation/invariants/superseded.json with final-state replacements, in this diff.
+--
+-- PINNED IN THE SAME DIFF: scripts/db/run.mjs (AUTHZ_POLICIES as a pinned pair list with the second
+-- qual as PostgreSQL 17 deparses it, AUTHZ_COLUMN_GRANTS keyed by table, the count at two, the body digest
+-- of app.workspace_member_role, the permissive-policy deparses of the six policies this file writes and
+-- the policy set); db/foundation/lint/pinned-grants.json (app_authz on app.workspaces, regenerated by
+-- scripts/db/generate-pinned-grants.mjs); catalog-snapshot.json (171 declared not applied);
+-- scripts/db/authz-proofs.mjs (RFC-2026-027 §7.2's claims, executed). db/foundation/lint/policy-set.json
+-- is NOT changed: the new app_authz policy is pinned in run.mjs's PERMISSIVE_POLICIES, which the policy set
+-- probe reads.
+--
+-- MIGRATION INVARIANT 3 (ERD:289-290). A policy change takes ACCESS EXCLUSIVE on its table, so the DDL
+-- runs under lock and statement timeouts, set immediately before and reset immediately after.
+--
+-- ROLLBACK / FORWARD FIX (RFC-2026-027 §9). A forward migration that restores 011's helper body, rewrites
+-- the five 010 policies back, drops workspaces_select_authz_own_open and revokes app_authz's two columns
+-- on app.workspaces, with the run.mjs pins, pinned-grants.json and superseded.json reverted in the same
+-- diff. No data changes either way. Rolling back re-opens open_blockers[53] and [95].
+
+set lock_timeout = '5s';
+set statement_timeout = '60s';
+
+-- 1. RFC-2026-027 §3.1. ------------------------------------------------------------------------
+grant select (id, lifecycle_state) on app.workspaces to app_authz;
+
+drop policy if exists workspaces_select_authz_own_open on app.workspaces;
+create policy workspaces_select_authz_own_open on app.workspaces
+  for select to app_authz
+  using (
+    lifecycle_state in ('active', 'closing')
+    and exists (
+      select 1 from app.workspace_members m
+       where m.workspace_id = app.workspaces.id
+         and m.user_id = app.jwt_subject()
+         and m.status = 'active'
+    )
+  );
+
+-- 2. RFC-2026-027 §3.2. ------------------------------------------------------------------------
+create or replace function app.workspace_member_role(workspace uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select m.role
+    from app.workspace_members m
+    join app.workspaces w on w.id = m.workspace_id
+   where m.workspace_id = workspace
+     and m.user_id = app.jwt_subject()
+     and m.status = 'active'
+     and w.lifecycle_state in ('active', 'closing')
+   limit 1
+$$;
+
+alter function app.workspace_member_role(uuid) owner to app_authz;
+
+comment on function app.workspace_member_role(uuid) is
+  'The calling subject''s role in one workspace, or NULL when they hold no ACTIVE membership in '
+  'it OR the workspace''s lifecycle_state is not active or closing (batch 171, RFC-2026-027: a member '
+  'of a blocked workspace is refused). SECURITY DEFINER owned by app_authz, whose two policies restrict '
+  'what this can read to the caller''s own active row and the open workspaces the caller can already '
+  'select -- so it is a membership oracle about the CALLER and about nobody else. Returns NULL for a '
+  'workspace the caller is not in, including one that does not exist.';
+
+-- 3. RFC-2026-027 §3.3: the five 010 policies the helpers did not reach. ----------------------
+drop policy if exists workspace_settings_select_active_member on app.workspace_settings;
+create policy workspace_settings_select_active_member on app.workspace_settings
+  for select to authenticated
+  using (app.is_active_member(workspace_id));
+
+drop policy if exists workspace_settings_update_owner on app.workspace_settings;
+create policy workspace_settings_update_owner on app.workspace_settings
+  for update to authenticated
+  using (app.workspace_member_role(workspace_id) = 'owner')
+  with check (app.workspace_member_role(workspace_id) = 'owner');
+
+drop policy if exists workspace_invitations_select_owner on app.workspace_invitations;
+create policy workspace_invitations_select_owner on app.workspace_invitations
+  for select to authenticated
+  using (app.workspace_member_role(workspace_id) = 'owner');
+
+drop policy if exists workspace_invitations_insert_owner on app.workspace_invitations;
+create policy workspace_invitations_insert_owner on app.workspace_invitations
+  for insert to authenticated
+  with check (
+    created_by = (select auth.uid())
+    and app.workspace_member_role(workspace_id) = 'owner'
+  );
+
+drop policy if exists workspace_invitations_update_owner on app.workspace_invitations;
+create policy workspace_invitations_update_owner on app.workspace_invitations
+  for update to authenticated
+  using (app.workspace_member_role(workspace_id) = 'owner')
+  with check (app.workspace_member_role(workspace_id) = 'owner');
+
+set lock_timeout = default;
+set statement_timeout = default;
+
+-- ============================================================================================
+-- WHAT THIS MIGRATION ASSERTS ABOUT THE DATABASE IT HAS JUST CHANGED (RFC-2026-027 §4/4 and §6)
+-- ============================================================================================
+-- Re-run by the post-migrate pass after the last migration, so a LATER batch that widens app_authz, adds
+-- a ninth lifecycle state without classifying it, or writes a family policy that reads membership
+-- without the helper fails migrate-clean here. The string pins (the two quals, the helper's body digest)
+-- live in scripts/db/run.mjs, once; this block holds the structure and the one literal that must agree
+-- across four objects. pg_roles, never pg_authid (batch 020's reason).
+do $$
+declare
+  offending text;
+  count_of  integer;
+  admitted  constant text[] := array['active', 'closing'];
+  blocked   constant text[] := array['access_blocked', 'purge_queued', 'held', 'purging', 'verify', 'deleted'];
+  check_def text;
+  states    text[];
+begin
+  -- 1. app_authz holds exactly two policies in app, both permissive FOR SELECT, on the two named tables
+  --    under the two named names (RFC-2026-020 §5/3 and §6.1/5 as RFC-2026-027 §3.4 amends them).
+  select count(*) into count_of
+    from pg_catalog.pg_policy p
+    join pg_catalog.pg_class c on c.oid = p.polrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and exists (select 1 from pg_catalog.pg_roles r
+                  where r.oid = any (p.polroles) and r.rolname = 'app_authz');
+  if count_of <> 2 then
+    raise exception 'after batch 171, app_authz holds % policies in schema app; RFC-2026-027 gives it exactly two', count_of
+      using hint = 'A third policy is a third decision and needs its own RFC.';
+  end if;
+  select string_agg(format('%s.%s', c.relname, p.polname), ', ' order by c.relname) into offending
+    from pg_catalog.pg_policy p
+    join pg_catalog.pg_class c on c.oid = p.polrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and exists (select 1 from pg_catalog.pg_roles r
+                  where r.oid = any (p.polroles) and r.rolname = 'app_authz')
+     and not (p.polcmd = 'r' and p.polpermissive and cardinality(p.polroles) = 1
+              and ((c.relname = 'workspace_members' and p.polname = 'workspace_members_select_authz_own_active')
+                or (c.relname = 'workspaces' and p.polname = 'workspaces_select_authz_own_open')));
+  if offending is not null then
+    raise exception 'an app_authz policy is not one of the two RFC-2026-027 names, or is not a permissive FOR SELECT for app_authz alone: %', offending;
+  end if;
+
+  -- 2. Neither app_authz policy calls a membership helper: after this batch the helpers read
+  --    app.workspaces, so such a call recurses at run time (RFC-2026-027 §3.1, §6/2).
+  select string_agg(p.polname, ', ') into offending
+    from pg_catalog.pg_policy p
+    join pg_catalog.pg_class c on c.oid = p.polrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and exists (select 1 from pg_catalog.pg_roles r
+                  where r.oid = any (p.polroles) and r.rolname = 'app_authz')
+     and (pg_catalog.pg_get_expr(p.polqual, p.polrelid) ~ '(workspace_member_role|is_active_member)\('
+          or coalesce(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), '') ~ '(workspace_member_role|is_active_member)\(');
+  if offending is not null then
+    raise exception 'app_authz policy % calls a membership helper; the helpers read app.workspaces, so the call recurses', offending;
+  end if;
+
+  -- 3. app_authz's privileges on every relation in app and private are exactly the six columns of
+  --    RFC-2026-020 §6.1/6 as amended: SELECT on workspace_members (workspace_id, user_id, role, status)
+  --    and on workspaces (id, lifecycle_state), and no table-level privilege anywhere.
+  select string_agg(format('%s.%s.%s', n.nspname, c.relname, a.attname), ', '
+                    order by n.nspname, c.relname, a.attname) into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+   where n.nspname in ('app', 'private') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     and pg_catalog.has_column_privilege('app_authz', c.oid, a.attnum, 'SELECT');
+  if offending is distinct from
+     'app.workspace_members.role, app.workspace_members.status, app.workspace_members.user_id, '
+     || 'app.workspace_members.workspace_id, app.workspaces.id, app.workspaces.lifecycle_state' then
+    raise exception 'app_authz''s column SELECT is not exactly the six columns RFC-2026-027 names: %', coalesce(offending, '(none)');
+  end if;
+  select string_agg(format('%s.%s %s', n.nspname, c.relname, pv.p), ', ' order by n.nspname, c.relname, pv.p) into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace,
+         unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) as pv(p)
+   where n.nspname in ('app', 'private') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     and pg_catalog.has_table_privilege('app_authz', c.oid, pv.p);
+  if offending is not null then
+    raise exception 'app_authz holds table-level privilege(s): %', offending;
+  end if;
+  select string_agg(format('%s.%s.%s %s', n.nspname, c.relname, a.attname, pv.p), ', ') into offending
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped,
+         unnest(array['INSERT', 'UPDATE', 'REFERENCES']) as pv(p)
+   where n.nspname in ('app', 'private') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     and pg_catalog.has_column_privilege('app_authz', c.oid, a.attnum, pv.p);
+  if offending is not null then
+    raise exception 'app_authz holds a column privilege other than SELECT: %', offending;
+  end if;
+
+  -- 4. Every function app_authz owns is still SECURITY DEFINER with an empty search_path, and they are
+  --    exactly the three helpers (RFC-2026-020 §6.1/4).
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text) into offending
+    from pg_catalog.pg_proc p
+   where pg_catalog.pg_get_userbyid(p.proowner) = 'app_authz';
+  if offending is distinct from 'app.is_active_member(uuid), app.jwt_subject(), app.workspace_member_role(uuid)' then
+    raise exception 'app_authz owns functions other than the three helpers: %', coalesce(offending, '(none)');
+  end if;
+  select string_agg(p.proname, ', ') into offending
+    from pg_catalog.pg_proc p
+   where pg_catalog.pg_get_userbyid(p.proowner) = 'app_authz'
+     and (not p.prosecdef or p.proconfig is null or not (p.proconfig @> array['search_path=""']));
+  if offending is not null then
+    raise exception 'function(s) % owned by app_authz are not SECURITY DEFINER with an empty search_path', offending;
+  end if;
+
+  -- 5. Every lifecycle state is classified, and the admitted literal is the same in the four places that
+  --    state it (RFC-2026-027 §6/4). The CHECK's values must be exactly admitted ∪ blocked: a ninth
+  --    state fails here until somebody classifies it.
+  select pg_catalog.pg_get_constraintdef(con.oid) into check_def
+    from pg_catalog.pg_constraint con
+   where con.conrelid = 'app.workspaces'::regclass and con.conname = 'workspaces_lifecycle_state_known';
+  if check_def is null then
+    raise exception 'app.workspaces carries no workspaces_lifecycle_state_known; the lifecycle states cannot be classified';
+  end if;
+  select array_agg(m[1] order by m[1]) into states
+    from regexp_matches(check_def, '''([a-z_]+)''::text', 'g') as m;
+  if states is distinct from (select array_agg(s order by s) from unnest(admitted || blocked) as s) then
+    raise exception 'the lifecycle states in workspaces_lifecycle_state_known are not exactly the classified ones: %', check_def
+      using hint = 'RFC-2026-027 §2 and §6/4: every state is admitted (active, closing) or blocked (the six); a new one is classified in this block and in the helper before it may exist.';
+  end if;
+  select string_agg(format('%s.%s', c.relname, p.polname), ', ' order by p.polname) into offending
+    from pg_catalog.pg_policy p
+    join pg_catalog.pg_class c on c.oid = p.polrelid
+   where c.oid = 'app.workspaces'::regclass
+     and p.polname in ('workspaces_select_authz_own_open', 'workspaces_select_active_member', 'workspaces_update_owner')
+     and pg_catalog.strpos(pg_catalog.pg_get_expr(p.polqual, p.polrelid),
+                           '(lifecycle_state = ANY (ARRAY[''active''::text, ''closing''::text]))') = 0;
+  select count(*) into count_of
+    from pg_catalog.pg_policy p
+   where p.polrelid = 'app.workspaces'::regclass
+     and p.polname in ('workspaces_select_authz_own_open', 'workspaces_select_active_member', 'workspaces_update_owner');
+  if offending is not null or count_of <> 3 then
+    raise exception 'the admitted lifecycle literal is not the same in app.workspaces'' three gated policies (% of 3 present; differing: %)', count_of, coalesce(offending, '(none)');
+  end if;
+  if pg_catalog.strpos((select p.prosrc from pg_catalog.pg_proc p
+                         where p.oid = 'app.workspace_member_role(uuid)'::regprocedure),
+                       'w.lifecycle_state in (''active'', ''closing'')') = 0 then
+    raise exception 'app.workspace_member_role does not apply the admitted-state gate RFC-2026-027 §3.2 writes';
+  end if;
+
+  -- 6. No family escapes the helper (RFC-2026-027 §6/6, A1's F3-a). Every permissive policy a client
+  --    role reaches -- TO authenticated, TO anon, or with no TO clause (TO PUBLIC, polroles = {0}) -- on a
+  --    workspace-scoped table -- a table in app with a workspace_id column, plus app.workspaces -- calls
+  --    app.is_active_member or app.workspace_member_role in USING or WITH CHECK, except the three policies
+  --    of 010 the RFC keeps, each exempt ON ITS OWN TABLE ONLY: workspace_members.
+  --    workspace_members_select_own_active (Q-027-1) and the two app.workspaces policies that state the gate
+  --    themselves. Batch 171's review round (C0 L1, A1 F2, Q0-171-1) widened the role test from
+  --    authenticated alone and keyed the exemption on (table, name), not name alone. What this block still
+  --    does not see -- a workspace-scoped table keyed through another foreign key, or a helper call that
+  --    does not bind (`... or true`) -- is held by the permissive-policy pins (open_blockers[198] (6)).
+  select string_agg(format('%s.%s', c.relname, p.polname), ', ' order by c.relname, p.polname) into offending
+    from pg_catalog.pg_policy p
+    join pg_catalog.pg_class c on c.oid = p.polrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'app'
+     and p.polpermissive
+     and (0::oid = any (p.polroles)
+          or exists (select 1 from pg_catalog.pg_roles r
+                      where r.oid = any (p.polroles) and r.rolname in ('authenticated', 'anon')))
+     and (c.relname = 'workspaces'
+          or exists (select 1 from pg_catalog.pg_attribute a
+                      where a.attrelid = c.oid and a.attname = 'workspace_id' and not a.attisdropped))
+     and (c.relname::text, p.polname::text) not in (('workspace_members', 'workspace_members_select_own_active'),
+                                                     ('workspaces', 'workspaces_select_active_member'),
+                                                     ('workspaces', 'workspaces_update_owner'))
+     and coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '')
+         || ' ' || coalesce(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), '')
+         !~ 'app\.(is_active_member|workspace_member_role)\(';
+  if offending is not null then
+    raise exception 'a client policy on a workspace-scoped table reads membership without the helper, so the lifecycle gate does not reach it: %', offending
+      using hint = 'RFC-2026-027 §6/6: call app.is_active_member or app.workspace_member_role, or the policy admits members of a blocked workspace.';
+  end if;
+end $$;
