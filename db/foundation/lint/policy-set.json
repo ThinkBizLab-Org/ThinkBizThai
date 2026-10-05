@@ -1,6 +1,6 @@
 {
   "_what": "Every policy on an app table that no other pinned list names, by permissive flag, command, roles and the exact deparse of both halves. With PERMISSIVE_POLICIES, PINNED_POLICIES and the five closure lists in scripts/db/run.mjs it closes the policy set of schema app: the policy set probe names any policy on any table, in any schema but the system ones, that none of them names (weak-assertion survey §6 item 7, \"a rule binding the permissive policy set per table\").",
-  "_measured": "Read from the catalog on a clean migrate-clean at 1319042: 209 policies in app; 74 permissive policies of client-writable tables, 36 pinned restrictive policies and 55 closures were already pinned; these 44 were not (17 permissive SELECT policies on the 16 tables that have no row in PERMISSIVE_POLICIES, workspace_members carrying two (the draft said \"tables no client writes\", C0-5 on batch 150-prereq), 26 service-path closures held by rls-smoke's SERVICE_PATH_CLOSURE_ON text on named tables only, and app_authz's own policy held by the static authz lint on the committed snapshot).",
+  "_measured": "Read from the catalog on a clean migrate-clean at 1319042: 209 policies in app; 74 permissive policies of client-writable tables, 36 pinned restrictive policies and 55 closures were already pinned; these 44 were not (17 permissive SELECT policies on the 16 tables that have no row in PERMISSIVE_POLICIES, workspace_members carrying two (the draft said \"tables no client writes\", C0-5 on batch 150-prereq), 26 service-path closures held by rls-smoke's SERVICE_PATH_CLOSURE_ON text on named tables only, and app_authz's own policy held by the static authz lint on the committed snapshot). Batch 141 (migration 172) adds one row: RFC-2026-026 §3.3's command producer policy on app.audit_logs, the first policy on an audit table, deparsed by PostgreSQL 17.11 on the clean set; app.audit_logs is not client-writable, so no other list names it.",
   "policies": {
     "approval_events.approval_events_select_active_member": {
       "permissive": true,
@@ -57,6 +57,13 @@
       "roles": "public",
       "using": "(CURRENT_USER = 'authenticated'::name)",
       "check": "(CURRENT_USER = 'authenticated'::name)"
+    },
+    "audit_logs.audit_logs_insert_command": {
+      "permissive": true,
+      "cmd": "a",
+      "roles": "app_command",
+      "using": null,
+      "check": "((actor_kind = 'user'::text) AND (actor_id = (app.jwt_subject())::text) AND app.is_active_member(workspace_id) AND\nCASE\n    WHEN (outcome = 'succeeded'::text) THEN (((business_profile_id IS NULL) OR app.acting_user_admits_business(workspace_id, business_profile_id)) AND ((page_context_profile_id IS NULL) OR ((business_profile_id IS NOT NULL) AND app.acting_user_admits_page(workspace_id, business_profile_id, page_context_profile_id))))\n    ELSE ((business_profile_id IS NULL) AND (page_context_profile_id IS NULL))\nEND)"
     },
     "billing_subscriptions.billing_subscriptions_select_owner": {
       "permissive": true,

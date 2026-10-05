@@ -4,6 +4,8 @@ Status: **Approved 2026-10-05** by the Owner's delegation of A0's recommendation
 Date: 2026-09-15
 Revised: 2026-10-05, in batch rfc-023-028 (`a0-batch-rfc-023-028-plan-2026-10-03.md`): new §0 (what changed since 2026-09-15 and what each change does to this text); §3.1 names the identity function `011` built; §3.2 carries `RFC-2026-027`'s admitted-state gate (Q-027-4, answered *yes*: written here now) and corrects two omissions measured against the tree (the `scope_type` column and the policy `app_authz` needs on a forced table); §3.4 binds the first command function to `RFC-2026-026` §8.1/1 and §8.1/6; §4 states `RFC-2026-026` §3.3/1's wider residual; §5 lists the pins the implementing batch moves; §6 gains the gate's cases; §7 records the 2026-09-15 open question as closed by execution and points `app_worker` at `RFC-2026-028`; new §8 (the §11.4 closing command as the first command function candidate), §9 (questions, each with A0's recommendation), §10 (rollback). Still In review; the revision approves nothing.
 Revised again: 2026-10-05, in the same batch's review round (`a0-batch-rfc-023-028-plan-2026-10-03.md` §7), folding the C0, A1 and Q0 role runs' findings into the text: §0/6 and §5 add `app_command`'s `USAGE` on schema `app` and the seventh rule's pin (A1 F5, Q0-R1) and say how function ownership is assigned under a non-superuser migration owner (owed, Q0-R1); §3.2 says what `171`'s literal check holds (C0-3) and how the new `app_authz` policy compares with `workspace_member_scopes_select_own` (A1 F6); §5 names every guard shape B falsifies (Q0-R4) and the `RFC-2026-020` sections it amends (C0-4); §6's `scope_type` drift becomes a case that fails at first call (Q0-R7); §8 no longer gives every later edge to the worker (C0-7), keeps `171`'s literal out of the closing command's `USING` and under `171`'s check (C0-3), and holds `app.workspaces`' writers to the two lifecycle functions (A1 F7); one section reference corrected (C0-6). Still In review; the revision approves nothing.
+Implemented: 2026-10-05, in batch 141 (`evidence/WP-0A-DB-00/a0-batch-141-plan-2026-10-03.md`), as one forward migration, `db/foundation/migrations/172_acting_user_and_closing_command.sql`; **in effect when that migration is integrated**. The file is numbered 172, not in 141's range: the runner applies files in name order, and `171`'s integrated apply-time block refuses a third `app_authz` policy at `171`'s own apply time, so a `141_*` file failed `migrate-clean` (measured, exit 2); the next free number after `171` is A0's recommendation under the Owner's delegation, its acceptance by the Integration Owner and A1 (range 170) owed (`open_blockers[200]`). It lands §3.2 (the two helpers, the five-column grant and `workspace_member_scopes_select_authz_own`), Q-023-5's claim reader `app.jwt_aal()`, §5's pins, §6's cases and negative controls (`tests/db/identity/isolation-cases.mjs`, `scripts/db/authz-proofs.mjs`), and §8's closing command (`app.close_workspace`, `app.cancel_workspace_closing`) with `RFC-2026-026`'s command half. Not landed, by §3.3's own rule: no closure is amended, because the closing command writes `app.workspaces`, which carries no shape-C closure. No other sentence of this file changed.
+Implemented, review round: 2026-10-05, in batch 141's review round (`a0-batch-141-plan-2026-10-03.md` §7), on the C0, A1 and Q0 role runs. (1) **Beyond §8/2's text**, which names "one policy `FOR UPDATE TO app_command`": the batch also writes a second `app_command` policy on `app.workspaces`, `workspaces_select_command_owner`, `FOR SELECT`, `USING (app.workspace_member_role(id) = 'owner')` — Q0-RC1's fold (the re-check of batch rfc-023-028): without a `SELECT` path the `UPDATE`'s `WHERE` sees no row and the command would update nothing; held by the closing-command proof's "Q0-RC1" arm (C0 L1). (2) §8/3's static rule is part (i) of `scripts/db/audit-producer-rule.mjs`, **widened** in the review round from "`app_command`'s own functions" to every function and view the rule reads, whatever its owner or security, because a `SECURITY INVOKER` helper called from an `app_command` body runs with `app_command`'s `UPDATE` (C0 M1's drift i2, A1 F3's view): only the two lifecycle functions and the pinned reader `app.workspace_member_role(uuid)` (`SECURITY DEFINER`, `app_authz`, `STABLE`) may name `app.workspaces`, and no view may; drifts i2, i3 and i4 are its self-tests. (3) Q-023-3's answer is carried out in full: §5.1 below quotes RFC-2026-020's amended sentences (C0 M2). (4) A containment proof (`closing-command-policies-contain-a-body-without-its-owner-test`) executes §4's claim that the policies contain a defect in the command's body (Q0 F3). No other sentence of this file changed but the new §5.1.
 Author: `/claude/a0_atlas` (A0 Integration / DB-00), the run that wrote batches 082, 083, 092 and 101
 Reviewer sought: `/claude/a1_bastion` (A1 Security), whose finding S8 this answers, and whose review must say whether §4's threat model is stated honestly; `/claude/a1_identity` (A1 Identity), author of `RFC-2026-020`, whose pinned `app_authz` grant §3.2 widens (§9, Q-023-3)
 Depends on: `RFC-2026-017` §3 (service roles hold no `BYPASSRLS`; `app_command` is not the table owner), `RFC-2026-019` §4/2 (a `SECURITY DEFINER` function owned by `app_command`, invoked by the request session, is the only way to be `app_command`), `RFC-2026-020` (`app_authz`, the role that owns authorization helpers and holds pinned grants), `RFC-2026-022` §5/4 (a GUC bounds nothing on the service path), `RFC-2026-024` (approved 2026-09-15: the cross-vendor review condition is withdrawn; independence is an independent agent per role run), `RFC-2026-025` (approved 2026-09-28: the Owner may delegate the merge to the Author), `RFC-2026-026` (approved 2026-10-05, NOT in effect until this RFC and DATA-DEC-03 hold: its command half is this RFC's first consumer), `RFC-2026-027` (approved 2026-10-05, in effect with migration `171`: the admitted-state gate), and Product Owner decision Q3 of 2026-09-15 ("C แล้วค่อย B")
@@ -126,6 +128,81 @@ The residual, named, and wider than the 2026-09-15 text said (`RFC-2026-026` §3
 - `roleScopedCompleteness` (`scripts/db/run.mjs`) asks an exemption-register row of every policy on a non-request-path role that is not the pinned CARRIED shape. A closure amended to shape B is such a policy. Either each takes a register row, or the rule learns this RFC's exact shape (`RFC-2026-026` §4 records the same question for its command policy; §9, Q-023-6).
 - One more predicate shape the closure rule must recognise, and one more thing each closure file carries.
 - The command batch cannot land shape B "on the side": it is a forward migration of its own, before or with the command function, tested by the case shape in §6.
+
+### 5.1 The amendment of `RFC-2026-020`, quoted (batch 141; Q-023-3)
+
+Added in batch 141's review round (C0 M2). Q-023-3 was answered "by reference in the implementing batch, with the exact sentences quoted in that batch's RFC text"; these are those sentences, in `RFC-2026-027` §3.4's form. Each **Now** is `RFC-2026-020`'s text **as `RFC-2026-027` §3.4 amends it** (its "Becomes"), because that amendment is approved and in effect with `171`; the two compose, as `RFC-2026-027` §3.4/6 says. Section numbers are `RFC-2026-020`'s. The edit of `RFC-2026-020` itself stays owed to its owner, A1 Identity, through the Integration Owner (`open_blockers[195]` (b), `[200]`); until it is made, `RFC-2026-020` is read with `RFC-2026-027` §3.4 and this section.
+
+1. **Status line**, the sentence `RFC-2026-027` §3.4/1 appends. One more sentence is appended after it:
+   > Amended by `RFC-2026-023` (approved 2026-10-05; landed by `172`): `app_authz` holds a third policy, `FOR SELECT` on `app.workspace_member_scopes`, the acting user's own rows (`user_id = app.jwt_subject()`), and column-scoped `SELECT` on five of its columns, which `app.acting_user_admits_business` and `app.acting_user_admits_page` read on behalf of the claims.
+2. **§5/3, first paragraph.** Now:
+   > `app_authz` holds exactly two policies in the schema. The first is `FOR SELECT` on
+   > `app.workspace_members`, whose `USING` expression is `workspace_members_select_own_active`'s
+   > predicate — own row, `status = 'active'` — with the identity expression inlined. Semantically:
+
+   Becomes:
+   > `app_authz` holds exactly three policies in the schema. The first is `FOR SELECT` on
+   > `app.workspace_members`, whose `USING` expression is `workspace_members_select_own_active`'s
+   > predicate — own row, `status = 'active'` — with the identity expression inlined. Semantically:
+
+   The code blocks and `RFC-2026-027`'s paragraph naming the second policy are unchanged.
+3. **§5/3, a new paragraph inserted after `RFC-2026-027`'s paragraph naming the second policy:**
+   > The third is `FOR SELECT` on `app.workspace_member_scopes`, `workspace_member_scopes_select_authz_own`
+   > (`RFC-2026-023` §3.2, Q-023-8): `user_id = app.jwt_subject()`, the acting user's own scope rows and
+   > nothing else. It is read only by `app.acting_user_admits_business` and `app.acting_user_admits_page`,
+   > which `app_command` executes on behalf of the request's claims; membership and the admitted-state gate
+   > are asked by `app.is_active_member` inside those helpers, so the policy repeats neither.
+4. **§5/3, last paragraph, first sentence.** Now (`RFC-2026-027` §3.4/4's Becomes):
+   > **The helper sees no row the caller could not already select for itself, on either table.**
+
+   Becomes:
+   > **The helper sees no row the caller could not already select for itself, on any of the three
+   > tables.** For `app.workspace_member_scopes` the "caller" is the acting user the claims name, whose own
+   > rows `workspace_member_scopes_select_own` already lets that user read.
+
+   The rest of the paragraph is unchanged.
+5. **§6.1/5.** Now:
+   > **`app_authz` holds exactly two policies in schema `app`**, one on `app.workspace_members` and
+   > one on `app.workspaces`, both `FOR SELECT`, and for each `pg_get_expr(polqual, polrelid)` equals
+   > its pinned literal. The pinned strings are the whole control: any widening — `using (true)`,
+   > dropping `status = 'active'` or the lifecycle term, adding a function call — fails the build with
+   > a diff that shows exactly what changed.
+
+   Becomes:
+   > **`app_authz` holds exactly three policies in schema `app`**, one on `app.workspace_members`, one
+   > on `app.workspaces` and one on `app.workspace_member_scopes`, all `FOR SELECT`, and for each
+   > `pg_get_expr(polqual, polrelid)` equals its pinned literal. The pinned strings are the whole
+   > control: any widening — `using (true)`, dropping `status = 'active'`, the lifecycle term or the
+   > `user_id` term, adding a function call — fails the build with a diff that shows exactly what changed.
+6. **§6.1/6.** Now:
+   > **`app_authz`'s grants are exactly `USAGE` on schema `app`, column-scoped `SELECT` on
+   > `app.workspace_members (workspace_id, user_id, role, status)`, and column-scoped `SELECT` on
+   > `app.workspaces (id, lifecycle_state)`.** Column-scoped, so it cannot read `token_hash`, a
+   > workspace's `name`, or any other table.
+
+   Becomes:
+   > **`app_authz`'s grants are exactly `USAGE` on schema `app`, column-scoped `SELECT` on
+   > `app.workspace_members (workspace_id, user_id, role, status)`, column-scoped `SELECT` on
+   > `app.workspaces (id, lifecycle_state)`, and column-scoped `SELECT` on
+   > `app.workspace_member_scopes (workspace_id, user_id, scope_type, business_profile_id,
+   > page_context_profile_id)`.** Column-scoped, so it cannot read `token_hash`, a workspace's `name`,
+   > a scope row's other columns, or any other table.
+
+   The second sentence is **restated, not dropped**: `token_hash` and a workspace's `name` stay named,
+   and the "any other table" clause now excludes the three named tables.
+7. **§6.3/14, first sentence.** Now:
+   > **A negative control**: with `app_authz`'s policy on `app.workspace_members` dropped, the
+   > member-list cases fail; with its policy on `app.workspaces` dropped, `RFC-2026-027` §5's positive
+   > controls (case 2) fail.
+
+   Becomes:
+   > **A negative control**: with `app_authz`'s policy on `app.workspace_members` dropped, the
+   > member-list cases fail; with its policy on `app.workspaces` dropped, `RFC-2026-027` §5's positive
+   > controls (case 2) fail; with its policy on `app.workspace_member_scopes` dropped, `RFC-2026-023`
+   > §6's sibling-page refusal is admitted (the "scope" arm of `scripts/db/authz-proofs.mjs`'s
+   > acting-user proof).
+
+   The rest of §6.3/14 is unchanged.
 
 ## 6. How it is proven
 

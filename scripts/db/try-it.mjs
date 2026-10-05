@@ -205,6 +205,20 @@ export const DEMO_STEPS = Object.freeze([
     kind: 'case', case: 'owner-a-still-reads-its-own-membership-row-of-workspace-a-in-access-blocked', expect: 'rows',
     proves: 'Its own membership row stays readable, so an app can say "your workspace is closed" rather than "you belong to nothing".',
   },
+  {
+    heading: '8. The owner closes and reopens a workspace through the command, and it leaves an audit row (batch 141)',
+    title: 'Owner A, after step-up, closes workspace A through app.close_workspace',
+    kind: 'case', case: 'owner-a-closes-workspace-a-through-the-command-after-step-up', expect: 'rows',
+    proves: 'The command moves A from active to closing and, in the same transaction, writes one audit row: succeeded,'
+      + ' by owner A, in workspace A, with no business or page. The database owner reads both back (lines "then"), because'
+      + ' no client may write the state or read the log.',
+  },
+  {
+    title: 'Owner A cancels the closing within the recovery window through app.cancel_workspace_closing',
+    kind: 'case', case: 'owner-a-cancels-the-closing-of-workspace-a-within-the-recovery-window', expect: 'rows',
+    proves: 'A, moved to closing first (by the database owner), is active again, and the cancel left its own audit row.'
+      + ' Both steps run in their own rolled-back transaction, so the tour changes nothing.',
+  },
 ]);
 
 // Everything that would let the demo report success without having shown anything. Pure, so the contract
@@ -514,6 +528,12 @@ async function demo({ dir }) {
         const w = record.filter((r) => r.statement === testCase.witness.sql).pop();
         say(`   then, as ${nameOf.get(testCase.witness.as.subject)}: ${shown(testCase.witness.sql, testCase.witness.params)}`);
         say(`             ${describeOutcome(w?.outcome)}`);
+      }
+      // Batch 141: what a command did, read back as the database owner (run-isolation.mjs, runAfter).
+      for (const read of testCase.after ?? []) {
+        const r = record.filter((x) => x.statement === read.sql && JSON.stringify(x.params) === JSON.stringify(read.params)).pop();
+        say(`   then, as the database owner: ${shown(read.sql, read.params)}`);
+        say(`             ${describeOutcome(r?.outcome)}`);
       }
       let problem = result.failed[0] ? `${result.failed[0].phase ?? 'assertion'}: ${result.failed[0].detail ?? result.failed[0].error ?? JSON.stringify(result.failed[0])}` : null;
       if (!problem && step.kind === 'counts') {

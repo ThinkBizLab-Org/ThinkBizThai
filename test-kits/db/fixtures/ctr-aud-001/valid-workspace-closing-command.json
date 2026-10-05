@@ -1,0 +1,39 @@
+{
+  "audit_id": "00000000-0000-4000-8000-000001410005",
+  "occurred_at": "2026-10-05T09:00:00Z",
+  "actor": {
+    "kind": "user",
+    "id": "00000000-0000-4000-8000-0000000141d1"
+  },
+  "tenant_context": {
+    "workspace_id": "00000000-0000-4000-8000-0000000141a1",
+    "actor": {
+      "kind": "user",
+      "id": "00000000-0000-4000-8000-0000000141d1"
+    },
+    "request_id": "req_synthetic_141_0005",
+    "correlation_id": "corr_synthetic_141_0005",
+    "locale": "th-TH",
+    "timezone": "Asia/Bangkok"
+  },
+  "correlation_id": "corr_synthetic_141_0005",
+  "redaction": {
+    "secret_redacted": true,
+    "content_redacted": true,
+    "pii_redacted": true
+  },
+  "retention": {
+    "policy_ref": "retention.audit"
+  },
+  "details": {},
+  "action": {
+    "category": "delete",
+    "name": "workspace.lifecycle.close"
+  },
+  "outcome": "succeeded",
+  "reason_key": "audit.workspace.closing_started",
+  "change": {
+    "before_ref": "record:app.workspaces/00000000-0000-4000-8000-0000000141a1/active",
+    "after_ref": "record:app.workspaces/00000000-0000-4000-8000-0000000141a1/closing"
+  }
+}

@@ -14,7 +14,7 @@
   "controls_on_every_row": [
     {
       "kind": "no-executor",
-      "what": "No service identity exists: RFC-2026-022 is NOT IN EFFECT (the only member of app_worker is postgres), no policy anywhere names app_worker, app_maintenance, app_command or service_role, and app_maintenance holds no privilege on any table.",
+      "what": "No service identity exists: RFC-2026-022 is NOT IN EFFECT (the only member of app_worker is postgres), no policy anywhere names app_worker, app_maintenance or service_role, and app_maintenance holds no privilege on any table. app_command holds three policies since batch 141 (migration 172) -- the closing command's SELECT and UPDATE of app.workspaces (active and closing only) and its audit INSERT -- none of which deletes, purges or moves a workspace into a blocked state.",
       "decisions": [
         "DATA-DEC-03"
       ]

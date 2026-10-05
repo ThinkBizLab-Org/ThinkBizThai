@@ -275,7 +275,15 @@ export const ROLE_FOR_HELPER = {
   as_user: 'authenticated',
   as_suspended_user: 'authenticated',
   as_service: 'app_worker',
+  // Batch 141 (migration 172): the command path's identities (auth-context.sql says what each is for).
+  as_stepped_up_user: 'authenticated',
+  as_user_without_subject: 'authenticated',
+  as_command: 'app_command',
+  as_command_without_subject: 'app_command',
 };
+
+// The helpers that take no subject: each sets a role and a claim set with no `sub`.
+export const SUBJECTLESS_HELPERS = Object.freeze(['as_anonymous', 'as_service', 'as_user_without_subject', 'as_command_without_subject']);
 
 // The statement that verifies it, kept beside the map so the two cannot drift apart.
 export const VERIFY_IDENTITY_SQL = "select current_setting('role', true) as role";
@@ -292,8 +300,7 @@ export function assumeIdentity(identity) {
   // nothing left to perform. Removing them is not loosening the check; it is deleting the
   // workaround the check used to require.
   const statements = [];
-  if (identity.helper === 'as_anonymous') statements.push('select private.as_anonymous()');
-  else if (identity.helper === 'as_service') statements.push('select private.as_service()');
+  if (SUBJECTLESS_HELPERS.includes(identity.helper)) statements.push(`select private.${identity.helper}()`);
   else statements.push(`select private.${identity.helper}($1::uuid)`);
   return statements;
 }
@@ -373,6 +380,33 @@ async function runBefore(testCase, driver) {
   }
   const back = await driver.exec(RESET_ROLE_SQL, []);
   if (back?.error) return { phase: 'before', detail: back.error.message };
+  return null;
+}
+
+// BATCH 141 (migration 172). What a COMMAND did is not visible to the identity that called it: the closing command
+// writes app.workspaces.lifecycle_state, which no client role may write, and an app.audit_logs row, which no
+// client role may read. So a case may carry `after`: reads run AS THE CONNECTION ROLE, in the case's own
+// transaction, once the case's own assertion has passed, each demanding rows or no rows and, for rows, a
+// column's value in the first row. They can only run after a statement that did not raise (a raise aborts the
+// transaction), which identity-isolation.test.mjs holds statically: `after` is for `rows` and `no-rows` cases.
+export async function runAfter(testCase, driver) {
+  const back = await driver.exec(RESET_ROLE_SQL, []);
+  if (back?.error) return { phase: 'after', detail: back.error.message };
+  const held = await connectionRoleHeld(driver);
+  if (held !== null) return { phase: 'after', detail: held };
+  for (const [i, read] of testCase.after.entries()) {
+    const seen = await driver.exec(read.sql, read.params ?? []);
+    try {
+      if (read.expect === 'no-rows') { expectNoRows(seen, `${testCase.id} (after ${i + 1})`); continue; }
+      if (read.expect !== 'rows') return { phase: 'after', detail: `after ${i + 1} must expect rows or no-rows, not ${read.expect}` };
+      expectRows(seen, `${testCase.id} (after ${i + 1})`);
+      if (read.column !== undefined && seen.rows[0][read.column] !== read.equals) {
+        return { phase: 'after', detail: `after ${i + 1}: ${read.column} is ${JSON.stringify(seen.rows[0][read.column])} and the case demands ${JSON.stringify(read.equals)}` };
+      }
+    } catch (error) {
+      return { phase: 'after', detail: error.message };
+    }
+  }
   return null;
 }
 
@@ -494,6 +528,10 @@ async function runOne(testCase, driver) {
       // Silence is not a claim: a case declaring no layer is not checked here.
       if (testCase.expect === 'denied' && testCase.deniedBy) {
         expectDeniedBy(outcome, testCase.deniedBy, testCase.id, testCase.deniedOn);
+      }
+      if (testCase.after) {
+        const late = await runAfter(testCase, driver);
+        if (late) return { ...base, ok: false, ...late };
       }
       return { ...base, ok: true };
     } finally {

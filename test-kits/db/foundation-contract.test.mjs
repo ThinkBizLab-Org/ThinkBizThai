@@ -668,7 +668,10 @@ const NOT_ON_THE_INSTANCE = [AUTHZ_MIGRATION, '020_business.sql', '021_member_sc
   '170_workspace_lifecycle_not_client_writable.sql',
   // Batch 171: RFC-2026-027's gate -- 011's helper replaced, app_authz given a policy and two columns on 010's
   // workspaces, five 010 policies rewritten; it needs 011, which the instance does not have, and sorts after 170.
-  '171_workspace_lifecycle_visibility.sql'];
+  '171_workspace_lifecycle_visibility.sql',
+  // Batch 141's migration, 172: RFC-2026-023's acting-user helpers (owned by 011's app_authz), the closing command
+  // and RFC-2026-026's command producer policy; it needs 011, 021 and 140, and sorts after 171.
+  '172_acting_user_and_closing_command.sql'];
 
 test('the digest gap between the tree and the instance is exactly what the snapshot declares', async () => {
   const snap = await snapshot();
@@ -1824,18 +1827,23 @@ test('EXECUTE is checked for PUBLIC, for the callers that need it, and for the o
 
 import {
   AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_TABLE, AUTHZ_WORKSPACES_POLICY, AUTHZ_WORKSPACES_POLICY_QUAL, AUTHZ_WORKSPACES_TABLE,
+  AUTHZ_SCOPES_POLICY, AUTHZ_SCOPES_POLICY_QUAL, AUTHZ_SCOPES_TABLE,
   authzLint, platformIdentityLint,
 } from '../../scripts/db/run.mjs';
 
 // What the CI container actually measured on the green run, reduced to the fields the rules read. Since batch 171
-// (RFC-2026-027 §3.4 amending RFC-2026-020 §5/3 and §6.1/5-6) that is two policies and six columns.
+// (RFC-2026-027 §3.4 amending RFC-2026-020 §5/3 and §6.1/5-6) that is two policies and six columns; since batch 141
+// (migration 172, RFC-2026-023 §3.2) three policies, eleven columns and six functions.
 const GOOD_AUTHZ = () => ({
   authenticator_memberships: [],
   authz: {
     role: { canlogin: false, bypassrls: false, superuser: false, inherit: false, has_password: false },
     owns_tables: [],
     functions: [
+      { function: 'app.acting_user_admits_business', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.acting_user_admits_page', security_definer: true, config: ['search_path=""'] },
       { function: 'app.is_active_member', security_definer: true, config: ['search_path=""'] },
+      { function: 'app.jwt_aal', security_definer: true, config: ['search_path=""'] },
       { function: 'app.jwt_subject', security_definer: true, config: ['search_path=""'] },
       { function: 'app.workspace_member_role', security_definer: true, config: ['search_path=""'] },
     ],
@@ -1843,11 +1851,15 @@ const GOOD_AUTHZ = () => ({
       table: AUTHZ_TABLE, policy: AUTHZ_POLICY, command: 'select', qual: AUTHZ_POLICY_QUAL,
     }, {
       table: AUTHZ_WORKSPACES_TABLE, policy: AUTHZ_WORKSPACES_POLICY, command: 'select', qual: AUTHZ_WORKSPACES_POLICY_QUAL,
+    }, {
+      table: AUTHZ_SCOPES_TABLE, policy: AUTHZ_SCOPES_POLICY, command: 'select', qual: AUTHZ_SCOPES_POLICY_QUAL,
     }],
     grants: {
       schemas: ['USAGE on schema app'],
       tables: [],
-      columns: ['app.workspace_members.role', 'app.workspace_members.status',
+      columns: ['app.workspace_member_scopes.business_profile_id', 'app.workspace_member_scopes.page_context_profile_id',
+        'app.workspace_member_scopes.scope_type', 'app.workspace_member_scopes.user_id', 'app.workspace_member_scopes.workspace_id',
+        'app.workspace_members.role', 'app.workspace_members.status',
         'app.workspace_members.user_id', 'app.workspace_members.workspace_id',
         'app.workspaces.id', 'app.workspaces.lifecycle_state'],
     },
@@ -1911,8 +1923,8 @@ test('§6.1/5: the pinned policy expression is the control, and every widening c
   rejects((c) => { c.authz.policies[0].qual = 'true'; }, /policy expression is not the pinned one/, 'using (true)');
   rejects((c) => { c.authz.policies[0].qual = AUTHZ_POLICY_QUAL.replace(" AND (status = 'active'::text)", ''); },
     /policy expression is not the pinned one/, 'dropped the active check');
-  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'third' }); },
-    /holds 3 policies/, 'a third policy is a third decision');
+  rejects((c) => { c.authz.policies.push({ ...c.authz.policies[0], policy: 'fourth' }); },
+    /holds 4 policies/, 'a fourth policy is a fourth decision (batch 141: three is RFC-2026-027 and RFC-2026-023)');
   rejects((c) => { c.authz.policies[0].command = 'all'; }, /is FOR ALL/, 'command');
   rejects((c) => { c.authz.policies[0].table = 'workspaces'; }, /holds no policy on app\.workspace_members/, 'table');
   // Batch 171 (RFC-2026-027 §3.1, §6/1-2): the second pinned pair, held the same way. Dropping its lifecycle
@@ -1922,7 +1934,12 @@ test('§6.1/5: the pinned policy expression is the control, and every widening c
   rejects((c) => { c.authz.policies[1].qual = 'app.is_active_member(id)'; },
     /policy expression is not the pinned one \(app\.workspaces,/, 'a helper call, which recurses');
   rejects((c) => { c.authz.policies[1].qual = 'true'; }, /policy expression is not the pinned one \(app\.workspaces,/, 'using (true) on workspaces');
-  rejects((c) => { c.authz.policies.pop(); }, /holds 1 policies/, 'the second policy lost');
+  rejects((c) => { c.authz.policies.pop(); }, /holds 2 policies/, 'the third policy lost');
+  // Batch 141 (RFC-2026-023 §3.2, Q-023-8): the third pinned pair, held the same way.
+  rejects((c) => { c.authz.policies[2].qual = 'true'; }, /policy expression is not the pinned one \(app\.workspace_member_scopes,/, 'using (true) on scopes');
+  rejects((c) => { c.authz.policies[2].qual = '((user_id = app.jwt_subject()) AND app.is_active_member(workspace_id))'; },
+    /policy expression is not the pinned one \(app\.workspace_member_scopes,/, 'a membership conjunct Q-023-8 answered not to add');
+  rejects((c) => { c.authz.policies[2].policy = 'renamed'; }, /on app\.workspace_member_scopes is named renamed/, 'third name');
   rejects((c) => { c.authz.policies[1].policy = 'renamed'; }, /on app\.workspaces is named renamed/, 'second name');
   rejects((c) => { c.authz.policies[0].policy = 'renamed'; }, /is named renamed/, 'name');
   rejects((c) => { delete c.authz.policies; }, /does not record the policies/, 'unmeasured');
@@ -2007,6 +2024,13 @@ test('the service-policy map is refused when an entry is incomplete, unknown-sha
   }
   assert.deepEqual(servicePolicyMapLint({ cells: [good] }, tables), [],
     'and the six declared fields alone still pass, so the closed set did not turn the rule off');
+  // Batch 141 (migration 172; RFC-2026-026 Q-026-7): `producer` is declared, OPTIONAL, and a closed vocabulary.
+  assert.deepEqual(servicePolicyMapLint({ cells: [{ ...good, producer: ['command', 'worker'] }] }, tables), [],
+    'a producer list drawn from command and worker is a field the register declares');
+  for (const bad of [[], ['trigger'], ['command', 'command'], 'command', null]) {
+    assert.ok(servicePolicyMapLint({ cells: [{ ...good, producer: bad }] }, tables).some((p) => /producer .* is not a non-empty list/.test(p)),
+      `producer ${JSON.stringify(bad)} is refused`);
+  }
 
   // A classification of a cell on a table no migration creates is a claim about nothing.
   assert.ok(servicePolicyMapLint({ cells: [{ ...good, table: 'not_a_table' }] }, tables)
@@ -2073,10 +2097,16 @@ test('the committed map classifies only cells on tables the migrations create', 
     // app.notifications, which carries §8.4's `O` policy TO authenticated -- a CLIENT policy, which
     // RFC-2026-022 neither grants nor forbids. Left as it was, this assertion would have refused a
     // batch for writing exactly the policy its access-matrix row requires.
-    assert.doesNotMatch(text, new RegExp(`create\\s+policy[^;]*\\bon\\s+${qualified.replace('.', '\\.')}\\b[^;]*\\bto\\s+app_(worker|command|maintenance)\\b`, 'i'),
+    // BATCH 141 (migration 172): RFC-2026-026's COMMAND half is in effect -- one policy TO app_command on
+    // app.audit_logs, bound to the acting user, not RFC-2026-022's workspace confinement -- so the service roles this
+    // reads are the worker's and maintenance's, and the command's one policy is asserted by name below.
+    assert.doesNotMatch(text, new RegExp(`create\\s+policy[^;]*\\bon\\s+${qualified.replace('.', '\\.')}\\b[^;]*\\bto\\s+app_(worker|maintenance)\\b`, 'i'),
       `${qualified} is classified ${cell.shape} in the service-policy map and a migration writes a `
       + 'policy on it. RFC-2026-022 is NOT IN EFFECT: a batch classifies a cell here and writes no '
       + 'service policy until §7 holds, and a DISCOVERED cell gets none ever.');
+    const command = [...text.matchAll(new RegExp(`create\\s+policy\\s+(\\w+)[^;]*\\bon\\s+${qualified.replace('.', '\\.')}\\b[^;]*\\bto\\s+app_command\\b`, 'gi'))].map((m) => m[1]);
+    assert.deepEqual(command, qualified === 'app.audit_logs' ? ['audit_logs_insert_command'] : [],
+      `${qualified}: the only app_command policy on a classified table is RFC-2026-026 §3.3's producer policy on app.audit_logs`);
   }
 });
 
@@ -3195,6 +3225,20 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // pinned grant 06c68d76dce9d29a to f6c6a5afaf062367 (app_authz SELECT (id, lifecycle_state) on app.workspaces);
   // policy set 3c643bfe1fcfb040 to fa0abb94ce92aee8 (the pinned key list gains the new policy through the
   // permissive list). Every other digest stays.
+  // Batch 141 (migration 172; RFC-2026-023 and RFC-2026-026's command half): five probes embed a pinned list 172 moves,
+  // and no rule and no drift changed. Permissive policy d926d01e77d6a7ac to 770b8ece86c08d53 (app_authz's policy on
+  // workspace_member_scopes and app_command's two on workspaces); security definer 6be3c66576d15b14 to
+  // fe09b69c959fe186 (the two acting-user helpers, jwt_aal and the two command functions, with owners and body
+  // digests); policy helper 79f1d9721698eb44 to 39249ae657cfd196 (the functions a policy may call include the
+  // definer list); pinned grant f6c6a5afaf062367 to 6510923f1a2732fc ('app_command USAGE on app' and the grants in
+  // pinned-grants.json); policy set fa0abb94ce92aee8 to d4c82a795a93f485 (audit_logs_insert_command in policy-set.json
+  // and the three permissive keys). Every other digest stays. RFC-2026-026 §8.1/1's producer rule is not one of
+  // these probes: it is decided in Node (scripts/db/audit-producer-rule.mjs) and runs last in migrate-clean.
+  // Batch 141's review round: security definer fe09b69c959fe186 to 475c89fbab0f2fc9 (the two command functions' body
+  // digests: each now bounds request_id and correlation_id to 1-128 characters of [A-Za-z0-9._:-], A1 F1); trigger
+  // 7ebb13f1c66bd33a to 6bb73ce79c56f132 (a comment only: a logical-replication subscription writes past these
+  // triggers, and the producer rule's part (h) refuses one, A1 F2). No rule and no drift of either changed. Every
+  // other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3205,23 +3249,23 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'closure coverage probe': '1a626907571ffb7e',
     'created_by insert closure probe': '00def6f1e5194911',
     'insert closure coverage probe': '3996c38c9f5081a9',
-    'permissive policy probe': 'd926d01e77d6a7ac',
+    'permissive policy probe': '770b8ece86c08d53',
     'client privilege probe': '86e1f9ff6b3eda34',
     'client schema probe': '6c400e229948cda6',
     'client membership probe': 'd82a36c9fbe730c6',
     'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
-    'security definer probe': '6be3c66576d15b14',
-    'policy helper probe': '79f1d9721698eb44',
-    'trigger probe': '7ebb13f1c66bd33a',
+    'security definer probe': '475c89fbab0f2fc9',
+    'policy helper probe': '39249ae657cfd196',
+    'trigger probe': '6bb73ce79c56f132',
     'pinned trigger probe': '8412a302b7f190a7',
-    'pinned grant probe': 'f6c6a5afaf062367',
+    'pinned grant probe': '6510923f1a2732fc',
     'read allowlist probe': 'a97a58b338e52627',
     'data classification probe': 'a848ca33af3460e3',
     'pinned shape probe': '11ba1271ffc00d70',
     'vocabulary check probe': 'd28d49cb3af0a0fd',
-    'policy set probe': 'fa0abb94ce92aee8',
+    'policy set probe': 'd4c82a795a93f485',
     'index coverage probe': '2d47460e43a5c68e',
     'pinned default probe': '570796093410bc0a',
     'rewrite rule probe': '7125c3c6adc84957',
@@ -3291,15 +3335,23 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   assert.deepEqual([...pkeys].sort(), pkeys, 'sorted, so a diff to the list reads as one line per policy');
   // Batch 171: seventy-five -- app_authz's workspaces_select_authz_own_open sits on app.workspaces, a client-writable
   // table, so the probe reads it; it is the one row here that is not TO authenticated (RFC-2026-027 §3.1).
-  assert.equal(pkeys.length, 75, 'seventy-five permissive policies on the client-writable tables: batch 127\'s seventy-four and batch 171\'s app_authz policy');
+  // Batch 141 (migration 172): seventy-eight -- app_authz's workspace_member_scopes_select_authz_own (RFC-2026-023 §3.2)
+  // and app_command's two on app.workspaces (§8/2, Q0-RC1), each on a client-writable table.
+  assert.equal(pkeys.length, 78, 'seventy-eight permissive policies on the client-writable tables: batch 127\'s seventy-four, batch 171\'s app_authz policy and batch 141\'s three');
   const ptables = new Set(pkeys.map((k) => k.split('.')[0]));
   assert.equal(ptables.size, 25, 'on twenty-five client-writable app tables');
   for (const t of m.CREATED_BY_CLOSURES) assert.ok(ptables.has(t), `${t}: a created_by table has its permissive set pinned (D1 fails by name on all nineteen)`);
   for (const [k, p] of Object.entries(m.PERMISSIVE_POLICIES)) {
     assert.match(k, /^[a-z_]+\.[a-z_]+$/, `${k}: table.policy`);
     assert.ok(['r', 'a', 'w', 'd', '*'].includes(p.cmd), `${k}: a policy command`);
-    assert.equal(p.roles, k === 'workspaces.workspaces_select_authz_own_open' ? 'app_authz' : 'authenticated',
-      `${k}: every permissive policy here is TO authenticated, but app_authz's own on app.workspaces (batch 171)`);
+    const NOT_AUTHENTICATED = {
+      'workspaces.workspaces_select_authz_own_open': 'app_authz',
+      'workspace_member_scopes.workspace_member_scopes_select_authz_own': 'app_authz',
+      'workspaces.workspaces_select_command_owner': 'app_command',
+      'workspaces.workspaces_update_command_owner': 'app_command',
+    };
+    assert.equal(p.roles, NOT_AUTHENTICATED[k] ?? 'authenticated',
+      `${k}: every permissive policy here is TO authenticated, but app_authz's two (batches 171 and 141) and app_command's two (batch 141)`);
     assert.ok(p.cmd === 'a' ? p.using === null : p.using !== null, `${k}: USING exactly when the command has one`);
     assert.ok(p.cmd === 'r' ? p.check === null : p.check !== null, `${k}: WITH CHECK exactly when the command has one`);
   }
@@ -3596,7 +3648,7 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'rule 7: app and private exist and are owned by the migration owner (A1 S1: `alter schema private owner to app_command` passed every layer)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /unnest\(array\['USAGE', 'CREATE'\]\) as p\(p\),\n\s+\(values \(''\), \(' WITH GRANT OPTION'\)\) as go\(opt\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and pg_catalog\.has_schema_privilege\(r\.rolname, s\.s, p\.p \|\| go\.opt\)\) f/,
     'rule 7: every non-superuser role\'s USAGE and CREATE on both, with and without grant option');
-  assert.deepEqual(m.PINNED_SCHEMA_PRIVILEGES, ['app_authz USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'], 'measured on the clean set through 170: USAGE on app for three roles, nothing on private, no CREATE');
+  assert.deepEqual(m.PINNED_SCHEMA_PRIVILEGES, ['app_authz USAGE on app', 'app_command USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'], 'measured on the clean set through 172: USAGE on app for four roles (batch 141 gave app_command its USAGE, RFC-2026-023 §5, A1 F5), nothing on private, no CREATE');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /\(values \('rolbypassrls', r\.rolbypassrls\), \('rolcanlogin', r\.rolcanlogin\), \('rolcreatedb', r\.rolcreatedb\),\n\s+\('rolcreaterole', r\.rolcreaterole\), \('rolinherit', r\.rolinherit\), \('rolreplication', r\.rolreplication\)\) as a\(a, v\)\n\s+where not r\.rolsuper and r\.rolname !~ '\^pg_' and a\.v/,
     'rule 8: the six attributes of every non-superuser, non-pg_* role, each pinned false (Q0 R-2, A1 S3: app_worker BYPASSRLS was held by rls-smoke alone)');
   assert.match(m.PINNED_GRANT_PROBE_SQL, /from pg_catalog\.pg_default_acl d left join pg_catalog\.pg_namespace n on n\.oid = d\.defaclnamespace\n\s+\) d;\n  if offending is not null then\n    raise exception 'a non-superuser role holds an attribute pinned false, or a default privilege entry exists/,
@@ -3640,7 +3692,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     }
     // The roles no rule read before the draft are now read and hold, measured, nothing.
     const holders = new Set(Object.values(m.PINNED_GRANTS).flatMap((roles) => Object.keys(roles)));
-    assert.deepEqual([...holders].sort(), ['app_authz', 'app_worker', 'authenticated'], 'measured at the draft: only these three roles hold anything on any table; anon, service_role, app_command and app_maintenance hold nothing');
+    // Batch 141 (migration 172): app_command holds its first grants -- SELECT (id, lifecycle_state) and UPDATE (lifecycle_state,
+    // updated_by) on app.workspaces and INSERT on app.audit_logs, the closing command's and the audit producer's.
+    assert.deepEqual([...holders].sort(), ['app_authz', 'app_command', 'app_worker', 'authenticated'], 'measured through 172: only these four roles hold anything on any table; anon, service_role and app_maintenance hold nothing');
+    assert.deepEqual(Object.entries(m.PINNED_GRANTS).filter(([, roles]) => roles.app_command).map(([t, roles]) => `${t} ${JSON.stringify(roles.app_command)}`).sort(),
+      ['app.audit_logs {"table":["INSERT"]}', 'app.workspaces {"SELECT":["id","lifecycle_state"],"UPDATE":["lifecycle_state","updated_by"]}'], 'app_command holds exactly the four grants batch 141 gives it');
   }
   {
     const migration = await readFile('db/foundation/migrations/091_calendar.sql', 'utf8');
@@ -3977,17 +4033,28 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     const file = JSON.parse(await readFile(m.POLICY_SET_FILE, 'utf8'));
     assert.deepEqual(m.POLICY_SET, file.policies, 'the probe reads the lint file and nothing else');
     const rows = Object.entries(m.POLICY_SET);
-    assert.equal(rows.length, 44, 'forty-four policies no other list named, measured at 1319042');
+    // Batch 141 (migration 172): forty-five -- RFC-2026-026 §3.3's command producer policy on app.audit_logs, the first
+    // policy on an audit table, which sits on no client-writable table and so on no other list.
+    assert.equal(rows.length, 45, 'forty-five policies no other list named: forty-four measured at 1319042, and batch 141\'s audit producer');
     const others = new Set(m.PINNED_POLICY_KEYS().filter((k) => !m.POLICY_SET[k]));
     for (const [k] of rows) assert.ok(!others.has(k), `${k}: pinned once, here`);
     // Batch 171: two hundred and ten -- app_authz's workspaces_select_authz_own_open, named by the permissive list.
-    assert.equal(m.PINNED_POLICY_KEYS().length, 210, 'two hundred and ten policies in app, every one named (209 at 1319042, and batch 171\'s)');
+    // Batch 141 (migration 172): two hundred and fourteen -- app_authz's policy on workspace_member_scopes and
+    // app_command's two on workspaces (the permissive list) and the audit producer's (this file).
+    assert.equal(m.PINNED_POLICY_KEYS().length, 214, 'two hundred and fourteen policies in app, every one named (209 at 1319042, batch 171\'s and batch 141\'s four)');
     const service = rows.filter(([k]) => k.endsWith('_service_path_closed'));
     assert.equal(service.length, 26, 'twenty-six service-path closures');
     for (const [k, p] of service) {
       assert.deepEqual([p.permissive, p.cmd, p.roles, p.using, p.check], [false, '*', 'public', "(CURRENT_USER = 'authenticated'::name)", "(CURRENT_USER = 'authenticated'::name)"], `${k}: the closure's one shape`);
     }
-    const reads = rows.filter(([k]) => !k.endsWith('_service_path_closed') && k !== `${m.AUTHZ_TABLE}.${m.AUTHZ_POLICY}`);
+    const PRODUCER = 'audit_logs.audit_logs_insert_command';
+    assert.deepEqual([m.POLICY_SET[PRODUCER]?.permissive, m.POLICY_SET[PRODUCER]?.cmd, m.POLICY_SET[PRODUCER]?.roles, m.POLICY_SET[PRODUCER]?.using],
+      [true, 'a', 'app_command', null], 'the audit producer: a permissive FOR INSERT for app_command alone, WITH CHECK only (RFC-2026-026 §3.3)');
+    assert.match(m.POLICY_SET[PRODUCER].check, /^\(\(actor_kind = 'user'::text\) AND \(actor_id = \(app\.jwt_subject\(\)\)::text\) AND app\.is_active_member\(workspace_id\) AND\nCASE/,
+      'its literal: a user actor, the acting user, an active member, then the outcome case');
+    assert.match(m.POLICY_SET[PRODUCER].check, /app\.acting_user_admits_business\(workspace_id, business_profile_id\)[\s\S]*app\.acting_user_admits_page\(workspace_id, business_profile_id, page_context_profile_id\)[\s\S]*ELSE \(\(business_profile_id IS NULL\) AND \(page_context_profile_id IS NULL\)\)/,
+      'both acting-user helpers for a succeeded row, and no scope on a refusal row (C0-9, A1 F4-a)');
+    const reads = rows.filter(([k]) => !k.endsWith('_service_path_closed') && k !== `${m.AUTHZ_TABLE}.${m.AUTHZ_POLICY}` && k !== PRODUCER);
     assert.equal(reads.length, 17, 'seventeen permissive read predicates');
     assert.equal(new Set(reads.map(([k]) => k.split('.')[0])).size, 16, 'on sixteen tables (C0-5: the draft said thirteen)');
     for (const [k] of reads) assert.ok(!Object.keys(m.PERMISSIVE_POLICIES).some((p) => p.split('.')[0] === k.split('.')[0]), `${k}: on a table PERMISSIVE_POLICIES has no row for`);
@@ -4257,7 +4324,7 @@ test('migrate-clean re-runs every apply-time block after the FK probe, each roll
   assert.match(runner, /const rerun = \(sql\) => feed\(`begin;\\n\$\{sql\}\\nrollback;\\n`\);/, 'each block runs in its own transaction and is rolled back, so the pass changes nothing');
   // The executor, whole: every job the pure planner names, run as named, nothing between it and the verdict.
   const body = runner.slice(pass, runner.indexOf("if (target === 'migrate-upgrade')")).replace(/\n\s*\n/g, '\n');
-  assert.match(body, /^plan = await postMigratePlan\(\); \} catch \(error\) \{ stderr\.write\([^\n]*\); return 1; \}\n\s*const outcomes = \[\];\n\s*for \(const job of postMigrateJobs\(plan\)\) outcomes\.push\(\{ \.\.\.job, result: await rerun\(job\.sql\) \}\);\n\s*const verdict = decidePostMigrate\(plan, outcomes\);\n\s*for \(const failure of verdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!verdict\.ok\) return 1;\n\s*stdout\.write\([^\n]*verdict\.summary[^\n]*\);\n\s*return 0;\n\s*\}\n\s*$/,
+  assert.match(body, /^plan = await postMigratePlan\(\); \} catch \(error\) \{ stderr\.write\([^\n]*\); return 1; \}\n\s*const outcomes = \[\];\n\s*for \(const job of postMigrateJobs\(plan\)\) outcomes\.push\(\{ \.\.\.job, result: await rerun\(job\.sql\) \}\);\n\s*const verdict = decidePostMigrate\(plan, outcomes\);\n\s*for \(const failure of verdict\.failures\) stderr\.write\([^\n]*\);\n\s*if \(!verdict\.ok\) return 1;\n\s*stdout\.write\([^\n]*verdict\.summary[^\n]*\);\n\s*return auditProducerRuleStep\(\);\n\s*\}\n\s*$/,
     'the executor is exactly: plan, run every job, decide, fail on a failing verdict -- no skip, no substitute script, no early return');
 });
 
@@ -4439,6 +4506,22 @@ const sqlWithoutComments = (text) => stripComments(text);
 // inside a dollar body no longer eats the statement after it (A1-RC-I1, Q0-OT2-7), and a GRANT a DO block EXECUTEs
 // from a literal is read as a statement. What a statement COMPUTES at run time is still not read.
 const auditScanText = (text) => canonicalStatements(text).map((st) => `${st.text};`).join('\n');
+// BATCH 141 (migration 172): the two statements RFC-2026-026 §9/1 gives the command half on an audit table, in
+// canonical form, each required EXACTLY ONCE in 172 at the top level and taken out of 172's text before the
+// tripwires below read it. Anything else 172 says about an audit table is read as before.
+export const COMMAND_HALF_STATEMENTS = Object.freeze([
+  /^grant insert on app \. audit_logs to app_command$/,
+  /^create policy audit_logs_insert_command on app \. audit_logs for insert to app_command with check \(/,
+]);
+const auditScanTextExcept = (text, name) => {
+  const statements = canonicalStatements(text);
+  if (name !== '172_acting_user_and_closing_command.sql') return statements.map((st) => `${st.text};`).join('\n');
+  for (const pattern of COMMAND_HALF_STATEMENTS) {
+    assert.equal(statements.filter((st) => st.depth === 0 && pattern.test(st.text)).length, 1, `${name}: ${pattern} exactly once`);
+  }
+  return statements.filter((st) => !(st.depth === 0 && COMMAND_HALF_STATEMENTS.some((p) => p.test(st.text))))
+    .map((st) => `${st.text};`).join('\n');
+};
 
 // The body of one `create table` in 140, read from the file with line comments stripped: its
 // columns (name, type, not null) and its constraint text.
@@ -4476,6 +4559,9 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
     // The owed-tooling batch (Q0 R4 on 141-prep's re-check, A1 R1's sentence: dropping it passed every test).
     assert.match(row.why, /RE-CONFIRMED WHEN Q141-a IS ANSWERED/, `app.${table}: the CARRIED row is re-confirmed when Q141-a is answered`);
     assert.match(row.why, /open_blockers\[32\]/, `app.${table}: and owes the scope-path check open_blockers[32] assigns to the producer`);
+    // Batch 141 (migration 172): re-confirmed now that Q141-a is answered, and the producer field added (Q-026-7).
+    assert.match(row.why, /RE-CONFIRMED 2026-10-05 IN BATCH 141/, `app.${table}: re-confirmed in the batch that answered Q141-a in code`);
+    assert.deepEqual(row.producer, ['command', 'worker'], `app.${table}: both producers RFC-2026-026 gives it`);
   }
   // _shape.batch's reading (the owed-tooling batch; Q0 R3 on 141-prep's re-check, C0 G4's change: restoring the
   // old "the migration batch that classified it" alone passed every test). Held with its blocker, [191] (8).
@@ -4491,10 +4577,13 @@ test('batch 141 prep: the §8.4 audit/security INSERT cell is classified CARRIED
   // `audit_logs` under a search_path), but it cannot see a policy built by a dynamic EXECUTE; the
   // catalog is what decides, and 140's own block refuses only a service or anonymous role's policy, so a
   // catalog assertion for every role is owed with batch 141's migration (open_blockers[191] (9)).
+  // BATCH 141 (migration 172): Q141-a is answered (B) and RFC-2026-026's command half is in effect, so EXACTLY ONE
+  // later statement may write a policy on an audit table -- 172's audit_logs_insert_command -- and it is taken out by
+  // its canonical opening before the scan, which still refuses every other.
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = auditScanText(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    const text = auditScanTextExcept(await readFile(`db/foundation/migrations/${later}`, 'utf8'), later);
     assert.doesNotMatch(text, AUDIT_TABLE_POLICY,
-      `${later} writes a policy on an audit table while RFC-2026-022 is not in effect and Q141-a is open`);
+      `${later} writes a policy on an audit table other than RFC-2026-026 §3.3's command producer policy`);
   }
   // The tripwire's own spellings, so a narrowed regex fails here rather than going quiet.
   for (const spelling of ['create policy p on app.audit_logs for insert', 'CREATE POLICY "p" ON "app"."security_events" FOR SELECT',
@@ -4513,6 +4602,13 @@ test('batch 141 prep: the audit coverage map names real tables, real §8 rows, l
   const wpLines = wpText.split('\n');
   const blockers = JSON.parse(wpText).open_blockers;
   const erd = await readFile(ERD_DOC, 'utf8');
+  // The functions the migrations hand to app_command, read from their text.
+  const landedCommands = new Set();
+  for (const n of (await readdir('db/foundation/migrations')).filter((f) => f.endsWith('.sql'))) {
+    const t = (await readFile(`db/foundation/migrations/${n}`, 'utf8')).replace(SQL_LINE_COMMENTS, '');
+    for (const m of t.matchAll(/alter\s+function\s+app\.(\w+)\([^)]*\)\s+owner\s+to\s+app_command\b/gi)) landedCommands.add(m[1]);
+  }
+  assert.deepEqual([...landedCommands].sort(), ['cancel_workspace_closing', 'close_workspace'], 'the two command functions batch 141 lands');
   const code = (await readFile(AUDIT_MIGRATION_140, 'utf8')).replace(SQL_LINE_COMMENTS, '');
   const vocabulary = [...code.match(/audit_logs_action_category_known\s+check \(action_category in \(([^)]*)\)\)/)[1]
     .matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
@@ -4535,18 +4631,33 @@ test('batch 141 prep: the audit coverage map names real tables, real §8 rows, l
   // The owed-tooling batch (Q0 R1 on 141-prep's re-check, N07: `producer` added to `_shape` and to a row in one
   // file passed, because the set was read from `_shape` itself). The nine keys are a literal here, `_shape`
   // must be exactly them, and the map's own top-level keys are closed too.
-  const SHAPE_KEYS = ['id', 'action', 'source', 'category', 'tables', 'producer_path', 'producer_decision', 'section8_cell', 'blockers'];
-  assert.deepEqual(Object.keys(map._shape), SHAPE_KEYS, "_shape declares exactly the nine row keys, in order");
+  // BATCH 141 (migration 172): Q141-a is answered (B) and RFC-2026-026 is approved, so a row whose command has LANDED
+  // names its producer (RFC-2026-026 §8.1/4): `producer`, the functions, a tenth key. A row whose producer has not
+  // landed stays UNDECIDED and names none -- the decision is the RFC's, the function is the landing batch's.
+  const SHAPE_KEYS = ['id', 'action', 'source', 'category', 'tables', 'producer_path', 'producer_decision', 'section8_cell', 'blockers', 'producer'];
+  assert.deepEqual(Object.keys(map._shape), SHAPE_KEYS, "_shape declares exactly the ten row keys, in order");
   assert.deepEqual(Object.keys(map), ['_what', '_written_by', '_sources', '_shape', '_undecided', 'actions'], 'and the map has no field beyond its six');
   const rowKeys = new Set([...SHAPE_KEYS, 'tables_note', 'category_note', 'section8_note']);
+  assert.deepEqual(map.actions.filter((a) => a.producer_path === 'command').map((a) => a.id).sort(),
+    ['delete.workspace_closing', 'delete.workspace_closing_cancelled'], 'the two rows whose command has landed, and no other');
   const ids = map.actions.map((a) => a.id);
   assert.equal(new Set(ids).size, ids.length, 'every action id is unique');
   for (const a of map.actions) {
     assert.match(a.id, /^[a-z_]+\.[a-z_]+$/, `${a.id}: a dotted, stable id`);
     for (const key of Object.keys(a)) assert.ok(rowKeys.has(key), `${a.id}: \`${key}\` is not a field this map's _shape declares`);
-    // Q141-a is open: a producer named here would be that decision taken in a lint file.
-    assert.equal(a.producer_path, 'UNDECIDED', `${a.id}: the producer path is Q141-a's, not this map's`);
-    assert.equal(a.producer_decision, 'Q141-a', `${a.id}: cites the question that decides it`);
+    if (a.producer_path === 'UNDECIDED') {
+      assert.equal(a.producer_decision, 'Q141-a', `${a.id}: cites the question that decides it`);
+      assert.equal(a.producer, undefined, `${a.id}: an undecided row names no producer`);
+    } else {
+      assert.equal(a.producer_path, 'command', `${a.id}: the only producer that has landed is the command (batch 141)`);
+      assert.equal(a.producer_decision, 'RFC-2026-026', `${a.id}: cites the RFC that decides it`);
+      assert.ok(Array.isArray(a.producer) && a.producer.length > 0 && a.producer.every((f) => /^app\.\w+\([a-z, ]*\)$/.test(f)),
+        `${a.id}: names each producer function by schema, name and argument types`);
+      for (const f of a.producer) {
+        const name = f.replace(/^app\./, '').replace(/\(.*$/, '');
+        assert.ok(landedCommands.has(name), `${a.id}: ${f} is created by no migration as an app_command-owned function`);
+      }
+    }
     assert.ok(Array.isArray(a.tables), `${a.id}: tables is a list`);
     if (a.tables.length === 0) assert.ok(a.tables_note?.length > 40, `${a.id}: no table only with a reason`);
     for (const t of a.tables) {
@@ -4781,7 +4892,7 @@ test('batch 141 prep: app.audit_logs reads CTR-AUD-001 column for property, with
   // (open_blockers[191] (9)). Since the review round (A1-OT-3) comments are read as whitespace, and CREATE RULE
   // and a rename onto either name are read too.
   for (const later of (await readdir('db/foundation/migrations')).filter((n) => n > '140_audit.sql')) {
-    const text = auditScanText(await readFile(`db/foundation/migrations/${later}`, 'utf8'));
+    const text = auditScanTextExcept(await readFile(`db/foundation/migrations/${later}`, 'utf8'), later);
     for (const [what, pattern] of AUDIT_TABLE_TOUCH) assert.doesNotMatch(text, pattern, `${later}: ${what} on an audit table`);
   }
   for (const [spelling, what] of [
@@ -4908,6 +5019,48 @@ test('batch 141 prep: CTR-AUD-001 fixtures validate as declared, and every valid
     assert.doesNotMatch(text, /security_event|source_ip_hash|user_agent_hash/,
       `${entry.name} now describes the security event; write its store conformance`);
   }
+});
+
+// BATCH 141 (migration 172): THE FIRST REAL ROW. The closing command's succeeded INSERT, read from the migration, is
+// the CTR-AUD-001 fixture valid-workspace-closing-command.json field for field -- the category, the action name, the
+// reason key, the retention reference, the three redaction assertions and the shape of both change references -- so the
+// test above, which validates that fixture against the contract and fits it to the store, is about the row the command
+// writes; and rls-smoke reads that row back from app.audit_logs (tests/db/identity/isolation-cases.mjs, auditRowIs).
+test('batch 141: the closing command writes the CTR-AUD-001 record its conformance fixture describes', async () => {
+  const fixture = JSON.parse(await readFile(`${AUD_FIXTURES}/valid-workspace-closing-command.json`, 'utf8'));
+  const sql = (await readFile('db/foundation/migrations/172_acting_user_and_closing_command.sql', 'utf8')).replace(SQL_LINE_COMMENTS, '');
+  const body = sql.slice(sql.indexOf('create or replace function app.close_workspace('), sql.indexOf('create or replace function app.cancel_workspace_closing('));
+  const succeeded = body.slice(body.indexOf("'succeeded', 'audit."), body.indexOf("'retention.audit');") + "'retention.audit'".length);
+  assert.ok(succeeded.length > 40, 'the succeeded INSERT was read');
+  assert.match(body, new RegExp(`'${fixture.action.category}', '${fixture.action.name.replace(/\./g, '\\.')}', 'succeeded', '${fixture.reason_key.replace(/\./g, '\\.')}'`),
+    'category, action name, outcome and reason key are the fixture\'s');
+  assert.equal(fixture.outcome, 'succeeded');
+  assert.match(succeeded, new RegExp(`'${fixture.retention.policy_ref.replace(/\./g, '\\.')}'$`), 'the retention reference is the fixture\'s');
+  assert.match(succeeded, /true, true, true,/, 'all three redaction assertions, as the fixture holds them');
+  assert.deepEqual(fixture.redaction, { secret_redacted: true, content_redacted: true, pii_redacted: true });
+  assert.match(succeeded, /'record:app\.workspaces\/' \|\| changed::text \|\| '\/active',\s*'record:app\.workspaces\/' \|\| changed::text \|\| '\/closing'/,
+    'the references are the changed row\'s, before and after (RFC-2026-026 §3.5, §3.6)');
+  assert.equal(fixture.change.before_ref, `record:app.workspaces/${fixture.tenant_context.workspace_id}/active`);
+  assert.equal(fixture.change.after_ref, `record:app.workspaces/${fixture.tenant_context.workspace_id}/closing`);
+  // RFC-2026-026 §8.2/17 where no signature admits a scope argument: the static rule on the body. The succeeded row's
+  // workspace is `changed`, read back by RETURNING from the row the UPDATE changed, never the `workspace` input; its
+  // business and page are null, because a workspace carries neither; and its actor is the claims' subject.
+  for (const fn of ['close_workspace', 'cancel_workspace_closing']) {
+    const from = sql.indexOf(`create or replace function app.${fn}(`);
+    const text = sql.slice(from, sql.indexOf('$$;', sql.indexOf('as $$', from)));
+    assert.match(text, /returning w\.id into changed;/, `${fn}: the changed row's id is read back with RETURNING`);
+    assert.match(text, /values\s*\(changed, null, null, now\(\), 'user', acting::text,/, `${fn}: the succeeded row's scope is the changed row's, its actor the acting user`);
+    assert.match(text, /values\s*\(workspace, null, null, now\(\), 'user', acting::text,/, `${fn}: a refusal row names the workspace asked about and no business or page (§3.3/4)`);
+    assert.match(text, /acting\s+uuid := app\.jwt_subject\(\);/, `${fn}: the acting user is the claims' subject (RFC-2026-023 §3.1)`);
+  }
+  assert.equal(fixture.actor.kind, 'user', 'the command path writes user-attributed rows (RFC-2026-026 §3.3)');
+  assert.equal(fixture.tenant_context.business_profile_id, undefined, 'a workspace carries no business, so the record names none');
+  assert.equal(fixture.tenant_context.page_context_profile_id, undefined, 'and no page');
+  // The coverage map row that names this producer is the fixture's category.
+  const map = JSON.parse(await readFile(AUDIT_COVERAGE_MAP, 'utf8'));
+  const row = map.actions.find((a) => a.id === 'delete.workspace_closing');
+  assert.equal(row.category, fixture.action.category);
+  assert.deepEqual(row.producer, ['app.close_workspace(uuid,text,text)']);
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -5219,7 +5372,12 @@ test('the retention map has one row per table, every class is one §10 defines a
 
   // THE CONTROLS ON EVERY ROW HOLD: no policy names a non-client role, and app_maintenance holds nothing.
   assert.deepEqual(map.controls_on_every_row.map((c) => c.kind), ['no-executor', 'no-legal-hold-table', 'no-deletion-manifest']);
-  assert.doesNotMatch(all, /create\s+policy[^;]*\bto\s+[^;]*\b(app_worker|app_maintenance|app_command|service_role)\b/i, 'no policy admits a service role (RFC-2026-022 not in effect)');
+  assert.doesNotMatch(all, /create\s+policy[^;]*\bto\s+[^;]*\b(app_worker|app_maintenance|service_role)\b/i, 'no policy admits a service role (RFC-2026-022 not in effect)');
+  // Batch 141 (migration 172): app_command's three policies are the closing command's and the audit producer's --
+  // a SELECT and an UPDATE of app.workspaces and an INSERT into app.audit_logs -- and none deletes or purges.
+  assert.deepEqual([...all.matchAll(/create\s+policy\s+(\w+)\s+on\s+[\w.]+\s+for\s+(\w+)\s+to\s+app_command\b/gi)].map((m) => `${m[1]} ${m[2].toLowerCase()}`).sort(),
+    ['audit_logs_insert_command insert', 'workspaces_select_command_owner select', 'workspaces_update_command_owner update'],
+    'the only policies naming app_command are 172\'s three, and none is FOR DELETE or FOR ALL');
   assert.doesNotMatch(all, /\bgrant\s+[^;]*\bto\s+[^;]*\bapp_maintenance\b/i, 'app_maintenance holds no grant');
   assert.ok(![...tables].some((t) => /hold/.test(t)), 'no legal-hold table exists yet; when one does, this row changes in a diff');
 

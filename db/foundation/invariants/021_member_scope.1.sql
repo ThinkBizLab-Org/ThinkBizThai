@@ -3,10 +3,12 @@ declare
   offending text;
   count_of  integer;
 begin
-  -- SUPERSEDED BY 171. RFC-2026-027 (approved 2026-10-05) amends RFC-2026-020 §5/3 and §6.1/5: app_authz holds
-  -- exactly TWO policies in app -- the one 011 wrote and workspaces_select_authz_own_open on app.workspaces. The final-state
-  -- count is asserted FIRST and whole, so a third policy fails here exactly as a second failed the original; then
-  -- the original assertion, word for word, with 171's (table, name) pair excluded.
+  -- SUPERSEDED BY 171 AND 172. RFC-2026-027 (approved 2026-10-05) and RFC-2026-023 §3.2 (approved 2026-10-05,
+  -- migration 172, batch 141) amend RFC-2026-020 §5/3 and §6.1/5: app_authz holds exactly THREE policies in app --
+  -- the one 011 wrote, workspaces_select_authz_own_open on app.workspaces (171) and
+  -- workspace_member_scopes_select_authz_own on app.workspace_member_scopes (172). The final-state count is asserted
+  -- FIRST and whole, so a fourth policy fails here exactly as a second failed the original; then the original
+  -- assertion, word for word, with 171's and 172's (table, name) pairs excluded.
   select count(*) into count_of
     from pg_catalog.pg_policy p
     join pg_catalog.pg_class c on c.oid = p.polrelid
@@ -14,8 +16,8 @@ begin
    where n.nspname = 'app'
      and exists (select 1 from pg_catalog.pg_roles r
                   where r.oid = any (p.polroles) and r.rolname = 'app_authz');
-  if count_of <> 2 then
-    raise exception 'app_authz holds % policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 amends it gives it exactly two', count_of;
+  if count_of <> 3 then
+    raise exception 'app_authz holds % policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 and RFC-2026-023 amend it gives it exactly three', count_of;
   end if;
 
   -- THE ASSERTION THIS FILE OWES MOST. RFC-2026-020 §5/3 gives app_authz exactly one policy, and
@@ -29,7 +31,8 @@ begin
    where n.nspname = 'app'
      and exists (select 1 from pg_catalog.pg_roles r
                   where r.oid = any (p.polroles) and r.rolname = 'app_authz')
-     and (c.relname::text, p.polname::text) not in (('workspaces', 'workspaces_select_authz_own_open'));  -- SUPERSEDED BY 171: the second policy RFC-2026-027 gives app_authz, counted whole above
+     and (c.relname::text, p.polname::text) not in (('workspaces', 'workspaces_select_authz_own_open'),  -- SUPERSEDED BY 171: the second policy RFC-2026-027 gives app_authz, counted whole above
+                                                     ('workspace_member_scopes', 'workspace_member_scopes_select_authz_own'));  -- SUPERSEDED BY 172: the third, RFC-2026-023 §3.2's, counted whole above
   if count_of <> 1 then
     raise exception 'after batch 021, app_authz holds % policies in schema app; RFC-2026-020 §5/3 gives it exactly one', count_of
       using hint = 'Batch 021 reads member scope through SECURITY INVOKER helpers precisely so that '
@@ -38,14 +41,34 @@ begin
   end if;
 
   -- And the grant half of the same claim: app_authz reaches nothing this batch created.
+  -- SUPERSEDED BY 172. RFC-2026-023 §3.2 (approved 2026-10-05, migration 172, batch 141) gives app_authz column
+  -- SELECT on exactly five columns of app.workspace_member_scopes -- workspace_id, user_id, scope_type,
+  -- business_profile_id and page_context_profile_id -- and nothing else on it. The original assertion stands, word
+  -- for word, with one conjunct added: it still fires the moment app_authz holds any privilege on the table BEYOND
+  -- those five column reads, and the five themselves are asserted exactly after it.
   select string_agg(c.relname, ', ') into offending
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'app'
      and c.relname = 'workspace_member_scopes'
-     and pg_catalog.has_any_column_privilege('app_authz', c.oid, 'SELECT');
+     and pg_catalog.has_any_column_privilege('app_authz', c.oid, 'SELECT')
+     and ((select string_agg(format('%s %s', a.attname, pv.p), ', ' order by a.attname, pv.p)  -- SUPERSEDED BY 172
+             from pg_catalog.pg_attribute a,
+                  unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as pv(p)
+            where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+              and pg_catalog.has_column_privilege('app_authz', c.oid, a.attnum, pv.p))
+          is distinct from 'business_profile_id SELECT, page_context_profile_id SELECT, scope_type SELECT, user_id SELECT, workspace_id SELECT'
+          or exists (select 1 from unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) as pv(p)
+                      where pg_catalog.has_table_privilege('app_authz', c.oid, pv.p)));
   if offending is not null then
     raise exception 'app_authz holds a privilege on app.%, and RFC-2026-020 §6.1/6 pins its grants to four columns of app.workspace_members', offending;
+  end if;
+  -- SUPERSEDED BY 172: and the five column reads RFC-2026-023 §3.2 gives are all there.
+  if (select count(*) from pg_catalog.pg_attribute a
+       where a.attrelid = 'app.workspace_member_scopes'::regclass
+         and a.attname in ('workspace_id', 'user_id', 'scope_type', 'business_profile_id', 'page_context_profile_id')
+         and pg_catalog.has_column_privilege('app_authz', a.attrelid, a.attnum, 'SELECT')) <> 5 then
+    raise exception 'app_authz does not hold the five column reads of app.workspace_member_scopes RFC-2026-023 §3.2 gives it';
   end if;
 
   -- ENABLE and FORCE on the table this batch creates. The two are different catalog columns and the
