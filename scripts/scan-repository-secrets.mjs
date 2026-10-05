@@ -116,21 +116,6 @@ function luhnHolds(digits) {
   return sum % 10 === 0;
 }
 
-/** A primary account number is customer PII, and CONTRIBUTING_AGENTS.md forbids customer PII
- *  repository-wide with no carve-out. Detecting one needs BOTH tests, never either alone.
- *
- *  Luhn alone is far too weak: one in ten arbitrary digit runs of the right length passes it,
- *  so a rule built on Luhn reports correlation ids, hash prefixes and timestamps until someone
- *  turns it off. An issuer prefix alone is weaker still -- every 16-digit run starting with 4
- *  would be a card. Together they are strict enough to run unattended.
- *
- *  Deliberately NOT exempted: the published provider test cards. At rest a scanner cannot tell
- *  a test number from a live one, Gate G0 permits no provider integration that would need one,
- *  and an allowlist of "safe" card numbers is the shape a real leak hides in. When a payment
- *  sandbox is authorized, the exemption belongs in a reviewed decision with a named owner, not
- *  here. No card number, valid or otherwise, is written literally in this file: a rule that
- *  cannot be stated without tripping itself would have to exempt its own source, and a
- *  scanner blind to one file is a scanner with a place to hide things. */
 // A digit is not always U+0030..U+0039. Independent security review found the rule blind to
 // FULLWIDTH digits and to THAI digits -- on a Thai-market product, in a rule whose own comment
 // claims to cover what a Thai IME produces. It had widened the SEPARATORS for that scenario and
@@ -201,7 +186,14 @@ export function containsPaymentCardNumber(run) {
   // fullwidth or Thai numeral is a digit.
   run = [...run].map((c) => foldDigits(c) || c).join('');
   const lines = run.split('\n');
-  if (lines.length >= 3 && lines.every((line) => (line.match(/[0-9]+/g) ?? []).length === 1)) return false;
+  // A1-005-1 (2026-10-05): the list guard above must not discard a line that is ITSELF a whole
+  // card. The first version returned false outright, so a column of card numbers one per line --
+  // a CSV export, a log dump, a pasted list, the plainest bulk-leak shape -- was invisible. A list
+  // line is still read on its own, which no list of short numbers can satisfy: a 4-digit item
+  // cannot reach 13 digits by itself.
+  if (lines.length >= 3 && lines.every((line) => (line.match(/[0-9]+/g) ?? []).length === 1)) {
+    return lines.some((line) => scanReading(line.match(/[0-9]+/g)));
+  }
 
   const groups = [];
   const wrapped = [];
