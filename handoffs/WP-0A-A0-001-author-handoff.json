@@ -5,96 +5,126 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
+  "head_revision_or_patch_checksum": "a3d61f3fa10ddadcf9d954a5b0b3fff10ab714fd",
   "task_ids": [
-    "REP-00",
-    "WP-0A-A0-001"
+    "WP-0A-A0-001",
+    "G0-step-2"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md"
+  ],
+  "files_modified": [
+    "evidence/g0-tracker-th.md",
+    "handoffs/WP-0A-A0-001-author-handoff.json",
+    "work-packages/WP-0A-A0-001.json",
+    "work-packages/WP-0A-CON-002.json",
+    "work-packages/WP-0A-CON-003.json",
+    "work-packages/WP-0A-CON-006.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
-    "DEC-021",
-    "DEC-023",
-    "DEC-025",
-    "OPEN-018"
+    "DEC-020",
+    "DEC-014",
+    "DEC-016",
+    "DEC-004",
+    "OPEN-001",
+    "OPEN-002",
+    "OPEN-003",
+    "OPEN-004",
+    "OPEN-006",
+    "OPEN-007",
+    "OPEN-009",
+    "OPEN-011",
+    "OPEN-012",
+    "OPEN-014",
+    "OPEN-016",
+    "OPEN-017",
+    "RFC-2026-024",
+    "RFC-2026-025"
   ],
-  "contracts_consumed": [
-    "CTR-TEN-001",
-    "CTR-ERR-001",
-    "CTR-EVT-001",
-    "CTR-JOB-001"
-  ],
+  "contracts_consumed": [],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "Product Owner delegated local bootstrap implementation on 2026-08-30; this does not approve RFC-2026-001, a merge, or G0.",
-    "The repository remains in Sprint 0A Specification Baseline Complete / External Verification Pending.",
-    "All data and secret checks are synthetic-only; no provider credential, customer data, schema, or production configuration is in scope."
+    "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0 Integration), a subagent of the Author run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
+    "THIS INCREMENT records the Product Owner's reply of 2026-10-05, `บืนยันขั้น 2` (a typo for ยืนยันขั้น 2, \"confirm step 2\"), to A0's fifteen step-2 decisions, in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, and corrects stale G0 records. A0 reads the reply as confirming all fifteen as A0 recommended.",
+    "The branch is the one WP-0A-A0-001 already declares (ownership.branch), so no branch slot, pinned test line or integrity manifest moves.",
+    "docs/** is read-only to this package; CONTRIBUTING_AGENTS.md and RFC-2026-002 are governance (RFC-2026-025 §5 item 6). None is edited; what each needs is listed in the disposition §5.",
+    "Not record-only under RFC-2026-025 §5: item 1 excludes Owner dispositions and blocker rewording, and item 5's mechanical check does not exist in scripts/."
   ],
   "acceptance_results": [
     {
-      "criterion": "Canonical agent protocol, schemas, role profiles, bootstrap validator, toolchain contract, and read-only CI exist in the working-tree candidate.",
-      "result": "pass for working-tree candidate"
+      "criterion": "Owner words transcribed verbatim with the full list, A0's recommendation per item, and which OPEN-*/DEC-* each closes",
+      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §2-§3"
     },
     {
-      "criterion": "Author, Reviewer, Tester, and Integration Owner are distinct named runs in the in-review manifest.",
-      "result": "pass"
+      "criterion": "DEC-020 vs master-plan DEC-07 payment conflict resolved in the register's favour",
+      "result": "pass for author self-check: disposition §3 item 4; Beta entitlement source under CONTRIBUTING_AGENTS.md:45 left open for the Owner"
     },
     {
-      "criterion": "No production secret or customer data is introduced.",
-      "result": "pass for deterministic scanner patterns; independently security reviewed"
+      "criterion": "Nine blockers evidence/WP-0A-A0-006/blocker-re-audit.md found closed are closed in their manifests with a citation",
+      "result": "pass for author self-check: each re-verified at main 600b48b and closed in place (CON-002 #01 #11 #12 #13, CON-003 #01 #04, CON-006 #01 #06 #11), original text kept"
     },
     {
-      "criterion": "Candidate is staged, committed, remote-CI verified, and integrated.",
-      "result": "partially met: exact staged candidate exists; commit, push, remote CI, and integration verification remain pending"
+      "criterion": "Protected-CI contradictions corrected against a live read",
+      "result": "pass for author self-check: gh api .../branches/main/protection read 2026-10-05 (strict, bootstrap, enforce_admins); evidence/g0-tracker-th.md rows and WP-0A-A0-001 open_blockers[1] corrected; CONTRIBUTING_AGENTS.md:61-79 and the RFC-2026-002 status line recorded, not edited"
+    },
+    {
+      "criterion": "Tracker product-reviewer explanation replaced by \"role verdicts missing\"; G0-001..024 status table recorded",
+      "result": "pass for author self-check: evidence/g0-tracker-th.md, section G0 ขั้น 2"
     }
   ],
   "tests": [
     {
-      "command": "PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm run check",
+      "command": "node -v",
       "exit_code": 0,
-      "result": "toolchain guard, secret scan, all-work-package validation, and 14 tests pass"
+      "result": "v24.20.0"
     },
     {
-      "command": "npm_config_offline=true PATH=/tmp/thinkbizthai-node24.4QRtjj/node-v24.20.0-darwin-arm64/bin:$PATH npm ci --ignore-scripts",
+      "command": "node scripts/commit-when-clean.mjs <message> (runs npm run verify on branch agent/root/WP-0A-A0-001-repository-bootstrap)",
       "exit_code": 0,
-      "result": "offline clean install; zero dependencies, zero vulnerabilities"
+      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0; commit a3d61f3"
     },
     {
-      "command": "git diff --check",
+      "command": "node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-001",
       "exit_code": 0,
-      "result": "working-tree whitespace clean"
+      "result": "WP-0A-A0-001: all 7 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "node scripts/verify-toolchain.mjs under system Node v26.7.0/npm 11.19.0",
-      "exit_code": 68,
-      "result": "expected negative control: rejects unpinned Node runtime"
+      "command": "node scripts/verify-branch-identity.mjs agent/root/WP-0A-A0-001-repository-bootstrap",
+      "exit_code": 0,
+      "result": "WP-0A-A0-001"
+    },
+    {
+      "command": "gh api repos/ThinkBizLab-Org/ThinkBizThai/branches/main/protection (read-only)",
+      "exit_code": 0,
+      "result": "required check bootstrap, strict true, enforce_admins true, force push and deletion disallowed, conversation resolution required, no required pull-request review"
     }
   ],
-  "security_privacy_cost_impact": "No secrets, personal data, customer content, provider integration, billable provider call, or production configuration was added. CI has read-only contents permission and disables persisted checkout credentials. The scanner is a deterministic guardrail, not the only secret-control measure.",
-  "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation, data retention operation, or external state change was made.",
-  "compatibility_impact": "No contract changes. This increment records an ownership finding about a shared pin file; no contract-catalog file, schema or fixture is touched.",
+  "security_privacy_cost_impact": "None. Records only: no code, schema, migration, contract, CI, credential or customer data. A JWT-shaped probe for CON-002 #13 was built in memory with synthetic content and never written to disk.",
+  "migration_and_data_impact": "None. No database migration, RLS change, object-storage operation or external state change.",
+  "compatibility_impact": "No contract changes. Three other packages' manifests change open_blockers text only (closed in place, no index moves), recorded in WP-0A-A0-001 ownership.amends_without_owning.",
   "known_limitations": [
-    "This handoff describes an exact staged candidate, not a committed, pushed, merged, or remote-CI-verified candidate.",
-    "Secret scanner detects only documented common patterns and does not replace secret management or platform controls.",
-    "No remote GitHub Actions run, branch protection evidence, or cross-vendor protocol dry run exists."
+    "Decision 1 (RFC-2026-024 extended to 15 packages) is recorded but not applied to the 15 manifests' independence fields.",
+    "Decision 2 names /claude/r0_steward as successor; every acknowledgement recorded against /root/r0_steward stays pending until that run gives it.",
+    "OPEN-004 model id and ceiling, OPEN-006 size cap, the OPEN-001 pricing draft and A6 metric C-01's single formula are still owed.",
+    "The register, master plan, readiness report, CONTRIBUTING_AGENTS.md and RFC-2026-002 status line still carry the superseded text.",
+    "The G0 status table is A0's reading of the tree, not an independent verification."
   ],
   "open_risks_or_blockers": [
-    "The exact staged candidate still requires a commit, push, and remote CI result before release integration.",
-    "RFC-2026-001 and OPEN-018 remain in review pending integration and remote CI evidence.",
-    "P0 self-package acceptance still requires Product Owner plus A1-A6 representative review and a recorded cross-vendor protocol dry run.",
-    "Protected CI/branch protection requires an authorized repository administrator.",
-    "G0 external evidence and approvals remain open as recorded in the Sprint 0A readiness report."
+    "The Beta payment entitlement source under manual invoicing is undefined against CONTRIBUTING_AGENTS.md:45 (Owner + security owner).",
+    "OPEN-008 (Meta App Review path) remains open; it was not in the step-2 list.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending."
   ],
-  "rollback_or_forward_fix": "Commit only the intended staged candidate after independent integration verification, then replay checks from the committed revision. If a forward fix is not appropriate, use a normal revert of the bootstrap-only commit; no external or persisted state needs recovery.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a reviewed revert PR restores the previous records; no persisted data or external state is involved.",
   "recommended_next_work_packages": [
-    "Complete REP-00 release evidence after Git index access and remote CI are available.",
-    "Do not start a Ready domain implementation package until G0 authority, capability declarations, and its declared dependencies are satisfied."
+    "Role runs on this PR (C0 review of the disposition and the nine closures; Q0 re-measure of each closure; R0 integration), since it is not record-only under RFC-2026-025 §5.",
+    "Apply decision 1 to the 15 manifests and close their cross-vendor blocker lines, citing evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md.",
+    "/claude/r0_steward gives or refuses the pending acknowledgements it now holds.",
+    "Re-verification of CON-005, A0-004, A0-005 and CON-007 first, per the G0 survey step 3."
   ],
   "reviewer_instructions": [
-    "Verify the staged diff exactly matches this handoff and the reviewed candidate; do not commit an older partial index.",
-    "Replay npm ci --ignore-scripts and npm run check with Node 24.20.0/npm 11.19.0 on the staged/committed commit.",
-    "Read the independent reviewer/security, tester, and integration verdicts; preserve their scope limitations.",
-    "Keep the manifest in_review until the Integration Owner has a matching staged candidate and remote CI evidence."
+    "Read evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md first, then the \"G0 ขั้น 2\" section of evidence/g0-tracker-th.md.",
+    "Diff 600b48b..a3d61f3; check each CLOSED prefix against the cited file and line at that head, and that every original blocker text is kept after \"Text as recorded:\".",
+    "Re-read branch protection yourself, read-only, before relying on the corrected protected-CI rows."
   ]
 }
