@@ -30,20 +30,21 @@
     "integration_owner_agent_run_id": "/claude/r0_steward",
     "security_reviewer_agent_run_id": "/claude/a1_bastion",
     "product_reviewer_agent_run_id": null,
-    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner and must record its own capability declaration before this package leaves backlog. /root/r0_steward (OpenAI Codex) is a DIFFERENT run: it is the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001 and is named in open_blockers solely because it must countersign the amendments made to those two packages and record the WP-0A-CON-001 npm run check addendum. Neither run substitutes for the other. Independent testing flagged the near-identical names as ambiguous; both are intended."
+    "product_reviewer_note": "product_reviewer_agent_run_id is null by decision, not a gap: the Product Owner decided on 2026-10-05 that tooling and contract work packages need no Product reviewer (step 2 item 3, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 3). This is a tooling package (one secret-scan rule and its tests) with no UX surface, and review_and_test_gates carries no product step.",
+    "_run_id_disambiguation": "/claude/r0_steward (Anthropic) is THIS package's Integration Owner. /root/r0_steward (OpenAI Codex) was a DIFFERENT run: the Integration Owner of WP-0A-A0-001 and WP-0A-CON-001, named in earlier versions of this package's open_blockers solely because it had to countersign the amendments made to those two packages. That Codex run is no longer available. On 2026-10-05 the Product Owner named /claude/r0_steward its successor for the acknowledgements recorded pending against it (step 2 item 2, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 2). Naming a successor is not the successor acting: no acknowledgement is given by this record. This package's own amends_without_owning set (WP-0A-A0-003 and WP-0A-A0-002 files) never named /root/r0_steward, so no acknowledgement on this manifest moves to the successor. The two names remain near-identical; both are intended."
   },
   "independence": {
     "no_self_approval": true,
     "require_distinct_author_reviewer": true,
     "require_distinct_author_tester": true,
-    "prefer_cross_vendor_review": true,
-    "cross_vendor_exception": "prefer_cross_vendor_review is NOT satisfied: every assigned run is Anthropic claude-opus-5. The Decision Register (§ cross-vendor review) permits this only as an explicit exception - 'if there is no cross-vendor capacity, use an independent agent per run and record the exception'. Each of the five roles is a separate agent run with its own capability declaration and no run reviewed, tested, or integrated its own work. The Integration Owner must carry this exception forward; it is not waived and it is not equivalent to cross-vendor review."
+    "prefer_cross_vendor_review": false,
+    "cross_vendor_exception": "WITHDRAWN 2026-10-05 BY THE PRODUCT OWNER for this package. RFC-2026-024 (approved 2026-09-15) withdrew the cross-vendor condition and applied it to WP-0A-DB-00 only (§3/1). On 2026-10-05 the Owner answered \"บืนยันขั้น 2\" to step 2 item 1, \"Apply RFC-024's cross-vendor exception to all 15 work packages\", and WP-0A-A0-005 is one of those 15 (evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 row 1). Until then this field read that every assigned run is Anthropic claude-opus-5, which was permitted only as the Decision Register's recorded single-vendor exception and was not equivalent to cross-vendor review. What remains is all of CONTRIBUTING_AGENTS.md § Separation of duties: four distinct agent_run_ids in the four roles, plus the conditional Security reviewer; no run approves, test-verifies, integrates or gate-approves its own work; a distinct same-vendor run in a named role IS that role's signature; and every role file opens with the §0 spawning disclosure (RFC-2026-024 §3/3-4). G0's external verification is unchanged and nothing an agent here can do satisfies it (RFC-2026-024 §3/5)."
   },
   "accountable_owners": [
     "A0"
   ],
   "required_human_authorities": [
-    "Product Owner disposition of RFC-2026-008 before the manual merge described in RFC-2026-002"
+    "Product Owner disposition of RFC-2026-008: GIVEN. Its status line records Approved 2026-09-02 (commit 82aae60, \"Product Owner approves RFC-2026-003 through -009\"). This refresh does not change RFC-2026-008."
   ],
   "purpose": "scripts/scan-repository-secrets.mjs carries thirty credential rules and three privacy rules, and not one of them detects a payment card number. A payment provider is one of this repository's own declared Gate G0 blockers, so the first credential this repository is likely to meet in anger is the one class it cannot see. CONTRIBUTING_AGENTS.md forbids customer PII repository-wide with no carve-out; a primary account number is customer PII and a scanner that reports a Thai national identity number while ignoring a card number enforces that rule selectively.",
   "scope": {
@@ -126,7 +127,8 @@
     "files": [
       "architecture/decisions/RFC-2026-008-cardholder-data-scan.md",
       "work-packages/WP-0A-A0-005.json",
-      "evidence/WP-0A-A0-005/author-self-check.md"
+      "evidence/WP-0A-A0-005/author-self-check.md",
+      "evidence/WP-0A-A0-005/author-reverify-2026-10-06.md"
     ],
     "contracts": []
   },
@@ -161,9 +163,12 @@
   },
   "rollback_or_forward_fix": "Revert through a reviewed revert PR. One scan rule and its tests; no persisted data, provider state, credential, migration or customer-data effect.",
   "open_blockers": [
-    "RFC-2026-008 is Proposed and requires Product Owner disposition before the RFC-2026-002 manual merge.",
+    "No role verdict exists for this package at any head. The independent security review and independent testing that corrected the rule in 2026-08/09 are recorded only inside the Author's own evidence/WP-0A-A0-005/author-self-check.md; there is no C0, A1, Q0 or R0 file under evidence/WP-0A-A0-005/. All four first role verdicts are owed at the current main: Reviewer /claude/c0_contract_reviewer, Security /claude/a1_bastion, Tester /claude/q0_sentinel, Integration Owner /claude/r0_steward. Until they exist this package stays in_review (evidence/WP-0A-A0-005/author-reverify-2026-10-06.md).",
+    "The status field and the tree disagree. The rule, its tests and RFC-2026-008 reached main through PR #11 (merge eadd7d6) while this manifest still reads in_review. That merge predates RFC-2026-025 and carries no role signature of this package; the Integration Owner disposes of it, not the Author.",
+    "The two acknowledgements this package needs are recorded against the wrong run. WP-0A-A0-003.json ownership.amended_by[0] and WP-0A-A0-002.json ownership.amended_by[0] (both WP-0A-A0-005 amendments) name acknowledgement_required_from: /claude/a0_atlas, which is the Author of this package. An Author cannot acknowledge its own amendment. Both owning packages name /claude/r0_steward as Integration Owner, so that is the run the field should name. Both records are outside this package's writable paths: owed by the owners of WP-0A-A0-003 and WP-0A-A0-002 (correct the field), then by /claude/r0_steward (record the acknowledgement). Both stay acknowledgement_status: pending.",
     "A pattern scanner cannot prove absence. This closes one named class; it does not make the scanner complete, and the 37 of 56 uncorrelated decoys recorded against WP-0A-A0-003 remain unreported.",
-    "When a Stripe sandbox is authorized and a G0 blocker lifts, fixture work may legitimately need a test card. That must arrive as a reviewed exemption with a named owner, not as an allowlist added quietly to this rule."
+    "When a Stripe sandbox is authorized and a G0 blocker lifts, fixture work may legitimately need a test card. That must arrive as a reviewed exemption with a named owner, not as an allowlist added quietly to this rule.",
+    "Gate G0 remains Specification Baseline Complete / External Verification Pending; this package is restricted to reversible, synthetic-only work."
   ],
   "review_and_test_gates": [
     "author_complete",
