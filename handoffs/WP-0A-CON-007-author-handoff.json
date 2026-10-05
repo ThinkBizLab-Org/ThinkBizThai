@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "5554ede68fb9923466d4eef254fa9039e5354ae1",
+  "base_revision": "b5d21d554477dfb5c66d9237fd2fc0e0d65f71c7",
+  "head_revision_or_patch_checksum": "b612f10a46daae48479737b0abbd2a38722f4637",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-007/a1-security-reverify-2026-10-05.md",
@@ -33,9 +33,10 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This PR edits RFC-2026-009, so it is a governance PR under RFC-2026-025 §5 item 6: the Product Owner merges it personally. The Author does not merge it by delegation.",
+    "This PR edits RFC-2026-009, so it is a governance PR under RFC-2026-025 §5 item 6. On 2026-10-06 the Product Owner told A0 in chat `คุณทำเลย` (\"you do it\") about the two governance PRs waiting for the Owner (#187, #188); A0 presses this merge on those words, pinned with --match-head-commit, and records them in the next disposition.",
     "Cross-vendor review was withdrawn for this package by the Product Owner on 2026-10-05 (step 2 item 1, evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md; RFC-2026-024). Independence remains four distinct runs plus the conditional Security run, none acting on its own work.",
-    "The revisions above are regenerated from history by npm run refresh:handoff in the last commit, and cite this branch only. Re-derive them if the branch is rebased."
+    "The revisions above are regenerated from history by npm run refresh:handoff in the last commit, and cite this branch only. Re-derive them if the branch is rebased.",
+    "main moved to b5d21d5 (PR #187, WP-0A-CON-005) after the role verdicts; it was merged in as b612f10. The one conflict, test-kits/integrity-manifest.json, was resolved by keeping this PR's ctr-evt-001 digest and main's ctr-job-001 digest; regenerate:manifest rebuilt all 91 digests byte-identical to the resolution. This PR's diff against main is unchanged."
   ],
   "acceptance_results": [
     {
