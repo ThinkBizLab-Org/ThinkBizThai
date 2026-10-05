@@ -54,6 +54,15 @@ The manifest also gets these changes:
   (§4). A G0 line is added. The two carried limitations stay word for word: the 37 of 56 uncorrelated
   decoys, and the future test-card exemption.
 - `outputs.files`: this file is added.
+- `ownership.amends_without_owning.paths` is emptied. The four paths are
+  `scripts/scan-repository-secrets.mjs`, `test-kits/integrity-manifest.json`,
+  `test-kits/secret-scan.test.mjs` and `work-packages/WP-0A-A0-003.json`, and this branch changes none
+  of them. `node scripts/verify-branch-scope.mjs origin/main WP-0A-A0-005` exited **74**, naming all four
+  as dead amendments. CI runs the same step on a pull request, so the step would have failed. The four
+  amendments themselves are unchanged history. They merged in PR #11 and stay recorded as `amended_by`
+  on the two owning manifests (`recorded_on`). The rationale names them, and commit `0c47050` set the
+  precedent. After the change the guard reported `all 3 changed path(s) are declared, and every
+  amendment explains one` and exited 0, run against the branch point `e1fa28e`.
 
 ## 4. Found while refreshing, and owed outside this package
 
