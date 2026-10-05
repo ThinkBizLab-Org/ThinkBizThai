@@ -4,8 +4,8 @@
   "work_package_id": "WP-0A-CON-007",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "e1fa28ec0232ccbb4dadb5faa079df5b1579b469",
-  "head_revision_or_patch_checksum": "820c0866b1aecd66db32024d65bc35dff31f00a4",
+  "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "1d1ff42d71f046769e58241253bac24705348b27",
   "task_ids": [],
   "files_added": [
     "evidence/WP-0A-CON-007/author-conditions-closure-2026-10-06.md"
