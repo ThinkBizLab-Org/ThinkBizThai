@@ -5,14 +5,17 @@
   "agent_run_id": "/root",
   "final_status": "in_review",
   "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
-  "head_revision_or_patch_checksum": "b4c5509d2a74c0b862140a284e12d2ec9df587df",
+  "head_revision_or_patch_checksum": "ef3c5549b91dc41fa6ae0e414b44021d737b5725",
   "task_ids": [
     "WP-0A-A0-001",
     "G0-step-2"
   ],
   "files_added": [
+    "evidence/WP-0A-A0-001/c0-g0-records-2026-10-05.md",
     "evidence/WP-0A-A0-001/c0-g0-records-review-2026-10-05.md",
-    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md"
+    "evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md",
+    "evidence/WP-0A-A0-001/q0-g0-records-2026-10-05.md",
+    "evidence/WP-0A-A0-001/r0-g0-records-2026-10-05.md"
   ],
   "files_modified": [
     "evidence/g0-tracker-th.md",
