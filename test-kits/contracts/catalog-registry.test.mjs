@@ -315,7 +315,7 @@ const CAVEAT_DIGESTS = {
   'ctr-pag-001': { freeze_boundary: '7cc50c9d8daf646d', untestable_by_fixture: 'd5b82746b3379dcd', untestable_by_schema: '632e77c7c5fd5e87' },
   'ctr-sec-001': { freeze_boundary: '5a5bd1954efaabed', untestable_by_fixture: '1ffa2979d8f056c7', untestable_by_schema: 'c4809fecbc249148' },
   'ctr-ten-001': { freeze_boundary: '8f0ab5a50b9a2de4' },
-  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '07e5a82c4dfc9bf2', untestable_by_schema: '64599f030c306f60' },
+  'ctr-usg-001': { freeze_boundary: '8ef114c8bfe9c430', untestable_by_fixture: '07e5a82c4dfc9bf2', untestable_by_schema: '4fae58359f9457ac' },
 };
 
 test('a caveat cannot be replaced by its opposite', async () => {
@@ -439,7 +439,7 @@ const ANNOTATION_DIGESTS = {
   'ctr-pag-001': { count: 8, digest: 'b69a983bac7678fb' },
   'ctr-sec-001': { count: 21, digest: '7041155ebdc45bda' },
   'ctr-ten-001': { count: 1, digest: '72dd93913f524475' },
-  'ctr-usg-001': { count: 14, digest: '3a53de665d3cddfb' },
+  'ctr-usg-001': { count: 15, digest: '6819e111b2204ea4' },
 };
 
 // `description` and `title` belong here for the same reason `x-` keys do, and independent review
@@ -769,12 +769,12 @@ const NORMATIVE_MANIFEST_FIELDS = {
   'ctr-idm-001': { agreement_witnesses: '6896abe613393b5d', source_references: 'a2ddd88c4de63b11' },
   'ctr-job-001': { source_references: '8dd32884974e5a9c' },
   'ctr-mod-001': { source_references: '3080fb571b82b306' },
-  'ctr-ntf-001': { source_references: '43cae256e78579b0' },
+  'ctr-ntf-001': { source_references: '26e6882a11fe0eff' },
   'ctr-obs-001': { source_references: 'b453f9f1ae08e083' },
   'ctr-pag-001': { source_references: 'aa4c153899a799b8' },
   'ctr-sec-001': { source_references: 'c93a993a44130494' },
   'ctr-ten-001': { trust_boundary: 'bb40cede6ad6253a', source_references: 'ee30c0ff36f94227' },
-  'ctr-usg-001': { source_references: '064d3597a41219b4' },
+  'ctr-usg-001': { source_references: '5be6fa77cfcd20cb' },
 };
 
 test('the normative manifest fields cannot be rewritten or invented', async () => {

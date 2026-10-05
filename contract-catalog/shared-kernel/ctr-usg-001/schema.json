@@ -88,7 +88,8 @@
           "pattern": "^[a-z][a-z0-9._-]*$"
         }
       },
-      "x-source": "OB-004 acceptance: 'workspace/business/job/provider attribution ครบ'. workspace, job and provider are required; business_profile_id is conditional because section 3.1 makes it conditional in the Tenant Context."
+      "x-source": "OB-004 acceptance: 'workspace/business/job/provider attribution ครบ'. workspace, job and provider are required; business_profile_id is conditional because section 3.1 makes it conditional in the Tenant Context.",
+      "x-rule": "Section 3.1, Trusted Tenant Context: `workspace_id` (and `business_profile_id` when present) MUST equal the same field of `tenant_context`, in the Trusted Tenant Context's identifier space, and a consumer MUST reject an event where they differ. Not expressible in this validator's subset (a cross-field comparison); enforced by the usage-ledger consumer, MOD-130 (A6), at ingest. See the manifest's untestable_by_schema (5). Raised by A1 (A1-S1, SC-1)."
     },
     "cost": {
       "type": "object",
