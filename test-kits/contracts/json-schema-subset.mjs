@@ -104,8 +104,14 @@ export function validate(schema, value, { resolve = () => null, path = '$' } = {
   if ('enum' in schema && !schema.enum.some((option) => JSON.stringify(option) === JSON.stringify(value))) fail(`value not in enum ${JSON.stringify(schema.enum)}`);
 
   if (typeof value === 'string') {
-    if ('minLength' in schema && value.length < schema.minLength) fail(`shorter than minLength ${schema.minLength}`);
-    if ('maxLength' in schema && value.length > schema.maxLength) fail(`longer than maxLength ${schema.maxLength}`);
+    // JSON Schema counts a string's length in Unicode code points; `value.length` counts UTF-16
+    // code units, so one astral character (U+1F600) counted as two. Independent testing of
+    // WP-0A-CON-002 (test-verdict-rework.md V4) showed `minLength: 2` satisfied by that single
+    // character -- more permissive than every real validator -- and the same count made
+    // `maxLength` stricter than one. Count what the specification counts.
+    const length = [...value].length;
+    if ('minLength' in schema && length < schema.minLength) fail(`shorter than minLength ${schema.minLength}`);
+    if ('maxLength' in schema && length > schema.maxLength) fail(`longer than maxLength ${schema.maxLength}`);
     if ('pattern' in schema && !new RegExp(schema.pattern, 'u').test(value)) fail(`does not match pattern ${schema.pattern}`);
     // Date.parse('2026') succeeds, so this accepted a bare year. Require a real RFC 3339
     // timestamp, then confirm it is a real instant.
