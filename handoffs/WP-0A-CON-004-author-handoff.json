@@ -5,10 +5,24 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "38da14abbb458729ef33a73a93b72c6a88f847a1",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-004/author-conditions-closure-2026-10-06.md"
+  ],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-aud-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-aud-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-obs-001/schema.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/manifest.json",
+    "contract-catalog/shared-kernel/ctr-sec-001/schema.json",
+    "evidence/WP-0A-CON-004/author-self-check.md",
+    "handoffs/WP-0A-CON-004-author-handoff.json",
+    "test-kits/contracts/catalog-registry.test.mjs",
+    "test-kits/integrity-manifest.json",
+    "work-packages/WP-0A-CON-004.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-010",
@@ -98,7 +112,7 @@
     {
       "command": "npm run check",
       "exit_code": 0,
-      "result": "run by scripts/commit-when-clean.mjs before the commit; see evidence/VERIFICATION.md for the machine-written counts",
+      "result": "692 tests, 692 pass, 0 fail, 0 skipped, 0 todo (run by scripts/commit-when-clean.mjs before commit 38da14a)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -122,7 +136,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. Cost impact none: no metered resource is touched.",
   "migration_and_data_impact": "None. No schema, migration, provider call, credential or customer-data effect; Gate G0 forbids all of them and this package changed none.",
-  "compatibility_impact": "Stated by the handoff commit that follows, once the cited range covers this increment.",
+  "compatibility_impact": "Contract-catalog changes are corrective: annotation and caveat sentences in CTR-SEC-001, CTR-AUD-001 and CTR-OBS-001 that miscited or overstated their sources are replaced with what the sources say, as the independent contract review and A1 condition C3 asked. No rule, pattern, enum, bound, requiredness or freeze level moves.",
   "known_limitations": [
     "DISPOSED 2026-09-04 BY A1 (/claude/a1_bastion), STILL OPEN, recorded here 2026-10-06 by A0 (/claude/a0_atlas) in the words A1 supplied (security-disposition-handle-ownership-a1.md §7): Disposed 2026-09-04 by /claude/a1_bastion -- evidence/WP-0A-CON-004/security-disposition-handle-ownership-a1.md. Refused in part: the precedent is not ratified and an RFC is required (§4b, §4c). Ratified in part: CTR-SEC-001 may carry the pattern at Draft under conditions C1-C5. Escalates to the Product Owner because CTR-MOD-001 was promoted to Candidate v1 under RFC-2026-010 without disclosure of the conflict. OWED: the narrow RFC (§4c), by A0 as owner of CTR-MOD-001 and of the Decision Register, in architecture/decisions/** which is outside this package's writable paths; it must make CTR-SEC-001 normative for handle syntax, disclose F5 to the Product Owner, and close the maxLength divergence (C3: CTR-SEC-001 handle maxLength 128, CTR-MOD-001 secret_handles.items unbounded, re-measured at main 8c089cc). Until then the composition justification is withdrawn from ctr-sec-001 schema and manifest (2026-10-06). Text as recorded: SECRET-HANDLE OWNERSHIP CONFLICT, unresolved by this package. CTR-MOD-001 `secret_handles` already fixed the pattern ^secret:[a-z0-9._-]+$ while Decision Register 5.2 owns CTR-MOD-001 to A0 and CTR-SEC-001 to A0+A1, so a single-owner contract fixed the syntax of a jointly-owned one with no RFC. CTR-SEC-001 adopts that pattern as PRECEDENT, because two different handle syntaxes would stop the two contracts composing, and records the irregularity. The A1 owner is a required authority and must dispose of it; this author must not.",
     "THE SECRET-HANDLE PATTERN IS NOT A CONTROL AND IS NOT CLAIMED AS ONE (A1 condition C1). It excludes every format carrying a mandatory uppercase character -- AWS, Meta, Google, JWT, SendGrid, Twilio -- not only mixed-case base64; lowercase hex, lowercase base32 and lowercase dashed token shapes all satisfy it. Independent security review measured scripts/scan-repository-secrets.mjs against 15 credential bodies the pattern admits and it detected 12. The residual gap is 5 of 5 lowercase-canonical shapes: bare 32-hex, a UUID, an HMAC hex digest, a passphrase and a dotted-label password. An earlier version of this sentence said the two compose to ZERO coverage; A1 measured it and that was false in the alarming direction (A1 C4, corrected 2026-09-04 in all three places). The real limitation is one of REACH, not of coverage: the scanner walks repository files at commit time and has none over a handle in a log, an event or a job, which is the surface PT-010 is about for a credential smuggled inside a conforming handle body. No shape rule available to JSON Schema closes it and none was invented. A1 must specify a handle ISSUANCE format before freeze (A1 C2, through the RFC in open_blockers[0]). Shipped as examples/accepted-gap-structureless-handle-body.json. (2026-10-06: a duplicated half-sentence left by the 2026-09-04 correction was removed; no claim changed.)",
