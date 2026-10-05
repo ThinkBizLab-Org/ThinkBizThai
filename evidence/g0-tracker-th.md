@@ -26,7 +26,7 @@ Tracker นี้ทำหน้าที่เป็น index ของหล�
 |---|---|---|---|
 | Product Owner อนุมัติ DEC-01..16 | `complete for Sprint 0A baseline` | Product Owner | [Product Owner baseline approval](WP-0A-A0-001/product-owner-baseline-approval.md) บันทึกคำยืนยันของ Product Owner เมื่อ 2026-08-31; ไม่ใช่การอนุมัติ G0, production credential, legal/PDPA/accounting หรือ provider readiness |
 | Canonical guide, thin Codex/Claude adapters, protected CI | `complete` — ทั้งสามส่วนมีจริงและตรวจแล้ว | A0 + repository administrator | Product Owner เลือกเปิด repository เป็น **public** เมื่อ 2026-09-02 โดยรับผลที่แก้กลับไม่ได้ว่าอีเมลใน metadata ของคอมมิตทั้ง 301 รายการจะเป็นสาธารณะ. branch protection บน `main` ตั้งแล้ว: required status check `bootstrap` แบบ strict, `enforce_admins: true`, ห้าม force push, ห้ามลบ branch, ต้องปิด conversation ก่อน merge. **ทดสอบว่ากัดจริง ไม่ใช่แค่ตั้งค่า**: push ตรงเข้า `main` ถูกปฏิเสธด้วย `GH006: Protected branch update failed` / `Required status check "bootstrap" is expected` ทั้งที่ผู้ push เป็น admin. ไม่ได้ตั้ง required pull request review เพราะ Product Owner เป็นผู้สร้าง PR เอง GitHub ไม่อนุญาตให้ approve PR ของตนเอง การบังคับจะทำให้ทุก PR ตัน — บันทึกเป็นข้อจำกัดที่รู้ตัว ไม่ใช่การมองข้าม |
-| Capability benchmark และ agent IDs ทุก Ready package | `partial — สิ่งที่ขาดคือ role verdict ไม่ใช่ช่อง product reviewer` | A0 + role owners (C0/A1/Q0/R0) | **แก้ไข 2026-10-05.** ข้อความเดิม (2026-09-02) บอกว่า `product_reviewer_agent_run_id` ที่เป็น null ทำให้ 11 แพ็กเกจค้างที่ `in_review` — กลไกนั้นไม่จริง: `scripts/validate-work-package-role-separation.mjs:16-21,40-44` ตรวจเฉพาะ role id หลักสี่ตัว, `review_and_test_gates` ของ 15 แพ็กเกจไม่มีขั้น product (เช่น `work-packages/WP-0A-A0-002.json:242-248`) และ `WP-0A-A6-001` ถึง `integration_verified` ทั้งที่ช่องนี้เป็น null. Product Owner ยืนยันเมื่อ 2026-10-05 ว่า Product reviewer ไม่ใช้กับแพ็กเกจ tooling/contract ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) ข้อ 3). **ที่ค้างจริงคือ role verdicts missing**: verdict ของ Reviewer/Tester/Security/Integration ที่หัวปัจจุบันยังไม่มี หรือเป็นลบ (ดูตารางรายแพ็กเกจใน "G0 ขั้น 2") | `.agents/capability-profiles/` มี declaration สำหรับ role run ปัจจุบัน และ CI validator ปฏิเสธ Ready-or-later manifest ที่อ้าง run โดยไม่มี declaration หรืออนุญาต external secret; ยังต้องมี benchmark/reference ที่ตรวจทักษะก่อนใช้เป็น G0 evidence (เงื่อนไข vendor diversity ถูกถอนโดย RFC-2026-024 และขยายไป 15 แพ็กเกจโดย disposition 2026-10-05 ข้อ 1) | `.agents/capability-profiles/` มี declaration สำหรับ role run ปัจจุบัน และ CI validator ปฏิเสธ Ready-or-later manifest ที่อ้าง run โดยไม่มี declaration หรืออนุญาต external secret; ยังต้องมี benchmark/reference ที่ตรวจทักษะและ vendor diversity ก่อนใช้เป็น G0 evidence |
+| Capability benchmark และ agent IDs ทุก Ready package | `partial — สิ่งที่ขาดคือ role verdict ไม่ใช่ช่อง product reviewer` | A0 + role owners (C0/A1/Q0/R0) | **แก้ไข 2026-10-05.** ข้อความเดิม (2026-09-02) บอกว่า `product_reviewer_agent_run_id` ที่เป็น null ทำให้ 11 แพ็กเกจค้างที่ `in_review` — กลไกนั้นไม่จริง: `scripts/validate-work-package-role-separation.mjs:16-21,40-44` ตรวจเฉพาะ role id หลักสี่ตัว, `review_and_test_gates` ของ 15 แพ็กเกจไม่มีขั้น product (เช่น `work-packages/WP-0A-A0-002.json:242-248`) และ `WP-0A-A6-001` ถึง `integration_verified` ทั้งที่ช่องนี้เป็น null. Product Owner ยืนยันเมื่อ 2026-10-05 ว่า Product reviewer ไม่ใช้กับแพ็กเกจ tooling/contract ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) ข้อ 3). **ที่ค้างจริงคือ role verdicts missing**: verdict ของ Reviewer/Tester/Security/Integration ที่หัวปัจจุบันยังไม่มี หรือเป็นลบ (ดูตารางรายแพ็กเกจใน "G0 ขั้น 2"). `.agents/capability-profiles/` มี declaration สำหรับ role run ปัจจุบัน และ CI validator ปฏิเสธ Ready-or-later manifest ที่อ้าง run โดยไม่มี declaration หรืออนุญาต external secret; ยังต้องมี benchmark/reference ที่ตรวจทักษะก่อนใช้เป็น G0 evidence (เงื่อนไข vendor diversity ถูกถอนโดย RFC-2026-024 และขยายไป 15 แพ็กเกจโดย disposition 2026-10-05 ข้อ 1) |
 | Meta app/pages/IG permissions ทดสอบด้วย credentials จริง | `open` | A6 + Security + Product | ต้องใช้ test app/accounts, redacted capability matrix และ external operation evidence; ห้ามเก็บ credentials ใน repository |
 | Stripe Thailand sandbox, products/prices, signed webhook และ Portal | `deferred after G0 by Product Owner decision 2026-10-05` | A6 + Finance + Security | Beta ใช้ manual invoice ตาม DEC-020 ของ register; Stripe หลัง G0 ([disposition](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) ข้อ 4). การนับข้อนี้เป็น "approved fallback" ตาม pass rule เป็นการอ่านของ A0 ที่ต้องยืนยันใน G0-024. **คำถามเปิด:** `CONTRIBUTING_AGENTS.md:45` ให้ entitlement มาจาก verified Stripe webhook เท่านั้น — แหล่ง entitlement ของ Beta ที่ใช้ manual invoice ยังไม่มีใครกำหนด (Owner + security owner ผ่าน RFC). เมื่อเปิด Stripe: raw-body signature verification, duplicate/replay/out-of-order tests และ entitlement จาก verified webhook เท่านั้น |
 | Legal/PDPA/accounting: retention, VAT, invoice, refund, grace | `open` | Legal/PDPA specialist + accountant + Product Owner | ต้องเป็น approval จากผู้เชี่ยวชาญ ไม่รับการอนุมานจาก agent |
@@ -123,19 +123,22 @@ storage provider pricing/config และ restore drill
 
 ### การตัดสินใจ (2026-10-05)
 
-Product Owner ตอบ `บืนยันขั้น 2` (พิมพ์ผิดจาก "ยืนยันขั้น 2") ต่อข้อความของ A0 ที่เสนอ 15 ข้อพร้อมคำแนะนำ
-A0 อ่านว่ายืนยันทุกข้อตามที่แนะนำ ถ้อยคำเต็ม รายการ และสิ่งที่แต่ละข้อปิด/ไม่ปิด อยู่ใน
-[product-owner-disposition-2026-10-05-g0-step2.md](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md)
+Product Owner ตอบ `บืนยันขั้น 2` (พิมพ์ผิดจาก "ยืนยันขั้น 2") ต่อข้อความของ A0 ที่เสนอ 14 ข้อ (bullet ไม่มีเลขข้อ และไม่มี OPEN-id)
+A0 อ่านว่ายืนยันทั้ง 14 ข้อตามถ้อยคำในข้อความ ไม่เกินนั้น ข้อความที่ส่งจริง (ภาษาไทย verbatim + คำแปล) คำตอบ และสิ่งที่แต่ละข้อปิด/ไม่ปิด อยู่ใน
+[product-owner-disposition-2026-10-05-g0-step2.md](WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md) §1-§3
+
+**แก้ไข (C0 F1):** ร่างก่อนหน้าของ A0 บันทึกไว้ 15 ข้อ ซึ่งเกินกว่าที่ส่งให้ Owner จริง — มีข้อ OPEN-001 "draft pricing" ที่ไม่เคยเสนอ และคำว่า feature flag, minimum-retention และ "Thai" ที่ไม่อยู่ในข้อความ
+prompt ของ A0 เองที่ส่งให้ author run เป็นต้นเหตุ C0 ตรวจพบ ([c0-g0-records-review-2026-10-05.md](WP-0A-A0-001/c0-g0-records-review-2026-10-05.md) F1) เลขข้อด้านล่างเป็นเลขที่บันทึกนี้ใส่ตามลำดับข้อความ
 
 | ข้อ | ตัดสิน | ผลต่อ register |
 |---|---|---|
 | 1 | ขยาย RFC-2026-024 (ถอนเงื่อนไข cross-vendor) ไป 15 แพ็กเกจ A0-002..009, CON-002..008 | ยังไม่ได้แก้ field `independence` ใน 15 manifest — ค้างเป็นงานของแต่ละแพ็กเกจ |
 | 2 | `/claude/r0_steward` เป็นผู้สืบทอด `/root/r0_steward` สำหรับ acknowledgement ที่ค้าง | acknowledgement ทุกรายการยัง `pending` จนกว่า `/claude/r0_steward` จะตรวจและบันทึกเอง |
 | 3 | Product reviewer ไม่ใช้กับแพ็กเกจ tooling/contract | แก้คำอธิบายในแถว Capability benchmark แล้ว |
-| 4 | Beta = manual invoice (DEC-020), Stripe หลัง G0 | ข้อขัดแย้ง DEC-020 กับ DEC-07 ของ master plan ตัดสินตาม register; แหล่ง entitlement ของ Beta ยังเปิด |
-| 5–15 | OPEN-004, 006, 007, 009, 014, 017, 002, 003, 016, 001, 011/012 ตามคำแนะนำ | ส่วนที่ครบกำหนด G0 ปิดในระดับนโยบาย; ตัวเลข (model id, cost ceiling, size cap), pricing draft และ C-01 ของ A6 ยังค้าง |
+| 4 | Beta: ออก invoice เอง ไม่ตัดเงินอัตโนมัติ, Stripe หลัง G0 | ข้อขัดแย้ง DEC-020 กับ DEC-07 ของ master plan ตัดสินตาม register; OPEN-001 ได้แค่แนวทางชั่วคราว (manual invoice, no auto-charge) — **ราคาไม่เคยเสนอ** OPEN-001 ยังเปิดรวมทั้ง pricing draft ก่อน G0; แหล่ง entitlement ของ Beta ยังเปิด |
+| 5–14 | OPEN-004 (5), 006 (6), 007 = P1 (7), 009 (8), 014 (9), 017 (10), 002 เฉพาะ region (11), 003 (12), 016 (13), 011/012 synthetic (14) — การ map เป็นของ A0 | ปิดเท่าที่ถ้อยคำของแต่ละข้อไปถึง; ตัวเลข (model id, cost ceiling, size cap) และ C-01 ของ A6 ยังค้าง. **Owner ไม่ได้ตัดสิน:** retention ของ OPEN-002, feature flag ของ OPEN-007 |
 
-ยังเปิด: OPEN-008 (Meta App Review; ไม่อยู่ในรายการ), OPEN-013 และ OPEN ที่ครบกำหนดหลัง G0.
+ยังเปิด: OPEN-001 (ราคา, VAT, refund, grace; pricing draft ก่อน G0), OPEN-002 (retention, legal basis, DPA), OPEN-008 (Meta App Review; ไม่อยู่ในรายการ), OPEN-013 และ OPEN ที่ครบกำหนดหลัง G0.
 ข้อความใน `docs/**`, `CONTRIBUTING_AGENTS.md:45,61-79` และสถานะของ RFC-2026-002 ต้องให้เจ้าของเอกสารแก้ (disposition §5)
 
 ### Blocker ที่ปิดแล้วแต่ยังค้างในบันทึก — ปิดในที่เดิม 2026-10-05
@@ -143,6 +146,9 @@ A0 อ่านว่ายืนยันทุกข้อตามที่�
 [blocker-re-audit.md](WP-0A-A0-006/blocker-re-audit.md) (ตรวจที่ `963990f`) พบ 9 จาก 36 ข้อปิดแล้ว ทุกข้อตรวจซ้ำที่
 `600b48b` และปิดในที่เดิมด้วยคำนำหน้า `CLOSED 2026-10-05` โดยเก็บข้อความเดิมไว้ ไม่มี index เลื่อน:
 `WP-0A-CON-002` #01, #11, #12, #13 · `WP-0A-CON-003` #01, #04 · `WP-0A-CON-006` #01, #06, #11.
+**แก้ไขตาม C0 F2/F3:** สามข้อปิดได้เพียงบางส่วน จึงใช้คำนำหน้า `PARTLY CLOSED 2026-10-05` และคงส่วนที่ re-audit ไม่ได้ปิดไว้เป็น `OPEN REMAINDER`:
+CON-002 #01 (ยังไม่มี required pull-request review; การปลด RFC-2026-002 ต้องผ่าน RFC), CON-002 #13 (scanner จับ JWT ได้แล้ว แต่ `actor.id` ใน schema ของ CTR-TEN-001 ยังรับค่ารูป JWT — ค้างกับเจ้าของ contract `WP-0A-CON-001`),
+CON-003 #04 (required list ที่ซ้อนใน subschema ยังไม่ได้วัดทั้ง catalog). อีกหกข้อปิดเต็ม
 และ `WP-0A-A0-001` open_blockers[1] (branch protection "unavailable") ปิดด้วยการอ่านสด
 
 ### สถานะ G0-001..024 (การอ่านของ A0 ที่ `main @ 600b48b`)
@@ -151,8 +157,8 @@ A0 อ่านว่ายืนยันทุกข้อตามที่�
 
 | G0 | สถานะ | หลักฐาน | ที่ขาด | ใครทำ |
 |---|---|---|---|---|
-| 001 Decision register | partial | DEC-001..025 Approved; PO baseline approval; การตัดสินใจขั้น 2 | OPEN-008; register ยังไม่บันทึก disposition ขั้น 2 | PO + เจ้าของ register |
-| 002 Pilot 5 workspace + consent | not started | — (ใช้ synthetic-only เป็น fallback ตามข้อ 15) | consent register | PO + ภายนอก |
+| 001 Decision register | partial | DEC-001..025 Approved; PO baseline approval; การตัดสินใจขั้น 2 | OPEN-008; ราคาของ OPEN-001 และ retention ของ OPEN-002 (ไม่ได้เสนอใน ขั้น 2); register ยังไม่บันทึก disposition ขั้น 2 | PO + เจ้าของ register |
+| 002 Pilot 5 workspace + consent | not started | — (ใช้ synthetic-only เป็น fallback ตามข้อ 14) | consent register | PO + ภายนอก |
 | 003 KPI catalog | partial | `WP-0A-A6-001` integration_verified; สูตรอนุมัติแล้ว (ข้อ 13) | C-01 มีสองสูตร (`WP-0A-A6-001.json:191`) | A6 แล้ว PO |
 | 004 IA + 22 wireframes | partial (spec) | `sprint-0a-mobile-core-flow-spec-th.md` | prototype 360px + UX review; ไม่มี package | agents (A4/A5) |
 | 005 Usability round 1 | not started | protocol เท่านั้น | 5–8 sessions | ภายนอก + PO |
@@ -167,10 +173,10 @@ A0 อ่านว่ายืนยันทุกข้อตามที่�
 | 014 Rubric + 30-case pilot | partial | `sprint-0a-quality-rubric-golden-set-th.md` | annotation จริง; licence (OPEN-012 ใช้ synthetic ระหว่างรอ) | ภายนอก + PO |
 | 015 AI/BYOK policy | partial | นโยบาย OPEN-004 ตัดสินแล้ว (ข้อ 5) | model id + ตัวเลข ceiling ใน allowlist proposal | agents (A3) แล้ว PO |
 | 016 Meta capability/App Review | not started | แผนเท่านั้น | test app, pages, IG Professional, permissions | ภายนอก (PO สร้าง asset) + agents |
-| 017 Media limits/video | partial (decision) | OPEN-006/007 ตัดสินแล้ว (ข้อ 6–7) | size cap จาก matrix ของ G0-016 | PO + ภายนอก |
+| 017 Media limits/video | partial (decision) | OPEN-006 ตัดสินแล้ว (ข้อ 6); OPEN-007 = P1 (ข้อ 7) | size cap จาก matrix ของ G0-016; feature flag ของ video ไม่ได้ตัดสิน | PO + ภายนอก |
 | 018 Threat model + secret boundary | partial | `sprint-0a-meta-security-commercial-readiness-th.md` (Proposed) | security review อิสระ + test owners | agents (A1 + C0) |
-| 019 Retention/delete/export | partial | OPEN-002/003 ระดับ G0 ตัดสินแล้ว (ข้อ 11–12) | PDPA review; storage purge/restore drill (ก่อน G6) | ภายนอก + PO; agents |
-| 020 Billing/manual invoice | partial | DEC-020 ยืนยัน (ข้อ 4); OPEN-001 แนวทาง (ข้อ 14) | pricing draft; accountant review; แหล่ง entitlement ของ Beta | PO + ภายนอก |
+| 019 Retention/delete/export | partial | OPEN-002 เฉพาะ region สิงคโปร์ (ข้อ 11); OPEN-003 target (ข้อ 12) | retention ต่อ data class (OPEN-002 G0 policy draft — Owner ไม่ได้ตัดสิน); PDPA review; storage purge/restore drill (ก่อน G6) | ภายนอก + PO; agents |
+| 020 Billing/manual invoice | partial | DEC-020 ยืนยัน (ข้อ 4: manual invoice, ไม่ตัดเงินอัตโนมัติ) | pricing draft (OPEN-001 — ไม่เคยเสนอต่อ Owner); accountant review; แหล่ง entitlement ของ Beta | PO + ภายนอก |
 | 021 Environment/CI/test strategy | partial (mostly) | `.github/workflows/ci.yml`; branch protection ตรวจสด 2026-10-05 | review env contract + evidence template | agents แล้ว PO |
 | 022 Vendor-neutral protocol | **done** | `WP-0A-A0-001` integration_verified; `CONTRIBUTING_AGENTS.md` | ข้อความล้าสมัย `CONTRIBUTING_AGENTS.md:61-79` (governance) | PO |
 | 023 Cross-agent dry run | **done** (protocol) | แถว Cross-vendor dry run ด้านบน | — | — |

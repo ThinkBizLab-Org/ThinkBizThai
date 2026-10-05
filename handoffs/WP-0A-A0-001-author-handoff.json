@@ -46,15 +46,15 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "WRITER DISCLOSURE: this increment was written by /claude/a0_atlas (A0 Integration), a subagent of the Author run. The agent_run_id field reads /root because test-kits/handoff-conformance.test.mjs requires it to equal the manifest author_agent_run_id of WP-0A-A0-001, which this increment does not change. /root did not write it.",
-    "THIS INCREMENT records the Product Owner's reply of 2026-10-05, `บืนยันขั้น 2` (a typo for ยืนยันขั้น 2, \"confirm step 2\"), to A0's fifteen step-2 decisions, in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, and corrects stale G0 records. A0 reads the reply as confirming all fifteen as A0 recommended.",
+    "THIS INCREMENT records the Product Owner's reply of 2026-10-05, `บืนยันขั้น 2` (a typo for ยืนยันขั้น 2, \"confirm step 2\"), to the fourteen items of A0's step-2 message, in evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md, and corrects stale G0 records. The disposition quotes the message as sent (Thai, verbatim) with an English translation, and A0 reads the reply as confirming the fourteen items as the message words them and no more. A0's earlier draft recorded fifteen items, overstating what the Owner was shown (an OPEN-001 pricing item never sent; feature-flag, minimum-retention and 'Thai' qualifiers); C0 F1 caught it and this increment corrects it.",
     "The branch is the one WP-0A-A0-001 already declares (ownership.branch), so no branch slot, pinned test line or integrity manifest moves.",
     "docs/** is read-only to this package; CONTRIBUTING_AGENTS.md and RFC-2026-002 are governance (RFC-2026-025 §5 item 6). None is edited; what each needs is listed in the disposition §5.",
     "Not record-only under RFC-2026-025 §5: item 1 excludes Owner dispositions and blocker rewording, and item 5's mechanical check does not exist in scripts/."
   ],
   "acceptance_results": [
     {
-      "criterion": "Owner words transcribed verbatim with the full list, A0's recommendation per item, and which OPEN-*/DEC-* each closes",
-      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §2-§3"
+      "criterion": "Owner words transcribed verbatim with A0's message exactly as sent (14 items, Thai verbatim plus translation), and which OPEN-*/DEC-* each item closes only as far as its words go",
+      "result": "pass for author self-check: evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §1-§3; OPEN-001 pricing, OPEN-002 retention and OPEN-007 feature flag recorded as not decided by the Owner's words (C0 F1)"
     },
     {
       "criterion": "DEC-020 vs master-plan DEC-07 payment conflict resolved in the register's favour",
@@ -62,7 +62,7 @@
     },
     {
       "criterion": "Nine blockers evidence/WP-0A-A0-006/blocker-re-audit.md found closed are closed in their manifests with a citation",
-      "result": "pass for author self-check: each re-verified at main 600b48b and closed in place (CON-002 #01 #11 #12 #13, CON-003 #01 #04, CON-006 #01 #06 #11), original text kept"
+      "result": "pass for author self-check: each re-verified at main 600b48b and closed in place (CON-002 #01 #11 #12 #13, CON-003 #01 #04, CON-006 #01 #06 #11), original text kept; CON-002 #01, CON-002 #13 and CON-003 #04 are PARTLY CLOSED with their open remainder kept open (C0 F2/F3)"
     },
     {
       "criterion": "Protected-CI contradictions corrected against a live read",
@@ -106,7 +106,9 @@
   "known_limitations": [
     "Decision 1 (RFC-2026-024 extended to 15 packages) is recorded but not applied to the 15 manifests' independence fields.",
     "Decision 2 names /claude/r0_steward as successor; every acknowledgement recorded against /root/r0_steward stays pending until that run gives it.",
-    "OPEN-004 model id and ceiling, OPEN-006 size cap, the OPEN-001 pricing draft and A6 metric C-01's single formula are still owed.",
+    "OPEN-004 model id and ceiling, OPEN-006 size cap and A6 metric C-01's single formula are still owed.",
+    "Not decided by the Owner's words: OPEN-001 pricing (never proposed; only manual invoice, no automatic charging, Stripe after G0 was), including its pricing draft due before G0; OPEN-002 retention (only the Singapore region was proposed); OPEN-007's feature flag (only video/Reel to P1 was proposed).",
+    "Open remainders kept open: CON-002 #01 (no required pull-request review; retiring RFC-2026-002 needs an RFC), CON-002 #13 (CTR-TEN-001 actor.id admits a JWT-shaped value; owed to WP-0A-CON-001), CON-003 #04 (nested required lists unmeasured).",
     "The register, master plan, readiness report, CONTRIBUTING_AGENTS.md and RFC-2026-002 status line still carry the superseded text.",
     "The G0 status table is A0's reading of the tree, not an independent verification."
   ],
