@@ -5,13 +5,18 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "in_review",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "9e9d4b86e78b478fae8346f2527ea129d2619525",
   "task_ids": [
     "WP-0A-A0-002",
     "G0-step-2"
   ],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-002/author-reverify-2026-10-06.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-A0-002-author-handoff.json",
+    "work-packages/WP-0A-A0-002.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -120,9 +125,15 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "npm run verify (via node scripts/commit-when-clean.mjs, gating the records commit this handoff cites as head)",
+      "command": "npm run verify (first attempt via commit-when-clean, before the handoff's open_risks were rewritten)",
+      "exit_code": 1,
+      "result": "tests 692, pass 690, fail 2: the handoff copied a manifest blocker whose wording the approval-language ratchet reads as speaking for /root/r0_steward. open_risks_or_blockers rewritten in the Author's own words; commit refused, nothing committed.",
+      "toolchain": "node v24.20.0 / npm 11.19.0"
+    },
+    {
+      "command": "npm run verify (via node scripts/commit-when-clean.mjs, gating 9e9d4b8, the records commit this handoff cites as head)",
       "exit_code": 0,
-      "result": "VERIFY_RESULT",
+      "result": "clean: exit 0 — tests 692, pass 692, fail 0, skipped 0, todo 0",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     }
   ],
