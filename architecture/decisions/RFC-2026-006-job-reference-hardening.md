@@ -89,11 +89,25 @@ in a new place. Two suites touch these fields and neither could see the defect:
    authority rests on. It was written before the fix and **observed to fail**,
    naming all 30 accepted `field=value` pairs.
 2. **Replace the deny-list with an allow-listed scheme and a constrained body**,
-   using the CTR-IDM-001 `result_ref` pattern **verbatim**:
+   using the CTR-IDM-001 `result_ref` pattern **verbatim**. The pattern the tree
+   carries on both fields, and on CTR-IDM-001 `result_ref`, is:
 
    ```
-   ^(job|status|result|app|asset|content):(?!/)(?!.*\.\.)[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$
+   ^(job|status|result|app|asset|content):[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*(?:/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*$
    ```
+
+   *Corrected 2026-10-05 (C0 F1 / A1 S6).* As first written and as approved on
+   2026-09-02, this decision printed the form with two negative lookaheads,
+   `:(?!/)(?!.*\.\.)`. This package's own second commit `64d9c65` removed them
+   from all five reference patterns (CTR-JOB-001 ×2, CTR-API-001 ×2, CTR-IDM-001
+   ×1) before approval, and the printed text was not updated. The lookaheads are
+   redundant: the body's first character must already be `[A-Za-z0-9_-]`, and `\.`
+   only appears as a separator followed by `[A-Za-z0-9_-]+`. Three independent
+   runs measured zero divergence (Tester, 400,000 strings; Security, 455,555;
+   Reviewer, 400,000). The lookahead-free form is also portable to RE2, Go and a
+   Postgres `CHECK`, which closes WP-0A-CON-002 review finding R8. The decision
+   (allow-listed scheme plus constrained body, identical to CTR-IDM-001) is
+   unchanged; only the printed text is brought into line with the tree.
 
    Both fields carry an `x-reference-rule` naming the demonstrated bypasses, so
    the next reader learns why the deny-list was insufficient rather than
@@ -103,7 +117,11 @@ in a new place. Two suites touch these fields and neither could see the defect:
    `acknowledgement_status: pending`.
 4. **No freeze-level, version, or status movement.** CTR-JOB-001 stays
    `Candidate` at `1.0.0`; `contract-catalog/shared-kernel/index.json` is not
-   touched and still reports 4 Candidate and 10 Draft.
+   touched by this package. *Time-stamped 2026-10-05 (C0 F2):* when this RFC was
+   written the index reported 4 Candidate and 10 Draft. Later packages advanced
+   other contracts, and at `main` `600b48b` it reports 9 Candidate and 5 Draft.
+   CTR-JOB-001's entry still reads `1.0.0` / `Candidate`, and that is the only
+   part the standing guard asserts.
 
 ## Authority for amending a Candidate contract's delivered content
 
@@ -242,15 +260,48 @@ package status advancement, the other twelve catalog contracts, production
 schema, migrations, RLS implementation, provider SDKs, credentials, customer
 data, network calls, Gate G0 approval, and any merge authorization.
 
+*Amended 2026-10-05 (A1 S1 / security condition C1).* The exclusion of "the
+other twelve catalog contracts" was not honoured in full, and the record says so
+rather than leaving it to a diff. Commit `64d9c65` also changed
+`contract-catalog/shared-kernel/ctr-api-001/schema.json` (`accepted.status_ref`,
+`accepted.deep_link_ref`) and `contract-catalog/shared-kernel/ctr-idm-001/schema.json`
+(`result_ref`). The change on each was the lookahead removal described under
+Decision 2 and nothing else. Security review proved it behaviour-preserving over
+455,555 strings, so nothing became more permissive. The defect is provenance:
+those two Candidate contracts carry no `x-amended-by` record of it. This package
+now lists both files in its manifest's `authorized_cross_package_amendments` with
+the exact change. The `x-amended-by` records on the two schemas are **owed**:
+those files are WP-0A-CON-001 outputs outside this package's writable paths, so
+the records are for the contracts' owner to write, with acknowledgement from
+`/claude/r0_steward` (successor to `/root/r0_steward`, Product Owner 2026-10-05,
+step 2 item 2).
+
 The scheme allow-list itself is **not** decided by this RFC. It is adopted from
 CTR-IDM-001 for consistency across the catalog; whether
 `job|status|result|app|asset|content` is the right closed set for a job envelope
 is a contract-owner decision recorded as an open blocker, not settled here.
 
+## Corrections record, 2026-10-05
+
+The decision approved on 2026-09-02 is unchanged. These are corrections of the
+record, made to close the conditions in `evidence/WP-0A-CON-005/review-contract-c0.md`
+§8, `review-security-a1.md` §10 and `test-verdict.md` §9. The condition-by-condition
+closure is in `evidence/WP-0A-CON-005/author-conditions-closure-2026-10-05.md`.
+
+| Where | What changed | Condition |
+|---|---|---|
+| Decision 2 | Printed pattern brought into line with the tree; history of `64d9c65` recorded | C0 C1, A1 C3, A1 S6 |
+| Decision 4 | Catalog tally time-stamped | C0 C2 |
+| Scope explicitly excluded | The CTR-API-001 / CTR-IDM-001 lookahead removal recorded against the exclusion | A1 C1 (RFC half) |
+| Limitations | `ctr-evt-001` bullet withdrawn as closed; membership property and `ctr-ntf-001` referral added | C0 C2, C0 C3, A1 C3 |
+| Verification | Counts are those at the time; current counts are in the closure record | Q0 §9(1) |
+
 ## Verification
 
 - `npm run check` on pinned Node `24.20.0` / npm `11.19.0` — exit `0`, 93 tests,
-  `skipped 0` / `todo 0`.
+  `skipped 0` / `todo 0` (the suite as it stood at `64d9c65`. The suite has grown
+  since then, and the re-run at current `main` is recorded in
+  `evidence/WP-0A-CON-005/author-conditions-closure-2026-10-05.md`).
 - The standing guard must **fail** on the pre-fix schema naming the accepted
   forms, and pass after. Both runs recorded in
   `evidence/WP-0A-CON-005/author-self-check.md`.
@@ -288,10 +339,22 @@ paired with re-opening the WP-0A-CON-002 escalation rather than closing it.
   deny-list in it: after this amendment no `not: { pattern: … }` reference
   constraint remains in any of the fourteen contracts, and `status_ref`,
   `deep_link_ref`, `result_ref`, `input_ref` all carry the identical allow-list.
-- That sweep did find one adjacent gap this package does **not** close:
-  `ctr-evt-001` `metadata.schema_ref` is an unconstrained
-  `{ type: "string", minLength: 1 }` — no scheme rule of any kind, so every form
-  tabulated above is accepted there. CTR-EVT-001 is Candidate and a
-  WP-0A-CON-001 output outside this package's authorized amendment set, so it is
-  escalated to its owner rather than changed here, exactly as WP-0A-CON-002
-  escalated CTR-JOB-001 to this package.
+- ~~That sweep did find one adjacent gap this package does **not** close:
+  `ctr-evt-001` `metadata.schema_ref` is unconstrained.~~ **Closed, withdrawn
+  2026-10-05 (C0 F3 / A1 C3).** The escalation was taken up by a later package
+  with a *different* remedy, as the Tester advised it must be. `schema_ref` names
+  a contract and a version; it does not locate a resource. It now carries
+  `pattern ^CTR-[A-Z]{3}-[0-9]{3}@<semver>$` and `maxLength: 32`, held by
+  `test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs`, which also bounds
+  every `_ref` field on CTR-API-001, CTR-EVT-001, CTR-IDM-001 and CTR-JOB-001
+  (`input_ref` / `result_ref` now carry `maxLength: 256`).
+- The standing guard defends the allow-list's **membership** as a property, not
+  only its current members (added 2026-10-05, C0 F4 / condition C3). It rejects
+  `http`, `https`, `ws`, `wss`, `ftp` and `file` (the WHATWG special schemes, in
+  both cases) paired with a body the grammar accepts. A contract owner who widens
+  the set to any of them under blocker 8 now gets a CI failure, not a green run
+  after a ledger edit. Schemes outside that list are not covered by the
+  assertion. Any scheme added to the set still needs that owner's own judgement.
+- `ctr-ntf-001` `deep_link.target_ref` uses the same reference shape with no
+  length bound, because the bound ratchet enumerates four contracts instead of
+  discovering them (C0 F5). Referred to CTR-NTF-001's owner and not changed here.
