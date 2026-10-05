@@ -75,6 +75,8 @@ const OWNER_B = 'user_owner_b';
 const WORKSPACE_A = 'workspace_a';
 // Batch 141: the identities and rows the acting-user and closing-command proofs read, by fixture symbol.
 const PAGE_EDITOR_A = 'user_page_editor_a';
+// Batch 141's review round (Q0 F3): the non-owner member whose close the policies must contain.
+const EDITOR_A = 'user_editor_a';
 const BUSINESS_A1 = 'business_a1';
 const PAGE_A1 = 'page_a1';
 const PAGE_A1_SIBLING = 'page_a1_sibling';
@@ -648,6 +650,10 @@ export async function proveTheLifecycleGate(run, ids) {
 //            injection, returns denied with exactly one denied row; and the self-test, a copy of the command whose
 //            succeeded INSERT sits inside a handler catching insufficient_privilege, RETURNS denied with a denied
 //            row under the same injection -- so the case tells the two functions apart.
+// Batch 141's review round (Q0 F2): §8.2/7 and /16 say "for each command function the batch lands", so /14, /7 and
+// /16 (with its control and self-test) run for app.cancel_workspace_closing too, A moved to closing first; before
+// this round the probe defaulted to the close and was never called with the cancel, and a cancel whose succeeded
+// INSERT sat inside the exception block passed everything (Q0's M3c).
 const PROOF_REQUEST = 'batch-141-proof';
 const claimsOf = (subject, aal) => JSON.stringify({ role: 'authenticated', sub: subject, ...(aal ? { aal } : {}) });
 const asCommand = (subject) => [
@@ -719,6 +725,63 @@ end
 $fn$;
 alter function app.close_workspace(uuid, text, text) owner to app_command;`;
 
+// The cancel's wrong shape, as WRONG_CLOSE_WORKSPACE is the close's: its succeeded INSERT inside a handler catching
+// insufficient_privilege, so a refused audit write is swallowed as the user's denial.
+export const WRONG_CANCEL_WORKSPACE_CLOSING = `create or replace function app.cancel_workspace_closing(
+  workspace uuid, request_id text, correlation_id text,
+  out outcome text, out error_code text, out lifecycle_state text)
+language plpgsql volatile security definer set search_path = '' as $fn$
+declare
+  acting  uuid := app.jwt_subject();
+  changed uuid;
+begin
+  begin
+    update app.workspaces as w set lifecycle_state = 'active', updated_by = acting
+     where w.id = workspace and w.lifecycle_state = 'closing' returning w.id into changed;
+    insert into app.audit_logs (workspace_id, occurred_at, actor_kind, actor_id, action_category, action_name, outcome,
+      reason_key, request_id, correlation_id, change_before_ref, error_code, secret_redacted, content_redacted, pii_redacted,
+      retention_policy_ref)
+    values (changed, now(), 'user', acting::text, 'delete', 'workspace.lifecycle.cancel_closing', 'succeeded',
+      'audit.workspace.closing_cancelled', request_id, correlation_id, 'record:app.workspaces/proof', null, true, true, true,
+      'retention.audit');
+    outcome := 'succeeded'; lifecycle_state := 'active';
+  exception when insufficient_privilege then
+    insert into app.audit_logs (workspace_id, occurred_at, actor_kind, actor_id, action_category, action_name, outcome,
+      reason_key, request_id, correlation_id, change_before_ref, error_code, secret_redacted, content_redacted, pii_redacted,
+      retention_policy_ref)
+    values (workspace, now(), 'user', acting::text, 'delete', 'workspace.lifecycle.cancel_closing', 'denied',
+      'audit.workspace.cancel_refused', request_id, correlation_id, 'record:app.workspaces/proof',
+      'workspace.lifecycle.not_permitted', true, true, true, 'retention.audit');
+    outcome := 'denied'; error_code := 'workspace.lifecycle.not_permitted';
+  end;
+end
+$fn$;
+alter function app.cancel_workspace_closing(uuid, text, text) owner to app_command;`;
+
+// Batch 141's review round (Q0 F3): a close with a DEFECT in its body -- no owner test and no state read, straight to
+// the UPDATE -- so what refuses a non-owner is the policies on app.workspaces alone. It writes no audit row, and its
+// failure carries the SQLSTATE that stopped the write, so each policy layer is told apart.
+export const CLOSE_WITHOUT_THE_OWNER_TEST = `create or replace function app.close_workspace(
+  workspace uuid, request_id text, correlation_id text,
+  out outcome text, out error_code text, out lifecycle_state text)
+language plpgsql volatile security definer set search_path = '' as $fn$
+declare
+  changed uuid;
+begin
+  begin
+    update app.workspaces as w set lifecycle_state = 'closing', updated_by = app.jwt_subject()
+     where w.id = workspace and w.lifecycle_state = 'active' returning w.id into changed;
+    if changed is null then
+      raise exception 'no row' using errcode = 'P0002';
+    end if;
+    outcome := 'succeeded'; lifecycle_state := 'closing';
+  exception when others then
+    outcome := 'failed'; error_code := 'write_failed:' || sqlstate;
+  end;
+end
+$fn$;
+alter function app.close_workspace(uuid, text, text) owner to app_command;`;
+
 export const HELPER_WITHOUT_THE_GATE = `create or replace function app.acting_user_admits_business(workspace uuid, business uuid)
 returns boolean language sql stable security definer set search_path = '' as $fn$
   select exists (select 1 from app.workspace_members m
@@ -777,8 +840,12 @@ export async function proveTheClosingCommand(run, ids) {
   const p = proof('closing-command-writes-its-audit-row-or-nothing', 'RFC-2026-026 §8.2/7, /14, /16; RFC-2026-023 §8, Q0-RC1');
   const lines = [];
   const problems = [];
-  const probe = (label, setup, aal, want) => ({ label, setup, aal, want });
+  const probe = (label, setup, aal, want, fn = 'close_workspace') => ({ label, setup, aal, want, fn });
   const RESTRICT = "create policy __proof_refuse_succeeded on app.audit_logs as restrictive for insert to app_command with check (outcome <> 'succeeded');";
+  const DROP_PRODUCER = 'drop policy audit_logs_insert_command on app.audit_logs;';
+  const CHECK_SUCCEEDED = "alter table app.audit_logs add constraint __proof_refuse_succeeded check (outcome <> 'succeeded') not valid;";
+  const TO_CLOSING = moveWorkspace(ids.workspace, 'closing');
+  const cancelProbe = (label, setup, want) => probe(label, setup, null, want, 'cancel_workspace_closing');
   const checks = [
     probe('baseline, stepped up', [], 'aal2', { call: 'returned succeeded -', state: 'closing', audit: 'succeeded:-' }),
     probe('baseline, no step-up', [], null, { call: 'returned denied workspace.lifecycle.step_up_required', state: 'active', audit: 'denied:workspace.lifecycle.step_up_required' }),
@@ -790,9 +857,17 @@ export async function proveTheClosingCommand(run, ids) {
     probe('/16 restrictive injection, stepped up', [RESTRICT], 'aal2', { call: 'raised 42501', state: 'active', audit: '' }),
     probe('/16 control: same injection, no step-up', [RESTRICT], null, { call: 'returned denied workspace.lifecycle.step_up_required', state: 'active', audit: 'denied:workspace.lifecycle.step_up_required' }),
     probe('/16 self-test: the wrong function under the injection', [RESTRICT, WRONG_CLOSE_WORKSPACE], 'aal2', { call: 'returned denied workspace.lifecycle.not_permitted', state: 'active', audit: 'denied:workspace.lifecycle.not_permitted' }),
+    cancelProbe('cancel baseline, A closing', [TO_CLOSING], { call: 'returned succeeded -', state: 'active', audit: 'succeeded:-' }),
+    cancelProbe('cancel baseline, A active: refused', [], { call: 'returned denied workspace.lifecycle.not_closing', state: 'active', audit: 'denied:workspace.lifecycle.not_closing' }),
+    cancelProbe('cancel /14 producer policy dropped, A closing', [TO_CLOSING, DROP_PRODUCER], { call: 'raised 42501', state: 'closing', audit: '' }),
+    cancelProbe('cancel /14 producer policy dropped, A active', [DROP_PRODUCER], { call: 'raised 42501', state: 'active', audit: '' }),
+    cancelProbe('cancel /7 a CHECK the succeeded row violates', [TO_CLOSING, CHECK_SUCCEEDED], { call: 'raised 23514', state: 'closing', audit: '' }),
+    cancelProbe('cancel /16 restrictive injection, A closing', [TO_CLOSING, RESTRICT], { call: 'raised 42501', state: 'closing', audit: '' }),
+    cancelProbe('cancel /16 control: same injection, A active', [RESTRICT], { call: 'returned denied workspace.lifecycle.not_closing', state: 'active', audit: 'denied:workspace.lifecycle.not_closing' }),
+    cancelProbe('cancel /16 self-test: the wrong function', [TO_CLOSING, RESTRICT, WRONG_CANCEL_WORKSPACE_CLOSING], { call: 'returned denied workspace.lifecycle.not_permitted', state: 'closing', audit: 'denied:workspace.lifecycle.not_permitted' }),
   ];
   for (const c of checks) {
-    const seen = await commandProbe(run, { setup: c.setup, subject: ids.owner, aal: c.aal, workspace: ids.workspace });
+    const seen = await commandProbe(run, { setup: c.setup, subject: ids.owner, aal: c.aal, fn: c.fn, workspace: ids.workspace });
     if (seen.error) {
       lines.push(`${c.label.padEnd(52)}: probe error ${seen.error.code}: ${seen.error.message}`);
       problems.push(`${c.label}: the probe itself failed (${seen.error.code}: ${seen.error.message})`);
@@ -809,7 +884,49 @@ export async function proveTheClosingCommand(run, ids) {
   p.detail = 'the close writes its succeeded row in its own transaction or nothing happens (the producer policy dropped '
     + 'or a CHECK violated: the call raises and the state stays active); a refused audit write is never recorded as the '
     + 'user\'s denial (case 16, its control, and its self-test with the wrong function, which returns denied instead of '
-    + 'raising); without its UPDATE policy the close records a failure, and without its SELECT path it never reports success.';
+    + 'raising); without its UPDATE policy the close records a failure, and without its SELECT path it never reports success. '
+    + 'The cancel is held the same way (/14, /7, /16 with its control and self-test), A moved to closing first.';
+  return p;
+}
+
+// Batch 141's review round (Q0 F3): RFC-2026-023 §4 sells shape B as CONTAINMENT against a defect in command code.
+// With the body intact the policies' owner tests are never what refuses, so a close with no owner test in its body
+// is installed and the editor (stepped up) calls it, under policies widened one layer at a time:
+//   shipped           the SELECT path and the UPDATE policy refuse: the row is not seen (P0002), nothing changes;
+//   SELECT widened    the SELECT path admits every active member; UPDATE's USING owner test still hides it (P0002);
+//   + USING true      UPDATE's WITH CHECK owner test refuses the new row (42501);
+//   self-test         WITH CHECK without the owner test as well: the editor's call SUCCEEDS and A is closing -- so the
+//                     three refusals above are the policies', not the probe's.
+export async function provePoliciesContainTheClose(run, ids) {
+  const p = proof('closing-command-policies-contain-a-body-without-its-owner-test', 'RFC-2026-023 §4, §8/2');
+  const lines = [];
+  const problems = [];
+  const SELECT_WIDE = 'alter policy workspaces_select_command_owner on app.workspaces using (app.is_active_member(id));';
+  const USING_TRUE = 'alter policy workspaces_update_command_owner on app.workspaces using (true);';
+  const CHECK_WIDE = "alter policy workspaces_update_command_owner on app.workspaces with check (lifecycle_state in ('active', 'closing') and updated_by = app.jwt_subject());";
+  const checks = [
+    { label: 'shipped policies', setup: [CLOSE_WITHOUT_THE_OWNER_TEST], want: { call: 'returned failed write_failed:P0002', state: 'active', audit: '' } },
+    { label: 'SELECT path widened to every active member', setup: [CLOSE_WITHOUT_THE_OWNER_TEST, SELECT_WIDE], want: { call: 'returned failed write_failed:P0002', state: 'active', audit: '' } },
+    { label: 'and UPDATE USING true', setup: [CLOSE_WITHOUT_THE_OWNER_TEST, SELECT_WIDE, USING_TRUE], want: { call: 'returned failed write_failed:42501', state: 'active', audit: '' } },
+    { label: 'self-test: and WITH CHECK without the owner test', setup: [CLOSE_WITHOUT_THE_OWNER_TEST, SELECT_WIDE, USING_TRUE, CHECK_WIDE], want: { call: 'returned succeeded -', state: 'closing', audit: '' } },
+  ];
+  for (const c of checks) {
+    const seen = await commandProbe(run, { setup: c.setup, subject: ids.editor, aal: 'aal2', workspace: ids.workspace });
+    if (seen.error) {
+      lines.push(`${c.label.padEnd(52)}: probe error ${seen.error.code}: ${seen.error.message}`);
+      problems.push(`${c.label}: the probe itself failed (${seen.error.code}: ${seen.error.message})`);
+      continue;
+    }
+    lines.push(`${c.label.padEnd(52)}: ${seen.call}; state ${seen.state}; audit [${seen.audit}]`);
+    for (const k of ['call', 'state', 'audit']) {
+      if (seen[k] !== c.want[k]) problems.push(`${c.label}: ${k} is ${JSON.stringify(seen[k])} and should be ${JSON.stringify(c.want[k])}`);
+    }
+  }
+  p.transcript = lines.join('\n');
+  if (problems.length > 0) { p.detail = problems.join('; '); return p; }
+  p.ok = true;
+  p.detail = 'a close with no owner test in its body is still refused for the editor by each owner layer of the policies '
+    + 'in turn -- the SELECT path, UPDATE\'s USING, UPDATE\'s WITH CHECK -- and succeeds only when all three are widened.';
   return p;
 }
 
@@ -823,6 +940,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     await proveTheLifecycleGate(run, ids),
     await proveTheActingUserNarrowing(run, ids),
     await proveTheClosingCommand(run, ids),
+    await provePoliciesContainTheClose(run, ids),
   ];
 
   const measured = await measureAuthzCatalog(runOne);
@@ -865,6 +983,7 @@ export async function main(run = queryFinal, runOne = query) {
     ownerB: resolve(OWNER_B),
     workspace: resolve(WORKSPACE_A),
     pageEditor: resolve(PAGE_EDITOR_A),
+    editor: resolve(EDITOR_A),
     businessA1: resolve(BUSINESS_A1),
     pageA1: resolve(PAGE_A1),
     pageA1Sibling: resolve(PAGE_A1_SIBLING),

@@ -20152,6 +20152,94 @@ function actingUserAndClosingCommandCases({
       },
     );
   }
+  // Batch 141's review round (Q0 F1): the cancel's authorization, executed. RFC-2026-023 §6 asks the cross-tenant and
+  // blocked-state refusals of "the command", and §8/1 gives the cancel the close's owner bound; before this round only
+  // the owner's success and the owner's cancel of an active workspace ran, so a cancel with every owner layer removed
+  // stayed green (Q0's M2b, M2e, M2f).
+  out.push(
+    {
+      id: 'editor-a-cannot-cancel-the-closing-of-workspace-a',
+      covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-023§8', 'RFC-2026-026§8.2/8'],
+      as: editorA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      ...cancel('batch-141-cancel-editor', 'denied', 'workspace.lifecycle.not_permitted'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'closing'),
+        ...auditRowIs('batch-141-cancel-editor', { workspace: A, actor: editorA.subject, outcome: 'denied', errorCode: 'workspace.lifecycle.not_permitted', actionName: 'workspace.lifecycle.cancel_closing' })],
+      why: 'BATCH 141 review round (Q0 F1): a non-owner member cannot reopen a closing workspace. The editor is an active '
+         + 'member of A, so the denial is recorded there under the editor\'s own id, and A stays closing.',
+    },
+    {
+      id: 'owner-b-cannot-cancel-the-closing-of-workspace-a-and-leaves-no-row-in-it',
+      covers: ['§11.4', '§8.6/5', 'RFC-2026-023§6', 'RFC-2026-026§8.2/19'],
+      as: ownerB,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      ...cancel('batch-141-cancel-cross-tenant', 'denied', 'workspace.lifecycle.not_permitted'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'closing'), noAuditRow('batch-141-cancel-cross-tenant')],
+      why: 'BATCH 141 review round (Q0 F1), cross-tenant: tenant B\'s owner holding A\'s exact id is refused, A stays '
+         + 'closing, and no row is written into A\'s log (Q-026-10 (iii)).',
+    },
+  );
+  for (const state of LIFECYCLE_BLOCKED_STATES) {
+    const slug = state.replace(/_/g, '-');
+    out.push({
+      id: `owner-a-cannot-cancel-workspace-a-in-${slug}`,
+      covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-027§5/3'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, state)],
+      ...cancel(`batch-141-cancel-${slug}`, 'denied', 'workspace.lifecycle.not_permitted'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, state), noAuditRow(`batch-141-cancel-${slug}`)],
+      why: `BATCH 141 review round (Q0 F1): in ${state} the owner is no active member (171's gate), so the cancel is `
+         + 'refused, the workspace stays where it is and nothing is recorded: the cancel never moves a workspace out of '
+         + 'a blocked state.',
+    });
+  }
+
+  // Batch 141's review round (A1 F1): the two identifiers are bounded in shape before anything is read or written,
+  // so a caller cannot carry an e-mail address or 100,000 characters into the append-only log. A malformed id is
+  // the caller's defect and RAISES 22023, so nothing is recorded and nothing changes.
+  out.push(
+    {
+      id: 'the-closing-command-refuses-an-overlong-request-id',
+      covers: ['RFC-2026-026§3.4'],
+      as: stepped(ownerA),
+      sql: CLOSE_WORKSPACE_SQL, params: [A, 'r'.repeat(129), 'batch-141-overlong-correlation', 'denied', ''],
+      expect: 'rejected', sqlstate: '22023',
+      why: 'BATCH 141 review round (A1 F1): a request_id of 129 characters is refused before the owner test, by the '
+         + 'command\'s own input check (22023); the call raises, so no audit row is written and A stays active.',
+    },
+    {
+      id: 'the-cancel-command-refuses-a-correlation-id-that-is-free-text',
+      covers: ['RFC-2026-026§3.4'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      sql: CANCEL_CLOSING_SQL, params: [A, 'batch-141-free-text-correlation', 'free text, not an id', 'succeeded', ''],
+      expect: 'rejected', sqlstate: '22023',
+      why: 'BATCH 141 review round (A1 F1): a correlation_id of free text is outside [A-Za-z0-9._:-] and is refused '
+         + 'before anything is read; the row its redaction flags would call content-free is never written.',
+    },
+  );
+
+  // Batch 141's review round (C0 L4): RFC-2026-026 §8.2/13 for the command producer -- UPDATE, DELETE and TRUNCATE
+  // on app.audit_logs as app_command are refused by the privilege layer (42501): it holds INSERT alone (172's check 3).
+  for (const [verb, sql] of [
+    ['update', "update app.audit_logs set reason_key = 'audit.batch141.case'"],
+    ['delete', 'delete from app.audit_logs'],
+    ['truncate', 'truncate app.audit_logs'],
+  ]) {
+    out.push({
+      id: `app-command-cannot-${verb}-the-audit-log`,
+      covers: ['RFC-2026-026§8.2/13'],
+      as: command(ownerA),
+      sql, params: [],
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'table', name: 'audit_logs' },
+      why: `BATCH 141 review round (C0 L4), RFC-2026-026 §8.2/13: the command producer cannot ${verb.toUpperCase()} an `
+         + 'audit row; it holds INSERT on app.audit_logs and nothing else there. The owner\'s refusal (ZZ140) is 140\'s.',
+    });
+  }
+
   out.push({
     id: 'the-acting-user-helpers-admit-the-owner-of-workspace-a-in-closing',
     covers: ['§11.4', 'RFC-2026-023§6'],

@@ -211,7 +211,7 @@ export const DEMO_STEPS = Object.freeze([
     kind: 'case', case: 'owner-a-closes-workspace-a-through-the-command-after-step-up', expect: 'rows',
     proves: 'The command moves A from active to closing and, in the same transaction, writes one audit row: succeeded,'
       + ' by owner A, in workspace A, with no business or page. The database owner reads both back (lines "then"), because'
-      + ' no client may write the state or read the log. Without step-up the same call is refused and recorded as denied.',
+      + ' no client may write the state or read the log.',
   },
   {
     title: 'Owner A cancels the closing within the recovery window through app.cancel_workspace_closing',

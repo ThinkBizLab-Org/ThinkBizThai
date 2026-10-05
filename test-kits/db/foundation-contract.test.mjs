@@ -3234,6 +3234,11 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
   // pinned-grants.json); policy set fa0abb94ce92aee8 to d4c82a795a93f485 (audit_logs_insert_command in policy-set.json
   // and the three permissive keys). Every other digest stays. RFC-2026-026 §8.1/1's producer rule is not one of
   // these probes: it is decided in Node (scripts/db/audit-producer-rule.mjs) and runs last in migrate-clean.
+  // Batch 141's review round: security definer fe09b69c959fe186 to 475c89fbab0f2fc9 (the two command functions' body
+  // digests: each now bounds request_id and correlation_id to 1-128 characters of [A-Za-z0-9._:-], A1 F1); trigger
+  // 7ebb13f1c66bd33a to 6bb73ce79c56f132 (a comment only: a logical-replication subscription writes past these
+  // triggers, and the producer rule's part (h) refuses one, A1 F2). No rule and no drift of either changed. Every
+  // other digest stays.
   assert.deepEqual(digests, {
     'fk support probe': '1510c7eb5f686b44',
     'fk action probe': '14d32b2acc3908ca',
@@ -3251,9 +3256,9 @@ test('the catalog-rule probes run in migrate-clean after the ceiling probe, each
     'system object fingerprint probe': 'f75c1e00bd908cd5',
     'pinned check probe': '9fbe921cb30965f5',
     'pinned policy probe': 'a7be93780c68245a',
-    'security definer probe': 'fe09b69c959fe186',
+    'security definer probe': '475c89fbab0f2fc9',
     'policy helper probe': '39249ae657cfd196',
-    'trigger probe': '7ebb13f1c66bd33a',
+    'trigger probe': '6bb73ce79c56f132',
     'pinned trigger probe': '8412a302b7f190a7',
     'pinned grant probe': '6510923f1a2732fc',
     'read allowlist probe': 'a97a58b338e52627',

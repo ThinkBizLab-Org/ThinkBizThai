@@ -22,7 +22,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
 import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
-import { AUDIT_PRODUCER_DRIFTS, AUDIT_PRODUCER_READ_SQL, AUDIT_PRODUCER_RULE_LABEL, AUDIT_PRODUCERS, decideAuditProducerJobs } from './audit-producer-rule.mjs';
+import { AUDIT_PRODUCER_DRIFTS, AUDIT_PRODUCER_READ_SQL, AUDIT_PRODUCER_RULE_LABEL, AUDIT_PRODUCERS, WORKSPACES_READERS, decideAuditProducerJobs } from './audit-producer-rule.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -964,8 +964,8 @@ export const SECURITY_DEFINER_FUNCTIONS = [
   // producers, their bodies pinned here as every producer's must be.
   ['app.acting_user_admits_business(workspace uuid, business uuid)', 'app_authz', 'c5095f4148a2f110b1710b763b0eeda9'],
   ['app.acting_user_admits_page(workspace uuid, business uuid, page_context uuid)', 'app_authz', 'c3a63bc74fc554129acc1c2d7e61d2a4'],
-  ['app.cancel_workspace_closing(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', '3d1d6e1ba4582cff85f66a41fe8f1c40'],
-  ['app.close_workspace(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', '90e800c2a655461c7e3f49abbb7fda9b'],
+  ['app.cancel_workspace_closing(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', '9d93193d41f10213ba412f1c6c2b6a0e'],
+  ['app.close_workspace(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', 'c6643ddf6b0ff6481cc27c05daa8a260'],
   ['app.is_active_member(workspace uuid)', 'app_authz', '552b6db607ddb258f6917f7e9e01cfd4'],
   ['app.jwt_aal()', 'app_authz', '124f9c48015c70af36fea254b939d992'],
   ['app.jwt_subject()', 'app_authz', '185148c2a93687d4574a2c66df66d3f3'],
@@ -1123,7 +1123,10 @@ begin
     raise exception 'the private.refuse_mutation triggers are not exactly the four pinned definitions on audit_logs and security_events: %', offending;
   end if;
   -- No role or database may default session_replication_role, which stops every trigger and every FK
-  -- trigger from firing; 140's block caught it only by accident, on a CHECK violation (Q0 F5).
+  -- trigger from firing; 140's block caught it only by accident, on a CHECK violation (Q0 F5). A logical-
+  -- replication subscription's apply worker runs in that mode too, so it writes, rewrites and deletes audit rows
+  -- past these triggers and every policy: the audit producer rule's part (h) refuses any row of pg_subscription
+  -- (batch 141's review round, A1 F2, measured end to end).
   select string_agg(format('%s/%s', coalesce(r.rolname, '<every role>'), coalesce(d.datname, '<every database>')), ', '
                     order by coalesce(r.rolname, ''), coalesce(d.datname, '')) into offending
     from pg_catalog.pg_db_role_setting s
@@ -3909,7 +3912,7 @@ export async function auditProducerRuleStep() {
   if (!producerVerdict.ok) return 1;
   stdout.write(`  ${AUDIT_PRODUCER_RULE_LABEL}: the functions naming an audit table are exactly the ${AUDIT_PRODUCERS.length} pinned producers (${AUDIT_PRODUCERS.join(', ')}) and the 0 pinned readers, `
     + 'each producer in its SECURITY DEFINER shape; nothing names or depends on a producer, no dynamic SQL, no opaque language, no trigger, rule, view or stored expression reaches one, no extension but '
-    + `the approved and no foreign data; and only the two lifecycle functions name app.workspaces among app_command's (self-test: decided each of its ${producerVerdict.decided} drifts and controls; clean again after every drift)\n`);
+    + `the approved, no foreign data and no subscription; and nothing but the two lifecycle functions and the ${WORKSPACES_READERS.length} pinned reader(s) names app.workspaces, whatever its owner or security, and no view does (self-test: decided each of its ${producerVerdict.decided} drifts and controls; clean again after every drift)\n`);
   return 0;
 }
 

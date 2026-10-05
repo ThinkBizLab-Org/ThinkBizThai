@@ -95,10 +95,44 @@ Each of these is a question the work raised that no approved text answered; each
 - **D7. Q-023-6 has nothing to learn yet**: the snapshot-only completeness rule sees no `app_command` policy while 172
   is declared not applied; the live policy set probe pins every policy by its text.
 
+Added in batch 141's review round (plan §7), on the C0, A1 and Q0 role runs. The same delegation, the same reading;
+no new words of the Owner are claimed. Two corrections to the list above first:
+
+- **D6 is a deviation, not an answer** (C0 L2). RFC-2026-026 §9/1 writes `grant insert on app.security_events to
+  app_command` and §3.7's command policy for the command half, and §8.1/3 that `app_command` holds `INSERT` on each
+  audit table. Not writing them departs from approved text; it grants nothing, so it is the conservative side, and
+  A1's acceptance (owner of `140` and of Q-026-9) is owed (`open_blockers[200]` (9)).
+- **"Decides nothing new" was not true as worded** (C0 L1, L3): D8 and D10 below were choices the batch made without
+  naming them.
+
+- **D8. The command's stable vocabulary is A0's choice** (C0 L3): the action names `workspace.lifecycle.close` and
+  `workspace.lifecycle.cancel_closing`; the reason keys `audit.workspace.closing_started`, `…closing_cancelled`,
+  `…close_refused` and `…cancel_refused`; the `CTR-ERR-001` codes `workspace.lifecycle.not_permitted`,
+  `…step_up_required`, `…not_active`, `…not_closing` and `…write_failed`; and the cancel classified in the `delete`
+  audit category, on which D4 rests. A6's acceptance for `CTR-AUD-001` and `CTR-ERR-001` is owed before integration
+  (`open_blockers[200]` (10)).
+- **D9. The command bounds `request_id` and `correlation_id`** (A1 F1): 1 to 128 characters of `[A-Za-z0-9._:-]`, or
+  the call raises `22023` and nothing is written. A `CHECK` on `app.audit_logs` itself is not added: it would narrow
+  `CTR-AUD-001`'s `correlation_id` (`minLength 1`, no bound), a contract change owed to that contract's owner; a rate
+  limit on refusals is not decided (`open_blockers[200]` (11)).
+- **D10. A second `app_command` policy on `app.workspaces`, `workspaces_select_command_owner` (`FOR SELECT`)**, beyond
+  RFC-2026-023 §8/2's "one policy `FOR UPDATE TO app_command`" (C0 L1): Q0-RC1's fold from the rfc-023-028 re-check,
+  which that batch's plan assigned to RFC-2026-023's batch. Without it the `UPDATE`'s `WHERE` sees no row. Named now
+  in RFC-2026-023's Implemented line.
+- **D11. RFC-2026-023 §8/3's rule is made exact by widening part (i)**, C0 M1's remedy (a), rather than by §8/3's
+  fallback of a dedicated owner role for lifecycle commands: every function and view the rule reads, whatever its
+  owner or security, may name `app.workspaces` only if it is one of the two lifecycle functions or the pinned reader
+  `app.workspace_member_role(uuid)`. The rule is stricter than before, never looser; its drifts i2, i3 and i4 hold it.
+
 ## 5. What stays owed
 
 On `open_blockers[200]`, each with its owner: the number's acceptance (D1); the platform measurement of the `aal`
 claim (Q-023-5) and of function ownership under a non-superuser applier (Q170-c); A1's review of D2; the static rule's
 stated limits (drift 16, drift 12, the cast drift, BEGIN ATOMIC at every level in the driver); DATA-DEC-06's retention
 reference; and this batch's independent review by C0, A1 and Q0. A1's and A1 Identity's named-role acceptances of
-RFC-2026-023 and RFC-2026-026 stay owed where they were (`open_blockers[195]` (a), `[199]`).
+RFC-2026-023 and RFC-2026-026 stay owed where they were (`open_blockers[195]` (a), `[199]`). After the review round,
+also (`open_blockers[200]` (9)-(15)): A1's acceptance of D6's deviation; A6's of D8's vocabulary; D9's contract-level
+`CHECK` and rate limit; RFC-2026-026's two text owings (`pg_subscription` in §8.1/1, §8.1/3's owner exception); the
+number's acceptance at or before the merge; DATA-DEC-04's owners on a step-up for the cancel; and the pinned grant
+probe's reach beyond `app` and `private` for roles other than `app_command`. The role runs' re-checks of the review
+round are owed before the merge.

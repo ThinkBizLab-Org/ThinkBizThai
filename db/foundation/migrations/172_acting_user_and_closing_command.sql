@@ -251,9 +251,13 @@ declare
   refusal text;
   verdict text;
 begin
-  if workspace is null or request_id is null or length(btrim(request_id)) = 0
-     or correlation_id is null or length(btrim(correlation_id)) = 0 then
-    raise exception 'the closing command needs a workspace, a request_id and a correlation_id'
+  -- Batch 141's review round (A1 F1): the two identifiers are copied into an append-only row whose redaction
+  -- flags say it holds no content, so their SHAPE is bounded here -- 1 to 128 characters of [A-Za-z0-9._:-],
+  -- which a uuid, a W3C trace id and every id this repository mints fit, and an e-mail address, a phone number
+  -- written with spaces or a sentence do not. A caller's malformed id is the caller's defect and raises 22023.
+  if workspace is null or request_id is null or correlation_id is null
+     or request_id !~ '^[A-Za-z0-9._:-]{1,128}$' or correlation_id !~ '^[A-Za-z0-9._:-]{1,128}$' then
+    raise exception 'the closing command needs a workspace, and a request_id and a correlation_id of 1 to 128 characters of [A-Za-z0-9._:-]'
       using errcode = '22023';
   end if;
   if acting is null then
@@ -342,9 +346,13 @@ declare
   refusal text;
   verdict text;
 begin
-  if workspace is null or request_id is null or length(btrim(request_id)) = 0
-     or correlation_id is null or length(btrim(correlation_id)) = 0 then
-    raise exception 'the cancel command needs a workspace, a request_id and a correlation_id'
+  -- Batch 141's review round (A1 F1): the two identifiers are copied into an append-only row whose redaction
+  -- flags say it holds no content, so their SHAPE is bounded here -- 1 to 128 characters of [A-Za-z0-9._:-],
+  -- which a uuid, a W3C trace id and every id this repository mints fit, and an e-mail address, a phone number
+  -- written with spaces or a sentence do not. A caller's malformed id is the caller's defect and raises 22023.
+  if workspace is null or request_id is null or correlation_id is null
+     or request_id !~ '^[A-Za-z0-9._:-]{1,128}$' or correlation_id !~ '^[A-Za-z0-9._:-]{1,128}$' then
+    raise exception 'the cancel command needs a workspace, and a request_id and a correlation_id of 1 to 128 characters of [A-Za-z0-9._:-]'
       using errcode = '22023';
   end if;
   if acting is null then
@@ -499,13 +507,17 @@ begin
 
   -- 3. app_command's table privileges are exactly the four the closing command and the producer need: SELECT
   --    (id, lifecycle_state) and UPDATE (lifecycle_state, updated_by) on app.workspaces, INSERT on
-  --    app.audit_logs, and nothing anywhere else in app or private.
+  --    app.audit_logs, and nothing on any other relation in ANY non-system schema. Batch 141's review round
+  --    (A1 F3): this read app and private only, and a view in public over app.workspaces, granted UPDATE to
+  --    app_command, passed migrate-clean -- a route to the lifecycle UPDATE for a pinned third function that
+  --    names no `workspaces`. The schema test is run.mjs's userObject reading.
   select string_agg(x, ', ' order by x) into offending from (
     select format('%s.%s %s', n.nspname, c.relname, pv.p) as x
       from pg_catalog.pg_class c
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace,
            unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) as pv(p)
-     where n.nspname in ('app', 'private') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     where ((n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_') or c.oid >= 16384)
+       and c.relkind in ('r', 'p', 'v', 'm', 'f')
        and pg_catalog.has_table_privilege('app_command', c.oid, pv.p)
        and not (c.oid = 'app.audit_logs'::regclass and pv.p = 'INSERT')
     union all
@@ -514,7 +526,8 @@ begin
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace
       join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped,
            unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) as pv(p)
-     where n.nspname in ('app', 'private') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     where ((n.nspname not in ('pg_catalog', 'information_schema') and n.nspname !~ '^pg_') or c.oid >= 16384)
+       and c.relkind in ('r', 'p', 'v', 'm', 'f')
        and pg_catalog.has_column_privilege('app_command', c.oid, a.attnum, pv.p)
        and not (c.oid = 'app.audit_logs'::regclass and pv.p = 'INSERT')
        and not (c.oid = 'app.workspaces'::regclass and pv.p = 'SELECT' and a.attname in ('id', 'lifecycle_state'))
@@ -557,5 +570,16 @@ begin
    where n.nspname in ('app', 'private') and pg_catalog.pg_get_userbyid(c.relowner) = 'app_command';
   if offending is not null then
     raise exception 'app_command owns a table (%); a SECURITY DEFINER function owned by a table''s owner is exempt from its policies', offending;
+  end if;
+
+  -- 7. RFC-2026-026 §8.1/5, §5.5's pair (batch 141's review round, C0 L4): the command has landed, so no client
+  --    role -- anon, authenticated, or PUBLIC, which both inherit -- holds the privilege it performs, UPDATE on
+  --    app.workspaces.lifecycle_state. (authenticated keeps batch 105's UPDATE on updated_by and name; neither
+  --    moves a workspace.)
+  select string_agg(r, ', ' order by r) into offending
+    from unnest(array['anon', 'authenticated', 'public']) as r(r)
+   where pg_catalog.has_column_privilege(r, 'app.workspaces'::regclass, 'lifecycle_state', 'UPDATE');
+  if offending is not null then
+    raise exception 'a client role holds UPDATE on app.workspaces.lifecycle_state, the privilege the closing command performs (RFC-2026-026 §8.1/5): %', offending;
   end if;
 end $$;

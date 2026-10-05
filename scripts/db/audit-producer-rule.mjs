@@ -1,6 +1,6 @@
 // RFC-2026-026 §8.1/1, AS A CATALOG PROBE (batch 141, migration 172): only the pinned producer set inserts an
-// audit row, and nothing else reaches one -- no trigger, no rewrite rule, no stored expression. And RFC-2026-023
-// §8/3 (A1 F7): only the two lifecycle functions write app.workspaces among the functions app_command owns.
+// audit row, and nothing else reaches one -- no trigger, no rewrite rule, no stored expression, no subscription. And
+// RFC-2026-023 §8/3 (A1 F7): nothing but the two lifecycle functions and one pinned reader names app.workspaces.
 //
 // WHY A SEPARATE PROBE, DECIDED IN NODE. Every other catalog probe in scripts/db/run.mjs is a `do $$` block that
 // raises. This rule reads function bodies, rules and stored expressions as TOKENS, through the repository's one SQL
@@ -18,7 +18,8 @@
 // every rewrite rule on a relation in the same scope (pg_get_ruledef); every stored expression in the scope -- column
 // defaults, CHECK constraints by connamespace (a domain's included), policy USING and WITH CHECK, index definitions,
 // trigger definitions (their WHEN), domain defaults; every trigger in pg_trigger whole; every pg_depend row whose
-// referenced object is a function in the scope; pg_extension; and the four foreign-data catalogs.
+// referenced object is a function in the scope; pg_extension; the four foreign-data catalogs; and pg_subscription
+// (batch 141's review round, A1 F2).
 //
 // THE PARTS, each with the text its refusal begins with:
 //   (a) the functions read whose definition names audit_logs or security_events are exactly the pinned producers
@@ -36,9 +37,20 @@
 //   (f) no rewrite rule but a view's or materialized view's _RETURN; no _RETURN names a producer; one naming an
 //       audit table is a pinned reader;
 //   (g) no stored expression names a producer;
-//   (h) pg_extension is exactly the approved extensions plus plpgsql, and the foreign-data catalogs are empty;
-//   (i) RFC-2026-023 §8/3: among the functions app_command owns, only LIFECYCLE_WRITERS name app.workspaces at all
-//       (stricter than "write": a reader would fail closed too, and goes on the list in a reviewed diff);
+//   (h) pg_extension is exactly the approved extensions plus plpgsql, the foreign-data catalogs are empty, and
+//       pg_subscription is empty: a logical-replication subscription's apply worker runs in
+//       session_replication_role = replica, so it writes, rewrites and deletes audit rows past the producer
+//       policy, row level security and private.refuse_mutation alike (A1 F2 on batch 141, measured end to end);
+//   (i) RFC-2026-023 §8/3 (A1 F7): the UPDATE grant and policy on app.workspaces are app_command's, so they reach
+//       EVERY statement run as app_command -- a SECURITY INVOKER helper's called from an app_command body
+//       included, whoever owns it. So the rule is over every function and view read, whatever its owner or
+//       security: only LIFECYCLE_WRITERS (owned by app_command) and WORKSPACES_READERS (SECURITY DEFINER, owned by
+//       app_authz, STABLE or IMMUTABLE, so they cannot write) may name app.workspaces at all, and no view's
+//       _RETURN may. Batch 141's review round (C0 M1, A1 F3): the first form asked this of app_command's own
+//       functions only, and a pinned third app_command function calling an invoker helper that ran the UPDATE
+//       (C0's drift i2), or updating a view over the table (A1's drift C), moved a workspace to closing at aal1
+//       with no audit row while the rule stayed silent. Stricter than "write" (a reader is refused too, and goes
+//       on the list in a reviewed diff); blind to dynamic SQL only as far as (c) is, which refuses it;
 //   and the lexer's own limits, fail closed: a refusal at level 0 or inside the dollar-quoted body
 //   pg_get_functiondef prints, or any level past NESTED_DEPTH, fails the function.
 // The drifts are RFC-2026-026 §8.1/1's 1-20 where a drift can be written against the landed producers; the plan
@@ -59,9 +71,15 @@ export const DYNAMIC_SQL_EXEMPTIONS = Object.freeze([]);
 export const TEXT_EXECUTING_FUNCTIONS = Object.freeze(['query_to_xml', 'query_to_xmlschema', 'query_to_xml_and_xmlschema', 'ts_stat', 'ts_rewrite']);
 export const APPROVED_EXTENSION_SET = Object.freeze(['pgcrypto', 'plpgsql']);
 export const FOREIGN_DATA_EXEMPTIONS = Object.freeze([]);
+export const SUBSCRIPTION_EXEMPTIONS = Object.freeze([]);
 // (i): RFC-2026-023 §8/3 (A1 F7). The UPDATE grant and policy on app.workspaces are app_command's, so they reach
-// every function it owns; these two are the only ones that may name the table.
+// every statement run as app_command; these two functions are the only ones that may name the table to write it,
+// and the readers below the only others that may name it at all (measured on the clean set after 172: exactly these
+// three functions name it, and no view does).
 export const LIFECYCLE_WRITERS = Object.freeze(['app.cancel_workspace_closing(uuid,text,text)', 'app.close_workspace(uuid,text,text)']);
+// 171's gate reads app.workspaces inside app.workspace_member_role (RFC-2026-027 §5); a SECURITY DEFINER sql function
+// owned by app_authz and STABLE, so it runs with app_authz's rights, never app_command's, and cannot write.
+export const WORKSPACES_READERS = Object.freeze(['app.workspace_member_role(uuid)']);
 
 const USER_OBJECT = (oid, nsp) => `((${nsp}.nspname not in ('pg_catalog', 'information_schema') and ${nsp}.nspname !~ '^pg_') or ${oid} >= 16384)`;
 
@@ -120,6 +138,7 @@ export const AUDIT_PRODUCER_READ_SQL = `select pg_catalog.json_build_object(
      from pg_catalog.pg_depend d join pg_catalog.pg_proc p on p.oid = d.refobjid join pg_catalog.pg_namespace n on n.oid = p.pronamespace
     where d.refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass and d.deptype <> 'e' and ${USER_OBJECT('p.oid', 'n')}),
   'extensions', (select coalesce(pg_catalog.json_agg(e.extname::text order by e.extname), '[]') from pg_catalog.pg_extension e),
+  'subscriptions', (select coalesce(pg_catalog.json_agg(s.subname::text order by s.subname), '[]') from pg_catalog.pg_subscription s),
   'foreign', (select coalesce(pg_catalog.json_agg(f order by f), '[]') from (
       select 'wrapper ' || w.fdwname::text as f from pg_catalog.pg_foreign_data_wrapper w
       union all select 'server ' || s.srvname::text from pg_catalog.pg_foreign_server s
@@ -161,10 +180,11 @@ export function readText(text, { skipHeaderName = false } = {}) {
 export function decideAuditProducerRule(catalog, {
   producers = AUDIT_PRODUCERS, readers = AUDIT_READERS, dependExemptions = AUDIT_DEPEND_EXEMPTIONS,
   dynamicExemptions = DYNAMIC_SQL_EXEMPTIONS, definerPins = [], lifecycleWriters = LIFECYCLE_WRITERS,
+  workspacesReaders = WORKSPACES_READERS,
 } = {}) {
   const out = [];
   const c = catalog ?? {};
-  for (const field of ['functions', 'rules', 'expressions', 'triggers', 'depends', 'extensions', 'foreign']) {
+  for (const field of ['functions', 'rules', 'expressions', 'triggers', 'depends', 'extensions', 'foreign', 'subscriptions']) {
     if (!Array.isArray(c[field])) out.push(`(read) the catalog read carries no ${field}, so the rule cannot be decided -- an unread catalog is not a passing one`);
   }
   if (out.length) return out;
@@ -200,10 +220,26 @@ export function decideAuditProducerRule(catalog, {
     if (read.unquoted.includes('execute') && !dynamicExemptions.includes(f.ident)) out.push(`(c) ${f.ident} carries an execute token: dynamic SQL hides what it names`);
     const executing = read.idents.filter((w) => TEXT_EXECUTING_FUNCTIONS.includes(w));
     if (executing.length) out.push(`(c) ${f.ident} names ${[...new Set(executing)].join(', ')}, which execute their text argument`);
-    if (f.owner === 'app_command' && read.idents.includes('workspaces') && !lifecycleWriters.includes(f.ident)) {
-      out.push(`(i) ${f.ident} is owned by app_command and names app.workspaces; only ${lifecycleWriters.join(' and ')} may (RFC-2026-023 §8/3)`);
+    // (i), over the header-skipped read, so a function called `workspaces` is not selected by its own name.
+    if (header.idents.includes('workspaces')) {
+      const isWriter = lifecycleWriters.includes(f.ident);
+      const isWsReader = workspacesReaders.includes(f.ident);
+      if (f.owner === 'app_command' && !isWriter) {
+        out.push(`(i) ${f.ident} is owned by app_command and names app.workspaces; only ${lifecycleWriters.join(' and ')} may (RFC-2026-023 §8/3)`);
+      } else if (!isWriter && !isWsReader) {
+        out.push(`(i) ${f.ident} names app.workspaces and is neither a lifecycle writer (${lifecycleWriters.join(', ')}) nor a pinned reader (${workspacesReaders.join(', ') || 'none'}): called from an app_command body it would run with app_command's UPDATE on the table (RFC-2026-023 §8/3)`);
+      }
+      if (isWriter && f.owner !== 'app_command') out.push(`(i) lifecycle writer ${f.ident} is owned by ${f.owner}, not app_command`);
+      if (isWsReader) {
+        const wrong = [];
+        if (!f.definer) wrong.push('not SECURITY DEFINER');
+        if (f.owner !== 'app_authz') wrong.push(`owned by ${f.owner}`);
+        if (!['s', 'i'].includes(f.volatile)) wrong.push('volatile');
+        if (wrong.length) out.push(`(i) reader ${f.ident} is not in a reader's shape: ${wrong.join(', ')}`);
+      }
     }
   }
+  for (const w of [...lifecycleWriters, ...workspacesReaders]) if (!present.has(w)) out.push(`(i) pinned ${w} does not exist`);
   for (const d of c.depends) {
     if (producers.includes(d.on) && !dependExemptions.includes(d.object)) out.push(`(b) ${d.object} depends on producer ${d.on}`);
   }
@@ -216,6 +252,8 @@ export function decideAuditProducerRule(catalog, {
     const { idents } = readText(r.def);
     if (idents.some((w) => producerNames.has(w))) out.push(`(f) view ${r.relation} names a producer`);
     if (idents.some((w) => auditNames.has(w)) && !readers.includes(r.relation)) out.push(`(f) view ${r.relation} names an audit table and is not a pinned reader`);
+    // (i): a view over app.workspaces carries the lifecycle UPDATE to whoever may update the view (A1 F3).
+    if (idents.includes('workspaces')) out.push(`(i) view ${r.relation} names app.workspaces: a view over it carries the lifecycle UPDATE past (i) (RFC-2026-023 §8/3)`);
   }
   for (const e of c.expressions) {
     const { idents } = readText(e.text);
@@ -224,6 +262,7 @@ export function decideAuditProducerRule(catalog, {
   const extensions = [...c.extensions].sort();
   if (JSON.stringify(extensions) !== JSON.stringify([...APPROVED_EXTENSION_SET].sort())) out.push(`(h) extensions are ${extensions.join(', ')}, not exactly ${APPROVED_EXTENSION_SET.join(', ')}`);
   for (const f of c.foreign) if (!FOREIGN_DATA_EXEMPTIONS.includes(f)) out.push(`(h) foreign data: ${f}`);
+  for (const sub of c.subscriptions) if (!SUBSCRIPTION_EXEMPTIONS.includes(sub)) out.push(`(h) subscription ${sub}: a logical-replication apply worker writes audit rows past every policy and trigger`);
   return out;
 }
 
@@ -268,6 +307,19 @@ export const AUDIT_PRODUCER_DRIFTS = Object.freeze([
     names: ['(h) extensions are pgcrypto, plpgsql, postgres_fdw', '(h) foreign data: server probe_srv', '(h) foreign data: foreign table public.probe_ft', '(h) foreign data: user mapping postgres on probe_srv', '(h) foreign data: wrapper postgres_fdw'] },
   { n: 'i', drift: "create function app.probe_third_lifecycle() returns void language sql security definer set search_path = '' as $f$ update app.workspaces set lifecycle_state = 'active' where false $f$; alter function app.probe_third_lifecycle() owner to app_command;",
     names: ['(i) app.probe_third_lifecycle() is owned by app_command and names app.workspaces'] },
+  // Batch 141's review round. C0 M1's drift i2: a third app_command function names no `workspaces`, and a
+  // SECURITY INVOKER helper it calls, owned by the migration owner, runs the UPDATE as app_command.
+  { n: 'i2', drift: "create function public.probe_lifecycle_helper(w uuid) returns void language sql set search_path = '' as $f$ update app.workspaces set lifecycle_state = 'closing', updated_by = app.jwt_subject() where id = w $f$; create function app.probe_third_command(w uuid) returns void language sql security definer set search_path = '' as $f$ select public.probe_lifecycle_helper(w) $f$; alter function app.probe_third_command(uuid) owner to app_command;",
+    names: ['(i) public.probe_lifecycle_helper(uuid) names app.workspaces and is neither a lifecycle writer'] },
+  // A1 F3's drift C: a view in public over app.workspaces, and an app_command function updating only the view.
+  { n: 'i3', drift: "create view public.probe_ws as select id, lifecycle_state, updated_by from app.workspaces; grant select, update on public.probe_ws to app_command; create function app.probe_view_command(w uuid) returns void language sql security definer set search_path = '' as $f$ update public.probe_ws set lifecycle_state = 'purging' where id = w $f$; alter function app.probe_view_command(uuid) owner to app_command;",
+    names: ['(i) view public.probe_ws names app.workspaces'] },
+  // The reader's shape is held, not assumed: a volatile reader could write.
+  { n: 'i4', drift: 'alter function app.workspace_member_role(uuid) volatile;',
+    names: ["(i) reader app.workspace_member_role(uuid) is not in a reader's shape: volatile"] },
+  // A1 F2's drift B: a subscription, never connected, is refused by (h).
+  { n: 'B', drift: "create subscription probe_sub connection 'host=127.0.0.1 port=1 dbname=none' publication probe_pub with (connect = false, enabled = false, create_slot = false, slot_name = none);",
+    names: ['(h) subscription probe_sub'] },
 ]);
 
 export const AUDIT_PRODUCER_RULE_LABEL = 'audit producer rule';
