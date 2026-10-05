@@ -5,10 +5,16 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "9931f91cd6fae2838e703ec90bc4cb081ad780a4",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md"
+  ],
+  "files_modified": [
+    "contract-catalog/shared-kernel/ctr-flg-001/examples/invalid-temporary-without-expiry.json",
+    "handoffs/WP-0A-CON-003-author-handoff.json",
+    "work-packages/WP-0A-CON-003.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -123,7 +129,7 @@
   ],
   "security_privacy_cost_impact": "data classification synthetic-only; secrets required false; network policy deny-unless-declared. No provider call, credential, migration or customer-data effect. The probe handle bodies were repeated synthetic strings held in memory, never written to the repository. Cost impact none.",
   "migration_and_data_impact": "None. No migration, production schema, provider call, credential or customer-data effect.",
-  "compatibility_impact": "One invalid fixture of CTR-FLG-001 gains owner_role so that it violates one obligation instead of two; its verdict stays invalid and no schema, rule, requiredness, contract manifest, index entry or version changes, so no consumer surface moves. The manifest records the Owner's step 2 (prefer_cross_vendor_review false, the withdrawal sentence, the Product-reviewer note) and drops two amendment declarations this increment does not exercise.",
+  "compatibility_impact": "Contract-catalog changes are corrective: one invalid fixture of CTR-FLG-001, invalid-temporary-without-expiry.json, gains owner_role so that it violates the one obligation its name states (a temporary flag without an expiry) instead of two. Its verdict stays invalid, and no schema, rule, enum, requiredness, contract manifest, index entry, version or freeze level changes, so no consumer surface moves. The manifest records the Owner's step 2 (prefer_cross_vendor_review false, the withdrawal sentence, the Product-reviewer note) and drops two amendment declarations this increment does not exercise.",
   "known_limitations": [
     "Summarised from work-packages/WP-0A-CON-003.json open_blockers[0], whose verbatim text quotes an RFC status line: CLOSED 2026-10-05 as a record correction. The Product Owner disposition RFC-2026-004 waited for was given on 2026-09-02 (line 3 of that RFC). What remains is inherited, not new: RFC-2026-004 keeps its own Limitations and Rollback, and RFC-2026-002 still reserves every merge into main for the Product Owner, so nothing here lets this package merge itself.",
     "STILL OPEN, RE-MEASURED 2026-10-06 BY A0 (/claude/a0_atlas) at main 8c089cc (evidence/WP-0A-CON-003/author-conditions-closure-2026-10-06.md §2, CS-1 and CS-2): ctr-mod-001/schema.json secret_handles still carries its own pattern ^secret:[a-z0-9._-]+$, and it has NO maxLength, so a 407-character handle validates; CTR-SEC-001 handle (Draft, A0+A1) adopts the same pattern \"as PRECEDENT, not as authority\" but caps it at maxLength 128, so the two contracts no longer compose on length. A1's CS-1 said CTR-MOD-001 must not reach Candidate carrying this syntax; it reached Candidate on 2026-09-02 under RFC-2026-010, whose text does not mention CS-1. That promotion is the Product Owner's decision and is not reopened here; the condition is recorded as not having been raised when it was decided. Owed: A0 and A1, by RFC (it changes a Candidate contract's meaning and a secret-handle rule). Text as recorded: CTR-MOD-001 (owner A0) declares secret-handle syntax chartered to CTR-SEC-001 (owner A0+A1) with no RFC. Independent security review graded this High. A1 is a required authority and is not in this session; the conflict must be resolved by the two owners, not by this package.",
