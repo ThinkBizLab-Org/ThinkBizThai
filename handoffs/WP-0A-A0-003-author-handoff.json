@@ -5,10 +5,14 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "d9b9037421d7efc5e1fcb3c3325852be3838c5df",
+  "head_revision_or_patch_checksum": "14ac1ac095cad65f79ed046abc1d7dab2a58133f",
   "task_ids": [],
   "files_added": [
-    "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md"
+    "evidence/WP-0A-A0-003/a1-security-reverify-2026-10-05.md",
+    "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md",
+    "evidence/WP-0A-A0-003/c0-contract-reverify-2026-10-05.md",
+    "evidence/WP-0A-A0-003/q0-test-reverify-2026-10-05.md",
+    "evidence/WP-0A-A0-003/r0-integration-verdict-2026-10-05.md"
   ],
   "files_modified": [
     "handoffs/WP-0A-A0-003-author-handoff.json",
@@ -24,7 +28,7 @@
   "contracts_produced_or_changed": [],
   "assumptions": [
     "Gate G0 remains Specification Baseline Complete / External Verification Pending; every change here is reversible and synthetic-only.",
-    "This is a records refresh at main 8c089cc. It changes only work-packages/WP-0A-A0-003.json, adds evidence/WP-0A-A0-003/author-reverify-2026-10-06.md, and refreshes this handoff. It changes no RFC, no CONTRIBUTING_AGENTS.md, no CI and no gate, so it is not a governance PR; it is still not record-only under RFC-2026-025 §5 item 1 (it applies an Owner disposition and rewords blockers), so it needs the role runs its gates require before a merge.",
+    "This is a records refresh at main 8c089cc. It changes only work-packages/WP-0A-A0-003.json, adds evidence/WP-0A-A0-003/author-reverify-2026-10-06.md plus the four role files cherry-picked onto it (C0, A1 and Q0 re-verifications and the R0 integration verdict, all under evidence/WP-0A-A0-003/), and refreshes this handoff. It changes no RFC, no CONTRIBUTING_AGENTS.md, no CI and no gate, so it is not a governance PR; it is still not record-only under RFC-2026-025 §5 item 1 (it applies an Owner disposition and rewords blockers), so it needs the role runs its gates require before a merge.",
     "scripts/scan-repository-secrets.mjs and test-kits/secret-scan.test.mjs are deliberately untouched: PR #190 (WP-0A-A0-005) is changing both to fix A1-005-1. The blocking fixes C0 R1 and Q0 L1/L2 depend on PR #190 merging first.",
     "The Owner's 2026-10-05 step 2 (\"บืนยันขั้น 2\") is read from evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md on branch agent/root/WP-0A-A0-001-repository-bootstrap (PR #186), not yet on main when this was written. If PR #186 is not merged, the citations in this manifest point at a file main does not yet carry.",
     "Cross-vendor review was withdrawn for this package by that disposition (RFC-2026-024 extended). Independence is four distinct runs plus the conditional Security reviewer, none approving its own work."
@@ -125,7 +129,7 @@
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
-      "command": "npm run check (at main 8c089cc on this branch name, before the handoff refresh)",
+      "command": "npm run check (at main 8c089cc on this branch name, before the first handoff refresh d9b9037)",
       "exit_code": 1,
       "result": "tests 692, pass 690, fail 2: both are the stale-handoff check for this branch, which this PR's handoff refresh clears",
       "toolchain": "node v24.20.0 / npm 11.19.0"
@@ -133,7 +137,7 @@
     {
       "command": "npm run check (this branch, via node scripts/commit-when-clean.mjs)",
       "exit_code": 0,
-      "result": "clean: exit 0, tests 692, pass 692, fail 0, skipped 0, todo 0 (verifier run of commit d9b9037)",
+      "result": "clean: exit 0, tests 692, pass 692, fail 0, skipped 0, todo 0 (commit-when-clean verifier run of the handoff refresh over 14ac1ac)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
@@ -172,22 +176,22 @@
     "Q0 L5, NAMED HERE as Q0 allows: no rule detects Thai-market provider credentials: LINE channel access tokens and channel secrets, Omise (skey_/pkey_) and 2C2P, nor SCB (A1 round 2, evidence/WP-0A-A0-003/review-security-head.md §5, found all undetected). The rationale that added Meta and Stripe rules applies to them, and the architecture names LINE OA and PromptPay. Open; rules for them are owed by this package after PR #190 merges.",
     "A1 C4(b) and C0 R5 on the RFC: RFC-2026-005 reports 19/56 as its uncorrelated figure and does not record A1 round 2 (8/56 against a fresh, harder 56-family corpus; 12/12 on the named families). Owed by this package as a dated correction to RFC-2026-005, which is a governance PR the Product Owner merges personally (RFC-2026-025 §5 item 6). A1 C4(a), no cardholder-data rule, is closed by RFC-2026-008 (open_blockers[15]).",
     "Referred outside this package (named, not fixed): C0 R7, .agents/capability-profiles/cc-c0-contract-reviewer.json records accepted_work_package WP-0A-A0-002 (.agents/** is read-only here; owner WP-0A-A0-001 / its Integration Owner); C0 R8, the corrupted sentence in contract-catalog/shared-kernel/ctr-sec-001/schema.json x-opacity-limitation (owner WP-0A-CON-004); C0 R9, WP-0A-A0-001.json ownership.amended_by_shape_note counts three amendments where five exist (owner WP-0A-A0-001).",
-    "Role verdicts at the current head are owed. The three existing verdicts (C0 changes_required and Q0 test_failed, both at 1478f34; A1 security_approved_with_conditions at 4bcb5f1) stand: the scanner and suite C0 and Q0 measured are byte-identical to main 8c089cc (sha256 matches Q0's recorded digests), and their two blocking findings reproduce there (evidence/WP-0A-A0-003/author-reverify-2026-10-06.md). That is the Author re-checking, not a role re-signing. Owed after the R1/L1 increment: C0 re-check (/claude/c0_contract_reviewer), Q0 re-test (/claude/q0_sentinel), A1 re-check (/claude/a1_bastion), then the first Integration verdict (/claude/r0_steward). The package stays in_review until then."
+    "Role verdicts at 1ad4515 (this PR's records increment): C0 re-verified changes_required on the package (evidence/WP-0A-A0-003/c0-contract-reverify-2026-10-05.md), A1 re-verified security_approved_with_conditions (a1-security-reverify-2026-10-05.md), Q0 re-verified test_failed on the package (q0-test-reverify-2026-10-05.md), and R0 gave integration_not_verified on the package with PR #191 integrable as a records increment on conditions D1-D5 (r0-integration-verdict-2026-10-05.md). C0 R1 and Q0 L1/L2 reproduce at main 8c089cc. Owed after the R1/L1 increment lands from a main containing PR #190: C0 re-check (/claude/c0_contract_reviewer), Q0 re-test (/claude/q0_sentinel), A1 re-check (/claude/a1_bastion), then a fresh Integration verdict (/claude/r0_steward). The package stays in_review until then. The role runs' minor records findings C0 N1/Q0 F1/A1 N4 (assumptions[3]) and C0 N2/Q0 F2 (compatibility_impact) are deliberately NOT answered in this PR, per R0 D1 and §3; they are owed at the next increment's handoff refresh."
   ],
   "open_risks_or_blockers": [
     "C0 R1 (High) and Q0 L1 block the Reviewer and Tester verdicts and are NOT fixed here; they depend on PR #190 merging (work-packages/WP-0A-A0-003.json open_blockers).",
     "Acknowledgements pending: WP-0A-A0-003.json ownership.amended_by[0] (now owed by /claude/r0_steward) and the WP-0A-A0-003 entry in WP-0A-A0-001.json ownership.amended_by (owed by /claude/r0_steward as successor; WP-0A-A0-001's record).",
-    "No Integration verdict exists for this package."
+    "R0 (/claude/r0_steward) gave its first Integration verdict at 1ad4515: integration_not_verified on the package (C0 changes_required and Q0 test_failed stand), and PR #191 integrable as a records increment on conditions D1-D5 (evidence/WP-0A-A0-003/r0-integration-verdict-2026-10-05.md §4). The package status stays in_review."
   ],
-  "rollback_or_forward_fix": "Revert through a reviewed revert PR of this PR's merge commit. This PR changes only the manifest, one evidence file and this handoff; reverting restores the previous records exactly. No persisted data, provider state, credential, migration or customer-data effect. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
+  "rollback_or_forward_fix": "Revert through a reviewed revert PR of this PR's merge commit. This PR changes only the manifest, five evidence files under evidence/WP-0A-A0-003/ (the Author re-verification, the C0, A1 and Q0 re-verifications and the R0 integration verdict) and this handoff; reverting restores the previous records exactly. No persisted data, provider state, credential, migration or customer-data effect. The forward fix for a false positive is to narrow the offending rule and add the case to the false-positive table, never to disable the scan:secrets step.",
   "recommended_next_work_packages": [
     "WP-0A-A0-003"
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-A0-003/author-reverify-2026-10-06.md first, then the three role verdicts under evidence/WP-0A-A0-003/.",
+    "Read evidence/WP-0A-A0-003/author-reverify-2026-10-06.md first, then the earlier role verdicts under evidence/WP-0A-A0-003/ and their 2026-10-05 re-verifications at 1ad4515 (c0-contract-reverify, a1-security-reverify, q0-test-reverify) and the R0 integration verdict r0-integration-verdict-2026-10-05.md.",
     "This PR is records only. Check that each CLOSED blocker keeps its original text and that the facts it cites hold at the head (ci.yml:69-77, RFC-2026-005:3, the payment-card-number rule).",
     "Check the Owner step-2 application against evidence/WP-0A-A0-001/product-owner-disposition-2026-10-05-g0-step2.md §3 rows 1-3, and that no acknowledgement is recorded as given.",
-    "The next increment of this package (C0 R1, Q0 L1/L2 and the non-blocking conditions) changes the scanner and suite and lands after PR #190; it needs C0, Q0 and A1 re-checks and a first R0 verdict.",
+    "The next increment of this package (C0 R1, Q0 L1/L2 and the non-blocking conditions) changes the scanner and suite and lands after PR #190; it needs C0, Q0 and A1 re-checks and a fresh R0 verdict.",
     "The author is /claude/a0_atlas. Reviewer, Tester, Security and Integration verification are open and must be distinct runs."
   ],
   "superseded_by": null
