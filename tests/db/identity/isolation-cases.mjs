@@ -2707,11 +2707,19 @@ export function buildCases(id) {
   // A dedupe key no fixture row holds, so the INSERT cases below are refused by the thing they name
   // rather than by (workspace_id, dedupe_key) already existing. Batch 040's version builder had to
   // make the same choice about version_number for the same reason.
+  // Batch 174 (RFC-2026-028 §3.4, Q-028-5): and it names the job's tenant context, which is NOT NULL with no
+  // default, and which app_worker may INSERT: so with RLS disabled the service's insert still SUCCEEDS (measured
+  // locally, "The operation was permitted"), and with it on the refusal is still row level security's, not a grant
+  // error. No live target tells this insert apart from one that omits the four: with RLS on, row level security
+  // refuses before NOT NULL is read, and CI's negative control for app.jobs is satisfied by service-sees-zero-job-rows
+  // either way (Q0 F1 on batch 174). The static writer test in foundation-contract holds the four columns here.
   const enqueueJob = (workspace, dedupeKey) => ({
     sql: 'insert into app.jobs'
        + ' (workspace_id, job_type, job_version, priority, available_at, max_attempts,'
-       + ' timeout_seconds, dedupe_key, input_ref, progress_stage)'
-       + " values ($1, 'attempted.job', 1, 0, now(), 5, 30, $2, 'job:attempted.input', 'attempted')"
+       + ' timeout_seconds, dedupe_key, input_ref, progress_stage,'
+       + ' actor_kind, actor_id, request_id, correlation_id)'
+       + " values ($1, 'attempted.job', 1, 0, now(), 5, 30, $2, 'job:attempted.input', 'attempted',"
+       + " 'system_actor', 'attempted.sweep', 'attempted-request', 'attempted-correlation')"
        + ' returning id',
     params: [workspace, dedupeKey],
   });

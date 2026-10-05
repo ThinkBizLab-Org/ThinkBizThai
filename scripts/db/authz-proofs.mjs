@@ -935,6 +935,96 @@ export async function provePoliciesContainTheClose(run, ids) {
 }
 
 // -------------------------------------------------------------------------------------------
+// RFC-2026-028 §3.4, Q-028-5: a job names its tenant context (batch 174, migration 174).
+// -------------------------------------------------------------------------------------------
+//
+// app.jobs carries no policy, so no client or service identity can write a row the CHECKs would read: every case in
+// the isolation suite is refused by row level security first. The CHECKs and the column ACL are therefore executed
+// here, each attempt in its own rolled-back transaction: as the connection role (a superuser, which row level
+// security does not stop) for the shape, and as app_worker for the grants. Each refusal has a control that turns it
+// into a success when the one thing named is removed, so a refusal is the CHECK's or the grant's and not the probe's.
+// The database mints none of the four: an insert that omits them is refused, never filled in.
+export const JOB_CONTEXT_COLUMNS = Object.freeze(['actor_kind', 'actor_id', 'request_id', 'correlation_id']);
+const jobInsert = (workspace, context) => {
+  const cols = Object.keys(context);
+  return 'insert into app.jobs (workspace_id, job_type, job_version, priority, available_at, max_attempts, timeout_seconds,'
+    + ` dedupe_key, input_ref, progress_stage${cols.map((c) => `, ${c}`).join('')})`
+    + ` values ('${workspace}', 'proof.job', 1, 0, now(), 5, 30, 'proof-174', 'job:proof.input', 'proof'`
+    + `${cols.map((c) => `, ${context[c] === null ? 'null' : `'${context[c]}'`}`).join('')})`;
+};
+export async function jobContextProbe(run, { setup = [], role = null, statement }) {
+  const out = await run({
+    prelude: ['begin;', ...setup, 'create temp table __proof_174 (k text, v text) on commit drop;',
+      `do $do$
+declare
+  n   bigint;
+  got text;
+begin
+  ${role ? `perform pg_catalog.set_config('role', '${role}', true);` : ''}
+  begin
+    execute $s$${statement}$s$;
+    get diagnostics n = row_count;
+    got := 'ok ' || n;
+  exception when others then
+    got := 'raised ' || sqlstate || case when sqlerrm like 'new row violates row-level security policy%' then ' rls'
+                                         when sqlerrm like 'permission denied for table%' then ' grant' else '' end;
+  end;
+  perform pg_catalog.set_config('role', 'none', true);
+  insert into __proof_174 values ('got', got);
+end
+$do$;`],
+    statement: 'select v from __proof_174;',
+    epilogue: ['rollback;'],
+  });
+  if (out.error) return { error: out.error };
+  return { got: out.rows[0]?.v ?? '' };
+}
+export async function proveTheJobTenantContext(run, ids) {
+  const p = proof('job-names-its-tenant-context', 'RFC-2026-028 §3.4, Q-028-5; RFC-2026-026 §3.5');
+  const ws = ids.workspace;
+  const valid = { actor_kind: 'user', actor_id: ids.owner, request_id: 'proof-174-request', correlation_id: 'proof-174-correlation' };
+  const withField = (k, v) => jobInsert(ws, { ...valid, [k]: v });
+  const UPDATE_CORRELATION = `update app.jobs set correlation_id = 'proof-174-moved' where workspace_id = '${ws}'`;
+  const checks = [
+    ['baseline, every field, as the connection role', { statement: jobInsert(ws, valid) }, 'ok 1'],
+    ['a sweep\'s system actor', { statement: jobInsert(ws, { ...valid, actor_kind: 'system_actor', actor_id: 'retention.sweep' }) }, 'ok 1'],
+    ['no tenant context: the database mints none', { statement: jobInsert(ws, {}) }, 'raised 23502'],
+    ['correlation_id null', { statement: withField('correlation_id', null) }, 'raised 23502'],
+    ['actor_kind outside CTR-TEN-001\'s enum', { statement: withField('actor_kind', 'admin') }, 'raised 23514'],
+    ['actor_id empty', { statement: withField('actor_id', '') }, 'raised 23514'],
+    ['actor_id holding an @ (an e-mail\'s shape)', { statement: withField('actor_id', 'owner@fixture') }, 'raised 23514'],
+    ['request_id with a space', { statement: withField('request_id', 'proof 174') }, 'raised 23514'],
+    ['correlation_id of 128 characters (the bound)', { statement: withField('correlation_id', 'c'.repeat(128)) }, 'ok 1'],
+    ['correlation_id of 129 characters', { statement: withField('correlation_id', 'c'.repeat(129)) }, 'raised 23514'],
+    ['control: request_id\'s CHECK dropped, the space admitted', { setup: ['alter table app.jobs drop constraint jobs_request_id_bounded;'], statement: withField('request_id', 'proof 174') }, 'ok 1'],
+    ['as app_worker: an enqueue naming the four', { role: 'app_worker', statement: jobInsert(ws, valid) }, 'raised 42501 rls'],
+    ['control: as app_worker, the INSERT on actor_id revoked', { setup: ['revoke insert (actor_id) on app.jobs from app_worker;'], role: 'app_worker', statement: jobInsert(ws, valid) }, 'raised 42501 grant'],
+    ['as app_worker: the correlation moved', { setup: [`${jobInsert(ws, valid)};`], role: 'app_worker', statement: UPDATE_CORRELATION }, 'raised 42501 grant'],
+    ['control: app_worker granted UPDATE (correlation_id)', { setup: [`${jobInsert(ws, valid)};`, 'grant update (correlation_id) on app.jobs to app_worker;'], role: 'app_worker', statement: UPDATE_CORRELATION }, 'ok 0'],
+  ];
+  const lines = [];
+  const problems = [];
+  for (const [label, c, want] of checks) {
+    const seen = await jobContextProbe(run, c);
+    if (seen.error) {
+      lines.push(`${label.padEnd(58)}: probe error ${seen.error.code}: ${seen.error.message}`);
+      problems.push(`${label}: the probe itself failed (${seen.error.code}: ${seen.error.message})`);
+      continue;
+    }
+    lines.push(`${label.padEnd(58)}: ${seen.got}`);
+    if (seen.got !== want) problems.push(`${label}: ${JSON.stringify(seen.got)}, should be ${JSON.stringify(want)}`);
+  }
+  p.transcript = lines.join('\n');
+  if (problems.length > 0) { p.detail = problems.join('; '); return p; }
+  p.ok = true;
+  p.detail = 'a job carries its actor, the enqueuing request and the correlation, each NOT NULL with no default, actor_kind '
+    + 'CTR-TEN-001\'s enum and the three ids 1-128 of [A-Za-z0-9._:-] (the bound admitted, one past it refused, the '
+    + 'refusal the CHECK\'s by its control); app_worker may enqueue them (its refusal is row level security\'s, a '
+    + 'revoked column makes it the grant\'s) and no role may move the correlation (the grant\'s refusal, by its control).';
+  return p;
+}
+
+// -------------------------------------------------------------------------------------------
 // RFC-2026-028 §5/7-10, §5/12-13: the worker's login identity, logged in as (batch 173, migration 173).
 // -------------------------------------------------------------------------------------------
 //
@@ -1293,6 +1383,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     await proveTheActingUserNarrowing(run, ids),
     await proveTheClosingCommand(run, ids),
     await provePoliciesContainTheClose(run, ids),
+    await proveTheJobTenantContext(run, ids),
     ...await proveTheWorkerLogin(run, runOne, ids),
   ];
 
