@@ -4,86 +4,88 @@
   "work_package_id": "WP-0A-DB-00",
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
-  "base_revision": "aa0e89fc5aae502d7eb0c728c11057d64e3c5110",
-  "head_revision_or_patch_checksum": "838ca3143599affda739b8db92a226f11cd4ef4e",
+  "base_revision": "600b48b68092eb82d80c91ce0bc00d747cf1a7a4",
+  "head_revision_or_patch_checksum": "6bc9fc2b03a6ad1627704a581dae21053e2947cc",
   "task_ids": [],
   "files_added": [
-    "db/foundation/migrations/173_worker_login_identity.sql",
-    "evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-173-worker-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/a1-batch-173-worker-security-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-173-worker-contract-review-2026-10-03.md",
-    "evidence/WP-0A-DB-00/c0-batch-173-worker-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-173-worker.md",
-    "evidence/WP-0A-DB-00/q0-batch-173-worker-recheck-2026-10-03.md",
-    "evidence/WP-0A-DB-00/q0-batch-173-worker-test-review-2026-10-03.md"
+    "db/foundation/migrations/174_job_tenant_context.sql",
+    "evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md",
+    "evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-174.md"
   ],
   "files_modified": [
     "architecture/decisions/RFC-2026-028-worker-identity.md",
     "db/foundation/lint/catalog-snapshot.json",
     "db/foundation/lint/pinned-grants.json",
     "db/foundation/lint/read-allowlist-known-exceptions.json",
+    "db/foundation/lint/vocabulary-checks.json",
     "evidence/VERIFICATION.md",
-    "handoffs/WP-0A-DB-00-author-handoff.json",
     "scripts/db/authz-proofs.mjs",
-    "scripts/db/rls-smoke.mjs",
     "scripts/db/run.mjs",
     "scripts/test-suite-contract.mjs",
     "test-kits/branch-identity.test.mjs",
     "test-kits/db/foundation-contract.test.mjs",
+    "test-kits/db/ws905-fixture.mjs",
     "test-kits/integrity-manifest.json",
+    "tests/db/identity/fixtures/050-async-kernel-fixture.sql",
+    "tests/db/identity/isolation-cases.mjs",
     "work-packages/WP-0A-DB-00.json"
   ],
   "files_deleted": [],
   "decisions_consumed": [
-    "RFC-2026-028 (approved 2026-10-05 through the Owner's delegation; the identity and its pins, §3.1-§3.3, §3.6, §4/1; Q-028-1..13 answered as recommended): §3.1 and §4/1 implemented as one forward migration, 173_worker_login_identity.sql; §3.6's pins; §5/1-4, /6-10 and /12-14 executed or held (§5/1's inherit, createrole and superuser drifts measured by the C0 and A1 role runs, not the Author; §5/10 over every table app_worker may read by table or column grant since the review round, Q0 F1); §5/5's secret-scan half NOT implemented (Q0 F3, owed, open_blockers[201] (11)); Q-028-5's columns deferred to the next batch (disposition §4 D4).",
-    "RFC-2026-022 (approved, NOT in effect until §5/§8 hold): unchanged; this batch makes app_worker reachable by a non-bypassing identity and writes no policy TO app_worker.",
-    "RFC-2026-016 §4-§5: the exemption register stays empty; §5's pair (zero rows through the login role, the fixture's rows through the connection role) executed.",
-    "RFC-2026-019 §4/3, §5: the dedicated login role issuing SET LOCAL ROLE app_worker per transaction; the authenticator negative extended by one name."
+    "RFC-2026-028 (in effect since 2026-10-05 through the Owner's delegation, product-owner-disposition-2026-10-03-batch-rfc-023-028.md §6): Q-028-5's answer -- \"Columns, not null with CTR-TEN-001's bounds, in a forward migration of A0's kernel range; CTR-JOB-001's reading of tenant_context restated to match\" -- implemented as one forward migration, 174_job_tenant_context.sql, numbered after 173 (disposition D1); §3.4's table (the enqueuing request's id on the job, the correlation carried unchanged, the database minting none); Q-028-6.",
+    "RFC-2026-026 §3.5 (in effect): the worker producer reads actor, request_id and correlation_id from the job's tenant_context; read, not implemented (its worker half is a later batch).",
+    "Batch 141's D9 (product-owner-disposition-2026-10-03-batch-141.md): the identifier shape ^[A-Za-z0-9._:-]{1,128}$, reused for the three ids (disposition D3).",
+    "A1-173-3 (a1-batch-173-worker-security-review-2026-10-03.md, open_blockers[201] (10)) and C0 R3 / A1 R1 / Q0-171R-1 on batch 171 (open_blockers[198]): pinned (rules 10 and 11) and resolved through pg_auth_members (174's block), as the findings asked.",
+    "The Owner's standing delegation to merge (product-owner-disposition-2026-10-03-batch-127.md §6), executed by A0 in merging #184; the delegation `เอาตามที่คุณแนะนำทุกอย่าง` and the words relayed for 2026-10-05, `พร้อมแล้วลุยเลยนะ ไม่ต้องรอผม`, under which D1-D10 are answered as A0 recommends (disposition §4)."
   ],
   "contracts_consumed": [
     "CTR-TEN-001",
-    "CTR-JOB-001"
+    "CTR-JOB-001",
+    "CTR-AUD-001"
   ],
   "contracts_produced_or_changed": [],
   "assumptions": [
-    "THIS INCREMENT IS BATCH 173 (code commit eb413e9): one forward migration, db/foundation/migrations/173_worker_login_identity.sql, implementing RFC-2026-028's identity and pins; plan evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-173-worker.md (D1-D12 answered as A0 recommends under the delegation).",
-    "REVIEW ROUND (code commit 631512b; plan §7): the C0, A1 and Q0 role runs' records are cherry-picked -x (796bd67, 869217c, b2ed62f); Q0 F1, A1-173-1 (harness half), A1-173-2 / Q0 F2 and C0-3 are folded in code; C0-1, C0-2, A1-173-4 and the INFO wording are corrected or recorded; A1-173-3, Q0 F3, 050's cases through the login role and A1-173-1's runner and runbook halves are owed on open_blockers[201] (5), (7), (10)-(12). D13 (the credential directory) and D14 (A1-173-1 (a) recorded in the RFC's Implemented line rather than in the text of its sections) answered as A0 recommends under the delegation.",
-    "The file is numbered 173 as Q-028-9 was answered (the next free number above 172, which it sorts after); a one-time exception to the registry's ranges, its acceptance owed (open_blockers[201] (1)).",
-    "173 is declared not applied to the provisioned instance (catalog-snapshot.json) until Q-028-13's platform half and Q170-c are measured; on migrate-clean clusters it is in effect when integrated.",
-    "Q-028-5 (app.jobs' tenant-context columns) is NOT in this batch: RFC-2026-028 recommends them not null with CTR-TEN-001's bounds and CTR-JOB-001's reading restated by its owner (contract-catalog/ is read-only here); the next batch, before RFC-2026-026's worker half.",
-    "Every local measurement cluster authenticates by trust, so the authentication proof (§5/12) is printed NOT RUN there; it was run on 5507 with a scram-sha-256 line for the role (RUN, ok) and failed as designed with a trust line for the role by name and, since the review round, through +app_worker. CI run 37285050018 on b001495 read RUN and ok (A1 and Q0 read the log); recording it on open_blockers[201] (6) is the Integration Owner's."
+    "THIS INCREMENT IS BATCH 174 (code commit 6bc9fc2): one forward migration, db/foundation/migrations/174_job_tenant_context.sql, giving app.jobs its tenant context (RFC-2026-028 Q-028-5) and completing 171 (6) through role inheritance; plus rules 10 and 11 of the pinned grant probe (A1-173-3). Plan evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md, disposition product-owner-disposition-2026-10-03-batch-174.md.",
+    "RESUMED FROM A PARTIAL PATCH: an earlier author run was cut off by a network failure before it committed anything; its unverified 11-file patch was applied to a branch from origin/main 600b48b, every hunk read against its inputs and re-measured on this run's cluster, and what was missing written (plan §1). None of the earlier run's results is cited.",
+    "The Owner's words of 2026-10-05, `พร้อมแล้วลุยเลยนะ ไม่ต้องรอผม`, reached this subagent in the A0 run's task text, quoted as the Owner's; they are transcribed in the disposition §1 as relayed, and the Owner may correct the transcription.",
+    "app.jobs holds no row wherever 174 applies (050 is applied to no provisioned instance; a migrate-clean cluster has none when 174 runs), so NOT NULL needs no default and no backfill; on a populated table the ADD fails closed (23502, measured).",
+    "CTR-JOB-001 and CTR-TEN-001 are read, not changed: contract-catalog/ is read-only to WP-0A-DB-00; the restatement and the narrowing are owed to the contract's owner (open_blockers[202] (2))."
   ],
   "acceptance_results": [
     {
-      "criterion": "(1) RFC-2026-028 §3.1/§4/1: app_worker_login LOGIN with every other attribute false and no credential, one membership in app_worker (inherit false, set true, admin false), createrole_self_grant emptied first, an apply-time block reading pg_auth_members per row both ways",
+      "criterion": "(1) Q-028-5 / §3.4: app.jobs gains actor_kind, actor_id, request_id, correlation_id, text NOT NULL with no default; actor_kind CTR-TEN-001's enum; the three ids bounded by 172's shape",
       "result": "met",
-      "evidence": "173; plan §2 rows 1-4; post-migrate pass 54/38/16; Q-028-13 measured locally with a non-superuser applier (plan §3)"
+      "evidence": "174; plan §2 rows 1-2; the proof job-names-its-tenant-context (both final rounds); PINNED_CHECKS and PINNED_NOT_NULL self-tests; drifts D4, D7"
     },
     {
-      "criterion": "(2) the pins: the fourth rule's pin and per-row options (Q-028-10), the eighth rule's one admitted attribute, the settings rule, a ninth rule (no stored credential), the authenticator negative, the snapshot lint for the instance, pinned-grants.json regenerated, the membership self-tests with the login role's drifts and Q0 R-1's app_worker-member case",
+      "criterion": "(2) §3.4: app_worker may SELECT and INSERT the four, no role may UPDATE them, no client role holds anything on them",
       "result": "met",
-      "evidence": "scripts/db/run.mjs; pinned grant probe 10 self-tests, client membership probe 3; drifts D1-D11 appended to 173, each refused by name (plan §3); foundation-contract"
+      "evidence": "174's block (3); pinned-grants.json; drifts D5, D6, D8 refused by name; the proof's grant cases and controls"
     },
     {
-      "criterion": "(3) a static rule that no fed source sets a password or verifier",
+      "criterion": "(3) every writer of app.jobs names the four",
       "result": "met",
-      "evidence": "workerCredentialLint over 96 fed sources, in schema-lint, migrate-clean (before the first script) and rls-smoke; drift D6 refused before anything applied; foundation-contract drifts"
+      "evidence": "the 050 fixture, the isolation enqueue, the WS:905 fixture; new foundation-contract test; drift D9 (main's fixture: rls-smoke fails, 23502); WS:905 loaded through the explain harness"
     },
     {
-      "criterion": "(4) Q-028-5 implemented here only if the RFC recommends it before the worker half and it is bounded as the brief bounds it (nullable, CHECK matching 172, pinned)",
-      "result": "not met, by design: recorded as the next batch",
-      "evidence": "disposition §4 D4; open_blockers[201] (3)"
-    },
-    {
-      "criterion": "(5) a test-only path that logs in as the role with a per-run test credential set by the harness and never committed, SET LOCAL ROLE app_worker per transaction, reads nothing by default, no session-level app.workspace_id lingers (A1R-2, documented as an obligation on the production worker in RFC-2026-028), no client path",
+      "criterion": "(4) A1-173-3: app_worker's database CREATE and per-function EXECUTE pinned, with drifts",
       "result": "met",
-      "evidence": "scripts/db/authz-proofs.mjs, four worker-login proofs (13 claims discharged and 1 NOT RUN on a trust cluster, twice before and twice after the review round); §5/10 over 51 tables by table or column grant, app.jobs asserted (review round); the session-start check of A1-173-1 in the harness; RFC-2026-028's Implemented line; foundation-contract's fake-driven test"
+      "evidence": "rules 10 and 11 of the pinned grant probe, each with a self-test; A1's own drift D1 and D2c refused by name (plan §3)"
     },
     {
-      "criterion": "(6) CI protected; a CI entry owed if needed",
-      "result": "met: none needed",
-      "evidence": "the proofs run inside make db-rls-smoke, which CI already runs; CI pg_hba reading owed (open_blockers[201] (6))"
+      "criterion": "(5) 171 (6) by role inheritance (C0 R3, A1 R1, Q0-171R-1): resolve through pg_auth_members recursively, with a drift",
+      "result": "met",
+      "evidence": "174's block (4); drifts D3 and D3b refused by 174's block by name"
+    },
+    {
+      "criterion": "(6) try-it's demo still passes",
+      "result": "met",
+      "evidence": "try-it up/demo/down on 127.0.0.1:55479 (the tool refuses 5507 by design): All 17 steps behaved as expected"
+    },
+    {
+      "criterion": "(7) CTR-JOB-001 restated to match (Q-028-5's second half)",
+      "result": "not_met",
+      "evidence": "contract-catalog/ is read-only to this package; owed to the contract's owner, open_blockers[202] (2), the narrowing stated exactly there"
     }
   ],
   "tests": [
@@ -95,15 +97,15 @@
     {
       "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-migrate-clean (final round 1, re-initdb, shim first)",
       "exit_code": 0,
-      "result": "every probe and its self-tests green (pinned grant 10, client membership 3); post-migrate pass 54 blocks, 38 as written, 16 superseded and replaced"
+      "result": "post-migrate pass 55 / 39 / 16; pinned grant probe refused each of its 12 drifts, pinned check probe each of its 2; every probe clean"
     },
     {
-      "command": "make db-rls-smoke (final round 1)",
+      "command": "DB_TEST_URL=postgresql://postgres@127.0.0.1:5507/postgres make db-rls-smoke (final round 1)",
       "exit_code": 0,
-      "result": "1200 isolation cases; db-authz-proofs: ok — 13 claim(s) discharged by execution; 1 not run on this cluster (worker-login-authentication)"
+      "result": "1200 isolation cases passed; db-authz-proofs: ok — 14 claim(s) discharged by execution; 1 not run on this cluster (worker-login-authentication)"
     },
     {
-      "command": "make db-migrate-clean (final round 2, re-initdb, shim first)",
+      "command": "make db-migrate-clean (final round 2, re-initdb)",
       "exit_code": 0,
       "result": "as round 1"
     },
@@ -113,115 +115,83 @@
       "result": "as round 1"
     },
     {
-      "command": "drifts D1-D11 each appended to 173_worker_login_identity.sql, fresh cluster each, make db-migrate-clean; the file restored byte for byte (cmp)",
+      "command": "drifts D1, D2, D2c, D3, D3b appended to 140_audit.sql; D4-D8 appended to 174 (D9 of the disposition), a fresh cluster each, the file restored byte for byte (cmp)",
       "exit_code": 2,
-      "result": "each refused by name: D1 table-level rule, D2 rule 7, D3 and D11 rule 4b, D4 rule 8, D5 rule 4, D6 workerCredentialLint before any script, D7 rule 2, D8 settings rule, D9 173 block in the post-migrate pass, D10 client membership probe and rule 4"
+      "result": "each migrate-clean refused, the object named (plan §3)"
     },
     {
-      "command": "Q-028-13 locally: 173's statements and block as a non-superuser CREATEROLE role, in rolled-back transactions",
-      "exit_code": 0,
-      "result": "createrole_self_grant empty: one member row, the applier (admin t, inherit f, set f, grantor the bootstrap superuser), the block holds; 'set, inherit': a second row (admin f, inherit t, set t), the block refuses naming both (psql exit 3 for that variant)"
-    },
-    {
-      "command": "make db-rls-smoke with a pg_hba line `host all app_worker_login 127.0.0.1/32 scram-sha-256` first (reloaded)",
-      "exit_code": 0,
-      "result": "worker-login-authentication RUN: wrong credential and none refused, the generated verifier connects"
-    },
-    {
-      "command": "make db-rls-smoke with a trust line for app_worker_login before the scram one",
+      "command": "drift D9: tests/db/identity/fixtures/050-async-kernel-fixture.sql as origin/main holds it, then migrate-clean and rls-smoke; restored byte for byte",
       "exit_code": 2,
-      "result": "worker-login-authentication FAIL: pg_hba line(s) 1 trust app_worker_login by name; pg_hba.conf restored byte for byte"
+      "result": "migrate-clean 0; rls-smoke 2: the fixture did not load, null value in column \"actor_kind\""
     },
     {
-      "command": "DB_TEST_URL=... node scripts/db/generate-pinned-grants.mjs (fresh migrate-clean)",
+      "command": "CI's negative control for app.jobs, locally: alter table app.jobs disable row level security; make db-rls-smoke",
+      "exit_code": 2,
+      "result": "db-rls-smoke: FAILED; service-sees-zero-job-rows and service-cannot-enqueue-a-job-row failed (the *job-row pattern), and job-names-its-tenant-context"
+    },
+    {
+      "command": "psql: in a rolled-back transaction on a migrated cluster holding 2 jobs, drop the four columns and re-run 174's ADD (psql -f without ON_ERROR_STOP, so its exit is 0 and the ERROR is printed)",
       "exit_code": 0,
-      "result": "both files rewritten; only _how_measured moves (through 173)"
+      "result": "ERROR: 23502: column \"actor_kind\" of relation \"jobs\" contains null values; 2 rows after rollback, each with its actor"
     },
     {
-      "command": "npm run check (before code commit eb413e9; through scripts/commit-when-clean.mjs, which refused)",
+      "command": "DB_TEST_URL=... node scripts/db/explain-harness.mjs --scale small (fresh migrate-clean)",
+      "exit_code": 0,
+      "result": "the WS:905 fixture loads with the four columns; rolled back"
+    },
+    {
+      "command": "node scripts/db/try-it.mjs up --port 55479 / demo / down",
+      "exit_code": 0,
+      "result": "All 17 steps behaved as expected."
+    },
+    {
+      "command": "npm run check (the uncommitted tree, before the code commit)",
       "exit_code": 1,
-      "result": "tests 691, pass 689, fail 2: the two handoff-guard tests alone (the handoff cited c0177d6), so a plain commit"
+      "result": "tests 692, pass 690, fail 2: only the two handoff-guard tests (the handoff still cited 838ca31); so the code commit is a plain commit, not commit-when-clean"
     },
     {
-      "command": "node scripts/verify-branch-scope.mjs aa0e89f WP-0A-DB-00 (at eb413e9)",
+      "command": "npm run check (on the code commit, amended once before any push to regenerate test-kits/integrity-manifest.json after evidence/VERIFICATION.md was written)",
       "exit_code": 0,
-      "result": "all 16 changed path(s) are declared, and every amendment explains one"
+      "result": "tests 692, pass 692, fail 0"
     },
     {
-      "command": "REVIEW ROUND: node -v before every measured run",
+      "command": "node scripts/verify-branch-scope.mjs 600b48b WP-0A-DB-00 (after 6bc9fc2, on the branch name)",
       "exit_code": 0,
-      "result": "v24.20.0"
+      "result": "all 19 changed path(s) are declared, and every amendment explains one"
     },
     {
-      "command": "REVIEW ROUND r1 and r5: make db-migrate-clean, then make db-rls-smoke (127.0.0.1:5507, re-initdb, shim first, private dir a0-173-workerr2/)",
+      "command": "npm run refresh:handoff, then node scripts/commit-when-clean.mjs (this handoff commit)",
       "exit_code": 0,
-      "result": "migrate-clean 0 (post-migrate pass 54/38/16), rls-smoke 0: 1200 isolation cases; db-authz-proofs: ok — 13 claim(s) discharged by execution; 1 not run (worker-login-authentication); §5/10: every one of the 51 reads zero rows, control on app.jobs red; session start settings 0, self-set default and switched session red; credential null after, temporary directory empty, no SCRAM-SHA-256$ in any log"
-    },
-    {
-      "command": "REVIEW ROUND r2: pg_hba `host all +app_worker 127.0.0.1/32 trust` first, then make db-rls-smoke",
-      "exit_code": 2,
-      "result": "FAIL worker-login-authentication: pg_hba line(s) 1 trust app_worker_login by name or by a user list other than all (+app_worker)"
-    },
-    {
-      "command": "REVIEW ROUND r3: pg_hba `host all app_worker_login 127.0.0.1/32 scram-sha-256` first, then make db-rls-smoke",
-      "exit_code": 0,
-      "result": "worker-login-authentication RUN and ok; db-authz-proofs: ok — 14 claim(s) discharged"
-    },
-    {
-      "command": "REVIEW ROUND: RFC §5/10's drift `create policy ... on app.jobs for select to app_worker using (true)` appended to 140_audit.sql, migrate-clean then rls-smoke; 140 restored byte for byte (cmp)",
-      "exit_code": 2,
-      "result": "migrate-clean: policy set probe names app.jobs.a0_jobs_worker_reads; rls-smoke: FAIL worker-login-reads-nothing-by-default, app_worker sees rows with no policy naming it: app.jobs (2)"
-    },
-    {
-      "command": "REVIEW ROUND: npm run check (before code commit 631512b)",
-      "exit_code": 0,
-      "result": "tests 691, pass 691, fail 0"
-    },
-    {
-      "command": "REVIEW ROUND: node scripts/verify-branch-scope.mjs aa0e89f WP-0A-DB-00 (before 631512b, on the branch name)",
-      "exit_code": 0,
-      "result": "all 20 changed path(s) are declared, and every amendment explains one"
-    },
-    {
-      "command": "REVIEW ROUND: node scripts/commit-when-clean.mjs (code commit 631512b)",
-      "exit_code": 0,
-      "result": "clean: exit 0 — tests 691, pass 691, fail 0, skipped 0, todo 0"
+      "result": "recorded in the commit; npm run check:handoff and npm run verify on the branch name follow it"
     }
   ],
-  "security_privacy_cost_impact": "A new LOGIN role exists on migrate-clean clusters: app_worker_login, with no stored credential (inert wherever every pg_hba line reaching it asks for one; under trust it logs in, as every role does), able to become app_worker and nothing else, and only by SET LOCAL ROLE. Measured: before SET LOCAL ROLE it reads nothing in app (42501); under app_worker it reads zero rows of every table app_worker may SELECT by table or column grant (51, app.jobs among them; review round, Q0 F1), because no policy names app_worker; it cannot become app_command, app_maintenance, authenticated, anon, app_authz or postgres, nor call a client command. No credential is in the repository: the migration sets none, workerCredentialLint refuses one in every fed source, rule 9 refuses one live on migrate-clean, and the test harness sets a generated per-run credential as a client-computed SCRAM verifier (plaintext only in a 0600 PGPASSFILE in a fresh temporary directory) and removes both in a finally. On the provisioned instance nothing changes (173 declared not applied); there, whoever holds postgres's credential could set the role's (RFC-2026-028 §3.3/2, A1R-3: measured locally that a CREATEROLE applier with ADMIN can). The role can set its own session defaults and its own credential (A1-173-1, measured by A1): it reaches nothing beyond app_worker, the harness now refuses a session that is not the bare login role, and the runner's copy and the custody runbook's detection are owed before any instance holds a credential (open_blockers[201] (5), (7)). app_worker's database-level CREATE and per-role function EXECUTE are unpinned and now reachable by a non-superuser login (A1-173-3, LOW, owed [201] (10)). The repository secret scan does not name a migration password or verifier literal (Q0 F3, owed [201] (11)). No cost impact.",
-  "migration_and_data_impact": "One forward migration, 173_worker_login_identity.sql: one role, one membership, a comment, one apply-time block; no table, column, policy, grant on any relation or data change. No earlier apply-time block superseded. The snapshot declares 173 not applied. No open_blockers line moves ([201] is added at the end).",
-  "compatibility_impact": "Tests 688 -> 691 (three in foundation-contract): floor 82 -> 85 and name digest moved in scripts/test-suite-contract.mjs, evidence/VERIFICATION.md written by the record script. rls-smoke cases unchanged (1200); authz proofs 10 -> 14 (one NOT RUN on a trust cluster, printed so, a new status of formatProofs); the pinned grant probe 8 -> 10 rules and self-tests; two probe digests moved, each with its reason. No existing case changed. Review round: no test added (691 unchanged, name digest unchanged); the proofs' count unchanged (14), §5/10 reads 51 tables instead of 22, §5/12 also refuses group, file and pattern trust lines.",
+  "security_privacy_cost_impact": "No new role, credential, policy or client grant. app.jobs gains four columns that hold identifiers (a user id or a system actor's name, a request id, a correlation id), each bounded to 1-128 characters of [A-Za-z0-9._:-], so an e-mail address, a phone number with spaces or free text cannot be stored there; no client role can read them (050: no client grant on app.jobs), and app_worker may SELECT and INSERT them but no role may UPDATE them. Rules 10 and 11 close two reaches A1 measured open since 173 gave app_worker a login (CREATE on the database; EXECUTE beyond PUBLIC's, which also caught an anon EXECUTE in app no other probe saw). No secret or customer data in any file; fixture ids are synthetic. Cost: two more catalog reads per migrate-clean (about 1 s).",
+  "migration_and_data_impact": "One forward migration, 174_job_tenant_context.sql: four NOT NULL columns and four CHECKs on app.jobs, two column grants to app_worker, four comments, one apply-time block. No data change: app.jobs holds no row wherever 174 applies, and on a populated table the ADD fails closed (23502, measured). No earlier apply-time block superseded (post-migrate 55/39/16). The snapshot declares 174 not applied to the provisioned instance (it alters 050's table, which the instance has never received).",
+  "compatibility_impact": "Tests 691 -> 692 (one in foundation-contract): floor 85 -> 86 and name digest moved in scripts/test-suite-contract.mjs, evidence/VERIFICATION.md written by the record script. Three probe digests move (pinned check, pinned grant, vocabulary check), each with its reason. rls-smoke cases unchanged (1200); authz proofs 13 -> 14 discharged (one NOT RUN on a trust cluster, unchanged). Every writer of app.jobs must now name the four columns; the three in the repository do. RFC-2026-026's worker half must read them.",
   "known_limitations": [
-    "Q-028-13's platform half (the platform's createrole_self_grant, the applier's admin row and grantor) is not measured; 173 is declared not applied there (open_blockers[201] (2)).",
-    "§5/12 runs only where a wrong credential is refused; every local cluster is trust, so it is NOT RUN there (CI run 37285050018 read RUN, ok). Trust lines the login cannot reach by address or database are not told apart: a trust line aimed at the role other than through `all` fails wherever it stands.",
-    "The login proofs' negative controls run under SET LOCAL SESSION AUTHORIZATION in rolled-back superuser transactions, not through a second login.",
-    "Rule 8 carries one self-test (the login role made NOLOGIN, a default privilege for it); its other attributes made true are held by rule 8 and 173's block: bypassrls measured by the Author (D4), inherit, createrole and superuser by the C0 role run (and A1), not the Author.",
-    "workerCredentialLint cannot see a credential clause computed at run time (rule 9 holds that live on migrate-clean only), and refuses the word PASSWORD followed by anything but NULL in any literal, comments in literals and a column named password included (fail closed; none exists). The repository secret scan does not name a migration password or verifier (Q0 F3, owed).",
-    "A1R-2's start-of-transaction check and A1-173-1's session-start check exist in the test harness only; the production runner's copies are owed (open_blockers[201] (5)).",
-    "The test credential's directory is RUNNER_TEMP when set, else the OS temporary directory (D13); a run killed before its finally leaves the 0700 directory and the verifier on its throwaway cluster.",
-    "Batch 050's service-sees-zero-* cases run through as_service() only, not through the login role (owed, open_blockers[201] (12)); the proof reads every one of their tables zero through it.",
-    "173 applied in autocommit (no enclosing transaction) commits the role and a second membership row before its block refuses them (C0-1); migrate-clean wraps every file; the instance's runner is read with Q-028-13 (open_blockers[201] (2))."
+    "CTR-JOB-001's reading of tenant_context is not restated and the narrowing of CTR-TEN-001's three ids is not in the contract: contract-catalog/ is read-only here (open_blockers[202] (2)).",
+    "174 is declared not applied to the provisioned instance (open_blockers[202] (3)); rules 10 and 11, like rules 2-4 and 7-9, fail by design there until Q170-c.",
+    "Rule 10 does not read TEMPORARY or CONNECT without grant option (PUBLIC's defaults); rule 11 reads EXECUTE beyond what PUBLIC holds only; a pg_catalog EXECUTE grant is refused first by the system object fingerprint (measured), so rule 11's pg_catalog reach is a second line.",
+    "174's block reads 171 (6)'s predicate, so it shares what open_blockers[198] (6) says that predicate does not see.",
+    "The proof's UPDATE control updates zero rows (no policy admits app_worker), so the UPDATE rule is held by 174's block and the pinned grant probe's column rule, not by a row moved.",
+    "try-it's demo ran on 55479, not 5507, because the tool refuses 5507 by design (disposition D10)."
   ],
   "open_risks_or_blockers": [
-    "open_blockers[201]: the number's acceptance (Integration Owner); the platform half of Q-028-13, 173 in one transaction there (C0-1) and the snapshot retaken with 173 applied; Q-028-5 (next batch); Q-028-11; A1R-2 and A1-173-1 in the production runner; CI's pg_hba reading; Q-028-3 custody runbook with self-alter detection, Q-028-12 pooler; stated limits; the role runs' re-checks of the review round; A1-173-3's probes (10); the secret scan's verifier pattern (11); 050's cases through the login role (12).",
-    "open_blockers[113]: DATA-DEC-03's remaining reach -- no policy TO app_worker, RFC-2026-022 §7, the broker.",
-    "open_blockers[199]: A1's acceptance as DATA-DEC-03's co-owner; named-role acceptances.",
-    "open_blockers[193] (Q0 R-1 done), [196], [198], [200]: appended cross-references."
+    "open_blockers[202]: the number's acceptance (Integration Owner); CTR-JOB-001's restatement and the narrowing (the contract's owner, with A1); 174 on the provisioned instance (A0 with the Integration Owner); rules 10 and 11 read off this branch's first CI run (Integration Owner); the stated limits; this batch's independent review (C0, A1, Q0).",
+    "Appended, not duplicated: [113] (the job now carries its tenant context; the worker still has no policy), [198] (171 (6) by inheritance done), [199] (Q-028-5 done), [200] (the number constraint, D9's narrowing reaching the job), [201] ((3) and (10) done).",
+    "No stop-the-line."
   ],
-  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration that ends the role's sessions, revokes app_worker from app_worker_login and drops the role, with the pins (PINNED_ROLE_MEMBERSHIPS, PINNED_ROLE_MEMBERSHIP_OPTIONS, PINNED_ROLE_ATTRIBUTES, the settings rule's third name) reverted and 173's block superseded in the same diff (RFC-2026-028 §7). No credential exists to revoke outside a test run. Never an edit of 173 once integrated.",
+  "rollback_or_forward_fix": "Before merge: close the PR. After merge: a forward migration, after RFC-2026-026's worker half (which reads the columns) is reverted, dropping the four constraints and columns, with superseded.json listing 174's block and a final-state replacement keeping its 171 (6) part; PINNED_CHECKS' and PINNED_NOT_NULL's entries, pinned-grants.json, vocabulary-checks.json and the fixtures reverted in the same diff. Rules 10 and 11 are independent and stay. Never an edit of 174, never a force-push.",
   "recommended_next_work_packages": [
-    "The C0, A1 and Q0 re-checks of batch 173's review round (code commit 631512b; plan §7): Q0 on F1's fix (51 tables, app.jobs, the control) and F2's; A1 on A1-173-1's harness check and A1-173-2's rule; C0 on D13, D14 and the corrected records.",
-    "A1-173-3 (open_blockers[201] (10)): pin app_worker's database-level privileges and per-role function EXECUTE, before any credential exists outside a test run.",
-    "Q-028-5: app.jobs' tenant-context columns (not null, CTR-TEN-001's bounds) with CTR-JOB-001 restated by its owner, before RFC-2026-026's worker half.",
-    "The platform measurements with Q170-c: Q-028-13's platform half, Q-028-12 (the pooler), then the snapshot retaken with 173 applied."
+    "The C0, A1 and Q0 role runs on batch 174 (code commit 6bc9fc2): C0 on D1, D3 and D6 and the narrowing as stated on open_blockers[202] (2); A1 on rules 10 and 11 and 174's inheritance block; Q0 on the proof's controls, the drifts D1-D9 and the new test.",
+    "CTR-JOB-001's restatement of tenant_context through the contract catalog's own package (open_blockers[202] (2)).",
+    "RFC-2026-026's worker half (§8.4 Audit/security INSERT for the worker), which reads these columns, with A1R-2 and A1-173-1 in its runner (open_blockers[201] (5))."
   ],
   "reviewer_instructions": [
-    "Read evidence/WP-0A-DB-00/a0-batch-173-worker-plan-2026-10-03.md first (§7 is the review round), then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-173-worker.md.",
-    "Diff aa0e89f..eb413e9: db/foundation/migrations/173_worker_login_identity.sql (against RFC-2026-028 §3.1 and §4/1), scripts/db/run.mjs (the pins: rule 4 and 4b, rule 8, rule 9, the settings rule, workerCredentialLint, workerLoginSnapshotLint), scripts/db/authz-proofs.mjs (proveTheWorkerLogin), test-kits/db/foundation-contract.test.mjs (the three batch 173 tests). Review round: b2ed62f..631512b (authz-proofs.mjs: hbaRulesTrustingTheLogin, §5/10's table list and control, workerSessionStartProblem, workerCredentialBase; the fake-driven test; records).",
-    "Re-run on a fresh cluster: the shim, make db-migrate-clean, make db-rls-smoke; then append each of plan §3's drifts to 173 (not 140: the role does not exist there) and see each refused by name.",
-    "To re-run the review round's drifts: `host all +app_worker 127.0.0.1/32 trust` first in pg_hba.conf must FAIL §5/12; RFC §5/10's permissive policy on app.jobs appended to 140 must FAIL worker-login-reads-nothing-by-default.",
-    "To run §5/12: put `host all app_worker_login 127.0.0.1/32 scram-sha-256` first in pg_hba.conf, reload, make db-rls-smoke (RUN); a trust line for the role before it must FAIL.",
-    "Nothing here is reviewed, tested or approved by the Author."
+    "Read evidence/WP-0A-DB-00/a0-batch-174-plan-2026-10-03.md first (§1 is how the partial patch was verified), then evidence/WP-0A-DB-00/product-owner-disposition-2026-10-03-batch-174.md.",
+    "Diff 600b48b..6bc9fc2: db/foundation/migrations/174_job_tenant_context.sql; scripts/db/run.mjs (PINNED_CHECKS, PINNED_NOT_NULL, rules 10 and 11, PINNED_FUNCTION_EXECUTE, their self-tests); scripts/db/authz-proofs.mjs (proveTheJobTenantContext); the three writers; the lint data; test-kits/db/foundation-contract.test.mjs (the batch 174 test and the digests).",
+    "Measure on your own cluster: migrate-clean and rls-smoke; the drifts of plan §3 (D1-D9) and CI's negative control for app.jobs; try-it's demo on a port of its own range.",
+    "Check the narrowing statement of open_blockers[202] (2) against contract-catalog/shared-kernel/ctr-ten-001/schema.json and ctr-job-001/schema.json."
   ],
   "superseded_by": null
 }
