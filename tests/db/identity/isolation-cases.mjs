@@ -17719,6 +17719,12 @@ export function buildCases(id) {
     // BATCH 171: A BLOCKED WORKSPACE IS INVISIBLE TO ITS MEMBERS (RFC-2026-027 §5; open_blockers[53], [95]). The
     // builder is at the end of this file, with the family list and the reason each case moves workspace A itself.
     ...lifecycleVisibilityCases({ ownerA, ownerB, editorA, viewerA, A, PAGE_A1, BUSINESS_A1 }),
+    // BATCH 141 (MIGRATION 172): THE ACTING-USER NARROWING, THE §11.4 CLOSING COMMAND AND THE AUDIT PRODUCER'S
+    // COMMAND HALF (RFC-2026-023 §6, RFC-2026-026 §8.2). The builder is at the end of this file.
+    ...actingUserAndClosingCommandCases({
+      id, ownerA, ownerB, editorA, pageEditorA, viewerA, suspendedA, anonymous, service,
+      A, B, BUSINESS_A1, BUSINESS_A2, BUSINESS_B1, PAGE_A1, PAGE_A1_SIBLING, PAGE_B1,
+    }),
   ].map((testCase) => resolvePlaceholders(testCase, { A, B }));
 }
 
@@ -19944,5 +19950,371 @@ function lifecycleVisibilityCases({ ownerA, ownerB, editorA, viewerA, A, PAGE_A1
          + 'same statement, admitted in closing.',
     },
   );
+  return out;
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// BATCH 141 (MIGRATION 172) -- the acting-user narrowing (RFC-2026-023 §6), the §11.4 closing command
+// (RFC-2026-023 §8) and the audit producer's command half (RFC-2026-026 §8.2/6, /8-/11, /18-/20).
+// ---------------------------------------------------------------------------------------------
+//
+// Three kinds of case, each asking the question at the layer that answers it:
+//   * THE COMMAND, as a client calls it: `select ... from app.close_workspace(...)`, filtered on the typed
+//     result it RETURNS (a denial is returned, never raised; RFC-2026-026 §3.4). What it did is read
+//     `after`, as the connection role (run-isolation.mjs, runAfter): the workspace's lifecycle_state, which no
+//     client may write, and the app.audit_logs row, which no client may read -- its outcome, actor, workspace,
+//     scope (none: a workspace carries no business or page, §3.6) and error code, by the call's request_id.
+//   * THE HELPERS, as the command's body asks them: as app_command with a user's claims (private.as_command),
+//     `select 1 where app.acting_user_admits_...(...)` -- rows for true, no rows for false or null.
+//   * THE PRODUCER POLICY, as app_command with a user's claims, writing the row directly: the stub RFC-2026-026
+//     §8.2/9 asks for, without a stub function the SECURITY DEFINER pin would have to admit (Q-023-7). A refused
+//     row is an INSERT asserted `denied` by the policy on app.audit_logs; an admitted control is the same INSERT
+//     inside `with written as (... returning 1) select 1 from written` (app_command holds no SELECT on the
+//     table and `returning 1` reads no column, measured), asserted `rows`.
+// Negative controls that need an object changed -- a policy dropped, a grant withheld, a helper body rewritten,
+// an audit write made to fail -- are executed by scripts/db/authz-proofs.mjs's acting-user and closing-command
+// proofs on every rls-smoke run (RFC-2026-023 §6, RFC-2026-026 §8.2/7, /14, /16).
+// A parameter is inlined as a quoted literal (scripts/db/rls-smoke.mjs, inlineParams), so a SQL null cannot be one:
+// '' stands for null wherever these statements read a nullable value, through nullif.
+export const CLOSE_WORKSPACE_SQL = "select outcome, error_code, lifecycle_state from app.close_workspace($1, $2, $3) where outcome = $4 and error_code is not distinct from nullif($5, '')";
+export const CANCEL_CLOSING_SQL = "select outcome, error_code, lifecycle_state from app.cancel_workspace_closing($1, $2, $3) where outcome = $4 and error_code is not distinct from nullif($5, '')";
+export const ACTING_USER_ADMITS_BUSINESS_SQL = 'select 1 as admitted where app.acting_user_admits_business($1, $2)';
+export const ACTING_USER_ADMITS_PAGE_SQL = 'select 1 as admitted where app.acting_user_admits_page($1, $2, $3)';
+const AUDIT_COLUMNS = '(workspace_id, business_profile_id, page_context_profile_id, occurred_at, actor_kind, actor_id, action_category, '
+  + 'action_name, outcome, reason_key, request_id, correlation_id, change_before_ref, error_code, secret_redacted, content_redacted, '
+  + 'pii_redacted, retention_policy_ref)';
+// One audit row as the command path would write it, every value a parameter: $1 workspace, $2 business, $3 page,
+// $4 actor_kind, $5 actor_id, $6 outcome, $7 error_code (null exactly when succeeded, 140's CHECK); '' is null.
+export const AUDIT_INSERT_SQL = `insert into app.audit_logs ${AUDIT_COLUMNS} values ($1, nullif($2, '')::uuid, nullif($3, '')::uuid, now(), $4, $5, 'delete', `
+  + "'workspace.lifecycle.close', $6, 'audit.batch141.case', 'batch-141-policy-case', 'batch-141-policy-case', 'record:app.workspaces/case', nullif($7, ''), "
+  + "true, true, true, 'retention.audit')";
+export const AUDIT_INSERT_ADMITTED_SQL = `with written as (${AUDIT_INSERT_SQL} returning 1) select 1 as written from written`;
+const workspaceStateIs = (workspace, state) => ({
+  sql: 'select lifecycle_state from app.workspaces where id = $1', params: [workspace], expect: 'rows', column: 'lifecycle_state', equals: state,
+});
+// Exactly one row for the request, and it is the one described: the count of rows matching EVERY field must be 1
+// and the count of rows for the request at all must be 1, so a second row or a differently attributed one fails.
+const auditRowIs = (request, { workspace, actor, outcome, errorCode, actionName }) => [
+  { sql: 'select count(*)::text as n from app.audit_logs where request_id = $1', params: [request], expect: 'rows', column: 'n', equals: '1' },
+  {
+    sql: 'select count(*)::text as n from app.audit_logs where request_id = $1 and workspace_id = $2 and actor_kind = \'user\' '
+       + "and actor_id = $3 and outcome = $4 and error_code is not distinct from nullif($5, '') and action_name = $6 "
+       + 'and business_profile_id is null and page_context_profile_id is null and correlation_id = $7 '
+       // The rest of the CTR-AUD-001 record as the store holds it (the fixture valid-workspace-closing-command.json is
+       // the same row; foundation-contract.test.mjs ties the two): the delete category, a reason key, the references,
+       // the three redaction assertions and the retention reference.
+       + "and action_category = 'delete' and reason_key like 'audit.workspace.%' and change_before_ref like 'record:app.workspaces/%' "
+       + "and secret_redacted and content_redacted and pii_redacted and retention_policy_ref = 'retention.audit'",
+    params: [request, workspace, actor, outcome, errorCode ?? '', actionName, `${request}-correlation`],
+    expect: 'rows', column: 'n', equals: '1',
+  },
+];
+const noAuditRow = (request) => ({ sql: 'select count(*)::text as n from app.audit_logs where request_id = $1', params: [request], expect: 'rows', column: 'n', equals: '0' });
+
+function actingUserAndClosingCommandCases({
+  ownerA, ownerB, editorA, pageEditorA, viewerA, suspendedA, anonymous, service,
+  A, B, BUSINESS_A1, BUSINESS_A2, BUSINESS_B1, PAGE_A1, PAGE_A1_SIBLING, PAGE_B1,
+}) {
+  const stepped = (as) => ({ helper: 'as_stepped_up_user', subject: as.subject });
+  const command = (as) => ({ helper: 'as_command', subject: as.subject });
+  const commandWithoutSubject = { helper: 'as_command_without_subject' };
+  const userWithoutSubject = { helper: 'as_user_without_subject' };
+  const close = (request, outcome, errorCode) => ({
+    sql: CLOSE_WORKSPACE_SQL, params: [A, request, `${request}-correlation`, outcome, errorCode ?? ''],
+  });
+  const cancel = (request, outcome, errorCode) => ({
+    sql: CANCEL_CLOSING_SQL, params: [A, request, `${request}-correlation`, outcome, errorCode ?? ''],
+  });
+  const out = [];
+
+  // RFC-2026-026 §8.2/6 and RFC-2026-023 §6's first case: the acting user who CAN reach the row.
+  out.push(
+    {
+      id: 'owner-a-closes-workspace-a-through-the-command-after-step-up',
+      covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-026§8.2/6'],
+      as: stepped(ownerA),
+      ...close('batch-141-close', 'succeeded', null),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'closing'),
+        ...auditRowIs('batch-141-close', { workspace: A, actor: ownerA.subject, outcome: 'succeeded', errorCode: null, actionName: 'workspace.lifecycle.close' })],
+      why: 'BATCH 141: §11.4\'s "Active --> Closing: owner confirms + step-up". The command returns succeeded, the workspace '
+         + 'is closing, and exactly one audit row exists for the request: succeeded, actor_kind user, actor the acting '
+         + 'user, workspace A copied from the changed row, no business and no page (RFC-2026-026 §3.6), in the same '
+         + 'transaction. Before 141 nothing on a request path could perform this transition (batch 170).',
+    },
+    {
+      id: 'owner-a-cancels-the-closing-of-workspace-a-within-the-recovery-window',
+      covers: ['§11.4', 'RFC-2026-023§8', 'RFC-2026-026§8.2/6'],
+      as: ownerA,
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      ...cancel('batch-141-cancel', 'succeeded', null),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'active'),
+        ...auditRowIs('batch-141-cancel', { workspace: A, actor: ownerA.subject, outcome: 'succeeded', errorCode: null, actionName: 'workspace.lifecycle.cancel_closing' })],
+      why: 'BATCH 141: §11.4\'s "Closing --> Active: cancel within recovery window", by the owner. DATA-DEC-04 has not fixed '
+         + 'the window, so the command encodes no number and admits any closing workspace (RFC-2026-023 §8/5); the cancel '
+         + 'asks no step-up, which §11.4 does not name for this edge.',
+    },
+  );
+
+  // RFC-2026-026 §8.2/8: denied, the change absent, one denied row, and a RETURN rather than a raise.
+  out.push(
+    {
+      id: 'owner-a-cannot-close-workspace-a-without-step-up',
+      covers: ['§11.4', 'RFC-2026-023§8', 'RFC-2026-026§8.2/8'],
+      as: ownerA,
+      ...close('batch-141-no-step-up', 'denied', 'workspace.lifecycle.step_up_required'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'active'),
+        ...auditRowIs('batch-141-no-step-up', { workspace: A, actor: ownerA.subject, outcome: 'denied', errorCode: 'workspace.lifecycle.step_up_required', actionName: 'workspace.lifecycle.close' })],
+      why: 'BATCH 141, Q-023-5: the owner\'s claims carry no aal2, so the command returns denied with '
+         + 'step_up_required, the workspace stays active, and one denied row names the owner and workspace A with no '
+         + 'business or page (RFC-2026-026 §3.3/4). The aal claim the platform sets after step-up is NOT measured here.',
+    },
+    {
+      id: 'editor-a-cannot-close-workspace-a-even-after-step-up',
+      covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-026§8.2/8'],
+      as: stepped(editorA),
+      ...close('batch-141-editor', 'denied', 'workspace.lifecycle.not_permitted'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'active'),
+        ...auditRowIs('batch-141-editor', { workspace: A, actor: editorA.subject, outcome: 'denied', errorCode: 'workspace.lifecycle.not_permitted', actionName: 'workspace.lifecycle.close' })],
+      why: 'BATCH 141: a non-owner member is refused. The editor is an active member of A, so the denial is recorded '
+         + 'there, under the editor\'s own id (RFC-2026-026 §3.3/2).',
+    },
+    {
+      id: 'owner-b-cannot-close-workspace-a-and-leaves-no-row-in-it',
+      covers: ['§11.4', '§8.6/5', 'RFC-2026-023§6', 'RFC-2026-026§8.2/19'],
+      as: stepped(ownerB),
+      ...close('batch-141-cross-tenant', 'denied', 'workspace.lifecycle.not_permitted'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'active'), noAuditRow('batch-141-cross-tenant')],
+      why: 'BATCH 141, cross-tenant: tenant B\'s owner, stepped up and holding A\'s exact id, is refused, A stays active, '
+         + 'and NO audit row is written into A\'s log: the policy admits a command row only in a workspace the acting '
+         + 'user is an active member of (Q-026-1), and a refusal about any other is the accepted gap Q-026-10 (iii).',
+    },
+    {
+      id: 'owner-a-cannot-cancel-an-active-workspace',
+      covers: ['§11.4', 'RFC-2026-023§8', 'RFC-2026-026§8.2/8'],
+      as: ownerA,
+      ...cancel('batch-141-cancel-active', 'denied', 'workspace.lifecycle.not_closing'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'active'),
+        ...auditRowIs('batch-141-cancel-active', { workspace: A, actor: ownerA.subject, outcome: 'denied', errorCode: 'workspace.lifecycle.not_closing', actionName: 'workspace.lifecycle.cancel_closing' })],
+      why: 'BATCH 141, RFC-2026-023 §8/1: each command performs one transition and validates it in its body; cancel moves '
+         + 'closing to active and nothing else.',
+    },
+    {
+      id: 'owner-a-cannot-close-a-workspace-that-is-already-closing',
+      covers: ['§11.4', 'RFC-2026-023§8', 'RFC-2026-026§8.2/8'],
+      as: stepped(ownerA),
+      ownerFirst: [moveWorkspaceTo(A, 'closing')],
+      ...close('batch-141-close-closing', 'denied', 'workspace.lifecycle.not_active'),
+      expect: 'rows',
+      after: [workspaceStateIs(A, 'closing'),
+        ...auditRowIs('batch-141-close-closing', { workspace: A, actor: ownerA.subject, outcome: 'denied', errorCode: 'workspace.lifecycle.not_active', actionName: 'workspace.lifecycle.close' })],
+      why: 'BATCH 141: close moves active to closing and nothing else; the row is in closing, which is admitted, so the '
+         + 'denial is recorded.',
+    },
+  );
+
+  // The admitted-state gate on the command (RFC-2026-023 §6, Q-027-4): in every blocked state the owner is
+  // refused, the state is untouched, and nothing is recorded (the owner is no active member of a blocked workspace).
+  for (const state of LIFECYCLE_BLOCKED_STATES) {
+    const slug = state.replace(/_/g, '-');
+    out.push(
+      {
+        id: `owner-a-cannot-close-workspace-a-in-${slug}`,
+        covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-027§5/3'],
+        as: stepped(ownerA),
+        ownerFirst: [moveWorkspaceTo(A, state)],
+        ...close(`batch-141-close-${slug}`, 'denied', 'workspace.lifecycle.not_permitted'),
+        expect: 'rows',
+        after: [workspaceStateIs(A, state), noAuditRow(`batch-141-close-${slug}`)],
+        why: `BATCH 141: in ${state} the owner is no active member (171's gate, inherited through workspace_member_role), `
+           + 'so the command is refused, the workspace stays where it is, and no row is written: the closing command '
+           + 'never moves a workspace out of a blocked state, which is the worker\'s or nobody\'s (RFC-2026-028 §3.5).',
+      },
+      {
+        id: `the-acting-user-helpers-refuse-the-owner-of-workspace-a-in-${slug}`,
+        covers: ['§11.4', 'RFC-2026-023§6'],
+        as: command(ownerA),
+        before: { sql: `${ACTING_USER_ADMITS_BUSINESS_SQL} and app.acting_user_admits_page($1, $2, $3)`, params: [A, BUSINESS_A1, PAGE_A1], expect: 'rows' },
+        ownerFirst: [moveWorkspaceTo(A, state)],
+        sql: 'select 1 as admitted where app.acting_user_admits_business($1, $2) or app.acting_user_admits_page($1, $2, $3)',
+        params: [A, BUSINESS_A1, PAGE_A1],
+        expect: 'no-rows',
+        why: `BATCH 141, RFC-2026-023 §6 (the gate): asked as app_command with the owner's claims, both helpers admit `
+           + `business A1 and page A1 in active (the before-read) and neither does in ${state}. The membership conjunct `
+           + 'is app.is_active_member, called (Q-023-2); a helper that repeated 011\'s join would admit here, which '
+           + 'authz-proofs.mjs executes as the negative control.',
+      },
+    );
+  }
+  out.push({
+    id: 'the-acting-user-helpers-admit-the-owner-of-workspace-a-in-closing',
+    covers: ['§11.4', 'RFC-2026-023§6'],
+    as: command(ownerA),
+    ownerFirst: [moveWorkspaceTo(A, 'closing')],
+    sql: 'select 1 as admitted where app.acting_user_admits_business($1, $2) and app.acting_user_admits_page($1, $2, $3)',
+    params: [A, BUSINESS_A1, PAGE_A1],
+    expect: 'rows',
+    why: 'BATCH 141, RFC-2026-023 §6: in closing both helpers return what they return in active (Q-027-2: closing is admitted).',
+  });
+
+  // Who may execute what (RFC-2026-026 §8.1/6, RFC-2026-023 §3.2 and §6).
+  out.push(
+    {
+      id: 'anon-cannot-reach-the-closing-command',
+      covers: ['§12.6/6', 'RFC-2026-026§8.1/6'],
+      as: anonymous,
+      ...close('batch-141-anon', 'denied', null),
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'schema', name: 'app' },
+      why: 'BATCH 141: anon holds no USAGE on app, so the command is not even resolved.',
+    },
+    {
+      id: 'the-worker-cannot-execute-the-closing-command',
+      covers: ['RFC-2026-026§8.1/6'],
+      as: service,
+      ...close('batch-141-worker', 'denied', null),
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'function', name: 'close_workspace' },
+      why: 'BATCH 141, RFC-2026-026 §8.1/6: EXECUTE on a command function is authenticated\'s alone; a service role that '
+         + 'could execute one and set the claims would write as any user it named (§3.3/1).',
+    },
+    {
+      id: 'app-command-cannot-execute-its-own-closing-command',
+      covers: ['RFC-2026-026§8.1/6'],
+      as: command(ownerA),
+      ...close('batch-141-app-command', 'denied', null),
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'function', name: 'close_workspace' },
+      why: 'BATCH 141, RFC-2026-026 §8.1/6: authenticated alone. app_command OWNS the function and its implicit grant is '
+         + 'revoked, so the role reached by SET ROLE cannot call it with claims it set itself.',
+    },
+    {
+      id: 'a-request-with-no-subject-cannot-close-anything',
+      covers: ['§11.4', 'RFC-2026-023§6', 'RFC-2026-026§8.2/10'],
+      as: userWithoutSubject,
+      ...close('batch-141-no-subject', 'denied', null),
+      expect: 'denied',
+      why: 'BATCH 141, RFC-2026-023 §3.1 (fail closed): authenticated with claims that name no subject. The command raises '
+         + '42501 before it reads anything -- nothing can be recorded under nobody\'s name -- and changes nothing.',
+    },
+    {
+      id: 'authenticated-cannot-execute-the-acting-user-helpers',
+      covers: ['RFC-2026-023§6'],
+      as: ownerA,
+      sql: ACTING_USER_ADMITS_BUSINESS_SQL,
+      params: [A, BUSINESS_A1],
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'function', name: 'acting_user_admits_business' },
+      why: 'BATCH 141, RFC-2026-023 §3.2: EXECUTE on the acting-user helpers is app_command\'s alone; authenticated keeps '
+         + 'batch 021\'s helpers, and the two families are not interchangeable.',
+    },
+    {
+      id: 'authenticated-cannot-execute-the-acting-user-page-helper',
+      covers: ['RFC-2026-023§6'],
+      as: ownerA,
+      sql: ACTING_USER_ADMITS_PAGE_SQL,
+      params: [A, BUSINESS_A1, PAGE_A1],
+      expect: 'denied', deniedBy: 'grant', deniedOn: { kind: 'function', name: 'acting_user_admits_page' },
+      why: 'BATCH 141, RFC-2026-023 §3.2: the page form, likewise.',
+    },
+  );
+
+  // The helpers answer about the claims, and their scope half is not vacuous (RFC-2026-023 §6).
+  const helperCase = (who, as, sql, params, expect, why) => ({
+    id: who, covers: ['RFC-2026-023§6'], as, sql, params, expect, why: `BATCH 141, RFC-2026-023 §6: ${why}`,
+  });
+  out.push(
+    helperCase('the-acting-user-helper-admits-the-unscoped-owner-of-workspace-a', command(ownerA), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A2], 'rows',
+      'asked as app_command with the owner\'s claims, it answers for the owner (no scope row: not narrowed), not for app_command, which is a member of nothing.'),
+    helperCase('the-acting-user-helper-refuses-owner-b-for-workspace-a', command(ownerB), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A1], 'no-rows',
+      'with tenant B\'s owner\'s claims it refuses A: the membership conjunct is asked of the acting user, so a member with no scope row anywhere is not admitted to a workspace they are not in.'),
+    helperCase('the-acting-user-helper-refuses-a-session-with-no-subject', commandWithoutSubject, ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A1], 'no-rows',
+      'with no subject in the claims both conjuncts fail closed (RFC-2026-023 §3.1).'),
+    helperCase('the-acting-user-helper-refuses-the-suspended-member-of-workspace-a', command(suspendedA), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A1], 'no-rows',
+      'a suspended member holds a business scope on A1 and is still refused: only an ACTIVE membership admits.'),
+    helperCase('the-acting-user-page-helper-admits-the-page-editor-to-its-page', command(pageEditorA), ACTING_USER_ADMITS_PAGE_SQL, [A, BUSINESS_A1, PAGE_A1], 'rows',
+      'a page-scoped member is admitted to its own page.'),
+    helperCase('the-acting-user-page-helper-refuses-the-page-editor-a-sibling-page', command(pageEditorA), ACTING_USER_ADMITS_PAGE_SQL, [A, BUSINESS_A1, PAGE_A1_SIBLING], 'no-rows',
+      'and refused a sibling page under the same business. With app_authz\'s policy on workspace_member_scopes dropped this goes TRUE (the helper reads no scope row and answers "not narrowed"); authz-proofs.mjs executes that.'),
+    helperCase('the-acting-user-helper-admits-the-business-editor-to-its-business', command(editorA), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A1], 'rows',
+      'a business-scoped member is admitted to its business.'),
+    helperCase('the-acting-user-page-helper-admits-the-business-editor-to-every-page-of-its-business', command(editorA), 'select 1 as admitted where app.acting_user_admits_page($1, $2, $3) and app.acting_user_admits_page($1, $2, $4)', [A, BUSINESS_A1, PAGE_A1, PAGE_A1_SIBLING], 'rows',
+      'a business scope admits every page beneath it (§7, batch 021\'s covers_page).'),
+    helperCase('the-acting-user-helper-refuses-the-business-editor-another-business', command(editorA), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A2], 'no-rows',
+      'and is refused another business of the same workspace.'),
+    helperCase('the-acting-user-helper-admits-the-all-businesses-viewer-to-any-business-of-a', command(viewerA), ACTING_USER_ADMITS_BUSINESS_SQL, [A, BUSINESS_A2], 'rows',
+      'an all_businesses scope admits every business of the workspace.'),
+  );
+
+  // The producer's policy, asked directly as app_command with a user's claims (RFC-2026-026 §8.2/9-/11, /18-/20).
+  const refused = (who, as, params, why, covers, ownerFirst) => ({
+    id: who, covers: ['RFC-2026-026§3.3', ...covers], as, ...(ownerFirst ? { ownerFirst } : {}),
+    sql: AUDIT_INSERT_SQL, params, expect: 'denied', deniedBy: 'policy', deniedOn: { kind: 'table', name: 'audit_logs' },
+    why: `BATCH 141, RFC-2026-026 §3.3: ${why}`,
+  });
+  const admitted = (who, as, params, why, covers) => ({
+    id: who, covers: ['RFC-2026-026§3.3', ...covers], as, sql: AUDIT_INSERT_ADMITTED_SQL, params, expect: 'rows',
+    why: `BATCH 141, RFC-2026-026 §3.3: ${why}`,
+  });
+  // A workspace_id no workspace has, read from the fixture catalog rather than written: business B1's id is a real
+  // uuid of the fixture, and no workspace carries it.
+  out.push(
+    admitted('the-producer-policy-admits-a-denied-row-in-the-acting-users-own-workspace', command(ownerA),
+      [A, '', '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'the control beside every refusal below: a denied row in workspace A, actor the acting user, no business, no page, is admitted.', ['RFC-2026-026§8.2/19']),
+    refused('the-producer-policy-refuses-a-forged-actor', command(ownerA),
+      [A, '', '', 'user', ownerB.subject, 'denied', 'batch141.case'],
+      'a row naming another user as actor is refused by name (§3.3/1; §8.2/9). The command\'s inputs cannot choose the actor.', ['RFC-2026-026§8.2/9']),
+    refused('the-producer-policy-refuses-a-system-actor-from-the-command-path', command(ownerA),
+      [A, '', '', 'system_actor', ownerA.subject, 'denied', 'batch141.case'],
+      'the command path writes only user-attributed rows; system_actor is the worker\'s (§3.2, §3.5).', ['RFC-2026-026§8.2/9']),
+    refused('the-producer-policy-refuses-a-row-with-no-acting-user', commandWithoutSubject,
+      [A, '', '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'with no subject in the claims the actor term is null and the check refuses: 42501 by the policy, not a cast error (§8.2/10).', ['RFC-2026-026§8.2/10']),
+    refused('the-producer-policy-refuses-a-succeeded-row-in-another-tenants-workspace', command(ownerA),
+      [B, '', '', 'user', ownerA.subject, 'succeeded', ''],
+      'a succeeded row for a workspace the acting user is not an active member of is refused (§8.2/11).', ['RFC-2026-026§8.2/11']),
+    refused('the-producer-policy-refuses-a-denied-row-in-another-tenants-workspace', command(ownerA),
+      [B, '', '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'every command row needs membership (Q-026-1): a denied row in B is refused (§8.2/19).', ['RFC-2026-026§8.2/19']),
+    refused('the-producer-policy-refuses-a-failed-row-in-a-workspace-that-does-not-exist', command(ownerA),
+      [BUSINESS_B1, '', '', 'user', ownerA.subject, 'failed', 'batch141.case'],
+      'and a failed row naming a workspace id no workspace has (§8.2/19).', ['RFC-2026-026§8.2/19']),
+    refused('the-producer-policy-refuses-the-suspended-member-in-its-own-workspace', command(suspendedA),
+      [A, '', '', 'user', suspendedA.subject, 'denied', 'batch141.case'],
+      'a suspended member\'s own workspace is refused (§8.2/19).', ['RFC-2026-026§8.2/19']),
+    refused('the-producer-policy-refuses-a-denied-row-naming-a-business-of-the-workspace', command(ownerA),
+      [A, BUSINESS_A1, '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'a refusal row names no scope (§3.3/4): a business of the acting user\'s own workspace is refused (§8.2/18).', ['RFC-2026-026§8.2/18']),
+    refused('the-producer-policy-refuses-a-denied-row-naming-another-tenants-business', command(ownerA),
+      [A, BUSINESS_B1, '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'and another tenant\'s business is refused, for an unnarrowed member too (§8.2/18; A1 F4-a inverted).', ['RFC-2026-026§8.2/18']),
+    refused('the-producer-policy-refuses-a-denied-row-naming-only-a-page', command(ownerA),
+      [A, '', PAGE_A1, 'user', ownerA.subject, 'denied', 'batch141.case'],
+      'and a refusal row naming only a page is refused (§8.2/18).', ['RFC-2026-026§8.2/18']),
+    refused('the-producer-policy-refuses-the-page-editor-a-succeeded-row-on-a-sibling-page', command(pageEditorA),
+      [A, BUSINESS_A1, PAGE_A1_SIBLING, 'user', pageEditorA.subject, 'succeeded', ''],
+      'the page form is called (§8.2/20): a page-scoped member\'s succeeded row naming its business and a page outside its scope is refused. Under a literal that called the business form alone it was admitted.', ['RFC-2026-026§8.2/20']),
+    admitted('the-producer-policy-admits-the-page-editor-a-succeeded-row-on-its-own-page', command(pageEditorA),
+      [A, BUSINESS_A1, PAGE_A1, 'user', pageEditorA.subject, 'succeeded', ''],
+      'the same row naming the page in scope is admitted (§8.2/20).', ['RFC-2026-026§8.2/20']),
+    refused('the-producer-policy-refuses-a-succeeded-row-naming-a-page-without-its-business', command(pageEditorA),
+      [A, '', PAGE_A1, 'user', pageEditorA.subject, 'succeeded', ''],
+      'a succeeded row naming a page with no business is refused (§8.2/20).', ['RFC-2026-026§8.2/20']),
+    refused('the-producer-policy-refuses-the-page-editor-another-tenants-page', command(pageEditorA),
+      [A, BUSINESS_A1, PAGE_B1, 'user', pageEditorA.subject, 'succeeded', ''],
+      'for a member narrowed by a page scope the policy refuses another tenant\'s page (§3.3/3, the one case the policy holds the relation for).', ['RFC-2026-026§8.2/20']),
+    refused('the-producer-policy-refuses-the-business-editor-a-succeeded-row-on-another-business', command(editorA),
+      [A, BUSINESS_A2, '', 'user', editorA.subject, 'succeeded', ''],
+      'a business-scoped member\'s succeeded row naming a business outside its scope is refused by the business form.', ['RFC-2026-026§8.2/20']),
+  );
+  for (const state of LIFECYCLE_BLOCKED_STATES) {
+    out.push(refused(`the-producer-policy-refuses-the-owner-of-workspace-a-in-${state.replace(/_/g, '-')}`, command(ownerA),
+      [A, '', '', 'user', ownerA.subject, 'denied', 'batch141.case'],
+      `a workspace of the user's in each blocked state is refused too, now that RFC-2026-027 has landed (§8.2/19): here ${state}.`,
+      ['RFC-2026-026§8.2/19', 'RFC-2026-027§5/3'], [moveWorkspaceTo(A, state)]));
+  }
   return out;
 }

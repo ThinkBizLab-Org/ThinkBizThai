@@ -1,6 +1,6 @@
 {
   "_what": "The closed list of every effective privilege every non-superuser, non-pg_* role holds on every table in schemas app and private (batch 170's assertion-only part, plan \"Batch 170 -- Can do now\" (a); read by PINNED_GRANT_PROBE_SQL in scripts/db/run.mjs).",
-  "_how_measured": "Generated from a live catalog read on the clean set (the shim, then every migration through 171_workspace_lifecycle_visibility.sql, PostgreSQL 17.11) with has_table_privilege and has_column_privilege, then committed as reviewed data. A column privilege a table-level privilege already implies is not listed: the table-level row carries it. No privilege is held WITH GRANT OPTION, and none is ever pinned with one.",
+  "_how_measured": "Generated from a live catalog read on the clean set (the shim, then every migration through 172_acting_user_and_closing_command.sql, PostgreSQL 17.11) with has_table_privilege and has_column_privilege, then committed as reviewed data. A column privilege a table-level privilege already implies is not listed: the table-level row carries it. No privilege is held WITH GRANT OPTION, and none is ever pinned with one.",
   "_shape": "tables: { \"<schema>.<table>\": { \"<role>\": { \"table\": [table-level privileges], \"SELECT\" | \"INSERT\" | \"UPDATE\" | \"REFERENCES\": [columns, in attnum order] } } }. A table no role holds anything on is an empty object, so the TABLE list is closed too. A batch that grants, revokes or adds a table changes this file in the same diff.",
   "tables": {
     "app.ai_model_policies": {
@@ -31,6 +31,7 @@
       "authenticated": { "SELECT": ["id", "workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "current_version_id", "deleted_at", "purge_after", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "business_profile_id", "page_context_profile_id", "kind", "title", "source", "created_by", "updated_by"], "UPDATE": ["title", "deleted_at", "updated_at", "updated_by"] }
     },
     "app.audit_logs": {
+      "app_command": { "table": ["INSERT"] },
       "app_worker": { "table": ["SELECT", "INSERT"] }
     },
     "app.billing_invoices": {
@@ -204,6 +205,7 @@
       "authenticated": { "SELECT": ["id", "workspace_id", "role", "invited_email", "expires_at", "accepted_at", "revoked_at", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "role", "token_hash", "invited_email", "expires_at", "created_by", "updated_by"], "UPDATE": ["role", "invited_email", "expires_at", "accepted_at", "revoked_at", "updated_by"] }
     },
     "app.workspace_member_scopes": {
+      "app_authz": { "SELECT": ["workspace_id", "user_id", "scope_type", "business_profile_id", "page_context_profile_id"] },
       "app_worker": { "table": ["SELECT", "INSERT"] },
       "authenticated": { "SELECT": ["id", "workspace_id", "user_id", "scope_type", "business_profile_id", "page_context_profile_id", "created_at", "updated_at", "created_by", "updated_by"], "INSERT": ["workspace_id", "user_id", "scope_type", "business_profile_id", "page_context_profile_id", "created_by", "updated_by"] }
     },
@@ -218,6 +220,7 @@
     },
     "app.workspaces": {
       "app_authz": { "SELECT": ["id", "lifecycle_state"] },
+      "app_command": { "SELECT": ["id", "lifecycle_state"], "UPDATE": ["lifecycle_state", "updated_by"] },
       "app_worker": { "table": ["SELECT", "INSERT", "UPDATE"] },
       "authenticated": { "SELECT": ["id", "name", "lifecycle_state", "created_at", "updated_at", "created_by", "updated_by"], "UPDATE": ["name", "updated_by"] }
     },

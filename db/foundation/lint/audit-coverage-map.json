@@ -18,12 +18,13 @@
     "source": "where the obligation to audit it is written: SEC-009, OB-005, or an open blocker",
     "category": "one of CTR-AUD-001's six action categories, or null when no category fits -- then category_note says why, and that is a finding, not a choice",
     "tables": "schema-qualified tables the action changes, each created by a migration in db/foundation/migrations/; empty only with tables_note",
-    "producer_path": "always \"UNDECIDED\" until Q141-a is answered; trigger, command or worker is that decision",
-    "producer_decision": "the plan question that decides producer_path",
+    "producer_path": "\"UNDECIDED\" until the row's producer has LANDED; then \"command\" or \"worker\". Q141-a was answered (B, 2026-10-04) and RFC-2026-026 approved (2026-10-05), so trigger is no longer a value; batch 141 (migration 172) set the first two rows to command",
+    "producer_decision": "the question or RFC that decides producer_path: Q141-a while UNDECIDED, RFC-2026-026 once a producer has landed",
     "section8_cell": "the §8 row(s) this action is, each quoted exactly as its first column appears in docs/sprint-0a/sprint-0a-core-erd-rls-retention-th.md §8.1-§8.4, or null with section8_note",
-    "blockers": "one or more { index, line, quote }: index into work-packages/WP-0A-DB-00.json open_blockers, its line in that file today, and a phrase the blocker text contains, so a renumbered list fails by name instead of pointing at the wrong blocker"
+    "blockers": "one or more { index, line, quote }: index into work-packages/WP-0A-DB-00.json open_blockers, its line in that file today, and a phrase the blocker text contains, so a renumbered list fails by name instead of pointing at the wrong blocker",
+    "producer": "only on a row whose producer_path is command (RFC-2026-026 §8.1/4): the producer function(s), as schema.name(argument types) -- read by scripts/db/audit-producer-rule.mjs as the pinned producer set of RFC-2026-026 §8.1/1 (a)"
   },
-  "_undecided": "producer_path is UNDECIDED on every row. Q141-a (Owner + A1) asks whether an audit row is produced by (A) a database trigger whose SECURITY DEFINER function is owned by a non-request-path role, (B) the application command or worker only, or (C) a hybrid. A row naming a producer would be that decision taken in a lint file.",
+  "_undecided": "producer_path was UNDECIDED on every row until batch 141. Q141-a (Owner + A1) asked whether an audit row is produced by (A) a database trigger whose SECURITY DEFINER function is owned by a non-request-path role, (B) the application command or worker only, or (C) a hybrid; it was answered (B) on 2026-10-04 and RFC-2026-026 approved on 2026-10-05. Batch 141 (migration 172) landed the first command producer, the §11.4 closing command, and its two rows name it; every other row stays UNDECIDED until its command or job lands, which names its producer in the same diff (RFC-2026-026 §8.1/4, owed row by row).",
   "actions": [
     {
       "id": "role.membership_or_scope_change",
@@ -72,12 +73,28 @@
       "source": "SEC-009 (delete); ERD §11.4 step 1",
       "category": "delete",
       "tables": ["app.workspaces"],
-      "producer_path": "UNDECIDED",
-      "producer_decision": "Q141-a",
+      "producer_path": "command",
+      "producer_decision": "RFC-2026-026",
+      "producer": ["app.close_workspace(uuid,text,text)"],
       "section8_cell": null,
       "section8_note": "§8 has no row for deleting a workspace. The nearest, §8.1 \"Workspace UPDATE\", governs settings and is not the lifecycle; §11.4's ten steps are the source, and which §8 cell a lifecycle transition is would be a reading this map does not make.",
       "blockers": [
         { "index": 21, "line": 278, "quote": "§11.4 step 1" }
+      ]
+    },
+    {
+      "id": "delete.workspace_closing_cancelled",
+      "action": "Cancel workspace deletion within the recovery window: §11.4 \"Closing --> Active: cancel within recovery window\"",
+      "source": "SEC-009 (delete); ERD §11.4; RFC-2026-023 §8",
+      "category": "delete",
+      "tables": ["app.workspaces"],
+      "producer_path": "command",
+      "producer_decision": "RFC-2026-026",
+      "producer": ["app.cancel_workspace_closing(uuid,text,text)"],
+      "section8_cell": null,
+      "section8_note": "§8 has no row for a lifecycle transition (see delete.workspace_closing); §11.4's state machine is the source, and the batch that landed the command (141, migration 172) records it here as the second edge it performs.",
+      "blockers": [
+        { "index": 195, "line": 452, "quote": "A WORKSPACE OWNER CAN MOVE THEIR OWN WORKSPACE" }
       ]
     },
     {

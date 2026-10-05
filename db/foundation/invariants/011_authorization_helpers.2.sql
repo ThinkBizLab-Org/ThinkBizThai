@@ -45,10 +45,12 @@ begin
     raise exception 'function(s) % owned by app_authz are not SECURITY DEFINER with an empty search_path', offending;
   end if;
 
-  -- SUPERSEDED BY 171. RFC-2026-027 (approved 2026-10-05) amends RFC-2026-020 §5/3 and §6.1/5: app_authz holds
-  -- exactly TWO policies in app -- the one on app.workspace_members and workspaces_select_authz_own_open on app.workspaces. The final-state
-  -- count is asserted FIRST and whole, so a third policy fails here exactly as a second failed the original; then
-  -- the original assertion, word for word, with 171's (table, name) pair excluded.
+  -- SUPERSEDED BY 171 AND 172. RFC-2026-027 (approved 2026-10-05) and RFC-2026-023 §3.2 (approved 2026-10-05,
+  -- migration 172, batch 141) amend RFC-2026-020 §5/3 and §6.1/5: app_authz holds exactly THREE policies in app --
+  -- the one on app.workspace_members, workspaces_select_authz_own_open on app.workspaces (171) and
+  -- workspace_member_scopes_select_authz_own on app.workspace_member_scopes (172). The final-state count is asserted
+  -- FIRST and whole, so a fourth policy fails here exactly as a second failed the original; then the original
+  -- assertion, word for word, with 171's and 172's (table, name) pairs excluded.
   select count(*) into count_of
     from pg_catalog.pg_policy p
     join pg_catalog.pg_class c on c.oid = p.polrelid
@@ -56,8 +58,8 @@ begin
    where n.nspname = 'app'
      and exists (select 1 from pg_catalog.pg_authid r
                   where r.oid = any (p.polroles) and r.rolname = 'app_authz');
-  if count_of <> 2 then
-    raise exception 'app_authz holds % policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 amends it gives it exactly two', count_of;
+  if count_of <> 3 then
+    raise exception 'app_authz holds % policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 and RFC-2026-023 amend it gives it exactly three', count_of;
   end if;
 
   -- §6.1/5, structural half. The string itself is pinned in scripts/db/run.mjs and executed
@@ -69,7 +71,8 @@ begin
    where n.nspname = 'app'
      and exists (select 1 from pg_catalog.pg_authid r
                   where r.oid = any (p.polroles) and r.rolname = 'app_authz')
-     and (c.relname::text, p.polname::text) not in (('workspaces', 'workspaces_select_authz_own_open'));  -- SUPERSEDED BY 171: the second policy RFC-2026-027 gives app_authz, counted whole above
+     and (c.relname::text, p.polname::text) not in (('workspaces', 'workspaces_select_authz_own_open'),  -- SUPERSEDED BY 171: the second policy RFC-2026-027 gives app_authz, counted whole above
+                                                     ('workspace_member_scopes', 'workspace_member_scopes_select_authz_own'));  -- SUPERSEDED BY 172: the third, RFC-2026-023 §3.2's, counted whole above
   if count_of <> 1 then
     raise exception 'app_authz holds % policies in schema app; RFC-2026-020 §5/3 gives it exactly one', count_of
       using hint = 'The exemption this role takes is structural, not scopal. A second policy is a '

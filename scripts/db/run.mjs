@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { psqlLex } from './psql-driver.mjs';
 import { SQL_LINE_COMMENTS, keyword, lexSql } from './sql-lexer.mjs';
+import { AUDIT_PRODUCER_DRIFTS, AUDIT_PRODUCER_READ_SQL, AUDIT_PRODUCER_RULE_LABEL, AUDIT_PRODUCERS, decideAuditProducerJobs } from './audit-producer-rule.mjs';
 import { argv, env, exit, stdout, stderr, hrtime } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -374,11 +375,18 @@ export const PERMISSIVE_POLICIES = {
   'workspace_invitations.workspace_invitations_select_owner': { cmd: 'r', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: null },
   'workspace_invitations.workspace_invitations_update_owner': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: "(app.workspace_member_role(workspace_id) = 'owner'::text)" },
   'workspace_member_scopes.workspace_member_scopes_insert_owner': { cmd: 'a', roles: 'authenticated', using: null, check: "((created_by = ( SELECT auth.uid() AS uid)) AND (app.workspace_member_role(workspace_id) = 'owner'::text))" },
+  // Batch 141 (migration 172; RFC-2026-023 §3.2, Q-023-8): app_authz's third policy, the acting user's own scope rows.
+  'workspace_member_scopes.workspace_member_scopes_select_authz_own': { cmd: 'r', roles: 'app_authz', using: '(user_id = app.jwt_subject())', check: null },
   'workspace_member_scopes.workspace_member_scopes_select_own': { cmd: 'r', roles: 'authenticated', using: "((user_id = ( SELECT auth.uid() AS uid)) AND app.is_active_member(workspace_id))", check: null },
   'workspace_settings.workspace_settings_select_active_member': { cmd: 'r', roles: 'authenticated', using: "app.is_active_member(workspace_id)", check: null },
   'workspace_settings.workspace_settings_update_owner': { cmd: 'w', roles: 'authenticated', using: "(app.workspace_member_role(workspace_id) = 'owner'::text)", check: "(app.workspace_member_role(workspace_id) = 'owner'::text)" },
   'workspaces.workspaces_select_active_member': { cmd: 'r', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text)))))", check: null },
   'workspaces.workspaces_select_authz_own_open': { cmd: 'r', roles: 'app_authz', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = app.jwt_subject()) AND (m.status = 'active'::text)))))", check: null },
+  // Batch 141 (migration 172; RFC-2026-023 §8/2 and Q0-RC1): the closing command's SELECT path and its UPDATE, for
+  // app_command alone. No lifecycle literal in either USING (the gate is the helper's); the admitted literal bounds
+  // the TARGET state in the WITH CHECK, beside the owner test and updated_by bound to the acting user.
+  'workspaces.workspaces_select_command_owner': { cmd: 'r', roles: 'app_command', using: "(app.workspace_member_role(id) = 'owner'::text)", check: null },
+  'workspaces.workspaces_update_command_owner': { cmd: 'w', roles: 'app_command', using: "(app.workspace_member_role(id) = 'owner'::text)", check: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (app.workspace_member_role(id) = 'owner'::text) AND (updated_by = app.jwt_subject()))" },
   'workspaces.workspaces_update_owner': { cmd: 'w', roles: 'authenticated', using: "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text)))))", check: "(EXISTS ( SELECT 1\n   FROM app.workspace_members m\n  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text) AND (m.role = 'owner'::text))))" },
 };
 export const PERMISSIVE_POLICY_PROBE_SQL = `do \$\$
@@ -951,7 +959,15 @@ end \$\$;
 // that applied the set (current_user here). Settings are never PRINTED, only compared: a value set
 // at function level would otherwise land in the CI log (A1 F5).
 export const SECURITY_DEFINER_FUNCTIONS = [
+  // Batch 141 (migration 172): RFC-2026-023 §3.2's two acting-user helpers and Q-023-5's claim reader, owned by
+  // app_authz; and the §11.4 closing command's two functions, owned by app_command -- RFC-2026-026 §8.1/1's pinned
+  // producers, their bodies pinned here as every producer's must be.
+  ['app.acting_user_admits_business(workspace uuid, business uuid)', 'app_authz', 'c5095f4148a2f110b1710b763b0eeda9'],
+  ['app.acting_user_admits_page(workspace uuid, business uuid, page_context uuid)', 'app_authz', 'c3a63bc74fc554129acc1c2d7e61d2a4'],
+  ['app.cancel_workspace_closing(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', '3d1d6e1ba4582cff85f66a41fe8f1c40'],
+  ['app.close_workspace(workspace uuid, request_id text, correlation_id text, OUT outcome text, OUT error_code text, OUT lifecycle_state text)', 'app_command', '90e800c2a655461c7e3f49abbb7fda9b'],
   ['app.is_active_member(workspace uuid)', 'app_authz', '552b6db607ddb258f6917f7e9e01cfd4'],
+  ['app.jwt_aal()', 'app_authz', '124f9c48015c70af36fea254b939d992'],
   ['app.jwt_subject()', 'app_authz', '185148c2a93687d4574a2c66df66d3f3'],
   ['app.workspace_member_role(workspace uuid)', 'app_authz', 'e6cacb6e4f893a12100c1099719c00f1'],
   ['private.refuse_mutation()', 'migration owner', '6db127bec23ecfaaf041b7dc5c031615'],
@@ -1351,7 +1367,9 @@ export const PINNED_ROLE_MEMBERSHIPS = [];
 // eighth rule requires every non-superuser, non-pg_* role to hold none of the six attributes (all false,
 // measured) and pg_default_acl to be empty (measured). Like rules 2-4, both fail BY DESIGN on a provisioned
 // platform instance until Q170-c measures the platform's own roles, schema owners and default ACLs.
-export const PINNED_SCHEMA_PRIVILEGES = ['app_authz USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'];
+// Batch 141 (migration 172; RFC-2026-023 §5, A1 F5, Q0-R1): app_command's USAGE on app, without which every helper
+// call as app_command and every app_command-owned command body naming an app relation fails 42501 on the schema.
+export const PINNED_SCHEMA_PRIVILEGES = ['app_authz USAGE on app', 'app_command USAGE on app', 'app_worker USAGE on app', 'authenticated USAGE on app'];
 export const PINNED_GRANT_PROBE_SQL = `do \$\$
 declare
   offending text;
@@ -2954,19 +2972,32 @@ export const AUTHZ_WORKSPACES_POLICY_QUAL =
   "((lifecycle_state = ANY (ARRAY['active'::text, 'closing'::text])) AND (EXISTS ( SELECT 1\n   FROM app.workspace_members m\n"
   + "  WHERE ((m.workspace_id = workspaces.id) AND (m.user_id = app.jwt_subject()) AND (m.status = 'active'::text)))))";
 
-// RFC-2026-020 §5/3 and §6.1/5 as RFC-2026-027 §3.4 amends them: exactly these two (table, policy, qual)
-// pairs, both FOR SELECT. The first is batch 011's and is still exported under its old names.
+// RFC-2026-023 §3.2 (approved 2026-10-05, batch 141, migration 172): app_authz's THIRD policy, on
+// app.workspace_member_scopes, the acting user's own scope rows and nothing else (Q-023-8). The table is forced
+// and app_authz holds no BYPASSRLS, so without it the five-column grant reads zero rows and the acting-user
+// helpers answer "not narrowed" for everyone (§0/7(b)). Deparsed by PostgreSQL 17.11 on the clean set.
+export const AUTHZ_SCOPES_TABLE = 'workspace_member_scopes';
+export const AUTHZ_SCOPES_POLICY = 'workspace_member_scopes_select_authz_own';
+export const AUTHZ_SCOPES_POLICY_QUAL = '(user_id = app.jwt_subject())';
+
+// RFC-2026-020 §5/3 and §6.1/5 as RFC-2026-027 §3.4 and RFC-2026-023 §3.2 and §5 amend them (by reference;
+// the edit of RFC-2026-020 itself is owed to A1 Identity): exactly these three (table, policy, qual) pairs, all
+// FOR SELECT. The first is batch 011's and is still exported under its old names.
 export const AUTHZ_POLICIES = Object.freeze([
   Object.freeze({ table: AUTHZ_TABLE, policy: AUTHZ_POLICY, qual: AUTHZ_POLICY_QUAL }),
   Object.freeze({ table: AUTHZ_WORKSPACES_TABLE, policy: AUTHZ_WORKSPACES_POLICY, qual: AUTHZ_WORKSPACES_POLICY_QUAL }),
+  Object.freeze({ table: AUTHZ_SCOPES_TABLE, policy: AUTHZ_SCOPES_POLICY, qual: AUTHZ_SCOPES_POLICY_QUAL }),
 ]);
 
-// §6.1/6 as RFC-2026-027 amends it, exactly. Anything else app_authz holds is a widening nobody declared.
+// §6.1/6 as RFC-2026-027 and RFC-2026-023 §3.2 amend it, exactly. Anything else app_authz holds is a widening
+// nobody declared. RFC-2026-023's five columns of app.workspace_member_scopes include scope_type, because the
+// coverage reading branches on it (§0/7(a)).
 export const AUTHZ_SCHEMA_GRANTS = ['USAGE on schema app'];
 export const AUTHZ_COLUMN_GRANTS = ['role', 'status', 'user_id', 'workspace_id'];
 export const AUTHZ_COLUMN_GRANTS_BY_TABLE = Object.freeze({
   [AUTHZ_TABLE]: AUTHZ_COLUMN_GRANTS,
   [AUTHZ_WORKSPACES_TABLE]: ['id', 'lifecycle_state'],
+  [AUTHZ_SCOPES_TABLE]: ['business_profile_id', 'page_context_profile_id', 'scope_type', 'user_id', 'workspace_id'],
 });
 
 // The platform's own `auth.uid()`, measured read-only on `xtvtflkntpqfvflvdbwk` 2026-09-06 and
@@ -3048,12 +3079,12 @@ export function authzLint(catalog) {
     }
   }
 
-  // 5. Exactly two policies (RFC-2026-027 §3.4 amending §5/3 and §6.1/5): on app.workspace_members and on
-  //    app.workspaces, each FOR SELECT under its pinned name, and each qual is its pinned string.
+  // 5. Exactly three policies (RFC-2026-027 §3.4 and RFC-2026-023 §3.2 amending §5/3 and §6.1/5): on app.workspace_members, on
+  //    app.workspaces and on app.workspace_member_scopes, each FOR SELECT under its pinned name, and each qual is its pinned string.
   const policies = authz.policies;
   if (policies === undefined) problems.push(`the catalog does not record the policies ${AUTHZ_ROLE} holds`);
   else if (policies.length !== AUTHZ_POLICIES.length) {
-    problems.push(`${AUTHZ_ROLE} holds ${policies.length} policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 amends it gives it exactly ${AUTHZ_POLICIES.length}. `
+    problems.push(`${AUTHZ_ROLE} holds ${policies.length} policies in schema app; RFC-2026-020 §5/3 as RFC-2026-027 and RFC-2026-023 amend it gives it exactly ${AUTHZ_POLICIES.length}. `
       + 'The exemption is structural, not scopal — another policy is another decision and needs its own RFC.');
   } else {
     for (const pin of AUTHZ_POLICIES) {
@@ -3419,7 +3450,11 @@ const SHAPES = ['carried', 'discovered'];
 const CELL_OPERATIONS = ['select', 'insert', 'update', 'delete'];
 // The CLOSED set of fields a classification row may carry, which is exactly what the file's own
 // `_shape` declares. See the correction beside the check that reads it.
-const CELL_FIELDS = ['cell', 'table', 'operation', 'shape', 'why', 'batch'];
+const CELL_FIELDS = ['cell', 'table', 'operation', 'shape', 'why', 'batch', 'producer'];
+// Batch 141 (migration 172; RFC-2026-026 Q-026-7, answered: add a producer field). OPTIONAL, and when present a
+// non-empty list drawn from these two, each at most once: the register can now say that one (table, operation) has
+// two producers, which §4 of that RFC found it could not.
+export const CELL_PRODUCERS = ['command', 'worker'];
 
 export function servicePolicyMapLint(map, tablesInMigrations) {
   const problems = [];
@@ -3471,6 +3506,11 @@ export function servicePolicyMapLint(map, tablesInMigrations) {
       if (!CELL_FIELDS.includes(field)) {
         problems.push(`${where}: \`${field}\` is not a field this register declares. db/foundation/lint/service-policy-map.json's own \`_shape\` names ${CELL_FIELDS.join(', ')} and nothing else; RFC-2026-022 §7.2 sketches \`role\` and \`broker_owner\` besides, and a row that acquires either without \`_shape\` acquiring it first would read as an authorisation the register is not entitled to record`);
       }
+    }
+    if (c && 'producer' in c) {
+      const ok = Array.isArray(c.producer) && c.producer.length > 0 && new Set(c.producer).size === c.producer.length
+        && c.producer.every((x) => CELL_PRODUCERS.includes(x));
+      if (!ok) problems.push(`${where}: producer ${JSON.stringify(c.producer)} is not a non-empty list of distinct values from ${CELL_PRODUCERS.join(', ')} (RFC-2026-026 Q-026-7)`);
     }
     const key = `${qualified}.${c?.operation}`;
     if (c?.table && c?.operation) {
@@ -3850,6 +3890,29 @@ function refuseLive(target) {
 
 // The live half, wired. Each target does its job or fails saying why; none has a mode that
 // reports a pass without a database, which is what `refuseLive` exists to enforce.
+// THE AUDIT PRODUCER RULE, migrate-clean's last step (batch 141, migration 172; RFC-2026-026 §8.1/1 and RFC-2026-023
+// §8/3): every drift checked for transaction control and meta-commands before any runs; each job one rolled-back
+// transaction -- the drift, the pg_catalog guard, the catalog read -- decided in Node through the repository's lexer
+// (scripts/db/audit-producer-rule.mjs says why); as built before the drifts and again after them. Returns the
+// target's exit code.
+export async function auditProducerRuleStep() {
+  const producerHazards = AUDIT_PRODUCER_DRIFTS.flatMap((d) => driftHazards(d.drift).map((h) => `${AUDIT_PRODUCER_RULE_LABEL}: drift ${d.n} holds ${h}`));
+  if (producerHazards.length) { for (const h of producerHazards) stderr.write(`  ${h}\n`); return 1; }
+  const { queryFinal } = await import('./psql-driver.mjs');
+  const readAfter = (drift) => queryFinal({ prelude: ['begin;', ...(drift ? [drift] : []), 'set local search_path = pg_catalog;', PG_CATALOG_GUARD_SQL.trimEnd()],
+    statement: AUDIT_PRODUCER_READ_SQL, epilogue: ['rollback;'] });
+  const producerOutcomes = [{ kind: 'as built', result: await readAfter(null) }];
+  for (const d of AUDIT_PRODUCER_DRIFTS) producerOutcomes.push({ kind: `drift ${d.n}`, result: await readAfter(d.drift) });
+  producerOutcomes.push({ kind: 'as built, after every drift', result: await readAfter(null) });
+  const producerVerdict = decideAuditProducerJobs(producerOutcomes, { definerPins: SECURITY_DEFINER_FUNCTIONS.map(([f]) => f) });
+  for (const failure of producerVerdict.failures) stderr.write(`  ${failure}\n`);
+  if (!producerVerdict.ok) return 1;
+  stdout.write(`  ${AUDIT_PRODUCER_RULE_LABEL}: the functions naming an audit table are exactly the ${AUDIT_PRODUCERS.length} pinned producers (${AUDIT_PRODUCERS.join(', ')}) and the 0 pinned readers, `
+    + 'each producer in its SECURITY DEFINER shape; nothing names or depends on a producer, no dynamic SQL, no opaque language, no trigger, rule, view or stored expression reaches one, no extension but '
+    + `the approved and no foreign data; and only the two lifecycle functions name app.workspaces among app_command's (self-test: decided each of its ${producerVerdict.decided} drifts and controls; clean again after every drift)\n`);
+  return 0;
+}
+
 async function runLive(target) {
   const { script, testHostRefusal } = await import('./psql-driver.mjs');
 
@@ -3958,7 +4021,7 @@ async function runLive(target) {
     for (const failure of verdict.failures) stderr.write(`  post-migrate pass: ${failure}\n`);
     if (!verdict.ok) return 1;
     stdout.write(`  post-migrate pass: ${verdict.summary}\n`);
-    return 0;
+    return auditProducerRuleStep();
   }
 
   if (target === 'migrate-upgrade') {

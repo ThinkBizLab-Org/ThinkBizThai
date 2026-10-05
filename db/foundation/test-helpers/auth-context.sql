@@ -107,6 +107,93 @@ begin
 end;
 $$;
 
+-- BATCH 141 (migration 172; RFC-2026-023 §6, RFC-2026-026 §8.2). Four identities the command path needs, each
+-- the claim shape a case is about and nothing more.
+--
+-- An authenticated end user after STEP-UP. RFC-2026-023 Q-023-5: the closing command refuses unless the claims
+-- carry the authentication level the server tier sets after a step-up, which on Supabase is `aal` = `aal2`. What
+-- the platform actually sets is NOT measured; this helper asserts the shape the RFC specifies, locally.
+create or replace function private.as_stepped_up_user(subject uuid)
+returns void
+language plpgsql
+as $$
+begin
+  if subject is null then
+    raise exception 'as_stepped_up_user(null) would be a step-up with nobody to have stepped up';
+  end if;
+  perform set_config('request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', subject::text, 'aal', 'aal2')::text, true);
+  perform set_config('role', 'authenticated', true);
+  if current_setting('role', true) is distinct from 'authenticated' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
+end;
+$$;
+
+-- `authenticated` with a claim set that names NO subject: the "no claims at all" case of RFC-2026-023 §6 and
+-- RFC-2026-026 §8.2/10, on the request path. It exists because a command must refuse it, not because any real
+-- session should look like it; as_user(null) still refuses, for the reason given there.
+create or replace function private.as_user_without_subject()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+  perform set_config('role', 'authenticated', true);
+  if current_setting('role', true) is distinct from 'authenticated' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
+end;
+$$;
+
+-- The command path's own role with a user's claims: what the body of a SECURITY DEFINER function owned by
+-- app_command runs as, with the session's claims unchanged (RFC-2026-023 §3.1). A case assumes it to ask the
+-- acting-user helpers and the audit producer's policy a question DIRECTLY -- the stub RFC-2026-026 §8.2/9 asks
+-- for, without a stub function the SECURITY DEFINER pin would have to admit (Q-023-7). Never a role that
+-- bypasses row level security: app_command holds no BYPASSRLS (RFC-2026-017 §3).
+create or replace function private.as_command(subject uuid)
+returns void
+language plpgsql
+as $$
+begin
+  if subject is null then
+    raise exception 'as_command(null): use as_command_without_subject, which says so';
+  end if;
+  perform set_config('request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', subject::text)::text, true);
+  perform set_config('role', 'app_command', true);
+  if current_setting('role', true) is distinct from 'app_command' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
+end;
+$$;
+
+-- app_command with no subject in the claims: RFC-2026-026 §8.2/10 at the policy.
+create or replace function private.as_command_without_subject()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+  perform set_config('role', 'app_command', true);
+  if current_setting('role', true) is distinct from 'app_command' then
+    raise exception 'SET LOCAL role did not take effect'
+      using hint = 'SET LOCAL outside a transaction block is a no-op, so the identity was never assumed and the '
+                   'test would have run as whatever identity the connection already had.';
+  end if;
+end;
+$$;
+
+revoke all on function private.as_stepped_up_user(uuid) from public;
+revoke all on function private.as_user_without_subject() from public;
+revoke all on function private.as_command(uuid) from public;
+revoke all on function private.as_command_without_subject() from public;
 revoke all on function private.as_anonymous() from public;
 revoke all on function private.as_user(uuid) from public;
 revoke all on function private.as_suspended_user(uuid) from public;

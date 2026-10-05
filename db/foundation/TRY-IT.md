@@ -23,7 +23,7 @@ cd /Users/bank/ThinkBizThai
 ```
 
 - `up` takes about ten seconds and ends with `[6/6] ready` and the next commands to paste.
-- `demo` ends with `All 15 steps behaved as expected.` when everything held.
+- `demo` ends with `All 17 steps behaved as expected.` when everything held.
 - `psql` only prints a line to paste (and five lines to paste after it); it runs nothing itself.
 - `down` stops the database and deletes its directory. Run it when you are done.
 
@@ -103,7 +103,7 @@ Every step prints the same lines:
    result:   as expected | NOT AS EXPECTED -- <what differed>
 ```
 
-The seven parts of the tour:
+The eight parts of the tour:
 
 1. **What each person can see.** Counts of workspaces, businesses and content items as the owner of A, the
    editor, the viewer and the owner of B. The database holds 2 workspaces, 5 businesses and 5 content
@@ -126,12 +126,21 @@ The seven parts of the tour:
    transaction the database owner moves workspace A to `access_blocked` (no client can, since batch 170).
    Its owner, who a moment earlier read rows of A in every one of 39 tables, now reads none; a control step
    shows the owner still sees its own membership row, so an app can say "your workspace is closed".
+8. **The owner closes and reopens a workspace through the command, and it leaves an audit row** (batch
+   141, migration 172; RFC-2026-023 and RFC-2026-026). Owner A, after step-up, calls
+   `app.close_workspace`: it returns `succeeded`, and three `then, as the database owner` lines read back what
+   no client can read -- workspace A is now `closing`, and exactly one audit row exists for the call:
+   `succeeded`, by owner A, in workspace A, with no business or page. The second step cancels the closing
+   with `app.cancel_workspace_closing` (A moved to `closing` first by the database owner): A is `active`
+   again and the cancel left its own row. Without step-up the close is refused and recorded as `denied`
+   (that case is in the suite, not in the tour). The step-up claim is the shape RFC-2026-023 specifies
+   (`aal` = `aal2`); what the platform really sets is not measured here.
 
 The refusals are cases taken from the isolation suite CI runs (`tests/db/identity/isolation-cases.mjs`),
 run through the same runner, so the demo can never disagree with the suite about what they mean. Every step
 runs in its own transaction and is rolled back, so you can run the demo as often as you like.
 
-If the last line reads `All 15 steps behaved as expected.`, everything held and the command exits 0. If any
+If the last line reads `All 17 steps behaved as expected.`, everything held and the command exits 0. If any
 step prints `NOT AS EXPECTED`, the command ends with `DEMO FAILED`, lists the steps, and exits 1.
 
 ## Poking at it yourself

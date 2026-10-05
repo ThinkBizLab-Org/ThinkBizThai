@@ -86,8 +86,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // coverage map, the store's reading of CTR-AUD-001 and its fixtures -- 73 to 77. Batch 160's preparation
 // (2026-10-03, no migration): the retention map, the §11.1 export manifest fixture and the §11.4 purge order,
 // three tests: 77 to 80. The sql-lexer batch (2026-10-04, no migration): one test, the one lexer's golden corpus,
-// fail-closed refusals and measured statement split: 80 to 81.
-  'test-kits/db/foundation-contract.test.mjs': 81,
+// fail-closed refusals and measured statement split: 80 to 81. Batch 141 (2026-10-05, migration 172): one test,
+// the closing command's succeeded row tied to its CTR-AUD-001 conformance fixture: 81 to 82.
+  'test-kits/db/foundation-contract.test.mjs': 82,
   'test-kits/db/rls-assertions.test.mjs': 20,
 // Batch 121 moved both floors for tests/db/identity/identity-isolation.test.mjs 
 // -- 296 to 301 tests and 2101 to 2130 assertions -- and the assertion half moved only
@@ -100,7 +101,9 @@ export const DECLARED_TEST_FLOOR_BY_FILE = {
 // corrections: 303 to 304 tests and 2144 to 2150 assertions, the static hold on its two CI control
 // entries (C0's review of 091, F11), the guard's own counts. Batch 127: 304 to 305 tests and 2152 to
 // 2166 assertions, the hold on its created_by-alone family (A1 F5 on 123), the guard's own counts.
-  'tests/db/identity/identity-isolation.test.mjs': 305,
+// Batch 141 (migration 172): 305 to 307 tests, the `after` read-back's static shape and runAfter executed with a fake
+// driver, the guard's own counts.
+  'tests/db/identity/identity-isolation.test.mjs': 307,
   'test-kits/contracts/ctr-evt-001-schema-ref-bounds.test.mjs': 8,
   'test-kits/contracts/ctr-job-001-reference-hardening.test.mjs': 6,
   'test-kits/contracts/schema-mutation-coverage.test.mjs': 10,
@@ -305,9 +308,9 @@ export const DECLARED_ASSERTION_FLOOR_BY_FILE = {
 // edit here; deleting one and adding another is too. It is the same lesson as everywhere else in
 // this repository -- a name cannot be paid for with a count -- arriving one level further down.
 export const TEST_NAME_DIGEST_BY_FILE = {
-  'test-kits/db/foundation-contract.test.mjs': '1442ddffee8e0203',
+  'test-kits/db/foundation-contract.test.mjs': '9493dc7066b86d36',
   'test-kits/db/rls-assertions.test.mjs': '04e93ef6577ba5ce',
-  'tests/db/identity/identity-isolation.test.mjs': '1f31de81782c9104',
+  'tests/db/identity/identity-isolation.test.mjs': '25aa50b576c0925b',
   'test-kits/branch-identity.test.mjs': '6df89e2083dc2641',
   'test-kits/branch-scope.test.mjs': '22516800c49b414b',
   'test-kits/capability-profile.test.mjs': 'd018e82c3f24965c',

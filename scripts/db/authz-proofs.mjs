@@ -57,7 +57,7 @@ import { argv, exit, stdout, stderr } from 'node:process';
 import { query, queryFinal, connectionString } from './psql-driver.mjs';
 import {
   AUTHZ_IDENTITY_SQL, AUTHZ_MIGRATION, AUTHZ_POLICY, AUTHZ_POLICY_QUAL, AUTHZ_ROLE, AUTHZ_TABLE,
-  AUTHZ_WORKSPACES_POLICY, AUTHZ_WORKSPACES_POLICY_QUAL, AUTHZ_WORKSPACES_TABLE,
+  AUTHZ_WORKSPACES_POLICY, AUTHZ_WORKSPACES_POLICY_QUAL, AUTHZ_WORKSPACES_TABLE, AUTHZ_SCOPES_POLICY_QUAL,
   authzLint,
 } from './run.mjs';
 import { fixtureResolver } from '../../tests/db/identity/run-isolation.mjs';
@@ -73,6 +73,11 @@ const OWNER_A = 'user_owner_a';
 const SUSPENDED_A = 'user_suspended_a';
 const OWNER_B = 'user_owner_b';
 const WORKSPACE_A = 'workspace_a';
+// Batch 141: the identities and rows the acting-user and closing-command proofs read, by fixture symbol.
+const PAGE_EDITOR_A = 'user_page_editor_a';
+const BUSINESS_A1 = 'business_a1';
+const PAGE_A1 = 'page_a1';
+const PAGE_A1_SIBLING = 'page_a1_sibling';
 
 const asAuthenticated = (subject) => [
   'set local role authenticated;',
@@ -618,6 +623,196 @@ export async function proveTheLifecycleGate(run, ids) {
   return p;
 }
 
+// -------------------------------------------------------------------------------------------
+// BATCH 141 (migration 172): RFC-2026-023 §6's negative controls and RFC-2026-026 §8.2/7, /14 and /16, executed.
+// -------------------------------------------------------------------------------------------
+//
+// The isolation cases (tests/db/identity/isolation-cases.mjs, the batch 141 section) hold what the shipped objects
+// do. These hold that the cases would NOTICE if an object stopped doing it: each changes one object inside its own
+// rolled-back transaction, as the connection role, and asserts that the claim the case rests on goes the other way.
+//
+// The acting-user narrowing (RFC-2026-023 §6), asked as app_command with a user's claims:
+//   scope    with app_authz's policy on app.workspace_member_scopes dropped, the page editor's sibling page is
+//            ADMITTED (the helper reads no scope row and answers "not narrowed") -- §0/7(b)'s failure, red;
+//   column   with scope_type withheld from app_authz, the helper raises 42501 at first call (Q0-R7);
+//   gate     in each of the six blocked states the shipped helper refuses the owner, and a helper rewritten to
+//            repeat 011's join without the lifecycle conjunct admits them -- the inheritance is what refuses.
+// The closing command (RFC-2026-026 §8.2), one call as `authenticated` with the owner's claims, read back as the
+// connection role (the call's outcome or SQLSTATE, the workspace's state, the audit rows for its request):
+//   /14      with audit_logs_insert_command dropped, neither the succeeded nor the denied call can complete;
+//   arm      with workspaces_update_command_owner dropped, the close FAILS and records it, and the state stays;
+//   Q0-RC1   with workspaces_select_command_owner dropped, the close never reports success and changes nothing;
+//   /7       with a CHECK the succeeded row violates, the call raises (23514) and the change is absent;
+//   /16      with a restrictive `with check (outcome <> 'succeeded')` for app_command, the succeeded call RAISES
+//            42501 (it is not swallowed as a denial) and leaves no row; the control, a refused call under the same
+//            injection, returns denied with exactly one denied row; and the self-test, a copy of the command whose
+//            succeeded INSERT sits inside a handler catching insufficient_privilege, RETURNS denied with a denied
+//            row under the same injection -- so the case tells the two functions apart.
+const PROOF_REQUEST = 'batch-141-proof';
+const claimsOf = (subject, aal) => JSON.stringify({ role: 'authenticated', sub: subject, ...(aal ? { aal } : {}) });
+const asCommand = (subject) => [
+  'set local role app_command;',
+  `select set_config('request.jwt.claims', '${claimsOf(subject)}', true) as claims;`,
+];
+
+// One call of a command function as `authenticated`, after `setup` (as the connection role), in one transaction
+// that is rolled back. Returns { call, state, audit } read back as the connection role, or { error }.
+export async function commandProbe(run, { setup = [], subject, aal, fn = 'close_workspace', workspace }) {
+  const out = await run({
+    prelude: ['begin;', ...setup, 'create temp table __proof_141 (k text, v text) on commit drop;',
+      `do $do$
+declare
+  r   record;
+  got text;
+begin
+  perform pg_catalog.set_config('request.jwt.claims', '${claimsOf(subject, aal)}', true);
+  perform pg_catalog.set_config('role', 'authenticated', true);
+  begin
+    select * into r from app.${fn}('${workspace}'::uuid, '${PROOF_REQUEST}', '${PROOF_REQUEST}-correlation');
+    got := 'returned ' || coalesce(r.outcome, 'null') || ' ' || coalesce(r.error_code, '-');
+  exception when others then
+    got := 'raised ' || sqlstate;
+  end;
+  perform pg_catalog.set_config('role', 'none', true);
+  insert into __proof_141 values ('call', got);
+  insert into __proof_141 select 'state', w.lifecycle_state from app.workspaces w where w.id = '${workspace}';
+  insert into __proof_141 select 'audit', coalesce(string_agg(a.outcome || ':' || coalesce(a.error_code, '-'), ',' order by a.outcome), '')
+    from app.audit_logs a where a.request_id = '${PROOF_REQUEST}';
+end
+$do$;`],
+    statement: 'select k, v from __proof_141 order by k;',
+    epilogue: ['rollback;'],
+  });
+  if (out.error) return { error: out.error };
+  const seen = Object.fromEntries(out.rows.map((r) => [r.k, r.v]));
+  return { call: seen.call ?? '', state: seen.state ?? '', audit: seen.audit ?? '' };
+}
+
+export const WRONG_CLOSE_WORKSPACE = `create or replace function app.close_workspace(
+  workspace uuid, request_id text, correlation_id text,
+  out outcome text, out error_code text, out lifecycle_state text)
+language plpgsql volatile security definer set search_path = '' as $fn$
+declare
+  acting  uuid := app.jwt_subject();
+  changed uuid;
+begin
+  begin
+    update app.workspaces as w set lifecycle_state = 'closing', updated_by = acting
+     where w.id = workspace and w.lifecycle_state = 'active' returning w.id into changed;
+    insert into app.audit_logs (workspace_id, occurred_at, actor_kind, actor_id, action_category, action_name, outcome,
+      reason_key, request_id, correlation_id, change_before_ref, error_code, secret_redacted, content_redacted, pii_redacted,
+      retention_policy_ref)
+    values (changed, now(), 'user', acting::text, 'delete', 'workspace.lifecycle.close', 'succeeded',
+      'audit.workspace.closing_started', request_id, correlation_id, 'record:app.workspaces/proof', null, true, true, true,
+      'retention.audit');
+    outcome := 'succeeded'; lifecycle_state := 'closing';
+  exception when insufficient_privilege then
+    insert into app.audit_logs (workspace_id, occurred_at, actor_kind, actor_id, action_category, action_name, outcome,
+      reason_key, request_id, correlation_id, change_before_ref, error_code, secret_redacted, content_redacted, pii_redacted,
+      retention_policy_ref)
+    values (workspace, now(), 'user', acting::text, 'delete', 'workspace.lifecycle.close', 'denied',
+      'audit.workspace.close_refused', request_id, correlation_id, 'record:app.workspaces/proof',
+      'workspace.lifecycle.not_permitted', true, true, true, 'retention.audit');
+    outcome := 'denied'; error_code := 'workspace.lifecycle.not_permitted';
+  end;
+end
+$fn$;
+alter function app.close_workspace(uuid, text, text) owner to app_command;`;
+
+export const HELPER_WITHOUT_THE_GATE = `create or replace function app.acting_user_admits_business(workspace uuid, business uuid)
+returns boolean language sql stable security definer set search_path = '' as $fn$
+  select exists (select 1 from app.workspace_members m
+                  where m.workspace_id = workspace and m.user_id = app.jwt_subject() and m.status = 'active')
+     and (not exists (select 1 from app.workspace_member_scopes s
+                       where s.workspace_id = workspace and s.user_id = app.jwt_subject())
+          or exists (select 1 from app.workspace_member_scopes s
+                      where s.workspace_id = workspace and s.user_id = app.jwt_subject()
+                        and (s.scope_type = 'all_businesses' or s.business_profile_id = business)))
+$fn$;
+alter function app.acting_user_admits_business(uuid, uuid) owner to ${AUTHZ_ROLE};`;
+
+export async function proveTheActingUserNarrowing(run, ids) {
+  const p = proof('acting-user-helpers-are-narrowed-and-gated', 'RFC-2026-023 §6, §0/7, Q-023-2');
+  const lines = [];
+  const problems = [];
+  const ask = async (setup, subject, expression) => run({
+    prelude: ['begin;', ...setup, ...asCommand(subject)],
+    statement: `select (${expression})::text as v;`,
+    epilogue: ['rollback;'],
+  });
+  const shown = (out) => (out.error ? `error ${out.error.code}` : String(out.rows[0]?.v));
+  const sibling = `app.acting_user_admits_page('${ids.workspace}'::uuid, '${ids.businessA1}'::uuid, '${ids.pageA1Sibling}'::uuid)`;
+  const own = `app.acting_user_admits_page('${ids.workspace}'::uuid, '${ids.businessA1}'::uuid, '${ids.pageA1}'::uuid)`;
+  const business = `app.acting_user_admits_business('${ids.workspace}'::uuid, '${ids.businessA1}'::uuid)`;
+
+  const base = await ask([], ids.pageEditor, `${own} and not ${sibling}`);
+  lines.push(`baseline     page editor: own page admitted and sibling refused: ${shown(base)} (want true)`);
+  if (shown(base) !== 'true') problems.push(`the page editor is not admitted to its page and refused its sibling (${shown(base)}); every control below is vacuous`);
+
+  const noPolicy = await ask(['drop policy workspace_member_scopes_select_authz_own on app.workspace_member_scopes;'], ids.pageEditor, sibling);
+  lines.push(`scope        app_authz's scope policy dropped, sibling page: ${shown(noPolicy)} (want true: the vacuous shape)`);
+  if (shown(noPolicy) !== 'true') problems.push(`with app_authz's policy on workspace_member_scopes dropped the sibling page reads ${shown(noPolicy)}; the policy is not what the narrowing rests on`);
+
+  const noColumn = await ask([`revoke select (scope_type) on app.workspace_member_scopes from ${AUTHZ_ROLE};`], ids.pageEditor, sibling);
+  lines.push(`column       scope_type withheld from ${AUTHZ_ROLE}: ${shown(noColumn)} (want error 42501)`);
+  if (!noColumn.error || noColumn.error.code !== '42501') problems.push(`with scope_type withheld the helper did not raise 42501 (${shown(noColumn)}); the five-column grant is not held by execution`);
+
+  for (const state of LIFECYCLE_BLOCKED) {
+    const shipped = await ask([moveWorkspace(ids.workspace, state)], ids.owner, business);
+    const ungated = await ask([moveWorkspace(ids.workspace, state), HELPER_WITHOUT_THE_GATE], ids.owner, business);
+    lines.push(`gate         A ${state.padEnd(14)}: shipped helper ${shown(shipped)} (want false); 011's join without the conjunct ${shown(ungated)} (want true)`);
+    if (shown(shipped) !== 'false') problems.push(`the shipped helper admits the owner of a ${state} workspace (${shown(shipped)})`);
+    if (shown(ungated) !== 'true') problems.push(`a helper repeating 011's join without the lifecycle conjunct refuses the owner of a ${state} workspace too (${shown(ungated)}); the gate's case would not notice its loss`);
+  }
+  p.transcript = lines.join('\n');
+  if (problems.length > 0) { p.detail = problems.join('; '); return p; }
+  p.ok = true;
+  p.detail = 'the scope half rests on app_authz\'s policy (dropped: the sibling page is admitted) and on the scope_type '
+    + 'column (withheld: 42501 at first call); the admitted-state gate is inherited through app.is_active_member (a '
+    + 'helper repeating 011\'s join admits the owner of each blocked workspace, the shipped one refuses).';
+  return p;
+}
+
+export async function proveTheClosingCommand(run, ids) {
+  const p = proof('closing-command-writes-its-audit-row-or-nothing', 'RFC-2026-026 §8.2/7, /14, /16; RFC-2026-023 §8, Q0-RC1');
+  const lines = [];
+  const problems = [];
+  const probe = (label, setup, aal, want) => ({ label, setup, aal, want });
+  const RESTRICT = "create policy __proof_refuse_succeeded on app.audit_logs as restrictive for insert to app_command with check (outcome <> 'succeeded');";
+  const checks = [
+    probe('baseline, stepped up', [], 'aal2', { call: 'returned succeeded -', state: 'closing', audit: 'succeeded:-' }),
+    probe('baseline, no step-up', [], null, { call: 'returned denied workspace.lifecycle.step_up_required', state: 'active', audit: 'denied:workspace.lifecycle.step_up_required' }),
+    probe('/14 producer policy dropped, stepped up', ['drop policy audit_logs_insert_command on app.audit_logs;'], 'aal2', { call: 'raised 42501', state: 'active', audit: '' }),
+    probe('/14 producer policy dropped, no step-up', ['drop policy audit_logs_insert_command on app.audit_logs;'], null, { call: 'raised 42501', state: 'active', audit: '' }),
+    probe('arm: UPDATE policy dropped', ['drop policy workspaces_update_command_owner on app.workspaces;'], 'aal2', { call: 'returned failed workspace.lifecycle.write_failed', state: 'active', audit: 'failed:workspace.lifecycle.write_failed' }),
+    probe('Q0-RC1: SELECT path dropped', ['drop policy workspaces_select_command_owner on app.workspaces;'], 'aal2', { call: 'returned denied workspace.lifecycle.not_active', state: 'active', audit: 'denied:workspace.lifecycle.not_active' }),
+    probe('/7 a CHECK the succeeded row violates', ["alter table app.audit_logs add constraint __proof_refuse_succeeded check (outcome <> 'succeeded') not valid;"], 'aal2', { call: 'raised 23514', state: 'active', audit: '' }),
+    probe('/16 restrictive injection, stepped up', [RESTRICT], 'aal2', { call: 'raised 42501', state: 'active', audit: '' }),
+    probe('/16 control: same injection, no step-up', [RESTRICT], null, { call: 'returned denied workspace.lifecycle.step_up_required', state: 'active', audit: 'denied:workspace.lifecycle.step_up_required' }),
+    probe('/16 self-test: the wrong function under the injection', [RESTRICT, WRONG_CLOSE_WORKSPACE], 'aal2', { call: 'returned denied workspace.lifecycle.not_permitted', state: 'active', audit: 'denied:workspace.lifecycle.not_permitted' }),
+  ];
+  for (const c of checks) {
+    const seen = await commandProbe(run, { setup: c.setup, subject: ids.owner, aal: c.aal, workspace: ids.workspace });
+    if (seen.error) {
+      lines.push(`${c.label.padEnd(52)}: probe error ${seen.error.code}: ${seen.error.message}`);
+      problems.push(`${c.label}: the probe itself failed (${seen.error.code}: ${seen.error.message})`);
+      continue;
+    }
+    lines.push(`${c.label.padEnd(52)}: ${seen.call}; state ${seen.state}; audit [${seen.audit}]`);
+    for (const k of ['call', 'state', 'audit']) {
+      if (seen[k] !== c.want[k]) problems.push(`${c.label}: ${k} is ${JSON.stringify(seen[k])} and should be ${JSON.stringify(c.want[k])}`);
+    }
+  }
+  p.transcript = lines.join('\n');
+  if (problems.length > 0) { p.detail = problems.join('; '); return p; }
+  p.ok = true;
+  p.detail = 'the close writes its succeeded row in its own transaction or nothing happens (the producer policy dropped '
+    + 'or a CHECK violated: the call raises and the state stays active); a refused audit write is never recorded as the '
+    + 'user\'s denial (case 16, its control, and its self-test with the wrong function, which returns denied instead of '
+    + 'raising); without its UPDATE policy the close records a failure, and without its SELECT path it never reports success.';
+  return p;
+}
+
 export async function runProofs(run, runOne, ids, expectedRoster) {
   const results = [
     await proveCycleExists(run, ids),
@@ -626,6 +821,8 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     await proveTheHelperAnswersOnlyForTheCaller(run, ids),
     await proveExecuteGrants(runOne),
     await proveTheLifecycleGate(run, ids),
+    await proveTheActingUserNarrowing(run, ids),
+    await proveTheClosingCommand(run, ids),
   ];
 
   const measured = await measureAuthzCatalog(runOne);
@@ -639,7 +836,7 @@ export async function runProofs(run, runOne, ids, expectedRoster) {
     p.ok = problems.length === 0;
     p.detail = problems.length === 0
       ? `every rule RFC-2026-020 §6.1/1-6 states holds against the database ${AUTHZ_MIGRATION} was just applied `
-        + `to, including both pinned policy expressions:\n         ${AUTHZ_POLICY_QUAL}\n         ${AUTHZ_WORKSPACES_POLICY_QUAL}`
+        + `to, including all three pinned policy expressions:\n         ${AUTHZ_POLICY_QUAL}\n         ${AUTHZ_WORKSPACES_POLICY_QUAL}\n         ${AUTHZ_SCOPES_POLICY_QUAL}`
       : problems.join('\n         ');
   }
   results.push(p);
@@ -667,6 +864,10 @@ export async function main(run = queryFinal, runOne = query) {
     suspended: resolve(SUSPENDED_A),
     ownerB: resolve(OWNER_B),
     workspace: resolve(WORKSPACE_A),
+    pageEditor: resolve(PAGE_EDITOR_A),
+    businessA1: resolve(BUSINESS_A1),
+    pageA1: resolve(PAGE_A1),
+    pageA1Sibling: resolve(PAGE_A1_SIBLING),
   };
 
   // How many members workspace A actually has, asked of the database as the connection role rather

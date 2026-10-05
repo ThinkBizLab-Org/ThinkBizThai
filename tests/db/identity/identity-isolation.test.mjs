@@ -153,10 +153,13 @@ test('a case that names the layer refusing it also names the object refused', ()
       + 'is what `permission denied for schema private` satisfies, and that is the harness failing rather '
       + 'than the object under test being refused.');
     const { kind, name } = testCase.deniedOn;
-    assert.ok(['table', 'schema'].includes(kind), `${testCase.id}: unknown deniedOn kind '${kind}'`);
+    // Batch 141 (migration 172): a FUNCTION is an object a case may be refused on -- EXECUTE on a command function is
+    // authenticated's alone (RFC-2026-026 §8.1/6), and on the acting-user helpers app_command's (RFC-2026-023 §3.2).
+    assert.ok(['table', 'schema', 'function'].includes(kind), `${testCase.id}: unknown deniedOn kind '${kind}'`);
     // The declared object must be one the case's own statement reaches. A case cannot claim a
     // refusal on something it never touches.
-    const named = kind === 'table' ? new RegExp(`\\bapp\\.${name}\\b`) : new RegExp(`\\b${name}\\.`);
+    const named = kind === 'table' ? new RegExp(`\\bapp\\.${name}\\b`)
+      : kind === 'function' ? new RegExp(`\\bapp\\.${name}\\(`) : new RegExp(`\\b${name}\\.`);
     assert.match(testCase.sql, named,
       `${testCase.id}: declares deniedOn ${kind} '${name}', which its own statement never names`);
     // `private` WAS FORBIDDEN OUTRIGHT AS A DECLARED OBJECT, AND THE RULE IS NARROWED RATHER THAN
@@ -611,6 +614,56 @@ test('assuming an identity is transaction-scoped and its failure is never read a
     + "anonymous's name");
 });
 
+// BATCH 141 (migration 172): `after` -- reads run as the connection role once a command case's own assertion has
+// passed (run-isolation.mjs, runAfter). Statically: only on a `rows` or `no-rows` case (a raise aborts the
+// transaction, so nothing could be read after a `denied` one); every read a SELECT; every `rows` read pins a value.
+test('a command case reads back what the command did, as the connection role, and only after a statement that returned', () => {
+  const withAfter = cases.filter((c) => c.after);
+  assert.ok(withAfter.length >= 10, 'the closing command\'s cases read back its state and its audit row');
+  for (const c of withAfter) {
+    assert.ok(['rows', 'no-rows'].includes(c.expect), `${c.id}: \`after\` follows a statement that returned, never a refusal`);
+    assert.ok(Array.isArray(c.after) && c.after.length > 0, `${c.id}: after is a non-empty list`);
+    for (const read of c.after) {
+      assert.match(read.sql, /^select\b/i, `${c.id}: an after read is a read`);
+      assert.ok(['rows', 'no-rows'].includes(read.expect), `${c.id}: an after read expects rows or no rows`);
+      if (read.expect === 'rows') assert.ok(read.column && read.equals !== undefined, `${c.id}: an after read pins a VALUE, not merely a row`);
+    }
+  }
+  // Every command case that says it SUCCEEDED or was DENIED in a workspace it belongs to reads its audit row back.
+  for (const c of withAfter.filter((x) => /app\.(close_workspace|cancel_workspace_closing)/.test(x.sql))) {
+    assert.ok(c.after.some((r) => /from app\.audit_logs where request_id = \$1/.test(r.sql)), `${c.id}: reads the audit rows of its request`);
+    assert.ok(c.after.some((r) => /from app\.workspaces where id = \$1/.test(r.sql)), `${c.id}: reads the workspace's state`);
+  }
+});
+
+test('runAfter fails a case whose command did not leave what it says, and passes one that did', async () => {
+  const { runCases } = await import('./run-isolation.mjs');
+  const one = [{
+    id: 'after-probe', covers: [], as: { helper: 'as_user', subject: '00000000-0000-5000-8000-000000000000' },
+    sql: 'select 1 as x', params: [], expect: 'rows',
+    after: [{ sql: 'select lifecycle_state from app.workspaces where id = $1', params: ['w'], expect: 'rows', column: 'lifecycle_state', equals: 'closing' }],
+  }];
+  const driver = (state) => {
+    let role = 'none';
+    return {
+      async begin() { role = 'none'; }, async rollback() {},
+      async exec(sql) {
+        if (/^\s*reset role/i.test(sql)) { role = 'none'; return { rows: [] }; }
+        if (/private\.as_user/.test(sql)) { role = 'authenticated'; return { rows: [{}] }; }
+        if (/current_setting\('role'/.test(sql)) return { rows: [{ role }] };
+        if (/lifecycle_state/.test(sql)) return { rows: [{ lifecycle_state: state }] };
+        return { rows: [{ x: 1 }] };
+      },
+    };
+  };
+  const held = await runCases(one, driver('closing'));
+  assert.equal(held.failed.length, 0, `the read-back matches: ${JSON.stringify(held.failed)}`);
+  const moved = await runCases(one, driver('active'));
+  assert.equal(moved.failed.length, 1, 'a command that did not move the state fails its case');
+  assert.equal(moved.failed[0].phase, 'after');
+  assert.match(moved.failed[0].detail, /lifecycle_state is "active" and the case demands "closing"/);
+});
+
 // The test that makes every test above worth something.
 test('the suite FAILS against a database where row level security does nothing', async () => {
   // A fake that behaves the way an unprotected database behaves: every read returns the row, every
@@ -652,9 +705,10 @@ test('the suite FAILS against a database where row level security does nothing',
   const failedIds = new Set(report.failed.map((f) => f.id));
   // Every failure must be an ASSERTION failure. A case that fell over while assuming its identity
   // proves nothing about policies, and this test would still be green on a suite that never
-  // reached a single assertion.
+  // reached a single assertion. Batch 141: a command case's `after` reads ARE its assertion about
+  // what the command did, read as the connection role (run-isolation.mjs, runAfter), so 'after' counts.
   for (const failure of report.failed) {
-    assert.equal(failure.phase, 'assert', `${failure.id} failed at ${failure.phase}, not at its `
+    assert.ok(['assert', 'after'].includes(failure.phase), `${failure.id} failed at ${failure.phase}, not at its `
       + `assertion: ${failure.detail}`);
   }
   assert.ok(failedIds.has('service-identity-is-denied-a-write-with-an-error'),
@@ -671,9 +725,13 @@ test('the suite FAILS against a database where row level security does nothing',
 
   // The positive cases must still PASS against a permissive database. If they failed too, the
   // suite would be failing for the wrong reason and the test above would prove nothing.
+  // Batch 141: a positive that carries `after` reads makes a claim about what a COMMAND did (the state it moved, the
+  // audit row it wrote), which a database that answers every read with the same row cannot satisfy; it may fail
+  // there, at `after` and nowhere earlier. Every other positive must pass.
+  const withAfter = new Set(cases.filter((c) => c.after).map((c) => c.id));
   const positives = report.results.filter((r) => r.expect === 'rows');
   assert.ok(positives.length >= 4);
-  assert.deepEqual(positives.filter((r) => !r.ok), [],
+  assert.deepEqual(positives.filter((r) => !r.ok && !(withAfter.has(r.id) && r.phase === 'after')), [],
     'the positive half of every visibility rule passes on a permissive database, which is exactly '
     + 'why a suite of positives alone proves nothing');
 });
