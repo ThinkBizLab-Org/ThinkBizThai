@@ -121,7 +121,7 @@ Nothing that reaches a tenant, the audit log or a lifecycle state. Two residuals
 
 - **Where:** `172:259`, `:354`; `work-packages/WP-0A-DB-00.json` `open_blockers[200]` (11); disposition §4 D9.
 - **Measured:** B4 — the editor at `aal1` committed **1000** `denied` rows in one transaction with 128-character
-  identifiers. B1 — `0812345678` and `1234567890123` (a phone number and a national-ID shape) are admitted and would
+  identifiers. B1 — a ten-digit string in Thai mobile-number shape and a thirteen-digit string in national-ID shape (the literal values are redacted here by A0 on 2026-10-05: the repository's secret scan refuses a phone-number pattern even when synthetic) are admitted and would
   be stored in a row flagged `pii_redacted = true`.
 - **Reading:** the per-row size is now bounded (~256 characters of an id alphabet) and free text, e-mail and spaced
   numbers are refused, which is what F1 asked of the command. What is left is volume and a digit string: both are
