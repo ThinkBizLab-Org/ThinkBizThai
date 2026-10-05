@@ -5,10 +5,15 @@
   "agent_run_id": "/claude/a0_atlas",
   "final_status": "author_complete",
   "base_revision": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
-  "head_revision_or_patch_checksum": "8c089cc0bf30a234efa61752c6054d670f85a2a8",
+  "head_revision_or_patch_checksum": "d9b9037421d7efc5e1fcb3c3325852be3838c5df",
   "task_ids": [],
-  "files_added": [],
-  "files_modified": [],
+  "files_added": [
+    "evidence/WP-0A-A0-003/author-reverify-2026-10-06.md"
+  ],
+  "files_modified": [
+    "handoffs/WP-0A-A0-003-author-handoff.json",
+    "work-packages/WP-0A-A0-003.json"
+  ],
   "files_deleted": [],
   "decisions_consumed": [
     "DEC-021",
@@ -128,7 +133,7 @@
     {
       "command": "npm run check (this branch, via node scripts/commit-when-clean.mjs)",
       "exit_code": 0,
-      "result": "see the final npm run check below",
+      "result": "clean: exit 0, tests 692, pass 692, fail 0, skipped 0, todo 0 (verifier run of commit d9b9037)",
       "toolchain": "node v24.20.0 / npm 11.19.0"
     },
     {
